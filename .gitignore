@@ -1,4 +1,6 @@
 .DS_Store
 node_modules/
 test/
-improvement_logs.txt
+future_improvement.txt
+CLAUDE.md
+.claude/

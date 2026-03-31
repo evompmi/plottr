@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Browser-only data visualization toolbox for plant scientists. No server, no build step, no tracking. Deployed as static files via GitHub Pages. All data stays in the user's browser.
 
-Tech stack: React 18 + Babel Standalone (runtime JSX compilation), all vendored in `/vendor/`. Tools render SVG charts from pasted CSV/TSV data.
+Tech stack: React 18 (vendored in `/vendor/`) + esbuild (build-time JSX compilation). Tools render SVG charts from pasted CSV/TSV data.
 
 ## Running Tests
 
@@ -27,7 +27,7 @@ No test framework — custom harness in `tests/harness.js` using `suite()`, `tes
 - `tools/boxplot.html` — distribution plots with jittered points
 - `tools/scatter.html` — XY scatter with color/size mapping
 
-Each tool HTML is self-contained: loads vendored React/ReactDOM/Babel and shared scripts in `<head>`, then has a single `<script type="text/babel">` block with all tool logic as JSX.
+Each tool HTML loads vendored React/ReactDOM and shared scripts in `<head>`, then loads a compiled `.js` file. The editable source is in `tools/<tool>.jsx` — run `npm run build` to compile.
 
 ### Shared code
 - `tools/shared.js` — plain JS globals: color helpers, numeric detection, seeded random, axis tick generation, separator detection, CSV parsing, statistics, download helpers, **shared style constants** (`sec`, `inp`, `lbl`, `btnPrimary`, `btnSecondary`, `btnDanger`, `btnDownload`, `btnPlot`, `selStyle`, `sepSelect`, `roleColors`)
@@ -39,8 +39,8 @@ Each tool HTML is self-contained: loads vendored React/ReactDOM/Babel and shared
   - **Style helpers**: `BaseStyleControls`
   - **SVG legends**: `computeLegendHeight`, `renderSvgLegend`
 
-### Critical constraint: Babel Standalone scoping
-**`shared-components.js` must remain plain JS (not `type="text/babel"`).** Babel Standalone evaluates external `src` scripts inside its own closure in strict mode — function declarations don't reach global scope. Shared components loaded as `text/babel` cause "X is not defined" errors at render time. Only inline `<script type="text/babel">` blocks (inside each tool HTML) can use JSX.
+### Shared code constraint
+**`shared.js` and `shared-components.js` must remain plain JS** (`React.createElement`, not JSX). They are loaded as regular `<script>` tags in each tool HTML so their top-level declarations are available as globals to the compiled tool `.js` files. If they used JSX, they would need their own build step and careful scoping.
 
 ### Data flow
 File upload/paste -> `autoDetectSep` + `fixDecimalCommas` + `parseRaw` -> `DataPreview` table -> user assigns column roles -> `computeStats`/`quartiles` -> React SVG rendering -> SVG/CSV export
@@ -49,7 +49,7 @@ File upload/paste -> `autoDetectSep` + `fixDecimalCommas` + `parseRaw` -> `DataP
 `PALETTE` is defined in `shared.js` as the global default. Tools may override if needed.
 
 ### Tool-internal structure
-Each tool's inline `<script type="text/babel">` block follows this pattern:
+Each tool's `.jsx` source file follows this pattern:
 1. **Chart component** (e.g. `BoxplotChart`, `BarChart`, `ScatterChart`) — the SVG renderer, kept as `forwardRef`
 2. **Step sub-components** — `UploadStep`, `ConfigureStep`, `FilterStep`, `OutputStep`, `PlotControls`, `PlotArea` (where applicable)
 3. **App()** — orchestrator holding state and routing between steps
@@ -65,4 +65,9 @@ When adding new functions to `shared.js` or `shared-components.js`, export them 
 
 ## Development workflow
 
-No build step. Edit any `.html` or `.js` file and reload in browser. Babel compiles JSX at runtime in the browser. The 3 MB Babel Standalone runtime is the main cost — vendored locally for offline use.
+```bash
+npm run build          # compile tools/*.jsx → tools/*.js (one-shot)
+npm run watch          # recompile on save (~5 ms)
+```
+
+Edit `.jsx` source files, run build (or use watch mode), reload in browser. The compiled `.js` files are checked into git for static deployment via GitHub Pages. Do **not** edit the `.js` files directly.

@@ -1,6 +1,10 @@
 {
+  "private": true,
+  "scripts": {
+    "build": "esbuild tools/boxplot.jsx tools/bargraph.jsx tools/scatter.jsx tools/aequorin.jsx --outdir=tools --jsx=transform",
+    "watch": "esbuild tools/boxplot.jsx tools/bargraph.jsx tools/scatter.jsx tools/aequorin.jsx --outdir=tools --jsx=transform --watch"
+  },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
-    "@babel/preset-react": "^7.28.5"
+    "esbuild": "^0.25.0"
   }
 }
