@@ -1,4 +1,4 @@
-const { useState, useReducer, useMemo, useCallback, useRef, forwardRef } = React;
+const { useState, useReducer, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
 function detectSetFormat(headers, rows) {
   if (headers.length === 2) {
     const col0 = new Set(rows.map((r) => r[0]).filter(Boolean));
@@ -134,7 +134,9 @@ function buildRegionPaths(circles) {
         let m = 1 << i;
         for (let j = 0; j < n; j++) {
           if (j === i) continue;
-          if (isInsideCircle(circles[i].cx, circles[i].cy, circles[j])) m |= 1 << j;
+          const dx = circles[i].cx - circles[j].cx, dy = circles[i].cy - circles[j].cy;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist + circles[i].r <= circles[j].r + 1e-6) m |= 1 << j;
         }
         return m;
       })();
@@ -156,53 +158,208 @@ function buildRegionPaths(circles) {
       arcs.push({ circleIdx: i, angleFrom: a1, angleTo: a2, insideMask: mask, fromPt: p1, toPt: p2 });
     }
   }
-  const regionMap = {};
+  const allMasks = /* @__PURE__ */ new Set();
   for (const arc of arcs) {
-    const key = arc.insideMask;
-    if (!regionMap[key]) regionMap[key] = [];
-    regionMap[key].push(arc);
+    allMasks.add(arc.insideMask);
+    allMasks.add(arc.insideMask ^ 1 << arc.circleIdx);
   }
   const regions = {};
-  for (const [maskStr, regionArcs] of Object.entries(regionMap)) {
-    const mask = Number(maskStr);
-    const pathParts = [];
-    const ordered = orderArcs(regionArcs, circles);
-    for (let i = 0; i < ordered.length; i++) {
-      const arc = ordered[i];
-      const c = circles[arc.circleIdx];
-      const pts = arc.full ? arcPolyline(c.cx, c.cy, c.r, 0, 2 * Math.PI, 64) : arcPolyline(c.cx, c.cy, c.r, arc.angleFrom, arc.angleTo);
-      if (i === 0) pathParts.push(`M${pts[0].x.toFixed(2)},${pts[0].y.toFixed(2)}`);
-      const start = i === 0 ? 1 : 0;
-      for (let j = start; j < pts.length; j++) {
-        pathParts.push(`L${pts[j].x.toFixed(2)},${pts[j].y.toFixed(2)}`);
+  for (const R of allMasks) {
+    let emitArc2 = function(ba) {
+      const c = circles[ba.circleIdx], r = c.r;
+      const endX = c.cx + r * Math.cos(ba.angleTo);
+      const endY = c.cy + r * Math.sin(ba.angleTo);
+      let span = ba.angleTo - ba.angleFrom;
+      while (span < 0) span += 2 * Math.PI;
+      while (span > 2 * Math.PI) span -= 2 * Math.PI;
+      if (ba.reversed) {
+        const revSpan = 2 * Math.PI - span;
+        const largeArc = revSpan > Math.PI ? 1 : 0;
+        pathParts.push(`A${r.toFixed(2)},${r.toFixed(2)} 0 ${largeArc},0 ${endX.toFixed(2)},${endY.toFixed(2)}`);
+      } else {
+        const largeArc = span > Math.PI ? 1 : 0;
+        pathParts.push(`A${r.toFixed(2)},${r.toFixed(2)} 0 ${largeArc},1 ${endX.toFixed(2)},${endY.toFixed(2)}`);
+      }
+    };
+    var emitArc = emitArc2;
+    if (R <= 0) continue;
+    const fullCircleArcs = [];
+    const partialArcs = [];
+    for (const arc of arcs) {
+      const outsideMask = arc.insideMask ^ 1 << arc.circleIdx;
+      if (arc.insideMask === R) {
+        if (arc.full) fullCircleArcs.push({ circleIdx: arc.circleIdx, reversed: false });
+        else partialArcs.push({ ...arc, reversed: false });
+      } else if (outsideMask === R) {
+        if (arc.full) fullCircleArcs.push({ circleIdx: arc.circleIdx, reversed: true });
+        else partialArcs.push({
+          circleIdx: arc.circleIdx,
+          angleFrom: arc.angleTo,
+          angleTo: arc.angleFrom,
+          fromPt: arc.toPt,
+          toPt: arc.fromPt,
+          full: false,
+          reversed: true
+        });
       }
     }
-    pathParts.push("Z");
-    regions[mask] = pathParts.join(" ");
+    if (fullCircleArcs.length === 0 && partialArcs.length === 0) continue;
+    const chains = [];
+    const used = /* @__PURE__ */ new Set();
+    for (let start = 0; start < partialArcs.length; start++) {
+      if (used.has(start)) continue;
+      const chain = [partialArcs[start]];
+      used.add(start);
+      for (let safety = 0; safety < partialArcs.length; safety++) {
+        const lastEnd = chain[chain.length - 1].toPt;
+        if (!lastEnd) break;
+        let bestIdx = -1, bestDist = Infinity;
+        for (let i = 0; i < partialArcs.length; i++) {
+          if (used.has(i)) continue;
+          const s = partialArcs[i].fromPt;
+          if (!s) continue;
+          const d = (s.x - lastEnd.x) ** 2 + (s.y - lastEnd.y) ** 2;
+          if (d < bestDist) {
+            bestDist = d;
+            bestIdx = i;
+          }
+        }
+        if (bestIdx === -1 || bestDist > 4) break;
+        chain.push(partialArcs[bestIdx]);
+        used.add(bestIdx);
+      }
+      chains.push(chain);
+    }
+    const pathParts = [];
+    for (const chain of chains) {
+      const first = chain[0], c0 = circles[first.circleIdx];
+      const sx = c0.cx + c0.r * Math.cos(first.angleFrom);
+      const sy = c0.cy + c0.r * Math.sin(first.angleFrom);
+      pathParts.push(`M${sx.toFixed(2)},${sy.toFixed(2)}`);
+      for (const ba of chain) emitArc2(ba);
+      pathParts.push("Z");
+    }
+    for (const fc of fullCircleArcs) {
+      const c = circles[fc.circleIdx], r = c.r;
+      const x1 = c.cx - r, y1 = c.cy, x2 = c.cx + r, y2 = c.cy;
+      const sw = fc.reversed ? 0 : 1;
+      pathParts.push(`M${x1.toFixed(2)},${y1.toFixed(2)}`);
+      pathParts.push(`A${r.toFixed(2)},${r.toFixed(2)} 0 1,${sw} ${x2.toFixed(2)},${y2.toFixed(2)}`);
+      pathParts.push(`A${r.toFixed(2)},${r.toFixed(2)} 0 1,${sw} ${x1.toFixed(2)},${y1.toFixed(2)}`);
+      pathParts.push("Z");
+    }
+    if (pathParts.length > 0) regions[R] = pathParts.join(" ");
   }
   return regions;
 }
-function orderArcs(arcs, circles) {
-  if (arcs.length <= 1) return arcs;
-  const ordered = [arcs[0]];
-  const remaining = arcs.slice(1);
-  while (remaining.length > 0) {
-    const last = ordered[ordered.length - 1];
-    const lastEnd = last.toPt;
-    if (!lastEnd) break;
-    let bestIdx = 0, bestDist = Infinity;
-    for (let i = 0; i < remaining.length; i++) {
-      const start = remaining[i].fromPt;
-      if (!start) continue;
-      const d = (start.x - lastEnd.x) ** 2 + (start.y - lastEnd.y) ** 2;
-      if (d < bestDist) {
-        bestDist = d;
-        bestIdx = i;
+function detectSubsets(setNames, sets) {
+  const n = setNames.length;
+  const subsets = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (i === j) continue;
+      const si = sets.get(setNames[i]), sj = sets.get(setNames[j]);
+      let allIn = true;
+      for (const item of si) {
+        if (!sj.has(item)) {
+          allIn = false;
+          break;
+        }
+      }
+      if (allIn) subsets.push({ sub: i, sup: j });
+    }
+  }
+  return subsets;
+}
+function detectDisjoint(setNames, sets) {
+  const n = setNames.length;
+  const disjoint = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const si = sets.get(setNames[i]), sj = sets.get(setNames[j]);
+      let hasOverlap = false;
+      for (const item of si) {
+        if (sj.has(item)) {
+          hasOverlap = true;
+          break;
+        }
+      }
+      if (!hasOverlap) disjoint.push([i, j]);
+    }
+  }
+  return disjoint;
+}
+function validateAndFixLayout(circles, setNames, sets, subsets, disjoint, radii) {
+  const warnings = [];
+  const fixed = circles.map((c) => ({ ...c }));
+  function enforceSubsets() {
+    for (const { sub, sup } of subsets) {
+      const dx = fixed[sub].cx - fixed[sup].cx;
+      const dy = fixed[sub].cy - fixed[sup].cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxDist = fixed[sup].r - fixed[sub].r - 3;
+      if (maxDist <= 0) continue;
+      if (dist > maxDist) {
+        const target = maxDist * 0.8;
+        const scale = target / Math.max(dist, 1e-9);
+        fixed[sub].cx = fixed[sup].cx + dx * scale;
+        fixed[sub].cy = fixed[sup].cy + dy * scale;
+        return true;
       }
     }
-    ordered.push(remaining.splice(bestIdx, 1)[0]);
+    return false;
   }
-  return ordered;
+  if (enforceSubsets()) {
+    warnings.push(...subsets.map(({ sub, sup }) => `"${setNames[sub]}" is a subset of "${setNames[sup]}" \u2014 positions adjusted for containment`));
+  }
+  for (const [i, j] of disjoint) {
+    const dx = fixed[j].cx - fixed[i].cx;
+    const dy = fixed[j].cy - fixed[i].cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const minDist = fixed[i].r + fixed[j].r + 2;
+    if (dist < minDist) {
+      const push = (minDist - dist) / 2 + 1;
+      const ux = dx / Math.max(dist, 1e-9), uy = dy / Math.max(dist, 1e-9);
+      fixed[i].cx -= ux * push;
+      fixed[i].cy -= uy * push;
+      fixed[j].cx += ux * push;
+      fixed[j].cy += uy * push;
+      warnings.push(`"${setNames[i]}" and "${setNames[j]}" are disjoint \u2014 separated`);
+    }
+  }
+  const n = setNames.length;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (disjoint.some((d) => d[0] === i && d[1] === j || d[0] === j && d[1] === i)) continue;
+      if (subsets.some((s) => s.sub === i && s.sup === j || s.sub === j && s.sup === i)) continue;
+      const si = sets.get(setNames[i]), sj = sets.get(setNames[j]);
+      let hasOverlap = false;
+      for (const item of si) {
+        if (sj.has(item)) {
+          hasOverlap = true;
+          break;
+        }
+      }
+      if (!hasOverlap) continue;
+      const dx = fixed[j].cx - fixed[i].cx;
+      const dy = fixed[j].cy - fixed[i].cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxDist = fixed[i].r + fixed[j].r - 2;
+      if (dist > maxDist) {
+        const pull = (dist - maxDist) / 2 + 1;
+        const ux = dx / Math.max(dist, 1e-9), uy = dy / Math.max(dist, 1e-9);
+        fixed[i].cx += ux * pull;
+        fixed[i].cy -= uy * pull;
+        fixed[j].cx -= ux * pull;
+        fixed[j].cy += uy * pull;
+        warnings.push(`"${setNames[i]}" and "${setNames[j]}" share items \u2014 ensured overlap`);
+      }
+    }
+  }
+  for (let iter = 0; iter < 5; iter++) {
+    if (!enforceSubsets()) break;
+  }
+  return { circles: fixed, warnings };
 }
 function buildVenn2Layout(setNames, sets, intersections, viewW, viewH) {
   const s0 = sets.get(setNames[0]).size;
@@ -213,14 +370,18 @@ function buildVenn2Layout(setNames, sets, intersections, viewW, viewH) {
   const scale = maxR / Math.sqrt(Math.max(s0, s1));
   const r0 = scale * Math.sqrt(s0);
   const r1 = scale * Math.sqrt(s1);
+  const radii = [r0, r1];
   const targetOA = Math.PI * scale * scale * interSize;
   const d = solveDistance(r0, r1, targetOA);
   const cx = viewW / 2, cy = viewH / 2;
-  const circles = [
+  const rawCircles = [
     { cx: cx - d / 2, cy, r: r0 },
     { cx: cx + d / 2, cy, r: r1 }
   ];
-  return circles;
+  const subsets = detectSubsets(setNames, sets);
+  const disjoint = detectDisjoint(setNames, sets);
+  const { circles, warnings } = validateAndFixLayout(rawCircles, setNames, sets, subsets, disjoint, radii);
+  return { circles, warnings, proportional: warnings.length === 0 };
 }
 function buildVenn3Layout(setNames, sets, intersections, viewW, viewH) {
   const sizes = setNames.map((n) => sets.get(n).size);
@@ -230,10 +391,6 @@ function buildVenn3Layout(setNames, sets, intersections, viewW, viewH) {
   const pairMasks = [[0, 1, 3], [0, 2, 5], [1, 2, 6]];
   const pairDists = [];
   for (const [i, j, mask] of pairMasks) {
-    const inter = intersections.find((g) => (g.mask & mask) === mask);
-    const interSize = inter ? inter.items.filter((item) => {
-      return sets.get(setNames[i]).has(item) && sets.get(setNames[j]).has(item);
-    }).length : 0;
     let totalPairwise = 0;
     for (const g of intersections) {
       if (g.mask & 1 << i && g.mask & 1 << j) totalPairwise += g.size;
@@ -241,21 +398,41 @@ function buildVenn3Layout(setNames, sets, intersections, viewW, viewH) {
     const targetOA = Math.PI * scale * scale * totalPairwise;
     pairDists.push(solveDistance(radii[i], radii[j], targetOA));
   }
+  const subsets = detectSubsets(setNames, sets);
+  const disjoint = detectDisjoint(setNames, sets);
+  const hasSubsets = subsets.length > 0;
   const cx = viewW / 2, cy = viewH / 2;
   const d01 = pairDists[0], d02 = pairDists[1], d12 = pairDists[2];
   const ax = 0, ay = 0;
   const bx = d01, by = 0;
-  let ccx = (d02 * d02 - d12 * d12 + d01 * d01) / (2 * d01);
-  let ccySq = d02 * d02 - ccx * ccx;
-  let ccy = ccySq > 0 ? Math.sqrt(ccySq) : 0;
-  const pts = [{ x: ax, y: ay }, { x: bx, y: by }, { x: ccx, y: ccy }];
-  const centX = (ax + bx + ccx) / 3, centY = (ay + by + ccy) / 3;
-  const circles = pts.map((p, i) => ({
+  let tcx = d01 > 1e-9 ? (d02 * d02 - d12 * d12 + d01 * d01) / (2 * d01) : 0;
+  let tcySq = d02 * d02 - tcx * tcx;
+  let tcy = tcySq > 0 ? -Math.sqrt(tcySq) : 0;
+  const triPts = [{ x: ax, y: ay }, { x: bx, y: by }, { x: tcx, y: tcy }];
+  const triCentX = (ax + bx + tcx) / 3, triCentY = (ay + by + tcy) / 3;
+  const triCentered = triPts.map((p) => ({ x: p.x - triCentX, y: p.y - triCentY }));
+  let pts;
+  if (hasSubsets) {
+    pts = triCentered;
+  } else {
+    const avgDist = (d01 + d02 + d12) / 3;
+    const eqAngles = [-Math.PI / 6, -5 * Math.PI / 6, Math.PI / 2];
+    const eqPts = eqAngles.map((a) => ({ x: avgDist * 0.6 * Math.cos(a), y: avgDist * 0.6 * Math.sin(a) }));
+    const blend = Math.abs(tcy) < avgDist * 0.15 ? 0.4 : 0.7;
+    pts = triCentered.map((p, i) => ({
+      x: p.x * blend + eqPts[i].x * (1 - blend),
+      y: p.y * blend + eqPts[i].y * (1 - blend)
+    }));
+  }
+  const centX = pts.reduce((s, p) => s + p.x, 0) / 3;
+  const centY = pts.reduce((s, p) => s + p.y, 0) / 3;
+  const rawCircles = pts.map((p, i) => ({
     cx: cx + (p.x - centX),
     cy: cy + (p.y - centY),
     r: radii[i]
   }));
-  return circles;
+  const { circles, warnings } = validateAndFixLayout(rawCircles, setNames, sets, subsets, disjoint, radii);
+  return { circles, warnings, proportional: warnings.length === 0 };
 }
 function computeRegionCentroids(circles, regionPaths, intersections) {
   const centroids = {};
@@ -266,24 +443,31 @@ function computeRegionCentroids(circles, regionPaths, intersections) {
     y2: Math.max(...circles.map((c) => c.cy + c.r)) + 5
   };
   const n = circles.length;
-  const step = Math.max(bbox.x2 - bbox.x1, bbox.y2 - bbox.y1) / 80;
+  const step = Math.max(bbox.x2 - bbox.x1, bbox.y2 - bbox.y1) / 150;
   for (const inter of intersections) {
     const mask = inter.mask;
-    let sx = 0, sy = 0, count = 0;
+    let bestX = 0, bestY = 0, bestDist = -1;
     for (let x = bbox.x1; x <= bbox.x2; x += step) {
       for (let y = bbox.y1; y <= bbox.y2; y += step) {
         let m = 0;
         for (let i = 0; i < n; i++) {
           if (isInsideCircle(x, y, circles[i])) m |= 1 << i;
         }
-        if (m === mask) {
-          sx += x;
-          sy += y;
-          count++;
+        if (m !== mask) continue;
+        let minEdgeDist = Infinity;
+        for (let i = 0; i < n; i++) {
+          const dx = x - circles[i].cx, dy = y - circles[i].cy;
+          const d = Math.abs(Math.sqrt(dx * dx + dy * dy) - circles[i].r);
+          if (d < minEdgeDist) minEdgeDist = d;
+        }
+        if (minEdgeDist > bestDist) {
+          bestDist = minEdgeDist;
+          bestX = x;
+          bestY = y;
         }
       }
     }
-    if (count > 0) centroids[mask] = { x: sx / count, y: sy / count };
+    if (bestDist >= 0) centroids[mask] = { x: bestX, y: bestY };
   }
   return centroids;
 }
@@ -298,13 +482,19 @@ const VennChart = forwardRef(function VennChart2({
   showCounts,
   plotTitle,
   plotBg,
-  fontSize
+  fontSize,
+  fillOpacity,
+  onLayoutInfo
 }, ref) {
   const n = setNames.length;
-  const circles = useMemo(() => {
+  const layout = useMemo(() => {
     if (n === 2) return buildVenn2Layout(setNames, sets, intersections, VW, VH);
     return buildVenn3Layout(setNames, sets, intersections, VW, VH);
   }, [setNames, sets, intersections, n]);
+  const circles = layout.circles;
+  useEffect(() => {
+    if (onLayoutInfo) onLayoutInfo({ warnings: layout.warnings, proportional: layout.proportional });
+  }, [layout.warnings, layout.proportional]);
   const regionPaths = useMemo(() => buildRegionPaths(circles), [circles]);
   const centroids = useMemo(() => computeRegionCentroids(circles, regionPaths, intersections), [circles, regionPaths, intersections]);
   const interMap = useMemo(() => {
@@ -312,24 +502,8 @@ const VennChart = forwardRef(function VennChart2({
     for (const g of intersections) m[g.mask] = g;
     return m;
   }, [intersections]);
-  const regionColors = useMemo(() => {
-    const rc = {};
-    for (const inter of intersections) {
-      const rgbs = inter.setNames.map((name) => hexToRgb(colors[name] || PALETTE[setNames.indexOf(name) % PALETTE.length]));
-      const avg = { r: 0, g: 0, b: 0 };
-      rgbs.forEach((c) => {
-        avg.r += c.r;
-        avg.g += c.g;
-        avg.b += c.b;
-      });
-      avg.r = Math.round(avg.r / rgbs.length);
-      avg.g = Math.round(avg.g / rgbs.length);
-      avg.b = Math.round(avg.b / rgbs.length);
-      rc[inter.mask] = rgbToHex(avg.r, avg.g, avg.b);
-    }
-    return rc;
-  }, [intersections, colors, setNames]);
   const fSize = fontSize || 14;
+  const fOpacity = fillOpacity != null ? fillOpacity : 0.25;
   return /* @__PURE__ */ React.createElement(
     "svg",
     {
@@ -343,86 +517,85 @@ const VennChart = forwardRef(function VennChart2({
     circles.map((c, i) => /* @__PURE__ */ React.createElement(
       "circle",
       {
-        key: `outline-${i}`,
+        key: `circle-${i}`,
         cx: c.cx,
         cy: c.cy,
         r: c.r,
-        fill: "none",
+        fill: colors[setNames[i]] || PALETTE[i],
+        fillOpacity: fOpacity,
         stroke: colors[setNames[i]] || PALETTE[i],
         strokeWidth: "2",
         strokeOpacity: "0.6"
       }
     )),
-    intersections.map((inter) => {
-      const path = regionPaths[inter.mask];
-      if (!path) return null;
-      const isSelected = selectedMask === inter.mask;
-      return /* @__PURE__ */ React.createElement(
-        "path",
-        {
-          key: `region-${inter.mask}`,
-          d: path,
-          fill: regionColors[inter.mask] || "#ccc",
-          fillOpacity: isSelected ? 0.55 : 0.25,
-          stroke: isSelected ? "#333" : "none",
-          strokeWidth: isSelected ? 2 : 0,
-          style: { cursor: "pointer" },
-          onClick: () => onRegionClick && onRegionClick(inter.mask),
-          onMouseEnter: (e) => {
-            e.currentTarget.setAttribute("fill-opacity", "0.45");
-          },
-          onMouseLeave: (e) => {
-            e.currentTarget.setAttribute("fill-opacity", isSelected ? "0.55" : "0.25");
-          }
-        }
-      );
-    }),
+    selectedMask != null && regionPaths[selectedMask] && /* @__PURE__ */ React.createElement(
+      "path",
+      {
+        d: regionPaths[selectedMask],
+        fill: "none",
+        stroke: "#222",
+        strokeWidth: "2.5",
+        strokeDasharray: "6,3",
+        style: { pointerEvents: "none" }
+      }
+    ),
     showCounts && intersections.map((inter) => {
       const c = centroids[inter.mask];
       if (!c) return null;
+      const isSelected = selectedMask === inter.mask;
+      const hitR = Math.max(fSize * 1.5, 20);
       return /* @__PURE__ */ React.createElement(
-        "text",
+        "g",
         {
           key: `label-${inter.mask}`,
-          x: c.x,
-          y: c.y,
-          textAnchor: "middle",
-          dominantBaseline: "central",
-          fontSize: fSize,
-          fontWeight: "700",
-          fill: "#333",
-          fontFamily: "sans-serif",
-          style: { pointerEvents: "none" }
+          style: { cursor: "pointer" },
+          onClick: () => onRegionClick && onRegionClick(isSelected ? null : inter.mask)
         },
-        inter.size
+        /* @__PURE__ */ React.createElement("circle", { cx: c.x, cy: c.y, r: hitR, fill: "transparent" }),
+        /* @__PURE__ */ React.createElement(
+          "text",
+          {
+            x: c.x,
+            y: c.y,
+            textAnchor: "middle",
+            dominantBaseline: "central",
+            fontSize: fSize,
+            fontWeight: "700",
+            fill: "#333",
+            fontFamily: "sans-serif"
+          },
+          inter.size
+        )
       );
     }),
-    circles.map((c, i) => {
-      const allCx = circles.reduce((s, cc) => s + cc.cx, 0) / circles.length;
-      const allCy = circles.reduce((s, cc) => s + cc.cy, 0) / circles.length;
-      const dx = c.cx - allCx, dy = c.cy - allCy;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      const lx = c.cx + dx / dist * (c.r + 18);
-      const ly = c.cy + dy / dist * (c.r + 18);
-      return /* @__PURE__ */ React.createElement(
-        "text",
-        {
-          key: `setlabel-${i}`,
-          x: lx,
-          y: ly,
-          textAnchor: "middle",
-          dominantBaseline: "central",
-          fontSize: "14",
-          fontWeight: "600",
-          fill: colors[setNames[i]] || PALETTE[i],
-          fontFamily: "sans-serif"
-        },
-        setNames[i],
-        " (",
-        sets.get(setNames[i]).size,
-        ")"
-      );
-    })
+    circles.map((c, i) => /* @__PURE__ */ React.createElement("g", { key: `setlabel-${i}` }, /* @__PURE__ */ React.createElement(
+      "circle",
+      {
+        cx: 18,
+        cy: VH - 20 - (circles.length - 1 - i) * 22,
+        r: 6,
+        fill: colors[setNames[i]] || PALETTE[i],
+        fillOpacity: "0.5",
+        stroke: colors[setNames[i]] || PALETTE[i],
+        strokeWidth: "1.5"
+      }
+    ), /* @__PURE__ */ React.createElement(
+      "text",
+      {
+        x: 30,
+        y: VH - 20 - (circles.length - 1 - i) * 22,
+        textAnchor: "start",
+        dominantBaseline: "central",
+        fontSize: "13",
+        fontWeight: "600",
+        fill: colors[setNames[i]] || PALETTE[i],
+        fontFamily: "sans-serif"
+      },
+      setNames[i],
+      " (",
+      sets.get(setNames[i]).size,
+      ")"
+    )))
   );
 });
 function UploadStep({ sepOverride, setSepOverride, rawText, doParse, handleFileLoad }) {
@@ -492,7 +665,7 @@ function ItemListPanel({ intersection, allSetNames, setColors }) {
     fontFamily: "monospace"
   } }, item))));
 }
-function PlotControls({ setNames, sets, setColors, onColorChange, vis, updVis, chartRef, resetAll, intersections }) {
+function PlotControls({ setNames, sets, setColors, onColorChange, onRename, vis, updVis, chartRef, resetAll, intersections }) {
   const sv = (k) => (v) => updVis({ [k]: v });
   return /* @__PURE__ */ React.createElement("div", { style: { width: 300, flexShrink: 0, position: "sticky", top: 24, maxHeight: "calc(100vh - 90px)", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement(
     ActionsPanel,
@@ -527,7 +700,39 @@ function PlotControls({ setNames, sets, setColors, onColorChange, vis, updVis, c
       onChange: (v) => onColorChange(name, v),
       size: 20
     }
-  ), /* @__PURE__ */ React.createElement("span", { style: { flex: 1, fontWeight: 600, color: "#333" } }, name), /* @__PURE__ */ React.createElement("span", { style: { color: "#999", fontSize: 11 } }, "(", sets.get(name).size, ")"))))), /* @__PURE__ */ React.createElement("div", { style: sec }, /* @__PURE__ */ React.createElement("p", { style: { margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#555" } }, "Display"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement("span", { style: lbl }, "Show counts"), /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: vis.showCounts, onChange: (e) => updVis({ showCounts: e.target.checked }), style: { accentColor: "#648FFF" } })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: lbl }, "Title"), /* @__PURE__ */ React.createElement("input", { value: vis.plotTitle, onChange: (e) => updVis({ plotTitle: e.target.value }), style: { ...inp, width: "100%" } })), /* @__PURE__ */ React.createElement(SliderControl, { label: "Font size", value: vis.fontSize, min: 8, max: 24, step: 1, onChange: sv("fontSize") }), /* @__PURE__ */ React.createElement(BaseStyleControls, { plotBg: vis.plotBg, onPlotBgChange: sv("plotBg"), showGrid: false, onShowGridChange: () => {
+  ), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      key: name,
+      defaultValue: name,
+      style: {
+        flex: 1,
+        minWidth: 0,
+        fontWeight: 600,
+        color: "#333",
+        border: "1px solid #ccc",
+        background: "#fff",
+        fontFamily: "monospace",
+        fontSize: 12,
+        padding: "2px 6px",
+        borderRadius: 3,
+        outline: "none"
+      },
+      onFocus: (e) => {
+        e.target.style.borderColor = "#648FFF";
+        e.target.style.boxShadow = "0 0 0 2px rgba(100,143,255,0.2)";
+      },
+      onBlur: (e) => {
+        e.target.style.borderColor = "#ccc";
+        e.target.style.boxShadow = "none";
+        const nv = e.target.value.trim();
+        if (nv && nv !== name) onRename(name, nv);
+      },
+      onKeyDown: (e) => {
+        if (e.key === "Enter") e.target.blur();
+      }
+    }
+  ), /* @__PURE__ */ React.createElement("span", { style: { color: "#999", fontSize: 11, whiteSpace: "nowrap", flexShrink: 0 } }, "(", sets.get(name).size, ")"))))), /* @__PURE__ */ React.createElement("div", { style: sec }, /* @__PURE__ */ React.createElement("p", { style: { margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#555" } }, "Display"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement("span", { style: lbl }, "Show counts"), /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: vis.showCounts, onChange: (e) => updVis({ showCounts: e.target.checked }), style: { accentColor: "#648FFF" } })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: lbl }, "Title"), /* @__PURE__ */ React.createElement("input", { value: vis.plotTitle, onChange: (e) => updVis({ plotTitle: e.target.value }), style: { ...inp, width: "100%" } })), /* @__PURE__ */ React.createElement(SliderControl, { label: "Fill opacity", value: vis.fillOpacity, min: 0.05, max: 0.8, step: 0.05, onChange: sv("fillOpacity") }), /* @__PURE__ */ React.createElement(SliderControl, { label: "Font size", value: vis.fontSize, min: 8, max: 24, step: 1, onChange: sv("fontSize") }), /* @__PURE__ */ React.createElement(BaseStyleControls, { plotBg: vis.plotBg, onPlotBgChange: sv("plotBg"), showGrid: false, onShowGridChange: () => {
   }, gridColor: "#e0e0e0", onGridColorChange: () => {
   } }))));
 }
@@ -544,9 +749,10 @@ function App() {
   const [sets, setSets] = useState(/* @__PURE__ */ new Map());
   const [setColors, setSetColors] = useState({});
   const [selectedMask, setSelectedMask] = useState(null);
-  const visInit = { plotTitle: "", plotBg: "#ffffff", showCounts: true, fontSize: 14 };
+  const visInit = { plotTitle: "", plotBg: "#ffffff", showCounts: true, fontSize: 14, fillOpacity: 0.25 };
   const [vis, updVis] = useReducer((s, a) => a._reset ? { ...visInit } : { ...s, ...a }, visInit);
   const chartRef = useRef();
+  const [layoutInfo, setLayoutInfo] = useState({ warnings: [], proportional: true });
   const intersections = useMemo(() => {
     if (setNames.length < 2) return [];
     return computeIntersections(setNames, sets);
@@ -594,6 +800,20 @@ function App() {
   }, [sepOverride, formatOverride, doParse]);
   const handleColorChange = (name, color) => {
     setSetColors((prev) => ({ ...prev, [name]: color }));
+  };
+  const handleRename = (oldName, newName) => {
+    if (oldName === newName || setNames.includes(newName)) return;
+    setSetNames((prev) => prev.map((n) => n === oldName ? newName : n));
+    setSets((prev) => {
+      const m = /* @__PURE__ */ new Map();
+      for (const [k, v] of prev) m.set(k === oldName ? newName : k, v);
+      return m;
+    });
+    setSetColors((prev) => {
+      const c = {};
+      for (const [k, v] of Object.entries(prev)) c[k === oldName ? newName : k] = v;
+      return c;
+    });
   };
   const resetAll = () => {
     setStep("upload");
@@ -663,6 +883,7 @@ function App() {
       sets,
       setColors,
       onColorChange: handleColorChange,
+      onRename: handleRename,
       vis,
       updVis,
       chartRef,
@@ -682,9 +903,27 @@ function App() {
       showCounts: vis.showCounts,
       plotTitle: vis.plotTitle,
       plotBg: vis.plotBg,
-      fontSize: vis.fontSize
+      fontSize: vis.fontSize,
+      fillOpacity: vis.fillOpacity,
+      onLayoutInfo: setLayoutInfo
     }
-  )), /* @__PURE__ */ React.createElement("div", { style: { ...sec, marginTop: 16 } }, /* @__PURE__ */ React.createElement("p", { style: { margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "#555" } }, "Intersections"), /* @__PURE__ */ React.createElement(
+  )), layoutInfo.proportional ? /* @__PURE__ */ React.createElement("div", { style: {
+    margin: "8px 0 0",
+    padding: "6px 12px",
+    borderRadius: 6,
+    background: "#f0fdf4",
+    border: "1px solid #86efac",
+    fontSize: 11,
+    color: "#166534"
+  } }, "Areas are proportional to set sizes") : layoutInfo.warnings.length > 0 && /* @__PURE__ */ React.createElement("div", { style: {
+    margin: "8px 0 0",
+    padding: "6px 12px",
+    borderRadius: 6,
+    background: "#fffbeb",
+    border: "1px solid #fcd34d",
+    fontSize: 11,
+    color: "#92400e"
+  } }, layoutInfo.warnings.map((w, i) => /* @__PURE__ */ React.createElement("div", { key: i }, w)), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 2, color: "#b45309", fontStyle: "italic" } }, "Area proportionality adjusted to preserve correctness")), /* @__PURE__ */ React.createElement("div", { style: { ...sec, marginTop: 16 } }, /* @__PURE__ */ React.createElement("p", { style: { margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "#555" } }, "Intersections"), /* @__PURE__ */ React.createElement(
     IntersectionTable,
     {
       intersections,
