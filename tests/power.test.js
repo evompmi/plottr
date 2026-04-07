@@ -16,7 +16,7 @@ const ctx = {
     useRef: () => ({ current: null }),
     forwardRef: (fn) => fn,
   },
-  ReactDOM: { render: () => {} },
+  ReactDOM: { render: () => {}, createRoot: () => ({ render: () => {} }) },
   document: { getElementById: () => ({}) },
   // Globals from shared.js
   sec: {}, lbl: {}, inpN: {}, selStyle: {}, btnDownload: {}, btnPrimary: {},
