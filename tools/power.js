@@ -217,142 +217,346 @@ function bisect(fn, target, lo, hi, tol = 1e-6, maxIter = 200) {
   }
   return (lo + hi) / 2;
 }
+function powerTwoSample(d, n, alpha, tails) {
+  const df = 2 * n - 2;
+  const delta = d * Math.sqrt(n / 2);
+  const tCrit = tinv(1 - alpha / tails, df);
+  if (tails === 2) return 1 - nctcdf(tCrit, df, delta) + nctcdf(-tCrit, df, delta);
+  return 1 - nctcdf(tCrit, df, delta);
+}
+function powerPaired(d, n, alpha, tails) {
+  const df = n - 1;
+  const delta = d * Math.sqrt(n);
+  const tCrit = tinv(1 - alpha / tails, df);
+  if (tails === 2) return 1 - nctcdf(tCrit, df, delta) + nctcdf(-tCrit, df, delta);
+  return 1 - nctcdf(tCrit, df, delta);
+}
+function powerOneSample(d, n, alpha, tails) {
+  return powerPaired(d, n, alpha, tails);
+}
+function powerAnova(f, n, alpha, k) {
+  const df1 = k - 1, df2 = k * (n - 1);
+  const lambda = n * k * f * f;
+  const fCrit = bisect((x) => fcdf(x, df1, df2), 1 - alpha, 0, 200);
+  return ncf_sf(fCrit, df1, df2, lambda);
+}
+function powerCorrelation(r, n, alpha, tails) {
+  const zr = Math.atanh(r);
+  const se = 1 / Math.sqrt(Math.max(1, n - 3));
+  const zCrit = norminv(1 - alpha / tails);
+  if (tails === 2) return normcdf(Math.abs(zr) / se - zCrit) + normcdf(-Math.abs(zr) / se - zCrit);
+  return normcdf(zr / se - zCrit);
+}
+function powerChi2(w, n, alpha, df) {
+  const lambda = n * w * w;
+  const chiCrit = chi2inv(1 - alpha, df);
+  return 1 - ncchi2cdf(chiCrit, df, lambda);
+}
+function dFromMeans(m1, m2, sd) {
+  return sd > 0 ? Math.abs(m1 - m2) / sd : 0;
+}
+function fFromGroupMeans(meansArr, sd) {
+  if (!meansArr.length || sd <= 0) return 0;
+  const grandMean = meansArr.reduce((a, b) => a + b, 0) / meansArr.length;
+  const sigmaMeans = Math.sqrt(meansArr.reduce((s, m) => s + (m - grandMean) ** 2, 0) / meansArr.length);
+  return sigmaMeans / sd;
+}
+function wFromProportions(observed, expected) {
+  if (!observed.length || observed.length !== expected.length) return 0;
+  let sum = 0;
+  for (let i = 0; i < expected.length; i++) {
+    if (expected[i] <= 0) return 0;
+    sum += (observed[i] - expected[i]) ** 2 / expected[i];
+  }
+  return Math.sqrt(sum);
+}
 const TESTS = {
   "t-ind": {
-    label: "Independent two-sample t-test",
-    desc: "Compare means of two independent groups",
-    effectLabel: "Cohen's d",
-    effectHint: "d = |\u03BC\u2081 \u2212 \u03BC\u2082| / \u03C3_pooled",
+    label: "Two-sample t-test",
+    question: "How many subjects per group to detect a difference between two independent groups?",
     nLabel: "n per group",
-    benchmarks: { small: 0.2, medium: 0.5, large: 0.8 },
-    power(d, n, alpha, tails) {
-      const df = 2 * n - 2;
-      const delta = d * Math.sqrt(n / 2);
-      const tCrit = tinv(1 - alpha / tails, df);
-      if (tails === 2) {
-        return 1 - nctcdf(tCrit, df, delta) + nctcdf(-tCrit, df, delta);
-      }
-      return 1 - nctcdf(tCrit, df, delta);
-    }
+    power: (es, n, alpha, tails) => powerTwoSample(es, n, alpha, tails),
+    effectMax: 3,
+    totalN: (n) => n * 2,
+    totalLabel: (n) => `Total N = ${n * 2} (${n} per group \xD7 2)`
   },
   "t-paired": {
     label: "Paired t-test",
-    desc: "Compare means of paired/matched observations",
-    effectLabel: "Cohen's d",
-    effectHint: "d = |\u03BC_diff| / \u03C3_diff",
+    question: "How many pairs to detect a difference between matched measurements?",
     nLabel: "n (pairs)",
-    benchmarks: { small: 0.2, medium: 0.5, large: 0.8 },
-    power(d, n, alpha, tails) {
-      const df = n - 1;
-      const delta = d * Math.sqrt(n);
-      const tCrit = tinv(1 - alpha / tails, df);
-      if (tails === 2) {
-        return 1 - nctcdf(tCrit, df, delta) + nctcdf(-tCrit, df, delta);
-      }
-      return 1 - nctcdf(tCrit, df, delta);
-    }
+    power: (es, n, alpha, tails) => powerPaired(es, n, alpha, tails),
+    effectMax: 3
   },
   "t-one": {
     label: "One-sample t-test",
-    desc: "Compare mean to a known value",
-    effectLabel: "Cohen's d",
-    effectHint: "d = |\u03BC \u2212 \u03BC\u2080| / \u03C3",
+    question: "How many observations to detect a deviation from a known reference value?",
     nLabel: "n",
-    benchmarks: { small: 0.2, medium: 0.5, large: 0.8 },
-    power(d, n, alpha, tails) {
-      const df = n - 1;
-      const delta = d * Math.sqrt(n);
-      const tCrit = tinv(1 - alpha / tails, df);
-      if (tails === 2) {
-        return 1 - nctcdf(tCrit, df, delta) + nctcdf(-tCrit, df, delta);
-      }
-      return 1 - nctcdf(tCrit, df, delta);
-    }
+    power: (es, n, alpha, tails) => powerOneSample(es, n, alpha, tails),
+    effectMax: 3
   },
   "anova": {
     label: "One-way ANOVA",
-    desc: "Compare means across k groups",
-    effectLabel: "Cohen's f",
-    effectHint: "f = \u03C3_means / \u03C3_within",
+    question: "How many subjects per group to detect differences among k group means?",
     nLabel: "n per group",
-    benchmarks: { small: 0.1, medium: 0.25, large: 0.4 },
     hasGroups: true,
-    power(f, n, alpha, _tails, k) {
-      const df1 = k - 1;
-      const df2 = k * (n - 1);
-      const lambda = n * k * f * f;
-      const fCrit = bisect((x) => fcdf(x, df1, df2), 1 - alpha, 0, 200);
-      return ncf_sf(fCrit, df1, df2, lambda);
-    }
+    power: (es, n, alpha, _tails, k) => powerAnova(es, n, alpha, k),
+    effectMax: 2,
+    totalN: (n, k) => n * k,
+    totalLabel: (n, k) => `Total N = ${n * k} (${n} per group \xD7 ${k} groups)`
   },
   "correlation": {
-    label: "Correlation (Pearson r)",
-    desc: "Test whether a correlation differs from zero",
-    effectLabel: "|r|",
-    effectHint: "Expected absolute correlation",
+    label: "Correlation",
+    question: "How many observations to detect a non-zero Pearson correlation?",
     nLabel: "n (total)",
-    benchmarks: { small: 0.1, medium: 0.3, large: 0.5 },
+    power: (es, n, alpha, tails) => powerCorrelation(es, n, alpha, tails),
     effectMax: 0.99,
-    power(r, n, alpha, tails) {
-      const zr = Math.atanh(r);
-      const se = 1 / Math.sqrt(Math.max(1, n - 3));
-      const zCrit = norminv(1 - alpha / tails);
-      if (tails === 2) {
-        return normcdf(Math.abs(zr) / se - zCrit) + normcdf(-Math.abs(zr) / se - zCrit);
-      }
-      return normcdf(zr / se - zCrit);
-    }
+    minN: 4
   },
   "chi2": {
     label: "Chi-square test",
-    desc: "Goodness-of-fit or independence",
-    effectLabel: "Cohen's w",
-    effectHint: "w = \u221A(\u03A3 (p_obs \u2212 p_exp)\xB2 / p_exp)",
+    question: "How many observations for a goodness-of-fit or independence test?",
     nLabel: "n (total)",
-    benchmarks: { small: 0.1, medium: 0.3, large: 0.5 },
     hasDf: true,
-    power(w, n, alpha, _tails, _k, df) {
-      const lambda = n * w * w;
-      const chiCrit = chi2inv(1 - alpha, df);
-      return 1 - ncchi2cdf(chiCrit, df, lambda);
-    }
+    power: (es, n, alpha, _tails, _k, df) => powerChi2(es, n, alpha, df),
+    effectMax: 1
   }
 };
-const PowerCurve = forwardRef(function PowerCurve2({ testKey, params, solveFor, result }, ref) {
+function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
+  const [mode, setMode] = useState("helper");
+  const [mean1, setMean1] = useState("");
+  const [mean2, setMean2] = useState("");
+  const [sd, setSd] = useState("");
+  const [diffMean, setDiffMean] = useState("");
+  const [diffSd, setDiffSd] = useState("");
+  const [groupMeansStr, setGroupMeansStr] = useState("");
+  const [withinSd, setWithinSd] = useState("");
+  const [expectedStr, setExpectedStr] = useState("");
+  const [observedStr, setObservedStr] = useState("");
+  const inputStyle = { ...inpN, width: "100%", textAlign: "left" };
+  const smallLabel = { fontSize: 11, color: "#666", marginBottom: 2 };
+  const note = { fontSize: 10, color: "#999", marginTop: 2 };
+  function parseProportions(str) {
+    if (!str.trim()) return [];
+    let parts;
+    if (str.includes(":")) {
+      parts = str.split(":").map((s) => parseFloat(s.trim())).filter((v) => !isNaN(v) && v >= 0);
+    } else {
+      parts = str.split(",").map((s) => parseFloat(s.trim())).filter((v) => !isNaN(v) && v >= 0);
+    }
+    const sum = parts.reduce((a, b) => a + b, 0);
+    return sum > 0 ? parts.map((p) => p / sum) : [];
+  }
+  const computeFromHelper = useCallback(() => {
+    if (testKey === "t-ind") {
+      const m1 = parseFloat(mean1), m2 = parseFloat(mean2), s = parseFloat(sd);
+      if (!isNaN(m1) && !isNaN(m2) && !isNaN(s) && s > 0) {
+        onEffectChange(dFromMeans(m1, m2, s).toFixed(4));
+      }
+    } else if (testKey === "t-paired" || testKey === "t-one") {
+      const dm = parseFloat(diffMean), ds = parseFloat(diffSd);
+      if (!isNaN(dm) && !isNaN(ds) && ds > 0) {
+        onEffectChange((Math.abs(dm) / ds).toFixed(4));
+      }
+    } else if (testKey === "anova") {
+      const means = groupMeansStr.split(",").map((s) => parseFloat(s.trim())).filter((v) => !isNaN(v));
+      const wsd = parseFloat(withinSd);
+      if (means.length >= 2 && !isNaN(wsd) && wsd > 0) {
+        onEffectChange(fFromGroupMeans(means, wsd).toFixed(4));
+      }
+    } else if (testKey === "chi2") {
+      const exp = parseProportions(expectedStr);
+      const obs = parseProportions(observedStr);
+      if (exp.length >= 2 && obs.length === exp.length) {
+        onEffectChange(wFromProportions(obs, exp).toFixed(4));
+      }
+    }
+  }, [testKey, mean1, mean2, sd, diffMean, diffSd, groupMeansStr, withinSd, expectedStr, observedStr, onEffectChange]);
+  const computedD = parseFloat(effectSize);
+  const sizeLabel = testKey === "correlation" ? computedD < 0.1 ? "" : computedD < 0.3 ? "small" : computedD < 0.5 ? "medium" : "large" : testKey === "anova" ? computedD < 0.1 ? "" : computedD < 0.25 ? "small" : computedD < 0.4 ? "medium" : "large" : testKey === "chi2" ? computedD < 0.1 ? "" : computedD < 0.3 ? "small" : computedD < 0.5 ? "medium" : "large" : computedD < 0.2 ? "" : computedD < 0.5 ? "small" : computedD < 0.8 ? "medium" : "large";
+  const sizeColor = sizeLabel === "small" ? "#009E73" : sizeLabel === "medium" ? "#E69F00" : sizeLabel === "large" ? "#D55E00" : "#999";
+  if (testKey === "correlation") {
+    return /* @__PURE__ */ React.createElement("div", { style: { opacity: disabled ? 0.4 : 1 } }, /* @__PURE__ */ React.createElement("div", { style: smallLabel }, "Expected correlation |r|"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "number",
+        min: "0.01",
+        max: "0.99",
+        step: "0.05",
+        value: effectSize,
+        onChange: (e) => onEffectChange(e.target.value),
+        disabled,
+        style: inputStyle
+      }
+    ), sizeLabel && /* @__PURE__ */ React.createElement("div", { style: { ...note, color: sizeColor, fontWeight: 600 } }, sizeLabel, " effect"), /* @__PURE__ */ React.createElement("div", { style: note }, "How strong a linear relationship do you expect?"));
+  }
+  return /* @__PURE__ */ React.createElement("div", { style: { opacity: disabled ? 0.4 : 1 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, marginBottom: 6 } }, /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      style: {
+        padding: "3px 8px",
+        borderRadius: 4,
+        fontSize: 11,
+        cursor: "pointer",
+        background: mode === "helper" ? "#0072B2" : "#eee",
+        color: mode === "helper" ? "#fff" : "#666",
+        fontWeight: mode === "helper" ? 700 : 400
+      },
+      onClick: () => setMode("helper")
+    },
+    "From my data"
+  ), /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      style: {
+        padding: "3px 8px",
+        borderRadius: 4,
+        fontSize: 11,
+        cursor: "pointer",
+        background: mode === "direct" ? "#0072B2" : "#eee",
+        color: mode === "direct" ? "#fff" : "#666",
+        fontWeight: mode === "direct" ? 700 : 400
+      },
+      onClick: () => setMode("direct")
+    },
+    "Direct value"
+  )), mode === "helper" && testKey === "t-ind" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: smallLabel }, "Expected mean \u2014 group 1"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      step: "any",
+      value: mean1,
+      onChange: (e) => setMean1(e.target.value),
+      disabled,
+      style: inputStyle,
+      placeholder: "e.g. 15.2"
+    }
+  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: smallLabel }, "Expected mean \u2014 group 2"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      step: "any",
+      value: mean2,
+      onChange: (e) => setMean2(e.target.value),
+      disabled,
+      style: inputStyle,
+      placeholder: "e.g. 12.8"
+    }
+  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: smallLabel }, "Common standard deviation"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      step: "any",
+      min: "0",
+      value: sd,
+      onChange: (e) => setSd(e.target.value),
+      disabled,
+      style: inputStyle,
+      placeholder: "e.g. 4.5"
+    }
+  )), /* @__PURE__ */ React.createElement("button", { onClick: computeFromHelper, disabled, style: { ...btnPrimary, fontSize: 12, padding: "5px 10px" } }, "Compute effect size"), /* @__PURE__ */ React.createElement("div", { style: note }, "Use pilot data or literature values. The SD should be the pooled within-group SD.")), mode === "helper" && (testKey === "t-paired" || testKey === "t-one") && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: smallLabel }, testKey === "t-paired" ? "Expected mean difference" : "Expected deviation from reference"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      step: "any",
+      value: diffMean,
+      onChange: (e) => setDiffMean(e.target.value),
+      disabled,
+      style: inputStyle,
+      placeholder: "e.g. 2.5"
+    }
+  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: smallLabel }, testKey === "t-paired" ? "SD of paired differences" : "Standard deviation"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      step: "any",
+      min: "0",
+      value: diffSd,
+      onChange: (e) => setDiffSd(e.target.value),
+      disabled,
+      style: inputStyle,
+      placeholder: "e.g. 5.0"
+    }
+  )), /* @__PURE__ */ React.createElement("button", { onClick: computeFromHelper, disabled, style: { ...btnPrimary, fontSize: 12, padding: "5px 10px" } }, "Compute effect size")), mode === "helper" && testKey === "anova" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: smallLabel }, "Expected group means (comma-separated)"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "text",
+      value: groupMeansStr,
+      onChange: (e) => setGroupMeansStr(e.target.value),
+      disabled,
+      style: inputStyle,
+      placeholder: "e.g. 10, 12, 15"
+    }
+  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: smallLabel }, "Within-group standard deviation"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      step: "any",
+      min: "0",
+      value: withinSd,
+      onChange: (e) => setWithinSd(e.target.value),
+      disabled,
+      style: inputStyle,
+      placeholder: "e.g. 4.0"
+    }
+  )), /* @__PURE__ */ React.createElement("button", { onClick: computeFromHelper, disabled, style: { ...btnPrimary, fontSize: 12, padding: "5px 10px" } }, "Compute effect size"), /* @__PURE__ */ React.createElement("div", { style: note }, "Enter the means you expect for each treatment group, and the common within-group SD (from pilot data or literature).")), mode === "helper" && testKey === "chi2" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: smallLabel }, "Expected proportions (under H\u2080)"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "text",
+      value: expectedStr,
+      onChange: (e) => setExpectedStr(e.target.value),
+      disabled,
+      style: inputStyle,
+      placeholder: "e.g. 3:1 or 0.75, 0.25"
+    }
+  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: smallLabel }, "Alternative proportions (what you expect)"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "text",
+      value: observedStr,
+      onChange: (e) => setObservedStr(e.target.value),
+      disabled,
+      style: inputStyle,
+      placeholder: "e.g. 2:1 or 0.67, 0.33"
+    }
+  )), /* @__PURE__ */ React.createElement("button", { onClick: computeFromHelper, disabled, style: { ...btnPrimary, fontSize: 12, padding: "5px 10px" } }, "Compute effect size"), /* @__PURE__ */ React.createElement("div", { style: note }, "Use ratios (3:1) or proportions (0.75, 0.25). Common for Mendelian segregation tests.")), mode === "direct" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: smallLabel }, testKey === "anova" ? "Effect size (f)" : testKey === "chi2" ? "Effect size (w)" : "Effect size (d)"), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      type: "number",
+      min: "0.01",
+      step: "0.1",
+      value: effectSize,
+      onChange: (e) => onEffectChange(e.target.value),
+      disabled,
+      style: inputStyle
+    }
+  ), /* @__PURE__ */ React.createElement("div", { style: note }, testKey === "anova" ? "f = SD of group means / within-group SD" : testKey === "chi2" ? "w = \u221A(\u03A3 (p_obs \u2212 p_exp)\xB2 / p_exp)" : "d = |difference in means| / pooled SD")), effectSize && parseFloat(effectSize) > 0 && /* @__PURE__ */ React.createElement("div", { style: {
+    marginTop: 6,
+    padding: "6px 10px",
+    background: "#f0f7ff",
+    borderRadius: 6,
+    border: "1px solid #d0e0f0",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center"
+  } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: "#333" } }, "Effect size = ", /* @__PURE__ */ React.createElement("b", null, parseFloat(effectSize).toFixed(3))), sizeLabel && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, fontWeight: 600, color: sizeColor } }, sizeLabel)));
+}
+const PowerCurve = forwardRef(function PowerCurve2({ testKey, powerFn, params, solveFor, result }, ref) {
   const test = TESTS[testKey];
   if (!test) return null;
   const VBW = 520, VBH = 320;
   const M = { top: 30, right: 20, bottom: 50, left: 55 };
   const w = VBW - M.left - M.right;
   const h = VBH - M.top - M.bottom;
-  const { d, n, alpha, tails, k, df } = params;
-  let xVar, xLabel, xRange, curvePoints;
-  if (solveFor === "n" || solveFor === "power") {
-    xVar = "n";
-    xLabel = test.nLabel;
-    const maxN = Math.max(200, result && solveFor === "n" ? result * 2.5 : 200);
-    const minN = testKey === "anova" ? 2 : testKey === "correlation" ? 4 : 2;
-    xRange = [minN, Math.ceil(maxN)];
-    const steps = 100;
-    curvePoints = [];
-    for (let i = 0; i <= steps; i++) {
-      const xn = xRange[0] + (xRange[1] - xRange[0]) * i / steps;
-      const ni = Math.max(minN, Math.round(xn));
-      const pw = test.power(d, ni, alpha, tails, k, df);
-      curvePoints.push({ x: ni, y: Math.min(1, Math.max(0, pw)) });
-    }
-  } else {
-    xVar = "d";
-    xLabel = test.effectLabel;
-    const eMax = test.effectMax || (testKey === "anova" ? 1 : 2);
-    xRange = [0.01, eMax];
-    const steps = 100;
-    curvePoints = [];
-    for (let i = 0; i <= steps; i++) {
-      const xd = xRange[0] + (xRange[1] - xRange[0]) * i / steps;
-      const pw = test.power(xd, n, alpha, tails, k, df);
-      curvePoints.push({ x: xd, y: Math.min(1, Math.max(0, pw)) });
-    }
+  const { es, n, alpha, tails, k, df } = params;
+  const minN = test.minN || 2;
+  const maxN = Math.max(200, result && solveFor === "n" ? result * 2.5 : 200);
+  const xRange = [minN, Math.ceil(maxN)];
+  const curvePoints = [];
+  for (let i = 0; i <= 100; i++) {
+    const xn = xRange[0] + (xRange[1] - xRange[0]) * i / 100;
+    const ni = Math.max(minN, Math.round(xn));
+    const pw = powerFn(es, ni, alpha, tails, k, df);
+    curvePoints.push({ x: ni, y: Math.min(1, Math.max(0, pw)) });
   }
   const sx = (v) => M.left + (v - xRange[0]) / (xRange[1] - xRange[0]) * w;
   const sy = (v) => M.top + (1 - v) * h;
@@ -362,14 +566,11 @@ const PowerCurve = forwardRef(function PowerCurve2({ testKey, params, solveFor, 
   const yTicks = [0, 0.2, 0.4, 0.6, 0.8, 1];
   const xTicks = makeTicks(xRange[0], xRange[1], 6);
   let marker = null;
-  if (result != null && isFinite(result)) {
-    if (xVar === "n") {
-      const my = test.power(d, Math.round(result), alpha, tails, k, df);
-      marker = { x: sx(result), y: sy(Math.min(1, Math.max(0, my))) };
-    } else {
-      const my = test.power(result, n, alpha, tails, k, df);
-      marker = { x: sx(result), y: sy(Math.min(1, Math.max(0, my))) };
-    }
+  if (result != null && isFinite(result) && solveFor === "n") {
+    const my = powerFn(es, Math.round(result), alpha, tails, k, df);
+    marker = { x: sx(result), y: sy(Math.min(1, Math.max(0, my))) };
+  } else if (result != null && isFinite(result) && solveFor === "power") {
+    marker = { x: sx(n), y: sy(Math.min(1, Math.max(0, result))) };
   }
   return /* @__PURE__ */ React.createElement(
     "svg",
@@ -382,7 +583,7 @@ const PowerCurve = forwardRef(function PowerCurve2({ testKey, params, solveFor, 
       "aria-label": "Power curve"
     },
     /* @__PURE__ */ React.createElement("title", null, "Power curve"),
-    /* @__PURE__ */ React.createElement("desc", null, "Statistical power as a function of ", xLabel),
+    /* @__PURE__ */ React.createElement("desc", null, "Statistical power as a function of sample size"),
     /* @__PURE__ */ React.createElement("rect", { x: M.left, y: M.top, width: w, height: h, fill: "#fafafa" }),
     yTicks.map((t) => /* @__PURE__ */ React.createElement("line", { key: `yg${t}`, x1: M.left, x2: M.left + w, y1: sy(t), y2: sy(t), stroke: "#e8e8e8", strokeWidth: "0.5" })),
     /* @__PURE__ */ React.createElement(
@@ -427,16 +628,10 @@ const PowerCurve = forwardRef(function PowerCurve2({ testKey, params, solveFor, 
       },
       "Power (1 \u2212 \u03B2)"
     ),
-    xTicks.map((t) => /* @__PURE__ */ React.createElement("text", { key: `xl${t}`, x: sx(t), y: M.top + h + 18, textAnchor: "middle", fontSize: "11", fill: "#555", fontFamily: "sans-serif" }, xVar === "n" ? Math.round(t) : t.toFixed(2))),
-    /* @__PURE__ */ React.createElement("text", { x: M.left + w / 2, y: VBH - 6, textAnchor: "middle", fontSize: "12", fill: "#333", fontFamily: "sans-serif" }, xLabel)
+    xTicks.map((t) => /* @__PURE__ */ React.createElement("text", { key: `xl${t}`, x: sx(t), y: M.top + h + 18, textAnchor: "middle", fontSize: "11", fill: "#555", fontFamily: "sans-serif" }, Math.round(t))),
+    /* @__PURE__ */ React.createElement("text", { x: M.left + w / 2, y: VBH - 6, textAnchor: "middle", fontSize: "12", fill: "#333", fontFamily: "sans-serif" }, test.nLabel)
   );
 });
-function EffectSizeGuide({ testKey }) {
-  const test = TESTS[testKey];
-  if (!test || !test.benchmarks) return null;
-  const { small, medium, large } = test.benchmarks;
-  return /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" } }, "Cohen's benchmarks for ", test.effectLabel), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 16 } }, [["Small", small], ["Medium", medium], ["Large", large]].map(([label, val]) => /* @__PURE__ */ React.createElement("div", { key: label, style: { textAlign: "center", flex: 1, background: "#fff", borderRadius: 6, padding: "6px 8px", border: "1px solid #e0e0e0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#888" } }, label), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: "#333" } }, val)))));
-}
 function App() {
   const [testKey, setTestKey] = useState("t-ind");
   const [solveFor, setSolveFor] = useState("n");
@@ -449,7 +644,7 @@ function App() {
   const [dfInput, setDfInput] = useState("1");
   const chartRef = useRef();
   const test = TESTS[testKey];
-  const d = parseFloat(effectSize) || 0;
+  const es = parseFloat(effectSize) || 0;
   const n = parseInt(nInput) || 2;
   const alpha = parseFloat(alphaInput) || 0.05;
   const power = parseFloat(powerInput) || 0.8;
@@ -457,52 +652,41 @@ function App() {
   const df = parseInt(dfInput) || 1;
   const result = useMemo(() => {
     try {
-      const minN = testKey === "correlation" ? 4 : 2;
+      const minN = test.minN || 2;
+      const pw = (e, ni) => test.power(e, ni, alpha, tails, k, df);
       if (solveFor === "n") {
-        if (d <= 0 || alpha <= 0 || alpha >= 1 || power <= 0 || power >= 1) return null;
-        const fn = (ni) => {
-          const nn = Math.max(minN, Math.round(ni));
-          return test.power(d, nn, alpha, tails, k, df);
-        };
-        return Math.ceil(bisect(fn, power, minN, 1e5, 0.5));
+        if (es <= 0 || alpha <= 0 || alpha >= 1 || power <= 0 || power >= 1) return null;
+        return Math.ceil(bisect((ni) => pw(es, Math.max(minN, Math.round(ni))), power, minN, 1e5, 0.5));
       }
       if (solveFor === "power") {
-        if (d <= 0 || n < minN || alpha <= 0 || alpha >= 1) return null;
-        return test.power(d, n, alpha, tails, k, df);
+        if (es <= 0 || n < minN || alpha <= 0 || alpha >= 1) return null;
+        return pw(es, n);
       }
       if (solveFor === "effect") {
         if (n < minN || alpha <= 0 || alpha >= 1 || power <= 0 || power >= 1) return null;
-        const eMax = test.effectMax || 5;
-        const fn = (es) => test.power(es, n, alpha, tails, k, df);
-        return bisect(fn, power, 1e-3, eMax);
-      }
-      if (solveFor === "alpha") {
-        if (d <= 0 || n < minN || power <= 0 || power >= 1) return null;
-        const fn = (a) => test.power(d, n, a, tails, k, df);
-        return bisect((a) => fn(a), power, 1e-4, 0.5);
+        return bisect((e) => pw(e, n), power, 1e-3, test.effectMax || 5);
       }
     } catch (e) {
       return null;
     }
     return null;
-  }, [testKey, solveFor, d, n, alpha, power, tails, k, df]);
+  }, [testKey, solveFor, es, n, alpha, power, tails, k, df]);
   const resultText = useMemo(() => {
     if (result == null) return "\u2014";
     if (solveFor === "n") return `${result}`;
     if (solveFor === "power") return `${(result * 100).toFixed(1)}%`;
     if (solveFor === "effect") return result.toFixed(4);
-    if (solveFor === "alpha") return result.toFixed(5);
     return "\u2014";
   }, [result, solveFor]);
   const resultLabel = {
     n: `Required ${test.nLabel}`,
     power: "Statistical power",
-    effect: `Detectable ${test.effectLabel}`,
-    alpha: "Significance level"
+    effect: "Minimum detectable effect size"
   }[solveFor];
   const handleTestChange = useCallback((e) => {
     const key = e.target.value;
     setTestKey(key);
+    setSolveFor("n");
     if (key === "anova" || key === "chi2") setTails(2);
   }, []);
   const handleDownload = useCallback(() => {
@@ -510,7 +694,7 @@ function App() {
     downloadSvg(chartRef.current, "power-curve.svg");
   }, []);
   const inputStyle = { ...inpN, width: "100%" };
-  const radioStyle = (active) => ({
+  const chipStyle = (active) => ({
     padding: "5px 10px",
     borderRadius: 6,
     fontSize: 12,
@@ -521,23 +705,19 @@ function App() {
     color: active ? "#0072B2" : "#555",
     fontFamily: "sans-serif"
   });
-  return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 960, margin: "0 auto", padding: "32px 24px" } }, /* @__PURE__ */ React.createElement(PageHeader, { title: "Power Analysis", icon: toolIcon("power") }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 310, flexShrink: 0, display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 12 } }, /* @__PURE__ */ React.createElement("div", { style: lbl }, "Statistical test"), /* @__PURE__ */ React.createElement("select", { value: testKey, onChange: handleTestChange, style: { ...selStyle, width: "100%" } }, Object.entries(TESTS).map(([key, t]) => /* @__PURE__ */ React.createElement("option", { key, value: key }, t.label))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#888", marginTop: 4 } }, test.desc)), /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { ...lbl, marginBottom: 6 } }, "Solve for"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6 } }, [
-    ["n", test.nLabel],
+  return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 960, margin: "0 auto", padding: "32px 24px" } }, /* @__PURE__ */ React.createElement(PageHeader, { title: "Power Analysis", icon: toolIcon("power") }), /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: "12px 16px", marginBottom: 16, borderLeft: "4px solid #0072B2" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: "#333", lineHeight: 1.5 } }, test.question)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { width: 328, flexShrink: 0, display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 12 } }, /* @__PURE__ */ React.createElement("div", { style: lbl }, "Statistical test"), /* @__PURE__ */ React.createElement("select", { value: testKey, onChange: handleTestChange, style: { ...selStyle, width: "100%" } }, Object.entries(TESTS).map(([key, t]) => /* @__PURE__ */ React.createElement("option", { key, value: key }, t.label)))), /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { ...lbl, marginBottom: 6 } }, "What do you need to find?"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6 } }, [
+    ["n", "Sample size"],
     ["power", "Power"],
-    ["effect", test.effectLabel],
-    ["alpha", "\u03B1"]
-  ].map(([key, label]) => /* @__PURE__ */ React.createElement("div", { key, style: radioStyle(solveFor === key), onClick: () => setSolveFor(key) }, label)))), /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 12, display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.5px" } }, "Parameters"), /* @__PURE__ */ React.createElement("div", { style: { opacity: solveFor === "effect" ? 0.4 : 1 } }, /* @__PURE__ */ React.createElement("div", { style: lbl }, test.effectLabel), /* @__PURE__ */ React.createElement(
-    "input",
+    ["effect", "Detectable effect"]
+  ].map(([key, label]) => /* @__PURE__ */ React.createElement("div", { key, style: chipStyle(solveFor === key), onClick: () => setSolveFor(key) }, label)))), /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { ...lbl, marginBottom: 6 } }, "Expected effect size"), /* @__PURE__ */ React.createElement(
+    EffectSizePanel,
     {
-      type: "number",
-      min: "0.01",
-      step: "0.1",
-      value: effectSize,
-      onChange: (e) => setEffectSize(e.target.value),
-      disabled: solveFor === "effect",
-      style: inputStyle
+      testKey,
+      effectSize,
+      onEffectChange: setEffectSize,
+      disabled: solveFor === "effect"
     }
-  ), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#999", marginTop: 2 } }, test.effectHint)), /* @__PURE__ */ React.createElement("div", { style: { opacity: solveFor === "n" ? 0.4 : 1 } }, /* @__PURE__ */ React.createElement("div", { style: lbl }, test.nLabel), /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 12, display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { opacity: solveFor === "n" ? 0.4 : 1 } }, /* @__PURE__ */ React.createElement("div", { style: lbl }, test.nLabel), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -548,31 +728,19 @@ function App() {
       disabled: solveFor === "n",
       style: inputStyle
     }
-  )), /* @__PURE__ */ React.createElement("div", { style: { opacity: solveFor === "alpha" ? 0.4 : 1 } }, /* @__PURE__ */ React.createElement("div", { style: lbl }, "Significance level (\u03B1)"), /* @__PURE__ */ React.createElement(
-    "input",
+  )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: lbl }, "Significance level (\u03B1)"), /* @__PURE__ */ React.createElement("select", { value: alphaInput, onChange: (e) => setAlphaInput(e.target.value), style: { ...selStyle, width: "100%" } }, /* @__PURE__ */ React.createElement("option", { value: "0.10" }, "0.10"), /* @__PURE__ */ React.createElement("option", { value: "0.05" }, "0.05"), /* @__PURE__ */ React.createElement("option", { value: "0.01" }, "0.01"), /* @__PURE__ */ React.createElement("option", { value: "0.001" }, "0.001"))), /* @__PURE__ */ React.createElement("div", { style: { opacity: solveFor === "power" ? 0.4 : 1 } }, /* @__PURE__ */ React.createElement("div", { style: lbl }, "Desired power (1 \u2212 \u03B2)"), /* @__PURE__ */ React.createElement(
+    "select",
     {
-      type: "number",
-      min: "0.001",
-      max: "0.5",
-      step: "0.01",
-      value: alphaInput,
-      onChange: (e) => setAlphaInput(e.target.value),
-      disabled: solveFor === "alpha",
-      style: inputStyle
-    }
-  )), /* @__PURE__ */ React.createElement("div", { style: { opacity: solveFor === "power" ? 0.4 : 1 } }, /* @__PURE__ */ React.createElement("div", { style: lbl }, "Desired power (1 \u2212 \u03B2)"), /* @__PURE__ */ React.createElement(
-    "input",
-    {
-      type: "number",
-      min: "0.01",
-      max: "0.999",
-      step: "0.05",
       value: powerInput,
       onChange: (e) => setPowerInput(e.target.value),
       disabled: solveFor === "power",
-      style: inputStyle
-    }
-  )), testKey !== "anova" && testKey !== "chi2" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: lbl }, "Tails"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, [1, 2].map((t) => /* @__PURE__ */ React.createElement("div", { key: t, style: radioStyle(tails === t), onClick: () => setTails(t) }, t, "-tailed")))), test.hasGroups && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: lbl }, "Number of groups (k)"), /* @__PURE__ */ React.createElement(
+      style: { ...selStyle, width: "100%" }
+    },
+    /* @__PURE__ */ React.createElement("option", { value: "0.70" }, "0.70"),
+    /* @__PURE__ */ React.createElement("option", { value: "0.80" }, "0.80 (standard)"),
+    /* @__PURE__ */ React.createElement("option", { value: "0.90" }, "0.90"),
+    /* @__PURE__ */ React.createElement("option", { value: "0.95" }, "0.95")
+  )), testKey !== "anova" && testKey !== "chi2" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: lbl }, "Alternative hypothesis"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, [[2, "Two-sided"], [1, "One-sided"]].map(([t, label]) => /* @__PURE__ */ React.createElement("div", { key: t, style: chipStyle(tails === t), onClick: () => setTails(t) }, label)))), test.hasGroups && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: lbl }, "Number of groups"), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "number",
@@ -594,15 +762,16 @@ function App() {
       onChange: (e) => setDfInput(e.target.value),
       style: inputStyle
     }
-  ), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#999", marginTop: 2 } }, "(r\u22121)(c\u22121) for independence, k\u22121 for goodness-of-fit")))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 360, display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 16, textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#777", marginBottom: 4 } }, resultLabel), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, fontWeight: 700, color: result != null ? "#0072B2" : "#ccc", fontFamily: "monospace" } }, resultText), solveFor === "n" && result != null && test.hasGroups && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#888", marginTop: 4 } }, "Total N = ", result * k, " (", result, " per group \xD7 ", k, " groups)"), solveFor === "n" && result != null && testKey === "t-ind" && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#888", marginTop: 4 } }, "Total N = ", result * 2, " (", result, " per group \xD7 2 groups)")), /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 12 } }, /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#999", marginTop: 2 } }, "Goodness-of-fit: categories \u2212 1. Independence: (rows\u22121)(cols\u22121).")))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 360, display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 16, textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#777", marginBottom: 4 } }, resultLabel), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, fontWeight: 700, color: result != null ? "#0072B2" : "#ccc", fontFamily: "monospace" } }, resultText), solveFor === "n" && result != null && test.totalLabel && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#888", marginTop: 4 } }, test.totalLabel(result, k))), /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 12 } }, /* @__PURE__ */ React.createElement(
     PowerCurve,
     {
       ref: chartRef,
       testKey,
-      params: { d, n, alpha, tails, k, df },
+      powerFn: test.power,
+      params: { es, n, alpha, tails, k, df },
       solveFor,
       result
     }
-  ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: handleDownload, style: btnDownload }, "Download SVG"))), /* @__PURE__ */ React.createElement(EffectSizeGuide, { testKey }), /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" } }, "Interpretation"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#555", lineHeight: 1.6 } }, /* @__PURE__ */ React.createElement("b", null, "Power"), " is the probability of correctly rejecting H\u2080 when H\u2081 is true (i.e., detecting an effect that genuinely exists). Convention: aim for power \u2265 0.80.", /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("b", null, "\u03B1"), " is the probability of a Type I error (false positive). Convention: \u03B1 = 0.05.", /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("b", null, "Effect size"), " quantifies the magnitude of the effect you expect or want to detect. Use pilot data or domain knowledge when possible; Cohen's benchmarks are a last resort.")))));
+  ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: handleDownload, style: btnDownload }, "Download SVG"))), /* @__PURE__ */ React.createElement("div", { style: { ...sec, padding: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" } }, "How to read this"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#555", lineHeight: 1.6 } }, /* @__PURE__ */ React.createElement("b", null, "Power"), " = probability of detecting a real effect. Aim for 0.80 or higher (dashed line).", /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("b", null, "\u03B1"), " = false positive rate. Standard is 0.05 (5% risk of a false alarm).", /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("b", null, "Effect size"), " = how big the real difference is, relative to variability. Estimate from pilot data or literature when possible.")))));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));

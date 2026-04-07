@@ -223,112 +223,346 @@ function bisect(fn, target, lo, hi, tol = 1e-6, maxIter = 200) {
   return (lo + hi) / 2;
 }
 
+// ── Power functions (keyed by test type) ────────────────────────────────────
+
+function powerTwoSample(d, n, alpha, tails) {
+  const df = 2 * n - 2;
+  const delta = d * Math.sqrt(n / 2);
+  const tCrit = tinv(1 - alpha / tails, df);
+  if (tails === 2) return (1 - nctcdf(tCrit, df, delta)) + nctcdf(-tCrit, df, delta);
+  return 1 - nctcdf(tCrit, df, delta);
+}
+
+function powerPaired(d, n, alpha, tails) {
+  const df = n - 1;
+  const delta = d * Math.sqrt(n);
+  const tCrit = tinv(1 - alpha / tails, df);
+  if (tails === 2) return (1 - nctcdf(tCrit, df, delta)) + nctcdf(-tCrit, df, delta);
+  return 1 - nctcdf(tCrit, df, delta);
+}
+
+function powerOneSample(d, n, alpha, tails) {
+  return powerPaired(d, n, alpha, tails); // same math
+}
+
+function powerAnova(f, n, alpha, k) {
+  const df1 = k - 1, df2 = k * (n - 1);
+  const lambda = n * k * f * f;
+  const fCrit = bisect(x => fcdf(x, df1, df2), 1 - alpha, 0, 200);
+  return ncf_sf(fCrit, df1, df2, lambda);
+}
+
+function powerCorrelation(r, n, alpha, tails) {
+  const zr = Math.atanh(r);
+  const se = 1 / Math.sqrt(Math.max(1, n - 3));
+  const zCrit = norminv(1 - alpha / tails);
+  if (tails === 2) return normcdf(Math.abs(zr) / se - zCrit) + normcdf(-Math.abs(zr) / se - zCrit);
+  return normcdf(zr / se - zCrit);
+}
+
+function powerChi2(w, n, alpha, df) {
+  const lambda = n * w * w;
+  const chiCrit = chi2inv(1 - alpha, df);
+  return 1 - ncchi2cdf(chiCrit, df, lambda);
+}
+
+// ── Effect size helpers ─────────────────────────────────────────────────────
+
+// Two-sample t: d from means + SD
+function dFromMeans(m1, m2, sd) {
+  return sd > 0 ? Math.abs(m1 - m2) / sd : 0;
+}
+
+// ANOVA f from group means + within-SD
+function fFromGroupMeans(meansArr, sd) {
+  if (!meansArr.length || sd <= 0) return 0;
+  const grandMean = meansArr.reduce((a, b) => a + b, 0) / meansArr.length;
+  const sigmaMeans = Math.sqrt(meansArr.reduce((s, m) => s + (m - grandMean) ** 2, 0) / meansArr.length);
+  return sigmaMeans / sd;
+}
+
+// Chi-square w from expected proportions vs hypothesized
+function wFromProportions(observed, expected) {
+  if (!observed.length || observed.length !== expected.length) return 0;
+  let sum = 0;
+  for (let i = 0; i < expected.length; i++) {
+    if (expected[i] <= 0) return 0;
+    sum += (observed[i] - expected[i]) ** 2 / expected[i];
+  }
+  return Math.sqrt(sum);
+}
+
+// ── Test definitions ────────────────────────────────────────────────────────
+
 const TESTS = {
   "t-ind": {
-    label: "Independent two-sample t-test",
-    desc: "Compare means of two independent groups",
-    effectLabel: "Cohen's d",
-    effectHint: "d = |μ₁ − μ₂| / σ_pooled",
+    label: "Two-sample t-test",
+    question: "How many subjects per group to detect a difference between two independent groups?",
     nLabel: "n per group",
-    benchmarks: { small: 0.2, medium: 0.5, large: 0.8 },
-    power(d, n, alpha, tails) {
-      const df = 2 * n - 2;
-      const delta = d * Math.sqrt(n / 2); // noncentrality parameter
-      const tCrit = tinv(1 - alpha / tails, df);
-      if (tails === 2) {
-        return (1 - nctcdf(tCrit, df, delta)) + nctcdf(-tCrit, df, delta);
-      }
-      return 1 - nctcdf(tCrit, df, delta);
-    },
+    power: (es, n, alpha, tails) => powerTwoSample(es, n, alpha, tails),
+    effectMax: 3,
+    totalN: (n) => n * 2,
+    totalLabel: (n) => `Total N = ${n * 2} (${n} per group \u00d7 2)`,
   },
   "t-paired": {
     label: "Paired t-test",
-    desc: "Compare means of paired/matched observations",
-    effectLabel: "Cohen's d",
-    effectHint: "d = |μ_diff| / σ_diff",
+    question: "How many pairs to detect a difference between matched measurements?",
     nLabel: "n (pairs)",
-    benchmarks: { small: 0.2, medium: 0.5, large: 0.8 },
-    power(d, n, alpha, tails) {
-      const df = n - 1;
-      const delta = d * Math.sqrt(n);
-      const tCrit = tinv(1 - alpha / tails, df);
-      if (tails === 2) {
-        return (1 - nctcdf(tCrit, df, delta)) + nctcdf(-tCrit, df, delta);
-      }
-      return 1 - nctcdf(tCrit, df, delta);
-    },
+    power: (es, n, alpha, tails) => powerPaired(es, n, alpha, tails),
+    effectMax: 3,
   },
   "t-one": {
     label: "One-sample t-test",
-    desc: "Compare mean to a known value",
-    effectLabel: "Cohen's d",
-    effectHint: "d = |μ − μ₀| / σ",
+    question: "How many observations to detect a deviation from a known reference value?",
     nLabel: "n",
-    benchmarks: { small: 0.2, medium: 0.5, large: 0.8 },
-    power(d, n, alpha, tails) {
-      const df = n - 1;
-      const delta = d * Math.sqrt(n);
-      const tCrit = tinv(1 - alpha / tails, df);
-      if (tails === 2) {
-        return (1 - nctcdf(tCrit, df, delta)) + nctcdf(-tCrit, df, delta);
-      }
-      return 1 - nctcdf(tCrit, df, delta);
-    },
+    power: (es, n, alpha, tails) => powerOneSample(es, n, alpha, tails),
+    effectMax: 3,
   },
   "anova": {
     label: "One-way ANOVA",
-    desc: "Compare means across k groups",
-    effectLabel: "Cohen's f",
-    effectHint: "f = σ_means / σ_within",
+    question: "How many subjects per group to detect differences among k group means?",
     nLabel: "n per group",
-    benchmarks: { small: 0.10, medium: 0.25, large: 0.40 },
     hasGroups: true,
-    power(f, n, alpha, _tails, k) {
-      const df1 = k - 1;
-      const df2 = k * (n - 1);
-      const lambda = n * k * f * f; // noncentrality
-      const fCrit = bisect(x => fcdf(x, df1, df2), 1 - alpha, 0, 200);
-      return ncf_sf(fCrit, df1, df2, lambda);
-    },
+    power: (es, n, alpha, _tails, k) => powerAnova(es, n, alpha, k),
+    effectMax: 2,
+    totalN: (n, k) => n * k,
+    totalLabel: (n, k) => `Total N = ${n * k} (${n} per group \u00d7 ${k} groups)`,
   },
   "correlation": {
-    label: "Correlation (Pearson r)",
-    desc: "Test whether a correlation differs from zero",
-    effectLabel: "|r|",
-    effectHint: "Expected absolute correlation",
+    label: "Correlation",
+    question: "How many observations to detect a non-zero Pearson correlation?",
     nLabel: "n (total)",
-    benchmarks: { small: 0.10, medium: 0.30, large: 0.50 },
+    power: (es, n, alpha, tails) => powerCorrelation(es, n, alpha, tails),
     effectMax: 0.99,
-    power(r, n, alpha, tails) {
-      // Fisher z-transform approach
-      const zr = Math.atanh(r);
-      const se = 1 / Math.sqrt(Math.max(1, n - 3));
-      const zCrit = norminv(1 - alpha / tails);
-      if (tails === 2) {
-        return normcdf(Math.abs(zr) / se - zCrit) + normcdf(-Math.abs(zr) / se - zCrit);
-      }
-      return normcdf(zr / se - zCrit);
-    },
+    minN: 4,
   },
   "chi2": {
     label: "Chi-square test",
-    desc: "Goodness-of-fit or independence",
-    effectLabel: "Cohen's w",
-    effectHint: "w = √(Σ (p_obs − p_exp)² / p_exp)",
+    question: "How many observations for a goodness-of-fit or independence test?",
     nLabel: "n (total)",
-    benchmarks: { small: 0.10, medium: 0.30, large: 0.50 },
     hasDf: true,
-    power(w, n, alpha, _tails, _k, df) {
-      const lambda = n * w * w; // noncentrality
-      const chiCrit = chi2inv(1 - alpha, df);
-      return 1 - ncchi2cdf(chiCrit, df, lambda);
-    },
+    power: (es, n, alpha, _tails, _k, df) => powerChi2(es, n, alpha, df),
+    effectMax: 1,
   },
 };
 
-// ── Power curve SVG chart ───────────────────────────────────────────────────
+// ── Effect size input component (the key UX piece) ──────────────────────────
 
-const PowerCurve = forwardRef(function PowerCurve({ testKey, params, solveFor, result }, ref) {
+function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
+  const [mode, setMode] = useState("helper"); // "helper" or "direct"
+  // t-test helper state
+  const [mean1, setMean1] = useState("");
+  const [mean2, setMean2] = useState("");
+  const [sd, setSd] = useState("");
+  // paired helper
+  const [diffMean, setDiffMean] = useState("");
+  const [diffSd, setDiffSd] = useState("");
+  // ANOVA helper
+  const [groupMeansStr, setGroupMeansStr] = useState("");
+  const [withinSd, setWithinSd] = useState("");
+  // chi-square helper
+  const [expectedStr, setExpectedStr] = useState(""); // e.g. "3:1" or "0.75,0.25"
+  const [observedStr, setObservedStr] = useState("");
+  // correlation — no helper needed, r is intuitive
+
+  const inputStyle = { ...inpN, width: "100%", textAlign: "left" };
+  const smallLabel = { fontSize: 11, color: "#666", marginBottom: 2 };
+  const note = { fontSize: 10, color: "#999", marginTop: 2 };
+
+  // Parse ratio string like "3:1" or "0.75,0.25" into normalized proportions
+  function parseProportions(str) {
+    if (!str.trim()) return [];
+    let parts;
+    if (str.includes(":")) {
+      parts = str.split(":").map(s => parseFloat(s.trim())).filter(v => !isNaN(v) && v >= 0);
+    } else {
+      parts = str.split(",").map(s => parseFloat(s.trim())).filter(v => !isNaN(v) && v >= 0);
+    }
+    const sum = parts.reduce((a, b) => a + b, 0);
+    return sum > 0 ? parts.map(p => p / sum) : [];
+  }
+
+  // Auto-compute effect size from helper inputs
+  const computeFromHelper = useCallback(() => {
+    if (testKey === "t-ind") {
+      const m1 = parseFloat(mean1), m2 = parseFloat(mean2), s = parseFloat(sd);
+      if (!isNaN(m1) && !isNaN(m2) && !isNaN(s) && s > 0) {
+        onEffectChange(dFromMeans(m1, m2, s).toFixed(4));
+      }
+    } else if (testKey === "t-paired" || testKey === "t-one") {
+      const dm = parseFloat(diffMean), ds = parseFloat(diffSd);
+      if (!isNaN(dm) && !isNaN(ds) && ds > 0) {
+        onEffectChange((Math.abs(dm) / ds).toFixed(4));
+      }
+    } else if (testKey === "anova") {
+      const means = groupMeansStr.split(",").map(s => parseFloat(s.trim())).filter(v => !isNaN(v));
+      const wsd = parseFloat(withinSd);
+      if (means.length >= 2 && !isNaN(wsd) && wsd > 0) {
+        onEffectChange(fFromGroupMeans(means, wsd).toFixed(4));
+      }
+    } else if (testKey === "chi2") {
+      const exp = parseProportions(expectedStr);
+      const obs = parseProportions(observedStr);
+      if (exp.length >= 2 && obs.length === exp.length) {
+        onEffectChange(wFromProportions(obs, exp).toFixed(4));
+      }
+    }
+  }, [testKey, mean1, mean2, sd, diffMean, diffSd, groupMeansStr, withinSd, expectedStr, observedStr, onEffectChange]);
+
+  const computedD = parseFloat(effectSize);
+  const sizeLabel = testKey === "correlation"
+    ? (computedD < 0.1 ? "" : computedD < 0.3 ? "small" : computedD < 0.5 ? "medium" : "large")
+    : testKey === "anova"
+      ? (computedD < 0.1 ? "" : computedD < 0.25 ? "small" : computedD < 0.4 ? "medium" : "large")
+      : testKey === "chi2"
+        ? (computedD < 0.1 ? "" : computedD < 0.3 ? "small" : computedD < 0.5 ? "medium" : "large")
+        : (computedD < 0.2 ? "" : computedD < 0.5 ? "small" : computedD < 0.8 ? "medium" : "large");
+
+  const sizeColor = sizeLabel === "small" ? "#009E73" : sizeLabel === "medium" ? "#E69F00" : sizeLabel === "large" ? "#D55E00" : "#999";
+
+  // Correlation uses direct input only (r is intuitive)
+  if (testKey === "correlation") {
+    return (
+      <div style={{ opacity: disabled ? 0.4 : 1 }}>
+        <div style={smallLabel}>Expected correlation |r|</div>
+        <input type="number" min="0.01" max="0.99" step="0.05" value={effectSize}
+          onChange={e => onEffectChange(e.target.value)} disabled={disabled} style={inputStyle} />
+        {sizeLabel && <div style={{ ...note, color: sizeColor, fontWeight: 600 }}>{sizeLabel} effect</div>}
+        <div style={note}>How strong a linear relationship do you expect?</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ opacity: disabled ? 0.4 : 1 }}>
+      {/* Mode toggle */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+        <div style={{ padding: "3px 8px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+          background: mode === "helper" ? "#0072B2" : "#eee", color: mode === "helper" ? "#fff" : "#666",
+          fontWeight: mode === "helper" ? 700 : 400 }}
+          onClick={() => setMode("helper")}>From my data</div>
+        <div style={{ padding: "3px 8px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+          background: mode === "direct" ? "#0072B2" : "#eee", color: mode === "direct" ? "#fff" : "#666",
+          fontWeight: mode === "direct" ? 700 : 400 }}
+          onClick={() => setMode("direct")}>Direct value</div>
+      </div>
+
+      {mode === "helper" && testKey === "t-ind" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div>
+            <div style={smallLabel}>Expected mean — group 1</div>
+            <input type="number" step="any" value={mean1} onChange={e => setMean1(e.target.value)}
+              disabled={disabled} style={inputStyle} placeholder="e.g. 15.2" />
+          </div>
+          <div>
+            <div style={smallLabel}>Expected mean — group 2</div>
+            <input type="number" step="any" value={mean2} onChange={e => setMean2(e.target.value)}
+              disabled={disabled} style={inputStyle} placeholder="e.g. 12.8" />
+          </div>
+          <div>
+            <div style={smallLabel}>Common standard deviation</div>
+            <input type="number" step="any" min="0" value={sd} onChange={e => setSd(e.target.value)}
+              disabled={disabled} style={inputStyle} placeholder="e.g. 4.5" />
+          </div>
+          <button onClick={computeFromHelper} disabled={disabled} style={{ ...btnPrimary, fontSize: 12, padding: "5px 10px" }}>
+            Compute effect size
+          </button>
+          <div style={note}>Use pilot data or literature values. The SD should be the pooled within-group SD.</div>
+        </div>
+      )}
+
+      {mode === "helper" && (testKey === "t-paired" || testKey === "t-one") && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div>
+            <div style={smallLabel}>
+              {testKey === "t-paired" ? "Expected mean difference" : "Expected deviation from reference"}
+            </div>
+            <input type="number" step="any" value={diffMean} onChange={e => setDiffMean(e.target.value)}
+              disabled={disabled} style={inputStyle} placeholder="e.g. 2.5" />
+          </div>
+          <div>
+            <div style={smallLabel}>
+              {testKey === "t-paired" ? "SD of paired differences" : "Standard deviation"}
+            </div>
+            <input type="number" step="any" min="0" value={diffSd} onChange={e => setDiffSd(e.target.value)}
+              disabled={disabled} style={inputStyle} placeholder="e.g. 5.0" />
+          </div>
+          <button onClick={computeFromHelper} disabled={disabled} style={{ ...btnPrimary, fontSize: 12, padding: "5px 10px" }}>
+            Compute effect size
+          </button>
+        </div>
+      )}
+
+      {mode === "helper" && testKey === "anova" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div>
+            <div style={smallLabel}>Expected group means (comma-separated)</div>
+            <input type="text" value={groupMeansStr} onChange={e => setGroupMeansStr(e.target.value)}
+              disabled={disabled} style={inputStyle} placeholder="e.g. 10, 12, 15" />
+          </div>
+          <div>
+            <div style={smallLabel}>Within-group standard deviation</div>
+            <input type="number" step="any" min="0" value={withinSd} onChange={e => setWithinSd(e.target.value)}
+              disabled={disabled} style={inputStyle} placeholder="e.g. 4.0" />
+          </div>
+          <button onClick={computeFromHelper} disabled={disabled} style={{ ...btnPrimary, fontSize: 12, padding: "5px 10px" }}>
+            Compute effect size
+          </button>
+          <div style={note}>Enter the means you expect for each treatment group, and the common within-group SD (from pilot data or literature).</div>
+        </div>
+      )}
+
+      {mode === "helper" && testKey === "chi2" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div>
+            <div style={smallLabel}>Expected proportions (under H₀)</div>
+            <input type="text" value={expectedStr} onChange={e => setExpectedStr(e.target.value)}
+              disabled={disabled} style={inputStyle} placeholder="e.g. 3:1 or 0.75, 0.25" />
+          </div>
+          <div>
+            <div style={smallLabel}>Alternative proportions (what you expect)</div>
+            <input type="text" value={observedStr} onChange={e => setObservedStr(e.target.value)}
+              disabled={disabled} style={inputStyle} placeholder="e.g. 2:1 or 0.67, 0.33" />
+          </div>
+          <button onClick={computeFromHelper} disabled={disabled} style={{ ...btnPrimary, fontSize: 12, padding: "5px 10px" }}>
+            Compute effect size
+          </button>
+          <div style={note}>Use ratios (3:1) or proportions (0.75, 0.25). Common for Mendelian segregation tests.</div>
+        </div>
+      )}
+
+      {mode === "direct" && (
+        <div>
+          <div style={smallLabel}>
+            {testKey === "anova" ? "Effect size (f)" : testKey === "chi2" ? "Effect size (w)" : "Effect size (d)"}
+          </div>
+          <input type="number" min="0.01" step="0.1" value={effectSize}
+            onChange={e => onEffectChange(e.target.value)} disabled={disabled} style={inputStyle} />
+          <div style={note}>
+            {testKey === "anova" ? "f = SD of group means / within-group SD"
+             : testKey === "chi2" ? "w = \u221A(\u03A3 (p_obs \u2212 p_exp)\u00B2 / p_exp)"
+             : "d = |difference in means| / pooled SD"}
+          </div>
+        </div>
+      )}
+
+      {/* Computed effect size display */}
+      {effectSize && parseFloat(effectSize) > 0 && (
+        <div style={{ marginTop: 6, padding: "6px 10px", background: "#f0f7ff", borderRadius: 6, border: "1px solid #d0e0f0",
+          display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 12, color: "#333" }}>
+            Effect size = <b>{parseFloat(effectSize).toFixed(3)}</b>
+          </span>
+          {sizeLabel && <span style={{ fontSize: 11, fontWeight: 600, color: sizeColor }}>{sizeLabel}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Power curve SVG ─────────────────────────────────────────────────────────
+
+const PowerCurve = forwardRef(function PowerCurve({ testKey, powerFn, params, solveFor, result }, ref) {
   const test = TESTS[testKey];
   if (!test) return null;
 
@@ -337,86 +571,51 @@ const PowerCurve = forwardRef(function PowerCurve({ testKey, params, solveFor, r
   const w = VBW - M.left - M.right;
   const h = VBH - M.top - M.bottom;
 
-  const { d, n, alpha, tails, k, df } = params;
+  const { es, n, alpha, tails, k, df } = params;
+  const minN = test.minN || 2;
 
-  // Determine X axis variable and range
-  let xVar, xLabel, xRange, curvePoints;
-  if (solveFor === "n" || solveFor === "power") {
-    // Plot power vs n
-    xVar = "n";
-    xLabel = test.nLabel;
-    const maxN = Math.max(200, (result && solveFor === "n" ? result * 2.5 : 200));
-    const minN = testKey === "anova" ? 2 : (testKey === "correlation" ? 4 : 2);
-    xRange = [minN, Math.ceil(maxN)];
-    const steps = 100;
-    curvePoints = [];
-    for (let i = 0; i <= steps; i++) {
-      const xn = xRange[0] + (xRange[1] - xRange[0]) * i / steps;
-      const ni = Math.max(minN, Math.round(xn));
-      const pw = test.power(d, ni, alpha, tails, k, df);
-      curvePoints.push({ x: ni, y: Math.min(1, Math.max(0, pw)) });
-    }
-  } else {
-    // Plot power vs effect size
-    xVar = "d";
-    xLabel = test.effectLabel;
-    const eMax = test.effectMax || (testKey === "anova" ? 1.0 : 2.0);
-    xRange = [0.01, eMax];
-    const steps = 100;
-    curvePoints = [];
-    for (let i = 0; i <= steps; i++) {
-      const xd = xRange[0] + (xRange[1] - xRange[0]) * i / steps;
-      const pw = test.power(xd, n, alpha, tails, k, df);
-      curvePoints.push({ x: xd, y: Math.min(1, Math.max(0, pw)) });
-    }
+  // Always plot power vs n
+  const maxN = Math.max(200, (result && solveFor === "n" ? result * 2.5 : 200));
+  const xRange = [minN, Math.ceil(maxN)];
+  const curvePoints = [];
+  for (let i = 0; i <= 100; i++) {
+    const xn = xRange[0] + (xRange[1] - xRange[0]) * i / 100;
+    const ni = Math.max(minN, Math.round(xn));
+    const pw = powerFn(es, ni, alpha, tails, k, df);
+    curvePoints.push({ x: ni, y: Math.min(1, Math.max(0, pw)) });
   }
 
   const sx = (v) => M.left + ((v - xRange[0]) / (xRange[1] - xRange[0])) * w;
   const sy = (v) => M.top + (1 - v) * h;
 
-  // Build path
   const pathD = curvePoints.map((p, i) =>
     `${i === 0 ? "M" : "L"}${sx(p.x).toFixed(2)},${sy(p.y).toFixed(2)}`
   ).join(" ");
 
-  // Y ticks
   const yTicks = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
-  // X ticks
   const xTicks = makeTicks(xRange[0], xRange[1], 6);
 
-  // Result marker
   let marker = null;
-  if (result != null && isFinite(result)) {
-    if (xVar === "n") {
-      const my = test.power(d, Math.round(result), alpha, tails, k, df);
-      marker = { x: sx(result), y: sy(Math.min(1, Math.max(0, my))) };
-    } else {
-      const my = test.power(result, n, alpha, tails, k, df);
-      marker = { x: sx(result), y: sy(Math.min(1, Math.max(0, my))) };
-    }
+  if (result != null && isFinite(result) && solveFor === "n") {
+    const my = powerFn(es, Math.round(result), alpha, tails, k, df);
+    marker = { x: sx(result), y: sy(Math.min(1, Math.max(0, my))) };
+  } else if (result != null && isFinite(result) && solveFor === "power") {
+    marker = { x: sx(n), y: sy(Math.min(1, Math.max(0, result))) };
   }
 
   return (
     <svg ref={ref} viewBox={`0 0 ${VBW} ${VBH}`} style={{ width: "100%", height: "auto", display: "block" }}
       xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Power curve">
       <title>Power curve</title>
-      <desc>Statistical power as a function of {xLabel}</desc>
+      <desc>Statistical power as a function of sample size</desc>
       <rect x={M.left} y={M.top} width={w} height={h} fill="#fafafa" />
-
-      {/* Grid */}
       {yTicks.map(t => (
         <line key={`yg${t}`} x1={M.left} x2={M.left + w} y1={sy(t)} y2={sy(t)} stroke="#e8e8e8" strokeWidth="0.5" />
       ))}
-
-      {/* Power = 0.8 reference line */}
       <line x1={M.left} x2={M.left + w} y1={sy(0.8)} y2={sy(0.8)}
         stroke="#D55E00" strokeWidth="1" strokeDasharray="6,3" opacity="0.6" />
       <text x={M.left + w + 3} y={sy(0.8) + 3} fontSize="9" fill="#D55E00" fontFamily="sans-serif">0.80</text>
-
-      {/* Curve */}
       <path d={pathD} fill="none" stroke="#0072B2" strokeWidth="2.5" strokeLinejoin="round" />
-
-      {/* Result marker */}
       {marker && (
         <g>
           <line x1={marker.x} x2={marker.x} y1={M.top} y2={M.top + h}
@@ -424,11 +623,7 @@ const PowerCurve = forwardRef(function PowerCurve({ testKey, params, solveFor, r
           <circle cx={marker.x} cy={marker.y} r="5" fill="#E69F00" stroke="#fff" strokeWidth="1.5" />
         </g>
       )}
-
-      {/* Axes */}
       <rect x={M.left} y={M.top} width={w} height={h} fill="none" stroke="#333" strokeWidth="1" />
-
-      {/* Y labels */}
       {yTicks.map(t => (
         <text key={`yl${t}`} x={M.left - 8} y={sy(t) + 4} textAnchor="end" fontSize="11" fill="#555" fontFamily="sans-serif">
           {t.toFixed(1)}
@@ -436,42 +631,17 @@ const PowerCurve = forwardRef(function PowerCurve({ testKey, params, solveFor, r
       ))}
       <text x={14} y={M.top + h / 2} textAnchor="middle" fontSize="12" fill="#333"
         fontFamily="sans-serif" transform={`rotate(-90,14,${M.top + h / 2})`}>Power (1 − β)</text>
-
-      {/* X labels */}
       {xTicks.map(t => (
         <text key={`xl${t}`} x={sx(t)} y={M.top + h + 18} textAnchor="middle" fontSize="11" fill="#555" fontFamily="sans-serif">
-          {xVar === "n" ? Math.round(t) : t.toFixed(2)}
+          {Math.round(t)}
         </text>
       ))}
       <text x={M.left + w / 2} y={VBH - 6} textAnchor="middle" fontSize="12" fill="#333" fontFamily="sans-serif">
-        {xLabel}
+        {test.nLabel}
       </text>
     </svg>
   );
 });
-
-// ── Effect size guide table ─────────────────────────────────────────────────
-
-function EffectSizeGuide({ testKey }) {
-  const test = TESTS[testKey];
-  if (!test || !test.benchmarks) return null;
-  const { small, medium, large } = test.benchmarks;
-  return (
-    <div style={{ ...sec, padding: 12 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-        Cohen's benchmarks for {test.effectLabel}
-      </div>
-      <div style={{ display: "flex", gap: 16 }}>
-        {[["Small", small], ["Medium", medium], ["Large", large]].map(([label, val]) => (
-          <div key={label} style={{ textAlign: "center", flex: 1, background: "#fff", borderRadius: 6, padding: "6px 8px", border: "1px solid #e0e0e0" }}>
-            <div style={{ fontSize: 10, color: "#888" }}>{label}</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#333" }}>{val}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // ── Main App ────────────────────────────────────────────────────────────────
 
@@ -483,76 +653,57 @@ function App() {
   const [alphaInput, setAlphaInput] = useState("0.05");
   const [powerInput, setPowerInput] = useState("0.80");
   const [tails, setTails] = useState(2);
-  const [kInput, setKInput] = useState("3"); // groups for ANOVA
-  const [dfInput, setDfInput] = useState("1"); // df for chi-square
+  const [kInput, setKInput] = useState("3");
+  const [dfInput, setDfInput] = useState("1");
   const chartRef = useRef();
 
   const test = TESTS[testKey];
 
-  // Parse inputs
-  const d = parseFloat(effectSize) || 0;
+  const es = parseFloat(effectSize) || 0;
   const n = parseInt(nInput) || 2;
   const alpha = parseFloat(alphaInput) || 0.05;
   const power = parseFloat(powerInput) || 0.80;
   const k = parseInt(kInput) || 3;
   const df = parseInt(dfInput) || 1;
 
-  // Compute result
   const result = useMemo(() => {
     try {
-      const minN = testKey === "correlation" ? 4 : 2;
+      const minN = test.minN || 2;
+      const pw = (e, ni) => test.power(e, ni, alpha, tails, k, df);
       if (solveFor === "n") {
-        if (d <= 0 || alpha <= 0 || alpha >= 1 || power <= 0 || power >= 1) return null;
-        // Bisect for n
-        const fn = (ni) => {
-          const nn = Math.max(minN, Math.round(ni));
-          return test.power(d, nn, alpha, tails, k, df);
-        };
-        return Math.ceil(bisect(fn, power, minN, 100000, 0.5));
+        if (es <= 0 || alpha <= 0 || alpha >= 1 || power <= 0 || power >= 1) return null;
+        return Math.ceil(bisect(ni => pw(es, Math.max(minN, Math.round(ni))), power, minN, 100000, 0.5));
       }
       if (solveFor === "power") {
-        if (d <= 0 || n < minN || alpha <= 0 || alpha >= 1) return null;
-        return test.power(d, n, alpha, tails, k, df);
+        if (es <= 0 || n < minN || alpha <= 0 || alpha >= 1) return null;
+        return pw(es, n);
       }
       if (solveFor === "effect") {
         if (n < minN || alpha <= 0 || alpha >= 1 || power <= 0 || power >= 1) return null;
-        const eMax = test.effectMax || 5;
-        const fn = (es) => test.power(es, n, alpha, tails, k, df);
-        return bisect(fn, power, 0.001, eMax);
+        return bisect(e => pw(e, n), power, 0.001, test.effectMax || 5);
       }
-      if (solveFor === "alpha") {
-        if (d <= 0 || n < minN || power <= 0 || power >= 1) return null;
-        const fn = (a) => test.power(d, n, a, tails, k, df);
-        // Power decreases as alpha decreases, so invert
-        return bisect(a => fn(a), power, 0.0001, 0.5);
-      }
-    } catch (e) {
-      return null;
-    }
+    } catch (e) { return null; }
     return null;
-  }, [testKey, solveFor, d, n, alpha, power, tails, k, df]);
+  }, [testKey, solveFor, es, n, alpha, power, tails, k, df]);
 
-  // Format result
   const resultText = useMemo(() => {
     if (result == null) return "—";
     if (solveFor === "n") return `${result}`;
     if (solveFor === "power") return `${(result * 100).toFixed(1)}%`;
     if (solveFor === "effect") return result.toFixed(4);
-    if (solveFor === "alpha") return result.toFixed(5);
     return "—";
   }, [result, solveFor]);
 
   const resultLabel = {
     n: `Required ${test.nLabel}`,
     power: "Statistical power",
-    effect: `Detectable ${test.effectLabel}`,
-    alpha: "Significance level",
+    effect: "Minimum detectable effect size",
   }[solveFor];
 
   const handleTestChange = useCallback((e) => {
     const key = e.target.value;
     setTestKey(key);
-    // Reset tails to 2 for ANOVA/chi2 (they're always "omnibus")
+    setSolveFor("n");
     if (key === "anova" || key === "chi2") setTails(2);
   }, []);
 
@@ -562,7 +713,7 @@ function App() {
   }, []);
 
   const inputStyle = { ...inpN, width: "100%" };
-  const radioStyle = (active) => ({
+  const chipStyle = (active) => ({
     padding: "5px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer",
     border: active ? "2px solid #0072B2" : "2px solid #ddd",
     background: active ? "#e8f4fd" : "#fff", fontWeight: active ? 700 : 400,
@@ -573,9 +724,16 @@ function App() {
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 24px" }}>
       <PageHeader title="Power Analysis" icon={toolIcon("power")} />
 
+      {/* Question banner */}
+      <div style={{ ...sec, padding: "12px 16px", marginBottom: 16, borderLeft: "4px solid #0072B2" }}>
+        <div style={{ fontSize: 13, color: "#333", lineHeight: 1.5 }}>
+          {test.question}
+        </div>
+      </div>
+
       <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
-        {/* ── Left panel: controls ── */}
-        <div style={{ width: 310, flexShrink: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+        {/* ── Left panel ── */}
+        <div style={{ width: 328, flexShrink: 0, display: "flex", flexDirection: "column", gap: 12 }}>
 
           {/* Test type */}
           <div style={{ ...sec, padding: 12 }}>
@@ -585,39 +743,33 @@ function App() {
                 <option key={key} value={key}>{t.label}</option>
               ))}
             </select>
-            <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>{test.desc}</div>
           </div>
 
           {/* Solve for */}
           <div style={{ ...sec, padding: 12 }}>
-            <div style={{ ...lbl, marginBottom: 6 }}>Solve for</div>
+            <div style={{ ...lbl, marginBottom: 6 }}>What do you need to find?</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {[
-                ["n", test.nLabel],
+                ["n", "Sample size"],
                 ["power", "Power"],
-                ["effect", test.effectLabel],
-                ["alpha", "α"],
+                ["effect", "Detectable effect"],
               ].map(([key, label]) => (
-                <div key={key} style={radioStyle(solveFor === key)} onClick={() => setSolveFor(key)}>
+                <div key={key} style={chipStyle(solveFor === key)} onClick={() => setSolveFor(key)}>
                   {label}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Parameters */}
+          {/* Effect size */}
+          <div style={{ ...sec, padding: 12 }}>
+            <div style={{ ...lbl, marginBottom: 6 }}>Expected effect size</div>
+            <EffectSizePanel testKey={testKey} effectSize={effectSize}
+              onEffectChange={setEffectSize} disabled={solveFor === "effect"} />
+          </div>
+
+          {/* Other parameters */}
           <div style={{ ...sec, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.5px" }}>Parameters</div>
-
-            {/* Effect size */}
-            <div style={{ opacity: solveFor === "effect" ? 0.4 : 1 }}>
-              <div style={lbl}>{test.effectLabel}</div>
-              <input type="number" min="0.01" step="0.1" value={effectSize}
-                onChange={e => setEffectSize(e.target.value)}
-                disabled={solveFor === "effect"} style={inputStyle} />
-              <div style={{ fontSize: 10, color: "#999", marginTop: 2 }}>{test.effectHint}</div>
-            </div>
-
             {/* Sample size */}
             <div style={{ opacity: solveFor === "n" ? 0.4 : 1 }}>
               <div style={lbl}>{test.nLabel}</div>
@@ -626,60 +778,65 @@ function App() {
                 disabled={solveFor === "n"} style={inputStyle} />
             </div>
 
-            {/* Alpha */}
-            <div style={{ opacity: solveFor === "alpha" ? 0.4 : 1 }}>
+            {/* Significance */}
+            <div>
               <div style={lbl}>Significance level (α)</div>
-              <input type="number" min="0.001" max="0.5" step="0.01" value={alphaInput}
-                onChange={e => setAlphaInput(e.target.value)}
-                disabled={solveFor === "alpha"} style={inputStyle} />
+              <select value={alphaInput} onChange={e => setAlphaInput(e.target.value)} style={{ ...selStyle, width: "100%" }}>
+                <option value="0.10">0.10</option>
+                <option value="0.05">0.05</option>
+                <option value="0.01">0.01</option>
+                <option value="0.001">0.001</option>
+              </select>
             </div>
 
             {/* Power */}
             <div style={{ opacity: solveFor === "power" ? 0.4 : 1 }}>
               <div style={lbl}>Desired power (1 − β)</div>
-              <input type="number" min="0.01" max="0.999" step="0.05" value={powerInput}
-                onChange={e => setPowerInput(e.target.value)}
-                disabled={solveFor === "power"} style={inputStyle} />
+              <select value={powerInput} onChange={e => setPowerInput(e.target.value)}
+                disabled={solveFor === "power"} style={{ ...selStyle, width: "100%" }}>
+                <option value="0.70">0.70</option>
+                <option value="0.80">0.80 (standard)</option>
+                <option value="0.90">0.90</option>
+                <option value="0.95">0.95</option>
+              </select>
             </div>
 
-            {/* Tails (not for ANOVA/chi2) */}
+            {/* Tails */}
             {testKey !== "anova" && testKey !== "chi2" && (
               <div>
-                <div style={lbl}>Tails</div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {[1, 2].map(t => (
-                    <div key={t} style={radioStyle(tails === t)} onClick={() => setTails(t)}>
-                      {t}-tailed
-                    </div>
+                <div style={lbl}>Alternative hypothesis</div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[[2, "Two-sided"], [1, "One-sided"]].map(([t, label]) => (
+                    <div key={t} style={chipStyle(tails === t)} onClick={() => setTails(t)}>{label}</div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Number of groups (ANOVA) */}
+            {/* ANOVA groups */}
             {test.hasGroups && (
               <div>
-                <div style={lbl}>Number of groups (k)</div>
+                <div style={lbl}>Number of groups</div>
                 <input type="number" min="2" max="20" step="1" value={kInput}
                   onChange={e => setKInput(e.target.value)} style={inputStyle} />
               </div>
             )}
 
-            {/* Degrees of freedom (chi-square) */}
+            {/* Chi-square df */}
             {test.hasDf && (
               <div>
                 <div style={lbl}>Degrees of freedom</div>
                 <input type="number" min="1" max="100" step="1" value={dfInput}
                   onChange={e => setDfInput(e.target.value)} style={inputStyle} />
                 <div style={{ fontSize: 10, color: "#999", marginTop: 2 }}>
-                  (r−1)(c−1) for independence, k−1 for goodness-of-fit
+                  Goodness-of-fit: categories − 1. Independence: (rows−1)(cols−1).
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* ── Right panel: results + chart ── */}
+        {/* ── Right panel ── */}
         <div style={{ flex: 1, minWidth: 360, display: "flex", flexDirection: "column", gap: 12 }}>
 
           {/* Result */}
@@ -688,14 +845,9 @@ function App() {
             <div style={{ fontSize: 36, fontWeight: 700, color: result != null ? "#0072B2" : "#ccc", fontFamily: "monospace" }}>
               {resultText}
             </div>
-            {solveFor === "n" && result != null && test.hasGroups && (
+            {solveFor === "n" && result != null && test.totalLabel && (
               <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
-                Total N = {result * k} ({result} per group &times; {k} groups)
-              </div>
-            )}
-            {solveFor === "n" && result != null && testKey === "t-ind" && (
-              <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
-                Total N = {result * 2} ({result} per group &times; 2 groups)
+                {test.totalLabel(result, k)}
               </div>
             )}
           </div>
@@ -703,29 +855,24 @@ function App() {
           {/* Power curve */}
           <div style={{ ...sec, padding: 12 }}>
             <PowerCurve ref={chartRef} testKey={testKey}
-              params={{ d, n, alpha, tails, k, df }}
+              powerFn={test.power}
+              params={{ es, n, alpha, tails, k, df }}
               solveFor={solveFor} result={result} />
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
               <button onClick={handleDownload} style={btnDownload}>Download SVG</button>
             </div>
           </div>
 
-          {/* Benchmarks */}
-          <EffectSizeGuide testKey={testKey} />
-
-          {/* Interpretation help */}
+          {/* How to read this */}
           <div style={{ ...sec, padding: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              Interpretation
+              How to read this
             </div>
             <div style={{ fontSize: 12, color: "#555", lineHeight: 1.6 }}>
-              <b>Power</b> is the probability of correctly rejecting H₀ when H₁ is true
-              (i.e., detecting an effect that genuinely exists). Convention: aim for power &ge; 0.80.
-              <br/><br/>
-              <b>α</b> is the probability of a Type I error (false positive). Convention: α = 0.05.
-              <br/><br/>
-              <b>Effect size</b> quantifies the magnitude of the effect you expect or want to detect.
-              Use pilot data or domain knowledge when possible; Cohen's benchmarks are a last resort.
+              <b>Power</b> = probability of detecting a real effect. Aim for 0.80 or higher (dashed line).
+              <br/><b>α</b> = false positive rate. Standard is 0.05 (5% risk of a false alarm).
+              <br/><b>Effect size</b> = how big the real difference is, relative to variability.
+              Estimate from pilot data or literature when possible.
             </div>
           </div>
         </div>
