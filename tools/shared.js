@@ -42,6 +42,7 @@ const TOOL_ICONS = {
 function toolIcon(name, size, opts) {
   size = size || 22;
   opts = opts || {};
+  if (!TOOL_ICONS[name]) return null;
   const svg = TOOL_ICONS[name].replace('<svg ', '<svg width="' + size + '" height="' + size + '" ');
   const pad = Math.round(size * 0.3);
   const outerSize = size + pad * 2;
