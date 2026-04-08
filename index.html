@@ -47,6 +47,8 @@
     .tile.help-tile { width: 220px; height: 60px; gap: 6px; border-style: dashed; }
     .tile.help-tile .tile-icon { font-size: 20px; }
     .tile.help-tile .tile-label { font-size: 12px; color: #888; }
+    .tile.tile-amber { border-color: #F59E0B; background: #FFFBEB; }
+    .tile.tile-amber:hover { border-color: #D97706; box-shadow: 0 6px 20px rgba(217, 119, 6, 0.18); transform: translateY(-5px); }
 
     .prefetch-bar {
       display: flex; align-items: center; gap: 10px; font-size: 11px; color: #999;
@@ -142,10 +144,10 @@
         <span class="tile-label">Calculator</span>
         <span class="tile-desc">Molarity, dilution<br/>&amp; batch prep sheets</span>
       </button>
-      <button class="tile" data-tool="power">
-        <span class="tile-icon"><svg viewBox="0 0 44 44" fill="none" stroke="#648FFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="38" x2="6" y2="6"/><line x1="6" y1="38" x2="38" y2="38"/><path d="M8 34 C12 33, 16 28, 20 20 C24 12, 28 8, 36 7" stroke-width="2.5"/><line x1="6" y1="14" x2="38" y2="14" stroke-dasharray="3,3" stroke-width="1" opacity="0.5"/></svg></span>
+      <button class="tile tile-amber" data-tool="power">
+        <span class="tile-icon"><svg viewBox="0 0 44 44" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="38" x2="6" y2="6"/><line x1="6" y1="38" x2="38" y2="38"/><path d="M8 34 C12 33, 16 28, 20 20 C24 12, 28 8, 36 7" stroke-width="2.5"/><line x1="6" y1="14" x2="38" y2="14" stroke-dasharray="3,3" stroke-width="1" opacity="0.5"/></svg></span>
         <span class="tile-label">Power Analysis</span>
-        <span class="tile-desc">Sample size &amp; power<br/>for t, ANOVA, &chi;&sup2;, r</span>
+        <span class="tile-desc">Sample size &amp; power<br/>for t, ANOVA, &chi;&sup2;, r<br/><em style="color:#B45309">Caution: highly experimental</em></span>
       </button>
     </div>
     <div class="prefetch-bar" id="prefetch-bar">

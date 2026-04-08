@@ -553,12 +553,12 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
       {mode === "helper" && testKey === "chi2" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div>
-            <div style={smallLabel}>Expected proportions (under H₀)</div>
+            <div style={smallLabel}>Baseline proportions (what the theory predicts)</div>
             <input type="text" value={expectedStr} onChange={e => setExpectedStr(e.target.value)}
               disabled={disabled} style={inputStyle} placeholder="e.g. 3:1 or 0.75, 0.25" />
           </div>
           <div>
-            <div style={smallLabel}>Alternative proportions (what you expect)</div>
+            <div style={smallLabel}>Actual proportions (what you think is really happening)</div>
             <input type="text" value={observedStr} onChange={e => setObservedStr(e.target.value)}
               disabled={disabled} style={inputStyle} placeholder="e.g. 2:1 or 0.67, 0.33" />
           </div>
@@ -716,10 +716,6 @@ function App() {
         if (es <= 0 || n < minN || alpha <= 0 || alpha >= 1) return null;
         return pw(es, n);
       }
-      if (solveFor === "effect") {
-        if (n < minN || alpha <= 0 || alpha >= 1 || power <= 0 || power >= 1) return null;
-        return bisect(e => pw(e, n), power, 0.001, test.effectMax || 5);
-      }
     } catch (e) { return null; }
     return null;
   }, [testKey, solveFor, es, n, alpha, power, tails, k, df]);
@@ -728,14 +724,12 @@ function App() {
     if (result == null) return "—";
     if (solveFor === "n") return `${result}`;
     if (solveFor === "power") return `${(result * 100).toFixed(1)}%`;
-    if (solveFor === "effect") return result.toFixed(4);
     return "—";
   }, [result, solveFor]);
 
   const resultLabel = {
     n: `Required ${test.nLabel}`,
     power: "Statistical power",
-    effect: "Minimum detectable effect size",
   }[solveFor];
 
   const handleTestChange = useCallback((e) => {
@@ -790,7 +784,6 @@ function App() {
               {[
                 ["n", "Sample size"],
                 ["power", "Power"],
-                ["effect", "Detectable effect"],
               ].map(([key, label]) => (
                 <div key={key} style={chipStyle(solveFor === key)} onClick={() => setSolveFor(key)}>
                   {label}
@@ -842,11 +835,14 @@ function App() {
             {/* Tails */}
             {testKey !== "anova" && testKey !== "chi2" && (
               <div>
-                <div style={lbl}>Alternative hypothesis</div>
+                <div style={lbl}>Direction of the test</div>
                 <div style={{ display: "flex", gap: 6 }}>
                   {[[2, "Two-sided"], [1, "One-sided"]].map(([t, label]) => (
                     <div key={t} style={chipStyle(tails === t)} onClick={() => setTails(t)}>{label}</div>
                   ))}
+                </div>
+                <div style={{ fontSize: 10, color: "#999", marginTop: 4 }}>
+                  Two-sided: the difference could go either way. One-sided: you expect a specific direction.
                 </div>
               </div>
             )}
@@ -901,16 +897,22 @@ function App() {
             </div>
           </div>
 
-          {/* How to read this */}
+          {/* Explainer */}
           <div style={{ ...sec, padding: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              How to read this
+              What do these numbers mean?
             </div>
-            <div style={{ fontSize: 12, color: "#555", lineHeight: 1.6 }}>
-              <b>Power</b> = probability of detecting a real effect. Aim for 0.80 or higher (dashed line).
-              <br/><b>α</b> = false positive rate. Standard is 0.05 (5% risk of a false alarm).
-              <br/><b>Effect size</b> = how big the real difference is, relative to variability.
-              Estimate from pilot data or literature when possible.
+            <div style={{ fontSize: 12, color: "#555", lineHeight: 1.7 }}>
+              <b>Power</b> is the chance your experiment will detect a real effect if one truly exists. A power of 0.80 (the dashed line) means an 80% chance of success — this is the standard minimum. Higher is better but costs more subjects.
+              <br/><br/><b>Significance level (α)</b> is the risk of a false positive — concluding there is an effect when there is none. The standard α&nbsp;=&nbsp;0.05 means you accept a 5% chance of a false alarm. Lowering α (e.g. to 0.01) makes you more conservative but requires more subjects to keep power high.
+              <br/><br/><b>Sample size ({test.nLabel})</b> is the number of observations you need to collect. More subjects give you more power to detect a given effect.
+              <br/><br/><b>Effect size</b> measures how large the real difference or relationship is, scaled by variability. Use the "From my data" tab to compute it from values you expect (e.g. group means and standard deviation from pilot data or published studies).
+              {testKey === "t-ind" && <><br/><br/>For a <b>two-sample t-test</b>, the effect size (Cohen's d) is the difference between the two group means divided by their common standard deviation. A d of 0.2 is small, 0.5 is medium, and 0.8 is large.</>}
+              {testKey === "t-paired" && <><br/><br/>For a <b>paired t-test</b>, the effect size (Cohen's d) is the expected mean of the paired differences divided by the standard deviation of those differences.</>}
+              {testKey === "t-one" && <><br/><br/>For a <b>one-sample t-test</b>, the effect size (Cohen's d) is how far the true mean deviates from the reference value, divided by the standard deviation.</>}
+              {testKey === "anova" && <><br/><br/>For <b>ANOVA</b>, the effect size (Cohen's f) captures how spread out the group means are relative to within-group variability. An f of 0.10 is small, 0.25 is medium, and 0.40 is large.</>}
+              {testKey === "correlation" && <><br/><br/>For <b>correlation</b>, the effect size is simply the expected Pearson r. An r of 0.1 is small, 0.3 is medium, and 0.5 is large.</>}
+              {testKey === "chi2" && <><br/><br/>For a <b>chi-square test</b>, the effect size (Cohen's w) measures how far the observed category proportions deviate from expected. A w of 0.1 is small, 0.3 is medium, and 0.5 is large. Degrees of freedom = categories − 1 for goodness-of-fit, or (rows−1)×(cols−1) for independence tests.</>}
             </div>
           </div>
         </div>
