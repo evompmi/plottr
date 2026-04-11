@@ -1939,9 +1939,9 @@ function StatsTile({ groups, onAnnotationsChange, defaultOpen }) {
       "tr",
       { key: r.group },
       React.createElement("td", { style: td }, names[r.group]),
-      React.createElement("td", { style: td }, "n = " + r.n),
-      React.createElement("td", { style: td }, r.W != null ? "W = " + r.W.toFixed(3) : "—"),
-      React.createElement("td", { style: td }, r.p != null ? "p = " + formatP(r.p) : r.note || "—"),
+      React.createElement("td", { style: td }, r.n),
+      React.createElement("td", { style: td }, r.W != null ? r.W.toFixed(3) : "—"),
+      React.createElement("td", { style: td }, r.p != null ? formatP(r.p) : r.note || "—"),
       React.createElement(
         "td",
         { style: td },
@@ -1952,6 +1952,18 @@ function StatsTile({ groups, onAnnotationsChange, defaultOpen }) {
             : React.createElement("span", { style: pillNeutral }, "unknown")
       )
     )
+  );
+  const normalityCaption = React.createElement(
+    "div",
+    {
+      style: {
+        fontSize: 11,
+        fontWeight: 600,
+        color: "#555",
+        marginTop: 4,
+      },
+    },
+    "Shapiro-Wilk test for normality"
   );
   const normalityTable = React.createElement(
     "table",
@@ -1964,7 +1976,7 @@ function StatsTile({ groups, onAnnotationsChange, defaultOpen }) {
         null,
         React.createElement("th", { style: th }, "Group"),
         React.createElement("th", { style: th }, "n"),
-        React.createElement("th", { style: th }, "Shapiro W"),
+        React.createElement("th", { style: th }, "W"),
         React.createElement("th", { style: th }, "p"),
         React.createElement("th", { style: th }, "Assessment")
       )
@@ -1972,10 +1984,22 @@ function StatsTile({ groups, onAnnotationsChange, defaultOpen }) {
     React.createElement("tbody", null, normalityRows)
   );
 
+  const leveneCaption = React.createElement(
+    "div",
+    {
+      style: {
+        fontSize: 11,
+        fontWeight: 600,
+        color: "#555",
+        marginTop: 12,
+        marginBottom: 2,
+      },
+    },
+    "Levene (Brown-Forsythe) test for equal variance"
+  );
   const leveneLine = React.createElement(
     "div",
-    { style: { ...row, marginTop: 8 } },
-    React.createElement("span", { style: { color: "#555" } }, "Levene (Brown-Forsythe):"),
+    { style: row },
     lev.error
       ? React.createElement("span", { style: { color: "#b91c1c" } }, lev.error)
       : React.createElement(
@@ -2184,7 +2208,9 @@ function StatsTile({ groups, onAnnotationsChange, defaultOpen }) {
       "div",
       { style: { marginTop: 10 } },
       React.createElement("div", { style: subhead }, "Assumptions"),
+      normalityCaption,
       normalityTable,
+      leveneCaption,
       leveneLine,
       React.createElement("div", { style: subhead }, "Test"),
       testPicker,
