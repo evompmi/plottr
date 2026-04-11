@@ -1,4 +1,3 @@
-// @ts-nocheck
 // aequorin.jsx — editable source. Run `npm run build` to compile to aequorin.js
 // Do NOT edit the .js file directly.
 const { useState, useReducer, useMemo, useCallback, useRef, useEffect, forwardRef, memo } = React;
@@ -225,7 +224,7 @@ function buildLineD(pts) {
 
 const MARGIN = { top: 20, right: 20, bottom: 48, left: 62 };
 
-const Chart = forwardRef(function Chart(
+const Chart = forwardRef<SVGSVGElement, any>(function Chart(
   {
     series,
     xStart,
@@ -458,7 +457,7 @@ const Chart = forwardRef(function Chart(
 
 // ── PlotPanel ────────────────────────────────────────────────────────────────
 
-const InsetBarplot = forwardRef(function InsetBarplot(
+const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot(
   {
     series,
     insetColors,
@@ -708,7 +707,7 @@ const InsetBarplot = forwardRef(function InsetBarplot(
   );
 });
 
-const FacetChartItem = memo(function FacetChartItem({ s, facetRefs, chartProps }) {
+const FacetChartItem = memo(function FacetChartItem({ s, facetRefs, chartProps }: any) {
   const localRef = useRef();
   useEffect(() => {
     facetRefs.current[s.prefix] = localRef.current;
@@ -729,7 +728,7 @@ const FacetChartItem = memo(function FacetChartItem({ s, facetRefs, chartProps }
   );
 });
 
-const PlotPanel = React.forwardRef(function PlotPanel(
+const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
   {
     stats,
     xStart,

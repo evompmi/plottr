@@ -6,10 +6,24 @@
 // deliberately loose (`any`) — tighten per component as needed.
 
 import type { CSSProperties, FC, ReactElement, ReactNode } from "react";
+import * as ReactNs from "react";
 
 declare global {
   // ── Vendored React (loaded via <script> tag) ───────────────────────────────
-  const React: typeof import("react");
+  const React: typeof ReactNs;
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace React {
+    export type CSSProperties = ReactNs.CSSProperties;
+    export type FC<P = object> = ReactNs.FC<P>;
+    export type ReactElement = ReactNs.ReactElement;
+    export type ReactNode = ReactNs.ReactNode;
+    export type RefObject<T> = ReactNs.RefObject<T>;
+    export type MutableRefObject<T> = ReactNs.MutableRefObject<T>;
+    export type ChangeEvent<T = Element> = ReactNs.ChangeEvent<T>;
+    export type MouseEvent<T = Element> = ReactNs.MouseEvent<T>;
+    export type KeyboardEvent<T = Element> = ReactNs.KeyboardEvent<T>;
+    export type FormEvent<T = Element> = ReactNs.FormEvent<T>;
+  }
   const ReactDOM: typeof import("react-dom/client");
 
   // ── Color helpers ──────────────────────────────────────────────────────────
@@ -151,14 +165,19 @@ declare global {
     items: Array<{ label: string; color: string }>;
     [k: string]: any;
   }
-  function computeLegendHeight(blocks: LegendBlock[], usableW: number, itemWidth: number): number;
+  type LegendItemWidth = number | ((block: LegendBlock) => number);
+  function computeLegendHeight(
+    blocks: LegendBlock[],
+    usableW: number,
+    itemWidth: LegendItemWidth
+  ): number;
   function renderSvgLegend(
     blocks: LegendBlock[],
     startY: number,
     leftX: number,
     usableW: number,
-    itemWidth: number,
-    truncateLabel?: (s: string) => string
+    itemWidth: LegendItemWidth,
+    truncateLabel?: number
   ): ReactNode;
 }
 

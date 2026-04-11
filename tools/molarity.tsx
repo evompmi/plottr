@@ -1,4 +1,3 @@
-// @ts-nocheck
 // molarity.jsx — editable source. Run `npm run build` to compile to molarity.js
 // Do NOT edit the .js file directly.
 
@@ -770,7 +769,7 @@ function LigationMode() {
     return insertNg;
   }, [vectorBp, vectorNg, insertBp, ratioVector, ratioInsert]);
 
-  const fieldStyle = {
+  const fieldStyle: React.CSSProperties = {
     ...inp,
     width: 130,
     fontSize: 13,
@@ -1021,4 +1020,4 @@ function App() {
   );
 }
 
-ReactDOM.render(React.createElement(App), document.getElementById("root"));
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 // bargraph.jsx — editable source. Run `npm run build` to compile to bargraph.js
 // Do NOT edit the .js file directly.
 const { useState, useReducer, useMemo, useCallback, useRef, useEffect, forwardRef, memo } = React;
@@ -23,7 +22,10 @@ function groupsFromLong(rows, groupColIdx, valueColIdx, categoryColIdx = -1) {
   return order.map((name, gi) => {
     const g = map[name];
     const stats = computeStats(g.values);
-    const src = { colIndex: 0, values: g.values };
+    const src: { colIndex: number; values: any; categories?: any } = {
+      colIndex: 0,
+      values: g.values,
+    };
     if (categoryColIdx >= 0) src.categories = g.categories;
     return {
       name,
@@ -61,7 +63,7 @@ function groupColumns(headers, columns) {
 
 // ── Chart ───────────────────────────────────────────────────────────────────
 
-const BarChart = forwardRef(function BarChart(
+const BarChart = forwardRef<SVGSVGElement, any>(function BarChart(
   {
     groups,
     yLabel,
@@ -116,7 +118,7 @@ const BarChart = forwardRef(function BarChart(
   const n = groups.length;
   const vbW = Math.max(400, n * 100 + MChart.left + MChart.right);
   const vbH_chart = 420 + Math.abs(angle) * 0.9;
-  const legendH = computeLegendHeight(svgLegend, vbW - MChart.left - MChart.right);
+  const legendH = computeLegendHeight(svgLegend, vbW - MChart.left - MChart.right, 88);
   const vbH = vbH_chart + legendH;
   const w = vbW - MChart.left - MChart.right;
   const h = vbH_chart - MChart.top - MChart.bottom;
@@ -873,8 +875,8 @@ function PlotControls({
     const v = Number(e.target.value);
     setColorByCol(v);
     if (v >= 0) {
-      const cats = [...new Set(renamedRows.map((r) => r[v]))].sort();
-      const cc = {};
+      const cats = [...new Set<string>(renamedRows.map((r) => r[v]))].sort();
+      const cc: Record<string, string> = {};
       cats.forEach((c, ci) => {
         cc[c] = PALETTE[(ci + 2) % PALETTE.length];
       });
@@ -1209,7 +1211,7 @@ function PlotControls({
   );
 }
 
-const FacetBarItem = memo(function FacetBarItem({ fd, facetRefs, chartProps }) {
+const FacetBarItem = memo(function FacetBarItem({ fd, facetRefs, chartProps }: any) {
   const localRef = useRef();
   useEffect(() => {
     facetRefs.current[fd.category] = localRef.current;
@@ -1520,7 +1522,7 @@ function App() {
   // Long-format stats for output
   const longStats = useMemo(() => {
     if (dataFormat !== "long" || groupColIdx < 0 || valueColIdx < 0) return [];
-    const gd = {};
+    const gd: Record<string, string[]> = {};
     renamedRows.forEach((r) => {
       const k = r[groupColIdx];
       if (!gd[k]) gd[k] = [];
@@ -1591,7 +1593,7 @@ function App() {
   // Wide data reshape from long
   const wideData = useMemo(() => {
     if (groupColIdx < 0 || valueColIdx < 0) return null;
-    const g = {};
+    const g: Record<string, string[]> = {};
     renamedRows.forEach((r) => {
       const k = r[groupColIdx] || "?";
       if (!g[k]) g[k] = [];

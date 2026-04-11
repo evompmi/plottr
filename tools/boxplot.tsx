@@ -1,9 +1,8 @@
-// @ts-nocheck
 // boxplot.jsx — editable source. Run `npm run build` to compile to boxplot.js
 // Do NOT edit the .js file directly.
 const { useState, useReducer, useMemo, useCallback, useRef, useEffect, forwardRef, memo } = React;
 
-const BoxplotChart = forwardRef(function BoxplotChart(
+const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
   {
     groups,
     yLabel,
@@ -59,7 +58,7 @@ const BoxplotChart = forwardRef(function BoxplotChart(
   const compact = (100 - (boxGap != null ? boxGap : 0)) / 100;
   const vbW = Math.max(200, n * 100 * compact + M.left + M.right);
   const vbH_chart = 504 + (absA > 0 ? absA * 0.8 : 0);
-  const _legH = computeLegendHeight(svgLegend, vbW - M.left - M.right);
+  const _legH = computeLegendHeight(svgLegend, vbW - M.left - M.right, 88);
   const vbH = vbH_chart + _legH;
   const w = vbW - M.left - M.right;
   const h = vbH_chart - M.top - M.bottom;
@@ -1119,8 +1118,8 @@ function PlotControls({
     const v = Number(e.target.value);
     setColorByCol(v);
     if (v >= 0) {
-      const cats = [...new Set(renamedRows.map((r) => r[v]))].sort();
-      const cc = {};
+      const cats = [...new Set<string>(renamedRows.map((r) => r[v]))].sort();
+      const cc: Record<string, string> = {};
       cats.forEach((c, ci) => {
         cc[c] = PALETTE[(ci + 2) % PALETTE.length];
       });
@@ -1445,7 +1444,7 @@ const FacetBoxplotItem = memo(function FacetBoxplotItem({
   facetRefs,
   chartProps,
   categoryColors,
-}) {
+}: any) {
   const localRef = useRef();
   useEffect(() => {
     facetRefs.current[fd.category] = localRef.current;

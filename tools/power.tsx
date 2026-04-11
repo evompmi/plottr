@@ -1,4 +1,3 @@
-// @ts-nocheck
 // power.jsx — editable source. Run `npm run build` to compile to power.js
 // Do NOT edit the .js file directly.
 
@@ -507,7 +506,7 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
   const [observedStr, setObservedStr] = useState("");
   // correlation — no helper needed, r is intuitive
 
-  const inputStyle = { ...inpN, width: "100%", textAlign: "left" };
+  const inputStyle: React.CSSProperties = { ...inpN, width: "100%", textAlign: "left" };
   const smallLabel = { fontSize: 11, color: "#666", marginBottom: 2 };
   const note = { fontSize: 10, color: "#999", marginTop: 2 };
 
@@ -909,7 +908,7 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
 
 // ── Power curve SVG ─────────────────────────────────────────────────────────
 
-const PowerCurve = forwardRef(function PowerCurve(
+const PowerCurve = forwardRef<SVGSVGElement, any>(function PowerCurve(
   { testKey, powerFn, params, solveFor, result },
   ref
 ) {
@@ -1141,7 +1140,7 @@ function App() {
   }, []);
 
   const inputStyle = { ...inpN, width: "100%" };
-  const chipStyle = (active) => ({
+  const chipStyle = (active: boolean): React.CSSProperties => ({
     padding: "4px 8px",
     borderRadius: 4,
     fontSize: 12,
@@ -1280,10 +1279,12 @@ function App() {
               <div>
                 <div style={lbl}>Direction of the test</div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  {[
-                    [2, "Two-sided"],
-                    [1, "One-sided"],
-                  ].map(([t, label]) => (
+                  {(
+                    [
+                      [2, "Two-sided"],
+                      [1, "One-sided"],
+                    ] as const
+                  ).map(([t, label]) => (
                     <div key={t} style={chipStyle(tails === t)} onClick={() => setTails(t)}>
                       {label}
                     </div>

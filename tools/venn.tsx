@@ -1,4 +1,3 @@
-// @ts-nocheck
 // venn.jsx — editable source. Run `npm run build` to compile to venn.js
 // Do NOT edit the .js file directly.
 const { useState, useReducer, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
@@ -194,7 +193,7 @@ function buildRegionPaths(circles) {
   }
 
   // 3. Collect all region masks
-  const allMasks = new Set();
+  const allMasks = new Set<number>();
   for (const arc of arcs) {
     allMasks.add(arc.insideMask);
     allMasks.add(arc.insideMask ^ (1 << arc.circleIdx)); // the "outside" region
@@ -205,7 +204,7 @@ function buildRegionPaths(circles) {
   //      inside region  = M            (forward traversal, SVG sweep=1)
   //      outside region = M^(1<<i)     (reverse traversal, SVG sweep=0)
   //    Full-circle arcs (no intersection points) are included for both sides.
-  const regions = {};
+  const regions: Record<number, string> = {};
   for (const R of allMasks) {
     if (R <= 0) continue;
 
@@ -773,7 +772,7 @@ function computeRegionCentroids(circles, regionPaths, intersections) {
 const VW = 600,
   VH = 500;
 
-const VennChart = forwardRef(function VennChart(
+const VennChart = forwardRef<SVGSVGElement, any>(function VennChart(
   {
     setNames,
     sets,
@@ -1407,7 +1406,7 @@ function PlotControls({
                     } else if (!nv) e.target.value = name;
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") e.target.blur();
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
                   }}
                 />
                 <span style={{ color: "#999", fontSize: 11, whiteSpace: "nowrap", flexShrink: 0 }}>

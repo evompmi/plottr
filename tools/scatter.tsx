@@ -1,4 +1,3 @@
-// @ts-nocheck
 // scatter.jsx — editable source. Run `npm run build` to compile to scatter.js
 // Do NOT edit the .js file directly.
 
@@ -36,7 +35,15 @@ function fmtTick(t) {
 
 // Palette strip
 
-function PaletteStrip({ palette, width, height = 12 }) {
+function PaletteStrip({
+  palette,
+  width,
+  height = 12,
+}: {
+  palette: any;
+  width?: any;
+  height?: number;
+}) {
   const stops = COLOR_PALETTES[palette] || COLOR_PALETTES.viridis;
   const n = 48;
   return (
@@ -142,7 +149,7 @@ const MARGIN = { top: 28, right: 28, bottom: 56, left: 70 };
 const VBW = 800,
   VBH = 500;
 
-const ScatterChart = forwardRef(function ScatterChart(
+const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart(
   {
     data,
     rawData,
@@ -526,7 +533,7 @@ const ScatterChart = forwardRef(function ScatterChart(
 });
 
 // Style constants
-const scInp = {
+const scInp: React.CSSProperties = {
   width: 80,
   background: "#fff",
   border: "1px solid #ccc",
@@ -1767,7 +1774,7 @@ function App() {
   const [shapeMapDiscrete, setShapeMapDiscrete] = useState({});
 
   // Filter state
-  const [filterState, setFilterState] = useState({});
+  const [filterState, setFilterState] = useState<Record<string, string[]>>({});
 
   // Visual state
   const visInit = {
@@ -1839,7 +1846,7 @@ function App() {
   // Apply filterState to rows
   const filteredIndices = useMemo(() => {
     if (!parsed) return [];
-    return parsed.rawData.reduce((acc, row, ri) => {
+    return parsed.rawData.reduce<number[]>((acc, row, ri) => {
       for (const [ci, allowed] of Object.entries(filterState)) {
         if (allowed.length > 0 && !allowed.includes(row[parseInt(ci)])) return acc;
       }
