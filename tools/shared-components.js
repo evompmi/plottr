@@ -1763,6 +1763,153 @@ function _formatTestLine(name, res) {
 // so brackets at overlapping spans stack instead of colliding. Greedy by
 // ascending span width. Exposed as a global so chart renderers can reuse
 // the layout.
+// Plain-text statistics report, rendered as fixed-width columns so it
+// reads cleanly in any editor. Mirrors what the StatsTile shows on screen:
+// per-group descriptives, Shapiro-Wilk, Levene, chosen test result, and
+// the post-hoc pairs when k ≥ 3.
+function _padR(s, n) {
+  s = String(s);
+  return s.length >= n ? s : s + " ".repeat(n - s.length);
+}
+function _buildStatsReport(ctx) {
+  const { names, values, recommendation, chosenTest, testResult, postHocName, postHocResult } = ctx;
+  const lines = [];
+  const sep = "=".repeat(64);
+  const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+  const nameW = Math.max(8, ...names.map((n) => n.length));
+
+  lines.push("Statistical analysis report");
+  lines.push("Generated: " + now);
+  lines.push("");
+
+  lines.push(sep);
+  lines.push("GROUPS");
+  lines.push(sep);
+  for (let i = 0; i < names.length; i++) {
+    const vs = values[i];
+    const n = vs.length;
+    const m = vs.reduce((a, b) => a + b, 0) / n;
+    const sd = n > 1 ? Math.sqrt(vs.reduce((a, b) => a + (b - m) * (b - m), 0) / (n - 1)) : 0;
+    lines.push(
+      "  " +
+        _padR(names[i], nameW) +
+        "  n = " +
+        _padR(String(n), 4) +
+        "  mean = " +
+        _padR(m.toFixed(3), 10) +
+        "  SD = " +
+        sd.toFixed(3)
+    );
+  }
+  lines.push("");
+
+  lines.push(sep);
+  lines.push("ASSUMPTIONS");
+  lines.push(sep);
+  lines.push("");
+  lines.push("Shapiro-Wilk test for normality");
+  const norm = (recommendation && recommendation.normality) || [];
+  lines.push(
+    "  " +
+      _padR("Group", nameW) +
+      "  " +
+      _padR("n", 4) +
+      "  " +
+      _padR("W", 8) +
+      "  " +
+      _padR("p", 10) +
+      "Assessment"
+  );
+  lines.push("  " + "-".repeat(nameW + 2 + 4 + 2 + 8 + 2 + 10 + 10));
+  for (const r of norm) {
+    const gname = names[r.group];
+    const assessment =
+      r.normal === true ? "normal" : r.normal === false ? "not normal" : r.note || "unknown";
+    lines.push(
+      "  " +
+        _padR(gname, nameW) +
+        "  " +
+        _padR(String(r.n), 4) +
+        "  " +
+        _padR(r.W != null ? r.W.toFixed(3) : "—", 8) +
+        "  " +
+        _padR(r.p != null ? formatP(r.p) : r.note || "—", 10) +
+        assessment
+    );
+  }
+  lines.push("");
+
+  const lev = (recommendation && recommendation.levene) || {};
+  lines.push("Levene (Brown-Forsythe) test for equal variance");
+  if (lev.error) {
+    lines.push("  error: " + lev.error);
+  } else if (lev.F != null) {
+    lines.push(
+      "  F(" +
+        lev.df1 +
+        ", " +
+        lev.df2 +
+        ") = " +
+        lev.F.toFixed(3) +
+        ",  p = " +
+        formatP(lev.p) +
+        "   -> " +
+        (lev.equalVar ? "equal variance" : "unequal variance")
+    );
+  } else {
+    lines.push("  —");
+  }
+  lines.push("");
+
+  lines.push(sep);
+  lines.push("TEST");
+  lines.push(sep);
+  lines.push("");
+  const recTest =
+    recommendation && recommendation.recommendation && recommendation.recommendation.test;
+  const recReason =
+    recommendation && recommendation.recommendation && recommendation.recommendation.reason;
+  lines.push("Recommended: " + (recTest ? STATS_LABELS[recTest] : "—"));
+  if (recReason) lines.push("Reason:      " + recReason);
+  lines.push("Chosen:      " + (chosenTest ? STATS_LABELS[chosenTest] : "—"));
+  lines.push("");
+  lines.push("Result: " + _formatTestLine(chosenTest, testResult));
+  lines.push("");
+
+  if (postHocResult && !postHocResult.error && postHocName) {
+    lines.push(sep);
+    lines.push("POST-HOC — " + POSTHOC_LABELS[postHocName]);
+    lines.push(sep);
+    lines.push("");
+    const pairW = Math.max(
+      10,
+      ...postHocResult.pairs.map((pr) => (names[pr.i] + " vs " + names[pr.j]).length)
+    );
+    const diffLabel = postHocName === "dunn" ? "Rank diff" : "Mean diff";
+    lines.push(
+      "  " + _padR("Pair", pairW) + "  " + _padR(diffLabel, 12) + "  " + _padR("p", 10) + "Signif."
+    );
+    lines.push("  " + "-".repeat(pairW + 2 + 12 + 2 + 10 + 8));
+    for (const pr of postHocResult.pairs) {
+      const pVal = pr.pAdj != null ? pr.pAdj : pr.p;
+      const diff =
+        pr.diff != null ? pr.diff.toFixed(3) : pr.z != null ? "z = " + pr.z.toFixed(3) : "—";
+      lines.push(
+        "  " +
+          _padR(names[pr.i] + " vs " + names[pr.j], pairW) +
+          "  " +
+          _padR(diff, 12) +
+          "  " +
+          _padR(formatP(pVal), 10) +
+          pStars(pVal)
+      );
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
 function assignBracketLevels(pairs) {
   const enriched = pairs.map((pr, idx) => ({ ...pr, _span: Math.abs(pr.j - pr.i), _orig: idx }));
   enriched.sort((a, b) => a._span - b._span);
@@ -2140,6 +2287,42 @@ function StatsTile({ groups, onAnnotationsChange, defaultOpen }) {
     );
   }
 
+  // ── Download report ───────────────────────────────────────────────────────
+  const downloadReportBtn = React.createElement(
+    "div",
+    { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" } },
+    React.createElement(
+      "button",
+      {
+        onClick: (e) => {
+          const txt = _buildStatsReport({
+            names,
+            values,
+            recommendation,
+            chosenTest,
+            testResult,
+            postHocName,
+            postHocResult,
+          });
+          downloadText(txt, "stats_report.txt");
+          flashSaved(e.currentTarget);
+        },
+        style: {
+          padding: "8px 14px",
+          borderRadius: 6,
+          fontSize: 12,
+          cursor: "pointer",
+          background: "#dcfce7",
+          border: "1px solid #86efac",
+          color: "#166534",
+          fontFamily: "inherit",
+          fontWeight: 600,
+        },
+      },
+      "\u2B07 Download report (.txt)"
+    )
+  );
+
   // ── Display-on-plot controls ──────────────────────────────────────────────
   const displayControls = React.createElement(
     "div",
@@ -2221,6 +2404,7 @@ function StatsTile({ groups, onAnnotationsChange, defaultOpen }) {
       reasonLine,
       resultLine,
       postHocBlock,
+      downloadReportBtn,
       displayControls
     )
   );

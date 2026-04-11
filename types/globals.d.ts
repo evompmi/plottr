@@ -55,6 +55,7 @@ declare global {
   function isNumericValue(v: unknown): boolean;
   function seededRandom(seed: number): () => number;
   function makeExamplePlantCSV(): string;
+  function downloadText(text: string, filename: string): void;
   function makeTicks(min: number, max: number, approxN: number): number[];
 
   // ── Separator detection & decimal comma fix ────────────────────────────────

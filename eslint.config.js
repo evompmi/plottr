@@ -60,6 +60,7 @@ const sharedGlobals = {
   downloadSvg: "readonly",
   downloadPng: "readonly",
   downloadCsv: "readonly",
+  downloadText: "readonly",
   // shared-components.js
   ColorInput: "readonly",
   FileDropZone: "readonly",

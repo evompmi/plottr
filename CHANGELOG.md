@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `StatsTile` gains a "Download report (.txt)" button that exports a plain-text report of the full analysis — group descriptives (n, mean, SD), Shapiro-Wilk per group, Levene, recommended/chosen test + result, and the post-hoc pairs table when k≥3. Fixed-width columns so it reads cleanly in any editor. Backed by a new `downloadText()` helper in `tools/shared.js`.
 - StatsTile assumptions section now has clearer captions ("Shapiro-Wilk test for normality" and "Levene (Brown-Forsythe) test for equal variance") above each check, and the normality table's data cells no longer repeat the column headers — cells show bare values (`12`, `0.945`, `0.512`) instead of `n = 12`, `W = 0.945`, `p = 0.512`, matching the post-hoc table's cleaner style.
 - Bargraph output panel's "Long CSV" download button now matches the "Wide CSV" button's compact green style instead of the oversized `btnDownload` shared style — the two sibling download buttons are visually consistent.
 - Bargraph chart SVG no longer stretches to fill the plot tile. It now uses its natural width (`vbW`, ~100 px per bar + margins) capped at `maxWidth: 100%` and centered via `margin: 0 auto`, matching the boxplot behavior — small datasets render at a sensible size instead of being stretched edge-to-edge.

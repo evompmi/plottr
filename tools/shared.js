@@ -590,6 +590,19 @@ function downloadPng(svgEl, filename, scale) {
   };
   img.src = url;
 }
+function downloadText(text, filename) {
+  const blob = new Blob([text], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function downloadCsv(headers, rows, filename) {
   const lines = [
     headers.join(","),
