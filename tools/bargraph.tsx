@@ -93,7 +93,10 @@ const BarChart = forwardRef<SVGSVGElement, any>(function BarChart(
   const angle = xLabelAngle || 0;
   const bottomMargin = 60 + Math.abs(angle) * 0.9;
 
-  // Precompute annotation layout so we can reserve top margin for it.
+  // Precompute annotation layout. We reserve headroom *inside* the plot
+  // frame — the frame position is fixed; instead we extend yMax so that data
+  // doesn't reach the top of the inner area, and draw annotations in that
+  // headroom.
   const annotPairs =
     annotations && annotations.kind === "brackets"
       ? assignBracketLevels(annotations.pairs || [])
@@ -105,7 +108,7 @@ const BarChart = forwardRef<SVGSVGElement, any>(function BarChart(
       : annotations && annotations.kind === "brackets" && annotPairs.length > 0
         ? (annotMaxLevel + 1) * 20 + 6
         : 0;
-  const MChart = { top: 24 + annotTopPad, right: 24, bottom: bottomMargin, left: 62 };
+  const MChart = { top: 24, right: 24, bottom: bottomMargin, left: 62 };
 
   const allVals = groups.flatMap((g) => g.allValues);
   if (allVals.length === 0) return null;
@@ -127,17 +130,20 @@ const BarChart = forwardRef<SVGSVGElement, any>(function BarChart(
   const pad = (dataMax - dataMin) * 0.08 || 1;
   // Default: start at 0 if all values >= 0, else extend below
   const yMin = yMinProp != null ? yMinProp : dataMin >= 0 ? 0 : dataMin - pad;
-  const yMax = yMaxProp != null ? yMaxProp : dataMax + pad;
+  let yMax = yMaxProp != null ? yMaxProp : dataMax + pad;
 
   const n = groups.length;
   const vbW = Math.max(400, n * 100 + MChart.left + MChart.right);
-  // Grow vbH_chart by annotTopPad so the plot area keeps its size while
-  // MChart.top (extended by annotTopPad) reserves space above the bars.
-  const vbH_chart = 420 + Math.abs(angle) * 0.9 + annotTopPad;
+  const vbH_chart = 420 + Math.abs(angle) * 0.9;
   const legendH = computeLegendHeight(svgLegend, vbW - MChart.left - MChart.right, 88);
   const vbH = vbH_chart + legendH;
   const w = vbW - MChart.left - MChart.right;
   const h = vbH_chart - MChart.top - MChart.bottom;
+
+  // Extend yMax upward so annotations fit inside the frame without overlapping data.
+  if (annotTopPad > 0 && h > annotTopPad + 10) {
+    yMax = yMin + ((yMax - yMin) * h) / (h - annotTopPad);
+  }
 
   const bandW = w / n;
   const bx = (i) => MChart.left + i * bandW + bandW / 2;
@@ -301,7 +307,7 @@ const BarChart = forwardRef<SVGSVGElement, any>(function BarChart(
           <text
             key={`cld-${gi}`}
             x={bx(gi)}
-            y={MChart.top - 6}
+            y={MChart.top + 15}
             textAnchor="middle"
             fontSize="13"
             fontWeight="700"
@@ -319,7 +325,7 @@ const BarChart = forwardRef<SVGSVGElement, any>(function BarChart(
           const x1 = bx(pr.i);
           const x2 = bx(pr.j);
           const lvl = pr._level || 0;
-          const yLine = MChart.top - 8 - lvl * 20;
+          const yLine = MChart.top + annotTopPad - 6 - lvl * 20;
           const tick = 4;
           return (
             <g key={`br-${idx}`}>

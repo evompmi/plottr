@@ -34,7 +34,10 @@ const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
   const pieSpace = cbc >= 0 && showCompPie ? 60 : 0;
   const botM = 60 + (absA > 0 ? absA * 0.8 : 0) + pieSpace;
 
-  // Precompute annotation layout so we can reserve top margin for it.
+  // Precompute annotation layout. We reserve headroom *inside* the plot
+  // frame — the frame position is fixed; instead we extend yMax so that data
+  // doesn't reach the top of the inner area, and draw annotations in that
+  // headroom.
   const annotPairs =
     annotations && annotations.kind === "brackets"
       ? assignBracketLevels(annotations.pairs || [])
@@ -46,7 +49,7 @@ const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
       : annotations && annotations.kind === "brackets" && annotPairs.length > 0
         ? (annotMaxLevel + 1) * 20 + 6
         : 0;
-  const M = { top: 24 + annotTopPad, right: 24, bottom: botM, left: 62 };
+  const M = { top: 24, right: 24, bottom: botM, left: 62 };
 
   const allV = groups.flatMap((g) => g.allValues);
   if (allV.length === 0) return null;
@@ -66,16 +69,21 @@ const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
   }
   const pad = (dMax - dMin) * 0.08 || 1;
   const yMin = yMinP != null ? yMinP : dMin - pad;
-  const yMax = yMaxP != null ? yMaxP : dMax + pad;
+  let yMax = yMaxP != null ? yMaxP : dMax + pad;
 
   const n = groups.length;
   const compact = (100 - (boxGap != null ? boxGap : 0)) / 100;
   const vbW = Math.max(200, n * 100 * compact + M.left + M.right);
-  const vbH_chart = 504 + (absA > 0 ? absA * 0.8 : 0) + annotTopPad;
+  const vbH_chart = 504 + (absA > 0 ? absA * 0.8 : 0);
   const _legH = computeLegendHeight(svgLegend, vbW - M.left - M.right, 88);
   const vbH = vbH_chart + _legH;
   const w = vbW - M.left - M.right;
   const h = vbH_chart - M.top - M.bottom;
+
+  // Extend yMax upward so annotations fit inside the frame without overlapping data.
+  if (annotTopPad > 0 && h > annotTopPad + 10) {
+    yMax = yMin + ((yMax - yMin) * h) / (h - annotTopPad);
+  }
 
   const bandW = w / n;
   const bx = (i) => M.left + i * bandW + bandW / 2;
@@ -420,7 +428,7 @@ const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
           <text
             key={`cld-${gi}`}
             x={bx(gi)}
-            y={M.top - 6}
+            y={M.top + 15}
             textAnchor="middle"
             fontSize="13"
             fontWeight="700"
@@ -438,7 +446,7 @@ const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
           const x1 = bx(pr.i);
           const x2 = bx(pr.j);
           const lvl = pr._level || 0;
-          const yLine = M.top - 8 - lvl * 20;
+          const yLine = M.top + annotTopPad - 6 - lvl * 20;
           const tick = 4;
           return (
             <g key={`br-${idx}`}>
