@@ -19,7 +19,21 @@ const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(code, ctx);
 
-const { normcdf, tcdf, shapiroWilk, sampleMean, sampleVariance, sampleSD, rankWithTies } = ctx;
+const {
+  normcdf,
+  tcdf,
+  shapiroWilk,
+  sampleMean,
+  sampleVariance,
+  sampleSD,
+  rankWithTies,
+  leveneTest,
+  tTest,
+  mannWhitneyU,
+  cohenD,
+  hedgesG,
+  rankBiserial,
+} = ctx;
 
 // ── Primitives smoke test ──────────────────────────────────────────────────
 // Power-tool tests already cover these exhaustively — here we just confirm
@@ -54,6 +68,30 @@ test("rankWithTies — with ties", () => {
   assert(ranks[3] === 4, "rank of 3");
   // tie group size = 2 → t³−t = 8−2 = 6
   assert(tieCorrection === 6, "tie correction = 6");
+});
+
+test("rankWithTies — unsorted input preserves original positions", () => {
+  // Regression guard: a broken array-sort comparator ((a,b)=>a-b on pairs)
+  // would produce NaN comparisons and give garbage ranks here.
+  const { ranks } = rankWithTies([50, 10, 30, 40, 20]);
+  // sorted values: 10,20,30,40,50 → ranks 1..5
+  // back to original positions: [50→5, 10→1, 30→3, 40→4, 20→2]
+  assert(
+    ranks[0] === 5 && ranks[1] === 1 && ranks[2] === 3 && ranks[3] === 4 && ranks[4] === 2,
+    `ranks out of order: ${ranks.join(",")}`
+  );
+});
+
+test("rankWithTies — interleaved duplicates", () => {
+  // [3, 1, 2, 1, 3, 2] sorted: 1,1,2,2,3,3 → ranks 1.5,1.5,3.5,3.5,5.5,5.5
+  // back to original positions: 3→5.5, 1→1.5, 2→3.5, 1→1.5, 3→5.5, 2→3.5
+  const { ranks, tieCorrection } = rankWithTies([3, 1, 2, 1, 3, 2]);
+  const expected = [5.5, 1.5, 3.5, 1.5, 5.5, 3.5];
+  for (let i = 0; i < 6; i++) {
+    assert(ranks[i] === expected[i], `ranks[${i}]=${ranks[i]} expected ${expected[i]}`);
+  }
+  // Three tie groups of size 2 each → each contributes 2^3-2 = 6; total 18
+  assert(tieCorrection === 18, `tieCorrection=${tieCorrection}`);
 });
 
 // ── Shapiro-Wilk vs R ──────────────────────────────────────────────────────
@@ -173,6 +211,193 @@ test("n < 3 → error", () => {
 test("zero variance → error", () => {
   const r = shapiroWilk([5, 5, 5, 5, 5]);
   assert(r.error, "returns error object");
+});
+
+// ── Shared fixtures (used by Levene / t / Mann-Whitney / effect sizes) ─────
+// All reference values regenerated from real R — see inline R one-liners.
+
+// R base:  sleep$extra[sleep$group==1]
+const sleepG1 = [0.7, -1.6, -0.2, -1.2, -0.1, 3.4, 3.7, 0.8, 0.0, 2.0];
+// R base:  sleep$extra[sleep$group==2]
+const sleepG2 = [1.9, 0.8, 1.1, 0.1, -0.1, 4.4, 5.5, 1.6, 4.6, 3.4];
+
+// R base:  iris$Sepal.Length[iris$Species=="setosa"]
+const irisSetosa = [
+  5.1, 4.9, 4.7, 4.6, 5.0, 5.4, 4.6, 5.0, 4.4, 4.9, 5.4, 4.8, 4.8, 4.3, 5.8, 5.7, 5.4, 5.1, 5.7,
+  5.1, 5.4, 5.1, 4.6, 5.1, 4.8, 5.0, 5.0, 5.2, 5.2, 4.7, 4.8, 5.4, 5.2, 5.5, 4.9, 5.0, 5.5, 4.9,
+  4.4, 5.1, 5.0, 4.5, 4.4, 5.0, 5.1, 4.8, 5.1, 4.6, 5.3, 5.0,
+];
+// R base:  iris$Sepal.Length[iris$Species=="versicolor"]
+const irisVersicolor = [
+  7.0, 6.4, 6.9, 5.5, 6.5, 5.7, 6.3, 4.9, 6.6, 5.2, 5.0, 5.9, 6.0, 6.1, 5.6, 6.7, 5.6, 5.8, 6.2,
+  5.6, 5.9, 6.1, 6.3, 6.1, 6.4, 6.6, 6.8, 6.7, 6.0, 5.7, 5.5, 5.5, 5.8, 6.0, 5.4, 6.0, 6.7, 6.3,
+  5.6, 5.5, 5.5, 6.1, 5.8, 5.0, 5.6, 5.7, 5.7, 6.2, 5.1, 5.7,
+];
+
+// ── Levene's test (Brown-Forsythe) vs R ────────────────────────────────────
+//
+// Reference values produced via:
+//   levene_bf <- function(values, groups) {
+//     dev <- abs(values - ave(values, groups, FUN=median))
+//     summary(aov(dev ~ factor(groups)))[[1]]
+//   }
+
+suite("stats.js — Levene (Brown-Forsythe) vs R");
+
+test("PlantGrowth (3 groups) — F=1.119186 p=0.341227", () => {
+  // R> levene_bf(PlantGrowth$weight, PlantGrowth$group)
+  const ctrl = [4.17, 5.58, 5.18, 6.11, 4.5, 4.61, 5.17, 4.53, 5.33, 5.14];
+  const trt1 = [4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69];
+  const trt2 = [6.31, 5.12, 5.54, 5.5, 5.37, 5.29, 4.92, 6.15, 5.8, 5.26];
+  const r = leveneTest([ctrl, trt1, trt2]);
+  approx(r.F, 1.119186, 5e-3);
+  approx(r.p, 0.341227, 5e-3);
+  assert(r.df1 === 2 && r.df2 === 27, `df ${r.df1},${r.df2}`);
+});
+
+test("iris Sepal.Length (3 species) — F=6.352720 p=0.002259", () => {
+  // R> levene_bf(iris$Sepal.Length, iris$Species)
+  const virginica = [
+    6.3, 5.8, 7.1, 6.3, 6.5, 7.6, 4.9, 7.3, 6.7, 7.2, 6.5, 6.4, 6.8, 5.7, 5.8, 6.4, 6.5, 7.7, 7.7,
+    6.0, 6.9, 5.6, 7.7, 6.3, 6.7, 7.2, 6.2, 6.1, 6.4, 7.2, 7.4, 7.9, 6.4, 6.3, 6.1, 7.7, 6.3, 6.4,
+    6.0, 6.9, 6.7, 6.9, 5.8, 6.8, 6.7, 6.7, 6.3, 6.5, 6.2, 5.9,
+  ];
+  const r = leveneTest([irisSetosa, irisVersicolor, virginica]);
+  approx(r.F, 6.35272, 5e-3);
+  approx(r.p, 0.002259, 5e-2); // looser on tiny p — still order-of-magnitude
+  assert(r.df1 === 2 && r.df2 === 147, `df ${r.df1},${r.df2}`);
+});
+
+test("simple 2-group — F=4.230174 p=0.069848", () => {
+  // R> levene_bf(c(1:5, seq(2,12,2)), rep(c("A","B"),c(5,6)))
+  const r = leveneTest([
+    [1, 2, 3, 4, 5],
+    [2, 4, 6, 8, 10, 12],
+  ]);
+  approx(r.F, 4.230174, 5e-3);
+  approx(r.p, 0.069848, 5e-3);
+});
+
+test("2 groups with equal variance → p large", () => {
+  const r = leveneTest([
+    [1, 2, 3, 4, 5],
+    [10, 11, 12, 13, 14],
+  ]);
+  assert(r.p > 0.5, `p should be large (got ${r.p})`);
+});
+
+// ── t-tests vs R ───────────────────────────────────────────────────────────
+//
+// R base: t.test(x, y, var.equal=TRUE|FALSE)
+
+suite("stats.js — Student / Welch t-tests vs R");
+
+test("sleep Student t — t=-1.860813 df=18 p=0.079187", () => {
+  // R> t.test(sleep$extra[1:10], sleep$extra[11:20], var.equal=TRUE)
+  const r = tTest(sleepG1, sleepG2, { equalVar: true });
+  approx(r.t, -1.860813, 5e-3);
+  assert(r.df === 18, `df ${r.df}`);
+  approx(r.p, 0.079187, 5e-3);
+});
+
+test("sleep Welch t — t=-1.860813 df=17.776474 p=0.079394", () => {
+  // R> t.test(..., var.equal=FALSE)
+  const r = tTest(sleepG1, sleepG2, { equalVar: false });
+  approx(r.t, -1.860813, 5e-3);
+  approx(r.df, 17.776474, 5e-3);
+  approx(r.p, 0.079394, 5e-3);
+});
+
+test("iris setosa vs versicolor Student — t=-10.520986 df=98", () => {
+  // R> t.test(setosa$SL, versicolor$SL, var.equal=TRUE)
+  //    p ≈ 8.985e-18 (below our float precision for p, so check t and df)
+  const r = tTest(irisSetosa, irisVersicolor, { equalVar: true });
+  approx(r.t, -10.520986, 5e-3);
+  assert(r.df === 98, `df ${r.df}`);
+  assert(r.p < 1e-15, "p should be astronomically small");
+});
+
+test("iris setosa vs versicolor Welch — t=-10.520986 df=86.538002", () => {
+  // R> t.test(setosa$SL, versicolor$SL)
+  const r = tTest(irisSetosa, irisVersicolor, { equalVar: false });
+  approx(r.t, -10.520986, 5e-3);
+  approx(r.df, 86.538002, 5e-3);
+  assert(r.p < 1e-15, "p should be astronomically small");
+});
+
+test("identical samples → t=0 p=1", () => {
+  const r = tTest([1, 2, 3, 4], [1, 2, 3, 4]);
+  approx(r.t, 0, 1e-12);
+  approx(r.p, 1, 1e-12);
+});
+
+test("error on n<2", () => {
+  const r = tTest([1], [2, 3, 4]);
+  assert(r.error, "returns error");
+});
+
+// ── Mann-Whitney U vs R ────────────────────────────────────────────────────
+//
+// R base: wilcox.test(x, y, exact=FALSE, correct=TRUE)
+// Note: R reports "W" = U1 (our `U1` field), not U = min(U1, U2).
+
+suite("stats.js — Mann-Whitney U vs R");
+
+test("sleep — U1=25.5 p=0.069328", () => {
+  // R> wilcox.test(sleep$extra[1:10], sleep$extra[11:20], exact=FALSE, correct=TRUE)
+  const r = mannWhitneyU(sleepG1, sleepG2);
+  approx(r.U1, 25.5, 1e-6);
+  approx(r.p, 0.069328, 5e-3);
+});
+
+test("iris setosa vs versicolor — U1=168.5", () => {
+  // R> wilcox.test(setosa$SL, versicolor$SL, exact=FALSE, correct=TRUE)
+  //    W=168.5  p≈8.35e-14
+  const r = mannWhitneyU(irisSetosa, irisVersicolor);
+  approx(r.U1, 168.5, 1e-6);
+  assert(r.p < 1e-10, `p should be tiny (got ${r.p})`);
+});
+
+test("small samples with ties — U1=5 p=0.077947", () => {
+  // R> wilcox.test(c(1,2,2,3,4), c(2,3,4,5,6,6), exact=FALSE, correct=TRUE)
+  const r = mannWhitneyU([1, 2, 2, 3, 4], [2, 3, 4, 5, 6, 6]);
+  approx(r.U1, 5, 1e-6);
+  approx(r.p, 0.077947, 1e-2); // tie correction has some room
+});
+
+test("empty group → error", () => {
+  const r = mannWhitneyU([], [1, 2, 3]);
+  assert(r.error, "returns error");
+});
+
+// ── Effect sizes vs R ──────────────────────────────────────────────────────
+
+suite("stats.js — effect sizes");
+
+test("Cohen d — sleep groups", () => {
+  // R> (mean(g1)-mean(g2)) / sqrt(((n1-1)*var(g1)+(n2-1)*var(g2))/(n1+n2-2))
+  approx(cohenD(sleepG1, sleepG2), -0.832181, 5e-3);
+});
+
+test("Cohen d — iris setosa vs versicolor", () => {
+  approx(cohenD(irisSetosa, irisVersicolor), -2.104197, 5e-3);
+});
+
+test("Hedges g ≤ |Cohen d| (bias-corrected shrinks)", () => {
+  const d = cohenD(sleepG1, sleepG2);
+  const g = hedgesG(sleepG1, sleepG2);
+  assert(Math.abs(g) < Math.abs(d), `|g|=${Math.abs(g)} not < |d|=${Math.abs(d)}`);
+});
+
+test("rankBiserial — identical groups → 0", () => {
+  const { U1 } = mannWhitneyU([1, 2, 3, 4], [1, 2, 3, 4]);
+  approx(rankBiserial(U1, 4, 4), 0, 1e-12);
+});
+
+test("rankBiserial — extreme separation → ±1", () => {
+  // x all below y → U1 = 0 → r = 1
+  const { U1 } = mannWhitneyU([1, 2, 3], [10, 20, 30]);
+  approx(rankBiserial(U1, 3, 3), 1, 1e-12);
 });
 
 summary();

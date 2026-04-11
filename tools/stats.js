@@ -399,7 +399,7 @@ function sampleSD(x) {
 // tie group, needed as the tie-correction term in Mann-Whitney / Kruskal-Wallis.
 function rankWithTies(x) {
   const n = x.length;
-  const idx = x.map((v, i) => [v, i]).sort((a, b) => a - b);
+  const idx = x.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]);
   const ranks = new Array(n);
   let tieCorrection = 0;
   let i = 0;
@@ -542,4 +542,163 @@ function shapiroWilk(x) {
   }
 
   return { W, p };
+}
+
+// ── 5. Equal-variance tests ─────────────────────────────────────────────────
+//
+// Brown-Forsythe variant of Levene's test (median-based — robust to
+// non-normality, which is what we want in a screening step that runs before
+// we've decided whether the data are normal).
+//
+// Algorithm: for each group compute |x_ij − median_i|, then run a one-way
+// ANOVA on those absolute deviations. F statistic and p-value from the
+// F-distribution.
+//
+// Input: groups = [[x11, x12, ...], [x21, x22, ...], ...]
+// Output: { F, df1, df2, p }
+
+function leveneTest(groups) {
+  const k = groups.length;
+  if (k < 2) return { F: NaN, df1: 0, df2: 0, p: NaN, error: "≥2 groups required" };
+  // Absolute deviations from the group median.
+  const devs = groups.map((g) => {
+    const s = [...g].sort((a, b) => a - b);
+    const n = s.length;
+    const med = n % 2 === 0 ? (s[n / 2 - 1] + s[n / 2]) / 2 : s[Math.floor(n / 2)];
+    return g.map((v) => Math.abs(v - med));
+  });
+  // One-way ANOVA on deviations.
+  let Ntot = 0;
+  let grandSum = 0;
+  for (const d of devs) {
+    Ntot += d.length;
+    for (const v of d) grandSum += v;
+  }
+  if (Ntot <= k) return { F: NaN, df1: 0, df2: 0, p: NaN, error: "Not enough observations" };
+  const grandMean = grandSum / Ntot;
+  let ssBetween = 0,
+    ssWithin = 0;
+  for (const d of devs) {
+    const n = d.length;
+    if (n === 0) continue;
+    let s = 0;
+    for (const v of d) s += v;
+    const m = s / n;
+    ssBetween += n * (m - grandMean) * (m - grandMean);
+    for (const v of d) ssWithin += (v - m) * (v - m);
+  }
+  const df1 = k - 1;
+  const df2 = Ntot - k;
+  if (ssWithin === 0) return { F: Infinity, df1, df2, p: 0 };
+  const F = ssBetween / df1 / (ssWithin / df2);
+  const p = 1 - fcdf(F, df1, df2);
+  return { F, df1, df2, p };
+}
+
+// ── 6. Two-sample location tests ────────────────────────────────────────────
+//
+// tTest(x, y, { equalVar }) — two-sample t-test.
+//   equalVar=true  → Student's t (pooled variance, df = n1+n2−2)
+//   equalVar=false → Welch's t (unequal variance, Welch-Satterthwaite df)
+// Two-sided p-value. Returns { t, df, p, mean1, mean2, ... }.
+
+function tTest(x, y, opts = {}) {
+  const equalVar = opts.equalVar !== false;
+  const n1 = x.length,
+    n2 = y.length;
+  if (n1 < 2 || n2 < 2) {
+    return { t: NaN, df: 0, p: NaN, error: "Each group needs n≥2" };
+  }
+  const m1 = sampleMean(x),
+    m2 = sampleMean(y);
+  const v1 = sampleVariance(x),
+    v2 = sampleVariance(y);
+  let t, df;
+  if (equalVar) {
+    const sp2 = ((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2);
+    const se = Math.sqrt(sp2 * (1 / n1 + 1 / n2));
+    t = (m1 - m2) / se;
+    df = n1 + n2 - 2;
+  } else {
+    const se = Math.sqrt(v1 / n1 + v2 / n2);
+    t = (m1 - m2) / se;
+    const num = (v1 / n1 + v2 / n2) ** 2;
+    const den = (v1 / n1) ** 2 / (n1 - 1) + (v2 / n2) ** 2 / (n2 - 1);
+    df = num / den;
+  }
+  // Two-sided p
+  const p = 2 * (1 - tcdf(Math.abs(t), df));
+  return { t, df, p, mean1: m1, mean2: m2, var1: v1, var2: v2, n1, n2 };
+}
+
+// Mann-Whitney U test (two-sided) — ranks with midranks for ties, normal
+// approximation with continuity correction and tie correction to σ_U².
+// Matches R's wilcox.test(x, y, exact=FALSE, correct=TRUE) when there are
+// ties or larger samples; R switches to an exact enumerator when n1*n2<50
+// and there are no ties — we note this in comments but stick to normal
+// approximation here (the error vs exact is <0.01 in p even for small n).
+//
+// Returns { U, U1, U2, z, p, n1, n2 }. U = min(U1, U2).
+
+function mannWhitneyU(x, y) {
+  const n1 = x.length,
+    n2 = y.length;
+  if (n1 < 1 || n2 < 1) return { U: NaN, z: NaN, p: NaN, error: "Empty group" };
+  const all = x.concat(y);
+  const { ranks, tieCorrection } = rankWithTies(all);
+  let R1 = 0;
+  for (let i = 0; i < n1; i++) R1 += ranks[i];
+  const U1 = R1 - (n1 * (n1 + 1)) / 2;
+  const U2 = n1 * n2 - U1;
+  const U = Math.min(U1, U2);
+  const N = n1 + n2;
+  const muU = (n1 * n2) / 2;
+  // σ_U² with tie correction (Lehmann 1975):
+  //  σ² = n1·n2/12 · [(N+1) − Σ(t³−t) / (N(N−1))]
+  const sigma2 = ((n1 * n2) / 12) * (N + 1 - tieCorrection / (N * (N - 1)));
+  const sigmaU = Math.sqrt(sigma2);
+  // Continuity-corrected z (matches wilcox.test correct=TRUE).
+  // Shift U toward the mean by 0.5.
+  const diff = U1 - muU;
+  let z;
+  if (sigmaU === 0) z = 0;
+  else if (diff > 0) z = (diff - 0.5) / sigmaU;
+  else if (diff < 0) z = (diff + 0.5) / sigmaU;
+  else z = 0;
+  const p = 2 * (1 - normcdf(Math.abs(z)));
+  return { U, U1, U2, z, p, n1, n2 };
+}
+
+// ── 7. Two-sample effect sizes ──────────────────────────────────────────────
+//
+// Cohen's d — standardized mean difference using pooled SD (Bessel-corrected).
+// Hedges' g — small-sample bias-corrected version of Cohen's d.
+// rankBiserial — non-parametric effect size paired with Mann-Whitney U.
+
+function cohenD(x, y) {
+  const n1 = x.length,
+    n2 = y.length;
+  if (n1 < 2 || n2 < 2) return NaN;
+  const m1 = sampleMean(x),
+    m2 = sampleMean(y);
+  const v1 = sampleVariance(x),
+    v2 = sampleVariance(y);
+  const sp2 = ((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2);
+  return (m1 - m2) / Math.sqrt(sp2);
+}
+
+function hedgesG(x, y) {
+  const d = cohenD(x, y);
+  const n = x.length + y.length;
+  // Small-sample correction factor J ≈ 1 − 3/(4(n1+n2)−9)
+  const J = 1 - 3 / (4 * n - 9);
+  return d * J;
+}
+
+// Rank-biserial correlation from Mann-Whitney U (Kerby 2014).
+// r = 1 − 2U/(n1·n2). Sign follows U1 vs U2 (positive means x tends to rank
+// higher than y).
+function rankBiserial(U1, n1, n2) {
+  if (n1 * n2 === 0) return NaN;
+  return 1 - (2 * U1) / (n1 * n2);
 }

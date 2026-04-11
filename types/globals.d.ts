@@ -210,6 +210,45 @@ declare global {
   function sampleSD(x: number[]): number;
   function rankWithTies(x: number[]): { ranks: number[]; tieCorrection: number };
   function shapiroWilk(x: number[]): { W: number; p: number; error?: string };
+  function leveneTest(groups: number[][]): {
+    F: number;
+    df1: number;
+    df2: number;
+    p: number;
+    error?: string;
+  };
+  function tTest(
+    x: number[],
+    y: number[],
+    opts?: { equalVar?: boolean }
+  ): {
+    t: number;
+    df: number;
+    p: number;
+    mean1?: number;
+    mean2?: number;
+    var1?: number;
+    var2?: number;
+    n1?: number;
+    n2?: number;
+    error?: string;
+  };
+  function mannWhitneyU(
+    x: number[],
+    y: number[]
+  ): {
+    U: number;
+    U1: number;
+    U2: number;
+    z: number;
+    p: number;
+    n1: number;
+    n2: number;
+    error?: string;
+  };
+  function cohenD(x: number[], y: number[]): number;
+  function hedgesG(x: number[], y: number[]): number;
+  function rankBiserial(U1: number, n1: number, n2: number): number;
 }
 
 export {};

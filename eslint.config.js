@@ -101,6 +101,12 @@ const sharedGlobals = {
   sampleSD: "readonly",
   rankWithTies: "readonly",
   shapiroWilk: "readonly",
+  leveneTest: "readonly",
+  tTest: "readonly",
+  mannWhitneyU: "readonly",
+  cohenD: "readonly",
+  hedgesG: "readonly",
+  rankBiserial: "readonly",
 };
 
 const browserPlus = {
