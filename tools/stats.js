@@ -139,9 +139,13 @@ function gammainc(a, x) {
   if (x < 0) return 0;
   if (x === 0) return 0;
   if (x > a + 1) return 1 - gammainc_upper(a, x);
+  // Series converges in ~O(√a) steps when x ≈ a (Poisson-like concentration
+  // around n ≈ x−a with width √a). A fixed 200-step cap silently truncated
+  // large-a calls; scale with √a so chi2cdf / ptukey stay accurate at huge df.
+  const maxIter = Math.max(200, Math.ceil(20 * Math.sqrt(a + 1)));
   let sum = 1 / a,
     term = 1 / a;
-  for (let n = 1; n < 200; n++) {
+  for (let n = 1; n < maxIter; n++) {
     term *= x / (a + n);
     sum += term;
     if (Math.abs(term) < Math.abs(sum) * 3e-14) break;
@@ -155,7 +159,8 @@ function gammainc_upper(a, x) {
     c = 1 / 1e-30,
     d = 1 / f,
     h = d;
-  for (let i = 1; i < 200; i++) {
+  const maxIter = Math.max(200, Math.ceil(20 * Math.sqrt(a + 1)));
+  for (let i = 1; i < maxIter; i++) {
     const an = -i * (i - a);
     const bn = x + 2 * i + 1 - a;
     d = bn + an * d;
@@ -350,7 +355,19 @@ function ncchi2cdf(x, k, lambda) {
   if (x <= 0) return 0;
   if (lambda <= 0) return chi2cdf(x, k);
   const halfLam = lambda / 2;
+  // Large-λ short circuit: use normal approximation for the far tails.
+  // Noncentral χ² has mean k+λ and variance 2(k+2λ); a |z|>6 tail is < 1e-9.
+  if (halfLam > 500) {
+    const mean = k + lambda;
+    const sd = Math.sqrt(2 * (k + 2 * lambda));
+    const z = (x - mean) / sd;
+    if (z < -6) return 0;
+    if (z > 6) return 1;
+  }
   const jMode = Math.max(0, Math.floor(halfLam));
+  // Poisson mixture width is √λ/2; widen the scan window with √halfLam so huge
+  // λ doesn't silently truncate the sum (mirrors the ncf_sf fix).
+  const maxSteps = Math.max(500, Math.ceil(8 * Math.sqrt(halfLam + 1)));
 
   function cdfTerm(j) {
     return gammainc(k / 2 + j, x / 2);
@@ -361,11 +378,11 @@ function ncchi2cdf(x, k, lambda) {
   let sum = pTerm * cdfTerm(jMode);
 
   let pUp = pTerm;
-  for (let j = jMode + 1; j < jMode + 500; j++) {
+  for (let j = jMode + 1; j < jMode + maxSteps; j++) {
     pUp *= halfLam / j;
     const contrib = pUp * cdfTerm(j);
     sum += contrib;
-    if (j > jMode + 5 && contrib < 1e-14) break;
+    if (j > jMode + 5 && pUp < 1e-14) break;
   }
 
   let pDown = pTerm;
@@ -373,7 +390,7 @@ function ncchi2cdf(x, k, lambda) {
     pDown *= (j + 1) / halfLam;
     const contrib = pDown * cdfTerm(j);
     sum += contrib;
-    if (jMode - j > 5 && contrib < 1e-14) break;
+    if (jMode - j > 5 && pDown < 1e-14) break;
   }
 
   return Math.min(1, Math.max(0, sum));
