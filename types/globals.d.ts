@@ -318,6 +318,44 @@ declare global {
     k: number,
     alpha?: number
   ): string[];
+  interface NormalityResult {
+    group: number;
+    n: number;
+    W: number | null;
+    p: number | null;
+    normal: boolean | null;
+    note?: string;
+  }
+  type RecommendedTest =
+    | "studentT"
+    | "welchT"
+    | "mannWhitney"
+    | "oneWayANOVA"
+    | "welchANOVA"
+    | "kruskalWallis";
+  type RecommendedPostHoc = "tukeyHSD" | "gamesHowell" | "dunn" | null;
+  function selectTest(
+    groups: number[][],
+    opts?: { alphaNormality?: number; alphaVariance?: number }
+  ): {
+    k: number;
+    normality?: NormalityResult[];
+    allNormal?: boolean;
+    levene?: {
+      F?: number;
+      df1?: number;
+      df2?: number;
+      p?: number;
+      equalVar?: boolean | null;
+      error?: string;
+    };
+    recommendation?: {
+      test: RecommendedTest;
+      postHoc: RecommendedPostHoc;
+      reason: string;
+    };
+    error?: string;
+  };
 }
 
 export {};

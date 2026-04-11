@@ -1112,3 +1112,91 @@ function compactLetterDisplay(pairs, k, alpha = 0.05) {
   }
   return out;
 }
+
+// ── 13. Automatic test selection ────────────────────────────────────────────
+//
+// Runs the assumption checks and walks the decision tree the UI will offer
+// as the default pick (user can still override). Per-group Shapiro-Wilk for
+// normality, Brown-Forsythe Levene for homogeneity of variance, then:
+//
+//   k = 2:
+//     any group non-normal  → Mann-Whitney U  (no post-hoc)
+//     equal variance        → Student's t     (no post-hoc)
+//     unequal variance      → Welch's t       (no post-hoc)
+//
+//   k ≥ 3:
+//     any group non-normal  → Kruskal-Wallis + Dunn (BH)
+//     equal variance        → one-way ANOVA + Tukey HSD
+//     unequal variance      → Welch's ANOVA + Games-Howell
+//
+// Thresholds default to α = 0.05 for both assumption checks; caller can pass
+// `{ alphaNormality, alphaVariance }` to override. When a group has n < 3
+// Shapiro-Wilk can't run — we treat normality as unknown and conservatively
+// recommend the rank-based test.
+function selectTest(groups, opts = {}) {
+  const alphaN = opts.alphaNormality != null ? opts.alphaNormality : 0.05;
+  const alphaV = opts.alphaVariance != null ? opts.alphaVariance : 0.05;
+  const k = groups.length;
+  if (k < 2) {
+    return { error: "≥2 groups required", k };
+  }
+
+  const normality = groups.map((g, i) => {
+    if (g.length < 3) {
+      return { group: i, n: g.length, W: null, p: null, normal: null, note: "n<3" };
+    }
+    const sw = shapiroWilk(g);
+    if (sw.error) {
+      return { group: i, n: g.length, W: null, p: null, normal: null, note: sw.error };
+    }
+    return { group: i, n: g.length, W: sw.W, p: sw.p, normal: sw.p >= alphaN };
+  });
+  const allKnownNormal = normality.every((r) => r.normal === true);
+  const anyNonNormal = normality.some((r) => r.normal === false || r.normal === null);
+
+  const lev = leveneTest(groups);
+  const equalVar = lev.error ? null : lev.p >= alphaV;
+
+  let test, postHoc, reason;
+  if (anyNonNormal || !allKnownNormal) {
+    if (k === 2) {
+      test = "mannWhitney";
+      postHoc = null;
+      reason = "At least one group is not normally distributed (Shapiro-Wilk p < α).";
+    } else {
+      test = "kruskalWallis";
+      postHoc = "dunn";
+      reason = "At least one group is not normally distributed (Shapiro-Wilk p < α).";
+    }
+  } else if (equalVar === false) {
+    if (k === 2) {
+      test = "welchT";
+      postHoc = null;
+      reason = "Groups are normal but variances differ (Levene p < α).";
+    } else {
+      test = "welchANOVA";
+      postHoc = "gamesHowell";
+      reason = "Groups are normal but variances differ (Levene p < α).";
+    }
+  } else {
+    if (k === 2) {
+      test = "studentT";
+      postHoc = null;
+      reason = "Both groups are normal with equal variance.";
+    } else {
+      test = "oneWayANOVA";
+      postHoc = "tukeyHSD";
+      reason = "All groups are normal with equal variance.";
+    }
+  }
+
+  return {
+    k,
+    normality,
+    allNormal: allKnownNormal,
+    levene: lev.error
+      ? { error: lev.error }
+      : { F: lev.F, df1: lev.df1, df2: lev.df2, p: lev.p, equalVar },
+    recommendation: { test, postHoc, reason },
+  };
+}

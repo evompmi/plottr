@@ -119,6 +119,7 @@ const sharedGlobals = {
   bhAdjust: "readonly",
   dunnTest: "readonly",
   compactLetterDisplay: "readonly",
+  selectTest: "readonly",
 };
 
 const browserPlus = {

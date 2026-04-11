@@ -45,6 +45,7 @@ const {
   bhAdjust,
   dunnTest,
   compactLetterDisplay,
+  selectTest,
 } = ctx;
 
 // ── Primitives smoke test ──────────────────────────────────────────────────
@@ -805,6 +806,103 @@ test("CLD: prefers pAdj over p when available", () => {
   ];
   const cld = compactLetterDisplay(pairs, 3);
   assert(cld[0] === cld[1] && cld[1] === cld[2], "all same under pAdj");
+});
+
+// ── Automatic test selection ───────────────────────────────────────────────
+//
+// Decision tree (default α=0.05 for Shapiro and Levene):
+//   k=2: any non-normal → Mann-Whitney; else equal var → Student, else Welch
+//   k≥3: any non-normal → Kruskal-Wallis+Dunn; else equal var → ANOVA+Tukey,
+//        else Welch ANOVA + Games-Howell
+
+suite("stats.js — automatic test selection");
+
+// Two normal groups, equal variance → Student's t
+const normalA = [4.9, 5.1, 5.0, 5.2, 4.8, 5.1, 4.9, 5.0, 5.2, 4.9];
+const normalB = [5.9, 6.1, 6.0, 6.2, 5.8, 6.1, 5.9, 6.0, 6.2, 5.9];
+
+test("k=2 normal+equalVar → studentT", () => {
+  const r = selectTest([normalA, normalB]);
+  assert(r.allNormal === true, "expected allNormal true");
+  assert(r.levene.equalVar === true, "expected equalVar true");
+  assert(r.recommendation.test === "studentT", `got ${r.recommendation.test}`);
+  assert(r.recommendation.postHoc === null, "no post-hoc for k=2");
+});
+
+// Two normal groups, very different variances → Welch
+const normalSmallVar = [9.9, 10.0, 10.1, 10.0, 9.95, 10.05, 10.02, 9.98, 10.03, 9.97];
+const normalLargeVar = [5, 15, 7, 13, 6, 14, 8, 12, 9, 11];
+
+test("k=2 normal+unequalVar → welchT", () => {
+  const r = selectTest([normalSmallVar, normalLargeVar]);
+  assert(r.levene.equalVar === false, `expected equalVar false, got p=${r.levene.p}`);
+  assert(r.recommendation.test === "welchT", `got ${r.recommendation.test}`);
+});
+
+// Heavy-skewed (exponential-ish) → Mann-Whitney
+const skewed1 = [0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 1.5, 3.0, 6.0, 12.0, 25.0];
+const skewed2 = [0.2, 0.3, 0.4, 0.6, 0.9, 1.2, 2.0, 4.0, 8.0, 15.0, 30.0];
+
+test("k=2 non-normal → mannWhitney", () => {
+  const r = selectTest([skewed1, skewed2]);
+  assert(r.allNormal === false, "expected not all-normal");
+  assert(r.recommendation.test === "mannWhitney", `got ${r.recommendation.test}`);
+});
+
+// iris Sepal.Length → normal, slightly unequal variances; expect welchANOVA
+// (Levene's test at α=0.05 rejects equal variance on iris SL).
+test("k=3 iris SL → welchANOVA + gamesHowell", () => {
+  const r = selectTest(irisSL);
+  assert(r.allNormal === true, "iris SL groups are normal");
+  assert(r.levene.equalVar === false, `iris SL Levene p=${r.levene.p} should reject`);
+  assert(r.recommendation.test === "welchANOVA", `got ${r.recommendation.test}`);
+  assert(r.recommendation.postHoc === "gamesHowell", `got ${r.recommendation.postHoc}`);
+});
+
+// PlantGrowth → normal, equal variance → oneWayANOVA + Tukey
+test("k=3 PlantGrowth → oneWayANOVA + tukeyHSD", () => {
+  const r = selectTest(pg);
+  assert(r.allNormal === true, "PlantGrowth groups are normal");
+  assert(r.levene.equalVar === true, `PlantGrowth Levene p=${r.levene.p} should not reject`);
+  assert(r.recommendation.test === "oneWayANOVA", `got ${r.recommendation.test}`);
+  assert(r.recommendation.postHoc === "tukeyHSD", `got ${r.recommendation.postHoc}`);
+});
+
+// Clearly non-normal (bimodal + skewed) k=3 → Kruskal-Wallis + Dunn
+test("k=3 non-normal → kruskalWallis + dunn", () => {
+  const skA = [1, 1, 1, 1, 1, 1, 1, 1, 1, 20];
+  const skB = [2, 2, 2, 2, 2, 2, 2, 2, 2, 25];
+  const skC = [3, 3, 3, 3, 3, 3, 3, 3, 3, 30];
+  const r = selectTest([skA, skB, skC]);
+  assert(r.allNormal === false, "expected non-normal");
+  assert(r.recommendation.test === "kruskalWallis", `got ${r.recommendation.test}`);
+  assert(r.recommendation.postHoc === "dunn", `got ${r.recommendation.postHoc}`);
+});
+
+// Edge: tiny group (n<3) cannot run Shapiro → fall back to non-parametric
+test("tiny group → non-parametric fallback", () => {
+  const r = selectTest([
+    [1, 2],
+    [3, 4, 5, 6],
+  ]);
+  assert(r.normality[0].normal === null, "n<3 → unknown");
+  assert(r.recommendation.test === "mannWhitney", `got ${r.recommendation.test}`);
+});
+
+test("k<2 returns error", () => {
+  const r = selectTest([[1, 2, 3]]);
+  assert(r.error != null, "expected error");
+});
+
+test("alphaNormality override loosens the normality gate", () => {
+  // A borderline-normal sample: pick α so we flip the recommendation.
+  const a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 50];
+  const b = [2, 3, 4, 5, 6, 7, 8, 9, 10, 55];
+  const strict = selectTest([a, b]);
+  const loose = selectTest([a, b], { alphaNormality: 1e-9 });
+  // strict should flag non-normal, loose should not
+  assert(strict.allNormal === false, "strict rejects normality");
+  assert(loose.allNormal === true, "loose accepts normality");
 });
 
 summary();

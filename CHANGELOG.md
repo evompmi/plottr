@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **k-sample**: one-way ANOVA, Welch ANOVA, Kruskal-Wallis, η², ε²
   - **Post-hocs**: Tukey HSD (Tukey-Kramer for unbalanced), Games-Howell, Dunn (BH-corrected), plus `ptukey` / `qtukey` via double Gauss-Legendre quadrature in log-s space, and a generic `bhAdjust`
   - **Compact letter display**: Piepho 2004 insert-and-absorb algorithm for rendering group groupings (e.g. `["a", "ab", "b"]`) following any pairwise post-hoc
-  - `tests/stats.test.js` — 90 tests covering primitives, sample helpers, Shapiro-Wilk on 8 datasets (iris, PlantGrowth, sleep, women, mtcars, …), Levene, t-tests, Mann-Whitney, effect sizes, ANOVAs, Kruskal-Wallis, Tukey HSD on PlantGrowth + iris, `ptukey`/`qtukey` scan, Games-Howell, Dunn, BH adjustment, and CLD edge cases.
+  - **`selectTest`**: walks the assumption-check decision tree (Shapiro-Wilk per group, Brown-Forsythe Levene, default α=0.05 on both) and returns the recommended primary test + post-hoc that the UI will offer as the default pick — `{ studentT | welchT | mannWhitney }` for k=2, `{ oneWayANOVA+tukeyHSD | welchANOVA+gamesHowell | kruskalWallis+dunn }` for k≥3. Tiny groups (n<3) fall back to the rank-based option.
+  - `tests/stats.test.js` — 99 tests covering primitives, sample helpers, Shapiro-Wilk on 8 datasets (iris, PlantGrowth, sleep, women, mtcars, …), Levene, t-tests, Mann-Whitney, effect sizes, ANOVAs, Kruskal-Wallis, Tukey HSD on PlantGrowth + iris, `ptukey`/`qtukey` scan, Games-Howell, Dunn, BH adjustment, and CLD edge cases.
 
 ### Changed
 
