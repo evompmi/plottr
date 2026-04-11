@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `tools/stats.js` — new plain-JS module loaded via `<script>` tag alongside `shared.js`. Houses the statistical distribution functions (normal / gamma / beta / t / F / chi-square, plus noncentral t/F/chi-square), the generic `bisect` solver, sample helpers (`sampleMean`, `sampleVariance`, `sampleSD`, `rankWithTies`), and **Shapiro-Wilk normality test** (Royston 1995 AS R94), benchmarked against real R output to ≤5×10⁻³ tolerance on 8 datasets spanning n=3 to n=150 (iris, PlantGrowth, sleep, women, mtcars, …). New `tests/stats.test.js` (26 tests). Groundwork for the forthcoming statistical analysis tile on bargraph / boxplot.
+
+### Changed
+
+- Power tool's distribution primitives (`normcdf`, `tcdf`, `nctcdf`, `bisect`, …) moved out of `tools/power.tsx` into `tools/stats.js` — single home for all numeric code, no duplication. Power tool consumes them as script-tag globals. All 217 existing power tests still pass unchanged.
+
 ## [1.1.1] - 2026-04-11
 
 ### Added

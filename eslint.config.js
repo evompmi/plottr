@@ -79,6 +79,28 @@ const sharedGlobals = {
   GroupColorEditor: "readonly",
   BaseStyleControls: "readonly",
   ErrorBoundary: "readonly",
+  // stats.js
+  normcdf: "readonly",
+  norminv: "readonly",
+  gammaln: "readonly",
+  betai: "readonly",
+  betacf: "readonly",
+  gammainc: "readonly",
+  gammainc_upper: "readonly",
+  tcdf: "readonly",
+  tinv: "readonly",
+  fcdf: "readonly",
+  chi2cdf: "readonly",
+  chi2inv: "readonly",
+  nctcdf: "readonly",
+  ncf_sf: "readonly",
+  ncchi2cdf: "readonly",
+  bisect: "readonly",
+  sampleMean: "readonly",
+  sampleVariance: "readonly",
+  sampleSD: "readonly",
+  rankWithTies: "readonly",
+  shapiroWilk: "readonly",
 };
 
 const browserPlus = {
@@ -135,7 +157,7 @@ module.exports = [
   // shared globals, disable no-redeclare (self-declarations collide with the
   // global list), and disable no-unused-vars (names are consumed via globals).
   {
-    files: ["tools/shared.js", "tools/shared-components.js"],
+    files: ["tools/shared.js", "tools/shared-components.js", "tools/stats.js"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "script",

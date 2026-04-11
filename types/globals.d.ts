@@ -180,6 +180,36 @@ declare global {
     itemWidth: LegendItemWidth,
     truncateLabel?: number
   ): ReactNode;
+
+  // ── tools/stats.js ─────────────────────────────────────────────────────────
+  function normcdf(x: number): number;
+  function norminv(p: number): number;
+  function gammaln(x: number): number;
+  function betai(a: number, b: number, x: number): number;
+  function betacf(a: number, b: number, x: number): number;
+  function gammainc(a: number, x: number): number;
+  function gammainc_upper(a: number, x: number): number;
+  function tcdf(t: number, df: number): number;
+  function tinv(p: number, df: number): number;
+  function fcdf(f: number, d1: number, d2: number): number;
+  function chi2cdf(x: number, k: number): number;
+  function chi2inv(p: number, k: number): number;
+  function nctcdf(t: number, df: number, delta: number): number;
+  function ncf_sf(f: number, d1: number, d2: number, lambda: number): number;
+  function ncchi2cdf(x: number, k: number, lambda: number): number;
+  function bisect(
+    fn: (x: number) => number,
+    target: number,
+    lo: number,
+    hi: number,
+    tol?: number,
+    maxIter?: number
+  ): number;
+  function sampleMean(x: number[]): number;
+  function sampleVariance(x: number[]): number;
+  function sampleSD(x: number[]): number;
+  function rankWithTies(x: number[]): { ranks: number[]; tieCorrection: number };
+  function shapiroWilk(x: number[]): { W: number; p: number; error?: string };
 }
 
 export {};
