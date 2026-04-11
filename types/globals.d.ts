@@ -249,6 +249,31 @@ declare global {
   function cohenD(x: number[], y: number[]): number;
   function hedgesG(x: number[], y: number[]): number;
   function rankBiserial(U1: number, n1: number, n2: number): number;
+  function oneWayANOVA(groups: number[][]): {
+    F: number;
+    df1: number;
+    df2: number;
+    p: number;
+    ssBetween?: number;
+    ssWithin?: number;
+    grandMean?: number;
+    error?: string;
+  };
+  function welchANOVA(groups: number[][]): {
+    F: number;
+    df1: number;
+    df2: number;
+    p: number;
+    error?: string;
+  };
+  function kruskalWallis(groups: number[][]): {
+    H: number;
+    df: number;
+    p: number;
+    error?: string;
+  };
+  function etaSquared(groups: number[][]): number;
+  function epsilonSquared(groups: number[][]): number;
 }
 
 export {};

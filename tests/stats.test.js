@@ -33,6 +33,11 @@ const {
   cohenD,
   hedgesG,
   rankBiserial,
+  oneWayANOVA,
+  welchANOVA,
+  kruskalWallis,
+  etaSquared,
+  epsilonSquared,
 } = ctx;
 
 // ── Primitives smoke test ──────────────────────────────────────────────────
@@ -398,6 +403,140 @@ test("rankBiserial — extreme separation → ±1", () => {
   // x all below y → U1 = 0 → r = 1
   const { U1 } = mannWhitneyU([1, 2, 3], [10, 20, 30]);
   approx(rankBiserial(U1, 3, 3), 1, 1e-12);
+});
+
+// ── Shared k-sample fixtures ───────────────────────────────────────────────
+
+// PlantGrowth (3 groups × 10)
+const pgCtrl = [4.17, 5.58, 5.18, 6.11, 4.5, 4.61, 5.17, 4.53, 5.33, 5.14];
+const pgTrt1 = [4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69];
+const pgTrt2 = [6.31, 5.12, 5.54, 5.5, 5.37, 5.29, 4.92, 6.15, 5.8, 5.26];
+const pg = [pgCtrl, pgTrt1, pgTrt2];
+
+// iris Sepal.Length (3 species × 50)
+const irisVirginica = [
+  6.3, 5.8, 7.1, 6.3, 6.5, 7.6, 4.9, 7.3, 6.7, 7.2, 6.5, 6.4, 6.8, 5.7, 5.8, 6.4, 6.5, 7.7, 7.7,
+  6.0, 6.9, 5.6, 7.7, 6.3, 6.7, 7.2, 6.2, 6.1, 6.4, 7.2, 7.4, 7.9, 6.4, 6.3, 6.1, 7.7, 6.3, 6.4,
+  6.0, 6.9, 6.7, 6.9, 5.8, 6.8, 6.7, 6.7, 6.3, 6.5, 6.2, 5.9,
+];
+const irisSL = [irisSetosa, irisVersicolor, irisVirginica];
+
+// InsectSprays (6 sprays × 12 observations)
+const isA = [10, 7, 20, 14, 14, 12, 10, 23, 17, 20, 14, 13];
+const isB = [11, 17, 21, 11, 16, 14, 17, 17, 19, 21, 7, 13];
+const isC = [0, 1, 7, 2, 3, 1, 2, 1, 3, 0, 1, 4];
+const isD = [3, 5, 12, 6, 4, 3, 5, 5, 5, 5, 2, 4];
+const isE = [3, 5, 3, 5, 3, 6, 1, 1, 3, 2, 6, 4];
+const isF = [11, 9, 15, 22, 15, 16, 13, 10, 26, 26, 24, 13];
+const insectSprays = [isA, isB, isC, isD, isE, isF];
+
+// ── One-way ANOVA vs R ─────────────────────────────────────────────────────
+
+suite("stats.js — one-way ANOVA vs R");
+
+test("PlantGrowth — F=4.846088 df=2,27 p=0.01591", () => {
+  // R> summary(aov(weight ~ group, data=PlantGrowth))
+  const r = oneWayANOVA(pg);
+  approx(r.F, 4.846088, 5e-3);
+  assert(r.df1 === 2 && r.df2 === 27, `df ${r.df1},${r.df2}`);
+  approx(r.p, 0.01591, 5e-3);
+});
+
+test("iris Sepal.Length — F=119.2645 df=2,147 p≈1.67e-31", () => {
+  const r = oneWayANOVA(irisSL);
+  approx(r.F, 119.264502, 5e-3);
+  assert(r.df1 === 2 && r.df2 === 147, `df ${r.df1},${r.df2}`);
+  assert(r.p < 1e-25, `p should be tiny: got ${r.p}`);
+});
+
+test("InsectSprays — F=34.702282 df=5,66", () => {
+  const r = oneWayANOVA(insectSprays);
+  approx(r.F, 34.702282, 5e-3);
+  assert(r.df1 === 5 && r.df2 === 66, `df ${r.df1},${r.df2}`);
+  assert(r.p < 1e-10, "p should be tiny");
+});
+
+test("identical groups → F=0 p=1", () => {
+  const r = oneWayANOVA([
+    [1, 2, 3, 4],
+    [1, 2, 3, 4],
+    [1, 2, 3, 4],
+  ]);
+  approx(r.F, 0, 1e-12);
+  approx(r.p, 1, 1e-6);
+});
+
+// ── Welch's ANOVA vs R ─────────────────────────────────────────────────────
+
+suite("stats.js — Welch's ANOVA vs R");
+
+test("PlantGrowth — F=5.181 df1=2 df2=17.128 p=0.01739", () => {
+  // R> oneway.test(weight ~ group, data=PlantGrowth, var.equal=FALSE)
+  const r = welchANOVA(pg);
+  approx(r.F, 5.180972, 5e-3);
+  assert(r.df1 === 2, `df1 ${r.df1}`);
+  approx(r.df2, 17.128419, 5e-3);
+  approx(r.p, 0.0173928, 5e-3);
+});
+
+test("iris SL — F=138.908 df2=92.211", () => {
+  const r = welchANOVA(irisSL);
+  approx(r.F, 138.908285, 5e-3);
+  approx(r.df2, 92.211145, 5e-3);
+  assert(r.p < 1e-20, "p tiny");
+});
+
+test("InsectSprays — F=36.065 df2=30.043", () => {
+  const r = welchANOVA(insectSprays);
+  approx(r.F, 36.065444, 5e-3);
+  approx(r.df2, 30.042561, 5e-3);
+  assert(r.p < 1e-8, "p tiny");
+});
+
+// ── Kruskal-Wallis vs R ────────────────────────────────────────────────────
+
+suite("stats.js — Kruskal-Wallis vs R");
+
+test("PlantGrowth — H=7.988229 df=2 p=0.01842", () => {
+  // R> kruskal.test(weight ~ group, data=PlantGrowth)
+  const r = kruskalWallis(pg);
+  approx(r.H, 7.988229, 5e-3);
+  assert(r.df === 2, `df ${r.df}`);
+  approx(r.p, 0.0184238, 5e-3);
+});
+
+test("iris SL — H=96.937 df=2", () => {
+  const r = kruskalWallis(irisSL);
+  approx(r.H, 96.937436, 5e-3);
+  assert(r.df === 2);
+  assert(r.p < 1e-15, "p tiny");
+});
+
+test("InsectSprays — H=54.691 df=5", () => {
+  const r = kruskalWallis(insectSprays);
+  approx(r.H, 54.691345, 5e-3);
+  assert(r.df === 5);
+  assert(r.p < 1e-8, "p tiny");
+});
+
+// ── k-sample effect sizes vs R ─────────────────────────────────────────────
+
+suite("stats.js — η² and ε² vs R");
+
+test("PlantGrowth η² = 0.264148", () => {
+  approx(etaSquared(pg), 0.264148, 5e-3);
+});
+
+test("iris SL η² = 0.618706", () => {
+  approx(etaSquared(irisSL), 0.618706, 5e-3);
+});
+
+test("PlantGrowth ε² = 0.275456", () => {
+  approx(epsilonSquared(pg), 0.275456, 5e-3);
+});
+
+test("iris SL ε² = 0.650587", () => {
+  approx(epsilonSquared(irisSL), 0.650587, 5e-3);
 });
 
 summary();

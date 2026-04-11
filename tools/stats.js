@@ -702,3 +702,127 @@ function rankBiserial(U1, n1, n2) {
   if (n1 * n2 === 0) return NaN;
   return 1 - (2 * U1) / (n1 * n2);
 }
+
+// ── 8. k-sample location tests ──────────────────────────────────────────────
+//
+// Input for all three is `groups` — an array of numeric arrays.
+
+// One-way ANOVA (equal variances assumed).
+// Returns { F, df1, df2, p, ssBetween, ssWithin, grandMean }.
+function oneWayANOVA(groups) {
+  const k = groups.length;
+  if (k < 2) return { F: NaN, df1: 0, df2: 0, p: NaN, error: "≥2 groups required" };
+  let Ntot = 0;
+  let grandSum = 0;
+  for (const g of groups) {
+    Ntot += g.length;
+    for (const v of g) grandSum += v;
+  }
+  if (Ntot <= k) return { F: NaN, df1: 0, df2: 0, p: NaN, error: "Not enough observations" };
+  const grandMean = grandSum / Ntot;
+  let ssBetween = 0,
+    ssWithin = 0;
+  for (const g of groups) {
+    const n = g.length;
+    if (n === 0) continue;
+    let s = 0;
+    for (const v of g) s += v;
+    const m = s / n;
+    ssBetween += n * (m - grandMean) * (m - grandMean);
+    for (const v of g) ssWithin += (v - m) * (v - m);
+  }
+  const df1 = k - 1;
+  const df2 = Ntot - k;
+  if (ssWithin === 0) return { F: Infinity, df1, df2, p: 0, ssBetween, ssWithin, grandMean };
+  const F = ssBetween / df1 / (ssWithin / df2);
+  const p = 1 - fcdf(F, df1, df2);
+  return { F, df1, df2, p, ssBetween, ssWithin, grandMean };
+}
+
+// Welch's ANOVA (unequal variances).
+// Follows R's oneway.test(var.equal=FALSE) source:
+//   w_i = n_i / s_i²,  W = Σ w_i,  m = Σ(w_i · mean_i)/W
+//   num = Σ w_i (mean_i − m)² / (k − 1)
+//   h   = Σ (1 − w_i/W)² / (n_i − 1)
+//   den = 1 + 2(k − 2)/(k² − 1) · h
+//   F   = num/den,  df1 = k−1,  df2 = (k² − 1) / (3 h)
+function welchANOVA(groups) {
+  const k = groups.length;
+  if (k < 2) return { F: NaN, df1: 0, df2: 0, p: NaN, error: "≥2 groups required" };
+  const ns = groups.map((g) => g.length);
+  if (ns.some((n) => n < 2)) {
+    return { F: NaN, df1: 0, df2: 0, p: NaN, error: "Each group needs n≥2" };
+  }
+  const means = groups.map(sampleMean);
+  const vars = groups.map(sampleVariance);
+  const w = vars.map((v, i) => ns[i] / v);
+  const Wsum = w.reduce((a, b) => a + b, 0);
+  const m = w.reduce((a, wi, i) => a + wi * means[i], 0) / Wsum;
+  let num = 0;
+  for (let i = 0; i < k; i++) num += w[i] * (means[i] - m) * (means[i] - m);
+  num /= k - 1;
+  let h = 0;
+  for (let i = 0; i < k; i++) {
+    const term = 1 - w[i] / Wsum;
+    h += (term * term) / (ns[i] - 1);
+  }
+  const den = 1 + ((2 * (k - 2)) / (k * k - 1)) * h;
+  const F = num / den;
+  const df1 = k - 1;
+  const df2 = (k * k - 1) / (3 * h);
+  const p = 1 - fcdf(F, df1, df2);
+  return { F, df1, df2, p };
+}
+
+// Kruskal-Wallis H test with tie correction.
+//   H = (12/(N(N+1))) · Σ (R_i²/n_i) − 3(N+1)
+//   H' = H / (1 − Σ(t³−t)/(N³−N))       [tie-corrected]
+//   df = k − 1
+//   p  = 1 − χ²_df(H')
+function kruskalWallis(groups) {
+  const k = groups.length;
+  if (k < 2) return { H: NaN, df: 0, p: NaN, error: "≥2 groups required" };
+  // Concatenate, remember group membership, rank together.
+  const all = [];
+  const owner = [];
+  for (let i = 0; i < k; i++) {
+    for (const v of groups[i]) {
+      all.push(v);
+      owner.push(i);
+    }
+  }
+  const N = all.length;
+  if (N <= k) return { H: NaN, df: 0, p: NaN, error: "Not enough observations" };
+  const { ranks, tieCorrection } = rankWithTies(all);
+  // Sum of ranks per group.
+  const R = new Array(k).fill(0);
+  for (let i = 0; i < N; i++) R[owner[i]] += ranks[i];
+  let sumR2n = 0;
+  for (let i = 0; i < k; i++) sumR2n += (R[i] * R[i]) / groups[i].length;
+  let H = (12 / (N * (N + 1))) * sumR2n - 3 * (N + 1);
+  // Tie correction (Siegel & Castellan): divide H by C.
+  const C = 1 - tieCorrection / (N * N * N - N);
+  if (C > 0) H /= C;
+  const df = k - 1;
+  const p = 1 - chi2cdf(H, df);
+  return { H, df, p };
+}
+
+// ── 9. k-sample effect sizes ────────────────────────────────────────────────
+
+// η² = SSbetween / SStotal (ANOVA).
+function etaSquared(groups) {
+  const a = oneWayANOVA(groups);
+  if (a.error) return NaN;
+  const ssTotal = a.ssBetween + a.ssWithin;
+  return ssTotal === 0 ? 0 : a.ssBetween / ssTotal;
+}
+
+// ε² = H / (N − 1)  — Kruskal-Wallis effect size (Tomczak & Tomczak 2014).
+function epsilonSquared(groups) {
+  const kw = kruskalWallis(groups);
+  if (kw.error) return NaN;
+  let N = 0;
+  for (const g of groups) N += g.length;
+  return N > 1 ? kw.H / (N - 1) : NaN;
+}

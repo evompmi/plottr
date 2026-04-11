@@ -107,6 +107,11 @@ const sharedGlobals = {
   cohenD: "readonly",
   hedgesG: "readonly",
   rankBiserial: "readonly",
+  oneWayANOVA: "readonly",
+  welchANOVA: "readonly",
+  kruskalWallis: "readonly",
+  etaSquared: "readonly",
+  epsilonSquared: "readonly",
 };
 
 const browserPlus = {
