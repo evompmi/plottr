@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Aequorin example dataset** — "Load example dataset" link in the aequorin upload panel, wired to `tools/aequorin_example.tsv` (real CO7 elicitor time-course, mutant vs WT, with Ca²⁺ discharge calibration at the end). Fetched on click so it doesn't bloat the main bundle. New users can see a populated time-course, run Allen & Blinks calibration, and exercise the integral barplot + StatsTile in one click.
 - **Aequorin StatsTile** — the aequorin tool now includes a full statistical analysis tile below the integral barplot, reusing the same StatsTile component as Group Plot. Supports Shapiro-Wilk, Levene, recommended test selection, post-hoc tables, compact letter display, and significance brackets — all driven by per-replicate integral sums.
 - **Aequorin jitter points** — optional jittered data-point overlay on the integral barplot, with color picker and size slider in the control panel.
 
