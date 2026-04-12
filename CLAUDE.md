@@ -23,7 +23,6 @@ No test framework — custom harness in `tests/harness.js` using `suite()`, `tes
 ### Tool structure
 - `index.html` — landing page with tool grid; loads tools in iframes; prefetches vendor scripts with progress bar
 - `tools/aequorin.html` — Ca2+ luminescence calibration plots
-- `tools/bargraph.html` — redirects to boxplot.html?style=bar (backward compat)
 - `tools/boxplot.html` — group comparison plots (box, violin, raincloud, bar chart)
 - `tools/scatter.html` — XY scatter with color/size mapping
 - `tools/venn.html` — area-proportional Venn diagrams (2–3 sets) with data extraction
