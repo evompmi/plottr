@@ -967,7 +967,7 @@ function FilterCheckboxPanel(props) {
           }).length /
             u.length >
             0.5;
-        if (isNumCol) {
+        if (isNumCol && colRoles[i] !== "filter" && colRoles[i] !== "text") {
           return React.createElement(
             "div",
             {
