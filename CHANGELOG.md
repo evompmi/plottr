@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Power analysis table now shows achieved power and required n at three α levels (0.05, 0.01, 0.001) instead of only α = 0.05. Both the on-screen tile and the downloadable plain-text report are updated.
 - Significance brackets now show all pairwise comparisons, including non-significant ones labeled "ns". Previously only significant pairs (p < 0.05) were drawn.
 - Example dataset now produces a mix of significant and non-significant comparisons (WT vs abi4 genotype overlap, control vs salt treatment overlap) so users can see all possible statistical outputs including underpowered/NS results.
 
