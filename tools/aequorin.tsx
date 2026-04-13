@@ -568,11 +568,8 @@ const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot(
   const bx = (i) => M.left + i * bandW + bandW / 2;
   const sy = (v) => M.top + (1 - (v - yMin2) / yRange) * h;
   const yTicks = makeTicks(yMin2, yMax2, 8);
-  const halfBar =
-    (insetBarWidth != null ? insetBarWidth / 100 : 0.7) *
-    (1 - (insetBarGap != null ? insetBarGap / 100 : 0)) *
-    bandW *
-    0.5;
+  const halfBar = (insetBarWidth != null ? insetBarWidth / 100 : 0.7) * bandW * 0.5;
+  const gapPx = (insetBarGap != null ? insetBarGap / 100 : 0) * bandW * 0.5;
   const fOp = insetFillOpacity != null ? insetFillOpacity : 0.7;
   const sOp = insetStrokeOpacity != null ? insetStrokeOpacity : 1;
 
@@ -656,9 +653,9 @@ const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot(
           return (
             <g key={b.prefix}>
               <rect
-                x={bx(i) - halfBar}
+                x={bx(i) - halfBar + gapPx}
                 y={barTop}
-                width={halfBar * 2}
+                width={Math.max(0, halfBar * 2 - gapPx * 2)}
                 height={Math.max(0, baseline - barTop)}
                 fill={b.fillColor}
                 fillOpacity={fOp}
