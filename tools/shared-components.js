@@ -2267,11 +2267,12 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
   };
   const td = { padding: "4px 6px", borderBottom: "1px solid #eee", color: "#333" };
 
-  // ── Header row ────────────────────────────────────────────────────────────
-  const headerEl = React.createElement(
+  // ── Header rows ───────────────────────────────────────────────────────────
+  const displayTileHeader = React.createElement("h3", { style: h3 }, "Statistics display");
+  const summaryHeaderEl = React.createElement(
     "div",
     { style: header, onClick: () => setOpen((o) => !o) },
-    React.createElement("h3", { style: h3 }, "Statistical analysis"),
+    React.createElement("h3", { style: h3 }, "Statistics summary"),
     React.createElement("span", { style: { fontSize: 12, color: "#888" } }, open ? "▾" : "▸")
   );
 
@@ -2281,8 +2282,6 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
     {
       style: {
         marginTop: 8,
-        paddingBottom: 10,
-        borderBottom: "1px dashed #ddd",
         display: "flex",
         alignItems: "center",
         gap: 16,
@@ -2351,7 +2350,15 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
       : null
   );
 
-  if (!open) return React.createElement("div", { style: wrap }, headerEl, displayControls);
+  const displayTile = React.createElement("div", { style: wrap }, displayTileHeader, displayControls);
+
+  if (!open)
+    return React.createElement(
+      React.Fragment,
+      null,
+      displayTile,
+      React.createElement("div", { style: wrap }, summaryHeaderEl)
+    );
 
   // ── Assumptions section ───────────────────────────────────────────────────
   const norm = (recommendation && recommendation.normality) || [];
@@ -2663,25 +2670,29 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
   );
 
   return React.createElement(
-    "div",
-    { style: wrap },
-    headerEl,
-    displayControls,
+    React.Fragment,
+    null,
+    displayTile,
     React.createElement(
       "div",
-      { style: { marginTop: 10 } },
-      React.createElement("div", { style: subhead }, "Assumptions"),
-      normalityCaption,
-      normalityTable,
-      leveneCaption,
-      leveneLine,
-      React.createElement("div", { style: subhead }, "Test"),
-      testPicker,
-      reasonLine,
-      resultLine,
-      postHocBlock,
-      powerBlock,
-      downloadReportBtn
+      { style: wrap },
+      summaryHeaderEl,
+      React.createElement(
+        "div",
+        { style: { marginTop: 10 } },
+        React.createElement("div", { style: subhead }, "Assumptions"),
+        normalityCaption,
+        normalityTable,
+        leveneCaption,
+        leveneLine,
+        React.createElement("div", { style: subhead }, "Test"),
+        testPicker,
+        reasonLine,
+        resultLine,
+        postHocBlock,
+        powerBlock,
+        downloadReportBtn
+      )
     )
   );
 }
