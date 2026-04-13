@@ -104,7 +104,7 @@
       <li>Every function in <code>tools/stats.js</code> is rerun against its R 4.5.3 counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
       <li>Inputs are bit-identical between R and the toolbox.</li>
       <li>Target tolerance: |Δ| ≤ 0.005 on test statistics and p-values. <strong>Achieved: max |Δ| = 8.23×10⁻⁷</strong> — 0.016% of the tolerance budget.</li>
-      <li>Failures are flagged in red and counted honestly — they mean we have work to do.</li>
+      <li>Failures (if any) are flagged in red.</li>
       <li>Reproduce locally: <code>Rscript benchmark/run-r.R &amp;&amp; node benchmark/run.js</code></li>
       <li><a href="../index.html">← back to tools</a></li>
     </ul>
