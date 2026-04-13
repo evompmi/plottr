@@ -2275,7 +2275,83 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
     React.createElement("span", { style: { fontSize: 12, color: "#888" } }, open ? "▾" : "▸")
   );
 
-  if (!open) return React.createElement("div", { style: wrap }, headerEl);
+  // ── Display-on-plot controls ──────────────────────────────────────────────
+  const displayControls = React.createElement(
+    "div",
+    {
+      style: {
+        marginTop: 8,
+        paddingBottom: 10,
+        borderBottom: "1px dashed #ddd",
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+        flexWrap: "wrap",
+      },
+    },
+    React.createElement(
+      "label",
+      {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 12,
+          color: "#333",
+          cursor: "pointer",
+        },
+      },
+      React.createElement("input", {
+        type: "checkbox",
+        checked: showOnPlot,
+        onChange: (e) => setShowOnPlot(e.target.checked),
+      }),
+      "Display on plot"
+    ),
+    k > 2
+      ? React.createElement(
+          "div",
+          { style: { display: "flex", alignItems: "center", gap: 10, fontSize: 12 } },
+          React.createElement("span", { style: { color: "#666" } }, "Style:"),
+          React.createElement(
+            "label",
+            { style: { display: "flex", alignItems: "center", gap: 4, cursor: "pointer" } },
+            React.createElement("input", {
+              type: "radio",
+              name: "stats-annot-kind",
+              checked: annotKind === "cld",
+              onChange: () => setAnnotKind("cld"),
+            }),
+            "letters (a/ab/b)"
+          ),
+          React.createElement(
+            "label",
+            { style: { display: "flex", alignItems: "center", gap: 4, cursor: "pointer" } },
+            React.createElement("input", {
+              type: "radio",
+              name: "stats-annot-kind",
+              checked: annotKind === "brackets",
+              onChange: () => setAnnotKind("brackets"),
+            }),
+            "brackets"
+          )
+        )
+      : null,
+    showOnPlot && (k === 2 || annotKind === "brackets")
+      ? React.createElement(
+          "label",
+          { style: { display: "flex", alignItems: "center", gap: 4, fontSize: 12, cursor: "pointer" } },
+          React.createElement("input", {
+            type: "checkbox",
+            checked: showNs,
+            onChange: (e) => setShowNs(e.target.checked),
+          }),
+          "Show ns"
+        )
+      : null
+  );
+
+  if (!open) return React.createElement("div", { style: wrap }, headerEl, displayControls);
 
   // ── Assumptions section ───────────────────────────────────────────────────
   const norm = (recommendation && recommendation.normality) || [];
@@ -2586,86 +2662,11 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
     )
   );
 
-  // ── Display-on-plot controls ──────────────────────────────────────────────
-  const displayControls = React.createElement(
-    "div",
-    {
-      style: {
-        marginTop: 12,
-        paddingTop: 10,
-        borderTop: "1px dashed #ddd",
-        display: "flex",
-        alignItems: "center",
-        gap: 16,
-        flexWrap: "wrap",
-      },
-    },
-    React.createElement(
-      "label",
-      {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          fontSize: 12,
-          color: "#333",
-          cursor: "pointer",
-        },
-      },
-      React.createElement("input", {
-        type: "checkbox",
-        checked: showOnPlot,
-        onChange: (e) => setShowOnPlot(e.target.checked),
-      }),
-      "Display on plot"
-    ),
-    k > 2
-      ? React.createElement(
-          "div",
-          { style: { display: "flex", alignItems: "center", gap: 10, fontSize: 12 } },
-          React.createElement("span", { style: { color: "#666" } }, "Style:"),
-          React.createElement(
-            "label",
-            { style: { display: "flex", alignItems: "center", gap: 4, cursor: "pointer" } },
-            React.createElement("input", {
-              type: "radio",
-              name: "stats-annot-kind",
-              checked: annotKind === "cld",
-              onChange: () => setAnnotKind("cld"),
-            }),
-            "letters (a/ab/b)"
-          ),
-          React.createElement(
-            "label",
-            { style: { display: "flex", alignItems: "center", gap: 4, cursor: "pointer" } },
-            React.createElement("input", {
-              type: "radio",
-              name: "stats-annot-kind",
-              checked: annotKind === "brackets",
-              onChange: () => setAnnotKind("brackets"),
-            }),
-            "brackets"
-          )
-        )
-      : null,
-    showOnPlot && (k === 2 || annotKind === "brackets")
-      ? React.createElement(
-          "label",
-          { style: { display: "flex", alignItems: "center", gap: 4, fontSize: 12, cursor: "pointer" } },
-          React.createElement("input", {
-            type: "checkbox",
-            checked: showNs,
-            onChange: (e) => setShowNs(e.target.checked),
-          }),
-          "Show ns"
-        )
-      : null
-  );
-
   return React.createElement(
     "div",
     { style: wrap },
     headerEl,
+    displayControls,
     React.createElement(
       "div",
       { style: { marginTop: 10 } },
@@ -2680,8 +2681,7 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
       resultLine,
       postHocBlock,
       powerBlock,
-      downloadReportBtn,
-      displayControls
+      downloadReportBtn
     )
   );
 }
