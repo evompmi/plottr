@@ -932,13 +932,15 @@ const VennChart = forwardRef<SVGSVGElement, any>(function VennChart(
 
 // ── UI Components ────────────────────────────────────────────────────────────
 
-function UploadStep({ sepOverride, setSepOverride, handleFileLoad }) {
+function UploadStep({ sepOverride, setSepOverride, handleFileLoad, onLoadExample }) {
   return (
     <div>
       <UploadPanel
         sepOverride={sepOverride}
         onSepChange={setSepOverride}
         onFileLoad={handleFileLoad}
+        onLoadExample={onLoadExample}
+        exampleLabel="Arabidopsis abiotic stress genes (Drought / Heat / Salt)"
         hint="CSV · TSV · TXT — one column per set (2–3), items listed in rows"
       />
       <p style={{ margin: "4px 0 12px", fontSize: 11, color: "#aaa", textAlign: "right" }}>
@@ -1558,6 +1560,14 @@ function App() {
     [sepOverride, doParse]
   );
 
+  const loadExample = useCallback(() => {
+    const text = (window as any).__VENN_EXAMPLE__;
+    if (!text) return;
+    setSepOverride(",");
+    setFileName("arabidopsis_stress.csv");
+    doParse(text, ",");
+  }, [doParse]);
+
   const handleColorChange = (name, color) => {
     setSetColors((prev) => ({ ...prev, [name]: color }));
   };
@@ -1652,6 +1662,7 @@ function App() {
           sepOverride={sepOverride}
           setSepOverride={setSepOverride}
           handleFileLoad={handleFileLoad}
+          onLoadExample={loadExample}
         />
       )}
 
