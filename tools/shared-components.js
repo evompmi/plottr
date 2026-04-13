@@ -2086,6 +2086,7 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
   const [overrideTest, setOverrideTest] = React.useState(null);
   const [showOnPlot, setShowOnPlot] = React.useState(false);
   const [annotKind, setAnnotKind] = React.useState("cld"); // only used when k>2
+  const [showNs, setShowNs] = React.useState(true);
 
   const values = React.useMemo(() => validGroups.map((g) => g.values.slice()), [validGroups]);
   const names = React.useMemo(() => validGroups.map((g) => g.name), [validGroups]);
@@ -2118,6 +2119,7 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
     if (k === 2) {
       const p = testResult && !testResult.error ? testResult.p : null;
       if (p == null) return null;
+      if (!showNs && p >= 0.05) return null;
       return {
         kind: "brackets",
         pairs: [{ i: 0, j: 1, p, label: pStars(p) }],
@@ -2136,9 +2138,11 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
         j: pr.j,
         p: pr.pAdj != null ? pr.pAdj : pr.p,
       }))
-      .map((pr) => ({ ...pr, label: pStars(pr.p) }));
+      .map((pr) => ({ ...pr, label: pStars(pr.p) }))
+      .filter((pr) => showNs || pr.p < 0.05);
+    if (all.length === 0) return null;
     return { kind: "brackets", pairs: all, groupNames: names };
-  }, [showOnPlot, annotKind, k, testResult, postHocResult, names]);
+  }, [showOnPlot, annotKind, showNs, k, testResult, postHocResult, names]);
 
   // Build a plain-text stats summary for display below the plot.
   const statsSummary = React.useMemo(
@@ -2642,6 +2646,18 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
             }),
             "brackets"
           )
+        )
+      : null,
+    showOnPlot && (k === 2 || annotKind === "brackets")
+      ? React.createElement(
+          "label",
+          { style: { display: "flex", alignItems: "center", gap: 4, fontSize: 12, cursor: "pointer" } },
+          React.createElement("input", {
+            type: "checkbox",
+            checked: showNs,
+            onChange: (e) => setShowNs(e.target.checked),
+          }),
+          "Show ns"
         )
       : null
   );
