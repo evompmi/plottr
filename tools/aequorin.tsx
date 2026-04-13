@@ -491,8 +491,9 @@ const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot(
   },
   ref
 ) {
-  const iW = insetW || 400,
+  const refIW = insetW || 400,
     iH = insetH || 200;
+  const _compact = (100 - (insetBarGap != null ? insetBarGap : 0)) / 100;
   const topPad = (plotTitle ? 20 : 0) + (plotSubtitle ? 16 : 0);
   const xAngle = insetXLabelAngle || 0;
   const absAngle = Math.abs(xAngle);
@@ -521,6 +522,7 @@ const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot(
     bottom: 60 + (absAngle > 0 ? absAngle * 0.8 : 0),
     left: 62,
   };
+  const iW = Math.max(M.left + M.right + 40, Math.round((refIW - M.left - M.right) * _compact) + M.left + M.right);
   const w = iW - M.left - M.right;
   const h = iH - M.top - M.bottom;
   const totalH = iH + summaryH;
@@ -569,7 +571,6 @@ const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot(
   const sy = (v) => M.top + (1 - (v - yMin2) / yRange) * h;
   const yTicks = makeTicks(yMin2, yMax2, 8);
   const halfBar = (insetBarWidth != null ? insetBarWidth / 100 : 0.7) * bandW * 0.5;
-  const gapPx = (insetBarGap != null ? insetBarGap / 100 : 0) * bandW * 0.5;
   const fOp = insetFillOpacity != null ? insetFillOpacity : 0.7;
   const sOp = insetStrokeOpacity != null ? insetStrokeOpacity : 1;
 
@@ -653,9 +654,9 @@ const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot(
           return (
             <g key={b.prefix}>
               <rect
-                x={bx(i) - halfBar + gapPx}
+                x={bx(i) - halfBar}
                 y={barTop}
-                width={Math.max(0, halfBar * 2 - gapPx * 2)}
+                width={Math.max(0, halfBar * 2)}
                 height={Math.max(0, baseline - barTop)}
                 fill={b.fillColor}
                 fillOpacity={fOp}
