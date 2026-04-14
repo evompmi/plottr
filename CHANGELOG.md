@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Aequorin inset-barplot "ns" bracket label was rendered in grey** — when the significance-bracket annotation mode was active on the inset barplot, non-significant comparisons ("ns") drew their text in `#999` while significant labels (`*`/`**`/`***`/`****`) used `#333`, producing a washed-out label that read as disabled/placeholder rather than a real result. Boxplot doesn't do this — it draws every bracket label uniformly in `#222`. Dropped the conditional `fill={p >= 0.05 ? "#999" : "#333"}` on `aequorin.tsx:848` and hard-set `fill="#333"` to match the bracket stroke, so "ns" now reads with the same weight/contrast as the asterisks.
+
 ### Changed
 
 - **Aequorin configure-step "Download CSV" button migrated to the shared `dv-btn-dl` chip** — the per-tool button sitting on the "Loaded … samples × time-points" summary row in aequorin's configure step was still the old hand-rolled `⬇ Download CSV` recipe (ad-hoc inline style: `padding: 8px 14px`, hardcoded `--success-bg` / `--success-border` / `--success-text` without the hover/lift treatment). Swapped it to `className="dv-btn dv-btn-dl"` with label `⬇ CSV`, matching the chips in the plot-step Actions tile, the per-replicate table header, the stats report TXT button, molarity's Prep Sheet, and every other download in the app. `flashSaved` is still called explicitly since this button lives outside `ActionsPanel` (which handles the flash centrally for its own chips).

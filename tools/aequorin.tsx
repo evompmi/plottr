@@ -845,7 +845,7 @@ const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot(
                     textAnchor="middle"
                     fontSize="10"
                     fontWeight="700"
-                    fill={p >= 0.05 ? "#999" : "#333"}
+                    fill="#333"
                     fontFamily="sans-serif"
                   >
                     {label}
