@@ -387,10 +387,34 @@ const Chart = forwardRef<SVGSVGElement, any>(function Chart(
           )}
         </g>
         <g id="plot-frame" fill="none" stroke="#333" strokeWidth="1">
-          <line id="plot-frame-top" x1={MARGIN.left} y1={MARGIN.top} x2={MARGIN.left + w} y2={MARGIN.top} />
-          <line id="plot-frame-right" x1={MARGIN.left + w} y1={MARGIN.top} x2={MARGIN.left + w} y2={MARGIN.top + h} />
-          <line id="plot-frame-bottom" x1={MARGIN.left} y1={MARGIN.top + h} x2={MARGIN.left + w} y2={MARGIN.top + h} />
-          <line id="plot-frame-left" x1={MARGIN.left} y1={MARGIN.top} x2={MARGIN.left} y2={MARGIN.top + h} />
+          <line
+            id="plot-frame-top"
+            x1={MARGIN.left}
+            y1={MARGIN.top}
+            x2={MARGIN.left + w}
+            y2={MARGIN.top}
+          />
+          <line
+            id="plot-frame-right"
+            x1={MARGIN.left + w}
+            y1={MARGIN.top}
+            x2={MARGIN.left + w}
+            y2={MARGIN.top + h}
+          />
+          <line
+            id="plot-frame-bottom"
+            x1={MARGIN.left}
+            y1={MARGIN.top + h}
+            x2={MARGIN.left + w}
+            y2={MARGIN.top + h}
+          />
+          <line
+            id="plot-frame-left"
+            x1={MARGIN.left}
+            y1={MARGIN.top}
+            x2={MARGIN.left}
+            y2={MARGIN.top + h}
+          />
         </g>
         <g id="axis-x">
           {xTicks.map((t) => (
@@ -1142,186 +1166,194 @@ const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
         </span>
       </button>
       {insetOpen && (
-      <div style={{ padding: "0 16px 16px" }}>
-      {/* Toggle */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>Integral:</span>
-        <button
-          onClick={() => setStatsDataMode("raw")}
-          style={{
-            padding: "5px 14px",
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 600,
-            background: statsDataMode === "raw" ? "#1d4ed8" : "var(--surface)",
-            color: statsDataMode === "raw" ? "#fff" : "var(--text-faint)",
-            border: `1px solid ${statsDataMode === "raw" ? "#1d4ed8" : "var(--border-strong)"}`,
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          Σ Raw
-        </button>
-        <button
-          onClick={() => setStatsDataMode("corrected")}
-          style={{
-            padding: "5px 14px",
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 600,
-            background: statsDataMode === "corrected" ? "#0f766e" : "var(--surface)",
-            color: statsDataMode === "corrected" ? "#fff" : "var(--text-faint)",
-            border: `1px solid ${statsDataMode === "corrected" ? "#0f766e" : "var(--border-strong)"}`,
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          Σ Baseline-corrected
-        </button>
-      </div>
-
-      {/* Bar plot */}
-      <div
-        style={{
-          background: "var(--plot-card-bg)",
-          borderRadius: 8,
-          padding: 12,
-          border: "1px solid var(--plot-card-border)",
-        }}
-      >
-        <InsetBarplot
-          ref={barRef}
-          {...insetBarProps}
-          insetW={Math.max(200, series.length * 100 + 86)}
-          insetH={420}
-          insetYMin={insetYMin}
-          insetYMax={insetYMax}
-          corrected={isCorrected}
-          annotations={statsAnnotations}
-          statsSummary={statsSummary}
-          insetXFontSize={12}
-          insetYFontSize={11}
-          showPoints={insetShowPoints}
-          pointSize={insetPointSize}
-          pointColor={insetPointColor}
-        />
-      </div>
-
-      {/* CSV table */}
-      {replicateSums && replicateSums.length > 0 && (
-        <div
-          className="dv-panel"
-          style={{ marginTop: 12, background: "var(--surface-subtle)", marginBottom: 0 }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div
-              onClick={() => setReplicateTableOpen((o) => !o)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                cursor: "pointer",
-                userSelect: "none",
-                flex: 1,
-              }}
-            >
-              <span
-                className={"dv-disclosure" + (replicateTableOpen ? " dv-disclosure-open" : "")}
-                aria-hidden="true"
-              />
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "var(--text)",
-                  letterSpacing: "0.2px",
-                }}
-              >
-                Per replicate
-              </h3>
-            </div>
+        <div style={{ padding: "0 16px 16px" }}>
+          {/* Toggle */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+              Integral:
+            </span>
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const rows = replicateSums.flatMap((rs) =>
-                  rs.repSums.map((rep, ri) => [
-                    rs.prefix,
-                    `Rep ${ri + 1}`,
-                    rep[sumKey] != null ? rep[sumKey].toFixed(6) : "",
-                  ])
-                );
-                downloadCsv(["Condition", "Replicate", sumLabel], rows, csvFileName);
-                flashSaved(e.currentTarget);
+              onClick={() => setStatsDataMode("raw")}
+              style={{
+                padding: "5px 14px",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                background: statsDataMode === "raw" ? "#1d4ed8" : "var(--surface)",
+                color: statsDataMode === "raw" ? "#fff" : "var(--text-faint)",
+                border: `1px solid ${statsDataMode === "raw" ? "#1d4ed8" : "var(--border-strong)"}`,
+                cursor: "pointer",
+                fontFamily: "inherit",
               }}
-              className="dv-btn dv-btn-dl"
             >
-              ⬇ CSV
+              Σ Raw
+            </button>
+            <button
+              onClick={() => setStatsDataMode("corrected")}
+              style={{
+                padding: "5px 14px",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                background: statsDataMode === "corrected" ? "#0f766e" : "var(--surface)",
+                color: statsDataMode === "corrected" ? "#fff" : "var(--text-faint)",
+                border: `1px solid ${statsDataMode === "corrected" ? "#0f766e" : "var(--border-strong)"}`,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              Σ Baseline-corrected
             </button>
           </div>
-          {replicateTableOpen && (
-            <table
-              style={{ borderCollapse: "collapse", fontSize: 11, width: "100%", marginTop: 10 }}
+
+          {/* Bar plot */}
+          <div
+            style={{
+              background: "var(--plot-card-bg)",
+              borderRadius: 8,
+              padding: 12,
+              border: "1px solid var(--plot-card-border)",
+            }}
+          >
+            <InsetBarplot
+              ref={barRef}
+              {...insetBarProps}
+              insetW={Math.max(200, series.length * 100 + 86)}
+              insetH={420}
+              insetYMin={insetYMin}
+              insetYMax={insetYMax}
+              corrected={isCorrected}
+              annotations={statsAnnotations}
+              statsSummary={statsSummary}
+              insetXFontSize={12}
+              insetYFontSize={11}
+              showPoints={insetShowPoints}
+              pointSize={insetPointSize}
+              pointColor={insetPointColor}
+            />
+          </div>
+
+          {/* CSV table */}
+          {replicateSums && replicateSums.length > 0 && (
+            <div
+              className="dv-panel"
+              style={{ marginTop: 12, background: "var(--surface-subtle)", marginBottom: 0 }}
             >
-              <thead>
-                <tr style={{ borderBottom: "2px solid var(--border-strong)" }}>
-                  {["Condition", "Replicate", sumLabel].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "3px 8px",
-                        textAlign: "left",
-                        color: "var(--text-muted)",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {replicateSums.map((rs) =>
-                  rs.repSums.map((rep, ri) => (
-                    <tr
-                      key={`${rs.prefix}-${ri}`}
-                      style={{ borderBottom: "1px solid var(--border)" }}
-                    >
-                      <td style={{ padding: "3px 8px", color: "var(--text)", fontWeight: 600 }}>
-                        {rs.label}
-                      </td>
-                      <td style={{ padding: "3px 8px", color: "var(--text-muted)" }}>
-                        Rep {ri + 1}
-                      </td>
-                      <td style={{ padding: "3px 8px", color: "var(--text)", fontFamily: "monospace" }}>
-                        {rep[sumKey] != null ? rep[sumKey].toFixed(4) : "—"}
-                      </td>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div
+                  onClick={() => setReplicateTableOpen((o) => !o)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    cursor: "pointer",
+                    userSelect: "none",
+                    flex: 1,
+                  }}
+                >
+                  <span
+                    className={"dv-disclosure" + (replicateTableOpen ? " dv-disclosure-open" : "")}
+                    aria-hidden="true"
+                  />
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "var(--text)",
+                      letterSpacing: "0.2px",
+                    }}
+                  >
+                    Per replicate
+                  </h3>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rows = replicateSums.flatMap((rs) =>
+                      rs.repSums.map((rep, ri) => [
+                        rs.prefix,
+                        `Rep ${ri + 1}`,
+                        rep[sumKey] != null ? rep[sumKey].toFixed(6) : "",
+                      ])
+                    );
+                    downloadCsv(["Condition", "Replicate", sumLabel], rows, csvFileName);
+                    flashSaved(e.currentTarget);
+                  }}
+                  className="dv-btn dv-btn-dl"
+                >
+                  ⬇ CSV
+                </button>
+              </div>
+              {replicateTableOpen && (
+                <table
+                  style={{ borderCollapse: "collapse", fontSize: 11, width: "100%", marginTop: 10 }}
+                >
+                  <thead>
+                    <tr style={{ borderBottom: "2px solid var(--border-strong)" }}>
+                      {["Condition", "Replicate", sumLabel].map((h) => (
+                        <th
+                          key={h}
+                          style={{
+                            padding: "3px 8px",
+                            textAlign: "left",
+                            color: "var(--text-muted)",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {h}
+                        </th>
+                      ))}
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {replicateSums.map((rs) =>
+                      rs.repSums.map((rep, ri) => (
+                        <tr
+                          key={`${rs.prefix}-${ri}`}
+                          style={{ borderBottom: "1px solid var(--border)" }}
+                        >
+                          <td style={{ padding: "3px 8px", color: "var(--text)", fontWeight: 600 }}>
+                            {rs.label}
+                          </td>
+                          <td style={{ padding: "3px 8px", color: "var(--text-muted)" }}>
+                            Rep {ri + 1}
+                          </td>
+                          <td
+                            style={{
+                              padding: "3px 8px",
+                              color: "var(--text)",
+                              fontFamily: "monospace",
+                            }}
+                          >
+                            {rep[sumKey] != null ? rep[sumKey].toFixed(4) : "—"}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
+          {/* StatsTile */}
+          {statsGroups && (
+            <div style={{ marginTop: 12 }}>
+              <StatsTile
+                groups={statsGroups}
+                onAnnotationsChange={setStatsAnnotations}
+                onStatsSummaryChange={setStatsSummary}
+              />
+            </div>
           )}
         </div>
-      )}
-
-      {/* StatsTile */}
-      {statsGroups && (
-        <div style={{ marginTop: 12 }}>
-          <StatsTile
-            groups={statsGroups}
-            onAnnotationsChange={setStatsAnnotations}
-            onStatsSummaryChange={setStatsSummary}
-          />
-        </div>
-      )}
-      </div>
       )}
     </div>
   ) : null;

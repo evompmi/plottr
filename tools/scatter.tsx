@@ -448,10 +448,34 @@ const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart(
         })()}
 
       <g id="plot-frame" fill="none" stroke="#333" strokeWidth="1">
-        <line id="plot-frame-top" x1={MARGIN.left} y1={MARGIN.top} x2={MARGIN.left + w} y2={MARGIN.top} />
-        <line id="plot-frame-right" x1={MARGIN.left + w} y1={MARGIN.top} x2={MARGIN.left + w} y2={MARGIN.top + h} />
-        <line id="plot-frame-bottom" x1={MARGIN.left} y1={MARGIN.top + h} x2={MARGIN.left + w} y2={MARGIN.top + h} />
-        <line id="plot-frame-left" x1={MARGIN.left} y1={MARGIN.top} x2={MARGIN.left} y2={MARGIN.top + h} />
+        <line
+          id="plot-frame-top"
+          x1={MARGIN.left}
+          y1={MARGIN.top}
+          x2={MARGIN.left + w}
+          y2={MARGIN.top}
+        />
+        <line
+          id="plot-frame-right"
+          x1={MARGIN.left + w}
+          y1={MARGIN.top}
+          x2={MARGIN.left + w}
+          y2={MARGIN.top + h}
+        />
+        <line
+          id="plot-frame-bottom"
+          x1={MARGIN.left}
+          y1={MARGIN.top + h}
+          x2={MARGIN.left + w}
+          y2={MARGIN.top + h}
+        />
+        <line
+          id="plot-frame-left"
+          x1={MARGIN.left}
+          y1={MARGIN.top}
+          x2={MARGIN.left}
+          y2={MARGIN.top + h}
+        />
       </g>
 
       <g id="axis-x">

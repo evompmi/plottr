@@ -789,10 +789,34 @@ const BarChart = forwardRef<SVGSVGElement, any>(function BarChart(
       </g>
 
       <g id="plot-frame" fill="none" stroke="#333" strokeWidth="1">
-        <line id="plot-frame-top" x1={MChart.left} y1={MChart.top} x2={MChart.left + w} y2={MChart.top} />
-        <line id="plot-frame-right" x1={MChart.left + w} y1={MChart.top} x2={MChart.left + w} y2={MChart.top + h} />
-        <line id="plot-frame-bottom" x1={MChart.left} y1={MChart.top + h} x2={MChart.left + w} y2={MChart.top + h} />
-        <line id="plot-frame-left" x1={MChart.left} y1={MChart.top} x2={MChart.left} y2={MChart.top + h} />
+        <line
+          id="plot-frame-top"
+          x1={MChart.left}
+          y1={MChart.top}
+          x2={MChart.left + w}
+          y2={MChart.top}
+        />
+        <line
+          id="plot-frame-right"
+          x1={MChart.left + w}
+          y1={MChart.top}
+          x2={MChart.left + w}
+          y2={MChart.top + h}
+        />
+        <line
+          id="plot-frame-bottom"
+          x1={MChart.left}
+          y1={MChart.top + h}
+          x2={MChart.left + w}
+          y2={MChart.top + h}
+        />
+        <line
+          id="plot-frame-left"
+          x1={MChart.left}
+          y1={MChart.top}
+          x2={MChart.left}
+          y2={MChart.top + h}
+        />
       </g>
 
       {annotations && annotations.kind === "cld" && (
