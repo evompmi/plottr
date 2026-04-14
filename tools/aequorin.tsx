@@ -1857,7 +1857,7 @@ function ConfigureStep({
   return (
     <div>
       <div style={{ display: "flex", gap: 16, marginBottom: 16, alignItems: "stretch" }}>
-        <div style={{ ...sec, flex: "1 1 0", marginBottom: 0 }}>
+        <div className="dv-panel" style={{ flex: "1 1 0", marginBottom: 0 }}>
           <p
             style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}
           >
@@ -1865,8 +1865,12 @@ function ConfigureStep({
           </p>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
             <div>
-              <div style={lbl}>Formula</div>
-              <select value={formula} onChange={(e) => setFormula(e.target.value)} style={selStyle}>
+              <div className="dv-label">Formula</div>
+              <select
+                value={formula}
+                onChange={(e) => setFormula(e.target.value)}
+                className="dv-select"
+              >
                 <option value="none">None (raw data)</option>
                 <option value="allen-blinks">Allen &amp; Blinks (1978)</option>
                 <option value="hill">Hill equilibrium</option>
@@ -1875,36 +1879,36 @@ function ConfigureStep({
             </div>
             {(formula === "allen-blinks" || formula === "generalized") && (
               <div>
-                <div style={lbl}>Kr</div>
+                <div className="dv-label">Kr</div>
                 <input
                   type="number"
                   value={Kr}
                   onChange={(e) => setKr(Number(e.target.value))}
-                  style={inpN}
+                  className="dv-input-num"
                   step="0.1"
                 />
               </div>
             )}
             {(formula === "allen-blinks" || formula === "generalized") && (
               <div>
-                <div style={lbl}>Ktr</div>
+                <div className="dv-label">Ktr</div>
                 <input
                   type="number"
                   value={Ktr}
                   onChange={(e) => setKtr(Number(e.target.value))}
-                  style={inpN}
+                  className="dv-input-num"
                   step="1"
                 />
               </div>
             )}
             {formula === "hill" && (
               <div>
-                <div style={lbl}>Kd (µM)</div>
+                <div className="dv-label">Kd (µM)</div>
                 <input
                   type="number"
                   value={Kd}
                   onChange={(e) => setKd(Number(e.target.value))}
-                  style={inpN}
+                  className="dv-input-num"
                   step="0.5"
                   min="0.1"
                 />
@@ -1912,12 +1916,12 @@ function ConfigureStep({
             )}
             {formula === "generalized" && (
               <div>
-                <div style={lbl}>n (Hill exp.)</div>
+                <div className="dv-label">n (Hill exp.)</div>
                 <input
                   type="number"
                   value={hillN}
                   onChange={(e) => setHillN(Number(e.target.value))}
-                  style={inpN}
+                  className="dv-input-num"
                   step="0.5"
                   min="1"
                 />
@@ -1925,7 +1929,7 @@ function ConfigureStep({
             )}
           </div>
         </div>
-        <div style={{ ...sec, flex: "1 1 0", marginBottom: 0 }}>
+        <div className="dv-panel" style={{ flex: "1 1 0", marginBottom: 0 }}>
           <p
             style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}
           >
@@ -1933,22 +1937,23 @@ function ConfigureStep({
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
             <div>
-              <div style={lbl}>Time step (per row)</div>
+              <div className="dv-label">Time step (per row)</div>
               <input
                 type="number"
                 value={vis.timeStep}
                 onChange={(e) => updVis({ timeStep: Number(e.target.value) || 1 })}
-                style={{ ...inpN, width: 88 }}
+                className="dv-input-num"
+                style={{ width: 88 }}
                 min="0.001"
                 step="any"
               />
             </div>
             <div>
-              <div style={lbl}>Base unit</div>
+              <div className="dv-label">Base unit</div>
               <select
                 value={vis.baseUnit}
                 onChange={(e) => updVis({ baseUnit: e.target.value })}
-                style={selStyle}
+                className="dv-select"
               >
                 {TIME_UNITS.map((u) => (
                   <option key={u.key} value={u.key}>
@@ -1965,7 +1970,7 @@ function ConfigureStep({
           </div>
         </div>
       </div>
-      <div style={sec}>
+      <div className="dv-panel">
         <div
           style={{
             display: "flex",
@@ -2024,7 +2029,7 @@ function ConfigureStep({
             );
           })()}
       </div>
-      <button onClick={() => setStep("plot")} style={btnPrimary}>
+      <button onClick={() => setStep("plot")} className="dv-btn dv-btn-primary">
         Plot →
       </button>
     </div>
@@ -2074,8 +2079,8 @@ function PlotControls({
               downloadCalibrated();
               flashSaved(e.currentTarget);
             },
+            className: "dv-btn dv-btn-secondary",
             style: {
-              ...btnSecondary,
               background: "var(--success-bg)",
               border: "1px solid var(--success-border)",
               color: "var(--success-text)",
@@ -2087,7 +2092,7 @@ function PlotControls({
       />
 
       {/* Conditions */}
-      <div style={sec}>
+      <div className="dv-panel">
         <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
           Conditions
         </p>
@@ -2115,46 +2120,50 @@ function PlotControls({
       </div>
 
       {/* Plot parameters */}
-      <div style={sec}>
+      <div className="dv-panel">
         <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
           Plot parameters
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
-            <div style={lbl}>X start</div>
+            <div className="dv-label">X start</div>
             <input
               type="number"
               value={vis.xStart}
               onChange={(e) => updVis({ xStart: Number(e.target.value) })}
-              style={{ ...inpN, width: "100%", textAlign: "left" }}
+              className="dv-input-num"
+              style={{ width: "100%", textAlign: "left" }}
             />
           </div>
           <div>
-            <div style={lbl}>X end</div>
+            <div className="dv-label">X end</div>
             <input
               type="number"
               value={vis.xEnd}
               onChange={(e) => updVis({ xEnd: Number(e.target.value) })}
-              style={{ ...inpN, width: "100%", textAlign: "left" }}
+              className="dv-input-num"
+              style={{ width: "100%", textAlign: "left" }}
             />
           </div>
           <div>
-            <div style={lbl}>Y min</div>
+            <div className="dv-label">Y min</div>
             <input
               type="number"
               value={vis.yMin}
               onChange={(e) => updVis({ yMin: Number(e.target.value) })}
-              style={{ ...inpN, width: "100%", textAlign: "left" }}
+              className="dv-input-num"
+              style={{ width: "100%", textAlign: "left" }}
               step="0.1"
             />
           </div>
           <div>
-            <div style={lbl}>Y max</div>
+            <div className="dv-label">Y max</div>
             <input
               type="number"
               value={vis.yMax}
               onChange={(e) => updVis({ yMax: Number(e.target.value) })}
-              style={{ ...inpN, width: "100%", textAlign: "left" }}
+              className="dv-input-num"
+              style={{ width: "100%", textAlign: "left" }}
               step="0.1"
             />
           </div>
@@ -2167,26 +2176,28 @@ function PlotControls({
             onChange={sv("smoothWidth")}
           />
           <div>
-            <div style={lbl}>Title</div>
+            <div className="dv-label">Title</div>
             <input
               value={vis.plotTitle}
               onChange={(e) => updVis({ plotTitle: e.target.value })}
-              style={{ ...inpN, width: "100%", textAlign: "left" }}
+              className="dv-input-num"
+              style={{ width: "100%", textAlign: "left" }}
             />
           </div>
           <div>
-            <div style={lbl}>Subtitle</div>
+            <div className="dv-label">Subtitle</div>
             <input
               value={vis.plotSubtitle}
               onChange={(e) => updVis({ plotSubtitle: e.target.value })}
-              style={{ ...inpN, width: "100%", textAlign: "left" }}
+              className="dv-input-num"
+              style={{ width: "100%", textAlign: "left" }}
             />
           </div>
         </div>
       </div>
 
       {/* Style controls */}
-      <div style={sec}>
+      <div className="dv-panel">
         <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
           Style
         </p>
@@ -2217,11 +2228,12 @@ function PlotControls({
             onChange={sv("ribbonOpacity")}
           />
           <div>
-            <div style={lbl}>Display unit</div>
+            <div className="dv-label">Display unit</div>
             <select
               value={vis.displayUnit}
               onChange={(e) => updVis({ displayUnit: e.target.value })}
-              style={{ width: "100%", ...selStyle }}
+              className="dv-select"
+              style={{ width: "100%" }}
             >
               {TIME_UNITS.map((u) => (
                 <option key={u.key} value={u.key}>
@@ -2234,14 +2246,14 @@ function PlotControls({
       </div>
 
       {/* Barplot controls */}
-      <div style={sec}>
+      <div className="dv-panel">
         <p
           style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}
         >
           Barplot (Σ of plotted values)
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-          <span style={lbl}>Show</span>
+          <span className="dv-label">Show</span>
           <input
             type="checkbox"
             checked={vis.showInset}
@@ -2267,25 +2279,27 @@ function PlotControls({
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
               <div>
-                <div style={lbl}>Y min (auto)</div>
+                <div className="dv-label">Y min (auto)</div>
                 <input
                   value={vis.insetYMinCustom}
                   onChange={(e) => updVis({ insetYMinCustom: e.target.value })}
-                  style={{ ...inpN, width: "100%", textAlign: "left" }}
+                  className="dv-input-num"
+                  style={{ width: "100%", textAlign: "left" }}
                   placeholder="auto"
                 />
               </div>
               <div>
-                <div style={lbl}>Y max (auto)</div>
+                <div className="dv-label">Y max (auto)</div>
                 <input
                   value={vis.insetYMaxCustom}
                   onChange={(e) => updVis({ insetYMaxCustom: e.target.value })}
-                  style={{ ...inpN, width: "100%", textAlign: "left" }}
+                  className="dv-input-num"
+                  style={{ width: "100%", textAlign: "left" }}
                   placeholder="auto"
                 />
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={lbl}>Grid</span>
+                <span className="dv-label">Grid</span>
                 <input
                   type="checkbox"
                   checked={vis.insetShowGrid}
@@ -2295,7 +2309,7 @@ function PlotControls({
               </div>
               {vis.insetShowGrid && (
                 <div>
-                  <div style={lbl}>Grid color</div>
+                  <div className="dv-label">Grid color</div>
                   <ColorInput
                     value={vis.insetGridColor}
                     onChange={sv("insetGridColor")}
@@ -2342,7 +2356,7 @@ function PlotControls({
               onChange={sv("insetFillOpacity")}
             />
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={lbl}>Bar outline</span>
+              <span className="dv-label">Bar outline</span>
               <input
                 type="checkbox"
                 checked={vis.insetShowBarOutline}
@@ -2362,7 +2376,7 @@ function PlotControls({
                   onChange={sv("insetBarStrokeWidth")}
                 />
                 <div>
-                  <div style={lbl}>Outline color</div>
+                  <div className="dv-label">Outline color</div>
                   <ColorInput
                     value={vis.insetBarOutlineColor}
                     onChange={sv("insetBarOutlineColor")}
@@ -2387,11 +2401,12 @@ function PlotControls({
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
               <div>
-                <div style={lbl}>Type</div>
+                <div className="dv-label">Type</div>
                 <select
                   value={vis.insetErrorType}
                   onChange={(e) => updVis({ insetErrorType: e.target.value })}
-                  style={{ width: "100%", ...selStyle }}
+                  className="dv-select"
+                  style={{ width: "100%" }}
                 >
                   <option value="none">None</option>
                   <option value="sem">SEM</option>
@@ -2425,7 +2440,7 @@ function PlotControls({
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={lbl}>Show</span>
+                <span className="dv-label">Show</span>
                 <input
                   type="checkbox"
                   checked={vis.insetShowPoints}
@@ -2436,7 +2451,7 @@ function PlotControls({
               {vis.insetShowPoints && (
                 <>
                   <div>
-                    <div style={lbl}>Color</div>
+                    <div className="dv-label">Color</div>
                     <ColorInput
                       value={vis.insetPointColor}
                       onChange={sv("insetPointColor")}
@@ -3096,7 +3111,8 @@ function App() {
             </button>
             <button
               onClick={() => setStep("configure")}
-              style={{ ...btnSecondary, marginLeft: "auto" }}
+              className="dv-btn dv-btn-secondary"
+              style={{ marginLeft: "auto" }}
             >
               ← Calibration
             </button>
@@ -3130,8 +3146,8 @@ function App() {
                 handleColumnToggle={handleColumnToggle}
               />
               <div
+                className="dv-panel"
                 style={{
-                  ...sec,
                   padding: 20,
                   background: "var(--plot-card-bg)",
                   borderColor: "var(--plot-card-border)",
