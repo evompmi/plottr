@@ -1,6 +1,7 @@
 // shared-long-format.js — plain JS, no JSX
-// Requires React, shared.js (sec, inp, lbl, roleColors, isNumericValue, PALETTE),
-// and shared-color-input.js (ColorInput) to be loaded globally before this script.
+// Requires React, shared.js (roleColors, isNumericValue, PALETTE),
+// components.css (dv-* classes), and shared-color-input.js (ColorInput) to
+// be loaded globally before this script.
 
 // ── Long-format Pipeline Components ─────────────────────────────────────────
 

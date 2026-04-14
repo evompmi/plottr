@@ -1,6 +1,7 @@
 // shared-stats-tile.js — plain JS, no JSX
-// Requires React, shared.js (sec, selStyle, btnSecondary, downloadText, flashSaved,
-// fFromGroupMeans, powerTwoSample, powerAnova), and stats.js (tTest, mannWhitneyU,
+// Requires React, shared.js (downloadText, flashSaved, fFromGroupMeans,
+// powerTwoSample, powerAnova), components.css (dv-* classes), and stats.js
+// (tTest, mannWhitneyU,
 // oneWayANOVA, welchANOVA, kruskalWallis, tukeyHSD, gamesHowell, dunnTest,
 // compactLetterDisplay, selectTest, pStars, formatP, sampleMean, sampleSD)
 // to be loaded globally before this script.

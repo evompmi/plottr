@@ -101,34 +101,11 @@ function toolIcon(name, size, opts) {
   });
 }
 
-// ── UI style constants ────────────────────────────────────────────────────────
-
-const inp = {
-  background: "var(--surface)",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 4,
-  color: "var(--text)",
-  padding: "4px 8px",
-  fontSize: 12,
-};
-const inpN = {
-  width: 72,
-  background: "var(--surface)",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 4,
-  color: "var(--text)",
-  padding: "4px 8px",
-  fontSize: 13,
-  textAlign: "center",
-};
-const sec = {
-  background: "var(--surface-subtle)",
-  borderRadius: 10,
-  padding: 16,
-  marginBottom: 16,
-  border: "1px solid var(--border)",
-};
-const lbl = { fontSize: 12, color: "var(--text-faint)", marginBottom: 2 };
+// ── Role colours ────────────────────────────────────────────────────────────
+// The old inline-style constants (sec/inp/inpN/lbl/btn*/selStyle/sepSelect)
+// have been retired — chrome elements use the `dv-*` classes declared in
+// `components.css` instead (see CLAUDE.md Theming section).
+//
 // Okabe-Ito hues: saturated enough to work on both light and dark chrome.
 // Only `ignore` becomes theme-aware since it was a neutral gray.
 const roleColors = {
@@ -137,83 +114,6 @@ const roleColors = {
   filter: "#E69F00",
   text: "#CC79A7",
   ignore: "var(--border-strong)",
-};
-
-const btnPrimary = {
-  padding: "10px 28px",
-  borderRadius: 8,
-  fontSize: 14,
-  fontWeight: 700,
-  background: "var(--accent-primary)",
-  color: "var(--on-accent)",
-  border: "none",
-  cursor: "pointer",
-  fontFamily: "inherit",
-};
-const btnSecondary = {
-  padding: "6px 14px",
-  borderRadius: 6,
-  fontSize: 12,
-  cursor: "pointer",
-  background: "var(--surface)",
-  border: "1px solid var(--border-strong)",
-  color: "var(--text-muted)",
-  fontFamily: "inherit",
-};
-const btnDanger = {
-  padding: "8px 14px",
-  borderRadius: 6,
-  fontSize: 12,
-  cursor: "pointer",
-  background: "var(--danger-bg)",
-  border: "1px solid var(--danger-border)",
-  color: "var(--danger-text)",
-  fontFamily: "inherit",
-  width: "100%",
-};
-const btnDownload = {
-  padding: "8px 14px",
-  borderRadius: 6,
-  fontSize: 12,
-  cursor: "pointer",
-  background: "var(--accent-download)",
-  border: "none",
-  color: "var(--on-accent)",
-  fontFamily: "inherit",
-  width: "100%",
-  fontWeight: 600,
-};
-const btnPlot = {
-  padding: "10px 28px",
-  borderRadius: 8,
-  fontSize: 14,
-  fontWeight: 700,
-  background: "var(--accent-plot)",
-  color: "var(--on-accent)",
-  border: "none",
-  cursor: "pointer",
-  fontFamily: "inherit",
-};
-const selStyle = {
-  background: "var(--surface)",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 4,
-  padding: "4px 8px",
-  fontSize: 12,
-  fontFamily: "inherit",
-  color: "var(--text)",
-  cursor: "pointer",
-};
-const sepSelect = {
-  background: "var(--surface)",
-  border: "2px solid var(--accent-primary)",
-  borderRadius: 6,
-  padding: "6px 12px",
-  fontSize: 13,
-  fontFamily: "inherit",
-  color: "var(--text)",
-  cursor: "pointer",
-  fontWeight: 600,
 };
 
 // ── Numeric detection ────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 // shared-ui.js — plain JS, no JSX
-// Requires React, shared.js (btnSecondary fallback for ActionsPanel, toolIcon,
-// flashSaved), components.css (dv-* classes), and shared-file-drop.js
-// (FileDropZone) to be loaded globally before this script.
+// Requires React, shared.js (toolIcon, flashSaved), components.css (dv-*
+// classes), and shared-file-drop.js (FileDropZone) to be loaded globally
+// before this script.
 
 // ── Shared UI Components ─────────────────────────────────────────────────────
 
@@ -349,7 +349,6 @@ function ActionsPanel(props) {
       };
       if (b.className) btnProps.className = b.className;
       if (b.style) btnProps.style = b.style;
-      if (!b.className && !b.style) btnProps.style = btnSecondary;
       children.push(React.createElement("button", btnProps, b.label));
     });
   }

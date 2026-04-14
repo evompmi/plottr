@@ -38,7 +38,7 @@ No test framework — custom harness in `tests/harness.js` using `suite()`, `tes
 Each tool HTML loads vendored React/ReactDOM and shared scripts in `<head>`, then loads a compiled `.js` file. The editable source is in `tools/<tool>.tsx` — run `npm run build` to compile.
 
 ### Shared code
-- `tools/shared.js` — plain JS globals: color helpers, numeric detection, seeded random, axis tick generation, separator detection, CSV parsing, statistics, download helpers, **shared style constants** (`sec`, `inp`, `lbl`, `btnPrimary`, `btnSecondary`, `btnDanger`, `btnDownload`, `btnPlot`, `selStyle`, `sepSelect`, `roleColors`)
+- `tools/shared.js` — plain JS globals: color helpers, numeric detection, seeded random, axis tick generation, separator detection, CSV parsing, statistics, download helpers, `roleColors` (chrome styling lives in `tools/components.css` via `dv-*` classes; see the Theming section)
 - Shared UI split into focused plain-JS files (all `React.createElement`, NOT JSX). Load order matters — see HTML files for the correct `<script>` sequence:
   - `tools/shared-color-input.js` — `normalizeHexColor`, `ColorInput`
   - `tools/shared-file-drop.js` — `FileDropZone` (loaded by: all tools)
