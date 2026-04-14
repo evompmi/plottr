@@ -103,10 +103,14 @@ const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
   const n = groups.length;
   const compact = (100 - (boxGap != null ? boxGap : 0)) / 100;
   const vbW = Math.max(200, n * 100 * compact + M.left + M.right);
-  const vbH_chart = 504 + (absA > 0 ? absA * 0.8 : 0);
+  const vbH_base = 504 + (absA > 0 ? absA * 0.8 : 0);
   const _legH = computeLegendHeight(svgLegend, vbW - M.left - M.right, 88);
   const _statsH = statsSummaryHeight(statsSummary);
-  const vbH = vbH_chart + _legH + _statsH;
+  // Keep the overall viewBox height independent of the stats summary —
+  // shrink the chart area to make room instead, so the plot tile stays
+  // the same size when the summary is toggled on.
+  const vbH_chart = vbH_base - _statsH;
+  const vbH = vbH_base + _legH;
   const w = vbW - M.left - M.right;
   const h = vbH_chart - M.top - M.bottom;
 
@@ -625,10 +629,13 @@ const BarChart = forwardRef<SVGSVGElement, any>(function BarChart(
   const n = groups.length;
   const compact = (100 - (boxGap != null ? boxGap : 0)) / 100;
   const vbW = Math.max(200, n * 100 * compact + MChart.left + MChart.right);
-  const vbH_chart = 420 + Math.abs(angle) * 0.9;
+  const vbH_base = 420 + Math.abs(angle) * 0.9;
   const legendH = computeLegendHeight(svgLegend, vbW - MChart.left - MChart.right, 88);
   const _statsH = statsSummaryHeight(statsSummary);
-  const vbH = vbH_chart + legendH + _statsH;
+  // Keep the overall viewBox height independent of the stats summary —
+  // shrink the chart area to make room instead.
+  const vbH_chart = vbH_base - _statsH;
+  const vbH = vbH_base + legendH;
   const w = vbW - MChart.left - MChart.right;
   const h = vbH_chart - MChart.top - MChart.bottom;
 
@@ -2103,6 +2110,7 @@ const FacetBoxplotItem = memo(function FacetBoxplotItem({
   facetRefs,
   chartProps,
   categoryColors,
+  fillHeight,
 }: any) {
   const localRef = useRef();
   useEffect(() => {
@@ -2119,8 +2127,12 @@ const FacetBoxplotItem = memo(function FacetBoxplotItem({
         borderRadius: 8,
         padding: 12,
         border: "1px solid var(--plot-card-border)",
-        flex: "0 1 auto",
+        flex: fillHeight ? "1 1 auto" : "0 1 auto",
         minWidth: 180,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -2168,9 +2180,11 @@ function PlotArea({
   yMaxVal,
   plotGroupRenames,
   boxplotColors,
-  statsAnnotations,
-  statsSummary,
+  facetStatsAnnotations,
+  facetStatsSummary,
 }) {
+  const globalAnnotations = facetStatsAnnotations["_global"] || null;
+  const globalSummary = facetStatsSummary["_global"] || null;
   if (displayBoxplotGroups.length === 0 && (facetByCol < 0 || facetedData.length === 0)) {
     return (
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -2265,8 +2279,8 @@ function PlotArea({
               yMin={yMinVal}
               yMax={yMaxVal}
               catColors={categoryColors}
-              annotations={statsAnnotations}
-              statsSummary={statsSummary}
+              annotations={globalAnnotations}
+              statsSummary={globalSummary}
               svgLegend={
                 colorByCol >= 0 && colorByCategories.length > 0
                   ? [
@@ -2306,8 +2320,8 @@ function PlotArea({
               boxGap={vis.boxGap}
               showCompPie={vis.showCompPie}
               plotStyle={vis.plotStyle}
-              annotations={statsAnnotations}
-              statsSummary={statsSummary}
+              annotations={globalAnnotations}
+              statsSummary={globalSummary}
               svgLegend={
                 colorByCol >= 0 && colorByCategories.length > 0
                   ? [
@@ -2337,6 +2351,8 @@ function PlotArea({
             }));
             const chartProps = {
               groups: displayFdGroups,
+              annotations: facetStatsAnnotations[fd.category] || null,
+              statsSummary: facetStatsSummary[fd.category] || null,
               yLabel: vis.yLabel,
               plotTitle: [vis.plotTitle, fd.category].filter(Boolean).join(" — "),
               plotBg: vis.plotBg,
@@ -2389,6 +2405,182 @@ function PlotArea({
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function FacetStatsRow({ fd, leftPlot, setAnnotationsFor, setSummaryFor, fileStem }: any) {
+  return (
+    <StatsTile
+      title={`Statistics — ${fd.category}`}
+      compact
+      defaultOpen={false}
+      groups={fd.groups.map((g) => ({ name: g.name, values: g.allValues }))}
+      fileStem={`${fileStem}_${fd.category}_stats`}
+      onAnnotationsChange={(a) => setAnnotationsFor(fd.category, a)}
+      onStatsSummaryChange={(s) => setSummaryFor(fd.category, s)}
+      renderLayout={({ displayEl, summaryEl, open }) => (
+        <div style={{ display: "flex", gap: 16, alignItems: "stretch" }}>
+          <div
+            style={{
+              flex: "1 1 0",
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            {leftPlot}
+            {displayEl}
+          </div>
+          <div
+            style={{
+              width: 320,
+              flexShrink: 0,
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+            }}
+            className={open ? "dv-facet-stats-scroll" : ""}
+          >
+            {summaryEl}
+          </div>
+        </div>
+      )}
+    />
+  );
+}
+
+function FacetPlotList({
+  facetedData,
+  facetRefs,
+  vis,
+  yMinVal,
+  yMaxVal,
+  plotGroupRenames,
+  boxplotColors,
+  categoryColors,
+  colorByCol,
+  colorByCategories,
+  colNames,
+  facetStatsAnnotations,
+  facetStatsSummary,
+  setAnnotationsFor,
+  setSummaryFor,
+  fileStem,
+}: any) {
+  if (!facetedData || facetedData.length === 0) return null;
+  const svgLegend =
+    colorByCol >= 0 && colorByCategories.length > 0
+      ? [
+          {
+            id: "legend-color",
+            title: `Points colored by: ${colNames[colorByCol]}`,
+            items: colorByCategories.map((c) => ({
+              label: c,
+              color: categoryColors[c] || "#999",
+              shape: "dot",
+            })),
+          },
+        ]
+      : null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {colorByCol >= 0 && colorByCategories.length > 0 && (
+        <div
+          style={{
+            background: "var(--surface-subtle)",
+            borderRadius: 8,
+            padding: "8px 14px",
+            border: "1px solid var(--border)",
+            display: "flex",
+            gap: 16,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+            Points colored by: {colNames[colorByCol]}
+          </span>
+          {colorByCategories.map((cat) => (
+            <div key={cat} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <div
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  background: categoryColors[cat] || "#999",
+                }}
+              />
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{cat}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {facetedData.map((fd) => {
+        const displayFdGroups = fd.groups.map((g) => ({
+          ...g,
+          name: plotGroupRenames[g.name] ?? g.name,
+          color: boxplotColors[g.name] ?? g.color,
+        }));
+        const chartProps = {
+          groups: displayFdGroups,
+          annotations: facetStatsAnnotations[fd.category] || null,
+          statsSummary: facetStatsSummary[fd.category] || null,
+          yLabel: vis.yLabel,
+          plotTitle: [vis.plotTitle, fd.category].filter(Boolean).join(" — "),
+          plotBg: vis.plotBg,
+          showGrid: vis.showGrid,
+          gridColor: vis.gridColor,
+          boxWidth: vis.boxWidth,
+          boxFillOpacity: vis.boxFillOpacity,
+          pointSize: vis.pointSize,
+          showPoints: vis.showPoints,
+          jitterWidth: vis.jitterWidth,
+          pointOpacity: vis.pointOpacity,
+          xLabelAngle: vis.xLabelAngle,
+          yMin: yMinVal,
+          yMax: yMaxVal,
+          categoryColors,
+          colorByCol,
+          boxGap: vis.boxGap,
+          showCompPie: vis.showCompPie,
+          plotStyle: vis.plotStyle,
+          barOpacity: vis.barOpacity,
+          errorType: vis.errorType,
+          errStrokeWidth: vis.errStrokeWidth,
+          showBarOutline: vis.showBarOutline,
+          barOutlineWidth: vis.barOutlineWidth,
+          barOutlineColor: vis.barOutlineColor,
+          svgLegend,
+        };
+        const leftPlot = (
+          <FacetBoxplotItem
+            fd={fd}
+            facetRefs={facetRefs}
+            chartProps={chartProps}
+            categoryColors={categoryColors}
+            fillHeight
+          />
+        );
+        if (fd.groups.length < 2) {
+          return (
+            <div key={fd.category} style={{ maxWidth: 720 }}>
+              {leftPlot}
+            </div>
+          );
+        }
+        return (
+          <FacetStatsRow
+            key={fd.category}
+            fd={fd}
+            leftPlot={leftPlot}
+            setAnnotationsFor={setAnnotationsFor}
+            setSummaryFor={setSummaryFor}
+            fileStem={fileStem}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -2460,8 +2652,22 @@ function App() {
   const [categoryColors, setCategoryColors] = useState({});
   const [dragState, setDragState] = useState(null);
   const [facetByCol, setFacetByCol] = useState(-1);
-  const [statsAnnotations, setStatsAnnotations] = useState(null);
-  const [statsSummary, setStatsSummary] = useState<string | null>(null);
+  // Stats annotations + summary are keyed by facet category so each facet
+  // subplot gets its own on-plot CLD/brackets and its own summary text.
+  // The non-facet path uses the literal key "_global" so the same maps drive
+  // both modes.
+  const [facetStatsAnnotations, setFacetStatsAnnotations] = useState<Record<string, any>>({});
+  const [facetStatsSummary, setFacetStatsSummary] = useState<Record<string, string | null>>({});
+  const setAnnotationsFor = (key, spec) =>
+    setFacetStatsAnnotations((prev) => {
+      if (prev[key] === spec) return prev;
+      return { ...prev, [key]: spec };
+    });
+  const setSummaryFor = (key, txt) =>
+    setFacetStatsSummary((prev) => {
+      if (prev[key] === txt) return prev;
+      return { ...prev, [key]: txt };
+    });
 
   const facetRefs = useRef({});
   const chartRef = useRef();
@@ -2475,6 +2681,8 @@ function App() {
     setColorByCol(-1);
     setCategoryColors({});
     setFacetByCol(-1);
+    setFacetStatsAnnotations({});
+    setFacetStatsSummary({});
     updVis({ yMinCustom: "", yMaxCustom: "" });
   };
 
@@ -3035,32 +3243,56 @@ function App() {
             onDownloadPng={handleDownloadPng}
           />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <PlotArea
-              colorByCol={colorByCol}
-              colorByCategories={colorByCategories}
-              colNames={colNames}
-              categoryColors={categoryColors}
-              facetByCol={facetByCol}
-              facetedData={facetedData}
-              facetRefs={facetRefs}
-              chartRef={chartRef}
-              displayBoxplotGroups={displayBoxplotGroups}
-              vis={vis}
-              yMinVal={yMinVal}
-              yMaxVal={yMaxVal}
-              plotGroupRenames={plotGroupRenames}
-              boxplotColors={boxplotColors}
-              statsAnnotations={facetByCol < 0 ? statsAnnotations : null}
-              statsSummary={statsSummary}
-            />
-            {facetByCol < 0 && displayBoxplotGroups.length >= 2 && (
-              <StatsTile
-                groups={displayBoxplotGroups.map((g) => ({
-                  name: g.name,
-                  values: g.allValues,
-                }))}
-                onAnnotationsChange={setStatsAnnotations}
-                onStatsSummaryChange={setStatsSummary}
+            {facetByCol < 0 ? (
+              <>
+                <PlotArea
+                  colorByCol={colorByCol}
+                  colorByCategories={colorByCategories}
+                  colNames={colNames}
+                  categoryColors={categoryColors}
+                  facetByCol={facetByCol}
+                  facetedData={facetedData}
+                  facetRefs={facetRefs}
+                  chartRef={chartRef}
+                  displayBoxplotGroups={displayBoxplotGroups}
+                  vis={vis}
+                  yMinVal={yMinVal}
+                  yMaxVal={yMaxVal}
+                  plotGroupRenames={plotGroupRenames}
+                  boxplotColors={boxplotColors}
+                  facetStatsAnnotations={facetStatsAnnotations}
+                  facetStatsSummary={facetStatsSummary}
+                />
+                {displayBoxplotGroups.length >= 2 && (
+                  <StatsTile
+                    groups={displayBoxplotGroups.map((g) => ({
+                      name: g.name,
+                      values: g.allValues,
+                    }))}
+                    fileStem={`${fileStem}_stats`}
+                    onAnnotationsChange={(a) => setAnnotationsFor("_global", a)}
+                    onStatsSummaryChange={(s) => setSummaryFor("_global", s)}
+                  />
+                )}
+              </>
+            ) : (
+              <FacetPlotList
+                facetedData={facetedData}
+                facetRefs={facetRefs}
+                vis={vis}
+                yMinVal={yMinVal}
+                yMaxVal={yMaxVal}
+                plotGroupRenames={plotGroupRenames}
+                boxplotColors={boxplotColors}
+                categoryColors={categoryColors}
+                colorByCol={colorByCol}
+                colorByCategories={colorByCategories}
+                colNames={colNames}
+                facetStatsAnnotations={facetStatsAnnotations}
+                facetStatsSummary={facetStatsSummary}
+                setAnnotationsFor={setAnnotationsFor}
+                setSummaryFor={setSummaryFor}
+                fileStem={fileStem}
               />
             )}
           </div>
