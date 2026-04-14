@@ -596,14 +596,51 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
 
   // ── Header rows ───────────────────────────────────────────────────────────
   const displayTileHeader = React.createElement("h3", { style: h3 }, "Statistics display");
+  const downloadReportBtn = React.createElement(
+    "button",
+    {
+      onClick: (e) => {
+        e.stopPropagation();
+        const txt = _buildStatsReport({
+          names,
+          values,
+          recommendation,
+          chosenTest,
+          testResult,
+          postHocName,
+          postHocResult,
+          powerResult,
+        });
+        downloadText(txt, "stats_report.txt");
+        flashSaved(e.currentTarget);
+      },
+      className: "dv-btn dv-btn-dl",
+    },
+    "\u2B07 TXT"
+  );
   const summaryHeaderEl = React.createElement(
     "div",
-    { style: header, onClick: () => setOpen((o) => !o) },
-    React.createElement("span", {
-      className: "dv-disclosure" + (open ? " dv-disclosure-open" : ""),
-      "aria-hidden": "true",
-    }),
-    React.createElement("h3", { style: h3 }, "Statistics summary")
+    {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        justifyContent: "space-between",
+      },
+    },
+    React.createElement(
+      "div",
+      {
+        style: header,
+        onClick: () => setOpen((o) => !o),
+      },
+      React.createElement("span", {
+        className: "dv-disclosure" + (open ? " dv-disclosure-open" : ""),
+        "aria-hidden": "true",
+      }),
+      React.createElement("h3", { style: h3 }, "Statistics summary")
+    ),
+    downloadReportBtn
   );
 
   // ── Display-on-plot controls ──────────────────────────────────────────────
@@ -989,43 +1026,6 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
     );
   }
 
-  // ── Download report ───────────────────────────────────────────────────────
-  const downloadReportBtn = React.createElement(
-    "div",
-    { style: { marginTop: 12, display: "flex", justifyContent: "flex-end" } },
-    React.createElement(
-      "button",
-      {
-        onClick: (e) => {
-          const txt = _buildStatsReport({
-            names,
-            values,
-            recommendation,
-            chosenTest,
-            testResult,
-            postHocName,
-            postHocResult,
-            powerResult,
-          });
-          downloadText(txt, "stats_report.txt");
-          flashSaved(e.currentTarget);
-        },
-        style: {
-          padding: "8px 14px",
-          borderRadius: 6,
-          fontSize: 12,
-          cursor: "pointer",
-          background: "var(--success-bg)",
-          border: "1px solid var(--success-border)",
-          color: "var(--success-text)",
-          fontFamily: "inherit",
-          fontWeight: 600,
-        },
-      },
-      "\u2B07 Download report (.txt)"
-    )
-  );
-
   return React.createElement(
     React.Fragment,
     null,
@@ -1047,8 +1047,7 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
         reasonLine,
         resultLine,
         postHocBlock,
-        powerBlock,
-        downloadReportBtn
+        powerBlock
       )
     )
   );

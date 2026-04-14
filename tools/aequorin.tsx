@@ -1232,17 +1232,7 @@ const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                 downloadCsv(["Condition", "Replicate", sumLabel], rows, csvFileName);
                 flashSaved(e.currentTarget);
               }}
-              style={{
-                padding: "5px 10px",
-                borderRadius: 6,
-                fontSize: 11,
-                cursor: "pointer",
-                background: "var(--accent-download)",
-                border: "none",
-                color: "var(--on-accent)",
-                fontFamily: "inherit",
-                fontWeight: 600,
-              }}
+              className="dv-btn dv-btn-dl"
             >
               ⬇ CSV
             </button>
@@ -2022,19 +2012,9 @@ function ConfigureStep({
               downloadCalibrated();
               flashSaved(e.currentTarget);
             }}
-            style={{
-              padding: "8px 14px",
-              borderRadius: 6,
-              fontSize: 12,
-              cursor: "pointer",
-              background: "var(--success-bg)",
-              border: "1px solid var(--success-border)",
-              color: "var(--success-text)",
-              fontFamily: "inherit",
-              fontWeight: 600,
-            }}
+            className="dv-btn dv-btn-dl"
           >
-            ⬇ Download CSV
+            ⬇ CSV
           </button>
         </div>
         {calData &&
@@ -2106,21 +2086,10 @@ function PlotControls({
           plotPanelRef.current?.downloadMainPng();
         }}
         onReset={resetAll}
-        extraButtons={[
+        extraDownloads={[
           {
-            label: "⬇ Download CSV",
-            onClick: (e) => {
-              downloadCalibrated();
-              flashSaved(e.currentTarget);
-            },
-            className: "dv-btn dv-btn-secondary",
-            style: {
-              background: "var(--success-bg)",
-              border: "1px solid var(--success-border)",
-              color: "var(--success-text)",
-              width: "100%",
-              fontWeight: 600,
-            },
+            label: "CSV",
+            onClick: () => downloadCalibrated(),
           },
         ]}
       />
@@ -3171,60 +3140,51 @@ function App() {
                 columnEnabled={columnEnabled}
                 handleColumnToggle={handleColumnToggle}
               />
-              <div
-                className="dv-panel"
-                style={{
-                  padding: 20,
-                  background: "var(--plot-card-bg)",
-                  borderColor: "var(--plot-card-border)",
-                }}
-              >
-                <PlotPanel
-                  ref={plotPanelRef}
-                  stats={stats}
-                  xStart={vis.xStart}
-                  xEnd={vis.xEnd}
-                  yMin={vis.yMin}
-                  yMax={vis.yMax}
-                  faceted={vis.faceted}
-                  title={vis.plotTitle}
-                  subtitle={vis.plotSubtitle}
-                  smoothWidth={vis.smoothWidth}
-                  formula={formula}
-                  replicateSums={replicateSums}
-                  fileName={fileName}
-                  plotBg={vis.plotBg}
-                  showGrid={vis.showGrid}
-                  lineWidth={vis.lineWidth}
-                  ribbonOpacity={vis.ribbonOpacity}
-                  gridColor={vis.gridColor}
-                  timeStep={vis.timeStep}
-                  baseUnit={vis.baseUnit}
-                  displayUnit={vis.displayUnit}
-                  showInset={vis.showInset}
-                  insetColors={insetColors}
-                  insetFillOpacity={vis.insetFillOpacity}
-                  insetBarWidth={vis.insetBarWidth}
-                  insetBarGap={vis.insetBarGap}
-                  insetYMin={vis.insetYMinCustom !== "" ? Number(vis.insetYMinCustom) : null}
-                  insetYMax={vis.insetYMaxCustom !== "" ? Number(vis.insetYMaxCustom) : null}
-                  insetW={vis.insetW}
-                  insetH={vis.insetH}
-                  insetErrorType={vis.insetErrorType}
-                  insetShowBarOutline={vis.insetShowBarOutline}
-                  insetBarOutlineColor={vis.insetBarOutlineColor}
-                  insetBarStrokeWidth={vis.insetBarStrokeWidth}
-                  insetShowGrid={vis.insetShowGrid}
-                  insetGridColor={vis.insetGridColor}
-                  insetErrorStrokeWidth={vis.insetErrorStrokeWidth}
-                  insetXFontSize={vis.insetXFontSize}
-                  insetYFontSize={vis.insetYFontSize}
-                  insetXLabelAngle={vis.insetXLabelAngle}
-                  insetShowPoints={vis.insetShowPoints}
-                  insetPointSize={vis.insetPointSize}
-                  insetPointColor={vis.insetPointColor}
-                />
-              </div>
+              <PlotPanel
+                ref={plotPanelRef}
+                stats={stats}
+                xStart={vis.xStart}
+                xEnd={vis.xEnd}
+                yMin={vis.yMin}
+                yMax={vis.yMax}
+                faceted={vis.faceted}
+                title={vis.plotTitle}
+                subtitle={vis.plotSubtitle}
+                smoothWidth={vis.smoothWidth}
+                formula={formula}
+                replicateSums={replicateSums}
+                fileName={fileName}
+                plotBg={vis.plotBg}
+                showGrid={vis.showGrid}
+                lineWidth={vis.lineWidth}
+                ribbonOpacity={vis.ribbonOpacity}
+                gridColor={vis.gridColor}
+                timeStep={vis.timeStep}
+                baseUnit={vis.baseUnit}
+                displayUnit={vis.displayUnit}
+                showInset={vis.showInset}
+                insetColors={insetColors}
+                insetFillOpacity={vis.insetFillOpacity}
+                insetBarWidth={vis.insetBarWidth}
+                insetBarGap={vis.insetBarGap}
+                insetYMin={vis.insetYMinCustom !== "" ? Number(vis.insetYMinCustom) : null}
+                insetYMax={vis.insetYMaxCustom !== "" ? Number(vis.insetYMaxCustom) : null}
+                insetW={vis.insetW}
+                insetH={vis.insetH}
+                insetErrorType={vis.insetErrorType}
+                insetShowBarOutline={vis.insetShowBarOutline}
+                insetBarOutlineColor={vis.insetBarOutlineColor}
+                insetBarStrokeWidth={vis.insetBarStrokeWidth}
+                insetShowGrid={vis.insetShowGrid}
+                insetGridColor={vis.insetGridColor}
+                insetErrorStrokeWidth={vis.insetErrorStrokeWidth}
+                insetXFontSize={vis.insetXFontSize}
+                insetYFontSize={vis.insetYFontSize}
+                insetXLabelAngle={vis.insetXLabelAngle}
+                insetShowPoints={vis.insetShowPoints}
+                insetPointSize={vis.insetPointSize}
+                insetPointColor={vis.insetPointColor}
+              />
             </div>
           </div>
         </div>

@@ -459,68 +459,37 @@ function UploadPanel(props) {
   );
 }
 
-// Actions tile for plot step
+// Actions tile for plot step. Renders a wrapping row of unified download chips
+// (SVG / PNG / + any `extraDownloads` like CSV/TXT) followed by a full-width
+// Start-over button. Each chip flex-grows so 1/2/3 fit evenly; a 4th wraps.
 function ActionsPanel(props) {
-  const children = [];
+  const downloads = [];
   if (props.onDownloadSvg) {
-    children.push(
-      React.createElement(
-        "button",
-        {
-          key: "dl",
-          onClick: function (e) {
-            props.onDownloadSvg(e);
-            flashSaved(e.currentTarget);
-          },
-          className: "dv-btn dv-btn-download",
-        },
-        "\u2B07 Download SVG"
-      )
-    );
+    downloads.push({ label: "SVG", onClick: props.onDownloadSvg });
   }
   if (props.onDownloadPng) {
-    children.push(
-      React.createElement(
-        "button",
-        {
-          key: "dlpng",
-          onClick: function (e) {
-            props.onDownloadPng(e);
-            flashSaved(e.currentTarget);
-          },
-          className: "dv-btn dv-btn-download",
-          style: {
-            background: "var(--info-bg)",
-            borderColor: "var(--info-border)",
-            color: "var(--info-text)",
-          },
-        },
-        "\u2B07 Download PNG"
-      )
-    );
+    downloads.push({ label: "PNG", onClick: props.onDownloadPng });
   }
-  if (props.extraButtons) {
-    props.extraButtons.forEach(function (b, i) {
-      const btnProps = {
-        key: "extra" + i,
-        onClick: b.onClick,
-      };
-      if (b.className) btnProps.className = b.className;
-      if (b.style) btnProps.style = b.style;
-      children.push(React.createElement("button", btnProps, b.label));
+  if (props.extraDownloads) {
+    props.extraDownloads.forEach(function (d) {
+      downloads.push(d);
     });
   }
-  children.push(
-    React.createElement(
+  const dlButtons = downloads.map(function (d, i) {
+    return React.createElement(
       "button",
       {
-        key: "reset",
-        onClick: props.onReset,
-        className: "dv-btn dv-btn-danger",
+        key: "dl" + i,
+        onClick: function (e) {
+          d.onClick(e);
+          flashSaved(e.currentTarget);
+        },
+        className: "dv-btn dv-btn-dl",
+        style: { flex: "1 1 0" },
       },
-      "\u21BA Start over"
-    )
-  );
+      "\u2B07 " + d.label
+    );
+  });
   return React.createElement(
     "div",
     { className: "dv-panel" },
@@ -538,10 +507,27 @@ function ActionsPanel(props) {
       },
       "Actions"
     ),
+    dlButtons.length > 0
+      ? React.createElement(
+          "div",
+          {
+            style: {
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 6,
+              marginBottom: 8,
+            },
+          },
+          dlButtons
+        )
+      : null,
     React.createElement(
-      "div",
-      { style: { display: "flex", flexDirection: "column", gap: 6 } },
-      children
+      "button",
+      {
+        onClick: props.onReset,
+        className: "dv-btn dv-btn-danger",
+      },
+      "\u21BA Start over"
     )
   );
 }

@@ -1567,10 +1567,10 @@ function PlotControls({
         onDownloadSvg={() => downloadSvg(chartRef.current, "venn.svg")}
         onDownloadPng={() => downloadPng(chartRef.current, "venn.png", 2)}
         onReset={resetAll}
-        extraButtons={[
+        extraDownloads={[
           {
-            label: "⬇ All items CSV",
-            onClick: (e) => {
+            label: "CSV",
+            onClick: () => {
               const allItems = new Set();
               for (const n of activeSetNames) for (const item of allSets.get(n)) allItems.add(item);
               const headers = ["Item", ...activeSetNames];
@@ -1581,15 +1581,6 @@ function PlotControls({
                   ...activeSetNames.map((n) => (allSets.get(n).has(item) ? "1" : "0")),
                 ]);
               downloadCsv(headers, rows, "venn_membership.csv");
-              flashSaved(e.currentTarget);
-            },
-            className: "dv-btn dv-btn-secondary",
-            style: {
-              background: "var(--success-bg)",
-              border: "1px solid var(--success-border)",
-              color: "var(--success-text)",
-              width: "100%",
-              fontWeight: 600,
             },
           },
         ]}

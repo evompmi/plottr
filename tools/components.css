@@ -280,27 +280,6 @@
   box-shadow: none;
 }
 
-/* Download CTA — `btnDownload` (green, full width) */
-.dv-btn-download {
-  width: 100%;
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  background: var(--accent-download);
-  color: var(--on-accent);
-}
-.dv-btn-download:hover:not(:disabled) {
-  filter: brightness(1.15) saturate(1.05);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px -2px rgb(22 163 74 / 0.5);
-}
-.dv-btn-download:active:not(:disabled) {
-  transform: translateY(1px);
-  filter: brightness(0.96);
-  box-shadow: none;
-}
-
 /* Secondary / quiet button — `btnSecondary` */
 .dv-btn-secondary {
   padding: 6px 14px;
@@ -318,6 +297,33 @@
   box-shadow: 0 3px 10px -3px rgb(0 0 0 / 0.18);
 }
 .dv-btn-secondary:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+/* Unified download chip — icon + short filetype label (SVG / PNG / CSV / TXT).
+   Used in ActionsPanel and standalone (per-replicate CSV, stats report TXT,
+   molarity prep sheet). Ghost style off the shared `--success-*` triplet so it
+   themes cleanly in dark mode (pale mint chip in light mode → deep-green chip
+   with mint text in dark mode) instead of a neon-green fill. */
+.dv-btn-dl {
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success-text);
+  white-space: nowrap;
+  min-width: 78px;
+}
+.dv-btn-dl:hover:not(:disabled) {
+  filter: brightness(0.96);
+  border-color: var(--success-text);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px -3px rgb(22 101 52 / 0.4);
+}
+.dv-btn-dl:active:not(:disabled) {
   transform: translateY(1px);
   box-shadow: none;
 }

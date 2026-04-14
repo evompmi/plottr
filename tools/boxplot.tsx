@@ -1758,20 +1758,6 @@ function PlotControls({
       <ActionsPanel
         onDownloadSvg={onDownloadSvg}
         onDownloadPng={onDownloadPng}
-        extraButtons={[
-          {
-            label: "← Output",
-            onClick: () => setStep("output"),
-            className: "dv-btn dv-btn-secondary",
-            style: { width: "100%" },
-          },
-          {
-            label: "← Filter",
-            onClick: () => setStep("filter"),
-            className: "dv-btn dv-btn-secondary",
-            style: { width: "100%" },
-          },
-        ]}
         onReset={resetAll}
       />
 

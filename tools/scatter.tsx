@@ -893,29 +893,15 @@ function PlotStep({
             downloadPng(svgRef.current, `scatter_${fileName.replace(/\.[^.]+$/, "")}.png`)
           }
           onReset={resetAll}
-          extraButtons={[
+          extraDownloads={[
             {
-              label: "Download CSV",
-              onClick: (e) => {
+              label: "CSV",
+              onClick: () =>
                 downloadCsv(
                   activeColIdxs.map((i) => parsed.headers[i]),
                   filteredRawRows.map((r) => activeColIdxs.map((i) => r[i])),
                   `scatter_${fileName.replace(/\.[^.]+$/, "")}.csv`
-                );
-                flashSaved(e.currentTarget);
-              },
-              style: {
-                padding: "8px 14px",
-                borderRadius: 6,
-                fontSize: 12,
-                cursor: "pointer",
-                background: "var(--success-bg)",
-                border: "1px solid #86efac",
-                color: "var(--success-text)",
-                fontFamily: "inherit",
-                width: "100%",
-                fontWeight: 600,
-              },
+                ),
             },
           ]}
         />

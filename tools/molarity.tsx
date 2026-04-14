@@ -828,8 +828,8 @@ function BatchMode() {
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
               Prep Sheet
             </p>
-            <button onClick={csvExport} className="dv-btn dv-btn-download">
-              Download CSV
+            <button onClick={csvExport} className="dv-btn dv-btn-dl">
+              ⬇ CSV
             </button>
           </div>
           <div style={{ overflowX: "auto" }}>
