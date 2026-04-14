@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Venn and Power horizontal offset** — both tools' content wrappers normalised to match the other plot tools so `PageHeader` icons line up with the top-bar strip.
 - **Top-bar theme toggle not reaching the iframe** — toggle now `postMessage`s the theme into every tool iframe instead of relying on the unreliable same-window `storage` event.
 - **Venn exports rendered as black blobs in Inkscape** — the per-region click-hit circles used `fill="transparent"`, which is HTML/CSS-only and not a valid SVG 1.1 paint. Inkscape fell back to the default black fill, covering the diagram. Swapped to `fill="none" pointer-events="all"` so the regions stay clickable in the browser and invisible in Inkscape and other SVG readers.
+- **Aequorin faceted time-course over-dimmed in dark mode** — each facet is wrapped in a `dv-plot-card` nested inside the outer chart-tile `dv-plot-card`, so the `filter: brightness(0.85)` rule compounded (≈0.72) and made the faceted plots noticeably darker than the combined view. Added a `.dv-plot-card .dv-plot-card { filter: none }` override so the dim applies only to the outermost plot card.
 
 ## [2.1.1] - 2026-04-13
 

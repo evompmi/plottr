@@ -165,3 +165,8 @@
 [data-theme="dark"] .dv-plot-card {
   filter: brightness(0.85);
 }
+/* Prevent the dim filter from compounding when plot cards are nested
+   (e.g. aequorin faceted mode wraps each facet card inside an outer card). */
+[data-theme="dark"] .dv-plot-card .dv-plot-card {
+  filter: none;
+}
