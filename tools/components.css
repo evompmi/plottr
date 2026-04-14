@@ -40,7 +40,10 @@
   border-color: var(--accent-primary);
 }
 
-/* Numeric input — `inpN` (compact, centered, fixed width) */
+/* Numeric input — `inpN` (compact, centered, fixed width).
+   Used both by the NumberInput component (real number entry) and as a
+   generic compact-text-input class on <input type="text"> sites (axis
+   min/max, titles, labels) where the value is freeform. */
 .dv-input-num {
   width: 72px;
   background: var(--surface);
@@ -56,6 +59,90 @@
   outline: 2px solid var(--accent-primary);
   outline-offset: 1px;
   border-color: var(--accent-primary);
+}
+
+/* ── NumberInput component ─────────────────────────────────────────────
+   Replaces the native stacked up/down spinner with −/+ buttons on the
+   left and right of the input. `.dv-num` is the flex wrapper,
+   `.dv-num-input` the bare input (no border, spinners hidden), and
+   `.dv-num-btn` the shared button look. */
+.dv-num {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 26px;
+  box-sizing: border-box;
+}
+.dv-num:focus-within {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+  border-color: var(--accent-primary);
+}
+.dv-num.dv-num-disabled {
+  opacity: 0.55;
+}
+.dv-num-input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: center;
+  padding: 0 4px;
+  outline: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.dv-num-input::-webkit-outer-spin-button,
+.dv-num-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.dv-num-btn {
+  border: none;
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+  width: 22px;
+  flex: 0 0 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+.dv-num-btn:hover:not(:disabled) {
+  background: var(--accent-primary);
+  color: var(--on-accent);
+}
+.dv-num-btn:active:not(:disabled) {
+  filter: brightness(0.92);
+}
+.dv-num-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.dv-num-btn-minus {
+  border-right: 1px solid var(--border);
+}
+.dv-num-btn-plus {
+  border-left: 1px solid var(--border);
+}
+:root[data-theme="dark"] .dv-num-btn {
+  background: var(--surface-sunken);
 }
 
 /* Select dropdown — `selStyle` */

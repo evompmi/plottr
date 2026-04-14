@@ -64,6 +64,7 @@ const sharedGlobals = {
   DataPreview: "readonly",
   computeLegendHeight: "readonly",
   renderSvgLegend: "readonly",
+  NumberInput: "readonly",
   SliderControl: "readonly",
   StepNavBar: "readonly",
   CommaFixBanner: "readonly",

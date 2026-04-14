@@ -147,6 +147,9 @@ function buildContext() {
         },
       },
       body: { appendChild: function () {}, removeChild: function () {} },
+      addEventListener: function () {},
+      removeEventListener: function () {},
+      visibilityState: "visible",
     },
     localStorage: {
       getItem: function () {

@@ -9,6 +9,21 @@
 
 const THEME_STORAGE_KEY = "dataviz-theme";
 
+// BroadcastChannel is a same-origin cross-tab pub/sub channel. We use it in
+// parallel with the `storage` event because the latter is unreliable in
+// several common situations: some browsers partition storage per top-level
+// site, private-mode windows silently drop events, and events queued while a
+// page is in bfcache are never delivered. BroadcastChannel, when available,
+// fans theme changes out to every open tab synchronously and reliably.
+let _themeChannel = null;
+try {
+  if (typeof BroadcastChannel === "function") {
+    _themeChannel = new BroadcastChannel("dataviz-theme");
+  }
+} catch (e) {
+  _themeChannel = null;
+}
+
 function _applyThemeAttr(mode) {
   const root = document.documentElement;
   if (mode === "dark" || mode === "light") {
@@ -50,6 +65,14 @@ function setTheme(mode) {
     // the attribute so the current page reflects the change.
   }
   _applyThemeAttr(mode);
+  // Fan out to every other tab via BroadcastChannel — this is the reliable
+  // path. The `storage` event is kept as a fallback but not all browsers
+  // deliver it in all contexts.
+  try {
+    if (_themeChannel) _themeChannel.postMessage({ type: "theme", theme: mode });
+  } catch (e) {
+    // Ignore — local document will still be correct via _applyThemeAttr above.
+  }
   // Notify same-document listeners (storage events only fire cross-document).
   try {
     window.dispatchEvent(new CustomEvent("dataviz-theme-change", { detail: { theme: mode } }));
@@ -67,8 +90,26 @@ function toggleTheme() {
 // and covers the case where theme.js is loaded without the inline snippet.
 _applyThemeAttr(_readStoredTheme());
 
+// BroadcastChannel is the primary cross-tab delivery mechanism — when any
+// other tab calls setTheme, we receive the message here and re-apply.
+if (_themeChannel) {
+  _themeChannel.addEventListener("message", (e) => {
+    const data = e && e.data;
+    if (!data || data.type !== "theme") return;
+    const v = data.theme === "dark" || data.theme === "light" ? data.theme : null;
+    _applyThemeAttr(v);
+    try {
+      window.dispatchEvent(new CustomEvent("dataviz-theme-change", { detail: { theme: v } }));
+    } catch (err) {
+      // ignore
+    }
+  });
+}
+
 // Cross-iframe sync: when another same-origin frame writes the localStorage key,
-// re-apply locally so every open tool updates together.
+// re-apply locally so every open tool updates together. Kept as a fallback
+// layer behind BroadcastChannel — older browsers or storage partitioning may
+// still deliver storage events even when BroadcastChannel is missing.
 window.addEventListener("storage", (e) => {
   if (e.key !== THEME_STORAGE_KEY) return;
   const v = e.newValue === "dark" || e.newValue === "light" ? e.newValue : null;
@@ -77,6 +118,23 @@ window.addEventListener("storage", (e) => {
     window.dispatchEvent(new CustomEvent("dataviz-theme-change", { detail: { theme: v } }));
   } catch (err) {
     // ignore
+  }
+});
+
+// Re-read the stored theme whenever the page becomes visible again. Covers
+// two cases the `storage` event misses:
+//   1. bfcache restore — back/forward navigation resurrects the page without
+//      rerunning scripts, and storage events that fired while the page was
+//      frozen are not delivered.
+//   2. Tab regained focus after a toggle in another tab where the browser
+//      coalesced or dropped the storage event.
+// Cheap and idempotent: just re-applies whatever localStorage currently says.
+window.addEventListener("pageshow", () => {
+  _applyThemeAttr(_readStoredTheme());
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    _applyThemeAttr(_readStoredTheme());
   }
 });
 

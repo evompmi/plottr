@@ -5,6 +5,92 @@
 
 // ── Shared UI Components ─────────────────────────────────────────────────────
 
+// NumberInput — compact numeric entry with −/+ buttons on either side
+// replacing the native stacked spinner. Mimics the native <input type=
+// "number"> API: `value`, `onChange(e)` where `e.target.value` is a string,
+// plus `min`, `max`, `step`, `disabled`, `placeholder`, `className`, `style`,
+// `inputStyle`. The −/+ buttons fire a synthetic event with the next value
+// as a string so existing `(e) => setX(e.target.value)` handlers keep working.
+function NumberInput(props) {
+  const value = props.value != null ? props.value : "";
+  const onChange = props.onChange;
+  const min = props.min != null ? Number(props.min) : null;
+  const max = props.max != null ? Number(props.max) : null;
+  const rawStep = props.step != null && props.step !== "any" ? Number(props.step) : 1;
+  const step = isNaN(rawStep) || rawStep <= 0 ? 1 : rawStep;
+  const disabled = !!props.disabled;
+  const placeholder = props.placeholder;
+  const className = "dv-num" + (disabled ? " dv-num-disabled" : "");
+
+  const fireChange = function (newValueStr) {
+    if (!onChange) return;
+    onChange({ target: { value: newValueStr } });
+  };
+
+  const bump = function (dir) {
+    const current = Number(value);
+    const seed = isNaN(current) ? (min != null ? min : 0) : current;
+    let next = seed + dir * step;
+    if (min != null && next < min) next = min;
+    if (max != null && next > max) next = max;
+    // Round to the step's decimal precision to avoid 0.1+0.2 float noise.
+    const decimals = (String(step).split(".")[1] || "").length;
+    const fixed = decimals ? Number(next.toFixed(decimals)) : next;
+    fireChange(String(fixed));
+  };
+
+  const numericValue = Number(value);
+  const minusDisabled = disabled || (min != null && !isNaN(numericValue) && numericValue <= min);
+  const plusDisabled = disabled || (max != null && !isNaN(numericValue) && numericValue >= max);
+
+  return React.createElement(
+    "div",
+    { className: className, style: props.style },
+    React.createElement(
+      "button",
+      {
+        type: "button",
+        className: "dv-num-btn dv-num-btn-minus",
+        onClick: function () {
+          bump(-1);
+        },
+        disabled: minusDisabled,
+        tabIndex: -1,
+        "aria-label": "Decrement",
+      },
+      "\u2212"
+    ),
+    React.createElement("input", {
+      type: "number",
+      className: "dv-num-input",
+      value: value,
+      min: props.min,
+      max: props.max,
+      step: props.step != null ? props.step : 1,
+      disabled: disabled,
+      placeholder: placeholder,
+      onChange: function (e) {
+        fireChange(e.target.value);
+      },
+      style: props.inputStyle,
+    }),
+    React.createElement(
+      "button",
+      {
+        type: "button",
+        className: "dv-num-btn dv-num-btn-plus",
+        onClick: function () {
+          bump(1);
+        },
+        disabled: plusDisabled,
+        tabIndex: -1,
+        "aria-label": "Increment",
+      },
+      "+"
+    )
+  );
+}
+
 // Slider with label + value display on top, range input below
 function SliderControl(props) {
   const label = props.label,

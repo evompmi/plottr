@@ -482,7 +482,7 @@
         <p>
           485 internal tests<br />
           285 cross-checks vs R 4.5<br />
-          <a href="benchmark.html">view benchmark →</a>
+          <a href="benchmark.html" data-benchmark-link>view benchmark →</a>
         </p>
       </div>
     </div>
@@ -695,6 +695,20 @@
         var MOON =
           '<svg viewBox="0 0 20 20" fill="currentColor" stroke="none" width="16" height="16" aria-hidden="true"><path d="M16.5 12.8A6.5 6.5 0 0 1 7.2 3.5a.6.6 0 0 0-.8-.78 8 8 0 1 0 10.86 10.86.6.6 0 0 0-.78-.78z"/></svg>';
 
+        // BroadcastChannel is the reliable cross-tab delivery mechanism —
+        // `storage` events are coalesced, partitioned, or dropped in several
+        // common situations (bfcache, private mode, file:// origins). The
+        // matching listener lives in tools/theme.js which every tool and the
+        // benchmark page load.
+        var themeChannel = null;
+        try {
+          if (typeof BroadcastChannel === "function") {
+            themeChannel = new BroadcastChannel("dataviz-theme");
+          }
+        } catch (e) {
+          themeChannel = null;
+        }
+
         function resolved() {
           var explicit = document.documentElement.getAttribute("data-theme");
           if (explicit === "dark" || explicit === "light") return explicit;
@@ -728,6 +742,12 @@
             }
           } catch (e) {}
           applyAttr(document.documentElement, mode);
+          // Fan out to every other same-origin tab (benchmark, open tools in
+          // separate windows). theme.js in each of those listens on the same
+          // channel and re-applies the attribute.
+          try {
+            if (themeChannel) themeChannel.postMessage({ type: "theme", theme: mode });
+          } catch (e) {}
           // Propagate into every tool iframe. We try a direct DOM write first
           // (works when the iframe is same-origin and already loaded), and
           // always postMessage as a backstop — the cross-frame `storage` event
@@ -751,6 +771,28 @@
             setTheme(resolved() === "dark" ? "light" : "dark");
           });
         });
+        // Cross-origin theme push for links that navigate away from this
+        // document (benchmark.html). On file:// origins Chrome partitions
+        // localStorage per-file, so the target page cannot read our stored
+        // theme — we smuggle it through a ?theme= query param, which the
+        // target's no-FOUC snippet reads and persists locally.
+        document.querySelectorAll("[data-benchmark-link]").forEach(function (a) {
+          a.addEventListener("click", function () {
+            var base = a.getAttribute("href").split("?")[0].split("#")[0];
+            a.setAttribute("href", base + "?theme=" + resolved());
+          });
+        });
+        // Inbound channel messages — another tab (tool, benchmark) toggled,
+        // update our own <html> attribute and re-render the icon.
+        if (themeChannel) {
+          themeChannel.addEventListener("message", function (e) {
+            var data = e && e.data;
+            if (!data || data.type !== "theme") return;
+            var v = data.theme === "dark" || data.theme === "light" ? data.theme : null;
+            applyAttr(document.documentElement, v);
+            render();
+          });
+        }
         window.addEventListener("storage", function (e) {
           if (e.key !== "dataviz-theme") return;
           var v = e.newValue === "dark" || e.newValue === "light" ? e.newValue : null;

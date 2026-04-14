@@ -1880,11 +1880,9 @@ function ConfigureStep({
             {(formula === "allen-blinks" || formula === "generalized") && (
               <div>
                 <div className="dv-label">Kr</div>
-                <input
-                  type="number"
+                <NumberInput
                   value={Kr}
                   onChange={(e) => setKr(Number(e.target.value))}
-                  className="dv-input-num"
                   step="0.1"
                 />
               </div>
@@ -1892,11 +1890,9 @@ function ConfigureStep({
             {(formula === "allen-blinks" || formula === "generalized") && (
               <div>
                 <div className="dv-label">Ktr</div>
-                <input
-                  type="number"
+                <NumberInput
                   value={Ktr}
                   onChange={(e) => setKtr(Number(e.target.value))}
-                  className="dv-input-num"
                   step="1"
                 />
               </div>
@@ -1904,11 +1900,9 @@ function ConfigureStep({
             {formula === "hill" && (
               <div>
                 <div className="dv-label">Kd (µM)</div>
-                <input
-                  type="number"
+                <NumberInput
                   value={Kd}
                   onChange={(e) => setKd(Number(e.target.value))}
-                  className="dv-input-num"
                   step="0.5"
                   min="0.1"
                 />
@@ -1917,11 +1911,9 @@ function ConfigureStep({
             {formula === "generalized" && (
               <div>
                 <div className="dv-label">n (Hill exp.)</div>
-                <input
-                  type="number"
+                <NumberInput
                   value={hillN}
                   onChange={(e) => setHillN(Number(e.target.value))}
-                  className="dv-input-num"
                   step="0.5"
                   min="1"
                 />
@@ -1938,12 +1930,10 @@ function ConfigureStep({
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
             <div>
               <div className="dv-label">Time step (per row)</div>
-              <input
-                type="number"
+              <NumberInput
                 value={vis.timeStep}
                 onChange={(e) => updVis({ timeStep: Number(e.target.value) || 1 })}
-                className="dv-input-num"
-                style={{ width: 88 }}
+                style={{ width: 132 }}
                 min="0.001"
                 step="any"
               />
@@ -2127,43 +2117,35 @@ function PlotControls({
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
             <div className="dv-label">X start</div>
-            <input
-              type="number"
+            <NumberInput
               value={vis.xStart}
               onChange={(e) => updVis({ xStart: Number(e.target.value) })}
-              className="dv-input-num"
-              style={{ width: "100%", textAlign: "left" }}
+              style={{ width: "100%" }}
             />
           </div>
           <div>
             <div className="dv-label">X end</div>
-            <input
-              type="number"
+            <NumberInput
               value={vis.xEnd}
               onChange={(e) => updVis({ xEnd: Number(e.target.value) })}
-              className="dv-input-num"
-              style={{ width: "100%", textAlign: "left" }}
+              style={{ width: "100%" }}
             />
           </div>
           <div>
             <div className="dv-label">Y min</div>
-            <input
-              type="number"
+            <NumberInput
               value={vis.yMin}
               onChange={(e) => updVis({ yMin: Number(e.target.value) })}
-              className="dv-input-num"
-              style={{ width: "100%", textAlign: "left" }}
+              style={{ width: "100%" }}
               step="0.1"
             />
           </div>
           <div>
             <div className="dv-label">Y max</div>
-            <input
-              type="number"
+            <NumberInput
               value={vis.yMax}
               onChange={(e) => updVis({ yMax: Number(e.target.value) })}
-              className="dv-input-num"
-              style={{ width: "100%", textAlign: "left" }}
+              style={{ width: "100%" }}
               step="0.1"
             />
           </div>

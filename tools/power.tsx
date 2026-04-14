@@ -100,8 +100,7 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
   const [observedStr, setObservedStr] = useState("");
   // correlation — no helper needed, r is intuitive
 
-  // Override-only — base look comes from className "dv-input-num".
-  const inputStyle: React.CSSProperties = { width: "100%", textAlign: "left" };
+  const inputStyle: React.CSSProperties = { width: "100%" };
   const smallLabel = { fontSize: 11, color: "var(--text-muted)", marginBottom: 2 };
   const note = { fontSize: 10, color: "var(--text-faint)", marginTop: 2 };
 
@@ -279,40 +278,34 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div>
             <div style={smallLabel}>Expected mean — group 1</div>
-            <input
-              type="number"
+            <NumberInput
               step="any"
               value={mean1}
               onChange={(e) => setMean1(e.target.value)}
               disabled={disabled}
-              className="dv-input-num"
               style={inputStyle}
               placeholder="e.g. 15.2"
             />
           </div>
           <div>
             <div style={smallLabel}>Expected mean — group 2</div>
-            <input
-              type="number"
+            <NumberInput
               step="any"
               value={mean2}
               onChange={(e) => setMean2(e.target.value)}
               disabled={disabled}
-              className="dv-input-num"
               style={inputStyle}
               placeholder="e.g. 12.8"
             />
           </div>
           <div>
             <div style={smallLabel}>Common standard deviation</div>
-            <input
-              type="number"
+            <NumberInput
               step="any"
               min="0"
               value={sd}
               onChange={(e) => setSd(e.target.value)}
               disabled={disabled}
-              className="dv-input-num"
               style={inputStyle}
               placeholder="e.g. 4.5"
             />
@@ -339,13 +332,11 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
                 ? "Expected mean difference"
                 : "Expected deviation from reference"}
             </div>
-            <input
-              type="number"
+            <NumberInput
               step="any"
               value={diffMean}
               onChange={(e) => setDiffMean(e.target.value)}
               disabled={disabled}
-              className="dv-input-num"
               style={inputStyle}
               placeholder="e.g. 2.5"
             />
@@ -354,14 +345,12 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
             <div style={smallLabel}>
               {testKey === "t-paired" ? "SD of paired differences" : "Standard deviation"}
             </div>
-            <input
-              type="number"
+            <NumberInput
               step="any"
               min="0"
               value={diffSd}
               onChange={(e) => setDiffSd(e.target.value)}
               disabled={disabled}
-              className="dv-input-num"
               style={inputStyle}
               placeholder="e.g. 5.0"
             />
@@ -393,14 +382,12 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
           </div>
           <div>
             <div style={smallLabel}>Within-group standard deviation</div>
-            <input
-              type="number"
+            <NumberInput
               step="any"
               min="0"
               value={withinSd}
               onChange={(e) => setWithinSd(e.target.value)}
               disabled={disabled}
-              className="dv-input-num"
               style={inputStyle}
               placeholder="e.g. 4.0"
             />
@@ -777,7 +764,6 @@ function App() {
     if (key === "anova" || key === "chi2") setTails(2);
   }, []);
 
-  // Override-only — base look comes from className "dv-input-num".
   const inputStyle = { width: "100%" };
   const chipStyle = (active: boolean): React.CSSProperties => ({
     padding: "4px 8px",
@@ -877,8 +863,7 @@ function App() {
             {/* Sample size */}
             <div style={{ opacity: solveFor === "n" ? 0.4 : 1 }}>
               <div className="dv-label">{test.nLabel}</div>
-              <input
-                type="number"
+              <NumberInput
                 min="2"
                 step="1"
                 value={nInput}
@@ -948,8 +933,7 @@ function App() {
             {test.hasGroups && (
               <div>
                 <div className="dv-label">Number of groups</div>
-                <input
-                  type="number"
+                <NumberInput
                   min="2"
                   max="20"
                   step="1"
@@ -964,8 +948,7 @@ function App() {
             {test.hasDf && (
               <div>
                 <div className="dv-label">Degrees of freedom</div>
-                <input
-                  type="number"
+                <NumberInput
                   min="1"
                   max="100"
                   step="1"

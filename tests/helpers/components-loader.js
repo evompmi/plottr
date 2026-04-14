@@ -42,6 +42,9 @@ const ctx = {
       getAttribute: () => null,
     },
     body: { appendChild: () => {}, removeChild: () => {} },
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    visibilityState: "visible",
   },
   window: {
     addEventListener: () => {},

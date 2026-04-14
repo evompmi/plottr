@@ -1561,12 +1561,10 @@ function PlotStep({
                   >
                     {rl.dir === "h" ? "Y =" : "X ="}
                   </span>
-                  <input
-                    type="number"
+                  <NumberInput
                     value={rl.value}
                     step="any"
                     onChange={(e) => updateRefLine(rl.id, "value", Number(e.target.value))}
-                    className="dv-input-num"
                     style={{ flex: 1 }}
                   />
                   <button
