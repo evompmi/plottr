@@ -964,6 +964,9 @@ const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
   const [chartOpen, setChartOpen] = useState(true);
   const [replicateTableOpen, setReplicateTableOpen] = useState(false);
   const [insetOpen, setInsetOpen] = useState(true);
+  useEffect(() => {
+    if (showInset) setInsetOpen(true);
+  }, [showInset]);
   const barRef = useRef();
 
   const statsGroups = useMemo(() => {
@@ -1441,6 +1444,7 @@ const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
             plotSubtitle={subtitle || null}
             svgLegend={[
               {
+                id: "legend-samples",
                 title: null,
                 items: displaySeries.map((s) => ({
                   label: `${s.label} (n=${s.n})`,

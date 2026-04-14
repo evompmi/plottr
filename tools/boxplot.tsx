@@ -13,7 +13,7 @@ function renderStatsSummary(summary: string | null, y: number, x: number) {
   if (!summary) return null;
   const lines = summary.split("\n");
   return (
-    <g>
+    <g id="stats-summary">
       {lines.map((line, i) => (
         <text
           key={i}
@@ -2251,6 +2251,7 @@ function PlotArea({
                 colorByCol >= 0 && colorByCategories.length > 0
                   ? [
                       {
+                        id: "legend-color",
                         title: `Points colored by: ${colNames[colorByCol]}`,
                         items: colorByCategories.map((c) => ({
                           label: c,
@@ -2291,6 +2292,7 @@ function PlotArea({
                 colorByCol >= 0 && colorByCategories.length > 0
                   ? [
                       {
+                        id: "legend-color",
                         title: `Points colored by: ${colNames[colorByCol]}`,
                         items: colorByCategories.map((c) => ({
                           label: c,
@@ -2344,6 +2346,7 @@ function PlotArea({
                 colorByCol >= 0 && colorByCategories.length > 0
                   ? [
                       {
+                        id: "legend-color",
                         title: `Points colored by: ${colNames[colorByCol]}`,
                         items: colorByCategories.map((c) => ({
                           label: c,

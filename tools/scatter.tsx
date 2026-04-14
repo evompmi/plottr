@@ -1850,7 +1850,7 @@ function App() {
     yLabel: "",
     plotTitle: "",
     plotBg: "#ffffff",
-    showGrid: true,
+    showGrid: false,
     gridColor: "#e0e0e0",
   };
   const [vis, updVis] = useReducer((s, a) => (a._reset ? { ...visInit } : { ...s, ...a }), visInit);
@@ -2120,11 +2120,13 @@ function App() {
     if (hasColorMap && colorMapType === "continuous") {
       const stops = COLOR_PALETTES[colorMapPalette] || COLOR_PALETTES.viridis;
       items.push({
+        id: "legend-color",
         title: parsed.headers[colorMapCol],
         gradient: { stops, min: colorMapRange[0].toFixed(2), max: colorMapRange[1].toFixed(2) },
       });
     } else if (hasColorMap && colorMapType === "discrete") {
       items.push({
+        id: "legend-color",
         title: parsed.headers[colorMapCol],
         items: colorMapCategories.map((c) => ({
           label: c,
@@ -2136,6 +2138,7 @@ function App() {
 
     if (hasSizeMap && sizeMapType === "discrete") {
       items.push({
+        id: "legend-size",
         title: parsed.headers[sizeMapCol],
         sizeItems: sizeMapCategories.map((c) => ({
           label: c,
@@ -2150,11 +2153,12 @@ function App() {
           r: sizeMapMin + t * (sizeMapMax - sizeMapMin),
         };
       });
-      items.push({ title: parsed.headers[sizeMapCol], sizeItems });
+      items.push({ id: "legend-size", title: parsed.headers[sizeMapCol], sizeItems });
     }
 
     if (hasShapeMap) {
       items.push({
+        id: "legend-shape",
         title: parsed.headers[shapeMapCol],
         items: shapeMapCategories.map((c) => ({
           label: c,

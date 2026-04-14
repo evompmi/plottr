@@ -1086,7 +1086,7 @@ const VennChart = forwardRef<SVGSVGElement, any>(function VennChart(
               style={{ cursor: "pointer" }}
               onClick={() => onRegionClick && onRegionClick(isSelected ? null : inter.mask)}
             >
-              <circle cx={c.x} cy={c.y} r={hitR} fill="transparent" />
+              <circle cx={c.x} cy={c.y} r={hitR} fill="none" pointerEvents="all" />
               <text
                 x={c.x}
                 y={c.y}

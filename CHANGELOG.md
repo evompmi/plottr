@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Component CSS classes** — introduces `tools/components.css` with `dv-panel`, `dv-input`, `dv-label`, `dv-select`, `dv-btn-*`, and the `dv-num` stepper. Adds `:hover`, `:focus-visible`, `:active`, and `:disabled` states that inline styles couldn't express.
 - **−/+ numeric steppers** — all `<input type="number">` fields across the tools now render as a compact stepper with `−`/`+` buttons (click or press-and-hold to repeat) replacing the native browser arrows.
 - **Bar outline controls in Group Plot (bar style) and Aequorin inset barplot** — unified "Bar outline" checkbox + width slider + color picker across both tools.
-- **Named SVG group ids for Inkscape** — every chart export wraps its elements in `<g id="…">` groups with human-readable ids (`background`, `grid`, `axis-x`, `axis-y`, `data-points`, `plot-frame`, `legend`, `cld-annotations`, `significance-brackets`, …) plus per-series ids. Inkscape surfaces these in its Objects panel so users can select and edit grouped elements by name.
+- **Named SVG group ids for Inkscape** — every chart export wraps its elements in `<g id="…">` groups with human-readable ids (`background`, `grid`, `axis-x`, `axis-y`, `data-points`, `plot-frame`, `legend`, `cld-annotations`, `significance-brackets`, …) plus per-series ids. Inkscape surfaces these in its Objects panel so users can select and edit grouped elements by name. The shared SVG legend renderer now wraps the whole block in `<g id="legend">` and gives each sub-block its own id — scatter emits `legend-color` / `legend-size` / `legend-shape`, and boxplot/aequorin derive ids from block titles so the individual pieces can be selected independently in Inkscape. `stats-summary` is also now a named group in boxplot exports.
 
 ### Changed
 
@@ -26,9 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Prominent disclosure indicator** — collapsible panels (Statistics Summary, Scatter Filters, time-course chart, Per replicate, inset barplot) now show an accent-coloured circular `>` toggle on the left of the header instead of thin unicode carets.
 - **"Show ns" off by default** in on-plot statistics annotations so compact-letter displays and significance brackets only label the meaningful comparisons unless the user opts in.
 - **Power tool layout** no longer rearranges its tiles on narrow viewports — the body scrolls horizontally when the window is truly too narrow instead of dropping the plot below the controls.
-- **Aequorin inset barplot tile** now has a three-state model: hidden (sidebar "Show" unchecked, default), mounted-and-expanded, or mounted-and-minimised via a disclosure toggle in the tile header. Expand/collapse is cheap — the bar plot, stats, and StatsTile stay mounted across toggles. Also dropped its raw/corrected colour tint in favour of neutral chrome; the `Σ Raw` / `Σ Baseline-corrected` buttons still carry the mode signal.
+- **Aequorin inset barplot tile** now has a three-state model: hidden (sidebar "Show" unchecked, default), mounted-and-expanded, or mounted-and-minimised via a disclosure toggle in the tile header. Expand/collapse is cheap — the bar plot, stats, and StatsTile stay mounted across toggles. Toggling the sidebar "Show" checkbox back on always re-opens the tile expanded so users don't have to click twice. Also dropped its raw/corrected colour tint in favour of neutral chrome; the `Σ Raw` / `Σ Baseline-corrected` buttons still carry the mode signal.
 - **Aequorin Combined/Faceted toggle** moved into the sticky chart header next to Sample selection so it follows scroll, rendered as a quiet segmented toggle (single bordered container, shared divider, active segment filled accent-blue) so it doesn't compete with Sample selection's emphasised pill for attention.
 - **Aequorin "Per replicate" table** now a dedicated tile with a disclosure toggle; collapsed by default to keep the plot step compact.
+- **Scatter grid off by default** — new plots no longer draw grid lines unless the user enables them.
 - **Aequorin plot-step heading** "Plot parameters" → "Time-course parameters" (the panel only controls the time-course chart, not the inset barplot).
 - **StatsTile disclosure and report download** are now anchored to the header: the disclosure toggle sits on the left and the `⬇ TXT` button stays visible even when the summary is collapsed.
 - **Landing-page theme toggle** aligned with the rightmost tile of the centred grid instead of floating at the page's right edge.
@@ -48,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Power tool premature horizontal scrollbar** — removed the inherited `min-width: 1100px` that Power's narrower layout didn't need.
 - **Venn and Power horizontal offset** — both tools' content wrappers normalised to match the other plot tools so `PageHeader` icons line up with the top-bar strip.
 - **Top-bar theme toggle not reaching the iframe** — toggle now `postMessage`s the theme into every tool iframe instead of relying on the unreliable same-window `storage` event.
+- **Venn exports rendered as black blobs in Inkscape** — the per-region click-hit circles used `fill="transparent"`, which is HTML/CSS-only and not a valid SVG 1.1 paint. Inkscape fell back to the default black fill, covering the diagram. Swapped to `fill="none" pointer-events="all"` so the regions stay clickable in the browser and invisible in Inkscape and other SVG readers.
 
 ## [2.1.1] - 2026-04-13
 
