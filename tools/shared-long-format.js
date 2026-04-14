@@ -14,7 +14,7 @@ function ColumnRoleEditor(props) {
     onNameChange = props.onNameChange;
   return React.createElement(
     "div",
-    { style: sec },
+    { className: "dv-panel" },
     React.createElement(
       "p",
       { style: { margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" } },
@@ -81,7 +81,8 @@ function ColumnRoleEditor(props) {
             onChange: function (e) {
               onNameChange(i, e.target.value);
             },
-            style: Object.assign({}, inp, { width: 120, fontWeight: 600 }),
+            className: "dv-input",
+            style: { width: 120, fontWeight: 600 },
           }),
           React.createElement(
             "select",
@@ -90,11 +91,12 @@ function ColumnRoleEditor(props) {
               onChange: function (e) {
                 onRoleChange(i, e.target.value);
               },
-              style: Object.assign({}, inp, {
+              className: "dv-input",
+              style: {
                 cursor: "pointer",
                 fontWeight: 600,
                 color: roleColors[colRoles[i]],
-              }),
+              },
             },
             React.createElement("option", { value: "group" }, "group"),
             React.createElement("option", { value: "value" }, "value"),
@@ -461,7 +463,8 @@ function RenameReorderPanel(props) {
                 onChange: function (e) {
                   onRenameVal(i, v, e.target.value);
                 },
-                style: Object.assign({}, inp, { width: 100, fontSize: 11 }),
+                className: "dv-input",
+                style: { width: 100, fontSize: 11 },
               })
             );
           })
@@ -479,7 +482,7 @@ function StatsTable(props) {
   const headers = ["Group", "n", "Mean", "Median", "SD", "SEM", "Min", "Max"];
   return React.createElement(
     "div",
-    { style: sec },
+    { className: "dv-panel" },
     React.createElement(
       "p",
       { style: { margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" } },
@@ -670,7 +673,7 @@ function BaseStyleControls(props) {
         key: "bg",
         style: { display: "flex", alignItems: "center", justifyContent: "space-between" },
       },
-      React.createElement("span", { style: lbl }, "Background"),
+      React.createElement("span", { className: "dv-label" }, "Background"),
       React.createElement(ColorInput, { value: plotBg, onChange: onPlotBgChange, size: 24 })
     ),
     React.createElement(
@@ -679,7 +682,7 @@ function BaseStyleControls(props) {
         key: "grid",
         style: { display: "flex", alignItems: "center", justifyContent: "space-between" },
       },
-      React.createElement("span", { style: lbl }, "Grid"),
+      React.createElement("span", { className: "dv-label" }, "Grid"),
       React.createElement("input", {
         type: "checkbox",
         checked: showGrid,
@@ -698,7 +701,7 @@ function BaseStyleControls(props) {
           key: "gc",
           style: { display: "flex", alignItems: "center", justifyContent: "space-between" },
         },
-        React.createElement("span", { style: lbl }, "Grid color"),
+        React.createElement("span", { className: "dv-label" }, "Grid color"),
         React.createElement(ColorInput, { value: gridColor, onChange: onGridColorChange, size: 24 })
       )
     );

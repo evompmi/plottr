@@ -1,5 +1,5 @@
 // shared-core.js — plain JS, no JSX
-// Requires React and shared.js (btnPrimary, btnSecondary) to be loaded
+// Requires React, shared.js, and components.css (dv-btn classes) to be loaded
 // globally before this script.
 
 // ── Data Preview Table ──────────────────────────────────────────────────────
@@ -216,12 +216,12 @@ class ErrorBoundary extends React.Component {
         { style: { display: "flex", gap: 10, flexWrap: "wrap" } },
         React.createElement(
           "button",
-          { type: "button", onClick: reload, style: btnPrimary },
+          { type: "button", onClick: reload, className: "dv-btn dv-btn-primary" },
           "Reload tool"
         ),
         React.createElement(
           "button",
-          { type: "button", onClick: copy, style: btnSecondary },
+          { type: "button", onClick: copy, className: "dv-btn dv-btn-secondary" },
           "Copy error details"
         )
       )

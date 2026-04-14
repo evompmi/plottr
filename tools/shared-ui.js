@@ -1,7 +1,7 @@
 // shared-ui.js — plain JS, no JSX
-// Requires React, shared.js (sec, lbl, sepSelect, btnDownload, btnSecondary,
-// btnDanger, toolIcon, flashSaved), and shared-file-drop.js (FileDropZone)
-// to be loaded globally before this script.
+// Requires React, shared.js (btnSecondary fallback for ActionsPanel, toolIcon,
+// flashSaved), components.css (dv-* classes), and shared-file-drop.js
+// (FileDropZone) to be loaded globally before this script.
 
 // ── Shared UI Components ─────────────────────────────────────────────────────
 
@@ -21,7 +21,7 @@ function SliderControl(props) {
     React.createElement(
       "div",
       { style: { display: "flex", justifyContent: "space-between", marginBottom: 2 } },
-      React.createElement("span", { style: lbl }, label),
+      React.createElement("span", { className: "dv-label" }, label),
       React.createElement("span", { style: { fontSize: 10, color: "var(--text-faint)" } }, dv)
     ),
     React.createElement("input", {
@@ -93,14 +93,15 @@ function CommaFixBanner(props) {
   return React.createElement(
     "div",
     {
-      style: Object.assign({}, sec, {
+      className: "dv-panel",
+      style: {
         background: "var(--warning-bg)",
         borderColor: "var(--warning-border)",
         display: "flex",
         alignItems: "center",
         gap: 12,
         padding: "10px 16px",
-      }),
+      },
     },
     React.createElement("span", { style: { fontSize: 18 } }, "\uD83D\uDD04"),
     React.createElement(
@@ -194,7 +195,7 @@ function UploadPanel(props) {
     hint = props.hint;
   return React.createElement(
     "div",
-    { style: sec },
+    { className: "dv-panel" },
     React.createElement(
       "div",
       {
@@ -221,7 +222,7 @@ function UploadPanel(props) {
           onChange: function (e) {
             onSepChange(e.target.value);
           },
-          style: sepSelect,
+          className: "dv-select-sep",
         },
         React.createElement("option", { value: "" }, "\u2014 Select \u2014"),
         React.createElement("option", { value: "," }, "Comma (,)"),
@@ -313,7 +314,7 @@ function ActionsPanel(props) {
             props.onDownloadSvg(e);
             flashSaved(e.currentTarget);
           },
-          style: btnDownload,
+          className: "dv-btn dv-btn-download",
         },
         "\u2B07 Download SVG"
       )
@@ -329,11 +330,12 @@ function ActionsPanel(props) {
             props.onDownloadPng(e);
             flashSaved(e.currentTarget);
           },
-          style: Object.assign({}, btnDownload, {
+          className: "dv-btn dv-btn-download",
+          style: {
             background: "var(--info-bg)",
             borderColor: "var(--info-border)",
             color: "var(--info-text)",
-          }),
+          },
         },
         "\u2B07 Download PNG"
       )
@@ -360,14 +362,14 @@ function ActionsPanel(props) {
       {
         key: "reset",
         onClick: props.onReset,
-        style: btnDanger,
+        className: "dv-btn dv-btn-danger",
       },
       "\u21BA Start over"
     )
   );
   return React.createElement(
     "div",
-    { style: sec },
+    { className: "dv-panel" },
     React.createElement(
       "p",
       {

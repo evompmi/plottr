@@ -525,8 +525,8 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
   if (k < 2) return null;
 
   // ── Styles ────────────────────────────────────────────────────────────────
+  // Override-only object — base panel look comes from className "dv-panel".
   const wrap = {
-    ...sec,
     marginTop: 12,
     background: "var(--surface-subtle)",
   };
@@ -690,7 +690,7 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
 
   const displayTile = React.createElement(
     "div",
-    { style: wrap },
+    { className: "dv-panel", style: wrap },
     displayTileHeader,
     displayControls
   );
@@ -700,7 +700,7 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
       React.Fragment,
       null,
       displayTile,
-      React.createElement("div", { style: wrap }, summaryHeaderEl)
+      React.createElement("div", { className: "dv-panel", style: wrap }, summaryHeaderEl)
     );
 
   // ── Assumptions section ───────────────────────────────────────────────────
@@ -807,7 +807,8 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
       {
         value: chosenTest || "",
         onChange: (e) => setOverrideTest(e.target.value === recTest ? null : e.target.value),
-        style: { ...selStyle, minWidth: 180 },
+        className: "dv-select",
+        style: { minWidth: 180 },
       },
       testOptions.map((t) =>
         React.createElement(
@@ -822,8 +823,8 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
           "button",
           {
             onClick: () => setOverrideTest(null),
+            className: "dv-btn dv-btn-secondary",
             style: {
-              ...btnSecondary,
               padding: "4px 10px",
               fontSize: 11,
             },
@@ -1031,7 +1032,7 @@ function StatsTile({ groups, onAnnotationsChange, onStatsSummaryChange, defaultO
     displayTile,
     React.createElement(
       "div",
-      { style: wrap },
+      { className: "dv-panel", style: wrap },
       summaryHeaderEl,
       React.createElement(
         "div",

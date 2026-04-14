@@ -102,8 +102,12 @@
   font-family: inherit;
   border: none;
   transition:
-    filter 120ms ease,
-    transform 60ms ease;
+    filter 140ms ease,
+    transform 100ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
 }
 .dv-btn:focus-visible {
   outline: 2px solid var(--accent-primary);
@@ -114,6 +118,7 @@
   opacity: 0.55;
   filter: none !important;
   transform: none !important;
+  box-shadow: none !important;
 }
 
 /* Primary CTA — `btnPrimary` */
@@ -126,10 +131,14 @@
   color: var(--on-accent);
 }
 .dv-btn-primary:hover:not(:disabled) {
-  filter: brightness(1.08);
+  filter: brightness(1.15) saturate(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgb(100 143 255 / 0.45);
 }
 .dv-btn-primary:active:not(:disabled) {
   transform: translateY(1px);
+  filter: brightness(0.96);
+  box-shadow: none;
 }
 
 /* Plot CTA — `btnPlot` (teal accent) */
@@ -142,10 +151,14 @@
   color: var(--on-accent);
 }
 .dv-btn-plot:hover:not(:disabled) {
-  filter: brightness(1.08);
+  filter: brightness(1.15) saturate(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgb(46 196 182 / 0.5);
 }
 .dv-btn-plot:active:not(:disabled) {
   transform: translateY(1px);
+  filter: brightness(0.96);
+  box-shadow: none;
 }
 
 /* Download CTA — `btnDownload` (green, full width) */
@@ -159,10 +172,14 @@
   color: var(--on-accent);
 }
 .dv-btn-download:hover:not(:disabled) {
-  filter: brightness(1.08);
+  filter: brightness(1.15) saturate(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgb(22 163 74 / 0.5);
 }
 .dv-btn-download:active:not(:disabled) {
   transform: translateY(1px);
+  filter: brightness(0.96);
+  box-shadow: none;
 }
 
 /* Secondary / quiet button — `btnSecondary` */
@@ -176,11 +193,14 @@
 }
 .dv-btn-secondary:hover:not(:disabled) {
   background: var(--surface-subtle);
-  border-color: var(--text-faint);
+  border-color: var(--accent-primary);
   color: var(--text);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px -3px rgb(0 0 0 / 0.18);
 }
 .dv-btn-secondary:active:not(:disabled) {
   transform: translateY(1px);
+  box-shadow: none;
 }
 
 /* Destructive button — `btnDanger` (full width) */
@@ -194,8 +214,12 @@
   color: var(--danger-text);
 }
 .dv-btn-danger:hover:not(:disabled) {
-  filter: brightness(0.96);
+  filter: brightness(0.94);
+  border-color: var(--danger-text);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px -3px rgb(220 38 38 / 0.4);
 }
 .dv-btn-danger:active:not(:disabled) {
   transform: translateY(1px);
+  box-shadow: none;
 }
