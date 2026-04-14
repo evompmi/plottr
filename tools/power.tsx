@@ -970,6 +970,7 @@ function App() {
         <div style={{ flex: 1, minWidth: 360, display: "flex", flexDirection: "column", gap: 6 }}>
           {/* Power curve */}
           <div
+            className="dv-plot-card"
             style={{
               background: "var(--plot-card-bg)",
               border: "1px solid var(--plot-card-border)",

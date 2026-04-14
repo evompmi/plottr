@@ -2101,6 +2101,7 @@ const FacetBoxplotItem = memo(function FacetBoxplotItem({
   }, [fd.category, facetRefs]);
   return (
     <div
+      className="dv-plot-card"
       style={{
         background: "var(--plot-card-bg)",
         borderRadius: 8,
@@ -2162,7 +2163,7 @@ function PlotArea({
     return (
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
-          className="dv-panel"
+          className="dv-panel dv-plot-card"
           style={{
             padding: 20,
             background: "var(--plot-card-bg)",
@@ -2219,6 +2220,7 @@ function PlotArea({
       )}
       {facetByCol < 0 && (
         <div
+          className="dv-plot-card"
           style={{
             background: "var(--plot-card-bg)",
             borderRadius: 10,

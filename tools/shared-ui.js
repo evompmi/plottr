@@ -498,11 +498,9 @@ function ActionsPanel(props) {
       {
         style: {
           margin: "0 0 8px",
-          fontSize: 11,
-          fontWeight: 700,
+          fontSize: 13,
+          fontWeight: 600,
           color: "var(--text-muted)",
-          textTransform: "uppercase",
-          letterSpacing: "0.8px",
         },
       },
       "Actions"

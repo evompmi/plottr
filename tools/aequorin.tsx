@@ -897,6 +897,7 @@ const FacetChartItem = memo(function FacetChartItem({ s, facetRefs, chartProps }
   }, [s.prefix, facetRefs]);
   return (
     <div
+      className="dv-plot-card"
       style={{
         background: "var(--plot-card-bg)",
         borderRadius: 8,
@@ -935,6 +936,7 @@ const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
     baseUnit,
     displayUnit,
     showInset,
+    setShowInset,
     insetColors,
     insetFillOpacity,
     insetBarWidth,
@@ -1098,23 +1100,54 @@ const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
   };
 
   const isCorrected = statsDataMode === "corrected";
-  const modeColor = isCorrected ? "var(--success-text)" : "var(--info-text)";
-  const modeBg = isCorrected ? "var(--success-bg)" : "var(--info-bg)";
-  const modeBorder = isCorrected ? "var(--success-border)" : "var(--info-border)";
   const sumKey = isCorrected ? "corrSum" : "rawSum";
   const sumLabel = isCorrected ? "Corrected Sum" : "Raw Sum";
   const csvFileName = isCorrected ? `corrected_sums_${baseName}.csv` : `raw_sums_${baseName}.csv`;
 
-  const IntegralTile = showInset ? (
+  const IntegralTile = (
     <div
+      className="dv-plot-card"
       style={{
         marginTop: 16,
         borderRadius: 10,
-        padding: 16,
-        border: `1px solid ${modeBorder}`,
-        background: modeBg,
+        border: "1px solid var(--plot-card-border)",
+        background: "var(--plot-card-bg)",
+        overflow: "hidden",
       }}
     >
+      <button
+        onClick={() => setShowInset && setShowInset(!showInset)}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 14px",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontFamily: "inherit",
+        }}
+      >
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--text-muted)",
+          }}
+        >
+          <span
+            className={"dv-disclosure" + (showInset ? " dv-disclosure-open" : "")}
+            aria-hidden="true"
+          />
+          Barplot (Σ of plotted values)
+        </span>
+      </button>
+      {showInset && (
+      <div style={{ padding: "0 16px 16px" }}>
       {/* Toggle */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>Integral:</span>
@@ -1242,14 +1275,14 @@ const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
               style={{ borderCollapse: "collapse", fontSize: 11, width: "100%", marginTop: 10 }}
             >
               <thead>
-                <tr style={{ borderBottom: `2px solid ${modeBorder}` }}>
+                <tr style={{ borderBottom: "2px solid var(--border-strong)" }}>
                   {["Condition", "Replicate", sumLabel].map((h) => (
                     <th
                       key={h}
                       style={{
                         padding: "3px 8px",
                         textAlign: "left",
-                        color: modeColor,
+                        color: "var(--text-muted)",
                         fontWeight: 700,
                       }}
                     >
@@ -1263,7 +1296,7 @@ const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                   rs.repSums.map((rep, ri) => (
                     <tr
                       key={`${rs.prefix}-${ri}`}
-                      style={{ borderBottom: `1px solid ${modeBorder}` }}
+                      style={{ borderBottom: "1px solid var(--border)" }}
                     >
                       <td style={{ padding: "3px 8px", color: "var(--text)", fontWeight: 600 }}>
                         {rs.label}
@@ -1271,7 +1304,7 @@ const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                       <td style={{ padding: "3px 8px", color: "var(--text-muted)" }}>
                         Rep {ri + 1}
                       </td>
-                      <td style={{ padding: "3px 8px", color: modeColor, fontFamily: "monospace" }}>
+                      <td style={{ padding: "3px 8px", color: "var(--text)", fontFamily: "monospace" }}>
                         {rep[sumKey] != null ? rep[sumKey].toFixed(4) : "—"}
                       </td>
                     </tr>
@@ -1293,12 +1326,15 @@ const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
           />
         </div>
       )}
+      </div>
+      )}
     </div>
-  ) : null;
+  );
 
   // ── Collapsible time-course chart tile ──
   const ChartTile = (chartContent) => (
     <div
+      className="dv-plot-card"
       style={{
         borderRadius: 10,
         border: "1px solid var(--plot-card-border)",
@@ -2122,10 +2158,10 @@ function PlotControls({
         </details>
       </div>
 
-      {/* Plot parameters */}
+      {/* Time-course parameters */}
       <div className="dv-panel">
         <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-          Plot parameters
+          Time-course parameters
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
@@ -2720,7 +2756,7 @@ function App() {
     timeStep: 1,
     baseUnit: "s",
     displayUnit: "s",
-    showInset: true,
+    showInset: false,
     insetFillOpacity: 0.7,
     insetBarWidth: 70,
     insetBarGap: 0,
@@ -3163,6 +3199,7 @@ function App() {
                 baseUnit={vis.baseUnit}
                 displayUnit={vis.displayUnit}
                 showInset={vis.showInset}
+                setShowInset={(v) => updVis({ showInset: v })}
                 insetColors={insetColors}
                 insetFillOpacity={vis.insetFillOpacity}
                 insetBarWidth={vis.insetBarWidth}

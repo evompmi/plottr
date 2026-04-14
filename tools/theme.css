@@ -126,3 +126,11 @@
     --subhead-text: #e8e8ef;
   }
 }
+
+/* Plot card dim in dark mode.
+   --plot-card-bg stays white so exported SVG/PNG render on a white canvas,
+   but on-screen we soften the tile so it doesn't glow against the dark UI.
+   `filter` is a CSS property and is NOT serialized into exported SVGs. */
+[data-theme="dark"] .dv-plot-card {
+  filter: brightness(0.75);
+}

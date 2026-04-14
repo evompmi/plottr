@@ -1986,7 +1986,7 @@ function App() {
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
-                className="dv-panel"
+                className="dv-panel dv-plot-card"
                 style={{
                   padding: 20,
                   background: "var(--plot-card-bg)",
