@@ -2563,7 +2563,7 @@ function SampleSelectionOverlay({
   handleColumnToggle,
 }) {
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 20, marginBottom: 10 }}>
+    <div>
       <div style={{ position: "relative", display: "inline-block" }}>
         <button
           onClick={() => setShowColumnOverlay(!showColumnOverlay)}
@@ -3107,48 +3107,6 @@ function App() {
 
       {step === "plot" && parsed && calData && (
         <div>
-          <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center" }}>
-            <button
-              onClick={() => updVis({ faceted: false })}
-              style={{
-                padding: "6px 14px",
-                borderRadius: 6,
-                fontSize: 12,
-                fontWeight: 600,
-                fontFamily: "inherit",
-                background: !vis.faceted ? "var(--accent-primary)" : "var(--surface)",
-                color: !vis.faceted ? "var(--on-accent)" : "var(--text-faint)",
-                border: `1px solid ${!vis.faceted ? "var(--accent-primary)" : "var(--border-strong)"}`,
-                cursor: "pointer",
-              }}
-            >
-              Combined
-            </button>
-            <button
-              onClick={() => updVis({ faceted: true })}
-              style={{
-                padding: "6px 14px",
-                borderRadius: 6,
-                fontSize: 12,
-                fontWeight: 600,
-                fontFamily: "inherit",
-                background: vis.faceted ? "var(--accent-primary)" : "var(--surface)",
-                color: vis.faceted ? "var(--on-accent)" : "var(--text-faint)",
-                border: `1px solid ${vis.faceted ? "var(--accent-primary)" : "var(--border-strong)"}`,
-                cursor: "pointer",
-              }}
-            >
-              Faceted
-            </button>
-            <button
-              onClick={() => setStep("configure")}
-              className="dv-btn dv-btn-secondary"
-              style={{ marginLeft: "auto" }}
-            >
-              ← Calibration
-            </button>
-          </div>
-
           <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
             {/* LEFT: controls panel */}
             <PlotControls
@@ -3166,16 +3124,64 @@ function App() {
 
             {/* RIGHT: chart area */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              {/* Sample selection — sticky so it follows scroll */}
-              <SampleSelectionOverlay
-                showColumnOverlay={vis.showColumnOverlay}
-                setShowColumnOverlay={(v) => updVis({ showColumnOverlay: v })}
-                poolReplicates={poolReplicates}
-                handlePoolChange={handlePoolChange}
-                colInfo={colInfo}
-                columnEnabled={columnEnabled}
-                handleColumnToggle={handleColumnToggle}
-              />
+              {/* Sticky row: Sample selection (left) + Combined/Faceted (right) */}
+              <div
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 20,
+                  marginBottom: 10,
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 12,
+                }}
+              >
+                <SampleSelectionOverlay
+                  showColumnOverlay={vis.showColumnOverlay}
+                  setShowColumnOverlay={(v) => updVis({ showColumnOverlay: v })}
+                  poolReplicates={poolReplicates}
+                  handlePoolChange={handlePoolChange}
+                  colInfo={colInfo}
+                  columnEnabled={columnEnabled}
+                  handleColumnToggle={handleColumnToggle}
+                />
+                <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => updVis({ faceted: false })}
+                    style={{
+                      padding: "7px 16px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      fontFamily: "inherit",
+                      cursor: "pointer",
+                      background: !vis.faceted ? "var(--accent-primary)" : "var(--info-bg)",
+                      color: !vis.faceted ? "var(--on-accent)" : "var(--info-text)",
+                      border: "2px solid var(--accent-primary)",
+                      boxShadow: "0 2px 10px rgba(37,99,235,0.25)",
+                    }}
+                  >
+                    Combined
+                  </button>
+                  <button
+                    onClick={() => updVis({ faceted: true })}
+                    style={{
+                      padding: "7px 16px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      fontFamily: "inherit",
+                      cursor: "pointer",
+                      background: vis.faceted ? "var(--accent-primary)" : "var(--info-bg)",
+                      color: vis.faceted ? "var(--on-accent)" : "var(--info-text)",
+                      border: "2px solid var(--accent-primary)",
+                      boxShadow: "0 2px 10px rgba(37,99,235,0.25)",
+                    }}
+                  >
+                    Faceted
+                  </button>
+                </div>
+              </div>
               <PlotPanel
                 ref={plotPanelRef}
                 stats={stats}
