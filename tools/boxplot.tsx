@@ -1391,7 +1391,7 @@ function ConfigureStep({
 }) {
   return (
     <div>
-      <div style={sec}>
+      <div className="dv-panel">
         <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-muted)" }}>
           <strong style={{ color: "var(--text)" }}>{fileName}</strong> — {parsedHeaders.length} cols
           × {parsedRows.length} rows{hasHeader ? "" : " (no header)"}
@@ -1411,8 +1411,8 @@ function ConfigureStep({
       />
       {valueColIdx >= 0 && !valueColIsNumeric && (
         <div
+          className="dv-panel"
           style={{
-            ...sec,
             background: "var(--danger-bg)",
             borderColor: "var(--danger-border)",
             marginBottom: 12,
@@ -1425,7 +1425,7 @@ function ConfigureStep({
           </p>
         </div>
       )}
-      <button onClick={() => setStep("filter")} style={btnPrimary}>
+      <button onClick={() => setStep("filter")} className="dv-btn dv-btn-primary">
         Filter & Rename →
       </button>
     </div>
@@ -1504,11 +1504,11 @@ function FilterStep({
         />
       </div>
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => setStep("output")} style={btnPrimary}>
+        <button onClick={() => setStep("output")} className="dv-btn dv-btn-primary">
           Output →
         </button>
         {canPlot && (
-          <button onClick={() => setStep("plot")} style={btnPlot}>
+          <button onClick={() => setStep("plot")} className="dv-btn dv-btn-plot">
             Plot →
           </button>
         )}
@@ -1535,7 +1535,7 @@ function OutputStep({
       {groupColIdx >= 0 && valueColIdx >= 0 && stats.length > 0 && (
         <StatsTable stats={stats} groupLabel={colNames[groupColIdx]} />
       )}
-      <div style={sec}>
+      <div className="dv-panel">
         <div
           style={{
             display: "flex",
@@ -1578,7 +1578,7 @@ function OutputStep({
         />
       </div>
       {wideData && (
-        <div style={sec}>
+        <div className="dv-panel">
           <div
             style={{
               display: "flex",
@@ -1619,7 +1619,8 @@ function OutputStep({
       )}
       {(groupColIdx < 0 || valueColIdx < 0) && (
         <div
-          style={{ ...sec, background: "var(--warning-bg)", borderColor: "var(--warning-border)" }}
+          className="dv-panel"
+          style={{ background: "var(--warning-bg)", borderColor: "var(--warning-border)" }}
         >
           <p style={{ fontSize: 12, color: "var(--warning-text)" }}>
             ⚠ Assign <strong>group</strong> + <strong>value</strong> columns to enable reshaping &
@@ -1629,7 +1630,8 @@ function OutputStep({
       )}
       {valueColIdx >= 0 && !valueColIsNumeric && (
         <div
-          style={{ ...sec, background: "var(--danger-bg)", borderColor: "var(--danger-border)" }}
+          className="dv-panel"
+          style={{ background: "var(--danger-bg)", borderColor: "var(--danger-border)" }}
         >
           <p style={{ fontSize: 12, color: "var(--danger-text)" }}>
             ⚠ Column <strong>"{colNames[valueColIdx]}"</strong> is assigned as{" "}
@@ -1639,11 +1641,11 @@ function OutputStep({
         </div>
       )}
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-        <button onClick={() => setStep("filter")} style={btnSecondary}>
+        <button onClick={() => setStep("filter")} className="dv-btn dv-btn-secondary">
           ← Filter
         </button>
         {canPlot && (
-          <button onClick={() => setStep("plot")} style={btnPlot}>
+          <button onClick={() => setStep("plot")} className="dv-btn dv-btn-plot">
             Plot →
           </button>
         )}
@@ -1715,8 +1717,8 @@ function PlotControls({
       {/* Wide format banner */}
       {dataFormat === "wide" && (
         <div
+          className="dv-panel"
           style={{
-            ...sec,
             background: "var(--success-bg)",
             borderColor: "var(--success-border)",
             padding: "10px 12px",
@@ -1760,19 +1762,21 @@ function PlotControls({
           {
             label: "← Output",
             onClick: () => setStep("output"),
-            style: { ...btnSecondary, width: "100%" },
+            className: "dv-btn dv-btn-secondary",
+            style: { width: "100%" },
           },
           {
             label: "← Filter",
             onClick: () => setStep("filter"),
-            style: { ...btnSecondary, width: "100%" },
+            className: "dv-btn dv-btn-secondary",
+            style: { width: "100%" },
           },
         ]}
         onReset={resetAll}
       />
 
       {/* Conditions / group color editor */}
-      <div style={{ ...sec, marginBottom: 0 }}>
+      <div className="dv-panel" style={{ marginBottom: 0 }}>
         <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
           Conditions
         </p>
@@ -1790,8 +1794,8 @@ function PlotControls({
 
       {/* Style controls */}
       <div
+        className="dv-panel"
         style={{
-          ...sec,
           padding: 12,
           marginBottom: 0,
           display: "flex",
@@ -1800,11 +1804,12 @@ function PlotControls({
         }}
       >
         <div>
-          <div style={lbl}>Plot style</div>
+          <div className="dv-label">Plot style</div>
           <select
             value={vis.plotStyle}
             onChange={(e) => updVis({ plotStyle: e.target.value })}
-            style={{ ...inp, cursor: "pointer", fontSize: 11, width: "100%" }}
+            className="dv-input"
+            style={{ cursor: "pointer", fontSize: 11, width: "100%" }}
           >
             <option value="box">Box plot</option>
             <option value="violin">Violin plot</option>
@@ -1852,7 +1857,7 @@ function PlotControls({
               onChange={sv("barOpacity")}
             />
             <div>
-              <span style={lbl}>Error bars</span>
+              <span className="dv-label">Error bars</span>
               <select
                 value={vis.errorType}
                 onChange={(e) => updVis({ errorType: e.target.value })}
@@ -1883,7 +1888,7 @@ function PlotControls({
               onChange={sv("errStrokeWidth")}
             />
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={lbl}>Bar outline</span>
+              <span className="dv-label">Bar outline</span>
               <input
                 type="checkbox"
                 checked={vis.showBarOutline}
@@ -1903,7 +1908,7 @@ function PlotControls({
                   onChange={sv("barOutlineWidth")}
                 />
                 <div>
-                  <div style={lbl}>Outline color</div>
+                  <div className="dv-label">Outline color</div>
                   <ColorInput
                     value={vis.barOutlineColor}
                     onChange={sv("barOutlineColor")}
@@ -1925,7 +1930,7 @@ function PlotControls({
           />
         )}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={lbl}>Points</span>
+          <span className="dv-label">Points</span>
           <input
             type="checkbox"
             checked={vis.showPoints}
@@ -1936,11 +1941,12 @@ function PlotControls({
         {vis.showPoints && (
           <>
             <div>
-              <div style={lbl}>Color by</div>
+              <div className="dv-label">Color by</div>
               <select
                 value={colorByCol}
                 onChange={handleColorByChange}
-                style={{ ...inp, cursor: "pointer", fontSize: 11, width: "100%" }}
+                className="dv-input"
+                style={{ cursor: "pointer", fontSize: 11, width: "100%" }}
               >
                 <option value={-1}>— none —</option>
                 {colorByCandidates.map((ci) => (
@@ -2021,11 +2027,12 @@ function PlotControls({
           onChange={sv("xLabelAngle")}
         />
         <div>
-          <div style={lbl}>Facet by</div>
+          <div className="dv-label">Facet by</div>
           <select
             value={facetByCol}
             onChange={(e) => setFacetByCol(Number(e.target.value))}
-            style={{ ...inp, cursor: "pointer", fontSize: 11, width: "100%" }}
+            className="dv-input"
+            style={{ cursor: "pointer", fontSize: 11, width: "100%" }}
           >
             <option value={-1}>— none —</option>
             {colorByCandidates.map((ci) => (
@@ -2039,8 +2046,8 @@ function PlotControls({
 
       {/* Plot params */}
       <div
+        className="dv-panel"
         style={{
-          ...sec,
           padding: 12,
           marginBottom: 0,
           display: "flex",
@@ -2049,37 +2056,41 @@ function PlotControls({
         }}
       >
         <div>
-          <div style={lbl}>Title</div>
+          <div className="dv-label">Title</div>
           <input
             value={vis.plotTitle}
             onChange={(e) => updVis({ plotTitle: e.target.value })}
-            style={{ ...inp, width: "100%", fontSize: 11 }}
+            className="dv-input"
+            style={{ width: "100%", fontSize: 11 }}
           />
         </div>
         <div>
-          <div style={lbl}>Y label</div>
+          <div className="dv-label">Y label</div>
           <input
             value={vis.yLabel}
             onChange={(e) => updVis({ yLabel: e.target.value })}
-            style={{ ...inp, width: "100%", fontSize: 11 }}
+            className="dv-input"
+            style={{ width: "100%", fontSize: 11 }}
           />
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <div style={{ flex: 1 }}>
-            <div style={lbl}>Y min</div>
+            <div className="dv-label">Y min</div>
             <input
               value={vis.yMinCustom}
               onChange={(e) => updVis({ yMinCustom: e.target.value })}
-              style={{ ...inp, width: "100%", fontSize: 11 }}
+              className="dv-input"
+              style={{ width: "100%", fontSize: 11 }}
               placeholder="auto"
             />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={lbl}>Y max</div>
+            <div className="dv-label">Y max</div>
             <input
               value={vis.yMaxCustom}
               onChange={(e) => updVis({ yMaxCustom: e.target.value })}
-              style={{ ...inp, width: "100%", fontSize: 11 }}
+              className="dv-input"
+              style={{ width: "100%", fontSize: 11 }}
               placeholder="auto"
             />
           </div>
@@ -2165,8 +2176,8 @@ function PlotArea({
     return (
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
+          className="dv-panel"
           style={{
-            ...sec,
             padding: 20,
             background: "var(--plot-card-bg)",
             borderColor: "var(--plot-card-border)",
@@ -2970,13 +2981,18 @@ function App() {
 
       {step === "plot" && !canPlot && (
         <div
-          style={{ ...sec, background: "var(--warning-bg)", borderColor: "var(--warning-border)" }}
+          className="dv-panel"
+          style={{ background: "var(--warning-bg)", borderColor: "var(--warning-border)" }}
         >
           <p style={{ fontSize: 12, color: "var(--warning-text)" }}>
             ⚠ Assign <strong>group</strong> + <strong>value</strong> columns and ensure filters keep
             data.
           </p>
-          <button onClick={() => setStep("configure")} style={{ marginTop: 8, ...btnSecondary }}>
+          <button
+            onClick={() => setStep("configure")}
+            className="dv-btn dv-btn-secondary"
+            style={{ marginTop: 8 }}
+          >
             ← Configure
           </button>
         </div>
