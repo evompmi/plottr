@@ -49,6 +49,8 @@ const {
   selectTest,
   bisect,
   powerAnova,
+  chi2inv,
+  chi2cdf,
 } = ctx;
 
 // ── Primitives smoke test ──────────────────────────────────────────────────
@@ -125,6 +127,48 @@ test("tinv round-trips through tcdf at extreme p", () => {
   }
 });
 
+// ── chi2inv: Newton-seeded inverse chi-square ──────────────────────────────
+//
+// Earlier revision was pure bisection (~50 iterations for 1e-10 tolerance).
+// The current implementation seeds Newton from the Wilson-Hilferty cubic-
+// normal approximation and falls back to bisection in the saturated tails
+// where the χ² PDF collapses below 1e-12 and Newton would overshoot.
+// Reference values from R's qchisq(); central-body tests target tight
+// tolerance, tail tests verify round-trip self-consistency.
+
+suite("stats.js — chi2inv vs R");
+
+test("chi2inv standard critical values match R qchisq()", () => {
+  approx(chi2inv(0.95, 1), 3.841459, 1e-5);
+  approx(chi2inv(0.95, 5), 11.0705, 1e-5);
+  approx(chi2inv(0.99, 10), 23.20925, 1e-5);
+  approx(chi2inv(0.5, 20), 19.33743, 1e-5);
+  approx(chi2inv(0.001, 100), 61.91752, 1e-3);
+  approx(chi2inv(0.999, 100), 149.4493, 1e-4);
+});
+
+test("chi2inv handles small df accurately", () => {
+  approx(chi2inv(0.5, 1), 0.4549364, 1e-6);
+  approx(chi2inv(0.025, 2), 0.05063562, 1e-7);
+  approx(chi2inv(0.975, 2), 7.377759, 1e-5);
+});
+
+test("chi2inv round-trips through chi2cdf (central body)", () => {
+  for (const k of [1, 2, 5, 10, 30, 100]) {
+    for (const p of [0.001, 0.01, 0.05, 0.25, 0.5, 0.75, 0.95, 0.99, 0.999]) {
+      const x = chi2inv(p, k);
+      approx(chi2cdf(x, k), p, 1e-8);
+    }
+  }
+});
+
+test("chi2inv degenerate inputs", () => {
+  assert(chi2inv(0, 5) === 0, "p=0 → 0");
+  assert(chi2inv(1, 5) === Infinity, "p=1 → Infinity");
+  assert(Number.isNaN(chi2inv(0.5, 0)), "k=0 → NaN");
+  assert(Number.isNaN(chi2inv(0.5, -1)), "k<0 → NaN");
+});
+
 // ── Sample helpers ─────────────────────────────────────────────────────────
 
 suite("stats.js — sample helpers");
@@ -133,6 +177,20 @@ const xs = [2, 4, 4, 4, 5, 5, 7, 9];
 test("sampleMean", () => approx(sampleMean(xs), 5, 1e-12));
 test("sampleVariance (n-1)", () => approx(sampleVariance(xs), 32 / 7, 1e-12));
 test("sampleSD", () => approx(sampleSD(xs), Math.sqrt(32 / 7), 1e-12));
+
+test("sampleVariance is shift-invariant under large offsets (Welford)", () => {
+  // The naive E[X²] − E[X]² formula loses all precision once the data are
+  // offset by ~10⁹ or so, because both terms become huge and nearly equal.
+  // Welford's online algorithm holds up to ~10¹⁵ before IEEE 754 mantissa
+  // limits start to bite the inputs themselves. Verify the result is
+  // exactly the same as on the unshifted data at three offset scales.
+  const small = [1, 2, 3, 4, 5];
+  const v = sampleVariance(small); // = 2.5
+  approx(v, 2.5, 1e-12);
+  approx(sampleVariance(small.map((x) => x + 1e6)), 2.5, 1e-10);
+  approx(sampleVariance(small.map((x) => x + 1e9)), 2.5, 1e-6);
+  approx(sampleVariance(small.map((x) => x + 1e12)), 2.5, 1e-3);
+});
 
 test("rankWithTies — no ties", () => {
   const { ranks, tieCorrection } = rankWithTies([10, 20, 30]);

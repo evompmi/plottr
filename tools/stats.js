@@ -274,20 +274,51 @@ function chi2cdf(x, k) {
   return gammainc(k / 2, x / 2);
 }
 
-// Inverse chi-square CDF (bisection)
+// Chi-square PDF — used as the Newton derivative in chi2inv. Built in log
+// space to avoid overflow at large k or tiny x.
+function chi2pdf(x, k) {
+  if (x <= 0) return 0;
+  const halfK = k / 2;
+  return Math.exp((halfK - 1) * Math.log(x) - x / 2 - halfK * Math.log(2) - gammaln(halfK));
+}
+
+// Inverse chi-square CDF — Newton-Raphson on the central body, bisection
+// fallback for the saturated tails where the χ² CDF derivative collapses
+// to ~10⁻¹² and Newton overshoots wildly. The historical implementation was
+// pure bisection with a doubling upper bound (~50 iterations for 1e-10
+// tolerance); this version is much faster on typical inputs while remaining
+// correct on the tails. Uses the Wilson-Hilferty cubic-normal approximation
+// (X/k)^(1/3) ≈ N(1 − 2/(9k), 2/(9k)) to seed both Newton and the bracket.
 function chi2inv(p, k) {
   if (p <= 0) return 0;
   if (p >= 1) return Infinity;
-  let lo = 0,
-    hi = k + 10 * Math.sqrt(2 * k);
-  while (chi2cdf(hi, k) < p) hi *= 2;
-  for (let i = 0; i < 100; i++) {
-    const mid = (lo + hi) / 2;
-    if (chi2cdf(mid, k) < p) lo = mid;
-    else hi = mid;
-    if (hi - lo < 1e-10) break;
+  if (k <= 0) return NaN;
+  const z = norminv(p);
+  const h = 2 / (9 * k);
+  let x = k * Math.pow(1 - h + z * Math.sqrt(h), 3);
+  if (!(x > 0)) x = Math.max(1e-6, k * 0.01);
+  // Newton inside a wide guard: only accept iterations that stay positive
+  // and don't exceed twice the current point. If Newton makes <10⁻¹² PDF
+  // (deep in the saturated tail) or the step would leave the guard, drop
+  // straight to bisection.
+  for (let i = 0; i < 30; i++) {
+    const f = chi2cdf(x, k) - p;
+    if (Math.abs(f) < 1e-12) return x;
+    const fp = chi2pdf(x, k);
+    if (!(fp > 1e-12)) break;
+    const step = f / fp;
+    const xNew = x - step;
+    if (!(xNew > 0) || xNew > 2 * x || xNew < x / 2) break;
+    if (Math.abs(xNew - x) < 1e-12 * Math.max(1, x)) return xNew;
+    x = xNew;
   }
-  return (lo + hi) / 2;
+  // Bisection fallback. Use WH seed to set a tight initial bracket; expand
+  // by doubling if it doesn't cover p (bisect itself refuses unbracketed
+  // targets, so this guarantees progress).
+  let lo = 0,
+    hi = Math.max(x * 2, k + 10 * Math.sqrt(2 * k));
+  for (let i = 0; i < 40 && chi2cdf(hi, k) < p; i++) hi *= 2;
+  return bisect((q) => chi2cdf(q, k), p, lo, hi, 1e-10);
 }
 
 // Gauss-Legendre quadrature nodes and weights (computed once, cached)
@@ -557,17 +588,24 @@ function sampleMean(x) {
   return s / n;
 }
 
-// Sample variance with (n-1) denominator (Bessel-corrected)
+// Sample variance with (n-1) denominator (Bessel-corrected). Welford's
+// online algorithm: one pass, no need to compute the mean separately, and
+// numerically more robust than the naive E[X²] − E[X]² formula (which
+// catastrophically cancels when the data have a large offset). The classic
+// two-pass algorithm is comparable in accuracy on most inputs, but Welford
+// avoids a second loop and pre-computed mean, which is cleaner and slightly
+// faster on large arrays.
 function sampleVariance(x) {
   const n = x.length;
   if (n < 2) return NaN;
-  const m = sampleMean(x);
-  let s = 0;
+  let mean = 0,
+    M2 = 0;
   for (let i = 0; i < n; i++) {
-    const d = x[i] - m;
-    s += d * d;
+    const d = x[i] - mean;
+    mean += d / (i + 1);
+    M2 += d * (x[i] - mean);
   }
-  return s / (n - 1);
+  return M2 / (n - 1);
 }
 
 function sampleSD(x) {
