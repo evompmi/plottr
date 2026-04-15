@@ -819,6 +819,82 @@ test("gamesHowell: all groups constant → error", () => {
   assert(r.error != null, "expected error");
 });
 
+// ── Additional zero-variance guards ────────────────────────────────────────
+//
+// These four functions used to return phantom F = Infinity, F = NaN, or
+// -Infinity on all-constant input. R's oneway.test returns NaN for Welch and
+// Levene on the same data; R's aov returns F = Inf with a warning; none of
+// those make sense in a non-statistician UI, so we refuse instead. The
+// canonical input is [[1,1,1],[2,2,2],[3,3,3]] — each group internally
+// constant with different means, so within-group dispersion collapses to 0.
+
+test("oneWayANOVA: all groups constant → error (not fake F=Infinity)", () => {
+  const r = oneWayANOVA([
+    [1, 1, 1],
+    [2, 2, 2],
+    [3, 3, 3],
+  ]);
+  assert(r.error != null, "expected error");
+  assert(!Number.isFinite(r.F), "F should not be finite");
+  assert(!Number.isFinite(r.p), "p should not be finite");
+  assert(r.ssWithin === 0, "ssWithin should still be reported as 0");
+});
+
+test("oneWayANOVA: one constant group among varying still computes", () => {
+  // Only guard the all-constant case — mixed inputs have ssWithin > 0 from
+  // the non-constant groups and produce a well-defined F.
+  const r = oneWayANOVA([
+    [5, 5, 5, 5],
+    [1, 2, 3, 4],
+    [6, 7, 8, 9],
+  ]);
+  assert(r.error == null, "should not error");
+  assert(Number.isFinite(r.F) && r.F > 0, "F should be finite and positive");
+});
+
+test("welchANOVA: any zero-variance group → error", () => {
+  // Welch weights are n/s² so a single constant group is enough to poison
+  // the whole statistic — R's oneway.test var.equal=FALSE returns NaN.
+  const r = welchANOVA([
+    [5, 5, 5, 5],
+    [1, 2, 3, 4],
+    [6, 7, 8, 9],
+  ]);
+  assert(r.error != null, "expected error");
+  assert(!Number.isFinite(r.F), "F should not be finite");
+});
+
+test("welchANOVA: all groups constant → error", () => {
+  const r = welchANOVA([
+    [1, 1, 1],
+    [2, 2, 2],
+    [3, 3, 3],
+  ]);
+  assert(r.error != null, "expected error");
+});
+
+test("leveneTest: all groups constant → error (not fake F=Infinity)", () => {
+  // All deviations from the group median collapse to 0, so the inner ANOVA
+  // hits 0/0. R's equivalent oneway.test on the deviations returns NaN.
+  const r = leveneTest([
+    [1, 1, 1],
+    [2, 2, 2],
+    [3, 3, 3],
+  ]);
+  assert(r.error != null, "expected error");
+  assert(!Number.isFinite(r.F), "F should not be finite");
+});
+
+test("cohenD / hedgesG: pooled SD = 0 → NaN (not ±Infinity)", () => {
+  // cohenD is a bare numeric return (not a result object), so the guard
+  // reports NaN rather than an error field. hedgesG calls cohenD and
+  // inherits the NaN via its correction factor.
+  const d = cohenD([1, 1, 1], [2, 2, 2]);
+  const g = hedgesG([1, 1, 1], [2, 2, 2]);
+  assert(Number.isNaN(d), `cohenD should be NaN, got ${d}`);
+  assert(Number.isNaN(g), `hedgesG should be NaN, got ${g}`);
+});
+
 // ── Benjamini-Hochberg adjustment ──────────────────────────────────────────
 //
 // Reference: R's p.adjust(c(0.001, 0.008, 0.039, 0.041, 0.042, 0.06, 0.074,

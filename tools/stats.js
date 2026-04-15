@@ -754,7 +754,18 @@ function leveneTest(groups) {
   }
   const df1 = k - 1;
   const df2 = Ntot - k;
-  if (ssWithin === 0) return { F: Infinity, df1, df2, p: 0 };
+  if (ssWithin === 0) {
+    // All groups are internally constant → within-group dispersion is zero
+    // and Levene's F is undefined (0/0 at best, a phantom ∞ at worst).
+    // R's equivalent oneway.test on the deviations reports F = NaN / p = NA.
+    return {
+      F: NaN,
+      df1,
+      df2,
+      p: NaN,
+      error: "Data are essentially constant (zero within-group dispersion)",
+    };
+  }
   const F = ssBetween / df1 / (ssWithin / df2);
   const p = 1 - fcdf(F, df1, df2);
   return { F, df1, df2, p };
@@ -866,6 +877,8 @@ function cohenD(x, y) {
   const v1 = sampleVariance(x),
     v2 = sampleVariance(y);
   const sp2 = ((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2);
+  // Pooled SD is zero → effect size is undefined (±Infinity is misleading).
+  if (sp2 === 0) return NaN;
   return (m1 - m2) / Math.sqrt(sp2);
 }
 
@@ -915,7 +928,22 @@ function oneWayANOVA(groups) {
   }
   const df1 = k - 1;
   const df2 = Ntot - k;
-  if (ssWithin === 0) return { F: Infinity, df1, df2, p: 0, ssBetween, ssWithin, grandMean };
+  if (ssWithin === 0) {
+    // Every group is internally constant. R's oneway.test returns F = Inf
+    // with p < 2.2e-16, but that's misleading in a UI — the "significance"
+    // is a divide-by-zero artefact, not evidence of a real location shift.
+    // Mirror the tTest convention and refuse.
+    return {
+      F: NaN,
+      df1,
+      df2,
+      p: NaN,
+      ssBetween,
+      ssWithin,
+      grandMean,
+      error: "Data are essentially constant (zero within-group dispersion)",
+    };
+  }
   const F = ssBetween / df1 / (ssWithin / df2);
   const p = 1 - fcdf(F, df1, df2);
   return { F, df1, df2, p, ssBetween, ssWithin, grandMean };
@@ -937,6 +965,18 @@ function welchANOVA(groups) {
   }
   const means = groups.map(sampleMean);
   const vars = groups.map(sampleVariance);
+  // Welch weights are n_i / s_i² — any zero-variance group makes its weight
+  // infinite and poisons the whole computation (matches R oneway.test's
+  // F = NaN, p = NA on constant data).
+  if (vars.some((v) => v === 0)) {
+    return {
+      F: NaN,
+      df1: k - 1,
+      df2: NaN,
+      p: NaN,
+      error: "Data are essentially constant (zero variance in at least one group)",
+    };
+  }
   const w = vars.map((v, i) => ns[i] / v);
   const Wsum = w.reduce((a, b) => a + b, 0);
   const m = w.reduce((a, wi, i) => a + wi * means[i], 0) / Wsum;
