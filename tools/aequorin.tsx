@@ -3250,7 +3250,7 @@ function App() {
                   aria-label="Plot view"
                   style={{
                     display: "inline-flex",
-                    border: "1px solid var(--accent-primary)",
+                    border: "1px solid var(--step-active-border)",
                     borderRadius: 8,
                     overflow: "hidden",
                     background: "var(--surface)",
@@ -3265,10 +3265,10 @@ function App() {
                       fontWeight: 600,
                       fontFamily: "inherit",
                       cursor: "pointer",
-                      background: !vis.faceted ? "var(--accent-primary)" : "transparent",
-                      color: !vis.faceted ? "var(--on-accent)" : "var(--accent-primary)",
+                      background: !vis.faceted ? "var(--step-active-bg)" : "transparent",
+                      color: !vis.faceted ? "var(--on-accent)" : "var(--text-faint)",
                       border: "none",
-                      borderRight: "1px solid var(--accent-primary)",
+                      borderRight: "1px solid var(--step-active-border)",
                     }}
                   >
                     Combined
@@ -3282,8 +3282,8 @@ function App() {
                       fontWeight: 600,
                       fontFamily: "inherit",
                       cursor: "pointer",
-                      background: vis.faceted ? "var(--accent-primary)" : "transparent",
-                      color: vis.faceted ? "var(--on-accent)" : "var(--accent-primary)",
+                      background: vis.faceted ? "var(--step-active-bg)" : "transparent",
+                      color: vis.faceted ? "var(--on-accent)" : "var(--text-faint)",
                       border: "none",
                     }}
                   >
