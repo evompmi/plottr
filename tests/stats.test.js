@@ -679,6 +679,81 @@ test("iris SL Games-Howell: all pairs highly significant", () => {
   for (const pr of r.pairs) assert(pr.p < 1e-5, `expected p<1e-5, got ${pr.p}`);
 });
 
+// ── Degenerate inputs (zero variance) ──────────────────────────────────────
+//
+// R refuses t.test on constant data ("data are essentially constant"); our
+// code used to silently emit NaN df / Infinity t / NaN p instead. These
+// tests pin the guards that now catch those cases before they reach ptukey
+// or compact-letter display and quietly corrupt results.
+
+suite("stats.js — degenerate (zero-variance) inputs");
+
+test("tTest equal-var: both groups constant → error", () => {
+  const r = tTest([2, 2, 2], [3, 3, 3], { equalVar: true });
+  assert(r.error != null, "expected error");
+  assert(Number.isNaN(r.p), "p should be NaN");
+  assert(Number.isNaN(r.df), "df should be NaN");
+});
+
+test("tTest Welch: both groups constant → error", () => {
+  const r = tTest([2, 2, 2], [3, 3, 3], { equalVar: false });
+  assert(r.error != null, "expected error");
+  assert(Number.isNaN(r.p), "p should be NaN");
+});
+
+test("tTest Welch: one group constant still computes (df = n_other − 1)", () => {
+  // v1=0, v2>0 — Welch-Satterthwaite collapses to n2−1 and SE is well-defined.
+  const r = tTest([5, 5, 5, 5], [1, 2, 3, 4], { equalVar: false });
+  assert(r.error == null, `unexpected error: ${r.error}`);
+  approx(r.df, 3, 1e-9); // n2 − 1
+  assert(Number.isFinite(r.t), "t should be finite");
+  assert(r.p >= 0 && r.p <= 1, `p in [0,1], got ${r.p}`);
+});
+
+test("tukeyHSD: all groups constant → error (MSE = 0)", () => {
+  const r = tukeyHSD([
+    [1, 1, 1],
+    [2, 2, 2],
+    [3, 3, 3],
+  ]);
+  assert(r.error != null, "expected error");
+  assert(r.pairs.length === 0, "pairs should be empty");
+});
+
+test("tukeyHSD: one constant group among varying still computes", () => {
+  // ssWithin is driven by the non-constant group → MSE > 0, formula holds.
+  const r = tukeyHSD([
+    [5, 5, 5, 5],
+    [1, 2, 3, 4],
+    [6, 7, 8, 9],
+  ]);
+  assert(r.error == null, `unexpected error: ${r.error}`);
+  assert(r.pairs.length === 3, `expected 3 pairs, got ${r.pairs.length}`);
+  for (const pr of r.pairs) {
+    assert(Number.isFinite(pr.q), `q finite, got ${pr.q}`);
+    assert(pr.p >= 0 && pr.p <= 1, `p in [0,1], got ${pr.p}`);
+  }
+});
+
+test("gamesHowell: any zero-variance group → error", () => {
+  const r = gamesHowell([
+    [5, 5, 5, 5],
+    [1, 2, 3, 4],
+    [6, 7, 8, 9],
+  ]);
+  assert(r.error != null, "expected error");
+  assert(r.pairs.length === 0, "pairs should be empty");
+});
+
+test("gamesHowell: all groups constant → error", () => {
+  const r = gamesHowell([
+    [1, 1, 1],
+    [2, 2, 2],
+    [3, 3, 3],
+  ]);
+  assert(r.error != null, "expected error");
+});
+
 // ── Benjamini-Hochberg adjustment ──────────────────────────────────────────
 //
 // Reference: R's p.adjust(c(0.001, 0.008, 0.039, 0.041, 0.042, 0.06, 0.074,

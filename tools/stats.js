@@ -713,6 +713,23 @@ function tTest(x, y, opts = {}) {
     m2 = sampleMean(y);
   const v1 = sampleVariance(x),
     v2 = sampleVariance(y);
+  // Degenerate case: both groups constant. Matches R, which refuses with
+  // "data are essentially constant" — any result here would have NaN df
+  // (Welch) or zero SE (Student), neither of which is meaningful.
+  if (v1 === 0 && v2 === 0) {
+    return {
+      t: NaN,
+      df: NaN,
+      p: NaN,
+      mean1: m1,
+      mean2: m2,
+      var1: v1,
+      var2: v2,
+      n1,
+      n2,
+      error: "Data are essentially constant (zero variance in both groups)",
+    };
+  }
   let t, df;
   if (equalVar) {
     const sp2 = ((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2);
@@ -1019,6 +1036,17 @@ function tukeyHSD(groups, opts = {}) {
   if (anova.error) return { pairs: [], error: anova.error };
   const dfErr = anova.df2;
   const mse = anova.ssWithin / dfErr;
+  // Degenerate case: every group is perfectly constant → MSE=0 → division
+  // by zero in q. Refuse rather than emit Infinity q / zero p-values.
+  if (mse === 0) {
+    return {
+      pairs: [],
+      k,
+      df: dfErr,
+      mse,
+      error: "Cannot compute Tukey HSD — zero within-group variance (data essentially constant)",
+    };
+  }
   const means = groups.map(sampleMean);
   const ns = groups.map((g) => g.length);
   const qCrit = qtukey(1 - alpha, k, dfErr);
@@ -1058,6 +1086,18 @@ function gamesHowell(groups) {
   const means = groups.map(sampleMean);
   const vars = groups.map(sampleVariance);
   const ns = groups.map((g) => g.length);
+  // Degenerate case: if any group has zero variance, pairs that touch it
+  // produce SE=0 (when both sides are zero) or NaN df in the Welch-
+  // Satterthwaite formula — ptukey then propagates NaN into p-values.
+  // Refuse at the top level rather than return a mix of valid and NaN pairs,
+  // which would quietly corrupt compact-letter displays downstream.
+  if (vars.some((v) => v === 0)) {
+    return {
+      pairs: [],
+      k,
+      error: "Cannot compute Games-Howell — at least one group has zero variance",
+    };
+  }
   const pairs = [];
   for (let i = 0; i < k - 1; i++) {
     for (let j = i + 1; j < k; j++) {
