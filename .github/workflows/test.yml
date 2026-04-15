@@ -37,3 +37,10 @@ jobs:
 
       - name: Verify build
         run: npm run build
+
+      # The compiled tools/*.js outputs are checked into git so GitHub Pages
+      # can serve them statically. This step catches the case where someone
+      # edited a tools/*.tsx source but forgot to run `npm run build`, which
+      # would otherwise ship stale compiled JS to production.
+      - name: Verify compiled tsx sources are in sync
+        run: git diff --exit-code tools/
