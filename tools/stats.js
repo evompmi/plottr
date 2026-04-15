@@ -463,8 +463,14 @@ function ncchi2cdf(x, k, lambda) {
 
 // ── 2. Generic helpers ──────────────────────────────────────────────────────
 
-// Generic bisection solver: find x in [lo, hi] such that fn(x) ≈ target
+// Generic bisection solver: find x in [lo, hi] such that fn(x) ≈ target.
+// Assumes fn is monotone non-decreasing. Returns NaN if target is not
+// bracketed — this is intentional: silent clamping to a bracket boundary
+// would let downstream code use a number that isn't actually a root. All
+// existing callers are responsible for expanding hi (or shrinking lo)
+// before delegating to bisect when their target might fall outside.
 function bisect(fn, target, lo, hi, tol = 1e-6, maxIter = 200) {
+  if (fn(lo) > target || fn(hi) < target) return NaN;
   for (let i = 0; i < maxIter; i++) {
     const mid = (lo + hi) / 2;
     if (fn(mid) < target) lo = mid;
@@ -504,7 +510,16 @@ function powerAnova(f, n, alpha, k) {
     df2 = k * (n - 1);
   if (df2 < 1) return 0;
   const lambda = n * k * f * f;
-  const fCrit = bisect((x) => fcdf(x, df1, df2), 1 - alpha, 0, 200);
+  // Central F at small df has very heavy tails — e.g. F(1, 1) only reaches
+  // p = 0.955 at x = 200 — so a fixed upper bracket of 200 silently clamps
+  // fCrit for α ≤ 0.045 at (df1, df2) = (1, 1). Expand the bracket until it
+  // covers 1 − α (20 doublings → ~2·10⁸, comfortably beyond any realistic
+  // fCrit) before delegating to bisect. bisect itself now refuses on an
+  // unbracketed target, so we propagate NaN when the expansion fails.
+  let hi = 200;
+  for (let i = 0; i < 20 && fcdf(hi, df1, df2) < 1 - alpha; i++) hi *= 2;
+  const fCrit = bisect((x) => fcdf(x, df1, df2), 1 - alpha, 0, hi);
+  if (!Number.isFinite(fCrit)) return NaN;
   return ncf_sf(fCrit, df1, df2, lambda);
 }
 
@@ -1118,11 +1133,34 @@ function ptukey(q, k, df) {
   return Math.max(0, Math.min(1, sum));
 }
 
-// Inverse: find q such that ptukey(q, k, df) = p. Bisection in [0.01, 100].
+// Inverse of the studentized range CDF: find q such that ptukey(q, k, df) = p.
+// Historically this called bisect(…, 0.01, 100) with a fixed upper bracket,
+// which clamped silently for extreme inputs (e.g. k = 50, df = 1, p = 0.999).
+// Now expands the upper bracket by doubling until it covers p, then bisects
+// with a relative-tolerance termination so the precision is consistent
+// regardless of the answer's magnitude. Returns NaN when the expansion
+// cannot bracket p — matches R qtukey's NaN-with-warning behavior at
+// pathological inputs rather than returning a stale bracket boundary.
 function qtukey(p, k, df) {
   if (p <= 0) return 0;
   if (p >= 1) return Infinity;
-  return bisect((q) => ptukey(q, k, df), p, 0.01, 100, 1e-5);
+  if (k < 2 || df < 1) return NaN;
+  let lo = 0.01,
+    hi = 100;
+  // 20 doublings cap hi at ~10⁸ — more than enough for any realistic
+  // (k, df, α) combo; anything larger is pathological and deserves NaN.
+  for (let i = 0; i < 20 && ptukey(hi, k, df) < p; i++) {
+    lo = hi;
+    hi *= 2;
+  }
+  if (ptukey(hi, k, df) < p) return NaN;
+  for (let i = 0; i < 200; i++) {
+    const mid = (lo + hi) / 2;
+    if (ptukey(mid, k, df) < p) lo = mid;
+    else hi = mid;
+    if (hi - lo < 1e-7 * (Math.abs(lo) + 1)) break;
+  }
+  return (lo + hi) / 2;
 }
 
 // ── 11. Post-hoc tests ──────────────────────────────────────────────────────

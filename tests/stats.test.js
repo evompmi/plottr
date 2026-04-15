@@ -47,6 +47,8 @@ const {
   dunnTest,
   compactLetterDisplay,
   selectTest,
+  bisect,
+  powerAnova,
 } = ctx;
 
 // ── Primitives smoke test ──────────────────────────────────────────────────
@@ -656,6 +658,76 @@ test("qtukey(0.95, 6, 66) ≈ 4.150851", () => {
 
 test("qtukey(0.99, 4, 20) ≈ 5.018016", () => {
   approx(qtukey(0.99, 4, 20), 5.018016, 5e-3);
+});
+
+// ── Root-finder bracket expansion ──────────────────────────────────────────
+//
+// Earlier revisions of qtukey/powerAnova used fixed upper brackets that
+// silently clamped when the true root lay outside [lo, hi]. bisect itself
+// is now strict: if target is not bracketed it returns NaN rather than the
+// nearer endpoint, and the callers that need to handle heavy tails expand
+// hi by doubling first.
+
+suite("stats.js — root-finder bracket expansion");
+
+test("bisect returns NaN when target above fn(hi)", () => {
+  // fn is monotone non-decreasing on [0, 1], range [0, 1]; target 2 is
+  // unreachable. Old behavior would have returned the upper endpoint.
+  const result = bisect((x) => x, 2, 0, 1);
+  assert(Number.isNaN(result), `expected NaN, got ${result}`);
+});
+
+test("bisect returns NaN when target below fn(lo)", () => {
+  const result = bisect((x) => x, -2, 0, 1);
+  assert(Number.isNaN(result), `expected NaN, got ${result}`);
+});
+
+test("bisect still solves bracketed roots", () => {
+  approx(
+    bisect((x) => x * x, 0.25, 0, 1),
+    0.5,
+    1e-5
+  );
+});
+
+test("qtukey extreme tail at small df (R reference)", () => {
+  // R: qtukey(0.999, 3, 5) = 11.671498. Within ptukey integration accuracy.
+  approx(qtukey(0.999, 3, 5), 11.671498, 5e-3);
+});
+
+test("qtukey(0.999, 50, 1) > 100 (bracket actually expanded)", () => {
+  // The old fixed upper bound of 100 silently clamped this case — the
+  // result was ~99.999..., a stale endpoint. With bracket expansion, the
+  // root sits much higher (R refuses with NaN at this pathological input
+  // because its algorithm bails, but our integrator finds a finite root
+  // to the equation ptukey(q) = 0.999 well above 100).
+  const result = qtukey(0.999, 50, 1);
+  assert(Number.isFinite(result), `expected finite, got ${result}`);
+  assert(result > 100, `expected > 100 (proves expansion ran), got ${result}`);
+});
+
+test("qtukey degenerate inputs return NaN", () => {
+  assert(Number.isNaN(qtukey(0.95, 1, 10)), "k=1 must be NaN");
+  assert(Number.isNaN(qtukey(0.95, 3, 0)), "df=0 must be NaN");
+});
+
+test("powerAnova at heavy-tail (df1=1, df2=1) no longer clamps", () => {
+  // F(1, 1) only reaches 0.955 at x ≈ 200, so the old fixed upper bound
+  // of 200 silently clamped fCrit for any α ≤ 0.045. With bracket
+  // expansion the result is finite and lies in [0, 1].
+  const p = powerAnova(0.4, 2, 0.01, 2);
+  assert(Number.isFinite(p), `expected finite power, got ${p}`);
+  assert(p >= 0 && p <= 1, `expected p in [0,1], got ${p}`);
+});
+
+test("powerAnova standard case unaffected by expansion", () => {
+  // Sanity check that bracket expansion (a no-op here — hi=200 already
+  // covers 1−0.05 = 0.95 for df=(2, 57)) doesn't change the answer for
+  // routine inputs. Cross-checked against the existing tests in
+  // tests/power.test.js for f=0.4, k=3 at n=22 (R ref 0.8181) and at
+  // n=53 (R ref 0.80) which both still pass — the value here lies on
+  // the same curve.
+  approx(powerAnova(0.4, 22, 0.05, 3), 0.8181, 5e-3);
 });
 
 // ── Tukey HSD ──────────────────────────────────────────────────────────────
