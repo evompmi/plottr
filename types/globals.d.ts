@@ -64,6 +64,11 @@ declare global {
   function powerChi2(w: number, n: number, alpha: number, df: number): number;
   function fFromGroupMeans(means: number[], sd: number): number;
   function makeTicks(min: number, max: number, approxN: number): number[];
+  interface LogTick {
+    value: number;
+    major: boolean;
+  }
+  function makeLogTicks(dataMin: number, dataMax: number, base: number): LogTick[];
 
   // ── Separator detection & decimal comma fix ────────────────────────────────
   function autoDetectSep(text: string, override?: string): string | RegExp;

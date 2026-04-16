@@ -63,6 +63,7 @@ const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
     barOutlineColor,
     horizontal,
     subgroups,
+    yScale,
   },
   ref
 ) {
@@ -118,8 +119,31 @@ const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
     }
   }
   const pad = (dMax - dMin) * 0.08 || 1;
-  const yMin = yMinP != null ? yMinP : isBar ? (dMin >= 0 ? 0 : dMin - pad) : dMin - pad;
+  let yMin = yMinP != null ? yMinP : isBar ? (dMin >= 0 ? 0 : dMin - pad) : dMin - pad;
   let yMax = yMaxP != null ? yMaxP : dMax + pad;
+
+  const isLog = yScale && yScale !== "linear";
+  const logFn =
+    yScale === "log2"
+      ? Math.log2
+      : yScale === "log10"
+        ? Math.log10
+        : yScale === "ln"
+          ? Math.log
+          : null;
+  const logBase = yScale === "log2" ? 2 : yScale === "log10" ? 10 : yScale === "ln" ? Math.E : 0;
+  const safeLog = (v) => (logFn && v > 0 ? logFn(v) : logFn ? logFn(1e-10) : v);
+
+  if (isLog) {
+    const posVals = allV.filter((v) => v > 0);
+    if (posVals.length > 0) {
+      const smallestPos = Math.min(...posVals);
+      if (yMin <= 0) yMin = smallestPos / 2;
+    } else {
+      yMin = logBase === 2 ? 0.5 : 0.1;
+    }
+    if (yMax <= yMin) yMax = yMin * 10;
+  }
 
   const n = groups.length;
   const compact = (100 - (boxGap != null ? boxGap : 0)) / 100;
@@ -136,16 +160,19 @@ const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
   const w = vbW - M.left - M.right;
   const h = vbH_chart - M.top - M.bottom;
 
-  // Extend yMax so annotations fit inside the frame without overlapping data.
-  // Vertical: headroom at top. Horizontal: headroom at right.
   const annotDim = hz ? w : h;
   if (annotTopPad > 0 && annotDim > annotTopPad + 10) {
-    yMax = yMin + ((yMax - yMin) * annotDim) / (annotDim - annotTopPad);
+    if (isLog) {
+      const lMin = safeLog(yMin);
+      const lMax = safeLog(yMax);
+      const lRange = ((lMax - lMin) * annotDim) / (annotDim - annotTopPad);
+      const candidate = Math.pow(logBase, lMin + lRange);
+      if (isFinite(candidate) && candidate > yMin) yMax = candidate;
+    } else {
+      yMax = yMin + ((yMax - yMin) * annotDim) / (annotDim - annotTopPad);
+    }
   }
 
-  // Category axis: group index → pixel position.
-  // Value axis: data value → pixel position.
-  // In vertical mode bx→x, sy→y. In horizontal mode bx→y, sy→x.
   const bandW = ((hz ? h : w) - totalGap) / n;
   const _cumulGap = (() => {
     if (!subgroups || subgroups.length < 2) return null;
@@ -162,11 +189,32 @@ const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
     const base = (hz ? M.top : M.left) + i * bandW + bandW / 2;
     return _cumulGap ? base + _cumulGap[i] : base;
   };
-  const sy = (v) => {
-    const frac = (v - yMin) / (yMax - yMin || 1);
-    return hz ? M.left + frac * w : M.top + (1 - frac) * h;
+  const sy = isLog
+    ? (v) => {
+        const lv = safeLog(Math.max(v, yMin));
+        const lMin = safeLog(yMin);
+        const lMax = safeLog(yMax);
+        const frac = (lv - lMin) / (lMax - lMin || 1);
+        return hz ? M.left + frac * w : M.top + (1 - frac) * h;
+      }
+    : (v) => {
+        const frac = (v - yMin) / (yMax - yMin || 1);
+        return hz ? M.left + frac * w : M.top + (1 - frac) * h;
+      };
+  const yTicks: Array<{ value: number; major: boolean }> = isLog
+    ? makeLogTicks(yMin, yMax, logBase)
+    : makeTicks(yMin, yMax, 8).map((v) => ({ value: v, major: true }));
+  const fmtTick = (t: number) => {
+    if (!isLog)
+      return Math.abs(t) < 0.01 && t !== 0
+        ? t.toExponential(1)
+        : t % 1 === 0
+          ? String(t)
+          : t.toFixed(2);
+    if (t >= 1 && t === Math.round(t)) return String(t);
+    if (t >= 0.01) return t.toPrecision(2);
+    return t.toExponential(1);
   };
-  const yTicks = makeTicks(yMin, yMax, 8);
   const _sgForIdx = (i) => {
     if (!subgroups) return null;
     for (const sg of subgroups) {
@@ -265,88 +313,90 @@ const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
 
       {showGrid && (
         <g id="grid">
-          {yTicks.map((t) =>
-            hz ? (
-              <line
-                key={t}
-                x1={sy(t)}
-                x2={sy(t)}
-                y1={M.top}
-                y2={M.top + h}
-                stroke={gridColor}
-                strokeWidth="0.5"
-              />
-            ) : (
-              <line
-                key={t}
-                x1={M.left}
-                x2={M.left + w}
-                y1={sy(t)}
-                y2={sy(t)}
-                stroke={gridColor}
-                strokeWidth="0.5"
-              />
-            )
-          )}
+          {yTicks
+            .filter((tk) => tk.major)
+            .map((tk) =>
+              hz ? (
+                <line
+                  key={tk.value}
+                  x1={sy(tk.value)}
+                  x2={sy(tk.value)}
+                  y1={M.top}
+                  y2={M.top + h}
+                  stroke={gridColor}
+                  strokeWidth="0.5"
+                />
+              ) : (
+                <line
+                  key={tk.value}
+                  x1={M.left}
+                  x2={M.left + w}
+                  y1={sy(tk.value)}
+                  y2={sy(tk.value)}
+                  stroke={gridColor}
+                  strokeWidth="0.5"
+                />
+              )
+            )}
         </g>
       )}
 
       <g id={hz ? "axis-x" : "axis-y"}>
-        {yTicks.map((t) => (
-          <g key={t}>
-            {hz ? (
-              <>
-                <line
-                  x1={sy(t)}
-                  x2={sy(t)}
-                  y1={M.top + h}
-                  y2={M.top + h + 5}
-                  stroke="#333"
-                  strokeWidth="1"
-                />
-                <text
-                  x={sy(t)}
-                  y={M.top + h + 16}
-                  textAnchor="middle"
-                  fontSize="11"
-                  fill="#555"
-                  fontFamily="sans-serif"
-                >
-                  {Math.abs(t) < 0.01 && t !== 0
-                    ? t.toExponential(1)
-                    : t % 1 === 0
-                      ? t
-                      : t.toFixed(2)}
-                </text>
-              </>
-            ) : (
-              <>
-                <line
-                  x1={M.left - 5}
-                  x2={M.left}
-                  y1={sy(t)}
-                  y2={sy(t)}
-                  stroke="#333"
-                  strokeWidth="1"
-                />
-                <text
-                  x={M.left - 8}
-                  y={sy(t) + 4}
-                  textAnchor="end"
-                  fontSize="11"
-                  fill="#555"
-                  fontFamily="sans-serif"
-                >
-                  {Math.abs(t) < 0.01 && t !== 0
-                    ? t.toExponential(1)
-                    : t % 1 === 0
-                      ? t
-                      : t.toFixed(2)}
-                </text>
-              </>
-            )}
-          </g>
-        ))}
+        {yTicks.map((tk) => {
+          const v = tk.value;
+          const tickLen = tk.major ? 5 : 3;
+          return (
+            <g key={v}>
+              {hz ? (
+                <>
+                  <line
+                    x1={sy(v)}
+                    x2={sy(v)}
+                    y1={M.top + h}
+                    y2={M.top + h + tickLen}
+                    stroke="#333"
+                    strokeWidth={tk.major ? "1" : "0.5"}
+                  />
+                  {tk.major && (
+                    <text
+                      x={sy(v)}
+                      y={M.top + h + 16}
+                      textAnchor="middle"
+                      fontSize="11"
+                      fill="#555"
+                      fontFamily="sans-serif"
+                    >
+                      {fmtTick(v)}
+                    </text>
+                  )}
+                </>
+              ) : (
+                <>
+                  <line
+                    x1={M.left - tickLen}
+                    x2={M.left}
+                    y1={sy(v)}
+                    y2={sy(v)}
+                    stroke="#333"
+                    strokeWidth={tk.major ? "1" : "0.5"}
+                  />
+                  {tk.major && (
+                    <text
+                      x={M.left - 8}
+                      y={sy(v) + 4}
+                      textAnchor="end"
+                      fontSize="11"
+                      fill="#555"
+                      fontFamily="sans-serif"
+                    >
+                      {fmtTick(v)}
+                    </text>
+                  )}
+                </>
+              )}
+            </g>
+          );
+        })}
       </g>
 
       <g id={isBar ? "bars" : "groups"}>
@@ -358,7 +408,7 @@ const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
             const { mean, sd, sem } = g.stats;
             if (mean < yMin || mean > yMax) return null;
             const errVal = errorType === "sd" ? sd : sem;
-            const baselinePos = sy(Math.max(0, yMin));
+            const baselinePos = sy(isLog ? yMin : Math.max(0, yMin));
             const meanPos = sy(mean);
             const capSize = halfBox * 0.4;
             const errHi = sy(mean + errVal);
@@ -2162,6 +2212,20 @@ function PlotControls({
             />
           </div>
         </div>
+        <div>
+          <div className="dv-label">Y scale</div>
+          <select
+            value={vis.yScale}
+            onChange={(e) => updVis({ yScale: e.target.value })}
+            className="dv-select"
+            style={{ width: "100%", fontSize: 11 }}
+          >
+            <option value="linear">Linear</option>
+            <option value="log10">{" Log\u2081\u2080"}</option>
+            <option value="log2">{" Log\u2082"}</option>
+            <option value="ln">{" Ln (natural)"}</option>
+          </select>
+        </div>
       </div>
     </div>
   );
@@ -2325,6 +2389,7 @@ function PlotArea({
             xLabelAngle={vis.xLabelAngle}
             yMin={yMinVal}
             yMax={yMaxVal}
+            yScale={vis.yScale}
             categoryColors={categoryColors}
             colorByCol={colorByCol}
             boxGap={vis.boxGap}
@@ -2384,6 +2449,7 @@ function PlotArea({
               xLabelAngle: vis.xLabelAngle,
               yMin: yMinVal,
               yMax: yMaxVal,
+              yScale: vis.yScale,
               categoryColors,
               colorByCol,
               boxGap: vis.boxGap,
@@ -2650,6 +2716,7 @@ const FacetTrio = memo(function FacetTrio({
       xLabelAngle: vis.xLabelAngle,
       yMin: yMinVal,
       yMax: yMaxVal,
+      yScale: vis.yScale,
       categoryColors,
       colorByCol,
       boxGap: vis.boxGap,
@@ -2842,6 +2909,7 @@ function App() {
     xLabelAngle: 0,
     yMinCustom: "",
     yMaxCustom: "",
+    yScale: "linear",
     showCompPie: false,
     plotStyle: "box",
     horizontal: false,
@@ -3569,6 +3637,28 @@ function App() {
             onDownloadPng={handleDownloadPng}
           />
           <div style={{ flex: 1, minWidth: 0 }}>
+            {vis.yScale !== "linear" &&
+              boxplotGroups.some((g) => g.allValues.some((v) => v <= 0)) && (
+                <div
+                  style={{
+                    background: "var(--warning-bg)",
+                    color: "var(--warning-text)",
+                    border: "1px solid var(--warning-border)",
+                    borderRadius: 6,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    marginBottom: 8,
+                  }}
+                >
+                  Some values are &le; 0 and cannot be shown on a{" "}
+                  {vis.yScale === "log10"
+                    ? "log\u2081\u2080"
+                    : vis.yScale === "log2"
+                      ? "log\u2082"
+                      : "ln"}{" "}
+                  scale.
+                </div>
+              )}
             {facetByCol < 0 ? (
               <>
                 <PlotArea
