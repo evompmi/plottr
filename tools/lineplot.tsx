@@ -1719,7 +1719,7 @@ function PerXStatsPanel({ rows, xLabel, fileName }) {
                     background: isOpen
                       ? "var(--surface-subtle)"
                       : hovered === key
-                        ? "var(--surface-sunken)"
+                        ? "var(--row-hover-bg)"
                         : undefined,
                     transition: "background 120ms ease",
                   }}
