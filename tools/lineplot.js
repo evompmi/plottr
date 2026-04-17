@@ -6,158 +6,158 @@ const { useState, useEffect, useRef, useReducer, useMemo, useCallback, forwardRe
     { value: "sd", label: "SD" },
     { value: "ci95", label: "95% CI" },
   ],
-  round4 = (l) => Math.round(l * 1e4) / 1e4;
-function buildLineD(l) {
-  const o = l.filter((c) => c.y != null);
-  return o.length < 2 ? "" : "M" + o.map((c) => `${c.x.toFixed(2)},${c.y.toFixed(2)}`).join("L");
+  round4 = (e) => Math.round(e * 1e4) / 1e4;
+function buildLineD(e) {
+  const n = e.filter((o) => o.y != null);
+  return n.length < 2 ? "" : "M" + n.map((o) => `${o.x.toFixed(2)},${o.y.toFixed(2)}`).join("L");
 }
-function formatX(l) {
-  return l == null || !Number.isFinite(l) || Number.isInteger(l) ? String(l) : String(round4(l));
+function formatX(e) {
+  return e == null || !Number.isFinite(e) || Number.isInteger(e) ? String(e) : String(round4(e));
 }
-function runChosenTest(l, o) {
+function runChosenTest(e, n) {
   try {
-    return l === "studentT"
-      ? tTest(o[0], o[1], { equalVar: !0 })
-      : l === "welchT"
-        ? tTest(o[0], o[1], { equalVar: !1 })
-        : l === "mannWhitney"
-          ? mannWhitneyU(o[0], o[1])
-          : l === "oneWayANOVA"
-            ? oneWayANOVA(o)
-            : l === "welchANOVA"
-              ? welchANOVA(o)
-              : l === "kruskalWallis"
-                ? kruskalWallis(o)
+    return e === "studentT"
+      ? tTest(n[0], n[1], { equalVar: !0 })
+      : e === "welchT"
+        ? tTest(n[0], n[1], { equalVar: !1 })
+        : e === "mannWhitney"
+          ? mannWhitneyU(n[0], n[1])
+          : e === "oneWayANOVA"
+            ? oneWayANOVA(n)
+            : e === "welchANOVA"
+              ? welchANOVA(n)
+              : e === "kruskalWallis"
+                ? kruskalWallis(n)
                 : { error: "unknown test" };
-  } catch (c) {
-    return { error: String((c && c.message) || c) };
+  } catch (o) {
+    return { error: String((o && o.message) || o) };
   }
 }
-function computeSeries(l, o, c, g, b, N, m) {
-  const i = [],
-    a = new Map();
-  for (let x = 0; x < l.length; x++) {
-    const f = l[x][c],
-      u = l[x][g];
-    if (f == null || u == null || !Number.isFinite(f) || !Number.isFinite(u)) continue;
-    const t = b == null ? "(all)" : String(o[x][b] ?? "");
-    a.has(t) || (a.set(t, new Map()), i.push(t));
-    const p = a.get(t);
-    (p.has(f) || p.set(f, []), p.get(f).push(u));
+function computeSeries(e, n, o, m, k, S, d) {
+  const c = [],
+    r = new Map();
+  for (let y = 0; y < e.length; y++) {
+    const g = e[y][o],
+      l = e[y][m];
+    if (g == null || l == null || !Number.isFinite(g) || !Number.isFinite(l)) continue;
+    const t = k == null ? "(all)" : String(n[y][k] ?? "");
+    r.has(t) || (r.set(t, new Map()), c.push(t));
+    const u = r.get(t);
+    (u.has(g) || u.set(g, []), u.get(g).push(l));
   }
-  return i.map((x, f) => {
-    const u = a.get(x),
-      p = [...u.keys()]
-        .sort((d, k) => d - k)
-        .map((d) => {
-          const k = u.get(d),
-            y = k.length,
-            F = sampleMean(k),
-            S = y > 1 ? sampleSD(k) : 0,
-            T = y > 1 ? S / Math.sqrt(y) : 0,
-            L = y > 1 ? tinv(0.975, y - 1) * T : 0;
-          return { x: d, values: k, n: y, mean: F, sd: S, sem: T, ci95: L };
+  return c.map((y, g) => {
+    const l = r.get(y),
+      u = [...l.keys()]
+        .sort((f, w) => f - w)
+        .map((f) => {
+          const w = l.get(f),
+            C = w.length,
+            p = sampleMean(w),
+            h = C > 1 ? sampleSD(w) : 0,
+            a = C > 1 ? h / Math.sqrt(C) : 0,
+            N = C > 1 ? tinv(0.975, C - 1) * a : 0;
+          return { x: f, values: w, n: C, mean: p, sd: h, sem: a, ci95: N };
         });
-    return { name: x, color: N[x] || m[f % m.length], points: p };
+    return { name: y, color: S[y] || d[g % d.length], points: u };
   });
 }
-function computePerXStats(l) {
-  const o = new Set();
-  for (const i of l) for (const a of i.points) o.add(a.x);
-  const c = [...o].sort((i, a) => i - a),
-    g = [];
-  for (const i of c) {
-    const a = [];
-    for (const d of l) {
-      const k = d.points.find((y) => y.x === i);
-      k && k.n >= 2 && a.push({ name: d.name, values: k.values });
+function computePerXStats(e) {
+  const n = new Set();
+  for (const c of e) for (const r of c.points) n.add(r.x);
+  const o = [...n].sort((c, r) => c - r),
+    m = [];
+  for (const c of o) {
+    const r = [];
+    for (const f of e) {
+      const w = f.points.find((C) => C.x === c);
+      w && w.n >= 2 && r.push({ name: f.name, values: w.values });
     }
-    if (a.length < 2) continue;
-    const x = a.map((d) => d.values),
-      f = a.map((d) => d.name),
-      u = selectTest(x),
-      t = u && u.recommendation && u.recommendation.test ? u.recommendation.test : null,
-      p = t ? runChosenTest(t, x) : null;
-    g.push({ x: i, names: f, values: x, chosenTest: t, result: p });
+    if (r.length < 2) continue;
+    const y = r.map((f) => f.values),
+      g = r.map((f) => f.name),
+      l = selectTest(y),
+      t = l && l.recommendation && l.recommendation.test ? l.recommendation.test : null,
+      u = t ? runChosenTest(t, y) : null;
+    m.push({ x: c, names: g, values: y, chosenTest: t, result: u });
   }
-  const b = [],
-    N = [];
-  g.forEach((i, a) => {
-    i.result && !i.result.error && Number.isFinite(i.result.p) && (b.push(a), N.push(i.result.p));
+  const k = [],
+    S = [];
+  m.forEach((c, r) => {
+    c.result && !c.result.error && Number.isFinite(c.result.p) && (k.push(r), S.push(c.result.p));
   });
-  const m = N.length > 0 ? bhAdjust(N) : [];
-  return (g.forEach((i) => (i.pAdj = null)), b.forEach((i, a) => (g[i].pAdj = m[a])), g);
+  const d = S.length > 0 ? bhAdjust(S) : [];
+  return (m.forEach((c) => (c.pAdj = null)), k.forEach((c, r) => (m[c].pAdj = d[r])), m);
 }
 const Chart = forwardRef(function (
   {
-    series: o,
-    perXStats: c,
-    xMin: g,
-    xMax: b,
-    yMin: N,
-    yMax: m,
-    vbW: i,
-    vbH: a,
-    xLabel: x,
-    yLabel: f,
-    plotTitle: u,
+    series: n,
+    perXStats: o,
+    xMin: m,
+    xMax: k,
+    yMin: S,
+    yMax: d,
+    vbW: c,
+    vbH: r,
+    xLabel: y,
+    yLabel: g,
+    plotTitle: l,
     plotSubtitle: t,
-    plotBg: p,
-    showGrid: d,
-    gridColor: k,
-    lineWidth: y,
-    pointRadius: F,
-    errorStrokeWidth: S,
-    errorCapWidth: T,
-    errorType: L,
-    svgLegend: Y,
-    showStars: X,
+    plotBg: u,
+    showGrid: f,
+    gridColor: w,
+    lineWidth: C,
+    pointRadius: p,
+    errorStrokeWidth: h,
+    errorCapWidth: a,
+    errorType: N,
+    svgLegend: x,
+    showStars: R,
   },
-  K
+  $
 ) {
-  const n = (e) => {
-      const w = Math.max(0, ...(e.items || []).map((R) => (R.label || "").length));
-      return Math.max(110, w * 6 + 28);
+  const i = (s) => {
+      const P = Math.max(0, ...(s.items || []).map((z) => (z.label || "").length));
+      return Math.max(110, P * 6 + 28);
     },
-    B = computeLegendHeight(Y, i - MARGIN.left - MARGIN.right, n),
-    v = (u ? 20 : 0) + (t ? 16 : 0),
-    W = X && c.some((e) => e.pAdj != null) ? STAR_ROW_H : 0,
-    I = i - MARGIN.left - MARGIN.right,
-    U = a - MARGIN.top - MARGIN.bottom,
-    M = MARGIN.top + W,
-    r = U - W,
-    q = b - g || 1,
-    Z = m - N || 1,
-    z = (e) => MARGIN.left + ((e - g) / q) * I,
-    C = (e) => M + (1 - (e - N) / Z) * r,
-    ee = (e) => Math.max(N, Math.min(m, e)),
-    te = makeTicks(g, b, 8),
-    j = makeTicks(N, m, 6),
-    le = (e) => (L === "sd" ? e.sd : L === "ci95" ? e.ci95 : e.sem);
+    L = computeLegendHeight(x, c - MARGIN.left - MARGIN.right, i),
+    A = (l ? 20 : 0) + (t ? 16 : 0),
+    H = R && o.some((s) => s.pAdj != null) ? STAR_ROW_H : 0,
+    j = c - MARGIN.left - MARGIN.right,
+    V = r - MARGIN.top - MARGIN.bottom,
+    F = MARGIN.top + H,
+    v = V - H,
+    U = k - m || 1,
+    Q = d - S || 1,
+    D = (s) => MARGIN.left + ((s - m) / U) * j,
+    T = (s) => F + (1 - (s - S) / Q) * v,
+    ee = (s) => Math.max(S, Math.min(d, s)),
+    te = makeTicks(m, k, 8),
+    Y = makeTicks(S, d, 6),
+    oe = (s) => (N === "sd" ? s.sd : N === "ci95" ? s.ci95 : s.sem);
   return React.createElement(
     "svg",
     {
-      ref: K,
-      viewBox: `0 0 ${i} ${a + B + v}`,
+      ref: $,
+      viewBox: `0 0 ${c} ${r + L + A}`,
       style: { width: "100%", height: "auto", display: "block" },
       xmlns: "http://www.w3.org/2000/svg",
       role: "img",
-      "aria-label": u || "Line chart",
+      "aria-label": l || "Line chart",
     },
-    React.createElement("title", null, u || "Line chart"),
+    React.createElement("title", null, l || "Line chart"),
     React.createElement(
       "desc",
       null,
-      `Line chart with ${o.length} group${o.length === 1 ? "" : "s"}`
+      `Line chart with ${n.length} group${n.length === 1 ? "" : "s"}`
     ),
-    u &&
+    l &&
       React.createElement(
         "g",
         { id: "title" },
         React.createElement(
           "text",
           {
-            x: i / 2,
+            x: c / 2,
             y: 17,
             textAnchor: "middle",
             fontSize: "15",
@@ -165,7 +165,7 @@ const Chart = forwardRef(function (
             fill: "#222",
             fontFamily: "sans-serif",
           },
-          u
+          l
         )
       ),
     t &&
@@ -175,8 +175,8 @@ const Chart = forwardRef(function (
         React.createElement(
           "text",
           {
-            x: i / 2,
-            y: u ? 34 : 17,
+            x: c / 2,
+            y: l ? 34 : 17,
             textAnchor: "middle",
             fontSize: "12",
             fill: "#888",
@@ -187,38 +187,38 @@ const Chart = forwardRef(function (
       ),
     React.createElement(
       "g",
-      { id: "chart", transform: `translate(0, ${v})` },
+      { id: "chart", transform: `translate(0, ${A})` },
       React.createElement("rect", {
         id: "plot-area-background",
         x: MARGIN.left,
         y: MARGIN.top,
-        width: I,
-        height: U,
-        fill: p || "#fff",
+        width: j,
+        height: V,
+        fill: u || "#fff",
       }),
-      d &&
+      f &&
         React.createElement(
           "g",
           { id: "grid" },
-          j.map((e) =>
+          Y.map((s) =>
             React.createElement("line", {
-              key: `gy-${e}`,
+              key: `gy-${s}`,
               x1: MARGIN.left,
-              x2: MARGIN.left + I,
-              y1: C(e),
-              y2: C(e),
-              stroke: k || "#e0e0e0",
+              x2: MARGIN.left + j,
+              y1: T(s),
+              y2: T(s),
+              stroke: w || "#e0e0e0",
               strokeWidth: "0.5",
             })
           ),
-          te.map((e) =>
+          te.map((s) =>
             React.createElement("line", {
-              key: `gx-${e}`,
-              x1: z(e),
-              x2: z(e),
-              y1: M,
-              y2: M + r,
-              stroke: k || "#e0e0e0",
+              key: `gx-${s}`,
+              x1: D(s),
+              x2: D(s),
+              y1: F,
+              y2: F + v,
+              stroke: w || "#e0e0e0",
               strokeWidth: "0.5",
             })
           )
@@ -226,17 +226,17 @@ const Chart = forwardRef(function (
       React.createElement(
         "g",
         { id: "traces" },
-        o.map((e) => {
-          const w = e.points.map(($) => ({ x: z($.x), y: $.mean != null ? C($.mean) : null })),
-            R = buildLineD(w);
-          return R
+        n.map((s) => {
+          const P = s.points.map((G) => ({ x: D(G.x), y: G.mean != null ? T(G.mean) : null })),
+            z = buildLineD(P);
+          return z
             ? React.createElement("path", {
-                key: `line-${e.name}`,
-                id: `trace-${svgSafeId(e.name)}`,
-                d: R,
+                key: `line-${s.name}`,
+                id: `trace-${svgSafeId(s.name)}`,
+                d: z,
                 fill: "none",
-                stroke: e.color,
-                strokeWidth: y,
+                stroke: s.color,
+                strokeWidth: C,
               })
             : null;
         })
@@ -244,44 +244,44 @@ const Chart = forwardRef(function (
       React.createElement(
         "g",
         { id: "error-bars" },
-        o.map((e) =>
+        n.map((s) =>
           React.createElement(
             "g",
-            { key: `errs-${e.name}`, id: `errbars-${svgSafeId(e.name)}` },
-            e.points.map((w, R) => {
-              if (w.n < 2 || w.mean == null) return null;
-              const $ = le(w);
-              if (!$ || !Number.isFinite($)) return null;
-              const H = z(w.x),
-                V = C(ee(w.mean + $)),
-                s = C(ee(w.mean - $)),
-                h = T / 2;
+            { key: `errs-${s.name}`, id: `errbars-${svgSafeId(s.name)}` },
+            s.points.map((P, z) => {
+              if (P.n < 2 || P.mean == null) return null;
+              const G = oe(P);
+              if (!G || !Number.isFinite(G)) return null;
+              const q = D(P.x),
+                Z = T(ee(P.mean + G)),
+                b = T(ee(P.mean - G)),
+                M = a / 2;
               return React.createElement(
                 "g",
-                { key: `err-${R}` },
+                { key: `err-${z}` },
                 React.createElement("line", {
-                  x1: H,
-                  x2: H,
-                  y1: V,
-                  y2: s,
-                  stroke: e.color,
-                  strokeWidth: S,
+                  x1: q,
+                  x2: q,
+                  y1: Z,
+                  y2: b,
+                  stroke: s.color,
+                  strokeWidth: h,
                 }),
                 React.createElement("line", {
-                  x1: H - h,
-                  x2: H + h,
-                  y1: V,
-                  y2: V,
-                  stroke: e.color,
-                  strokeWidth: S,
+                  x1: q - M,
+                  x2: q + M,
+                  y1: Z,
+                  y2: Z,
+                  stroke: s.color,
+                  strokeWidth: h,
                 }),
                 React.createElement("line", {
-                  x1: H - h,
-                  x2: H + h,
-                  y1: s,
-                  y2: s,
-                  stroke: e.color,
-                  strokeWidth: S,
+                  x1: q - M,
+                  x2: q + M,
+                  y1: b,
+                  y2: b,
+                  stroke: s.color,
+                  strokeWidth: h,
                 })
               );
             })
@@ -291,19 +291,19 @@ const Chart = forwardRef(function (
       React.createElement(
         "g",
         { id: "data-points" },
-        o.map((e) =>
+        n.map((s) =>
           React.createElement(
             "g",
-            { key: `pts-${e.name}`, id: `points-${svgSafeId(e.name)}` },
-            e.points.map((w, R) =>
-              w.mean == null
+            { key: `pts-${s.name}`, id: `points-${svgSafeId(s.name)}` },
+            s.points.map((P, z) =>
+              P.mean == null
                 ? null
                 : React.createElement("circle", {
-                    key: `pt-${R}`,
-                    cx: z(w.x),
-                    cy: C(w.mean),
-                    r: F,
-                    fill: e.color,
+                    key: `pt-${z}`,
+                    cx: D(P.x),
+                    cy: T(P.mean),
+                    r: p,
+                    fill: s.color,
                     stroke: "#fff",
                     strokeWidth: "0.5",
                   })
@@ -311,21 +311,21 @@ const Chart = forwardRef(function (
           )
         )
       ),
-      X &&
-        W > 0 &&
+      R &&
+        H > 0 &&
         React.createElement(
           "g",
           { id: "significance-stars" },
-          c.map((e, w) => {
-            if (e.pAdj == null) return null;
-            const R = pStars(e.pAdj);
-            return !R || R === "ns"
+          o.map((s, P) => {
+            if (s.pAdj == null) return null;
+            const z = pStars(s.pAdj);
+            return !z || z === "ns"
               ? null
               : React.createElement(
                   "text",
                   {
-                    key: `star-${w}`,
-                    x: z(e.x),
+                    key: `star-${P}`,
+                    x: D(s.x),
                     y: MARGIN.top + 14,
                     textAnchor: "middle",
                     fontSize: "13",
@@ -333,44 +333,44 @@ const Chart = forwardRef(function (
                     fill: "#222",
                     fontFamily: "sans-serif",
                   },
-                  R
+                  z
                 );
           })
         ),
       React.createElement(
         "g",
         { id: "plot-frame", fill: "none", stroke: "#333", strokeWidth: "1" },
-        React.createElement("line", { x1: MARGIN.left, y1: M, x2: MARGIN.left + I, y2: M }),
-        React.createElement("line", { x1: MARGIN.left + I, y1: M, x2: MARGIN.left + I, y2: M + r }),
-        React.createElement("line", { x1: MARGIN.left, y1: M + r, x2: MARGIN.left + I, y2: M + r }),
-        React.createElement("line", { x1: MARGIN.left, y1: M, x2: MARGIN.left, y2: M + r })
+        React.createElement("line", { x1: MARGIN.left, y1: F, x2: MARGIN.left + j, y2: F }),
+        React.createElement("line", { x1: MARGIN.left + j, y1: F, x2: MARGIN.left + j, y2: F + v }),
+        React.createElement("line", { x1: MARGIN.left, y1: F + v, x2: MARGIN.left + j, y2: F + v }),
+        React.createElement("line", { x1: MARGIN.left, y1: F, x2: MARGIN.left, y2: F + v })
       ),
       React.createElement(
         "g",
         { id: "axis-x" },
-        te.map((e) =>
+        te.map((s) =>
           React.createElement(
             "g",
-            { key: e },
+            { key: s },
             React.createElement("line", {
-              x1: z(e),
-              x2: z(e),
-              y1: M + r,
-              y2: M + r + 5,
+              x1: D(s),
+              x2: D(s),
+              y1: F + v,
+              y2: F + v + 5,
               stroke: "#333",
               strokeWidth: "1",
             }),
             React.createElement(
               "text",
               {
-                x: z(e),
-                y: M + r + 18,
+                x: D(s),
+                y: F + v + 18,
                 textAnchor: "middle",
                 fontSize: "11",
                 fill: "#555",
                 fontFamily: "sans-serif",
               },
-              e
+              s
             )
           )
         )
@@ -378,15 +378,15 @@ const Chart = forwardRef(function (
       React.createElement(
         "g",
         { id: "axis-y" },
-        j.map((e) =>
+        Y.map((s) =>
           React.createElement(
             "g",
-            { key: e },
+            { key: s },
             React.createElement("line", {
               x1: MARGIN.left - 5,
               x2: MARGIN.left,
-              y1: C(e),
-              y2: C(e),
+              y1: T(s),
+              y2: T(s),
               stroke: "#333",
               strokeWidth: "1",
             }),
@@ -394,63 +394,63 @@ const Chart = forwardRef(function (
               "text",
               {
                 x: MARGIN.left - 8,
-                y: C(e) + 4,
+                y: T(s) + 4,
                 textAnchor: "end",
                 fontSize: "11",
                 fill: "#555",
                 fontFamily: "sans-serif",
               },
-              e % 1 === 0 ? e : e.toFixed(1)
+              s % 1 === 0 ? s : s.toFixed(1)
             )
           )
         )
       ),
-      x &&
+      y &&
         React.createElement(
           "g",
           { id: "x-axis-label" },
           React.createElement(
             "text",
             {
-              x: MARGIN.left + I / 2,
-              y: a - 4,
+              x: MARGIN.left + j / 2,
+              y: r - 4,
               textAnchor: "middle",
               fontSize: "13",
               fill: "#444",
               fontFamily: "sans-serif",
             },
-            x
+            y
           )
         ),
-      f &&
+      g &&
         React.createElement(
           "g",
           { id: "y-axis-label" },
           React.createElement(
             "text",
             {
-              transform: `translate(14,${M + r / 2}) rotate(-90)`,
+              transform: `translate(14,${F + v / 2}) rotate(-90)`,
               textAnchor: "middle",
               fontSize: "13",
               fill: "#444",
               fontFamily: "sans-serif",
             },
-            f
+            g
           )
         ),
-      renderSvgLegend(Y, a + 10, MARGIN.left, i - MARGIN.left - MARGIN.right, n)
+      renderSvgLegend(x, r + 10, MARGIN.left, c - MARGIN.left - MARGIN.right, i)
     )
   );
 });
-function ControlSection({ title: l, defaultOpen: o = !1, children: c }) {
-  const [g, b] = useState(o);
+function ControlSection({ title: e, defaultOpen: n = !1, children: o }) {
+  const [m, k] = useState(n);
   return React.createElement(
     "div",
     { className: "dv-panel", style: { marginBottom: 0, padding: 0 } },
     React.createElement(
       "button",
       {
-        onClick: () => b(!g),
+        onClick: () => k(!m),
         style: {
           display: "flex",
           alignItems: "center",
@@ -467,37 +467,37 @@ function ControlSection({ title: l, defaultOpen: o = !1, children: c }) {
         },
       },
       React.createElement("span", {
-        className: "dv-disclosure" + (g ? " dv-disclosure-open" : ""),
+        className: "dv-disclosure" + (m ? " dv-disclosure-open" : ""),
         "aria-hidden": "true",
       }),
-      l
+      e
     ),
-    g &&
+    m &&
       React.createElement(
         "div",
         { style: { padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 8 } },
-        c
+        o
       )
   );
 }
 function UploadStep({
-  sepOverride: l,
-  setSepOverride: o,
-  rawText: c,
-  doParse: g,
-  handleFileLoad: b,
-  onLoadExample: N,
+  sepOverride: e,
+  setSepOverride: n,
+  rawText: o,
+  doParse: m,
+  handleFileLoad: k,
+  onLoadExample: S,
 }) {
   return React.createElement(
     "div",
     null,
     React.createElement(UploadPanel, {
-      sepOverride: l,
-      onSepChange: (m) => {
-        (o(m), c && g(c, m));
+      sepOverride: e,
+      onSepChange: (d) => {
+        (n(d), o && m(o, d));
       },
-      onFileLoad: b,
-      onLoadExample: N,
+      onFileLoad: k,
+      onLoadExample: S,
       exampleLabel: "Bacterial growth curves (3 strains \xD7 5 timepoints \xD7 3 reps)",
       hint: "CSV \xB7 TSV \xB7 TXT \u2014 one row per observation, columns for X, Y, and grouping variable",
     }),
@@ -593,8 +593,7 @@ function UploadStep({
             React.createElement("strong", null, "Long format"),
             " \u2014 one ",
             React.createElement("strong", null, "row"),
-            " per observation, with a numeric",
-            " ",
+            " per observation, with a numeric ",
             React.createElement("strong", null, "X"),
             ", a numeric ",
             React.createElement("strong", null, "Y"),
@@ -635,8 +634,7 @@ function UploadStep({
             React.createElement("strong", null, "SEM"),
             " (default), ",
             React.createElement("strong", null, "SD"),
-            ", or",
-            " ",
+            ", or ",
             React.createElement("strong", null, "95% CI"),
             ". CI uses the ",
             React.createElement("em", null, "t"),
@@ -690,11 +688,11 @@ function UploadStep({
             "BH-adjusted significance stars",
             "Decision trace & R export",
             "100% browser-side",
-          ].map((m) =>
+          ].map((d) =>
             React.createElement(
               "span",
               {
-                key: m,
+                key: d,
                 style: {
                   fontSize: 10,
                   padding: "3px 10px",
@@ -704,7 +702,7 @@ function UploadStep({
                   color: "var(--text-muted)",
                 },
               },
-              m
+              d
             )
           )
         )
@@ -713,19 +711,19 @@ function UploadStep({
   );
 }
 function ConfigureStep({
-  parsed: l,
-  fileName: o,
-  xCol: c,
-  setXCol: g,
-  yCol: b,
-  setYCol: N,
-  groupCol: m,
-  setGroupCol: i,
-  numericCols: a,
-  categoricalCols: x,
-  setStep: f,
+  parsed: e,
+  fileName: n,
+  xCol: o,
+  setXCol: m,
+  yCol: k,
+  setYCol: S,
+  groupCol: d,
+  setGroupCol: c,
+  numericCols: r,
+  categoricalCols: y,
+  setStep: g,
 }) {
-  const u = c != null && b != null && a.length >= 2;
+  const l = o != null && k != null && r.length >= 2;
   return React.createElement(
     "div",
     { style: { display: "flex", flexDirection: "column", gap: 16 } },
@@ -748,12 +746,12 @@ function ConfigureStep({
           "p",
           { style: { margin: 0, fontSize: 13, color: "var(--text-muted)" } },
           "Loaded ",
-          React.createElement("strong", { style: { color: "var(--text)" } }, o || "pasted data"),
+          React.createElement("strong", { style: { color: "var(--text)" } }, n || "pasted data"),
           " \u2014",
           " ",
-          l.rawData.length,
+          e.rawData.length,
           " rows \xD7 ",
-          l.headers.length,
+          e.headers.length,
           " columns"
         ),
         React.createElement(
@@ -761,13 +759,13 @@ function ConfigureStep({
           {
             type: "button",
             className: "dv-btn dv-btn-plot",
-            disabled: !u,
-            onClick: () => f("plot"),
+            disabled: !l,
+            onClick: () => g("plot"),
           },
           "Plot \u2192"
         )
       ),
-      React.createElement(DataPreview, { headers: l.headers, rows: l.rawData, maxRows: 10 })
+      React.createElement(DataPreview, { headers: e.headers, rows: e.rawData, maxRows: 10 })
     ),
     React.createElement(
       "div",
@@ -795,12 +793,12 @@ function ConfigureStep({
           React.createElement(
             "select",
             {
-              value: c ?? "",
-              onChange: (t) => g(parseInt(t.target.value)),
+              value: o ?? "",
+              onChange: (t) => m(parseInt(t.target.value)),
               className: "dv-select",
               style: { width: "100%" },
             },
-            a.map((t) => React.createElement("option", { key: t, value: t }, l.headers[t]))
+            r.map((t) => React.createElement("option", { key: t, value: t }, e.headers[t]))
           )
         ),
         React.createElement(
@@ -810,12 +808,12 @@ function ConfigureStep({
           React.createElement(
             "select",
             {
-              value: b ?? "",
-              onChange: (t) => N(parseInt(t.target.value)),
+              value: k ?? "",
+              onChange: (t) => S(parseInt(t.target.value)),
               className: "dv-select",
               style: { width: "100%" },
             },
-            a.map((t) => React.createElement("option", { key: t, value: t }, l.headers[t]))
+            r.map((t) => React.createElement("option", { key: t, value: t }, e.headers[t]))
           )
         ),
         React.createElement(
@@ -825,17 +823,17 @@ function ConfigureStep({
           React.createElement(
             "select",
             {
-              value: m ?? "",
-              onChange: (t) => i(t.target.value === "" ? null : parseInt(t.target.value)),
+              value: d ?? "",
+              onChange: (t) => c(t.target.value === "" ? null : parseInt(t.target.value)),
               className: "dv-select",
               style: { width: "100%" },
             },
             React.createElement("option", { value: "" }, "(single line)"),
-            x.map((t) => React.createElement("option", { key: t, value: t }, l.headers[t]))
+            y.map((t) => React.createElement("option", { key: t, value: t }, e.headers[t]))
           )
         )
       ),
-      !u &&
+      !l &&
         React.createElement(
           "p",
           { style: { margin: "10px 0 0", fontSize: 11, color: "var(--warning-text)" } },
@@ -845,51 +843,51 @@ function ConfigureStep({
   );
 }
 function PlotControls({
-  parsed: l,
-  fileName: o,
-  xCol: c,
-  setXCol: g,
-  yCol: b,
-  setYCol: N,
-  groupCol: m,
-  setGroupCol: i,
-  numericCols: a,
-  categoricalCols: x,
-  series: f,
-  setGroupColor: u,
+  parsed: e,
+  fileName: n,
+  xCol: o,
+  setXCol: m,
+  yCol: k,
+  setYCol: S,
+  groupCol: d,
+  setGroupCol: c,
+  numericCols: r,
+  categoricalCols: y,
+  series: g,
+  setGroupColor: l,
   vis: t,
-  updVis: p,
-  autoAxis: d,
-  errorType: k,
-  setErrorType: y,
-  showStars: F,
-  setShowStars: S,
-  statsRows: T,
-  svgRef: L,
-  resetAll: Y,
+  updVis: u,
+  autoAxis: f,
+  errorType: w,
+  setErrorType: C,
+  showStars: p,
+  setShowStars: h,
+  statsRows: a,
+  svgRef: N,
+  resetAll: x,
 }) {
-  const X = (n) => (B) => p({ [n]: B }),
-    K = () => {
-      const n = ["x", "test", "statistic", "p", "p_adj", "stars"],
-        B = T.map((v) => {
-          const W =
-              v.result && !v.result.error
-                ? v.result.t != null
-                  ? v.result.t
-                  : v.result.U != null
-                    ? v.result.U
-                    : v.result.F != null
-                      ? v.result.F
-                      : v.result.H != null
-                        ? v.result.H
+  const R = (i) => (L) => u({ [i]: L }),
+    $ = () => {
+      const i = ["x", "test", "statistic", "p", "p_adj", "stars"],
+        L = a.map((A) => {
+          const H =
+              A.result && !A.result.error
+                ? A.result.t != null
+                  ? A.result.t
+                  : A.result.U != null
+                    ? A.result.U
+                    : A.result.F != null
+                      ? A.result.F
+                      : A.result.H != null
+                        ? A.result.H
                         : ""
                 : "",
-            I = v.result && !v.result.error ? v.result.p : "",
-            U = v.pAdj != null ? v.pAdj : "",
-            M = v.pAdj != null ? pStars(v.pAdj) : "";
-          return [formatX(v.x), v.chosenTest || "", W, I, U, M];
+            j = A.result && !A.result.error ? A.result.p : "",
+            V = A.pAdj != null ? A.pAdj : "",
+            F = A.pAdj != null ? pStars(A.pAdj) : "";
+          return [formatX(A.x), A.chosenTest || "", H, j, V, F];
         });
-      downloadCsv(n, B, `${fileBaseName(o, "lineplot")}_stats.csv`);
+      downloadCsv(i, L, `${fileBaseName(n, "lineplot")}_stats.csv`);
     };
   return React.createElement(
     "div",
@@ -907,10 +905,10 @@ function PlotControls({
       },
     },
     React.createElement(ActionsPanel, {
-      onDownloadSvg: () => downloadSvg(L.current, `${fileBaseName(o, "lineplot")}_lineplot.svg`),
-      onDownloadPng: () => downloadPng(L.current, `${fileBaseName(o, "lineplot")}_lineplot.png`),
-      onReset: Y,
-      extraDownloads: T.length > 0 ? [{ label: "Stats CSV", onClick: K }] : [],
+      onDownloadSvg: () => downloadSvg(N.current, `${fileBaseName(n, "lineplot")}_lineplot.svg`),
+      onDownloadPng: () => downloadPng(N.current, `${fileBaseName(n, "lineplot")}_lineplot.png`),
+      onReset: x,
+      extraDownloads: a.length > 0 ? [{ label: "Stats CSV", onClick: $ }] : [],
     }),
     React.createElement(
       ControlSection,
@@ -922,12 +920,12 @@ function PlotControls({
         React.createElement(
           "select",
           {
-            value: c,
-            onChange: (n) => g(parseInt(n.target.value)),
+            value: o,
+            onChange: (i) => m(parseInt(i.target.value)),
             className: "dv-select",
             style: { width: "100%" },
           },
-          a.map((n) => React.createElement("option", { key: n, value: n }, l.headers[n]))
+          r.map((i) => React.createElement("option", { key: i, value: i }, e.headers[i]))
         )
       ),
       React.createElement(
@@ -937,12 +935,12 @@ function PlotControls({
         React.createElement(
           "select",
           {
-            value: b,
-            onChange: (n) => N(parseInt(n.target.value)),
+            value: k,
+            onChange: (i) => S(parseInt(i.target.value)),
             className: "dv-select",
             style: { width: "100%" },
           },
-          a.map((n) => React.createElement("option", { key: n, value: n }, l.headers[n]))
+          r.map((i) => React.createElement("option", { key: i, value: i }, e.headers[i]))
         )
       ),
       React.createElement(
@@ -952,20 +950,20 @@ function PlotControls({
         React.createElement(
           "select",
           {
-            value: m ?? "",
-            onChange: (n) => i(n.target.value === "" ? null : parseInt(n.target.value)),
+            value: d ?? "",
+            onChange: (i) => c(i.target.value === "" ? null : parseInt(i.target.value)),
             className: "dv-select",
             style: { width: "100%" },
           },
           React.createElement("option", { value: "" }, "(single line)"),
-          x.map((n) => React.createElement("option", { key: n, value: n }, l.headers[n]))
+          y.map((i) => React.createElement("option", { key: i, value: i }, e.headers[i]))
         )
       )
     ),
     React.createElement(
       ControlSection,
-      { title: "Groups", defaultOpen: f.length > 0 && f.length <= 6 },
-      f.length === 0
+      { title: "Groups", defaultOpen: g.length > 0 && g.length <= 6 },
+      g.length === 0
         ? React.createElement(
             "p",
             { style: { margin: 0, fontSize: 11, color: "var(--text-faint)" } },
@@ -974,15 +972,15 @@ function PlotControls({
         : React.createElement(
             "div",
             { style: { display: "flex", flexDirection: "column", gap: 6 } },
-            f.map((n) =>
+            g.map((i) =>
               React.createElement(
                 "div",
-                { key: n.name, style: { display: "flex", alignItems: "center", gap: 8 } },
-                React.createElement(ColorInput, { value: n.color, onChange: (B) => u(n.name, B) }),
+                { key: i.name, style: { display: "flex", alignItems: "center", gap: 8 } },
+                React.createElement(ColorInput, { value: i.color, onChange: (L) => l(i.name, L) }),
                 React.createElement(
                   "span",
                   { style: { fontSize: 12, color: "var(--text)" } },
-                  n.name
+                  i.name
                 )
               )
             )
@@ -994,16 +992,16 @@ function PlotControls({
       React.createElement(
         "div",
         { className: "dv-seg", role: "group", "aria-label": "Error bar type" },
-        ERROR_KINDS.map((n) =>
+        ERROR_KINDS.map((i) =>
           React.createElement(
             "button",
             {
-              key: n.value,
+              key: i.value,
               type: "button",
-              className: "dv-seg-btn" + (k === n.value ? " dv-seg-btn-active" : ""),
-              onClick: () => y(n.value),
+              className: "dv-seg-btn" + (w === i.value ? " dv-seg-btn-active" : ""),
+              onClick: () => C(i.value),
             },
-            n.label
+            i.label
           )
         )
       )
@@ -1019,8 +1017,8 @@ function PlotControls({
           { style: { flex: 1, display: "block" } },
           React.createElement("span", { className: "dv-label" }, "X min"),
           React.createElement(NumberInput, {
-            value: t.xMin != null ? t.xMin : d.xMin,
-            onChange: (n) => p({ xMin: Number(n.target.value) }),
+            value: t.xMin != null ? t.xMin : f.xMin,
+            onChange: (i) => u({ xMin: Number(i.target.value) }),
             step: "any",
             style: { width: "100%" },
           })
@@ -1030,8 +1028,8 @@ function PlotControls({
           { style: { flex: 1, display: "block" } },
           React.createElement("span", { className: "dv-label" }, "X max"),
           React.createElement(NumberInput, {
-            value: t.xMax != null ? t.xMax : d.xMax,
-            onChange: (n) => p({ xMax: Number(n.target.value) }),
+            value: t.xMax != null ? t.xMax : f.xMax,
+            onChange: (i) => u({ xMax: Number(i.target.value) }),
             step: "any",
             style: { width: "100%" },
           })
@@ -1045,8 +1043,8 @@ function PlotControls({
           { style: { flex: 1, display: "block" } },
           React.createElement("span", { className: "dv-label" }, "Y min"),
           React.createElement(NumberInput, {
-            value: t.yMin != null ? t.yMin : d.yMin,
-            onChange: (n) => p({ yMin: Number(n.target.value) }),
+            value: t.yMin != null ? t.yMin : f.yMin,
+            onChange: (i) => u({ yMin: Number(i.target.value) }),
             step: "any",
             style: { width: "100%" },
           })
@@ -1056,8 +1054,8 @@ function PlotControls({
           { style: { flex: 1, display: "block" } },
           React.createElement("span", { className: "dv-label" }, "Y max"),
           React.createElement(NumberInput, {
-            value: t.yMax != null ? t.yMax : d.yMax,
-            onChange: (n) => p({ yMax: Number(n.target.value) }),
+            value: t.yMax != null ? t.yMax : f.yMax,
+            onChange: (i) => u({ yMax: Number(i.target.value) }),
             step: "any",
             style: { width: "100%" },
           })
@@ -1073,7 +1071,7 @@ function PlotControls({
         React.createElement("span", { className: "dv-label" }, "Title"),
         React.createElement("input", {
           value: t.plotTitle,
-          onChange: (n) => p({ plotTitle: n.target.value }),
+          onChange: (i) => u({ plotTitle: i.target.value }),
           className: "dv-input",
           style: { width: "100%" },
         })
@@ -1084,7 +1082,7 @@ function PlotControls({
         React.createElement("span", { className: "dv-label" }, "Subtitle"),
         React.createElement("input", {
           value: t.plotSubtitle,
-          onChange: (n) => p({ plotSubtitle: n.target.value }),
+          onChange: (i) => u({ plotSubtitle: i.target.value }),
           className: "dv-input",
           style: { width: "100%" },
         })
@@ -1095,7 +1093,7 @@ function PlotControls({
         React.createElement("span", { className: "dv-label" }, "X label"),
         React.createElement("input", {
           value: t.xLabel,
-          onChange: (n) => p({ xLabel: n.target.value }),
+          onChange: (i) => u({ xLabel: i.target.value }),
           className: "dv-input",
           style: { width: "100%" },
         })
@@ -1106,7 +1104,7 @@ function PlotControls({
         React.createElement("span", { className: "dv-label" }, "Y label"),
         React.createElement("input", {
           value: t.yLabel,
-          onChange: (n) => p({ yLabel: n.target.value }),
+          onChange: (i) => u({ yLabel: i.target.value }),
           className: "dv-input",
           style: { width: "100%" },
         })
@@ -1127,7 +1125,7 @@ function PlotControls({
             {
               type: "button",
               className: "dv-seg-btn" + (t.showGrid ? "" : " dv-seg-btn-active"),
-              onClick: () => p({ showGrid: !1 }),
+              onClick: () => u({ showGrid: !1 }),
             },
             "Off"
           ),
@@ -1136,7 +1134,34 @@ function PlotControls({
             {
               type: "button",
               className: "dv-seg-btn" + (t.showGrid ? " dv-seg-btn-active" : ""),
-              onClick: () => p({ showGrid: !0 }),
+              onClick: () => u({ showGrid: !0 }),
+            },
+            "On"
+          )
+        )
+      ),
+      React.createElement(
+        "div",
+        null,
+        React.createElement("span", { className: "dv-label" }, "Significance stars"),
+        React.createElement(
+          "div",
+          { className: "dv-seg", role: "group", "aria-label": "Significance stars" },
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              className: "dv-seg-btn" + (p ? "" : " dv-seg-btn-active"),
+              onClick: () => h(!1),
+            },
+            "Off"
+          ),
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              className: "dv-seg-btn" + (p ? " dv-seg-btn-active" : ""),
+              onClick: () => h(!0),
             },
             "On"
           )
@@ -1148,7 +1173,7 @@ function PlotControls({
         min: 0.5,
         max: 5,
         step: 0.5,
-        onChange: X("lineWidth"),
+        onChange: R("lineWidth"),
       }),
       React.createElement(SliderControl, {
         label: "Point radius",
@@ -1156,7 +1181,7 @@ function PlotControls({
         min: 0,
         max: 10,
         step: 0.5,
-        onChange: X("pointRadius"),
+        onChange: R("pointRadius"),
       }),
       React.createElement(SliderControl, {
         label: "Error cap width",
@@ -1164,71 +1189,784 @@ function PlotControls({
         min: 0,
         max: 20,
         step: 1,
-        onChange: X("errorCapWidth"),
+        onChange: R("errorCapWidth"),
       })
-    ),
+    )
+  );
+}
+const TEST_LABELS_LP = {
+    studentT: "Student's t",
+    welchT: "Welch's t",
+    mannWhitney: "Mann-Whitney U",
+    oneWayANOVA: "One-way ANOVA",
+    welchANOVA: "Welch's ANOVA",
+    kruskalWallis: "Kruskal-Wallis",
+  },
+  POSTHOC_LABELS_LP = {
+    tukeyHSD: "Tukey HSD",
+    gamesHowell: "Games-Howell",
+    dunn: "Dunn (BH-adjusted)",
+  };
+function postHocForTest(e) {
+  return e === "oneWayANOVA"
+    ? "tukeyHSD"
+    : e === "welchANOVA"
+      ? "gamesHowell"
+      : e === "kruskalWallis"
+        ? "dunn"
+        : null;
+}
+function runPostHocByName(e, n) {
+  return e === "tukeyHSD"
+    ? tukeyHSD(n)
+    : e === "gamesHowell"
+      ? gamesHowell(n)
+      : e === "dunn"
+        ? dunnTest(n)
+        : null;
+}
+function formatStat(e, n) {
+  if (!n || n.error) return "\u2014";
+  if (e === "studentT" || e === "welchT") return `t(${n.df.toFixed(2)}) = ${n.t.toFixed(3)}`;
+  if (e === "mannWhitney") return `U = ${n.U.toFixed(1)}`;
+  if (e === "oneWayANOVA" || e === "welchANOVA") {
+    const o = typeof n.df2 == "number" ? n.df2.toFixed(2) : n.df2;
+    return `F(${n.df1}, ${o}) = ${n.F.toFixed(3)}`;
+  }
+  return e === "kruskalWallis" ? `H(${n.df}) = ${n.H.toFixed(3)}` : "\u2014";
+}
+function buildPerXTextBlock(e, n) {
+  const o = [],
+    m = e.names,
+    k = e.values,
+    S = e.result || {};
+  (o.push("=".repeat(60)),
+    o.push(`${n || "x"} = ${formatX(e.x)}`),
+    o.push("=".repeat(60)),
+    o.push(""),
+    o.push("Groups:"));
+  for (let l = 0; l < m.length; l++) {
+    const t = k[l],
+      u = sampleMean(t),
+      f = t.length > 1 ? sampleSD(t) : 0;
+    o.push(`  ${m[l]}: n=${t.length}, mean=${u.toFixed(3)}, SD=${f.toFixed(3)}`);
+  }
+  o.push("");
+  const d = e.rec,
+    c = d && d.recommendation && d.recommendation.test ? d.recommendation.test : null,
+    r = d && d.recommendation && d.recommendation.reason;
+  (o.push(`Test: ${TEST_LABELS_LP[e.chosenTest] || e.chosenTest || "\u2014"}`),
+    r && o.push(`Reason: ${r}`),
+    S.error
+      ? o.push(`Result: \u26A0 ${S.error}`)
+      : (o.push(`Result: ${formatStat(e.chosenTest, S)},  p = ${formatP(S.p)}`),
+        e.pAdj != null && o.push(`BH-adjusted p (across x-axis): ${formatP(e.pAdj)}`)),
+    c && c !== e.chosenTest && o.push(`  (Toolbox recommended ${TEST_LABELS_LP[c] || c})`),
+    o.push(""));
+  const y = (d && d.normality) || [];
+  if (y.length > 0) {
+    const l = y.map((t) => {
+      const u = m[t.group] || `g${t.group}`,
+        f = t.normal === !0 ? "normal" : t.normal === !1 ? "not normal" : "\u2014";
+      return `${u}: ${f}`;
+    });
+    o.push(`Shapiro-Wilk: ${l.join("; ")}`);
+  }
+  const g = (d && d.levene) || {};
+  if (
+    (g.F != null &&
+      o.push(
+        `Levene: F(${g.df1},${g.df2}) = ${g.F.toFixed(3)}, p = ${formatP(g.p)} \u2192 ${g.equalVar ? "equal variance" : "unequal variance"}`
+      ),
+    m.length >= 3 && e.postHocResult && !e.postHocResult.error)
+  ) {
+    (o.push(""), o.push(`Post-hoc \u2014 ${POSTHOC_LABELS_LP[e.postHocName] || e.postHocName}:`));
+    for (const l of e.postHocResult.pairs) {
+      const t = l.pAdj != null ? l.pAdj : l.p,
+        u = l.diff != null ? l.diff.toFixed(3) : l.z != null ? `z=${l.z.toFixed(3)}` : "\u2014";
+      o.push(`  ${m[l.i]} vs ${m[l.j]}: ${u},  p = ${formatP(t)}  ${pStars(t)}`);
+    }
+  }
+  if (e.powerResult) {
+    (o.push(""),
+      o.push(
+        `Power (target 80%): ${e.powerResult.effectLabel} = ${e.powerResult.effect.toFixed(3)}`
+      ));
+    for (const l of e.powerResult.rows) {
+      const t = l.nForTarget != null ? `${l.nForTarget} ${e.powerResult.nLabel}` : "> 5000";
+      o.push(`  \u03B1=${l.alpha}: achieved ${(l.achieved * 100).toFixed(1)}%, need n = ${t}`);
+    }
+    e.powerResult.approximate &&
+      o.push("  (rank-based test \u2014 estimated from parametric analog)");
+  }
+  return (
+    o.push(""),
+    o.join(`
+`)
+  );
+}
+function buildAggregateReport(e, n) {
+  return (
+    [
+      "Line Plot \u2014 per-x statistical analysis",
+      "Generated: " + new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+      `X axis: ${n || "x"}`,
+      `Eligible points: ${e.length}`,
+      "",
+      "P-values are BH-adjusted across the x-axis. Stars use the adjusted p.",
+      "",
+    ].join(`
+`) + e.map((k) => buildPerXTextBlock(k, n)).join("")
+  );
+}
+function buildAggregateRScript(e, n) {
+  if (!e.length || typeof buildRScript != "function") return "";
+  const k = [
+    [
+      "# -----------------------------------------------------------------------------",
+      "# Dataviz Toolbox \u2014 Line Plot R script export (combined per-x analysis)",
+      "# Generated: " + new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+      `# X axis: ${n || "x"} \u2014 ${e.length} eligible points.`,
+      "# Each section redefines `df` for one x value and runs its assumption checks,",
+      "# chosen test, and post-hoc (if applicable).",
+      "# -----------------------------------------------------------------------------",
+      "",
+    ].join(`
+`),
+  ];
+  for (let S = 0; S < e.length; S++) {
+    const d = e[S],
+      c = buildRScript({
+        names: d.names,
+        values: d.values,
+        recommendation: d.rec,
+        chosenTest: d.chosenTest,
+        postHocName: d.postHocName,
+        dataNote: `${n || "x"} = ${formatX(d.x)}`,
+      }),
+      r = `
+# ==============================================================
+# ${n || "x"} = ${formatX(d.x)}
+# ==============================================================
+`;
+    if (S === 0) k.push(r + c);
+    else {
+      const y = c.split(`
+`),
+        g = y.findIndex((l) => l.startsWith("df <- data.frame"));
+      k.push(
+        r +
+          (g >= 0
+            ? y.slice(g).join(`
+`)
+            : c)
+      );
+    }
+  }
+  return k.join(`
+`);
+}
+function PerXDetail({ row: e, onOverrideTest: n, isOverridden: o }) {
+  const m = e.names,
+    k = e.values,
+    S = m.length,
+    d = e.result || {},
+    c = e.rec || {},
+    r = c.recommendation && c.recommendation.reason,
+    y = c.recommendation && c.recommendation.test,
+    g =
+      S === 2
+        ? ["studentT", "welchT", "mannWhitney"]
+        : ["oneWayANOVA", "welchANOVA", "kruskalWallis"],
+    l = {
+      margin: "10px 0 6px",
+      padding: "4px 10px",
+      fontSize: 10,
+      fontWeight: 800,
+      textTransform: "uppercase",
+      letterSpacing: "0.8px",
+      color: "var(--subhead-text)",
+      background: "var(--subhead-bg)",
+      borderRadius: 4,
+      display: "block",
+    },
+    t = {
+      textAlign: "left",
+      padding: "3px 6px",
+      borderBottom: "1px solid var(--border)",
+      color: "var(--text-muted)",
+      fontWeight: 600,
+      fontSize: 11,
+    },
+    u = {
+      padding: "3px 6px",
+      borderBottom: "1px solid var(--border)",
+      color: "var(--text)",
+      fontSize: 11,
+    },
+    f = {
+      display: "inline-block",
+      padding: "1px 6px",
+      borderRadius: 8,
+      fontSize: 9,
+      fontWeight: 700,
+      background: "var(--success-bg)",
+      color: "var(--success-text)",
+    },
+    w = { ...f, background: "var(--danger-bg)", color: "var(--danger-text)" },
+    C = { ...f, background: "var(--neutral-bg)", color: "var(--neutral-text)" },
+    p = c.normality || [],
+    h = c.levene || {};
+  return React.createElement(
+    "div",
+    { style: { padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" } },
+    React.createElement("div", { style: l }, "Groups"),
     React.createElement(
-      ControlSection,
-      { title: "Statistics", defaultOpen: !0 },
+      "table",
+      { style: { width: "100%", borderCollapse: "collapse" } },
       React.createElement(
-        "div",
+        "thead",
         null,
-        React.createElement("span", { className: "dv-label" }, "Stars on plot"),
         React.createElement(
-          "div",
-          { className: "dv-seg", role: "group", "aria-label": "Significance stars" },
-          React.createElement(
-            "button",
-            {
-              type: "button",
-              className: "dv-seg-btn" + (F ? "" : " dv-seg-btn-active"),
-              onClick: () => S(!1),
-            },
-            "Off"
-          ),
-          React.createElement(
-            "button",
-            {
-              type: "button",
-              className: "dv-seg-btn" + (F ? " dv-seg-btn-active" : ""),
-              onClick: () => S(!0),
-            },
-            "On"
-          )
+          "tr",
+          null,
+          React.createElement("th", { style: t }, "Group"),
+          React.createElement("th", { style: t }, "n"),
+          React.createElement("th", { style: t }, "Mean"),
+          React.createElement("th", { style: t }, "SD")
         )
       ),
       React.createElement(
-        "p",
-        { style: { margin: 0, fontSize: 11, color: "var(--text-faint)" } },
-        "BH-adjusted across x. Per-x details (decision trace, R script) are below the chart."
+        "tbody",
+        null,
+        m.map((a, N) => {
+          const x = k[N],
+            R = sampleMean(x),
+            $ = x.length > 1 ? sampleSD(x) : 0;
+          return React.createElement(
+            "tr",
+            { key: N },
+            React.createElement("td", { style: u }, a),
+            React.createElement("td", { style: u }, x.length),
+            React.createElement("td", { style: u }, R.toFixed(3)),
+            React.createElement("td", { style: u }, $.toFixed(3))
+          );
+        })
+      )
+    ),
+    React.createElement("div", { style: l }, "Assumptions"),
+    p.length > 0 &&
+      React.createElement(
+        "div",
+        { style: { marginBottom: 6 } },
+        React.createElement(
+          "div",
+          { style: { fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 2 } },
+          "Shapiro-Wilk (normality)"
+        ),
+        React.createElement(
+          "div",
+          { style: { display: "flex", gap: 6, flexWrap: "wrap" } },
+          p.map((a, N) => {
+            const x = m[a.group] || `g${a.group}`,
+              R = a.normal === !0 ? f : a.normal === !1 ? w : C,
+              $ = a.normal === !0 ? "normal" : a.normal === !1 ? "not normal" : "\u2014";
+            return React.createElement(
+              "span",
+              { key: N, style: { fontSize: 11, color: "var(--text)" } },
+              x,
+              ": ",
+              React.createElement("span", { style: R }, $)
+            );
+          })
+        )
+      ),
+    h.F != null &&
+      React.createElement(
+        "div",
+        { style: { fontSize: 11, color: "var(--text-muted)" } },
+        React.createElement("span", { style: { fontWeight: 600 } }, "Levene"),
+        " \u2014 F(",
+        h.df1,
+        ", ",
+        h.df2,
+        ") =",
+        " ",
+        h.F.toFixed(3),
+        ", p = ",
+        formatP(h.p),
+        " ",
+        React.createElement(
+          "span",
+          { style: h.equalVar ? f : w },
+          h.equalVar ? "equal variance" : "unequal variance"
+        )
+      ),
+    React.createElement("div", { style: l }, "Test"),
+    React.createElement(
+      "div",
+      {
+        style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 },
+      },
+      React.createElement(
+        "select",
+        {
+          value: e.chosenTest || "",
+          onChange: (a) => n && n(a.target.value === y ? null : a.target.value),
+          className: "dv-select",
+          style: { fontSize: 11, padding: "2px 6px", minWidth: 180 },
+          onClick: (a) => a.stopPropagation(),
+        },
+        g.map((a) =>
+          React.createElement(
+            "option",
+            { key: a, value: a },
+            TEST_LABELS_LP[a],
+            a === y ? "  (recommended)" : ""
+          )
+        )
+      ),
+      o &&
+        React.createElement(
+          "button",
+          {
+            type: "button",
+            onClick: (a) => {
+              (a.stopPropagation(), n && n(null));
+            },
+            className: "dv-btn dv-btn-secondary",
+            style: { padding: "2px 8px", fontSize: 10 },
+          },
+          "Use recommendation"
+        )
+    ),
+    r &&
+      React.createElement(
+        "div",
+        {
+          style: { fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", marginBottom: 6 },
+        },
+        r
+      ),
+    React.createElement(
+      "div",
+      {
+        style: {
+          padding: "6px 10px",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: 6,
+          fontFamily: "ui-monospace, Menlo, monospace",
+          fontSize: 11,
+          color: "var(--text)",
+        },
+      },
+      d.error
+        ? `\u26A0 ${d.error}`
+        : `${formatStat(e.chosenTest, d)},  p = ${formatP(d.p)}${e.pAdj != null ? ` \xB7 BH-adjusted p = ${formatP(e.pAdj)}` : ""}`
+    ),
+    S >= 3 &&
+      e.postHocResult &&
+      !e.postHocResult.error &&
+      React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(
+          "div",
+          { style: l },
+          "Post-hoc \u2014 ",
+          POSTHOC_LABELS_LP[e.postHocName] || e.postHocName
+        ),
+        React.createElement(
+          "table",
+          { style: { width: "100%", borderCollapse: "collapse" } },
+          React.createElement(
+            "thead",
+            null,
+            React.createElement(
+              "tr",
+              null,
+              React.createElement("th", { style: t }, "Pair"),
+              React.createElement(
+                "th",
+                { style: t },
+                e.postHocName === "dunn" ? "Rank diff" : "Mean diff"
+              ),
+              React.createElement("th", { style: t }, "p"),
+              React.createElement("th", { style: t }, "Signif.")
+            )
+          ),
+          React.createElement(
+            "tbody",
+            null,
+            e.postHocResult.pairs.map((a, N) => {
+              const x = a.pAdj != null ? a.pAdj : a.p,
+                R =
+                  a.diff != null
+                    ? a.diff.toFixed(3)
+                    : a.z != null
+                      ? `z = ${a.z.toFixed(3)}`
+                      : "\u2014";
+              return React.createElement(
+                "tr",
+                { key: N },
+                React.createElement("td", { style: u }, m[a.i], " vs ", m[a.j]),
+                React.createElement("td", { style: u }, R),
+                React.createElement("td", { style: u }, formatP(x)),
+                React.createElement(
+                  "td",
+                  {
+                    style: {
+                      ...u,
+                      fontWeight: 700,
+                      color: x < 0.05 ? "var(--success-text)" : "var(--text-faint)",
+                    },
+                  },
+                  pStars(x)
+                )
+              );
+            })
+          )
+        )
+      ),
+    e.powerResult &&
+      React.createElement(
+        React.Fragment,
+        null,
+        React.createElement("div", { style: l }, "Power analysis (target 80%)"),
+        React.createElement(
+          "table",
+          { style: { width: "100%", borderCollapse: "collapse" } },
+          React.createElement(
+            "thead",
+            null,
+            React.createElement(
+              "tr",
+              null,
+              React.createElement("th", { style: t }, "Effect size"),
+              React.createElement("th", { style: t }, "\u03B1"),
+              React.createElement("th", { style: t }, "Achieved power"),
+              React.createElement("th", { style: t }, "n for 80% power")
+            )
+          ),
+          React.createElement(
+            "tbody",
+            null,
+            e.powerResult.rows.map((a, N) =>
+              React.createElement(
+                "tr",
+                { key: N },
+                N === 0
+                  ? React.createElement(
+                      "td",
+                      { style: u, rowSpan: e.powerResult.rows.length },
+                      e.powerResult.effectLabel,
+                      " = ",
+                      e.powerResult.effect.toFixed(3)
+                    )
+                  : null,
+                React.createElement("td", { style: u }, String(a.alpha)),
+                React.createElement(
+                  "td",
+                  {
+                    style: {
+                      ...u,
+                      fontWeight: 700,
+                      color: a.achieved >= 0.8 ? "var(--success-text)" : "var(--warning-text)",
+                    },
+                  },
+                  (a.achieved * 100).toFixed(1),
+                  "%"
+                ),
+                React.createElement(
+                  "td",
+                  { style: u },
+                  a.nForTarget != null ? `${a.nForTarget} ${e.powerResult.nLabel}` : "> 5000"
+                )
+              )
+            )
+          )
+        ),
+        e.powerResult.approximate &&
+          React.createElement(
+            "div",
+            {
+              style: {
+                fontSize: 10,
+                color: "var(--text-faint)",
+                fontStyle: "italic",
+                marginTop: 4,
+              },
+            },
+            "Approximation \u2014 rank-based test power estimated from its parametric analog."
+          )
+      )
+  );
+}
+function PerXStatsPanel({ rows: e, xLabel: n, fileName: o }) {
+  const [m, k] = useState({}),
+    [S, d] = useState(null),
+    [c, r] = useState({}),
+    y = fileBaseName(o, "lineplot"),
+    g = typeof buildRScript == "function",
+    l = useMemo(() => {
+      const p = e.map((x) => {
+          const R = formatX(x.x),
+            $ = selectTest(x.values),
+            i = $ && $.recommendation && $.recommendation.test ? $.recommendation.test : null,
+            L = c[R] || i || x.chosenTest,
+            A = L ? runChosenTest(L, x.values) : null,
+            H = postHocForTest(L),
+            j = x.names.length >= 3 && H ? runPostHocByName(H, x.values) : null,
+            V = computePowerFromData(L, x.values);
+          return {
+            ...x,
+            rec: $,
+            chosenTest: L,
+            result: A,
+            postHocName: H,
+            postHocResult: j,
+            powerResult: V,
+          };
+        }),
+        h = [],
+        a = [];
+      p.forEach((x, R) => {
+        x.result &&
+          !x.result.error &&
+          Number.isFinite(x.result.p) &&
+          (h.push(R), a.push(x.result.p));
+      });
+      const N = a.length > 0 ? bhAdjust(a) : [];
+      return (p.forEach((x) => (x.pAdj = null)), h.forEach((x, R) => (p[x].pAdj = N[R])), p);
+    }, [e, c]),
+    t = (p, h) =>
+      r((a) => {
+        const N = { ...a };
+        return (h == null ? delete N[p] : (N[p] = h), N);
+      }),
+    u = () => {
+      downloadText(buildAggregateReport(l, n), `${y}_stats.txt`);
+    },
+    f = () => {
+      downloadText(buildAggregateRScript(l, n), `${y}_stats.R`);
+    },
+    w = {
+      textAlign: "left",
+      padding: "6px 8px",
+      borderBottom: "1px solid var(--border)",
+      color: "var(--subhead-text)",
+      fontWeight: 600,
+      fontSize: 12,
+      background: "var(--subhead-bg)",
+    },
+    C = {
+      padding: "6px 8px",
+      borderBottom: "1px solid var(--border)",
+      color: "var(--text)",
+      fontSize: 12,
+    };
+  return React.createElement(
+    "div",
+    { className: "dv-panel", style: { padding: 0, overflow: "hidden" } },
+    React.createElement(
+      "div",
+      {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "12px 14px",
+          borderBottom: "1px solid var(--border)",
+        },
+      },
+      React.createElement(
+        "div",
+        null,
+        React.createElement(
+          "h3",
+          {
+            style: {
+              margin: 0,
+              fontSize: 14,
+              fontWeight: 700,
+              color: "var(--text)",
+              letterSpacing: "0.2px",
+            },
+          },
+          "Statistics at each ",
+          n || "x"
+        ),
+        React.createElement(
+          "p",
+          { style: { margin: "3px 0 0", fontSize: 11, color: "var(--text-faint)" } },
+          "Click a row to see the decision trace, assumptions, and post-hoc details. P-values are BH-adjusted across the x-axis."
+        )
+      ),
+      React.createElement(
+        "div",
+        { style: { display: "flex", gap: 6, flexShrink: 0 } },
+        React.createElement(
+          "button",
+          {
+            type: "button",
+            className: "dv-btn dv-btn-dl",
+            onClick: (p) => {
+              (u(), flashSaved(p.currentTarget));
+            },
+            title: "Download a plain-text report covering every x",
+          },
+          "\u2B07 TXT"
+        ),
+        g &&
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              className: "dv-btn dv-btn-dl",
+              onClick: (p) => {
+                (f(), flashSaved(p.currentTarget));
+              },
+              title: "Download a runnable R script reproducing every per-x test",
+            },
+            "\u2B07 R"
+          )
+      )
+    ),
+    React.createElement(
+      "table",
+      { style: { width: "100%", borderCollapse: "collapse" } },
+      React.createElement(
+        "thead",
+        null,
+        React.createElement(
+          "tr",
+          null,
+          React.createElement("th", { style: w }, n || "x"),
+          React.createElement("th", { style: w }, "Test"),
+          React.createElement("th", { style: w }, "Statistic"),
+          React.createElement("th", { style: w }, "p"),
+          React.createElement("th", { style: w }, "p (BH)"),
+          React.createElement("th", { style: { ...w, width: 60 } })
+        )
+      ),
+      React.createElement(
+        "tbody",
+        null,
+        l.map((p) => {
+          const h = formatX(p.x),
+            a = !!m[h],
+            N = p.result && !p.result.error ? p.result.p : null,
+            x = p.pAdj != null ? pStars(p.pAdj) : "",
+            R = p.pAdj != null && p.pAdj < 0.05;
+          return React.createElement(
+            React.Fragment,
+            { key: h },
+            React.createElement(
+              "tr",
+              {
+                onClick: () => k(($) => ({ ...$, [h]: !a })),
+                onMouseEnter: () => d(h),
+                onMouseLeave: () => d(($) => ($ === h ? null : $)),
+                style: {
+                  cursor: "pointer",
+                  background: a
+                    ? "var(--surface-subtle)"
+                    : S === h
+                      ? "var(--surface-sunken)"
+                      : void 0,
+                  transition: "background 120ms ease",
+                },
+              },
+              React.createElement(
+                "td",
+                { style: { ...C, fontFamily: "ui-monospace, Menlo, monospace" } },
+                formatX(p.x)
+              ),
+              React.createElement(
+                "td",
+                { style: C },
+                TEST_LABELS_LP[p.chosenTest] || p.chosenTest || "\u2014"
+              ),
+              React.createElement(
+                "td",
+                { style: { ...C, fontFamily: "ui-monospace, Menlo, monospace" } },
+                formatStat(p.chosenTest, p.result)
+              ),
+              React.createElement(
+                "td",
+                { style: { ...C, fontFamily: "ui-monospace, Menlo, monospace" } },
+                N != null ? formatP(N) : "\u2014"
+              ),
+              React.createElement(
+                "td",
+                {
+                  style: {
+                    ...C,
+                    fontFamily: "ui-monospace, Menlo, monospace",
+                    fontWeight: R ? 700 : 400,
+                    color: R ? "var(--success-text)" : "var(--text)",
+                  },
+                },
+                p.pAdj != null ? formatP(p.pAdj) : "\u2014"
+              ),
+              React.createElement(
+                "td",
+                {
+                  style: {
+                    ...C,
+                    textAlign: "right",
+                    color: R ? "var(--success-text)" : "var(--text-faint)",
+                    fontWeight: 700,
+                  },
+                },
+                x && x !== "ns" ? x : ""
+              )
+            ),
+            a &&
+              React.createElement(
+                "tr",
+                null,
+                React.createElement(
+                  "td",
+                  { colSpan: 6, style: { padding: 0, borderBottom: "1px solid var(--border)" } },
+                  React.createElement(PerXDetail, {
+                    row: p,
+                    isOverridden: !!c[h],
+                    onOverrideTest: ($) => t(h, $),
+                  })
+                )
+              )
+          );
+        })
       )
     )
   );
 }
-function PlotStep(l) {
+function PlotStep(e) {
   const {
-      parsed: o,
-      fileName: c,
-      series: g,
-      statsRows: b,
-      xCol: N,
-      yCol: m,
-      groupCol: i,
-      vis: a,
-      autoAxis: x,
-      effAxis: f,
-      errorType: u,
+      parsed: n,
+      fileName: o,
+      series: m,
+      statsRows: k,
+      xCol: S,
+      yCol: d,
+      groupCol: c,
+      vis: r,
+      autoAxis: y,
+      effAxis: g,
+      errorType: l,
       showStars: t,
-      svgRef: p,
-      svgLegend: d,
-    } = l,
-    k = 700,
-    y = 440,
-    F = fileBaseName(c, "lineplot");
+      svgRef: u,
+      svgLegend: f,
+    } = e,
+    w = 700,
+    C = 440,
+    p = r.xLabel || (n ? n.headers[S] : "x");
   return React.createElement(
     "div",
     { style: { display: "flex", gap: 20, alignItems: "flex-start" } },
-    React.createElement(PlotControls, { ...l }),
+    React.createElement(PlotControls, { ...e }),
     React.createElement(
       "div",
       { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 } },
@@ -1242,7 +1980,7 @@ function PlotStep(l) {
             borderColor: "var(--plot-card-border)",
           },
         },
-        g.length === 0
+        m.length === 0
           ? React.createElement(
               "p",
               {
@@ -1257,77 +1995,50 @@ function PlotStep(l) {
               "No data to plot. Check your column picks \u2014 X and Y must be numeric."
             )
           : React.createElement(Chart, {
-              ref: p,
-              series: g,
-              perXStats: b,
-              xMin: f.xMin,
-              xMax: f.xMax,
-              yMin: f.yMin,
-              yMax: f.yMax,
-              vbW: k,
-              vbH: y,
-              xLabel: a.xLabel || o.headers[N],
-              yLabel: a.yLabel || o.headers[m],
-              plotTitle: a.plotTitle,
-              plotSubtitle: a.plotSubtitle,
-              plotBg: a.plotBg,
-              showGrid: a.showGrid,
-              gridColor: a.gridColor,
-              lineWidth: a.lineWidth,
-              pointRadius: a.pointRadius,
-              errorStrokeWidth: a.errorStrokeWidth,
-              errorCapWidth: a.errorCapWidth,
-              errorType: u,
-              svgLegend: d,
+              ref: u,
+              series: m,
+              perXStats: k,
+              xMin: g.xMin,
+              xMax: g.xMax,
+              yMin: g.yMin,
+              yMax: g.yMax,
+              vbW: w,
+              vbH: C,
+              xLabel: r.xLabel || n.headers[S],
+              yLabel: r.yLabel || n.headers[d],
+              plotTitle: r.plotTitle,
+              plotSubtitle: r.plotSubtitle,
+              plotBg: r.plotBg,
+              showGrid: r.showGrid,
+              gridColor: r.gridColor,
+              lineWidth: r.lineWidth,
+              pointRadius: r.pointRadius,
+              errorStrokeWidth: r.errorStrokeWidth,
+              errorCapWidth: r.errorCapWidth,
+              errorType: l,
+              svgLegend: f,
               showStars: t,
             })
       ),
-      b.length > 0 &&
-        React.createElement(
-          "div",
-          { style: { display: "flex", flexDirection: "column", gap: 10 } },
-          React.createElement(
-            "h3",
-            {
-              style: {
-                margin: 0,
-                fontSize: 14,
-                fontWeight: 700,
-                color: "var(--text)",
-                letterSpacing: "0.2px",
-              },
-            },
-            "Per-x statistics"
-          ),
-          b.map((S) =>
-            React.createElement(StatsTile, {
-              key: `stats-${S.x}`,
-              title: `x = ${formatX(S.x)}`,
-              defaultOpen: !1,
-              compact: !0,
-              groups: S.names.map((T, L) => ({ name: T, values: S.values[L] })),
-              fileStem: `${F}_x${svgSafeId(formatX(S.x))}`,
-            })
-          )
-        )
+      k.length > 0 && React.createElement(PerXStatsPanel, { rows: k, xLabel: p, fileName: o })
     )
   );
 }
 function App() {
-  const [l, o] = useState(null),
-    [c, g] = useState(!1),
-    [b, N] = useState(0),
-    [m, i] = useState(""),
-    [a, x] = useState(""),
-    [f, u] = useState(null),
-    [t, p] = useState("upload"),
-    [d, k] = useState(0),
-    [y, F] = useState(1),
-    [S, T] = useState(null),
-    [L, Y] = useState("sem"),
-    [X, K] = useState(!0),
-    [n, B] = useState({}),
-    v = {
+  const [e, n] = useState(null),
+    [o, m] = useState(!1),
+    [k, S] = useState(0),
+    [d, c] = useState(""),
+    [r, y] = useState(""),
+    [g, l] = useState(null),
+    [t, u] = useState("upload"),
+    [f, w] = useState(0),
+    [C, p] = useState(1),
+    [h, a] = useState(null),
+    [N, x] = useState("sem"),
+    [R, $] = useState(!0),
+    [i, L] = useState({}),
+    A = {
       xMin: null,
       xMax: null,
       yMin: null,
@@ -1344,133 +2055,133 @@ function App() {
       errorStrokeWidth: 1,
       errorCapWidth: 6,
     },
-    [W, I] = useReducer((s, h) => (h._reset ? { ...v } : { ...s, ...h }), v),
-    U = useRef(null),
-    M = useRef(""),
-    r = useMemo(() => (l ? parseData(l, M.current) : null), [l]),
-    q = useMemo(
+    [H, j] = useReducer((b, M) => (M._reset ? { ...A } : { ...b, ...M }), A),
+    V = useRef(null),
+    F = useRef(""),
+    v = useMemo(() => (e ? parseData(e, F.current) : null), [e]),
+    U = useMemo(
       () =>
-        r
-          ? r.headers.reduce((s, h, A) => {
-              const D = r.rawData.map((P) => P[A]).filter((P) => P !== "" && P != null);
+        v
+          ? v.headers.reduce((b, M, W) => {
+              const I = v.rawData.map((B) => B[W]).filter((B) => B !== "" && B != null);
               return (
-                (s[A] = D.length > 0 && D.filter((P) => isNumericValue(P)).length / D.length > 0.5),
-                s
+                (b[W] = I.length > 0 && I.filter((B) => isNumericValue(B)).length / I.length > 0.5),
+                b
               );
             }, {})
           : {},
-      [r]
+      [v]
     ),
-    Z = useMemo(() => (r ? r.headers.reduce((s, h, A) => (q[A] ? [...s, A] : s), []) : []), [r, q]),
-    z = useMemo(() => (r ? r.headers.reduce((s, h, A) => (q[A] ? s : [...s, A]), []) : []), [r, q]),
-    C = useMemo(
+    Q = useMemo(() => (v ? v.headers.reduce((b, M, W) => (U[W] ? [...b, W] : b), []) : []), [v, U]),
+    D = useMemo(() => (v ? v.headers.reduce((b, M, W) => (U[W] ? b : [...b, W]), []) : []), [v, U]),
+    T = useMemo(
       () =>
-        !r || d == null || y == null ? [] : computeSeries(r.data, r.rawData, d, y, S, n, PALETTE),
-      [r, d, y, S, n]
+        !v || f == null || C == null ? [] : computeSeries(v.data, v.rawData, f, C, h, i, PALETTE),
+      [v, f, C, h, i]
     ),
-    ee = useCallback((s, h) => B((A) => ({ ...A, [s]: h })), []),
-    te = useMemo(() => (C.length >= 2 ? computePerXStats(C) : []), [C]),
-    j = useMemo(() => {
-      if (C.length === 0) return { xMin: 0, xMax: 1, yMin: 0, yMax: 1 };
-      let s = 1 / 0,
-        h = -1 / 0,
-        A = 1 / 0,
-        D = -1 / 0;
-      for (const ae of C)
-        for (const E of ae.points) {
-          if ((E.x < s && (s = E.x), E.x > h && (h = E.x), E.mean == null)) continue;
-          const _ = L === "sd" ? E.sd : L === "ci95" ? E.ci95 : E.sem,
-            J = E.mean + (_ || 0),
-            G = E.mean - (_ || 0);
-          (G < A && (A = G), J > D && (D = J));
+    ee = useCallback((b, M) => L((W) => ({ ...W, [b]: M })), []),
+    te = useMemo(() => (T.length >= 2 ? computePerXStats(T) : []), [T]),
+    Y = useMemo(() => {
+      if (T.length === 0) return { xMin: 0, xMax: 1, yMin: 0, yMax: 1 };
+      let b = 1 / 0,
+        M = -1 / 0,
+        W = 1 / 0,
+        I = -1 / 0;
+      for (const le of T)
+        for (const O of le.points) {
+          if ((O.x < b && (b = O.x), O.x > M && (M = O.x), O.mean == null)) continue;
+          const X = N === "sd" ? O.sd : N === "ci95" ? O.ci95 : O.sem,
+            K = O.mean + (X || 0),
+            _ = O.mean - (X || 0);
+          (_ < W && (W = _), K > I && (I = K));
         }
-      if (!Number.isFinite(s)) return { xMin: 0, xMax: 1, yMin: 0, yMax: 1 };
-      const P = s === h ? 0.5 : (h - s) * 0.05,
-        ne = A === D ? 0.5 : (D - A) * 0.08;
+      if (!Number.isFinite(b)) return { xMin: 0, xMax: 1, yMin: 0, yMax: 1 };
+      const B = b === M ? 0.5 : (M - b) * 0.05,
+        ne = W === I ? 0.5 : (I - W) * 0.08;
       return {
-        xMin: round4(s - P),
-        xMax: round4(h + P),
-        yMin: round4(A - ne),
-        yMax: round4(D + ne),
+        xMin: round4(b - B),
+        xMax: round4(M + B),
+        yMin: round4(W - ne),
+        yMax: round4(I + ne),
       };
-    }, [C, L]),
-    le = {
-      xMin: W.xMin != null ? W.xMin : j.xMin,
-      xMax: W.xMax != null ? W.xMax : j.xMax,
-      yMin: W.yMin != null ? W.yMin : j.yMin,
-      yMax: W.yMax != null ? W.yMax : j.yMax,
+    }, [T, N]),
+    oe = {
+      xMin: H.xMin != null ? H.xMin : Y.xMin,
+      xMax: H.xMax != null ? H.xMax : Y.xMax,
+      yMin: H.yMin != null ? H.yMin : Y.yMin,
+      yMax: H.yMax != null ? H.yMax : Y.yMax,
     },
-    e = useMemo(
+    s = useMemo(
       () =>
-        C.length === 0 || (C.length === 1 && C[0].name === "(all)")
+        T.length === 0 || (T.length === 1 && T[0].name === "(all)")
           ? null
           : [
               {
                 id: "legend-group",
-                title: S != null && r ? r.headers[S] : "",
-                items: C.map((s) => ({ label: s.name, color: s.color, shape: "dot" })),
+                title: h != null && v ? v.headers[h] : "",
+                items: T.map((b) => ({ label: b.name, color: b.color, shape: "dot" })),
               },
             ],
-      [C, S, r]
+      [T, h, v]
     );
   useEffect(() => {
-    !r ||
-      d == null ||
-      y == null ||
-      I({
+    !v ||
+      f == null ||
+      C == null ||
+      j({
         xMin: null,
         xMax: null,
         yMin: null,
         yMax: null,
-        xLabel: r.headers[d],
-        yLabel: r.headers[y],
+        xLabel: v.headers[f],
+        yLabel: v.headers[C],
       });
-  }, [d, y, r]);
-  const w = useCallback((s, h) => {
-      M.current = h;
-      const A = fixDecimalCommas(s, h);
-      (g(A.commaFixed), N(A.count));
-      const D = A.text,
-        { headers: P, data: ne, rawData: ae } = parseData(D, h);
-      if (P.length < 2 || ne.length === 0) {
-        u(
+  }, [f, C, v]);
+  const P = useCallback((b, M) => {
+      F.current = M;
+      const W = fixDecimalCommas(b, M);
+      (m(W.commaFixed), S(W.count));
+      const I = W.text,
+        { headers: B, data: ne, rawData: le } = parseData(I, M);
+      if (B.length < 2 || ne.length === 0) {
+        l(
           "The file appears to be empty or has no data rows. Please check your file and try again."
         );
         return;
       }
-      (u(null), o(D));
-      const E = (G) => {
-          const Q = ae.map((O) => O[G]).filter((O) => O !== "" && O != null);
-          return Q.length > 0 && Q.filter((O) => isNumericValue(O)).length / Q.length > 0.5;
+      (l(null), n(I));
+      const O = (_) => {
+          const J = le.map((E) => E[_]).filter((E) => E !== "" && E != null);
+          return J.length > 0 && J.filter((E) => isNumericValue(E)).length / J.length > 0.5;
         },
-        _ = P.reduce((G, Q, O) => (E(O) ? [...G, O] : G), []),
-        J = P.reduce((G, Q, O) => (E(O) ? G : [...G, O]), []);
-      (k(_[0] !== void 0 ? _[0] : 0),
-        F(_[1] !== void 0 ? _[1] : _[0] !== void 0 ? _[0] : 1),
-        T(J[0] !== void 0 ? J[0] : null),
-        B({}),
-        p("configure"));
+        X = B.reduce((_, J, E) => (O(E) ? [..._, E] : _), []),
+        K = B.reduce((_, J, E) => (O(E) ? _ : [..._, E]), []);
+      (w(X[0] !== void 0 ? X[0] : 0),
+        p(X[1] !== void 0 ? X[1] : X[0] !== void 0 ? X[0] : 1),
+        a(K[0] !== void 0 ? K[0] : null),
+        L({}),
+        u("configure"));
     }, []),
-    R = useCallback(
-      (s, h) => {
-        (x(h), w(s, m));
+    z = useCallback(
+      (b, M) => {
+        (y(M), P(b, d));
       },
-      [m, w]
+      [d, P]
     ),
-    $ = useCallback(() => {
-      const s = window.__LINEPLOT_EXAMPLE__;
-      s && (i(","), x("bacterial_growth.csv"), w(s, ","));
-    }, [w]),
-    H = () => {
-      (o(null), x(""), p("upload"));
+    G = useCallback(() => {
+      const b = window.__LINEPLOT_EXAMPLE__;
+      b && (c(","), y("bacterial_growth.csv"), P(b, ","));
+    }, [P]),
+    q = () => {
+      (n(null), y(""), u("upload"));
     },
-    V = (s) =>
-      s === "upload"
+    Z = (b) =>
+      b === "upload"
         ? !0
-        : s === "configure"
-          ? !!r
-          : s === "plot"
-            ? !!r && d != null && y != null
+        : b === "configure"
+          ? !!v
+          : b === "plot"
+            ? !!v && f != null && C != null
             : !1;
   return React.createElement(
     "div",
@@ -1490,62 +2201,62 @@ function App() {
     React.createElement(StepNavBar, {
       steps: ["upload", "configure", "plot"],
       currentStep: t,
-      onStepChange: p,
-      canNavigate: V,
+      onStepChange: u,
+      canNavigate: Z,
     }),
-    React.createElement(CommaFixBanner, { commaFixed: c, commaFixCount: b }),
-    React.createElement(ParseErrorBanner, { error: f }),
+    React.createElement(CommaFixBanner, { commaFixed: o, commaFixCount: k }),
+    React.createElement(ParseErrorBanner, { error: g }),
     t === "upload" &&
       React.createElement(UploadStep, {
-        sepOverride: m,
-        setSepOverride: i,
-        rawText: l,
-        doParse: w,
-        handleFileLoad: R,
-        onLoadExample: $,
+        sepOverride: d,
+        setSepOverride: c,
+        rawText: e,
+        doParse: P,
+        handleFileLoad: z,
+        onLoadExample: G,
       }),
     t === "configure" &&
-      r &&
+      v &&
       React.createElement(ConfigureStep, {
-        parsed: r,
-        fileName: a,
-        xCol: d,
-        setXCol: k,
-        yCol: y,
-        setYCol: F,
-        groupCol: S,
-        setGroupCol: T,
-        numericCols: Z,
-        categoricalCols: z,
-        setStep: p,
+        parsed: v,
+        fileName: r,
+        xCol: f,
+        setXCol: w,
+        yCol: C,
+        setYCol: p,
+        groupCol: h,
+        setGroupCol: a,
+        numericCols: Q,
+        categoricalCols: D,
+        setStep: u,
       }),
     t === "plot" &&
-      r &&
+      v &&
       React.createElement(PlotStep, {
-        parsed: r,
-        fileName: a,
-        series: C,
+        parsed: v,
+        fileName: r,
+        series: T,
         statsRows: te,
-        xCol: d,
-        setXCol: k,
-        yCol: y,
-        setYCol: F,
-        groupCol: S,
-        setGroupCol: T,
-        numericCols: Z,
-        categoricalCols: z,
+        xCol: f,
+        setXCol: w,
+        yCol: C,
+        setYCol: p,
+        groupCol: h,
+        setGroupCol: a,
+        numericCols: Q,
+        categoricalCols: D,
         setGroupColor: ee,
-        vis: W,
-        updVis: I,
-        autoAxis: j,
-        effAxis: le,
-        errorType: L,
-        setErrorType: Y,
-        showStars: X,
-        setShowStars: K,
-        svgRef: U,
-        svgLegend: e,
-        resetAll: H,
+        vis: H,
+        updVis: j,
+        autoAxis: Y,
+        effAxis: oe,
+        errorType: N,
+        setErrorType: x,
+        showStars: R,
+        setShowStars: $,
+        svgRef: V,
+        svgLegend: s,
+        resetAll: q,
       })
   );
 }

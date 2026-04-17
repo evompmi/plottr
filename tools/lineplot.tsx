@@ -1056,6 +1056,25 @@ function PlotControls({
             </button>
           </div>
         </div>
+        <div>
+          <span className="dv-label">Significance stars</span>
+          <div className="dv-seg" role="group" aria-label="Significance stars">
+            <button
+              type="button"
+              className={"dv-seg-btn" + (!showStars ? " dv-seg-btn-active" : "")}
+              onClick={() => setShowStars(false)}
+            >
+              Off
+            </button>
+            <button
+              type="button"
+              className={"dv-seg-btn" + (showStars ? " dv-seg-btn-active" : "")}
+              onClick={() => setShowStars(true)}
+            >
+              On
+            </button>
+          </div>
+        </div>
         <SliderControl
           label="Line width"
           value={vis.lineWidth}
@@ -1081,31 +1100,677 @@ function PlotControls({
           onChange={sv("errorCapWidth")}
         />
       </ControlSection>
+    </div>
+  );
+}
 
-      <ControlSection title="Statistics" defaultOpen>
-        <div>
-          <span className="dv-label">Stars on plot</span>
-          <div className="dv-seg" role="group" aria-label="Significance stars">
-            <button
-              type="button"
-              className={"dv-seg-btn" + (!showStars ? " dv-seg-btn-active" : "")}
-              onClick={() => setShowStars(false)}
-            >
-              Off
-            </button>
-            <button
-              type="button"
-              className={"dv-seg-btn" + (showStars ? " dv-seg-btn-active" : "")}
-              onClick={() => setShowStars(true)}
-            >
-              On
-            </button>
+// ── Per-x stats panel ──────────────────────────────────────────────────────
+//
+// One compact summary table: one row per eligible x. Click a row to expand
+// the decision trace + post-hoc inline. Aggregate TXT / R downloads at the
+// top reproduce every per-x test in a single file.
+
+const TEST_LABELS_LP = {
+  studentT: "Student's t",
+  welchT: "Welch's t",
+  mannWhitney: "Mann-Whitney U",
+  oneWayANOVA: "One-way ANOVA",
+  welchANOVA: "Welch's ANOVA",
+  kruskalWallis: "Kruskal-Wallis",
+};
+const POSTHOC_LABELS_LP = {
+  tukeyHSD: "Tukey HSD",
+  gamesHowell: "Games-Howell",
+  dunn: "Dunn (BH-adjusted)",
+};
+
+function postHocForTest(testName) {
+  if (testName === "oneWayANOVA") return "tukeyHSD";
+  if (testName === "welchANOVA") return "gamesHowell";
+  if (testName === "kruskalWallis") return "dunn";
+  return null;
+}
+
+function runPostHocByName(name, values) {
+  if (name === "tukeyHSD") return tukeyHSD(values);
+  if (name === "gamesHowell") return gamesHowell(values);
+  if (name === "dunn") return dunnTest(values);
+  return null;
+}
+
+function formatStat(testName, res) {
+  if (!res || res.error) return "—";
+  if (testName === "studentT" || testName === "welchT")
+    return `t(${res.df.toFixed(2)}) = ${res.t.toFixed(3)}`;
+  if (testName === "mannWhitney") return `U = ${res.U.toFixed(1)}`;
+  if (testName === "oneWayANOVA" || testName === "welchANOVA") {
+    const df2 = typeof res.df2 === "number" ? res.df2.toFixed(2) : res.df2;
+    return `F(${res.df1}, ${df2}) = ${res.F.toFixed(3)}`;
+  }
+  if (testName === "kruskalWallis") return `H(${res.df}) = ${res.H.toFixed(3)}`;
+  return "—";
+}
+
+function buildPerXTextBlock(row, xLabel) {
+  const lines = [];
+  const names = row.names;
+  const values = row.values;
+  const res = row.result || {};
+  lines.push("=".repeat(60));
+  lines.push(`${xLabel || "x"} = ${formatX(row.x)}`);
+  lines.push("=".repeat(60));
+  lines.push("");
+  lines.push("Groups:");
+  for (let i = 0; i < names.length; i++) {
+    const vs = values[i];
+    const mean = sampleMean(vs);
+    const sd = vs.length > 1 ? sampleSD(vs) : 0;
+    lines.push(`  ${names[i]}: n=${vs.length}, mean=${mean.toFixed(3)}, SD=${sd.toFixed(3)}`);
+  }
+  lines.push("");
+  const rec = row.rec;
+  const recTest =
+    rec && rec.recommendation && rec.recommendation.test ? rec.recommendation.test : null;
+  const reason = rec && rec.recommendation && rec.recommendation.reason;
+  lines.push(`Test: ${TEST_LABELS_LP[row.chosenTest] || row.chosenTest || "—"}`);
+  if (reason) lines.push(`Reason: ${reason}`);
+  if (res.error) lines.push(`Result: ⚠ ${res.error}`);
+  else {
+    lines.push(`Result: ${formatStat(row.chosenTest, res)},  p = ${formatP(res.p)}`);
+    if (row.pAdj != null) lines.push(`BH-adjusted p (across x-axis): ${formatP(row.pAdj)}`);
+  }
+  if (recTest && recTest !== row.chosenTest)
+    lines.push(`  (Toolbox recommended ${TEST_LABELS_LP[recTest] || recTest})`);
+  lines.push("");
+  const norm = (rec && rec.normality) || [];
+  if (norm.length > 0) {
+    const parts = norm.map((r) => {
+      const label = names[r.group] || `g${r.group}`;
+      const verdict = r.normal === true ? "normal" : r.normal === false ? "not normal" : "—";
+      return `${label}: ${verdict}`;
+    });
+    lines.push(`Shapiro-Wilk: ${parts.join("; ")}`);
+  }
+  const lev = (rec && rec.levene) || {};
+  if (lev.F != null)
+    lines.push(
+      `Levene: F(${lev.df1},${lev.df2}) = ${lev.F.toFixed(3)}, p = ${formatP(lev.p)} → ${lev.equalVar ? "equal variance" : "unequal variance"}`
+    );
+  if (names.length >= 3 && row.postHocResult && !row.postHocResult.error) {
+    lines.push("");
+    lines.push(`Post-hoc — ${POSTHOC_LABELS_LP[row.postHocName] || row.postHocName}:`);
+    for (const pr of row.postHocResult.pairs) {
+      const p = pr.pAdj != null ? pr.pAdj : pr.p;
+      const diff =
+        pr.diff != null ? pr.diff.toFixed(3) : pr.z != null ? `z=${pr.z.toFixed(3)}` : "—";
+      lines.push(`  ${names[pr.i]} vs ${names[pr.j]}: ${diff},  p = ${formatP(p)}  ${pStars(p)}`);
+    }
+  }
+  if (row.powerResult) {
+    lines.push("");
+    lines.push(
+      `Power (target 80%): ${row.powerResult.effectLabel} = ${row.powerResult.effect.toFixed(3)}`
+    );
+    for (const pr of row.powerResult.rows) {
+      const nStr = pr.nForTarget != null ? `${pr.nForTarget} ${row.powerResult.nLabel}` : "> 5000";
+      lines.push(`  α=${pr.alpha}: achieved ${(pr.achieved * 100).toFixed(1)}%, need n = ${nStr}`);
+    }
+    if (row.powerResult.approximate)
+      lines.push("  (rank-based test — estimated from parametric analog)");
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
+function buildAggregateReport(rows, xLabel) {
+  const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+  const head = [
+    "Line Plot — per-x statistical analysis",
+    "Generated: " + now,
+    `X axis: ${xLabel || "x"}`,
+    `Eligible points: ${rows.length}`,
+    "",
+    "P-values are BH-adjusted across the x-axis. Stars use the adjusted p.",
+    "",
+  ];
+  return head.join("\n") + rows.map((r) => buildPerXTextBlock(r, xLabel)).join("");
+}
+
+function buildAggregateRScript(rows, xLabel) {
+  if (!rows.length || typeof buildRScript !== "function") return "";
+  const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+  const header = [
+    "# -----------------------------------------------------------------------------",
+    "# Dataviz Toolbox — Line Plot R script export (combined per-x analysis)",
+    "# Generated: " + now,
+    `# X axis: ${xLabel || "x"} — ${rows.length} eligible points.`,
+    "# Each section redefines `df` for one x value and runs its assumption checks,",
+    "# chosen test, and post-hoc (if applicable).",
+    "# -----------------------------------------------------------------------------",
+    "",
+  ].join("\n");
+  const parts = [header];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const block = buildRScript({
+      names: row.names,
+      values: row.values,
+      recommendation: row.rec,
+      chosenTest: row.chosenTest,
+      postHocName: row.postHocName,
+      dataNote: `${xLabel || "x"} = ${formatX(row.x)}`,
+    });
+    const banner =
+      "\n# ==============================================================\n# " +
+      `${xLabel || "x"} = ${formatX(row.x)}` +
+      "\n# ==============================================================\n";
+    if (i === 0) {
+      parts.push(banner + block);
+    } else {
+      const lines = block.split("\n");
+      const dfIdx = lines.findIndex((l) => l.startsWith("df <- data.frame"));
+      parts.push(banner + (dfIdx >= 0 ? lines.slice(dfIdx).join("\n") : block));
+    }
+  }
+  return parts.join("\n");
+}
+
+function PerXDetail({ row, onOverrideTest, isOverridden }) {
+  const names = row.names;
+  const values = row.values;
+  const k = names.length;
+  const res = row.result || {};
+  const rec = row.rec || {};
+  const recReason = rec.recommendation && rec.recommendation.reason;
+  const recTest = rec.recommendation && rec.recommendation.test;
+  const testOptions =
+    k === 2
+      ? ["studentT", "welchT", "mannWhitney"]
+      : ["oneWayANOVA", "welchANOVA", "kruskalWallis"];
+
+  const subhead: React.CSSProperties = {
+    margin: "10px 0 6px",
+    padding: "4px 10px",
+    fontSize: 10,
+    fontWeight: 800,
+    textTransform: "uppercase",
+    letterSpacing: "0.8px",
+    color: "var(--subhead-text)",
+    background: "var(--subhead-bg)",
+    borderRadius: 4,
+    display: "block",
+  };
+  const thS: React.CSSProperties = {
+    textAlign: "left",
+    padding: "3px 6px",
+    borderBottom: "1px solid var(--border)",
+    color: "var(--text-muted)",
+    fontWeight: 600,
+    fontSize: 11,
+  };
+  const tdS: React.CSSProperties = {
+    padding: "3px 6px",
+    borderBottom: "1px solid var(--border)",
+    color: "var(--text)",
+    fontSize: 11,
+  };
+  const pillOk: React.CSSProperties = {
+    display: "inline-block",
+    padding: "1px 6px",
+    borderRadius: 8,
+    fontSize: 9,
+    fontWeight: 700,
+    background: "var(--success-bg)",
+    color: "var(--success-text)",
+  };
+  const pillBad: React.CSSProperties = {
+    ...pillOk,
+    background: "var(--danger-bg)",
+    color: "var(--danger-text)",
+  };
+  const pillNeutral: React.CSSProperties = {
+    ...pillOk,
+    background: "var(--neutral-bg)",
+    color: "var(--neutral-text)",
+  };
+  const norm = rec.normality || [];
+  const lev = rec.levene || {};
+
+  return (
+    <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>
+      <div style={subhead}>Groups</div>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th style={thS}>Group</th>
+            <th style={thS}>n</th>
+            <th style={thS}>Mean</th>
+            <th style={thS}>SD</th>
+          </tr>
+        </thead>
+        <tbody>
+          {names.map((name, i) => {
+            const vs = values[i];
+            const m = sampleMean(vs);
+            const sd = vs.length > 1 ? sampleSD(vs) : 0;
+            return (
+              <tr key={i}>
+                <td style={tdS}>{name}</td>
+                <td style={tdS}>{vs.length}</td>
+                <td style={tdS}>{m.toFixed(3)}</td>
+                <td style={tdS}>{sd.toFixed(3)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      <div style={subhead}>Assumptions</div>
+      {norm.length > 0 && (
+        <div style={{ marginBottom: 6 }}>
+          <div
+            style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 2 }}
+          >
+            Shapiro-Wilk (normality)
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {norm.map((r, i) => {
+              const label = names[r.group] || `g${r.group}`;
+              const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
+              const verdict =
+                r.normal === true ? "normal" : r.normal === false ? "not normal" : "—";
+              return (
+                <span key={i} style={{ fontSize: 11, color: "var(--text)" }}>
+                  {label}: <span style={pill}>{verdict}</span>
+                </span>
+              );
+            })}
           </div>
         </div>
-        <p style={{ margin: 0, fontSize: 11, color: "var(--text-faint)" }}>
-          BH-adjusted across x. Per-x details (decision trace, R script) are below the chart.
-        </p>
-      </ControlSection>
+      )}
+      {lev.F != null && (
+        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          <span style={{ fontWeight: 600 }}>Levene</span> — F({lev.df1}, {lev.df2}) ={" "}
+          {lev.F.toFixed(3)}, p = {formatP(lev.p)}{" "}
+          <span style={lev.equalVar ? pillOk : pillBad}>
+            {lev.equalVar ? "equal variance" : "unequal variance"}
+          </span>
+        </div>
+      )}
+
+      <div style={subhead}>Test</div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
+          marginBottom: 6,
+        }}
+      >
+        <select
+          value={row.chosenTest || ""}
+          onChange={(e) =>
+            onOverrideTest && onOverrideTest(e.target.value === recTest ? null : e.target.value)
+          }
+          className="dv-select"
+          style={{ fontSize: 11, padding: "2px 6px", minWidth: 180 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {testOptions.map((t) => (
+            <option key={t} value={t}>
+              {TEST_LABELS_LP[t]}
+              {t === recTest ? "  (recommended)" : ""}
+            </option>
+          ))}
+        </select>
+        {isOverridden && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOverrideTest && onOverrideTest(null);
+            }}
+            className="dv-btn dv-btn-secondary"
+            style={{ padding: "2px 8px", fontSize: 10 }}
+          >
+            Use recommendation
+          </button>
+        )}
+      </div>
+      {recReason && (
+        <div
+          style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", marginBottom: 6 }}
+        >
+          {recReason}
+        </div>
+      )}
+      <div
+        style={{
+          padding: "6px 10px",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: 6,
+          fontFamily: "ui-monospace, Menlo, monospace",
+          fontSize: 11,
+          color: "var(--text)",
+        }}
+      >
+        {res.error
+          ? `⚠ ${res.error}`
+          : `${formatStat(row.chosenTest, res)},  p = ${formatP(res.p)}${
+              row.pAdj != null ? ` · BH-adjusted p = ${formatP(row.pAdj)}` : ""
+            }`}
+      </div>
+
+      {k >= 3 && row.postHocResult && !row.postHocResult.error && (
+        <>
+          <div style={subhead}>
+            Post-hoc — {POSTHOC_LABELS_LP[row.postHocName] || row.postHocName}
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={thS}>Pair</th>
+                <th style={thS}>{row.postHocName === "dunn" ? "Rank diff" : "Mean diff"}</th>
+                <th style={thS}>p</th>
+                <th style={thS}>Signif.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {row.postHocResult.pairs.map((pr, i) => {
+                const p = pr.pAdj != null ? pr.pAdj : pr.p;
+                const diff =
+                  pr.diff != null
+                    ? pr.diff.toFixed(3)
+                    : pr.z != null
+                      ? `z = ${pr.z.toFixed(3)}`
+                      : "—";
+                return (
+                  <tr key={i}>
+                    <td style={tdS}>
+                      {names[pr.i]} vs {names[pr.j]}
+                    </td>
+                    <td style={tdS}>{diff}</td>
+                    <td style={tdS}>{formatP(p)}</td>
+                    <td
+                      style={{
+                        ...tdS,
+                        fontWeight: 700,
+                        color: p < 0.05 ? "var(--success-text)" : "var(--text-faint)",
+                      }}
+                    >
+                      {pStars(p)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {row.powerResult && (
+        <>
+          <div style={subhead}>Power analysis (target 80%)</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={thS}>Effect size</th>
+                <th style={thS}>α</th>
+                <th style={thS}>Achieved power</th>
+                <th style={thS}>n for 80% power</th>
+              </tr>
+            </thead>
+            <tbody>
+              {row.powerResult.rows.map((pr, i) => (
+                <tr key={i}>
+                  {i === 0 ? (
+                    <td style={tdS} rowSpan={row.powerResult.rows.length}>
+                      {row.powerResult.effectLabel} = {row.powerResult.effect.toFixed(3)}
+                    </td>
+                  ) : null}
+                  <td style={tdS}>{String(pr.alpha)}</td>
+                  <td
+                    style={{
+                      ...tdS,
+                      fontWeight: 700,
+                      color: pr.achieved >= 0.8 ? "var(--success-text)" : "var(--warning-text)",
+                    }}
+                  >
+                    {(pr.achieved * 100).toFixed(1)}%
+                  </td>
+                  <td style={tdS}>
+                    {pr.nForTarget != null
+                      ? `${pr.nForTarget} ${row.powerResult.nLabel}`
+                      : "> 5000"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {row.powerResult.approximate && (
+            <div
+              style={{
+                fontSize: 10,
+                color: "var(--text-faint)",
+                fontStyle: "italic",
+                marginTop: 4,
+              }}
+            >
+              Approximation — rank-based test power estimated from its parametric analog.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function PerXStatsPanel({ rows, xLabel, fileName }) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [overrides, setOverrides] = useState<Record<string, string>>({});
+  const stem = fileBaseName(fileName, "lineplot");
+  const hasR = typeof buildRScript === "function";
+
+  const enriched = useMemo(() => {
+    const withChosen = rows.map((r) => {
+      const key = formatX(r.x);
+      const rec = selectTest(r.values);
+      const recTest =
+        rec && rec.recommendation && rec.recommendation.test ? rec.recommendation.test : null;
+      const chosenTest = overrides[key] || recTest || r.chosenTest;
+      const result = chosenTest ? runChosenTest(chosenTest, r.values) : null;
+      const postHocName = postHocForTest(chosenTest);
+      const postHocResult =
+        r.names.length >= 3 && postHocName ? runPostHocByName(postHocName, r.values) : null;
+      const powerResult = computePowerFromData(chosenTest, r.values);
+      return { ...r, rec, chosenTest, result, postHocName, postHocResult, powerResult };
+    });
+    // Recompute BH-adjusted p-values across the x-axis using the (possibly
+    // user-overridden) per-x test results.
+    const validIdx: number[] = [];
+    const validPs: number[] = [];
+    withChosen.forEach((r, i) => {
+      if (r.result && !r.result.error && Number.isFinite(r.result.p)) {
+        validIdx.push(i);
+        validPs.push(r.result.p);
+      }
+    });
+    const adjPs = validPs.length > 0 ? bhAdjust(validPs) : [];
+    withChosen.forEach((r) => (r.pAdj = null));
+    validIdx.forEach((origIdx, j) => (withChosen[origIdx].pAdj = adjPs[j]));
+    return withChosen;
+  }, [rows, overrides]);
+
+  const setOverride = (key, test) =>
+    setOverrides((prev) => {
+      const next = { ...prev };
+      if (test == null) delete next[key];
+      else next[key] = test;
+      return next;
+    });
+
+  const downloadReport = () => {
+    downloadText(buildAggregateReport(enriched, xLabel), `${stem}_stats.txt`);
+  };
+  const downloadR = () => {
+    downloadText(buildAggregateRScript(enriched, xLabel), `${stem}_stats.R`);
+  };
+
+  const thS: React.CSSProperties = {
+    textAlign: "left",
+    padding: "6px 8px",
+    borderBottom: "1px solid var(--border)",
+    color: "var(--subhead-text)",
+    fontWeight: 600,
+    fontSize: 12,
+    background: "var(--subhead-bg)",
+  };
+  const tdS: React.CSSProperties = {
+    padding: "6px 8px",
+    borderBottom: "1px solid var(--border)",
+    color: "var(--text)",
+    fontSize: 12,
+  };
+
+  return (
+    <div className="dv-panel" style={{ padding: 0, overflow: "hidden" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "12px 14px",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <div>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: 14,
+              fontWeight: 700,
+              color: "var(--text)",
+              letterSpacing: "0.2px",
+            }}
+          >
+            Statistics at each {xLabel || "x"}
+          </h3>
+          <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
+            Click a row to see the decision trace, assumptions, and post-hoc details. P-values are
+            BH-adjusted across the x-axis.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <button
+            type="button"
+            className="dv-btn dv-btn-dl"
+            onClick={(e) => {
+              downloadReport();
+              flashSaved(e.currentTarget);
+            }}
+            title="Download a plain-text report covering every x"
+          >
+            ⬇ TXT
+          </button>
+          {hasR && (
+            <button
+              type="button"
+              className="dv-btn dv-btn-dl"
+              onClick={(e) => {
+                downloadR();
+                flashSaved(e.currentTarget);
+              }}
+              title="Download a runnable R script reproducing every per-x test"
+            >
+              ⬇ R
+            </button>
+          )}
+        </div>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th style={thS}>{xLabel || "x"}</th>
+            <th style={thS}>Test</th>
+            <th style={thS}>Statistic</th>
+            <th style={thS}>p</th>
+            <th style={thS}>p (BH)</th>
+            <th style={{ ...thS, width: 60 }}></th>
+          </tr>
+        </thead>
+        <tbody>
+          {enriched.map((r) => {
+            const key = formatX(r.x);
+            const isOpen = !!expanded[key];
+            const p = r.result && !r.result.error ? r.result.p : null;
+            const stars = r.pAdj != null ? pStars(r.pAdj) : "";
+            const sig = r.pAdj != null && r.pAdj < 0.05;
+            return (
+              <React.Fragment key={key}>
+                <tr
+                  onClick={() => setExpanded((prev) => ({ ...prev, [key]: !isOpen }))}
+                  onMouseEnter={() => setHovered(key)}
+                  onMouseLeave={() => setHovered((h) => (h === key ? null : h))}
+                  style={{
+                    cursor: "pointer",
+                    background: isOpen
+                      ? "var(--surface-subtle)"
+                      : hovered === key
+                        ? "var(--surface-sunken)"
+                        : undefined,
+                    transition: "background 120ms ease",
+                  }}
+                >
+                  <td style={{ ...tdS, fontFamily: "ui-monospace, Menlo, monospace" }}>
+                    {formatX(r.x)}
+                  </td>
+                  <td style={tdS}>{TEST_LABELS_LP[r.chosenTest] || r.chosenTest || "—"}</td>
+                  <td style={{ ...tdS, fontFamily: "ui-monospace, Menlo, monospace" }}>
+                    {formatStat(r.chosenTest, r.result)}
+                  </td>
+                  <td style={{ ...tdS, fontFamily: "ui-monospace, Menlo, monospace" }}>
+                    {p != null ? formatP(p) : "—"}
+                  </td>
+                  <td
+                    style={{
+                      ...tdS,
+                      fontFamily: "ui-monospace, Menlo, monospace",
+                      fontWeight: sig ? 700 : 400,
+                      color: sig ? "var(--success-text)" : "var(--text)",
+                    }}
+                  >
+                    {r.pAdj != null ? formatP(r.pAdj) : "—"}
+                  </td>
+                  <td
+                    style={{
+                      ...tdS,
+                      textAlign: "right",
+                      color: sig ? "var(--success-text)" : "var(--text-faint)",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {stars && stars !== "ns" ? stars : ""}
+                  </td>
+                </tr>
+                {isOpen && (
+                  <tr>
+                    <td colSpan={6} style={{ padding: 0, borderBottom: "1px solid var(--border)" }}>
+                      <PerXDetail
+                        row={r}
+                        isOverridden={!!overrides[key]}
+                        onOverrideTest={(t) => setOverride(key, t)}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -1132,7 +1797,7 @@ function PlotStep(props) {
 
   const vbW = 700;
   const vbH = 440;
-  const safeStem = fileBaseName(fileName, "lineplot");
+  const xLabelForStats = vis.xLabel || (parsed ? parsed.headers[xCol] : "x");
 
   return (
     <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
@@ -1190,33 +1855,8 @@ function PlotStep(props) {
           )}
         </div>
 
-        {/* Per-x stats list. One StatsTile per x — each auto-renders the
-            decision-trace TXT chip and the R-script chip when the required
-            shared scripts are loaded (they are, via lineplot.html). */}
         {statsRows.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <h3
-              style={{
-                margin: 0,
-                fontSize: 14,
-                fontWeight: 700,
-                color: "var(--text)",
-                letterSpacing: "0.2px",
-              }}
-            >
-              Per-x statistics
-            </h3>
-            {statsRows.map((r) => (
-              <StatsTile
-                key={`stats-${r.x}`}
-                title={`x = ${formatX(r.x)}`}
-                defaultOpen={false}
-                compact={true}
-                groups={r.names.map((n, i) => ({ name: n, values: r.values[i] }))}
-                fileStem={`${safeStem}_x${svgSafeId(formatX(r.x))}`}
-              />
-            ))}
-          </div>
+          <PerXStatsPanel rows={statsRows} xLabel={xLabelForStats} fileName={fileName} />
         )}
       </div>
     </div>
