@@ -3554,12 +3554,38 @@ function BoxplotStatsPanel({
     typeof fileStem === "string" && fileStem.trim()
       ? (typeof svgSafeId === "function" ? svgSafeId(fileStem) : fileStem).replace(/^-+|-+$/g, "")
       : "stats_report";
+  const rowSlug = (row: any, i: number) => {
+    const raw = row.name || `set-${i + 1}`;
+    const clean =
+      typeof svgSafeId === "function"
+        ? svgSafeId(String(raw)).replace(/^-+|-+$/g, "")
+        : String(raw)
+            .replace(/[^A-Za-z0-9._-]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+    return clean || `set-${i + 1}`;
+  };
   const downloadReport = (e: any) => {
-    downloadText(buildBpAggregateReport(eligible, setLabel), `${stem}_stats.txt`);
+    if (eligible.length === 1) {
+      downloadText(buildBpAggregateReport(eligible, setLabel), `${stem}_stats.txt`);
+    } else {
+      eligible.forEach((row: any, i: number) => {
+        const content = buildBpAggregateReport([row], setLabel);
+        const name = `${stem}_${rowSlug(row, i)}_stats.txt`;
+        setTimeout(() => downloadText(content, name), i * 120);
+      });
+    }
     flashSaved(e.currentTarget);
   };
   const downloadR = (e: any) => {
-    downloadText(buildBpAggregateRScript(eligible, setLabel), `${stem}_stats.R`);
+    if (eligible.length === 1) {
+      downloadText(buildBpAggregateRScript(eligible, setLabel), `${stem}_stats.R`);
+    } else {
+      eligible.forEach((row: any, i: number) => {
+        const content = buildBpAggregateRScript([row], setLabel);
+        const name = `${stem}_${rowSlug(row, i)}_stats.R`;
+        setTimeout(() => downloadText(content, name), i * 120);
+      });
+    }
     flashSaved(e.currentTarget);
   };
 
