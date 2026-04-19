@@ -198,6 +198,11 @@ declare global {
   const BaseStyleControls: FC<any>;
   const ErrorBoundary: FC<{ toolName?: string; children?: ReactNode }>;
   const StatsTile: FC<any>;
+  function scrollIntoViewWithinAncestor(
+    el: Element | null,
+    pad?: number,
+    extraBottom?: number
+  ): void;
 
   // ── Preferences persistence (shared-prefs.js) ──────────────────────────────
   function loadAutoPrefs<T extends Record<string, any>>(toolName: string, visInit: T): T;

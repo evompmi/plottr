@@ -558,3 +558,40 @@ function ActionsPanel(props) {
     )
   );
 }
+
+// scrollIntoViewWithinAncestor — after a collapsible section expands, scroll
+// only the nearest scrollable ancestor (typically the sticky control-panel
+// sidebar) so the freshly-revealed content lands in view. Deliberately does
+// NOT use Element.scrollIntoView() — that would also scroll the page.
+//
+// Walks up from `el` to find an ancestor with computed `overflow-y: auto|scroll`
+// and whose content actually overflows. Scrolls that ancestor (smoothly) just
+// enough to bring `el`'s bottom (plus optional `extraBottom` px — used to
+// also reveal the next sibling's header so users get context about what's
+// below) into view, padded by `pad` px. Clamps the scroll so the panel's
+// own top never moves out of view. No-op if no scrollable ancestor exists.
+function scrollIntoViewWithinAncestor(el, pad, extraBottom) {
+  if (!el) return;
+  const padding = pad == null ? 8 : pad;
+  const extra = extraBottom || 0;
+  let parent = el.parentElement;
+  while (parent) {
+    const style = getComputedStyle(parent);
+    const ov = style.overflowY;
+    if ((ov === "auto" || ov === "scroll") && parent.scrollHeight > parent.clientHeight) {
+      const parentRect = parent.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const revealBottom = elRect.bottom + extra;
+      if (revealBottom > parentRect.bottom - padding) {
+        const delta = revealBottom - parentRect.bottom + padding;
+        // Clamp so we never scroll the panel's own top out of view.
+        const maxDelta = elRect.top - parentRect.top - padding;
+        parent.scrollBy({ top: Math.min(delta, Math.max(0, maxDelta)), behavior: "smooth" });
+      } else if (elRect.top < parentRect.top + padding) {
+        parent.scrollBy({ top: elRect.top - parentRect.top - padding, behavior: "smooth" });
+      }
+      return;
+    }
+    parent = parent.parentElement;
+  }
+}
