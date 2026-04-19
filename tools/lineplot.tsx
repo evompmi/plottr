@@ -466,14 +466,7 @@ function ControlSection({ title, defaultOpen = false, children }) {
   const rootRef = useRef(null);
   useEffect(() => {
     if (!open) return;
-    requestAnimationFrame(() => {
-      const el = rootRef.current;
-      if (!el) return;
-      const next = el.nextElementSibling;
-      const nextHeader = next && next.firstElementChild;
-      const extra = nextHeader ? nextHeader.offsetHeight + 6 : 0;
-      scrollIntoViewWithinAncestor(el, 8, extra);
-    });
+    requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
   }, [open]);
   return (
     <div ref={rootRef} className="dv-panel" style={{ marginBottom: 0, padding: 0 }}>

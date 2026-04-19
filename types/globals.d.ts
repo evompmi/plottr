@@ -203,6 +203,7 @@ declare global {
     pad?: number,
     extraBottom?: number
   ): void;
+  function scrollDisclosureIntoView(el: Element | null, pad?: number): void;
 
   // ── Preferences persistence (shared-prefs.js) ──────────────────────────────
   function loadAutoPrefs<T extends Record<string, any>>(toolName: string, visInit: T): T;

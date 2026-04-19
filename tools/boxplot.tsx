@@ -1871,14 +1871,7 @@ function ControlSection({
   const rootRef = React.useRef(null);
   React.useEffect(() => {
     if (!open) return;
-    requestAnimationFrame(() => {
-      const el = rootRef.current;
-      if (!el) return;
-      const next = el.nextElementSibling;
-      const nextHeader = next && next.firstElementChild;
-      const extra = nextHeader ? nextHeader.offsetHeight + 6 : 0;
-      scrollIntoViewWithinAncestor(el, 8, extra);
-    });
+    requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
   }, [open]);
   return (
     <div ref={rootRef} className="dv-panel" style={{ marginBottom: 6, padding: 0 }}>

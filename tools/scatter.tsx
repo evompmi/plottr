@@ -860,14 +860,7 @@ function PlotStep({
   const filtersPanelRef = useRef(null);
   useEffect(() => {
     if (!filtersOpen) return;
-    requestAnimationFrame(() => {
-      const el = filtersPanelRef.current;
-      if (!el) return;
-      const next = el.nextElementSibling;
-      const nextHeader = next && next.firstElementChild;
-      const extra = nextHeader ? nextHeader.offsetHeight + 6 : 0;
-      scrollIntoViewWithinAncestor(el, 8, extra);
-    });
+    requestAnimationFrame(() => scrollDisclosureIntoView(filtersPanelRef.current));
   }, [filtersOpen]);
   const handleFilterToggle = (ci, v, vals, checked) => {
     setFilterState((prev) => {
