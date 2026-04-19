@@ -112,7 +112,44 @@ function autoRange(matrix, diverging) {
 // ── Heatmap chart ────────────────────────────────────────────────────────────
 
 const DENDRO_STROKE = "#555555";
+const DENDRO_HOVER_STROKE = "#0072B2"; // Okabe-Ito blue — stands out against the grey default.
 const NAN_FILL = "#e0e0e0";
+const SELECTION_STROKE = "#111111";
+const HIGHLIGHT_STROKE = "#111111";
+
+// Walk an hclust tree producing BOTH the segment list for drawing AND the
+// per-internal-node records for hit-testing. Each segment is tagged with the
+// [xMin, xMax] leaf-order span of the internal node that emitted it, so we can
+// cheaply decide later whether it belongs to a hovered subtree: segment.xMin ≥
+// hoverNode.xMin && segment.xMax ≤ hoverNode.xMax. Kept local (not in stats.js)
+// because only the heatmap view needs the hover metadata.
+function buildDendroLayout(tree) {
+  if (!tree) return { segments: [], nodes: [], maxHeight: 0 };
+  const segments = [];
+  const nodes = [];
+  let leafIdx = 0;
+  let maxHeight = 0;
+  function walk(node) {
+    if (node.left === null && node.right === null) {
+      const pos = leafIdx++;
+      return { x: pos, h: 0, leaves: [node.index], xMin: pos, xMax: pos };
+    }
+    const L = walk(node.left);
+    const R = walk(node.right);
+    const h = node.height;
+    if (h > maxHeight) maxHeight = h;
+    const leaves = L.leaves.concat(R.leaves);
+    const xMin = Math.min(L.xMin, R.xMin);
+    const xMax = Math.max(L.xMax, R.xMax);
+    segments.push({ x1: L.x, y1: L.h, x2: L.x, y2: h, xMin, xMax });
+    segments.push({ x1: R.x, y1: R.h, x2: R.x, y2: h, xMin, xMax });
+    segments.push({ x1: L.x, y1: h, x2: R.x, y2: h, xMin, xMax });
+    nodes.push({ height: h, leaves, xMin, xMax });
+    return { x: (L.x + R.x) / 2, h, leaves, xMin, xMax };
+  }
+  walk(tree);
+  return { segments, nodes, maxHeight };
+}
 // Okabe-Ito categorical palette for k-means cluster-id colour strips.
 const CLUSTER_PALETTE = [
   "#E69F00",
@@ -144,6 +181,13 @@ const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart(
     plotSubtitle,
     rowAxisLabel,
     colAxisLabel,
+    // Interactivity — absent on the detail chart except tooltips.
+    interactive = false,
+    selection = null,
+    onBrushEnd,
+    onAxisSelect,
+    onClearSelection,
+    rawMatrix,
   },
   ref
 ) {
@@ -205,6 +249,123 @@ const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart(
     return interpolateColor(stops, Math.max(0, Math.min(1, t)));
   };
 
+  // ── Interaction state — tooltip + brush + branch hover ─────────────────────
+  const [hover, setHover] = useState(null); // { ri, ci, clientX, clientY }
+  const [brush, setBrush] = useState(null); // { anchorRi, anchorCi, curRi, curCi }
+  const [axisHover, setAxisHover] = useState(null); // { axis, leaves: Set }
+  const svgLocalRef = useRef(null);
+
+  // The forwarded ref and our local ref both need to point at the SVG.
+  const setRefs = useCallback(
+    (node) => {
+      svgLocalRef.current = node;
+      if (typeof ref === "function") ref(node);
+      else if (ref) ref.current = node;
+    },
+    [ref]
+  );
+
+  // Convert a DOM pointer event to viewBox coordinates.
+  function svgPoint(e) {
+    const svg = svgLocalRef.current;
+    if (!svg || !svg.createSVGPoint) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    return pt.matrixTransform(ctm.inverse());
+  }
+
+  // Given a viewBox point, return {ri, ci} if inside the cell grid; else null.
+  function pointToCell(p) {
+    if (!p) return null;
+    const localX = p.x - MARGIN.left;
+    const localY = p.y - MARGIN.top;
+    if (localX < 0 || localY < 0 || localX > plotW || localY > plotH) return null;
+    const ci = Math.min(nCols - 1, Math.max(0, Math.floor(localX / cellW)));
+    const ri = Math.min(nRows - 1, Math.max(0, Math.floor(localY / cellH)));
+    return { ri, ci };
+  }
+
+  function handlePointerMove(e) {
+    const p = svgPoint(e);
+    const hit = pointToCell(p);
+    if (hit) {
+      setHover({ ri: hit.ri, ci: hit.ci, clientX: e.clientX, clientY: e.clientY });
+    } else {
+      setHover(null);
+    }
+    if (brush && hit) setBrush({ ...brush, curRi: hit.ri, curCi: hit.ci });
+  }
+
+  function handlePointerDown(e) {
+    if (!interactive) return;
+    const p = svgPoint(e);
+    const hit = pointToCell(p);
+    if (!hit) return;
+    // Ignore right-click.
+    if (e.button !== 0) return;
+    setBrush({ anchorRi: hit.ri, anchorCi: hit.ci, curRi: hit.ri, curCi: hit.ci });
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }
+
+  function handlePointerUp(_e) {
+    if (!interactive) {
+      setBrush(null);
+      return;
+    }
+    if (!brush) return;
+    const riMin = Math.min(brush.anchorRi, brush.curRi);
+    const riMax = Math.max(brush.anchorRi, brush.curRi);
+    const ciMin = Math.min(brush.anchorCi, brush.curCi);
+    const ciMax = Math.max(brush.anchorCi, brush.curCi);
+    const isClick = riMin === riMax && ciMin === ciMax;
+    if (isClick) {
+      // Plain click on a cell clears selection — gives users a way back.
+      onClearSelection && onClearSelection();
+    } else {
+      onBrushEnd && onBrushEnd({ riMin, riMax, ciMin, ciMax });
+    }
+    setBrush(null);
+  }
+
+  function handlePointerLeave() {
+    setHover(null);
+  }
+
+  // ── Derived: selection in display space (for overlay rendering) ────────────
+  const selRowsDisplay = useMemo(() => {
+    if (!selection || !selection.rows) return null;
+    const keep = new Set(selection.rows);
+    const ris = [];
+    for (let ri = 0; ri < rowOrder.length; ri++) if (keep.has(rowOrder[ri])) ris.push(ri);
+    return ris;
+  }, [selection, rowOrder]);
+  const selColsDisplay = useMemo(() => {
+    if (!selection || !selection.cols) return null;
+    const keep = new Set(selection.cols);
+    const cis = [];
+    for (let ci = 0; ci < colOrder.length; ci++) if (keep.has(colOrder[ci])) cis.push(ci);
+    return cis;
+  }, [selection, colOrder]);
+
+  // ── Derived: hover-highlight display indices from axisHover ────────────────
+  const hoverRowsDisplay = useMemo(() => {
+    if (!axisHover || axisHover.axis !== "row") return null;
+    const keep = axisHover.leaves;
+    const ris = [];
+    for (let ri = 0; ri < rowOrder.length; ri++) if (keep.has(rowOrder[ri])) ris.push(ri);
+    return ris;
+  }, [axisHover, rowOrder]);
+  const hoverColsDisplay = useMemo(() => {
+    if (!axisHover || axisHover.axis !== "col") return null;
+    const keep = axisHover.leaves;
+    const cis = [];
+    for (let ci = 0; ci < colOrder.length; ci++) if (keep.has(colOrder[ci])) cis.push(ci);
+    return cis;
+  }, [axisHover, colOrder]);
+
   // ── Colourbar (inlined rather than via shared renderSvgLegend: we want full
   //    control over tick placement and the diverging-midpoint hint).
   const cbW = Math.min(260, plotW);
@@ -221,50 +382,137 @@ const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart(
   );
 
   // Dendrogram helpers — scale from data space into pixel space.
+  // A segment belongs to the currently-hovered subtree iff its [xMin, xMax]
+  // leaf span sits inside the hovered node's span — O(1) per segment.
+  function segmentInHover(seg, axis) {
+    if (!axisHover || axisHover.axis !== axis) return false;
+    return seg.xMin >= axisHover.xMin && seg.xMax <= axisHover.xMax;
+  }
+
   function renderColDendrogram() {
     if (!colIsHier) return null;
-    const { segments, maxHeight } = dendrogramLayout(colCluster.tree);
+    const { segments, nodes, maxHeight } = buildDendroLayout(colCluster.tree);
     if (maxHeight === 0 || segments.length === 0) return null;
     const yBase = MARGIN.top - LABEL_GAP - COL_LABEL_H - LABEL_GAP;
     const yTop = yBase - DENDRO_SIZE_TOP + 4;
     const scaleY = (h) => yBase - (h / maxHeight) * (yBase - yTop);
     const scaleX = (x) => MARGIN.left + x * cellW + cellW / 2;
-    return React.createElement(
-      "g",
-      { id: "col-dendrogram", stroke: DENDRO_STROKE, strokeWidth: 1, fill: "none" },
-      segments.map((s, i) =>
-        React.createElement("line", {
-          key: i,
-          x1: scaleX(s.x1),
-          y1: scaleY(s.y1),
-          x2: scaleX(s.x2),
-          y2: scaleY(s.y2),
-        })
-      )
+    return (
+      <g id="col-dendrogram">
+        <g fill="none" strokeLinecap="round">
+          {segments.map((s, i) => {
+            const active = segmentInHover(s, "col");
+            return (
+              <line
+                key={i}
+                x1={scaleX(s.x1)}
+                y1={scaleY(s.y1)}
+                x2={scaleX(s.x2)}
+                y2={scaleY(s.y2)}
+                stroke={active ? DENDRO_HOVER_STROKE : DENDRO_STROKE}
+                strokeWidth={active ? 2.5 : 1}
+              />
+            );
+          })}
+        </g>
+        {interactive && (
+          // Move onMouseLeave up to the hits group so sliding between
+          // adjacent hit bands doesn't briefly flash the hover state off.
+          <g id="col-dendrogram-hits" onMouseLeave={() => setAxisHover(null)}>
+            {nodes.map((n, i) => {
+              const x = scaleX(n.xMin) - cellW / 2;
+              const w = scaleX(n.xMax) - scaleX(n.xMin) + cellW;
+              const y = scaleY(n.height) - 4;
+              return (
+                <rect
+                  key={i}
+                  x={x}
+                  y={y}
+                  width={w}
+                  height={8}
+                  fill="transparent"
+                  style={{ cursor: "pointer" }}
+                  onMouseEnter={() =>
+                    setAxisHover({
+                      axis: "col",
+                      leaves: new Set(n.leaves),
+                      xMin: n.xMin,
+                      xMax: n.xMax,
+                    })
+                  }
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAxisSelect && onAxisSelect("col", n.leaves);
+                  }}
+                />
+              );
+            })}
+          </g>
+        )}
+      </g>
     );
   }
 
   function renderRowDendrogram() {
     if (!rowIsHier) return null;
-    const { segments, maxHeight } = dendrogramLayout(rowCluster.tree);
+    const { segments, nodes, maxHeight } = buildDendroLayout(rowCluster.tree);
     if (maxHeight === 0 || segments.length === 0) return null;
     const xRight = MARGIN.left - LABEL_GAP;
     const xLeft = xRight - DENDRO_SIZE_LEFT + 4;
     const scaleX = (h) => xRight - (h / maxHeight) * (xRight - xLeft);
     const scaleY = (x) => MARGIN.top + x * cellH + cellH / 2;
     // Row dendrogram lies on its side: x-axis is the merge height, y-axis is leaf position.
-    return React.createElement(
-      "g",
-      { id: "row-dendrogram", stroke: DENDRO_STROKE, strokeWidth: 1, fill: "none" },
-      segments.map((s, i) =>
-        React.createElement("line", {
-          key: i,
-          x1: scaleX(s.y1),
-          y1: scaleY(s.x1),
-          x2: scaleX(s.y2),
-          y2: scaleY(s.x2),
-        })
-      )
+    return (
+      <g id="row-dendrogram">
+        <g fill="none" strokeLinecap="round">
+          {segments.map((s, i) => {
+            const active = segmentInHover(s, "row");
+            return (
+              <line
+                key={i}
+                x1={scaleX(s.y1)}
+                y1={scaleY(s.x1)}
+                x2={scaleX(s.y2)}
+                y2={scaleY(s.x2)}
+                stroke={active ? DENDRO_HOVER_STROKE : DENDRO_STROKE}
+                strokeWidth={active ? 2.5 : 1}
+              />
+            );
+          })}
+        </g>
+        {interactive && (
+          <g id="row-dendrogram-hits" onMouseLeave={() => setAxisHover(null)}>
+            {nodes.map((n, i) => {
+              const y = scaleY(n.xMin) - cellH / 2;
+              const h = scaleY(n.xMax) - scaleY(n.xMin) + cellH;
+              const x = scaleX(n.height) - 4;
+              return (
+                <rect
+                  key={i}
+                  x={x}
+                  y={y}
+                  width={8}
+                  height={h}
+                  fill="transparent"
+                  style={{ cursor: "pointer" }}
+                  onMouseEnter={() =>
+                    setAxisHover({
+                      axis: "row",
+                      leaves: new Set(n.leaves),
+                      xMin: n.xMin,
+                      xMax: n.xMax,
+                    })
+                  }
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAxisSelect && onAxisSelect("row", n.leaves);
+                  }}
+                />
+              );
+            })}
+          </g>
+        )}
+      </g>
     );
   }
 
@@ -277,20 +525,45 @@ const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart(
   function renderColClusterStrip() {
     if (!colIsKmeans) return null;
     const y = MARGIN.top - LABEL_GAP - COL_LABEL_H - LABEL_GAP - DENDRO_SIZE_TOP + 2;
+    const leavesByCluster = interactive ? new Map() : null;
+    if (interactive) {
+      for (let c = 0; c < colCluster.clusters.length; c++) {
+        const id = colCluster.clusters[c];
+        if (!leavesByCluster.has(id)) leavesByCluster.set(id, []);
+        leavesByCluster.get(id).push(c);
+      }
+    }
     return (
-      <g id="col-cluster-strip">
-        {colOrder.map((origCi, ci) => (
-          <rect
-            key={ci}
-            x={MARGIN.left + cellX(ci)}
-            y={y}
-            width={cellWPx(ci)}
-            height={DENDRO_SIZE_TOP - 4}
-            fill={clusterColor(colCluster.clusters[origCi])}
-            stroke="none"
-            shapeRendering="crispEdges"
-          />
-        ))}
+      <g id="col-cluster-strip" onMouseLeave={interactive ? () => setAxisHover(null) : undefined}>
+        {colOrder.map((origCi, ci) => {
+          const cid = colCluster.clusters[origCi];
+          return (
+            <rect
+              key={ci}
+              x={MARGIN.left + cellX(ci)}
+              y={y}
+              width={cellWPx(ci)}
+              height={DENDRO_SIZE_TOP - 4}
+              fill={clusterColor(cid)}
+              stroke="none"
+              shapeRendering="crispEdges"
+              style={interactive ? { cursor: "pointer" } : undefined}
+              onMouseEnter={
+                interactive
+                  ? () => setAxisHover({ axis: "col", leaves: new Set(leavesByCluster.get(cid)) })
+                  : undefined
+              }
+              onClick={
+                interactive
+                  ? (e) => {
+                      e.stopPropagation();
+                      onAxisSelect && onAxisSelect("col", leavesByCluster.get(cid));
+                    }
+                  : undefined
+              }
+            />
+          );
+        })}
       </g>
     );
   }
@@ -298,215 +571,379 @@ const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart(
   function renderRowClusterStrip() {
     if (!rowIsKmeans) return null;
     const x = MARGIN.left - LABEL_GAP - DENDRO_SIZE_LEFT + 2;
+    const leavesByCluster = interactive ? new Map() : null;
+    if (interactive) {
+      for (let r = 0; r < rowCluster.clusters.length; r++) {
+        const id = rowCluster.clusters[r];
+        if (!leavesByCluster.has(id)) leavesByCluster.set(id, []);
+        leavesByCluster.get(id).push(r);
+      }
+    }
     return (
-      <g id="row-cluster-strip">
-        {rowOrder.map((origRi, ri) => (
-          <rect
-            key={ri}
-            x={x}
-            y={MARGIN.top + cellY(ri)}
-            width={DENDRO_SIZE_LEFT - 4}
-            height={cellHPx(ri)}
-            fill={clusterColor(rowCluster.clusters[origRi])}
-            stroke="none"
-            shapeRendering="crispEdges"
-          />
-        ))}
+      <g id="row-cluster-strip" onMouseLeave={interactive ? () => setAxisHover(null) : undefined}>
+        {rowOrder.map((origRi, ri) => {
+          const cid = rowCluster.clusters[origRi];
+          return (
+            <rect
+              key={ri}
+              x={x}
+              y={MARGIN.top + cellY(ri)}
+              width={DENDRO_SIZE_LEFT - 4}
+              height={cellHPx(ri)}
+              fill={clusterColor(cid)}
+              stroke="none"
+              shapeRendering="crispEdges"
+              style={interactive ? { cursor: "pointer" } : undefined}
+              onMouseEnter={
+                interactive
+                  ? () => setAxisHover({ axis: "row", leaves: new Set(leavesByCluster.get(cid)) })
+                  : undefined
+              }
+              onClick={
+                interactive
+                  ? (e) => {
+                      e.stopPropagation();
+                      onAxisSelect && onAxisSelect("row", leavesByCluster.get(cid));
+                    }
+                  : undefined
+              }
+            />
+          );
+        })}
       </g>
     );
   }
 
-  return (
-    <svg
-      ref={ref}
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox={`0 0 ${vbW} ${vbH}`}
-      width={vbW}
-      height={vbH}
-      style={{ maxWidth: "100%", height: "auto", display: "block" }}
-    >
-      <g id="background">
-        <rect x={0} y={0} width={vbW} height={vbH} fill="#ffffff" />
-      </g>
+  // Resolve hover cell to raw value + labels for the tooltip.
+  const hoverInfo =
+    hover && rowOrder[hover.ri] != null && colOrder[hover.ci] != null
+      ? (() => {
+          const origRi = rowOrder[hover.ri];
+          const origCi = colOrder[hover.ci];
+          const vNorm = matrix[origRi] && matrix[origRi][origCi];
+          const vRaw = rawMatrix && rawMatrix[origRi] && rawMatrix[origRi][origCi];
+          return {
+            rowLabel: rowLabels[origRi],
+            colLabel: colLabels[origCi],
+            vNorm,
+            vRaw,
+          };
+        })()
+      : null;
 
-      {plotTitle && (
-        <g id="title">
-          <text
-            x={vbW / 2}
-            y={18}
-            textAnchor="middle"
-            fontFamily="sans-serif"
-            fontSize="14"
-            fontWeight="700"
-            fill="#222222"
-          >
-            {plotTitle}
-          </text>
-          {plotSubtitle && (
+  // Brush rect in display space (during drag).
+  const brushRect = brush
+    ? (() => {
+        const riMin = Math.min(brush.anchorRi, brush.curRi);
+        const riMax = Math.max(brush.anchorRi, brush.curRi);
+        const ciMin = Math.min(brush.anchorCi, brush.curCi);
+        const ciMax = Math.max(brush.anchorCi, brush.curCi);
+        return {
+          x: MARGIN.left + cellX(ciMin),
+          y: MARGIN.top + cellY(riMin),
+          w: cellX(ciMax) + cellWPx(ciMax) - cellX(ciMin),
+          h: cellY(riMax) + cellHPx(riMax) - cellY(riMin),
+        };
+      })()
+    : null;
+
+  function renderRowBands(ris, stroke, fillOpacity) {
+    if (!ris || ris.length === 0) return null;
+    return ris.map((ri) => (
+      <rect
+        key={`rb-${ri}`}
+        x={MARGIN.left + cellX(0)}
+        y={MARGIN.top + cellY(ri)}
+        width={cellX(nCols - 1) + cellWPx(nCols - 1) - cellX(0)}
+        height={cellHPx(ri)}
+        fill={stroke}
+        fillOpacity={fillOpacity}
+        stroke={stroke}
+        strokeWidth={1}
+        pointerEvents="none"
+      />
+    ));
+  }
+  function renderColBands(cis, stroke, fillOpacity) {
+    if (!cis || cis.length === 0) return null;
+    return cis.map((ci) => (
+      <rect
+        key={`cb-${ci}`}
+        x={MARGIN.left + cellX(ci)}
+        y={MARGIN.top + cellY(0)}
+        width={cellWPx(ci)}
+        height={cellY(nRows - 1) + cellHPx(nRows - 1) - cellY(0)}
+        fill={stroke}
+        fillOpacity={fillOpacity}
+        stroke={stroke}
+        strokeWidth={1}
+        pointerEvents="none"
+      />
+    ));
+  }
+
+  return (
+    <div style={{ position: "relative" }}>
+      <svg
+        ref={setRefs}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox={`0 0 ${vbW} ${vbH}`}
+        width={vbW}
+        height={vbH}
+        style={{ maxWidth: "100%", height: "auto", display: "block" }}
+      >
+        <g id="background">
+          <rect x={0} y={0} width={vbW} height={vbH} fill="#ffffff" />
+        </g>
+
+        {plotTitle && (
+          <g id="title">
             <text
               x={vbW / 2}
-              y={34}
+              y={18}
+              textAnchor="middle"
+              fontFamily="sans-serif"
+              fontSize="14"
+              fontWeight="700"
+              fill="#222222"
+            >
+              {plotTitle}
+            </text>
+            {plotSubtitle && (
+              <text
+                x={vbW / 2}
+                y={34}
+                textAnchor="middle"
+                fontFamily="sans-serif"
+                fontSize="11"
+                fill="#555555"
+              >
+                {plotSubtitle}
+              </text>
+            )}
+          </g>
+        )}
+
+        {colAxisLabel && (
+          <g id="x-axis-label">
+            <text
+              x={MARGIN.left + plotW / 2}
+              y={TITLE_H + 22}
               textAnchor="middle"
               fontFamily="sans-serif"
               fontSize="11"
-              fill="#555555"
+              fontWeight="600"
+              fill="#333333"
             >
-              {plotSubtitle}
+              {colAxisLabel}
             </text>
-          )}
-        </g>
-      )}
+          </g>
+        )}
 
-      {colAxisLabel && (
-        <g id="x-axis-label">
-          <text
-            x={MARGIN.left + plotW / 2}
-            y={TITLE_H + 22}
-            textAnchor="middle"
-            fontFamily="sans-serif"
-            fontSize="11"
-            fontWeight="600"
-            fill="#333333"
-          >
-            {colAxisLabel}
-          </text>
-        </g>
-      )}
-
-      {rowAxisLabel && (
-        <g id="y-axis-label">
-          <text
-            transform={`rotate(-90) translate(${-(MARGIN.top + plotH / 2)}, 12)`}
-            textAnchor="middle"
-            fontFamily="sans-serif"
-            fontSize="11"
-            fontWeight="600"
-            fill="#333333"
-          >
-            {rowAxisLabel}
-          </text>
-        </g>
-      )}
-
-      {renderColDendrogram()}
-      {renderRowDendrogram()}
-      {renderColClusterStrip()}
-      {renderRowClusterStrip()}
-
-      <g id="chart" transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
-        <g id="plot-area-background">
-          <rect x={0} y={0} width={plotW} height={plotH} fill="#ffffff" />
-        </g>
-        <g id="cells" shapeRendering={bordersOn ? "auto" : "crispEdges"}>
-          {rowOrder.map((origRi, ri) =>
-            colOrder.map((origCi, ci) => {
-              const v = matrix[origRi][origCi];
-              const fill = valueToColor(v);
-              return (
-                <rect
-                  key={`${ri}-${ci}`}
-                  id={`cell-${svgSafeId(rowLabels[origRi])}-${svgSafeId(colLabels[origCi])}`}
-                  x={cellX(ci)}
-                  y={cellY(ri)}
-                  width={cellWPx(ci)}
-                  height={cellHPx(ri)}
-                  fill={fill}
-                  stroke={bordersOn ? cellBorder.color : "none"}
-                  strokeWidth={bordersOn ? cellBorder.width : 0}
-                />
-              );
-            })
-          )}
-        </g>
-      </g>
-
-      {/* Column labels */}
-      <g id="col-labels">
-        {colOrder.map((origCi, ci) => {
-          const cx = MARGIN.left + cellX(ci) + cellW / 2;
-          const cy = MARGIN.top - LABEL_GAP;
-          return (
+        {rowAxisLabel && (
+          <g id="y-axis-label">
             <text
-              key={ci}
-              x={cx}
-              y={cy}
-              transform={`rotate(-45 ${cx} ${cy})`}
+              transform={`rotate(-90) translate(${-(MARGIN.top + plotH / 2)}, 12)`}
+              textAnchor="middle"
+              fontFamily="sans-serif"
+              fontSize="11"
+              fontWeight="600"
+              fill="#333333"
+            >
+              {rowAxisLabel}
+            </text>
+          </g>
+        )}
+
+        {renderColDendrogram()}
+        {renderRowDendrogram()}
+        {renderColClusterStrip()}
+        {renderRowClusterStrip()}
+
+        <g id="chart" transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
+          <g id="plot-area-background">
+            <rect x={0} y={0} width={plotW} height={plotH} fill="#ffffff" />
+          </g>
+          <g id="cells" shapeRendering={bordersOn ? "auto" : "crispEdges"}>
+            {rowOrder.map((origRi, ri) =>
+              colOrder.map((origCi, ci) => {
+                const v = matrix[origRi][origCi];
+                const fill = valueToColor(v);
+                return (
+                  <rect
+                    key={`${ri}-${ci}`}
+                    id={`cell-${svgSafeId(rowLabels[origRi])}-${svgSafeId(colLabels[origCi])}`}
+                    x={cellX(ci)}
+                    y={cellY(ri)}
+                    width={cellWPx(ci)}
+                    height={cellHPx(ri)}
+                    fill={fill}
+                    stroke={bordersOn ? cellBorder.color : "none"}
+                    strokeWidth={bordersOn ? cellBorder.width : 0}
+                  />
+                );
+              })
+            )}
+          </g>
+        </g>
+
+        {/* Column labels */}
+        <g id="col-labels">
+          {colOrder.map((origCi, ci) => {
+            const cx = MARGIN.left + cellX(ci) + cellW / 2;
+            const cy = MARGIN.top - LABEL_GAP;
+            return (
+              <text
+                key={ci}
+                x={cx}
+                y={cy}
+                transform={`rotate(-45 ${cx} ${cy})`}
+                textAnchor="start"
+                fontFamily="sans-serif"
+                fontSize="10"
+                fill="#333333"
+              >
+                {colLabels[origCi]}
+              </text>
+            );
+          })}
+        </g>
+
+        {/* Row labels */}
+        <g id="row-labels">
+          {rowOrder.map((origRi, ri) => (
+            <text
+              key={ri}
+              x={MARGIN.left + plotW + LABEL_GAP}
+              y={MARGIN.top + cellY(ri) + cellH / 2 + 3}
               textAnchor="start"
               fontFamily="sans-serif"
               fontSize="10"
               fill="#333333"
             >
-              {colLabels[origCi]}
+              {rowLabels[origRi]}
             </text>
-          );
-        })}
-      </g>
+          ))}
+        </g>
 
-      {/* Row labels */}
-      <g id="row-labels">
-        {rowOrder.map((origRi, ri) => (
+        {/* Colourbar */}
+        <g id="colorbar">
+          <defs>
+            <linearGradient id={cbGradId} x1="0%" y1="0%" x2="100%" y2="0%">
+              {cbStops}
+            </linearGradient>
+          </defs>
+          <rect
+            x={cbX}
+            y={cbY}
+            width={cbW}
+            height={cbH}
+            fill={`url(#${cbGradId})`}
+            stroke="#888888"
+            strokeWidth="0.5"
+          />
           <text
-            key={ri}
-            x={MARGIN.left + plotW + LABEL_GAP}
-            y={MARGIN.top + cellY(ri) + cellH / 2 + 3}
-            textAnchor="start"
+            x={cbX}
+            y={cbY + cbH + 12}
             fontFamily="sans-serif"
-            fontSize="10"
-            fill="#333333"
+            fontSize="9"
+            fill="#555555"
+            textAnchor="start"
           >
-            {rowLabels[origRi]}
+            {fmtColorbarTick(vmin)}
           </text>
-        ))}
-      </g>
+          <text
+            x={cbX + cbW / 2}
+            y={cbY + cbH + 12}
+            fontFamily="sans-serif"
+            fontSize="9"
+            fill="#555555"
+            textAnchor="middle"
+          >
+            {fmtColorbarTick((vmin + vmax) / 2)}
+          </text>
+          <text
+            x={cbX + cbW}
+            y={cbY + cbH + 12}
+            fontFamily="sans-serif"
+            fontSize="9"
+            fill="#555555"
+            textAnchor="end"
+          >
+            {fmtColorbarTick(vmax)}
+          </text>
+        </g>
 
-      {/* Colourbar */}
-      <g id="colorbar">
-        <defs>
-          <linearGradient id={cbGradId} x1="0%" y1="0%" x2="100%" y2="0%">
-            {cbStops}
-          </linearGradient>
-        </defs>
+        {/* Selection overlay — per-row + per-col bands for committed selection. */}
+        {selRowsDisplay && renderRowBands(selRowsDisplay, SELECTION_STROKE, 0.08)}
+        {selColsDisplay && renderColBands(selColsDisplay, SELECTION_STROKE, 0.08)}
+
+        {/* Axis-hover highlight — lighter, ephemeral. */}
+        {hoverRowsDisplay && renderRowBands(hoverRowsDisplay, HIGHLIGHT_STROKE, 0.04)}
+        {hoverColsDisplay && renderColBands(hoverColsDisplay, HIGHLIGHT_STROKE, 0.04)}
+
+        {/* Brush rect (active drag) */}
+        {brushRect && (
+          <rect
+            x={brushRect.x}
+            y={brushRect.y}
+            width={brushRect.w}
+            height={brushRect.h}
+            fill={SELECTION_STROKE}
+            fillOpacity={0.12}
+            stroke={SELECTION_STROKE}
+            strokeWidth={1}
+            strokeDasharray="3 2"
+            pointerEvents="none"
+          />
+        )}
+
+        {/* Interaction overlay — sits above cells for pointer capture + tooltip tracking. */}
         <rect
-          x={cbX}
-          y={cbY}
-          width={cbW}
-          height={cbH}
-          fill={`url(#${cbGradId})`}
-          stroke="#888888"
-          strokeWidth="0.5"
+          x={MARGIN.left}
+          y={MARGIN.top}
+          width={plotW}
+          height={plotH}
+          fill="transparent"
+          style={{ cursor: interactive ? "crosshair" : "default" }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerLeave}
         />
-        <text
-          x={cbX}
-          y={cbY + cbH + 12}
-          fontFamily="sans-serif"
-          fontSize="9"
-          fill="#555555"
-          textAnchor="start"
+      </svg>
+
+      {hoverInfo && (
+        <div
+          style={{
+            position: "fixed",
+            left: hover.clientX + 12,
+            top: hover.clientY + 12,
+            background: "var(--surface)",
+            color: "var(--text)",
+            border: "1px solid var(--border)",
+            borderRadius: 4,
+            padding: "4px 8px",
+            fontSize: 11,
+            fontFamily: "sans-serif",
+            pointerEvents: "none",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+            zIndex: 10,
+            whiteSpace: "nowrap",
+          }}
         >
-          {fmtColorbarTick(vmin)}
-        </text>
-        <text
-          x={cbX + cbW / 2}
-          y={cbY + cbH + 12}
-          fontFamily="sans-serif"
-          fontSize="9"
-          fill="#555555"
-          textAnchor="middle"
-        >
-          {fmtColorbarTick((vmin + vmax) / 2)}
-        </text>
-        <text
-          x={cbX + cbW}
-          y={cbY + cbH + 12}
-          fontFamily="sans-serif"
-          fontSize="9"
-          fill="#555555"
-          textAnchor="end"
-        >
-          {fmtColorbarTick(vmax)}
-        </text>
-      </g>
-    </svg>
+          <div style={{ fontWeight: 600 }}>
+            {hoverInfo.rowLabel} · {hoverInfo.colLabel}
+          </div>
+          <div style={{ color: "var(--text-muted)" }}>
+            value: {Number.isFinite(hoverInfo.vRaw) ? hoverInfo.vRaw : "NaN"}
+            {Number.isFinite(hoverInfo.vNorm) && hoverInfo.vNorm !== hoverInfo.vRaw && (
+              <> · plotted: {hoverInfo.vNorm.toFixed(3)}</>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 });
 
@@ -1236,7 +1673,33 @@ function App() {
   );
 
   const chartRef = useRef();
+  const detailChartRef = useRef();
   const matrixRef = useRef(null);
+
+  // Selection state: which rows / columns are highlighted for the detail view.
+  // `null` on an axis means "all rows/cols". Indices are into the ORIGINAL
+  // rawMatrix, not into rowOrder/colOrder — so clustering changes don't
+  // invalidate them.
+  const [selection, setSelection] = useState({ rows: null, cols: null });
+
+  const selectBox = useCallback((rows, cols) => {
+    setSelection({
+      rows: rows && rows.length ? rows : null,
+      cols: cols && cols.length ? cols : null,
+    });
+  }, []);
+  // Axis-scoped selection (dendrogram branch / cluster strip click) REPLACES
+  // any prior selection rather than layering onto it — otherwise clicking a
+  // column subtree after a row brush would intersect the two, which doesn't
+  // match the user's mental model of "show me this subtree".
+  const selectAxis = useCallback((axis, indices) => {
+    const valid = indices && indices.length ? indices : null;
+    setSelection({
+      rows: axis === "row" ? valid : null,
+      cols: axis === "col" ? valid : null,
+    });
+  }, []);
+  const clearSelection = useCallback(() => setSelection({ rows: null, cols: null }), []);
 
   // Normalised matrix (memoised on the raw matrix + mode).
   const normalized = useMemo(
@@ -1293,6 +1756,50 @@ function App() {
     if (colCluster) return colCluster.order;
     return rawMatrix.colLabels.map((_, i) => i);
   }, [colCluster, rawMatrix.colLabels]);
+
+  // Detail slice — honours current rowOrder/colOrder for visual continuity
+  // with the main plot, but filters to the selection (null = all on axis).
+  const detailRowOrder = useMemo(() => {
+    if (!selection.rows) return rowOrder;
+    const keep = new Set(selection.rows);
+    return rowOrder.filter((i) => keep.has(i));
+  }, [rowOrder, selection.rows]);
+  const detailColOrder = useMemo(() => {
+    if (!selection.cols) return colOrder;
+    const keep = new Set(selection.cols);
+    return colOrder.filter((i) => keep.has(i));
+  }, [colOrder, selection.cols]);
+  const hasSelection = selection.rows !== null || selection.cols !== null;
+
+  // A brush on the MAIN chart sends display-space (ri, ci) ranges; convert to
+  // original indices via rowOrder/colOrder before storing in selection.
+  const onBrushEnd = useCallback(
+    ({ riMin, riMax, ciMin, ciMax }) => {
+      const rows = [];
+      for (let ri = riMin; ri <= riMax; ri++) if (rowOrder[ri] != null) rows.push(rowOrder[ri]);
+      const cols = [];
+      for (let ci = ciMin; ci <= ciMax; ci++) if (colOrder[ci] != null) cols.push(colOrder[ci]);
+      selectBox(rows, cols);
+    },
+    [rowOrder, colOrder, selectBox]
+  );
+
+  // Any change in cluster structure invalidates the current selection —
+  // the indices still point at real rows/cols but the user's mental map is
+  // now wrong. Clear rather than silently mis-highlight.
+  React.useEffect(() => {
+    clearSelection();
+  }, [
+    rowMode,
+    colMode,
+    rowK,
+    colK,
+    kmeansSeed,
+    distanceMetric,
+    linkageMethod,
+    normalization,
+    clearSelection,
+  ]);
 
   // Keep the CSV-export ref in sync with what's currently plotted.
   matrixRef.current = {
@@ -1517,7 +2024,9 @@ function App() {
               autoVRange={autoVRange}
             />
 
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}
+            >
               <div
                 className="dv-panel dv-plot-card"
                 style={{
@@ -1534,6 +2043,7 @@ function App() {
                   rowLabels={rawMatrix.rowLabels}
                   colLabels={rawMatrix.colLabels}
                   matrix={normalized}
+                  rawMatrix={rawMatrix.matrix}
                   rowOrder={rowOrder}
                   colOrder={colOrder}
                   rowCluster={rowCluster}
@@ -1546,11 +2056,151 @@ function App() {
                   plotSubtitle={vis.plotSubtitle}
                   rowAxisLabel={vis.rowAxisLabel}
                   colAxisLabel={vis.colAxisLabel}
+                  interactive={true}
+                  selection={selection}
+                  onBrushEnd={onBrushEnd}
+                  onAxisSelect={selectAxis}
+                  onClearSelection={clearSelection}
                 />
               </div>
+
+              {hasSelection && (
+                <DetailView
+                  rawMatrix={rawMatrix}
+                  normalized={normalized}
+                  detailRowOrder={detailRowOrder}
+                  detailColOrder={detailColOrder}
+                  vis={vis}
+                  cellBorder={cellBorder}
+                  clearSelection={clearSelection}
+                  detailChartRef={detailChartRef}
+                  fileName={fileName}
+                />
+              )}
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function DetailView({
+  rawMatrix,
+  normalized,
+  detailRowOrder,
+  detailColOrder,
+  vis,
+  cellBorder,
+  clearSelection,
+  detailChartRef,
+  fileName,
+}) {
+  const base = fileBaseName(fileName || "heatmap") || "heatmap";
+  const detailMatrixRef = useRef(null);
+  detailMatrixRef.current = {
+    rowLabels: rawMatrix.rowLabels,
+    colLabels: rawMatrix.colLabels,
+    matrix: normalized,
+    rowOrder: detailRowOrder,
+    colOrder: detailColOrder,
+  };
+  const nR = detailRowOrder.length;
+  const nC = detailColOrder.length;
+  const tableHeaders = [""].concat(detailColOrder.map((ci) => rawMatrix.colLabels[ci]));
+  const tableRows = detailRowOrder.map((ri) => {
+    const cells = detailColOrder.map((ci) => {
+      const v = rawMatrix.matrix[ri][ci];
+      return Number.isFinite(v) ? String(v) : "";
+    });
+    return [rawMatrix.rowLabels[ri]].concat(cells);
+  });
+
+  const downloadButton = (label, onClick) => (
+    <button
+      onClick={(e) => {
+        onClick(e);
+        flashSaved(e.currentTarget);
+      }}
+      className="dv-btn dv-btn-dl"
+      style={{ padding: "4px 10px", fontSize: 11 }}
+    >
+      ⬇ {label}
+    </button>
+  );
+
+  return (
+    <div
+      className="dv-panel dv-plot-card"
+      style={{
+        padding: 16,
+        background: "var(--plot-card-bg)",
+        borderColor: "var(--plot-card-border)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>
+          Detail — {nR} row{nR === 1 ? "" : "s"} × {nC} col{nC === 1 ? "" : "s"}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {downloadButton("SVG", () =>
+            downloadSvg(detailChartRef.current, `${base}_heatmap_detail.svg`)
+          )}
+          {downloadButton("PNG", () =>
+            downloadPng(detailChartRef.current, `${base}_heatmap_detail.png`, 2)
+          )}
+          {downloadButton("CSV", () => {
+            if (!detailMatrixRef.current) return;
+            const { headers, rows } = buildCsvExport(detailMatrixRef.current);
+            downloadCsv(headers, rows, `${base}_heatmap_detail.csv`);
+          })}
+          <button
+            onClick={clearSelection}
+            className="dv-btn dv-btn-secondary"
+            style={{ padding: "4px 10px", fontSize: 11 }}
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+        <HeatmapChart
+          ref={detailChartRef}
+          rowLabels={rawMatrix.rowLabels}
+          colLabels={rawMatrix.colLabels}
+          matrix={normalized}
+          rawMatrix={rawMatrix.matrix}
+          rowOrder={detailRowOrder}
+          colOrder={detailColOrder}
+          rowCluster={null}
+          colCluster={null}
+          vmin={vis.vmin}
+          vmax={vis.vmax}
+          palette={vis.palette}
+          cellBorder={cellBorder}
+          plotTitle={vis.plotTitle ? `${vis.plotTitle} — detail` : "Detail"}
+          plotSubtitle={vis.plotSubtitle}
+          rowAxisLabel={vis.rowAxisLabel}
+          colAxisLabel={vis.colAxisLabel}
+          interactive={false}
+        />
+      </div>
+      <DataPreview headers={tableHeaders} rows={tableRows} maxRows={50} />
+      {nR > 50 && (
+        <p style={{ margin: 0, fontSize: 11, color: "var(--text-faint)" }}>
+          Showing first 50 of {nR} rows. Download CSV for the full selection.
+        </p>
       )}
     </div>
   );
