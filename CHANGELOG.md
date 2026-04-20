@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **UpSet — dropped the "Top N" slider** — capping the number of plotted intersections by list order after sorting was confusing: a `Top N = 20` with sort mode "size-asc" would plot the twenty smallest intersections, which is almost never what the user wanted, and changing the sort mode silently changed which intersections survived the cap. Min size and Min degree already express the two filters that actually matter (intersection magnitude and overlap depth), and both apply independently of sort order. Removed the `Top N` control from the plot-controls sidebar, `vis.topN` from `visInit`, the `topN` parameter from `truncateIntersections` (now just a `{ minSize, minDegree }` filter), and the four `topN` unit tests in `tests/upset.test.js`. Sidebar hint and empty-state / overcrowded banners rewritten to reference Min size + Min degree instead.
+
 ### Changed
 
 - **UpSet — "Set size" axis caption nudged further below the tick labels** — the caption sat at `axisY + 26` (only 12 px below the numeric tick labels), which read as crowded against the axis. Bumped to `axisY + 34` and one font step up (matching the "Intersection size" caption's `fSize − 2` sizing); `BOTTOM_H` grew from 44 → 56 to accommodate the lower y without risking clip at the viewBox edge.

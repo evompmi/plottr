@@ -267,28 +267,6 @@ test("minSize filters out smaller rows", () => {
   );
 });
 
-test("topN caps the list in supplied order", () => {
-  eq(
-    truncateIntersections(sizedFixture, { topN: 2, minSize: 0 }).map((r) => r.mask),
-    [1, 2]
-  );
-});
-
-test("minSize and topN combine (filter first, then cap)", () => {
-  eq(
-    truncateIntersections(sizedFixture, { minSize: 3, topN: 2 }).map((r) => r.mask),
-    [1, 2]
-  );
-});
-
-test("topN === 0 means no cap", () => {
-  eq(truncateIntersections(sizedFixture, { topN: 0, minSize: 0 }).length, sizedFixture.length);
-});
-
-test("topN greater than length returns everything", () => {
-  eq(truncateIntersections(sizedFixture, { topN: 99, minSize: 0 }).length, sizedFixture.length);
-});
-
 // ── intersectionLabel / intersectionFilenamePart ────────────────────────────
 
 suite("intersectionLabel / intersectionFilenamePart");

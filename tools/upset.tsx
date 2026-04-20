@@ -71,11 +71,9 @@ function sortIntersections(list, mode) {
   }
 }
 
-// Filter by minimum size and minimum degree, then cap at topN (in the order supplied).
-function truncateIntersections(list, { minSize = 1, minDegree = 1, topN = 0 } = {}) {
-  const filtered = list.filter((r) => r.size >= minSize && r.degree >= minDegree);
-  if (topN > 0 && filtered.length > topN) return filtered.slice(0, topN);
-  return filtered;
+// Filter by minimum size and minimum degree.
+function truncateIntersections(list, { minSize = 1, minDegree = 1 } = {}) {
+  return list.filter((r) => r.size >= minSize && r.degree >= minDegree);
 }
 
 // Human-readable label: "A ∩ B ∩ C".
@@ -724,8 +722,7 @@ function UploadStep({
               Controls
             </div>
             <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
-              Sort by size or degree, filter with Top N + minimum size, rename / recolor sets, and
-              toggle the empty-intersection view.
+              Sort by size or degree, filter with minimum intersection size and minimum degree.
             </p>
           </div>
 
@@ -1124,15 +1121,6 @@ function PlotControls({
             </select>
           </div>
           <SliderControl
-            label="Top N"
-            value={vis.topN}
-            min={0}
-            max={60}
-            step={1}
-            displayValue={vis.topN === 0 ? "All" : String(vis.topN)}
-            onChange={sv("topN")}
-          />
-          <SliderControl
             label="Min size"
             value={vis.minSize}
             min={0}
@@ -1235,7 +1223,6 @@ function App() {
     barOpacity: 1,
     dotSize: 6,
     sortMode: "size-desc",
-    topN: 20,
     minSize: 1,
     minDegree: 1,
   };
@@ -1274,9 +1261,8 @@ function App() {
       truncateIntersections(sortedIntersections, {
         minSize: vis.minSize,
         minDegree: vis.minDegree,
-        topN: vis.topN,
       }),
-    [sortedIntersections, vis.minSize, vis.minDegree, vis.topN]
+    [sortedIntersections, vis.minSize, vis.minDegree]
   );
 
   const canNavigate = useCallback(
@@ -1496,8 +1482,8 @@ function App() {
                     color: "var(--warning-text)",
                   }}
                 >
-                  {truncatedIntersections.length} columns — dots may overlap. Reduce with Top N or
-                  raise Min size.
+                  {truncatedIntersections.length} columns — dots may overlap. Raise Min size or Min
+                  degree to reduce.
                 </div>
               )}
 
@@ -1513,7 +1499,7 @@ function App() {
                     color: "var(--info-text)",
                   }}
                 >
-                  No intersections to show. Lower the minimum size, or raise Top N.
+                  No intersections to show. Lower Min size or Min degree.
                 </div>
               )}
 
