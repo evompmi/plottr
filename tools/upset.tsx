@@ -96,27 +96,38 @@ function intersectionIdKey(setIndices, setNames) {
   return setIndices.map((i) => svgSafeId(setNames[i])).join("-") || "empty";
 }
 
+// Build axis ticks for a bar panel whose domain is [0, max]: start from the
+// pretty ticks makeTicks produces, drop any ≥ max, and append the true max as
+// the final tick. This keeps bar lengths faithful (max reaches full panel)
+// while the inner ticks stay on nicely rounded values.
+function buildBarTicks(max, count) {
+  if (!(max > 0)) return [0];
+  const pretty = makeTicks(0, max, count).filter((t) => t < max);
+  return [...pretty, max];
+}
+
 // ── Layout constants ─────────────────────────────────────────────────────────
 
-const SVG_W = 960;
+const PREFERRED_SVG_W = 960;
+const MIN_COL_W = 18;
+const MAX_COL_W = 36;
 const TITLE_H_WITH = 40;
 const TITLE_H_NONE = 16;
 const SUBTITLE_H = 18;
 const TOP_PANEL_H = 200;
 const MATRIX_TOP_PAD = 8;
-const BOTTOM_H = 30;
-const LEFT_MARGIN = 12;
+const BOTTOM_H = 44;
+const LEFT_MARGIN = 44;
 const LEFT_BAR_MAX = 110;
 const LEFT_LABEL_AREA = 82;
 const LEFT_GAP = 6;
 const MATRIX_LEFT_X = LEFT_MARGIN + LEFT_BAR_MAX + LEFT_GAP + LEFT_LABEL_AREA;
 const RIGHT_MARGIN = 20;
 const TOP_AXIS_LABEL_W = 6;
-const NEUTRAL_BAR = "#648FFF";
-const NEUTRAL_DOT = "#333333";
+const BAR_FILL = "#000000";
+const DOT_FILL = "#000000";
 const EMPTY_DOT = "#DDDDDD";
 const ZEBRA_FILL = "#F4F4F4";
-const GRID_STROKE = "#EFEFEF";
 const TEXT_DARK = "#333333";
 const TEXT_MUTED = "#555555";
 
@@ -125,11 +136,13 @@ function computeRowHeight(nSets) {
   return Math.max(22, Math.min(40, Math.round(140 / Math.max(1, nSets) + 14)));
 }
 
-// Column width scales with available space but has sensible bounds.
+// Column width fits the preferred width when the column count allows it,
+// otherwise clamps to MIN_COL_W so the SVG grows wider instead of shrinking
+// columns below legibility. Callers use the returned colW to derive SVG_W.
 function computeColWidth(nCols) {
   if (nCols <= 0) return 24;
-  const avail = SVG_W - MATRIX_LEFT_X - RIGHT_MARGIN;
-  return Math.max(14, Math.min(36, avail / nCols));
+  const avail = PREFERRED_SVG_W - MATRIX_LEFT_X - RIGHT_MARGIN;
+  return Math.max(MIN_COL_W, Math.min(MAX_COL_W, avail / nCols));
 }
 
 // ── UpsetChart ──────────────────────────────────────────────────────────────
@@ -138,7 +151,6 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
   {
     setNames,
     setSizes,
-    setColors,
     intersections,
     selectedMask,
     onColumnClick,
@@ -146,7 +158,6 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
     plotSubtitle,
     plotBg,
     fontSize,
-    barColor,
     barOpacity,
     dotSize,
   },
@@ -155,7 +166,6 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
   const nSets = setNames.length;
   const nCols = intersections.length;
   const fSize = fontSize || 12;
-  const barFill = barColor || NEUTRAL_BAR;
   const barOp = barOpacity != null ? barOpacity : 1;
   const dotR = dotSize || 6;
 
@@ -167,29 +177,26 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
   const topPanelY = titleH + subH;
   const matrixY = topPanelY + TOP_PANEL_H + MATRIX_TOP_PAD;
   const VH = matrixY + matrixH + BOTTOM_H;
+  // Grow the SVG when columns would otherwise spill past the preferred width;
+  // the style below keeps it <=100% of the container so narrow viewports just
+  // scale proportionally instead of clipping.
+  const SVG_W = Math.max(PREFERRED_SVG_W, MATRIX_LEFT_X + Math.max(0, nCols) * colW + RIGHT_MARGIN);
 
-  // Top (intersection-size) bar area.
+  // Top (intersection-size) bar area. Scale against the true max so the
+  // tallest bar always reaches TOP_PANEL_H; pretty ticks above max are
+  // dropped and the true max is appended as the final label.
   const topPanelBottom = topPanelY + TOP_PANEL_H;
   const topAxisMax = Math.max(1, ...intersections.map((r) => r.size));
-  const topTicks = makeTicks(0, topAxisMax, 4);
-  const topAxisDomainMax = topTicks[topTicks.length - 1];
-  const topBarScale = (v) => (v / topAxisDomainMax) * TOP_PANEL_H;
+  const topTicks = buildBarTicks(topAxisMax, 4);
+  const topBarScale = (v) => (v / topAxisMax) * TOP_PANEL_H;
 
-  // Left (set-size) bar area.
+  // Left (set-size) bar area — same scaling strategy as the top panel.
   const setSizeMax = Math.max(1, ...setNames.map((n) => setSizes.get(n) || 0));
-  const leftTicks = makeTicks(0, setSizeMax, 3);
-  const leftAxisDomainMax = leftTicks[leftTicks.length - 1];
-  const leftBarScale = (v) => (v / leftAxisDomainMax) * LEFT_BAR_MAX;
+  const leftTicks = buildBarTicks(setSizeMax, 3);
+  const leftBarScale = (v) => (v / setSizeMax) * LEFT_BAR_MAX;
 
   const colX = (i) => MATRIX_LEFT_X + colW * (i + 0.5);
   const rowY = (i) => matrixY + rowH * (i + 0.5);
-
-  // Per-column tint: when an intersection has exactly one set, use that set's
-  // colour for the top bar, matrix line, and filled dots; otherwise neutral.
-  const columnTint = (inter) => {
-    if (inter.degree !== 1) return null;
-    return setColors[setNames[inter.setIndices[0]]] || null;
-  };
 
   // Axis tick geometry for the top (intersection size) axis — rendered on the
   // *left* edge of the top panel so the numbers are readable even if there are
@@ -200,8 +207,10 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
     <svg
       ref={ref}
       viewBox={`0 0 ${SVG_W} ${VH}`}
+      width={SVG_W}
+      height={VH}
       preserveAspectRatio="xMidYMid meet"
-      style={{ width: "100%", height: "auto", display: "block" }}
+      style={{ display: "block" }}
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label={plotTitle || "UpSet plot"}
@@ -242,25 +251,6 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           </text>
         </g>
       )}
-
-      {/* Gridlines in the top-bar panel help readers compare bar heights. */}
-      <g id="grid">
-        {topTicks.map((t, i) => {
-          if (i === 0) return null;
-          const y = topPanelBottom - topBarScale(t);
-          return (
-            <line
-              key={`gh-${i}`}
-              x1={MATRIX_LEFT_X}
-              x2={SVG_W - RIGHT_MARGIN}
-              y1={y}
-              y2={y}
-              stroke={GRID_STROKE}
-              strokeWidth="1"
-            />
-          );
-        })}
-      </g>
 
       {/* Top axis — intersection size. */}
       <g id="axis-intersection-size">
@@ -319,8 +309,6 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           const barW = Math.max(6, colW * 0.7);
           const barX = cx - barW / 2;
           const h = topBarScale(inter.size);
-          const tint = columnTint(inter);
-          const fill = tint || barFill;
           const isSelected = selectedMask === inter.mask;
           const idKey = intersectionIdKey(inter.setIndices, setNames);
           return (
@@ -335,7 +323,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
                 y={topPanelBottom - h}
                 width={barW}
                 height={h}
-                fill={fill}
+                fill={BAR_FILL}
                 fillOpacity={barOp}
                 stroke={isSelected ? TEXT_DARK : "none"}
                 strokeWidth={isSelected ? 1.5 : 0}
@@ -415,7 +403,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
               y={rowY(i) - rowH * 0.3}
               width={w}
               height={rowH * 0.6}
-              fill={setColors[name] || barFill}
+              fill={BAR_FILL}
               fillOpacity={barOp}
             />
           );
@@ -481,9 +469,6 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           {intersections.map((inter, i) => {
             const cx = colX(i);
             const inSet = new Set(inter.setIndices);
-            const tint = columnTint(inter);
-            const lineColor = tint || NEUTRAL_DOT;
-            const dotFill = tint || NEUTRAL_DOT;
             const isSelected = selectedMask === inter.mask;
             const idKey = intersectionIdKey(inter.setIndices, setNames);
             const activeRows = inter.setIndices;
@@ -511,7 +496,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
                     x2={cx}
                     y1={minR}
                     y2={maxR}
-                    stroke={lineColor}
+                    stroke={DOT_FILL}
                     strokeWidth={Math.max(1.5, dotR / 3)}
                   />
                 )}
@@ -522,7 +507,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
                     cx={cx}
                     cy={rowY(j)}
                     r={dotR}
-                    fill={inSet.has(j) ? dotFill : EMPTY_DOT}
+                    fill={inSet.has(j) ? DOT_FILL : EMPTY_DOT}
                   />
                 ))}
               </g>
@@ -1034,22 +1019,14 @@ function ItemListPanel({ intersection, setNames, fileName }) {
 // ── Plot controls sidebar ────────────────────────────────────────────────────
 
 function PlotControls({
-  allSetNames,
-  allSets,
   activeSetNames,
-  activeSets,
-  setColors,
-  onToggleSet,
-  onColorChange,
-  onRename,
+  allSets,
   vis,
   updVis,
   chartRef,
   resetAll,
   fileName,
   intersections,
-  setOrderMode,
-  onSetOrderChange,
 }) {
   const baseName = fileBaseName(fileName, "upset");
   const sv = (k) => (v) => updVis({ [k]: v });
@@ -1105,121 +1082,6 @@ function PlotControls({
           },
         ]}
       />
-
-      <div className="dv-panel">
-        <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-          Sets
-        </p>
-        <div style={{ marginBottom: 8 }}>
-          <span className="dv-label">Row order</span>
-          <div
-            style={{
-              display: "flex",
-              borderRadius: 6,
-              overflow: "hidden",
-              border: "1px solid var(--border-strong)",
-            }}
-          >
-            {(["size-desc", "as-entered"] as const).map((mode) => {
-              const active = mode === setOrderMode;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => onSetOrderChange(mode)}
-                  style={{
-                    flex: 1,
-                    padding: "4px 0",
-                    fontSize: 11,
-                    fontWeight: active ? 700 : 400,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    border: "none",
-                    background: active ? "var(--accent-primary)" : "var(--surface)",
-                    color: active ? "var(--on-accent)" : "var(--text-muted)",
-                  }}
-                >
-                  {mode === "size-desc" ? "Size ↓" : "As entered"}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          {allSetNames.map((name, i) => {
-            const active = activeSets.has(name);
-            const canUncheck = activeSets.size > 2;
-            return (
-              <div
-                key={name}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "5px 8px",
-                  borderRadius: 6,
-                  fontSize: 12,
-                  background: active ? "var(--surface-sunken)" : "var(--surface-subtle)",
-                  border: active ? "1px solid var(--border-strong)" : "1px solid var(--border)",
-                  opacity: active ? 1 : 0.5,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={active}
-                  disabled={active && !canUncheck}
-                  onChange={() => onToggleSet(name)}
-                  style={{
-                    accentColor: setColors[name] || PALETTE[i % PALETTE.length],
-                    flexShrink: 0,
-                  }}
-                />
-                <ColorInput
-                  value={setColors[name] || PALETTE[i % PALETTE.length]}
-                  onChange={(v) => onColorChange(name, v)}
-                  size={20}
-                />
-                <input
-                  key={name}
-                  defaultValue={name}
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    fontWeight: 600,
-                    color: active ? "var(--text)" : "var(--text-faint)",
-                    border: "1px solid var(--border-strong)",
-                    background: "var(--surface)",
-                    fontFamily: "monospace",
-                    fontSize: 12,
-                    padding: "2px 6px",
-                    borderRadius: 3,
-                    outline: "none",
-                  }}
-                  onBlur={(e) => {
-                    const nv = e.target.value.trim();
-                    if (nv && nv !== name) {
-                      if (!onRename(name, nv)) e.target.value = name;
-                    } else if (!nv) e.target.value = name;
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                  }}
-                />
-                <span
-                  style={{
-                    color: "var(--text-faint)",
-                    fontSize: 11,
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                  }}
-                >
-                  ({allSets.get(name).size})
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
       <div className="dv-panel">
         <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
@@ -1292,10 +1154,6 @@ function PlotControls({
               style={{ width: "100%" }}
             />
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span className="dv-label">Bar colour</span>
-            <ColorInput value={vis.barColor} onChange={sv("barColor")} size={24} />
-          </div>
           <SliderControl
             label="Bar opacity"
             value={vis.barOpacity}
@@ -1342,22 +1200,18 @@ function App() {
   const [format, setFormat] = useState("wide");
   const [setNames, setSetNames] = useState([]);
   const [sets, setSets] = useState(new Map());
-  const [setColors, setSetColors] = useState({});
   const [parsedHeaders, setParsedHeaders] = useState([]);
   const [parsedRows, setParsedRows] = useState([]);
   const [selectedMask, setSelectedMask] = useState(null);
-  const [activeSets, setActiveSets] = useState(new Set());
   const [allColumnNames, setAllColumnNames] = useState([]);
   const [allColumnSets, setAllColumnSets] = useState(new Map());
   const [pendingSelection, setPendingSelection] = useState([]);
-  const [setOrderMode, setSetOrderMode] = useState("size-desc");
 
   const visInit = {
     plotTitle: "",
     plotSubtitle: "",
     plotBg: "#ffffff",
     fontSize: 12,
-    barColor: "#648FFF",
     barOpacity: 1,
     dotSize: 6,
     sortMode: "size-desc",
@@ -1376,31 +1230,19 @@ function App() {
 
   const chartRef = useRef();
 
-  const activeSetNames = useMemo(
-    () => setNames.filter((n) => activeSets.has(n)),
-    [setNames, activeSets]
-  );
-
-  // Row order: size descending by default, with toggle to as-entered. The
-  // row order affects bit assignment, so memberships re-index accordingly.
+  // Sets render size-descending; rename/reorder isn't supported since the
+  // uploaded file is the source of truth.
   const displaySetNames = useMemo(() => {
-    if (setOrderMode === "as-entered") return activeSetNames;
-    const copy = activeSetNames.slice();
+    const copy = setNames.slice();
     copy.sort((a, b) => (sets.get(b)?.size || 0) - (sets.get(a)?.size || 0));
     return copy;
-  }, [activeSetNames, setOrderMode, sets]);
-
-  const displaySets = useMemo(() => {
-    const m = new Map();
-    for (const n of displaySetNames) m.set(n, sets.get(n));
-    return m;
-  }, [displaySetNames, sets]);
+  }, [setNames, sets]);
 
   const allIntersections = useMemo(() => {
     if (displaySetNames.length < 2) return [];
-    const { membershipMap } = computeMemberships(displaySetNames, displaySets);
+    const { membershipMap } = computeMemberships(displaySetNames, sets);
     return enumerateIntersections(membershipMap, displaySetNames);
-  }, [displaySetNames, displaySets]);
+  }, [displaySetNames, sets]);
 
   const sortedIntersections = useMemo(
     () => sortIntersections(allIntersections, vis.sortMode),
@@ -1421,10 +1263,10 @@ function App() {
     (target) => {
       if (target === "upload") return true;
       if (target === "configure") return allColumnNames.length >= 2;
-      if (target === "plot") return activeSetNames.length >= 2;
+      if (target === "plot") return displaySetNames.length >= 2;
       return false;
     },
-    [allColumnNames, activeSetNames]
+    [allColumnNames, displaySetNames]
   );
 
   const commitSelection = useCallback((names, allSets) => {
@@ -1432,12 +1274,6 @@ function App() {
     names.forEach((n) => chosen.set(n, allSets.get(n)));
     setSetNames(names);
     setSets(chosen);
-    setActiveSets(new Set(names));
-    const cols = {};
-    names.forEach((n, i) => {
-      cols[n] = PALETTE[i % PALETTE.length];
-    });
-    setSetColors(cols);
     setSelectedMask(null);
   }, []);
 
@@ -1496,54 +1332,13 @@ function App() {
     doParse(text, ",", "wide");
   }, [doParse]);
 
-  const handleColorChange = (name, color) => {
-    setSetColors((prev) => ({ ...prev, [name]: color }));
-  };
-
-  const handleRename = (oldName, newName) => {
-    if (oldName === newName || setNames.includes(newName)) return false;
-    setSetNames((prev) => prev.map((n) => (n === oldName ? newName : n)));
-    setSets((prev) => {
-      const m = new Map();
-      for (const [k, v] of prev) m.set(k === oldName ? newName : k, v);
-      return m;
-    });
-    setSetColors((prev) => {
-      const c = {};
-      for (const [k, v] of Object.entries(prev)) c[k === oldName ? newName : k] = v;
-      return c;
-    });
-    setActiveSets((prev) => {
-      const s = new Set(prev);
-      if (s.has(oldName)) {
-        s.delete(oldName);
-        s.add(newName);
-      }
-      return s;
-    });
-    return true;
-  };
-
-  const handleToggleSet = (name) => {
-    setActiveSets((prev) => {
-      const s = new Set(prev);
-      if (s.has(name)) s.delete(name);
-      else s.add(name);
-      return s;
-    });
-    setSelectedMask(null);
-  };
-
   const resetAll = () => {
     setStep("upload");
     setFileName("");
     setSetNames([]);
     setSets(new Map());
-    setSetColors({});
-    setActiveSets(new Set());
     setParseError(null);
     setSelectedMask(null);
-    setSetOrderMode("size-desc");
     updVis({ _reset: true });
   };
 
@@ -1628,26 +1423,18 @@ function App() {
         />
       )}
 
-      {step === "plot" && activeSetNames.length >= 2 && (
+      {step === "plot" && displaySetNames.length >= 2 && (
         <div>
           <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
             <PlotControls
-              allSetNames={setNames}
+              activeSetNames={displaySetNames}
               allSets={sets}
-              activeSetNames={activeSetNames}
-              activeSets={activeSets}
-              setColors={setColors}
-              onToggleSet={handleToggleSet}
-              onColorChange={handleColorChange}
-              onRename={handleRename}
               vis={vis}
               updVis={updVis}
               chartRef={chartRef}
               resetAll={resetAll}
               fileName={fileName}
               intersections={sortedIntersections}
-              setOrderMode={setOrderMode}
-              onSetOrderChange={setSetOrderMode}
             />
 
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1657,13 +1444,14 @@ function App() {
                   padding: 20,
                   background: "var(--plot-card-bg)",
                   borderColor: "var(--plot-card-border)",
+                  overflowX: "auto",
+                  maxWidth: "100%",
                 }}
               >
                 <UpsetChart
                   ref={chartRef}
                   setNames={displaySetNames}
                   setSizes={setSizes}
-                  setColors={setColors}
                   intersections={truncatedIntersections}
                   selectedMask={selectedMask}
                   onColumnClick={setSelectedMask}
@@ -1671,7 +1459,6 @@ function App() {
                   plotSubtitle={vis.plotSubtitle}
                   plotBg={vis.plotBg}
                   fontSize={vis.fontSize}
-                  barColor={vis.barColor}
                   barOpacity={vis.barOpacity}
                   dotSize={vis.dotSize}
                 />
