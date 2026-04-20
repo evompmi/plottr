@@ -336,6 +336,69 @@ function genScientificNotation(rng) {
   return { label: "scientific-notation", text: [header, ...rows].join("\n") };
 }
 
+// ── Long-format generators (value + group columns) ──────────────────────────
+// Boxplot / scatter / lineplot take tall tables (one row per observation,
+// columns for value, group, subgroup, x, …) rather than the wide matrices
+// the heatmap consumes. These generators bias the fuzz corpus toward that
+// shape while the wide generators above still round-trip the same parser.
+
+function genLongFormat(rng) {
+  const sep = pick(rng, [",", "\t", ";"]);
+  const hasSubgroup = rng() < 0.5;
+  const hasSort = rng() < 0.3;
+  const headers = ["value", "group"];
+  if (hasSubgroup) headers.push("subgroup");
+  if (hasSort) headers.push("sort");
+  const nGroups = randInt(rng, 1, 6);
+  const nSub = hasSubgroup ? randInt(rng, 1, 3) : 1;
+  const groupNames = Array.from({ length: nGroups }, (_, i) => `G${i}`);
+  const subNames = Array.from({ length: nSub }, (_, i) => `S${i}`);
+  const nRows = randInt(rng, 2, 40);
+  const rows = [headers.join(sep)];
+  for (let r = 0; r < nRows; r++) {
+    const line = [randomNumericToken(rng), pick(rng, groupNames)];
+    if (hasSubgroup) line.push(pick(rng, subNames));
+    if (hasSort) line.push(String(randInt(rng, 0, 10)));
+    rows.push(line.join(sep));
+  }
+  return { label: "long-format", text: rows.join("\n") };
+}
+
+function genLongFormatDegenerate(rng) {
+  // Long-format edges: a single group, all-same-value groups, one-sample
+  // groups, or every row its own group. These are what the selectTest
+  // chain most often chokes on (zero-variance → Shapiro-Wilk error,
+  // n<3 → "normal = null", every-row-its-own-group → k huge).
+  const flavor = pick(rng, ["single", "constant", "singletons", "every-row-unique"]);
+  const sep = ",";
+  const rows = ["value,group"];
+  const n = randInt(rng, 2, 20);
+  if (flavor === "single") {
+    for (let r = 0; r < n; r++) rows.push([randomNumericToken(rng), "G0"].join(sep));
+  } else if (flavor === "constant") {
+    const v = randFloat(rng, -10, 10).toFixed(2);
+    const g = randInt(rng, 2, 4);
+    for (let r = 0; r < n; r++) rows.push([v, `G${r % g}`].join(sep));
+  } else if (flavor === "singletons") {
+    const g = randInt(rng, 2, Math.max(2, Math.floor(n / 1.5)));
+    for (let r = 0; r < n; r++) rows.push([randomNumericToken(rng), `G${r % g}`].join(sep));
+  } else {
+    for (let r = 0; r < n; r++) rows.push([randomNumericToken(rng), `G${r}`].join(sep));
+  }
+  return { label: `long-degenerate-${flavor}`, text: rows.join("\n") };
+}
+
+function genLongWithExtremeGroups(rng) {
+  // Unicode / embedded-separator group names — exercises the bucketing
+  // step's coercion of group keys to strings.
+  const sep = ",";
+  const rows = ["value,group"];
+  const pool = ["ctrl", "治疗", "a,b", 'he"llo', "", "x", "αβγ"];
+  const n = randInt(rng, 4, 30);
+  for (let r = 0; r < n; r++) rows.push([randomNumericToken(rng), pick(rng, pool)].join(sep));
+  return { label: "long-extreme-groups", text: rows.join("\n") };
+}
+
 const GENERATORS = [
   genEmpty,
   genWhitespaceOnly,
@@ -367,6 +430,10 @@ const GENERATORS = [
   genNullByte,
   genControlChars,
   genScientificNotation,
+  genLongFormat,
+  genLongFormat, // doubled so long-format sees similar coverage to wide
+  genLongFormatDegenerate,
+  genLongWithExtremeGroups,
 ];
 
 function pickGenerator(rng) {
