@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **UpSet SVG export — matrix column click-capture rect no longer renders as a black block** — each matrix column wraps its dots and connecting line in a `<g>` with a full-height `<rect>` that exists only to catch clicks; that rect was `fill="transparent"`, which some SVG viewers and PNG converters parse as an invalid colour keyword and fall back to the SVG default `fill="black"`, producing vertical black rectangles from the top of the matrix to the bottom that hid the dots and the connecting line in exported files. Changed to `fill="none"` (the standard invisible-but-clickable pattern — `pointerEvents="all"` still delivers the click). The selected-column highlight keeps its `rgba(…)` fill since that colour is well-defined across renderers.
+
 ### Changed
 
 - **UpSet — sidebar tiles now collapsible with disclosure arrows** — the `Columns` (sort + min filters) and `Display` (titles, opacity, sizes, background) tiles in the Plot-step sidebar were always-expanded, even when the user was only adjusting one of them. Wrapped both in a local `ControlSection` component (mirroring the scatter / boxplot pattern: header row with a `dv-disclosure` arrow, content only mounted when open, `scrollDisclosureIntoView` called after opening so the revealed content isn't hidden below the fold). `Columns` defaults to open (the two filter sliders are the primary tweaks); `Display` defaults to closed. Panel styling matches the rest of the app — no new CSS, just reuses the existing `dv-panel` + `dv-disclosure` classes.

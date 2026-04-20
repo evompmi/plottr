@@ -517,7 +517,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
                   y={matrixY}
                   width={colW}
                   height={matrixH}
-                  fill={isSelected ? "rgba(100,143,255,0.12)" : "transparent"}
+                  fill={isSelected ? "rgba(100,143,255,0.12)" : "none"}
                   pointerEvents="all"
                 />
                 {activeRows.length > 1 && (
