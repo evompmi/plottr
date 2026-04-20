@@ -517,7 +517,8 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
                   y={matrixY}
                   width={colW}
                   height={matrixH}
-                  fill={isSelected ? "rgba(100,143,255,0.12)" : "none"}
+                  fill={isSelected ? "#648FFF" : "#ffffff"}
+                  fillOpacity={isSelected ? 0.12 : 0}
                   pointerEvents="all"
                 />
                 {activeRows.length > 1 && (
@@ -1283,6 +1284,7 @@ function ScrollablePlotCard({ children }) {
       {hasOverflow && !atStart && (
         <div
           aria-hidden="true"
+          className="dv-scroll-fade"
           style={{
             position: "absolute",
             top: 1,
@@ -1299,6 +1301,7 @@ function ScrollablePlotCard({ children }) {
       {hasOverflow && !atEnd && (
         <div
           aria-hidden="true"
+          className="dv-scroll-fade"
           style={{
             position: "absolute",
             top: 1,
