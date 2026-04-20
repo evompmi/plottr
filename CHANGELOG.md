@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **UpSet — proper horizontal axis under the set-size bars** — the set-size area previously just dropped tick numbers below the matrix with no axis line or tick marks, which read as floating labels rather than an axis. Added a baseline `<line>` spanning the full bar range (from `barRightX − LEFT_BAR_MAX` to `barRightX`, i.e. from the max-value end to the 0 end) with 3 px downward tick marks at each `leftTicks` position; numeric labels now sit below the ticks (y + 14) and the "Set size" label below those (y + 26). Matches the orientation of the vertical intersection-size axis on the left of the top panel (stroke + ticks + labels), so the two axes read as a consistent pair.
+
 ### Removed
 
 - **UpSet — dropped the faint border around the top intersection-size panel** — the `<g id="plot-frame">` rect (grey `stroke="#333"` at 0.5 px, 0.2 opacity) drew a thin outline around the top bar panel, but with no gridlines and no enclosing axes it read as a floating box rather than a frame, adding visual noise around the bars without orienting the eye. Removed the group entirely; the top panel now sits cleanly on the canvas, consistent with the bottom (matrix + set-size) panels which never had a frame.

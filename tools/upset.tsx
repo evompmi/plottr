@@ -432,35 +432,60 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
         })}
       </g>
 
-      {/* Set-size axis (tick labels below the matrix). */}
+      {/* Set-size axis: baseline + downward ticks + labels below the matrix. */}
       <g id="axis-set-size">
-        {leftTicks.map((t, i) => {
+        {(() => {
           const barRightX = MATRIX_LEFT_X - LEFT_GAP - LEFT_LABEL_AREA;
-          const x = barRightX - leftBarScale(t);
+          const axisY = matrixY + matrixH + 4;
+          const axisLeftX = barRightX - LEFT_BAR_MAX;
           return (
-            <text
-              key={`la-${i}`}
-              x={x}
-              y={matrixY + matrixH + 14}
-              textAnchor="middle"
-              fontSize={Math.max(9, fSize - 3)}
-              fill={TEXT_MUTED}
-              fontFamily="sans-serif"
-            >
-              {t}
-            </text>
+            <>
+              <line
+                x1={axisLeftX}
+                x2={barRightX}
+                y1={axisY}
+                y2={axisY}
+                stroke={TEXT_DARK}
+                strokeWidth="1"
+              />
+              {leftTicks.map((t, i) => {
+                const x = barRightX - leftBarScale(t);
+                return (
+                  <g key={`la-${i}`}>
+                    <line
+                      x1={x}
+                      x2={x}
+                      y1={axisY}
+                      y2={axisY + 3}
+                      stroke={TEXT_DARK}
+                      strokeWidth="1"
+                    />
+                    <text
+                      x={x}
+                      y={axisY + 14}
+                      textAnchor="middle"
+                      fontSize={Math.max(9, fSize - 3)}
+                      fill={TEXT_MUTED}
+                      fontFamily="sans-serif"
+                    >
+                      {t}
+                    </text>
+                  </g>
+                );
+              })}
+              <text
+                x={axisLeftX + LEFT_BAR_MAX / 2}
+                y={axisY + 26}
+                textAnchor="middle"
+                fontSize={Math.max(9, fSize - 3)}
+                fill={TEXT_MUTED}
+                fontFamily="sans-serif"
+              >
+                Set size
+              </text>
+            </>
           );
-        })}
-        <text
-          x={MATRIX_LEFT_X - LEFT_GAP - LEFT_LABEL_AREA - LEFT_BAR_MAX / 2}
-          y={matrixY + matrixH + 26}
-          textAnchor="middle"
-          fontSize={Math.max(9, fSize - 3)}
-          fill={TEXT_MUTED}
-          fontFamily="sans-serif"
-        >
-          Set size
-        </text>
+        })()}
       </g>
 
       {/* Matrix: per-column group with line + dots. */}
