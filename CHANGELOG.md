@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **UpSet — visual affordances for horizontal scrollability of the plot card** — the plot card gets `overflowX: auto` when the SVG is wider than the available width, but the browser's own scrollbar is thin and easy to miss, so many users never realised the plot continued past the right edge. Wrapped the existing card in a new `ScrollablePlotCard` component that adds three affordances driven by a `ResizeObserver` (re-measures when the card or the SVG changes size) plus an `onScroll` handler: (1) a subtle 28 px left-edge fade overlay that appears only when `scrollLeft > 1`, (2) a matching right-edge fade that appears only when the user hasn't scrolled to the far right, (3) a small accent-coloured "Scroll for more →" pill anchored to the bottom-right that disappears the first time the user scrolls. All three overlays are `pointer-events: none` so they can't block clicks or drags, and are gated on `hasOverflow` so a card that fits entirely within the viewport still looks unchanged.
+
 ### Fixed
 
 - **UpSet SVG export — matrix column click-capture rect no longer renders as a black block** — each matrix column wraps its dots and connecting line in a `<g>` with a full-height `<rect>` that exists only to catch clicks; that rect was `fill="transparent"`, which some SVG viewers and PNG converters parse as an invalid colour keyword and fall back to the SVG default `fill="black"`, producing vertical black rectangles from the top of the matrix to the bottom that hid the dots and the connecting line in exported files. Changed to `fill="none"` (the standard invisible-but-clickable pattern — `pointerEvents="all"` still delivers the click). The selected-column highlight keeps its `rgba(…)` fill since that colour is well-defined across renderers.
