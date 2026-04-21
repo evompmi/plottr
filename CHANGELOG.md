@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Internal — plot-tool scaffold extracted to `tools/_shell/`** — the ~22% scaffold boilerplate repeated across every plot tool (step state, upload/parse fields, `vis` reducer with `loadAutoPrefs`/`saveAutoPrefs` persistence, PageHeader + StepNavBar + banners wrapper, and the `ScrollablePlotCard` horizontal-scroll affordances) is now consolidated into three shared modules under `tools/_shell/`: `usePlotToolState.ts` (typed hook, generic over each tool's `vis` shape), `PlotToolShell.tsx` (outer page frame delegating step content to children), and `ScrollablePlotCard.tsx` (lifted verbatim from `upset.tsx`; `venn.tsx` and `heatmap.tsx` copies will migrate in later passes). The UpSet tool is the pilot — it now imports from `./_shell/*` instead of re-deriving the scaffold inline. No user-facing behaviour change; auto-prefs keys and UI are identical. `tsconfig.json` extended to include `tools/_shell/**` so typechecking covers the new modules. Phase B of the consolidation plan; other tools will migrate in follow-up passes.
+
 ### Added
 
 - **Venn — circle outline toggle in the Display sidebar** — the area-proportional Venn circles are drawn with both a semi-transparent fill (`fillOpacity` slider) and a 2 px coloured stroke at `strokeOpacity 0.6`. The stroke is useful when the fill is very light but becomes visual noise when the fill alone is enough (high opacity, or a single isolated set). Added a new `Circle outline` On/Off segmented control below the `Fill opacity` slider, mirroring the `Proportional areas` toggle. Defaults to On so existing plots look unchanged; flipping to Off sets each set-circle's `stroke="none"` and `strokeWidth=0` (the legend swatches keep their outline so the colour dots remain visible against a white background). Wired through `visInit.showOutline`, so the preference auto-persists with the rest of the Display settings.

@@ -96,6 +96,15 @@ Each tool's `.tsx` source file follows this pattern:
 2. **Step sub-components** — `UploadStep`, `ConfigureStep`, `FilterStep`, `OutputStep`, `PlotControls`, `PlotArea` (where applicable)
 3. **App()** — orchestrator holding state and routing between steps
 
+### Shared plot-tool scaffold (`tools/_shell/`)
+The ~22% boilerplate that every plot tool used to re-derive lives in three ES modules under `tools/_shell/`. Unlike the plain-JS `shared-*.js` globals, these are TypeScript modules imported via `import { … } from "./_shell/…"` and resolved by esbuild when bundling each tool.
+
+- `tools/_shell/usePlotToolState.ts` — `usePlotToolState<TVis>(toolKey, initialVis)` typed hook. Owns step state, upload fields (`fileName`, `parseError`, `sepOverride`, `commaFixed`, `commaFixCount`), and the `vis` reducer with auto-prefs persistence (`loadAutoPrefs` on init, `saveAutoPrefs` on change, `_reset` sentinel for reset-to-defaults).
+- `tools/_shell/PlotToolShell.tsx` — outer page frame. Renders `PageHeader` (with `PrefsPanel` in the right slot), `StepNavBar`, `CommaFixBanner`, `ParseErrorBanner`, then delegates to `children`. Takes the hook's return as a `state` prop.
+- `tools/_shell/ScrollablePlotCard.tsx` — horizontal-scroll affordances (edge fades + "Scroll for more →" pill driven by `ResizeObserver`). Currently used by UpSet; `venn.tsx` and `heatmap.tsx` have local copies that will migrate in follow-up passes.
+
+Tool-specific state (parsed rows, selection, etc.) stays inline in `App()` — the scaffold intentionally does not become a kitchen sink. When adding a new plot tool, start from `tools/upset.tsx` as the reference for the scaffold wiring.
+
 ### SVG export: named groups for Inkscape
 Exported SVGs are routinely re-opened in Inkscape for touch-ups, so **every chart must wrap its elements in `<g id="...">` groups with human-readable ids**. When adding a new chart (or a new element to an existing chart), give the wrapping group a descriptive id so Inkscape users can select it by name from the Objects panel / XML editor.
 
