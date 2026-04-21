@@ -39,16 +39,26 @@ No test framework — custom harness in `tests/harness.js` using `suite()`, `tes
 Each tool HTML loads vendored React/ReactDOM and shared scripts in `<head>`, then loads a compiled `.js` file. The editable source is in `tools/<tool>.tsx` — run `npm run build` to compile.
 
 ### Shared code
+All shared browser globals are concatenated at build time into a single
+`tools/shared.bundle.js` by `scripts/build-shared.js` (runs in `prebuild`,
+`prewatch`, and `pretest`). Every HTML loads **one** `<script src="shared.bundle.js">`;
+HTML files never list individual shared files. The canonical load order is the
+`FILES` array at the top of `scripts/build-shared.js` — if you add a new shared
+file, add it there, nowhere else.
+
+Source files live side-by-side in `tools/` and stay the editable units:
 - `tools/shared.js` — plain JS globals: color helpers, numeric detection, seeded random, axis tick generation, separator detection, CSV parsing, statistics, download helpers, `roleColors` (chrome styling lives in `tools/components.css` via `dv-*` classes; see the Theming section)
-- Shared UI split into focused plain-JS files (all `React.createElement`, NOT JSX). Load order matters — see HTML files for the correct `<script>` sequence:
+- Shared UI split into focused plain-JS files (all `React.createElement`, NOT JSX):
   - `tools/shared-color-input.js` — `normalizeHexColor`, `ColorInput`
-  - `tools/shared-file-drop.js` — `FileDropZone` (loaded by: all tools)
-  - `tools/shared-svg-legend.js` — `computeLegendHeight`, `renderSvgLegend` (boxplot, aequorin, scatter)
-  - `tools/shared-core.js` — `DataPreview`, `ErrorBoundary` (all tools)
-  - `tools/shared-ui.js` — `SliderControl`, `StepNavBar`, `CommaFixBanner`, `ParseErrorBanner`, `PageHeader`, `UploadPanel`, `ActionsPanel` (all tools; depends on `shared-file-drop.js`)
-  - `tools/shared-prefs.js` — `loadAutoPrefs`, `saveAutoPrefs`, `exportPrefsFile`, `importPrefsFile`, `clearAutoPrefs`, `PrefsPanel` — persists per-tool plot render settings to `localStorage` and to a portable `.json` file (all plot tools: boxplot, aequorin, lineplot, scatter, venn, heatmap; load after `shared-ui.js`)
-  - `tools/shared-long-format.js` — `ColumnRoleEditor`, `FilterCheckboxPanel`, `RenameReorderPanel`, `StatsTable`, `GroupColorEditor`, `BaseStyleControls` (boxplot, aequorin, scatter; depends on `shared-color-input.js`)
-  - `tools/shared-stats-tile.js` — `assignBracketLevels`, `StatsTile` (boxplot, aequorin only; depends on `stats.js`)
+  - `tools/shared-file-drop.js` — `FileDropZone`
+  - `tools/shared-svg-legend.js` — `computeLegendHeight`, `renderSvgLegend`
+  - `tools/shared-core.js` — `DataPreview`, `ErrorBoundary`
+  - `tools/shared-ui.js` — `SliderControl`, `StepNavBar`, `CommaFixBanner`, `ParseErrorBanner`, `PageHeader`, `UploadPanel`, `ActionsPanel` (depends on `shared-file-drop.js`)
+  - `tools/shared-prefs.js` — `loadAutoPrefs`, `saveAutoPrefs`, `exportPrefsFile`, `importPrefsFile`, `clearAutoPrefs`, `PrefsPanel` — persists per-tool plot render settings to `localStorage` and to a portable `.json` file (depends on `shared.js`)
+  - `tools/shared-long-format.js` — `ColumnRoleEditor`, `FilterCheckboxPanel`, `RenameReorderPanel`, `StatsTable`, `GroupColorEditor`, `BaseStyleControls` (depends on `shared-color-input.js`)
+  - `tools/shared-r-export.js` — R reproducibility-script builders used by the download tiles in each plot tool
+  - `tools/shared-stats-tile.js` — `assignBracketLevels`, `StatsTile` (depends on `stats.js`)
+  - `tools/theme.js` — theme toggle wiring + `ThemeToggle` React component (runs first so its `data-theme-toggle` listener is live before any tool mounts)
 - `tools/stats.js` — plain JS statistical functions (loaded as `<script>` global):
   - **Distributions**: `normcdf`, `norminv`, `tcdf`, `tinv`, `fcdf`, `chi2cdf`, `chi2inv`, `nctcdf`, `ncf_sf`, `ncchi2cdf`
   - **Helpers**: `gammaln`, `betai`, `betacf`, `gammainc`, `gammainc_upper`, `bisect`
@@ -59,7 +69,13 @@ Each tool HTML loads vendored React/ReactDOM and shared scripts in `<head>`, the
   - **Utilities**: `rankWithTies`, `selectTest`
 
 ### Shared code constraint
-**All `tools/shared*.js` files and `stats.js` must remain plain JS** (`React.createElement`, not JSX). They are loaded as regular `<script>` tags in each tool HTML so their top-level declarations are available as globals to the compiled tool `.js` files. If they used JSX, they would need their own build step and careful scoping.
+**All `tools/shared*.js` files, `theme.js`, and `stats.js` must remain plain JS** (`React.createElement`, not JSX). They are concatenated into `tools/shared.bundle.js` with no transform, so their top-level declarations are available as globals to the compiled tool `.js` files. If they used JSX, they would need their own build step and careful scoping.
+
+**If you add a new shared file:** create it under `tools/`, add its filename to the `FILES` array in `scripts/build-shared.js` (in the correct load order), and run `npm run build:shared` (or any `npm run build` / `npm test` — both regenerate the bundle first). HTML files stay unchanged.
+
+**If you edit an existing shared file:** run `npm run build:shared` (or leave `node scripts/build-shared.js --watch` running in a second terminal alongside `npm run watch`). `npm run build` / `npm test` regenerate it automatically via their `pre*` hooks.
+
+The bundle is checked into git (same convention as the compiled tool `.js` files) so the static GitHub Pages deploy keeps working without a server-side build.
 
 ### Theming (light / dark)
 Theme switching is driven by CSS custom properties on `:root`, toggled via a `data-theme="dark"` attribute on `<html>`. The full palette lives in `tools/theme.css` (source of truth for every variable). Theme state is persisted in `localStorage` under `dataviz-theme`; a no-FOUC inline `<script>` in every HTML `<head>` reads it synchronously before first paint. On the very first visit with no stored choice, the `prefers-color-scheme` media query decides. A `ThemeToggle` button lives in `PageHeader` (all tools) and on the landing page; `storage` events sync toggles across all open same-origin iframes for free.
