@@ -43,6 +43,8 @@ const {
   dunnTest,
   pairwiseDistance,
   hclust,
+  multisetIntersectionPExact,
+  multisetIntersectionPPoisson,
 } = ctx;
 
 // ── Load R reference output ────────────────────────────────────────────────
@@ -370,6 +372,25 @@ for (const t of data.tests) {
           rSaturated,
         });
       }
+    } else if (cat === "Multi-set intersection (cpsets)") {
+      // Only benchmark the exact path against R. The Poisson path is an
+      // approximation by construction — unit tests in tests/stats.test.js pin
+      // its documented divergence from exact; including it as a benchmark row
+      // would just show expected approximation-scale drift as "failures".
+      const { x, L, N } = t.inputs;
+      const jsExact = multisetIntersectionPExact(x, L, N);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: jsExact,
+        ...cmpP(jsExact, t.r.p),
+      });
+      // Silence the eslint no-unused-vars warning — keep the import live so
+      // future users of the router have a clear entrypoint.
+      void multisetIntersectionPPoisson;
     } else {
       console.warn(`unknown category: ${cat}`);
     }

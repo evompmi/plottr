@@ -3360,6 +3360,128 @@ function sqDistPartial(row, centroid) {
   return any ? s : Infinity;
 }
 
+// ── 14. Multi-set intersection test (SuperExactTest-style) ─────────────────
+//
+// Under the null of k independent uniformly-random subsets S_1 … S_k of a
+// universe U (|U| = N), each with fixed size n_i, what is the probability of
+// observing an intersection of size ≥ x_obs?
+//
+// Reference: Wang, Zhao, Zhang, & Bhattacharya (2015). "Efficient Test and
+// Visualization of Multi-Set Intersections." Scientific Reports 5:16923.
+// (R package: SuperExactTest, function `cpsets`.)
+//
+// Two code paths:
+//
+//   `multisetIntersectionPExact` — iterated hypergeometric conditioning.
+//     Y_2 = |S_1 ∩ S_2| ~ Hypergeometric(N, n_1, n_2)
+//     Y_i | Y_{i-1} ~ Hypergeometric(N, Y_{i-1}, n_i)  for i ≥ 3
+//   We maintain the log-probability distribution of Y_i at each step and
+//   marginalise via logSumExp. Returns exp(logTail). All combinatorics run in
+//   log-space (stats.js has gammaln) so nothing overflows for N up to ~50 k.
+//
+//   `multisetIntersectionPPoisson` — large-N approximation. When N is big and
+//   the expected intersection size λ = Π(n_i)/N^(k-1) is moderate, |∩| is
+//   well-approximated by Poisson(λ). The upper tail is the lower regularised
+//   incomplete gamma `P(x_obs, λ)` = `gammainc(x_obs, λ)`.
+//
+//   `multisetIntersectionP` — router. Picks exact when the DP cost k · min(n_i)²
+//   fits a ~10 M-op budget; falls back to Poisson otherwise.
+//
+// Convention: returned p is a strict upper tail P(|∩| ≥ x_obs) — the "is the
+// observed overlap surprisingly large?" question. R's `cpsets` with
+// `lower.tail=FALSE` uses P(|∩| > x), so benchmark rows pass `x_obs - 1`.
+
+function _logHypergeomPmf(x, N, K, n) {
+  // log P(X = x) for X ~ Hypergeometric(N, K, n). Returns -Infinity on an
+  // out-of-support argument so logSumExp skips it.
+  if (x < 0 || x > K || x > n || n - x > N - K) return -Infinity;
+  const logC = (a, b) => gammaln(a + 1) - gammaln(b + 1) - gammaln(a - b + 1);
+  return logC(K, x) + logC(N - K, n - x) - logC(N, n);
+}
+
+function _logSumExp(a, b) {
+  if (!Number.isFinite(a)) return b;
+  if (!Number.isFinite(b)) return a;
+  const max = a > b ? a : b;
+  return max + Math.log(Math.exp(a - max) + Math.exp(b - max));
+}
+
+function multisetIntersectionPExact(xObs, ns, N) {
+  if (!Array.isArray(ns) || ns.length < 2) return NaN;
+  if (!Number.isFinite(N) || N <= 0) return NaN;
+  for (const n_i of ns) {
+    if (!Number.isFinite(n_i) || n_i < 0 || n_i > N) return NaN;
+  }
+  if (xObs <= 0) return 1;
+  // Smallest set first — keeps intermediate Y vectors narrower (Y_i is bounded
+  // by min of {Y_{i-1}, n_i}, so sorting ascending shrinks the state space).
+  const sorted = [...ns].sort((a, b) => a - b);
+  if (xObs > sorted[0]) return 0;
+
+  // Step 1: P(Y_2 = y) for y in [0, sorted[0]].
+  let logP = new Array(sorted[0] + 1);
+  for (let y = 0; y <= sorted[0]; y++) {
+    logP[y] = _logHypergeomPmf(y, N, sorted[0], sorted[1]);
+  }
+
+  // Steps 3…k: marginalise through Hypergeometric(N, Y_{i-1}, n_i).
+  for (let i = 2; i < sorted.length; i++) {
+    const n_i = sorted[i];
+    const prev = logP;
+    const currLen = Math.min(prev.length, n_i + 1);
+    const curr = new Array(currLen).fill(-Infinity);
+    for (let y = 0; y < prev.length; y++) {
+      if (!Number.isFinite(prev[y])) continue;
+      const zMax = y < n_i ? y : n_i;
+      for (let z = 0; z <= zMax; z++) {
+        const logHyp = _logHypergeomPmf(z, N, y, n_i);
+        if (!Number.isFinite(logHyp)) continue;
+        curr[z] = _logSumExp(curr[z], prev[y] + logHyp);
+      }
+    }
+    logP = curr;
+  }
+
+  // Tail: P(|∩| ≥ x_obs).
+  let logTail = -Infinity;
+  for (let x = xObs; x < logP.length; x++) {
+    if (Number.isFinite(logP[x])) logTail = _logSumExp(logTail, logP[x]);
+  }
+  if (!Number.isFinite(logTail)) return 0;
+  const p = Math.exp(logTail);
+  return Math.max(0, Math.min(1, p));
+}
+
+function multisetIntersectionPPoisson(xObs, ns, N) {
+  if (!Array.isArray(ns) || ns.length < 2) return NaN;
+  if (!Number.isFinite(N) || N <= 0) return NaN;
+  for (const n_i of ns) {
+    if (!Number.isFinite(n_i) || n_i < 0 || n_i > N) return NaN;
+    if (n_i === 0) return xObs <= 0 ? 1 : 0;
+  }
+  if (xObs <= 0) return 1;
+  // λ = Π(n_i / N) · N = Π(n_i) / N^(k-1). Compute in log-space to stay finite
+  // when Π(n_i) overflows double precision (e.g. k=10, n_i=1000).
+  let logLambda = 0;
+  for (const n_i of ns) logLambda += Math.log(n_i);
+  logLambda -= (ns.length - 1) * Math.log(N);
+  const lambda = Math.exp(logLambda);
+  if (!Number.isFinite(lambda)) return NaN;
+  // P(Poisson(λ) ≥ x_obs) = P(x_obs, λ) (lower regularised incomplete gamma).
+  return gammainc(xObs, lambda);
+}
+
+function multisetIntersectionP(xObs, ns, N) {
+  if (!Array.isArray(ns) || ns.length < 2) return NaN;
+  // Exact DP cost is ~ (k - 1) · min(n_i)² log-sum-exp evaluations. Cap at
+  // ~10 M ops so UI round-trips stay sub-second. Beyond that, Poisson is a
+  // safe approximation for the regime (large N relative to the n_i).
+  const minN = Math.min(...ns);
+  const cost = (ns.length - 1) * minN * minN;
+  if (cost <= 10_000_000) return multisetIntersectionPExact(xObs, ns, N);
+  return multisetIntersectionPPoisson(xObs, ns, N);
+}
+
 // ──────────────────────────────────────────────────────────────────
 // shared-color-input.js
 // ──────────────────────────────────────────────────────────────────

@@ -531,6 +531,41 @@ for (hc in hclust_combos) {
   )
 }
 
+# ── 11. Multi-set intersection test (SuperExactTest::cpsets) ──────────────
+#
+# Exact p-value for the multi-set intersection problem: given k independent
+# uniformly-random subsets of a universe of size N with fixed sizes n_1..n_k,
+# what is P(|∩| ≥ x_obs)? Our JS uses the ≥ convention; R's `cpsets` uses >
+# under `lower.tail=FALSE`, so we pass `x - 1` to the R call.
+
+suppressPackageStartupMessages(library(SuperExactTest))
+
+msi_cases <- list(
+  list(label = "k=2 hypergeometric",            x = 5,  L = c(20, 30),                  N = 100),
+  list(label = "k=2 moderate-large N",          x = 10, L = c(50, 60),                  N = 200),
+  list(label = "k=2 small (near-1)",            x = 1,  L = c(10, 10),                  N = 1000),
+  list(label = "k=3 moderate",                  x = 3,  L = c(20, 30, 40),              N = 100),
+  list(label = "k=3 N=1000 p~1e-3",             x = 5,  L = c(100, 100, 100),           N = 1000),
+  list(label = "k=3 N=5000 deeper",             x = 15, L = c(500, 500, 500),           N = 5000),
+  list(label = "k=5 shallow",                   x = 2,  L = c(20, 30, 40, 50, 60),      N = 200),
+  list(label = "k=5 N=10000 deep",              x = 5,  L = c(500, 500, 500, 500, 500), N = 10000),
+  list(label = "k=2 deep tail ~1e-31",          x = 30, L = c(50, 50),                  N = 1000),
+  list(label = "k=2 very deep tail ~1e-14",     x = 20, L = c(40, 40),                  N = 500)
+)
+
+for (c in msi_cases) {
+  # cpsets(x-1, L, N, lower.tail=FALSE) = P(|∩| > x - 1) = P(|∩| ≥ x), matching
+  # our JS convention. `cpsets` errors on x < 0, hence the guard.
+  p <- if (c$x <= 0) 1 else cpsets(c$x - 1, c$L, c$N, lower.tail = FALSE)
+  add(
+    category = "Multi-set intersection (cpsets)",
+    label    = c$label,
+    n        = c$N,
+    inputs   = list(x = c$x, L = as.list(as.integer(c$L)), N = as.integer(c$N)),
+    r        = list(p = unname(p))
+  )
+}
+
 # ── Write out ──────────────────────────────────────────────────────────────
 
 out <- list(

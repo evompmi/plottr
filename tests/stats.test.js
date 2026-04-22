@@ -1794,4 +1794,112 @@ test("ptukey_upper matches scipy at q=8 (independent cross-check)", () => {
   assert(Math.abs(p - want) / want < 5e-3, `ptukey_upper(8, 3, 147) = ${p}, scipy = ${want}`);
 });
 
+// ── Multi-set intersection test (SuperExactTest-style) ────────────────────
+//
+// Pins our `multisetIntersectionPExact` / `multisetIntersectionPPoisson` /
+// `multisetIntersectionP` against reference values produced by
+// `SuperExactTest::cpsets()` in R. Convention reminder: our JS returns
+// `P(|∩| ≥ x_obs)` (strict upper tail); `cpsets(x, L, n, lower.tail=FALSE)`
+// returns `P(|∩| > x)` = `P(|∩| ≥ x + 1)`, so reference values use `x - 1`
+// in the R call.
+
+suite("multisetIntersectionPExact — agrees with R SuperExactTest::cpsets");
+
+test("k=2 hypergeometric case matches R to 6 sigfigs", () => {
+  // cpsets(4, c(20, 30), 100, lower.tail=FALSE) = 0.7908368
+  approx(ctx.multisetIntersectionPExact(5, [20, 30], 100), 0.790837, 1e-5);
+});
+
+test("k=2 moderate-large N matches R", () => {
+  // cpsets(9, c(50, 60), 200, lower.tail=FALSE) = 0.977532
+  approx(ctx.multisetIntersectionPExact(10, [50, 60], 200), 0.977532, 1e-5);
+});
+
+test("k=3 moderate matches R", () => {
+  // cpsets(2, c(20, 30, 40), 100, lower.tail=FALSE) = 0.441005
+  approx(ctx.multisetIntersectionPExact(3, [20, 30, 40], 100), 0.441005, 1e-5);
+});
+
+test("k=3 N=1000, p ≈ 0.003 matches R", () => {
+  // cpsets(4, c(100, 100, 100), 1000, lower.tail=FALSE) = 0.00304692
+  approx(ctx.multisetIntersectionPExact(5, [100, 100, 100], 1000), 0.00304692, 1e-7);
+});
+
+test("k=5 moderate N matches R", () => {
+  // cpsets(1, c(20,30,40,50,60), 200, lower.tail=FALSE) = 0.000870939
+  approx(ctx.multisetIntersectionPExact(2, [20, 30, 40, 50, 60], 200), 0.000870939, 1e-8);
+});
+
+test("k=5 deep tail p ~ 1e-15 matches R in log-space", () => {
+  // cpsets(4, c(500,500,500,500,500), 10000, lower.tail=FALSE) = 2.24993e-15
+  const js = ctx.multisetIntersectionPExact(5, [500, 500, 500, 500, 500], 10000);
+  const r = 2.24993e-15;
+  const logDiff = Math.abs(Math.log10(js) - Math.log10(r));
+  assert(logDiff < 0.01, `log10 drift ${logDiff} (js=${js} r=${r})`);
+});
+
+test("k=2 very deep tail p ~ 1e-31 matches R in log-space", () => {
+  // cpsets(29, c(50, 50), 1000, lower.tail=FALSE) = 6.08578e-31
+  const js = ctx.multisetIntersectionPExact(30, [50, 50], 1000);
+  const r = 6.08578e-31;
+  const logDiff = Math.abs(Math.log10(js) - Math.log10(r));
+  assert(logDiff < 0.01, `log10 drift ${logDiff}`);
+});
+
+test("xObs ≤ 0 returns 1 (every intersection has at least 0 elements)", () => {
+  assert(ctx.multisetIntersectionPExact(0, [20, 30], 100) === 1);
+  assert(ctx.multisetIntersectionPExact(-5, [10, 10, 10], 100) === 1);
+});
+
+test("xObs > min(n_i) returns 0 (intersection can't exceed smallest set)", () => {
+  assert(ctx.multisetIntersectionPExact(11, [10, 50], 100) === 0);
+});
+
+test("invalid inputs return NaN", () => {
+  assert(Number.isNaN(ctx.multisetIntersectionPExact(1, [10], 100))); // k < 2
+  assert(Number.isNaN(ctx.multisetIntersectionPExact(1, [10, 10], 0))); // N = 0
+  assert(Number.isNaN(ctx.multisetIntersectionPExact(1, [10, 150], 100))); // n_i > N
+});
+
+test("result is monotonically non-increasing in xObs", () => {
+  let prev = 1.1;
+  for (const x of [0, 1, 2, 3, 5, 10, 15, 20]) {
+    const p = ctx.multisetIntersectionPExact(x, [20, 30, 40], 100);
+    assert(p <= prev + 1e-12, `non-monotonic at x=${x}: prev=${prev}, curr=${p}`);
+    prev = p;
+  }
+});
+
+suite("multisetIntersectionPPoisson — approximation, not a substitute");
+
+test("Poisson converges to exact at moderate overlap", () => {
+  const exact = ctx.multisetIntersectionPExact(3, [100, 100, 100], 1000);
+  const poisson = ctx.multisetIntersectionPPoisson(3, [100, 100, 100], 1000);
+  // Expected λ = 100³/1000² = 0.1; upper tail at x=3 is tiny, both agree
+  // to ~5 % relative.
+  assert(Math.abs(exact - poisson) / exact < 0.1, `exact=${exact} poisson=${poisson}`);
+});
+
+test("Poisson deviates from exact in the deep tail (documented limitation)", () => {
+  // cpsets(29, c(50, 50), 1000) = 6.1e-31, Poisson overestimates to ~3e-22.
+  const exact = ctx.multisetIntersectionPExact(30, [50, 50], 1000);
+  const poisson = ctx.multisetIntersectionPPoisson(30, [50, 50], 1000);
+  assert(poisson > exact * 1e5, `Poisson should overestimate by many orders here`);
+});
+
+suite("multisetIntersectionP — router");
+
+test("small inputs route to exact (matches the exact helper)", () => {
+  const routed = ctx.multisetIntersectionP(5, [100, 100, 100], 1000);
+  const exact = ctx.multisetIntersectionPExact(5, [100, 100, 100], 1000);
+  approx(routed, exact, 1e-15);
+});
+
+test("very-large DP cost routes to Poisson without hanging", () => {
+  // k · min(n_i)² = 5 · 10000² = 5e8 op budget well beyond 1e7, forces Poisson.
+  const routed = ctx.multisetIntersectionP(50, [10000, 10000, 10000, 10000, 10000], 100000);
+  const poisson = ctx.multisetIntersectionPPoisson(50, [10000, 10000, 10000, 10000, 10000], 100000);
+  approx(routed, poisson, 1e-15);
+});
+
 summary();
