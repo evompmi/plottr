@@ -55,6 +55,16 @@
         font-weight: 700;
         color: var(--text);
         letter-spacing: 0.5px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+      .landing-header .brand-rune {
+        width: 28px;
+        height: 28px;
+        flex-shrink: 0;
+        color: var(--text);
       }
       .landing-header .version {
         font-size: 11px;
@@ -355,7 +365,29 @@
     ></button>
     <div class="landing" id="landing">
       <div class="landing-header">
-        <h1>Plöttr<span class="version" id="app-version">dev</span></h1>
+        <h1>
+          <svg
+            class="brand-rune"
+            viewBox="0 0 32 32"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <title>Ansuz rune</title>
+            <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2" />
+            <g
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M 13 6.5 L 13 25.5" />
+              <path d="M 13 6.5 L 22 11.5" />
+              <path d="M 13 13 L 22 18" />
+            </g>
+          </svg>
+          <span>Plöttr<span class="version" id="app-version">dev</span></span>
+        </h1>
         <div class="tagline">- Paste, plot, publish -</div>
       </div>
       <div class="tile-groups">
