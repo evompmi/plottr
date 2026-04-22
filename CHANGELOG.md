@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **UpSet handoff — `postMessage` listener now rejects cross-origin messages.** The `window.addEventListener("message", …)` handler in `tools/upset.tsx` accepted any payload matching `{type: "dataviz-handoff", …}` regardless of sender origin, so any page that could iframe the tool could inject arbitrary parsed data and attacker-controlled `fileName` text (which flows into SVG/CSV download filenames). Added an `e.origin !== window.location.origin` early-return at the top of the handler so only same-origin messages (the intended Venn → UpSet handoff in an embedding deployment) reach `handleHandoff`. Nothing leaves the browser in this app, but the injection surface is still worth closing. The `sessionStorage`-based handoff path (used by the live iframe routing in `index.html`) is unchanged — it's already same-origin by construction.
+
 ## [1.0.0] - 2026-04-22
 
 First release under the Plöttr name. Supersedes the `dataviz` lineage (v0.4.0 – v0.10.0 below). No code regressions — the `1.0.0` bump marks the rename and stable public surface.

@@ -1560,7 +1560,8 @@ function App() {
       /* storage disabled — handoff just won't fire */
     }
     const onMessage = (e) => {
-      const d = e && e.data;
+      if (!e || e.origin !== window.location.origin) return;
+      const d = e.data;
       if (!d || d.type !== "dataviz-handoff") return;
       handleHandoff(d);
     };
