@@ -1118,9 +1118,17 @@ function PlotControls({
   resetAll,
   fileName,
   intersections,
+  computeAllIntersectionStats,
+  clearIntersectionStats,
+  computingStats,
+  computeProgress,
+  intersectionTestsCount,
+  universeSize,
 }) {
   const baseName = fileBaseName(fileName, "upset");
   const sv = (k) => (v) => updVis({ [k]: v });
+  const universeValid =
+    universeSize !== "" && Number.isFinite(Number(universeSize)) && Number(universeSize) > 0;
   return (
     <PlotSidebar>
       <ActionsPanel
@@ -1362,6 +1370,96 @@ function PlotControls({
             })}
           </div>
         </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="dv-label">Intersection statistics</div>
+          <button
+            type="button"
+            className="dv-btn dv-btn-primary"
+            onClick={computeAllIntersectionStats}
+            disabled={computingStats || !universeValid || intersections.length === 0}
+            title={
+              !universeValid
+                ? "Set a Universe size below the plot before computing stats"
+                : computingStats
+                  ? "Computing…"
+                  : `Run the SuperExactTest exact test for every one of the ${intersections.length} visible intersections and BH-adjust across them`
+            }
+            style={{
+              fontSize: 12,
+              padding: "6px 10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
+            {computingStats ? (
+              <>
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: 12,
+                    height: 12,
+                    border: "2px solid currentColor",
+                    borderRightColor: "transparent",
+                    borderRadius: "50%",
+                    animation: "dv-spin 0.9s linear infinite",
+                  }}
+                  aria-hidden="true"
+                />
+                Computing {computeProgress.done}/{computeProgress.total}…
+              </>
+            ) : intersectionTestsCount > 0 ? (
+              `Recompute stats (${intersections.length} visible)`
+            ) : (
+              `Compute stats (${intersections.length} visible)`
+            )}
+          </button>
+          {computingStats && computeProgress.total > 0 && (
+            <div
+              style={{
+                height: 3,
+                borderRadius: 2,
+                background: "var(--border)",
+                overflow: "hidden",
+              }}
+              aria-hidden="true"
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${(computeProgress.done / computeProgress.total) * 100}%`,
+                  background: "var(--accent-primary)",
+                  transition: "width 120ms linear",
+                }}
+              />
+            </div>
+          )}
+          {intersectionTestsCount > 0 && !computingStats && (
+            <button
+              type="button"
+              onClick={clearIntersectionStats}
+              className="dv-btn dv-btn-secondary"
+              style={{ fontSize: 11, padding: "3px 8px" }}
+            >
+              Clear {intersectionTestsCount} cached{" "}
+              {intersectionTestsCount === 1 ? "result" : "results"}
+            </button>
+          )}
+          <p
+            style={{
+              margin: "2px 0 0",
+              fontSize: 10,
+              color: "var(--text-faint)",
+              lineHeight: 1.4,
+            }}
+          >
+            Runs the SuperExactTest exact p-value per intersection, then BH-adjusts across all
+            visible bars.
+          </p>
+          <style>{`@keyframes dv-spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+
         <div>
           <div className="dv-label">Significance markers</div>
           <div
@@ -1485,7 +1583,6 @@ function IntersectionStatsPanel({
   setUniverseOverridden,
   defaultUniverseSize,
   intersectionTests,
-  setIntersectionTests,
 }) {
   if (!intersection) return null;
 
@@ -1505,52 +1602,9 @@ function IntersectionStatsPanel({
   const selectedSetNames = intersection.setIndices.map((i) => displaySetNames[i]);
 
   const universeN = typeof universeSize === "number" ? universeSize : Number(universeSize);
-  const universeValid =
-    Number.isFinite(universeN) && universeN > 0 && selectedSetSizes.every((n) => n <= universeN);
 
   const cacheKey = `${intersection.mask}:${universeN}`;
   const cachedResult = intersectionTests.get(cacheKey);
-
-  const runTest = () => {
-    if (!universeValid) return;
-    const p = multisetIntersectionPExact(inclusiveSize, selectedSetSizes, universeN);
-    const next = new Map(intersectionTests);
-    next.set(cacheKey, {
-      mask: intersection.mask,
-      universe: universeN,
-      x: inclusiveSize,
-      xExclusive: intersection.size,
-      ns: selectedSetSizes,
-      p,
-    });
-    // BH-adjust across every test currently in the cache (independently of
-    // universe — each mask contributes its most recent result). This keeps
-    // the displayed pAdj live as the user tests more intersections.
-    const entries = [...next.values()] as Array<{
-      mask: number;
-      universe: number;
-      x: number;
-      xExclusive: number;
-      ns: number[];
-      p: number;
-      pAdj?: number | null;
-    }>;
-    const withIdx = entries.map((e, idx) => ({ idx, p: e.p })).filter((e) => Number.isFinite(e.p));
-    const rawPs = withIdx.map((e) => e.p);
-    const adjPs = bhAdjust(rawPs);
-    const adjByIdx = new Map();
-    withIdx.forEach((e, j) => adjByIdx.set(e.idx, adjPs[j]));
-    entries.forEach((e, idx) => {
-      e.pAdj = adjByIdx.has(idx) ? adjByIdx.get(idx) : null;
-    });
-    // Re-emit the Map so the cache → pAdj mapping is fresh.
-    const rebuilt = new Map();
-    let i = 0;
-    for (const [k] of next) {
-      rebuilt.set(k, entries[i++]);
-    }
-    setIntersectionTests(rebuilt);
-  };
 
   const fmtP = (p) => {
     if (p == null || !Number.isFinite(p)) return "—";
@@ -1640,17 +1694,8 @@ function IntersectionStatsPanel({
         </span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <button
-          type="button"
-          className="dv-btn dv-btn-primary"
-          disabled={!universeValid}
-          onClick={runTest}
-          title={!universeValid ? "Enter a universe size ≥ max(nᵢ) to run the test" : undefined}
-        >
-          {cachedResult ? "Recompute" : "Run test"}
-        </button>
-        {cachedResult && (
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        {cachedResult ? (
           <>
             <span style={{ fontSize: 12 }}>
               <span style={{ color: "var(--text-muted)" }}>p = </span>
@@ -1666,9 +1711,14 @@ function IntersectionStatsPanel({
             </span>
             <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
               adjusted across {intersectionTests.size} intersection
-              {intersectionTests.size === 1 ? "" : "s"} tested in this session
+              {intersectionTests.size === 1 ? "" : "s"} cached for N={universeN}
             </span>
           </>
+        ) : (
+          <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
+            No result for this intersection yet — use <strong>Compute stats</strong> in the sidebar
+            to run the test across every visible bar in one pass.
+          </span>
         )}
       </div>
     </div>
@@ -1713,6 +1763,10 @@ function App() {
   const [intersectionTests, setIntersectionTests] = useState(new Map());
   const [universeSize, setUniverseSize] = useState<number | "">("");
   const [universeOverridden, setUniverseOverridden] = useState(false);
+  // Batch-compute state: `computingStats` gates the "Compute stats" button
+  // (prevents double-fire mid-run); `computeProgress` drives the loader.
+  const [computingStats, setComputingStats] = useState(false);
+  const [computeProgress, setComputeProgress] = useState({ done: 0, total: 0 });
 
   const chartRef = useRef();
 
@@ -1771,6 +1825,79 @@ function App() {
       }),
     [sortedIntersections, vis.minSize, vis.minDegree, vis.maxDegree]
   );
+
+  // Batch-compute significance for every currently-visible intersection.
+  // Runs asynchronously in ~16-bar chunks with `setTimeout(0)` between them
+  // so the progress bar actually animates and the browser doesn't freeze on
+  // large configurations. BH adjustment runs across every result tied to the
+  // current universe size, so previously-computed entries (for the same N)
+  // are folded in and live alongside the new ones.
+  const computeAllIntersectionStats = useCallback(async () => {
+    if (computingStats) return;
+    const universeN = typeof universeSize === "number" ? universeSize : Number(universeSize);
+    if (!Number.isFinite(universeN) || universeN <= 0) return;
+    const bars = truncatedIntersections;
+    if (bars.length === 0) return;
+
+    setComputingStats(true);
+    setComputeProgress({ done: 0, total: bars.length });
+
+    const pending = new Map(intersectionTests);
+    const CHUNK_SIZE = 16;
+    for (let i = 0; i < bars.length; i++) {
+      const inter = bars[i];
+      const setSizes = inter.setIndices.map(
+        (idx) => (sets.get(displaySetNames[idx]) || new Set()).size
+      );
+      let inclusiveSize = 0;
+      for (const m of membershipMap.values()) {
+        if ((m & inter.mask) === inter.mask) inclusiveSize++;
+      }
+      const p = multisetIntersectionPExact(inclusiveSize, setSizes, universeN);
+      const key = `${inter.mask}:${universeN}`;
+      pending.set(key, {
+        mask: inter.mask,
+        universe: universeN,
+        x: inclusiveSize,
+        xExclusive: inter.size,
+        ns: setSizes,
+        p,
+        pAdj: null,
+      });
+      if ((i + 1) % CHUNK_SIZE === 0 || i === bars.length - 1) {
+        setComputeProgress({ done: i + 1, total: bars.length });
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    }
+
+    // BH adjust across every result matching the current universe (including
+    // any that were computed earlier for the same N but for intersections
+    // no longer visible — folding them in keeps pAdj values stable).
+    const matching = [...pending.values()].filter((e) => e.universe === universeN);
+    const ps = matching.map((e) => e.p);
+    const adj = bhAdjust(ps);
+    matching.forEach((e, j) => {
+      e.pAdj = adj[j];
+    });
+
+    setIntersectionTests(pending);
+    setComputingStats(false);
+    setComputeProgress({ done: 0, total: 0 });
+  }, [
+    computingStats,
+    universeSize,
+    truncatedIntersections,
+    intersectionTests,
+    sets,
+    displaySetNames,
+    membershipMap,
+  ]);
+
+  // Clear all cached stats — useful after a universe change if the user
+  // wants to wipe stale entries before recomputing.
+  const clearIntersectionStats = useCallback(() => {
+    setIntersectionTests(new Map());
+  }, []);
 
   const canNavigate = useCallback(
     (target) => {
@@ -1996,6 +2123,12 @@ function App() {
               resetAll={resetAll}
               fileName={fileName}
               intersections={truncatedIntersections}
+              computeAllIntersectionStats={computeAllIntersectionStats}
+              clearIntersectionStats={clearIntersectionStats}
+              computingStats={computingStats}
+              computeProgress={computeProgress}
+              intersectionTestsCount={intersectionTests.size}
+              universeSize={universeSize}
             />
 
             <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
@@ -2083,7 +2216,6 @@ function App() {
                   setUniverseOverridden={setUniverseOverridden}
                   defaultUniverseSize={defaultUniverseSize}
                   intersectionTests={intersectionTests}
-                  setIntersectionTests={setIntersectionTests}
                 />
               )}
 
