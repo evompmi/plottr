@@ -2338,8 +2338,15 @@ function epsilonSquared(groups) {
 function _wprob_upper(w, k) {
   if (w <= 0) return 1;
   const gl = _gaussLegendre(48);
-  const lo = -8,
-    hi = 8;
+  // The integrand `k·φ(u)·normsf(u+w)·Σ…` peaks at u = −w/2 (balance of
+  // φ(u) → 0 rightward vs normsf(u+w) → 0 leftward). For w > ~16 that peak
+  // escapes a fixed [−8, 8] window, and our estimate under-counts by many
+  // orders of magnitude. Centre the 48-node rule on the peak with width ±8σ
+  // so the peak and its gaussian decay are always sampled — but keep the
+  // window covering u = 0 ±8 for small w so the far-right tail stays in.
+  const peak = -w / 2;
+  const lo = Math.min(-8, peak - 8);
+  const hi = Math.max(8, peak + 8);
   const half = (hi - lo) / 2,
     mid = (hi + lo) / 2;
   const invSqrt2Pi = 1 / Math.sqrt(2 * Math.PI);
