@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **UpSet plot — On/Off toggles to hide intersection-size and set-size bar labels.** Cosmetic option for posters / slides where the numbers on top of every bar are redundant with the axis or just visually noisy. Added two `Display` section toggles in the plot sidebar: "Intersection size labels" (the numbers above each vertical bar) and "Set size labels" (the numbers beside each horizontal set-size bar). Rendered as the canonical segmented On/Off button pair already used for `Show points` in boxplot (`tools/boxplot/controls.tsx`), not a native checkbox, so the affordance matches the rest of the app. Both default to On so existing users see no change. Threaded `showIntersectionLabels` / `showSetSizeLabels` through `VIS_INIT_UPSET` (so auto-prefs persist per-user) → `vis` → `UpsetChart`; the two `<g id="intersection-bar-labels">` / `<g id="set-size-bar-labels">` groups render conditionally on `!== false`. Does not affect the CSV export, R script, or any underlying data — purely what gets drawn.
+
 ### Changed
 
 - **UpSet Configure step — intersection-cutoff Min/Max use the canonical `−`/`+` stepper.** The two degree inputs were rendered as bare `<input type="number" className="dv-input">`, which means the browser's native stacked up/down spinner buttons appeared on the right edge. Every other numeric input in the app uses the shared `NumberInput` component (already declared as a global in `types/globals.d.ts`), which wraps the input with `−` and `+` buttons sharing the `.dv-num`/`.dv-num-btn` chrome and hides the native spinner via `appearance: textfield` + `::-webkit-inner-spin-button { -webkit-appearance: none }`. Swapped both inputs in `tools/upset.tsx` for `NumberInput` (same `min`/`max`/`step`/`value`/`onChange` contract; bumped width 72 → 96 to fit the buttons). The clamping logic that keeps `min ≤ max` is unchanged.
