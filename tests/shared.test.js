@@ -62,15 +62,16 @@ test("does nothing when sep is comma", () => {
 });
 
 test("replaces decimal commas when sep is semicolon", () => {
-  const { text, commaFixed, count } = fixDecimalCommas("1,5;2,3", ";");
-  eq(text, "1.5;2.3");
+  // Per-column detection needs at least a header + one data row.
+  const { text, commaFixed, count } = fixDecimalCommas("a;b\n1,5;2,3", ";");
+  eq(text, "a;b\n1.5;2.3");
   eq(commaFixed, true);
   eq(count, 2);
 });
 
 test("replaces decimal commas when sep is tab", () => {
-  const { text, commaFixed } = fixDecimalCommas("1,5\t2,3", "\t");
-  eq(text, "1.5\t2.3");
+  const { text, commaFixed } = fixDecimalCommas("a\tb\n1,5\t2,3", "\t");
+  eq(text, "a\tb\n1.5\t2.3");
   eq(commaFixed, true);
 });
 

@@ -45,6 +45,7 @@ module.exports = {
   // Separator / decimal
   autoDetectSep: ctx.autoDetectSep,
   fixDecimalCommas: ctx.fixDecimalCommas,
+  tokenizeDelimited: ctx.tokenizeDelimited,
   // Numeric detection
   isNumericValue: ctx.isNumericValue,
   // Parsing helpers

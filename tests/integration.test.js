@@ -322,12 +322,15 @@ test("fixDecimalCommas with mixed digit and non-digit commas", () => {
   eq(count, 1);
 });
 
-test("fixDecimalCommas handles multiple decimal commas in one value", () => {
-  // "1,234,567" — the regex matches digit,digit pairs
-  const { text, count } = fixDecimalCommas("1,234,567", ";");
-  // Both commas have digits on each side, so both get replaced
-  eq(text, "1.234.567");
-  eq(count, 2);
+test("fixDecimalCommas preserves US thousand-grouped numbers like 1,234,567", () => {
+  // Regression: the old global regex rewrote `1,234,567` → `1.234.567` and
+  // produced NaN downstream. The per-column detector now recognises the pure
+  // 3-digit-group shape as thousand-grouping and leaves it untouched.
+  const input = "sample;count\nA;1,234,567\nB;2,000,000";
+  const { text, commaFixed, count } = fixDecimalCommas(input, ";");
+  eq(commaFixed, false);
+  eq(count, 0);
+  eq(text, input);
 });
 
 test("computeGroupStats with string values passed from parseRaw", () => {
