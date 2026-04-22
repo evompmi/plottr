@@ -90,14 +90,26 @@ function App() {
   const [facetByCol, _setFacetByCol] = useState(-1);
   const [subgroupByCol, _setSubgroupByCol] = useState(-1);
   // Facet and subgroup are mutually exclusive. Flipping one on turns the
-  // other off.
+  // other off. Each transition also clears the corresponding keyed
+  // annotation / summary dicts in `statsUi` — otherwise stale entries from
+  // previous facet / subgroup categories accumulate across long sessions
+  // (dict-grows-without-bound; harmless visually because downstream lookups
+  // key by current category, but a real memory leak nonetheless).
   const handleSetFacetByCol = (v) => {
+    if (facetByCol !== v) dispatchStats({ type: "clearFacetState" });
     _setFacetByCol(v);
-    if (v >= 0) _setSubgroupByCol(-1);
+    if (v >= 0 && subgroupByCol >= 0) {
+      dispatchStats({ type: "clearSubgroupState" });
+      _setSubgroupByCol(-1);
+    }
   };
   const handleSetSubgroupByCol = (v) => {
+    if (subgroupByCol !== v) dispatchStats({ type: "clearSubgroupState" });
     _setSubgroupByCol(v);
-    if (v >= 0) _setFacetByCol(-1);
+    if (v >= 0 && facetByCol >= 0) {
+      dispatchStats({ type: "clearFacetState" });
+      _setFacetByCol(-1);
+    }
   };
   // Flat / facet / subgroup each own their own summary + annotation state so
   // nothing leaks across modes. Panel display prefs live in the same reducer

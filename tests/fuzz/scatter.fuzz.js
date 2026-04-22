@@ -1,12 +1,11 @@
 // Fuzz test for the scatter data pipeline.
 //
 // Feeds thousands of plausibly-broken CSV/TSV strings through
-//   parseRaw → (x,y) extraction → linearRegression → interpolateColor
-// and fails if any stage throws. The regression helper below mirrors the
-// `useMemo` block at tools/scatter.tsx:~2228 on purpose — we don't extract
-// that closure into shared.js just for testability (would be a refactor for
-// fuzz's sake). If scatter.tsx's regression math ever changes, update this
-// helper to match.
+//   parseRaw → (x,y) extraction → computeLinearRegression → interpolateColor
+// and fails if any stage throws. Uses the real `computeLinearRegression`
+// from tools/scatter/helpers.ts (audit M8) — earlier revisions hand-mirrored
+// the regression math here, which meant a drift between scatter.tsx and the
+// fuzz harness would pass as "green".
 //
 // Env vars:
 //   FUZZ_SEED   initial seed (default 1)
@@ -18,6 +17,7 @@ const {
   isNumericValue,
   interpolateColor,
   COLOR_PALETTES,
+  computeLinearRegression,
 } = require("../helpers/scatter-loader");
 const { GENERATORS, makeRng } = require("./generators");
 
@@ -44,34 +44,12 @@ function recordFailure(seed, iter, genLabel, stage, err, text) {
   });
 }
 
-// Mirror of the regression useMemo in tools/scatter.tsx:~2228. Takes an
-// array of [x, y] number pairs and returns the same shape the tool's
-// render path reads. `valid: false` is the tool's own "no regression to
-// draw" signal — not a fuzz failure.
+// Pair-to-row adapter: `computeLinearRegression(rows, xCol, yCol)` expects
+// indexed rows. Every 2-element pair already IS a row where xCol=0, yCol=1,
+// so we just pass them straight through. Keeps the fuzz harness bound to
+// the tool's actual implementation without any shape translation.
 function linearRegression(pairs) {
-  let n = 0,
-    sx = 0,
-    sy = 0,
-    sxx = 0,
-    syy = 0,
-    sxy = 0;
-  for (const [x, y] of pairs) {
-    if (x == null || y == null || !Number.isFinite(x) || !Number.isFinite(y)) continue;
-    n++;
-    sx += x;
-    sy += y;
-    sxx += x * x;
-    syy += y * y;
-    sxy += x * y;
-  }
-  if (n < 2) return { valid: false };
-  const denomX = n * sxx - sx * sx;
-  if (denomX === 0) return { valid: false };
-  const slope = (n * sxy - sx * sy) / denomX;
-  const intercept = (sy - slope * sx) / n;
-  const denomY = n * syy - sy * sy;
-  const r2 = denomY === 0 ? NaN : Math.pow(n * sxy - sx * sy, 2) / (denomX * denomY);
-  return { valid: true, slope, intercept, r2, n };
+  return computeLinearRegression(pairs, 0, 1);
 }
 
 function extractXYPairs(rows, xIdx, yIdx) {

@@ -6,10 +6,10 @@
 // handful of shape invariants (per-x groups array length, pAdj either null
 // or in [0,1]).
 //
-// The two helpers mirror tools/lineplot.tsx:59 (computeSeries) and
-// tools/lineplot.tsx:100 (computePerXStats). TypeScript type annotations in
-// the originals prevent a direct vm-load; keep the mirrors in sync when
-// lineplot's logic changes.
+// Audit M8: the two helpers used to be hand-mirrored in this file — a real
+// bug risk since the lineplot tool could drift from the fuzz oracle without
+// anything noticing. Now uses the actual `computeSeries` /
+// `computePerXStats` from `tools/lineplot/helpers.ts` via the loader.
 //
 // Env vars:
 //   FUZZ_SEED   initial seed (default 1)
@@ -19,16 +19,8 @@
 const {
   parseRaw,
   isNumericValue,
-  sampleMean,
-  sampleSD,
-  tinv,
-  bhAdjust,
-  selectTest,
-  tTest,
-  mannWhitneyU,
-  oneWayANOVA,
-  welchANOVA,
-  kruskalWallis,
+  computeSeries,
+  computePerXStats,
 } = require("../helpers/lineplot-loader");
 const { GENERATORS, makeRng } = require("./generators");
 
@@ -72,90 +64,10 @@ function coerceNumericMatrix(rows, nCols) {
   });
 }
 
-// Mirror of tools/lineplot.tsx:59 (computeSeries), with TS generics
-// stripped. Keep in sync if the tool's aggregation logic changes.
-function computeSeries(data, rawData, xCol, yCol, groupCol, palette) {
-  const groupOrder = [];
-  const perGroup = new Map();
-  for (let ri = 0; ri < data.length; ri++) {
-    const x = data[ri][xCol];
-    const y = data[ri][yCol];
-    if (x == null || y == null || !Number.isFinite(x) || !Number.isFinite(y)) continue;
-    const gName = groupCol == null ? "(all)" : String(rawData[ri][groupCol] ?? "");
-    if (!perGroup.has(gName)) {
-      perGroup.set(gName, new Map());
-      groupOrder.push(gName);
-    }
-    const xMap = perGroup.get(gName);
-    if (!xMap.has(x)) xMap.set(x, []);
-    xMap.get(x).push(y);
-  }
-  return groupOrder.map((name, idx) => {
-    const xMap = perGroup.get(name);
-    const xs = [...xMap.keys()].sort((a, b) => a - b);
-    const points = xs.map((x) => {
-      const values = xMap.get(x);
-      const n = values.length;
-      const mean = sampleMean(values);
-      const sd = n > 1 ? sampleSD(values) : 0;
-      const sem = n > 1 ? sd / Math.sqrt(n) : 0;
-      const ci95 = n > 1 ? tinv(0.975, n - 1) * sem : 0;
-      return { x, values, n, mean, sd, sem, ci95 };
-    });
-    return { name, color: palette[idx % palette.length], points };
-  });
-}
-
-function runChosenTest(name, values) {
-  try {
-    if (name === "studentT") return tTest(values[0], values[1], { equalVar: true });
-    if (name === "welchT") return tTest(values[0], values[1], { equalVar: false });
-    if (name === "mannWhitney") return mannWhitneyU(values[0], values[1]);
-    if (name === "oneWayANOVA") return oneWayANOVA(values);
-    if (name === "welchANOVA") return welchANOVA(values);
-    if (name === "kruskalWallis") return kruskalWallis(values);
-    return { error: "unknown test" };
-  } catch (e) {
-    return { error: String((e && e.message) || e) };
-  }
-}
-
-// Mirror of tools/lineplot.tsx:100 (computePerXStats).
-function computePerXStats(series) {
-  const xSet = new Set();
-  for (const s of series) for (const p of s.points) xSet.add(p.x);
-  const xs = [...xSet].sort((a, b) => a - b);
-  const rows = [];
-  for (const x of xs) {
-    const groups = [];
-    for (const s of series) {
-      const p = s.points.find((q) => q.x === x);
-      if (p && p.n >= 2) groups.push({ name: s.name, values: p.values });
-    }
-    if (groups.length < 2) continue;
-    const values = groups.map((g) => g.values);
-    const names = groups.map((g) => g.name);
-    const rec = selectTest(values);
-    const chosenTest =
-      rec && rec.recommendation && rec.recommendation.test ? rec.recommendation.test : null;
-    const result = chosenTest ? runChosenTest(chosenTest, values) : null;
-    rows.push({ x, names, values, chosenTest, result });
-  }
-  const validIdx = [];
-  const validPs = [];
-  rows.forEach((r, i) => {
-    if (r.result && !r.result.error && Number.isFinite(r.result.p)) {
-      validIdx.push(i);
-      validPs.push(r.result.p);
-    }
-  });
-  const adjPs = validPs.length > 0 ? bhAdjust(validPs) : [];
-  rows.forEach((r) => (r.pAdj = null));
-  validIdx.forEach((origIdx, j) => (rows[origIdx].pAdj = adjPs[j]));
-  return rows;
-}
-
 const PALETTE = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"];
+// Empty group-color overrides — the tool's per-group colour-picker output.
+// An empty object means `computeSeries` falls back to the palette rotation.
+const NO_GROUP_COLORS = {};
 
 function runOne(seed, iter, genFn) {
   const rng = makeRng(seed);
@@ -194,7 +106,7 @@ function runOne(seed, iter, genFn) {
   const data = coerceNumericMatrix(rows, nCols);
   let series;
   try {
-    series = computeSeries(data, rows, xCol, yCol, groupCol, PALETTE);
+    series = computeSeries(data, rows, xCol, yCol, groupCol, NO_GROUP_COLORS, PALETTE);
   } catch (err) {
     recordFailure(seed, iter, label, "computeSeries", err, text);
     return;

@@ -4,9 +4,14 @@
 // UI-specific components out — they belong in tools/lineplot.tsx.
 
 import { runTest } from "../_shell/stats-dispatch";
+import { CHART_MARGIN, buildLineD } from "../_shell/chart-layout";
 
 // ── Constants ──────────────────────────────────────────────────────────────
-export const MARGIN = { top: 20, right: 20, bottom: 48, left: 62 };
+// `MARGIN` used to live here as a byte-identical twin of aequorin's. Lifted
+// into `_shell/chart-layout.ts` (audit M7); re-export here so the existing
+// `import { MARGIN } from "./helpers"` call sites keep working.
+export const MARGIN = CHART_MARGIN;
+export { buildLineD };
 export const STAR_ROW_H = 18;
 
 export const ERROR_KINDS = [
@@ -19,12 +24,6 @@ export const ERROR_KINDS = [
 
 export const round4 = (v) => Math.round(v * 10000) / 10000;
 export const round2 = (v) => Math.round(v * 100) / 100;
-
-export function buildLineD(pts) {
-  const valid = pts.filter((p) => p.y != null);
-  if (valid.length < 2) return "";
-  return "M" + valid.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join("L");
-}
 
 export function formatX(x) {
   if (x == null || !Number.isFinite(x)) return String(x);

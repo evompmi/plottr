@@ -84,13 +84,18 @@ function App() {
     updVis,
   } = shell;
 
-  // Aequorin keeps parseError as local state (separate from shell.parseError)
-  // because it renders a dual-variant banner: "⚠️"-prefixed strings show as a
-  // yellow warning (e.g. partial-parse notices), anything else shows as a red
-  // error. The shared ParseErrorBanner only renders the red variant, so we
-  // bypass PlotToolShell's auto-banner and render our own below the shell's
-  // CommaFixBanner.
-  const [parseError, setParseError] = useState<string | null>(null);
+  // Aequorin uses a dual-variant banner — "⚠️"-prefixed strings render as a
+  // yellow warning (e.g. partial-parse notices), anything else as a red
+  // error. The shared `ParseErrorBanner` driven by `shell.parseError` only
+  // renders the red variant, so we keep our own local state and render a
+  // custom banner as PlotToolShell children.
+  //
+  // **Do not route errors through `shell.setParseError` for this tool** —
+  // they'd show up in a second, un-styled banner above this one. The
+  // distinct name (`parseMessage`, not `parseError`) is the guardrail: any
+  // future edit that reaches for the shell's parseError API will produce a
+  // linter "unused import" rather than silently double-rendering.
+  const [parseMessage, setParseMessage] = useState<string | null>(null);
 
   const [rawText, setRawText] = useState(null);
   const [formula, setFormula] = useState("none");
@@ -304,14 +309,14 @@ function App() {
     setRawText(dc.text);
     const { headers, data } = parseData(dc.text, sep);
     if (!headers.length || !data.length) {
-      setParseError(
+      setParseMessage(
         "The file appears to be empty or has no data rows. Please check your file and try again."
       );
       return;
     }
     // Check for single-column files
     if (headers.length === 1) {
-      setParseError(
+      setParseMessage(
         "Only one column detected — this tool expects wide-format data with one column per sample. Check your separator setting or file format."
       );
       return;
@@ -321,7 +326,7 @@ function App() {
     const numericCells = data.reduce((n, row) => n + row.filter((v) => v != null).length, 0);
     const numericRatio = totalCells > 0 ? numericCells / totalCells : 0;
     if (numericRatio < 0.3) {
-      setParseError(
+      setParseMessage(
         "Less than 30% of values are numeric. This tool expects a numeric matrix (one column per sample, one row per time-point). Your file may be in long format or contain mostly text."
       );
       return;
@@ -347,7 +352,7 @@ function App() {
         `⚠️ Columns have different lengths (${minLen}–${maxLen} numeric values). Some samples may have missing time-points, which can affect mean/SD calculations.`
       );
     }
-    setParseError(warnings.length > 0 ? warnings.join("\n") : null);
+    setParseMessage(warnings.length > 0 ? warnings.join("\n") : null);
     const ce = {};
     headers.forEach((_, i) => {
       ce[i] = true;
@@ -369,7 +374,7 @@ function App() {
   const loadExample = useCallback(() => {
     const text = (window as any).__AEQUORIN_EXAMPLE__;
     if (!text) {
-      setParseError("Example dataset not loaded. Please try uploading a file instead.");
+      setParseMessage("Example dataset not loaded. Please try uploading a file instead.");
       return;
     }
     setSepOverride("\t");
@@ -407,29 +412,29 @@ function App() {
       steps={["upload", "configure", "plot"]}
       canNavigate={canNavigate}
     >
-      {parseError && (
+      {parseMessage && (
         <div
           style={{
             marginBottom: 16,
             padding: "10px 14px",
             borderRadius: 8,
-            background: parseError.startsWith("⚠️") ? "#fffbeb" : "#fef2f2",
-            border: `1px solid ${parseError.startsWith("⚠️") ? "#fcd34d" : "#fca5a5"}`,
+            background: parseMessage.startsWith("⚠️") ? "#fffbeb" : "#fef2f2",
+            border: `1px solid ${parseMessage.startsWith("⚠️") ? "#fcd34d" : "#fca5a5"}`,
             display: "flex",
             alignItems: "flex-start",
             gap: 8,
           }}
         >
-          {!parseError.startsWith("⚠️") && <span style={{ fontSize: 16 }}>🚫</span>}
+          {!parseMessage.startsWith("⚠️") && <span style={{ fontSize: 16 }}>🚫</span>}
           <span
             style={{
               fontSize: 12,
-              color: parseError.startsWith("⚠️") ? "var(--warning-text)" : "var(--danger-text)",
+              color: parseMessage.startsWith("⚠️") ? "var(--warning-text)" : "var(--danger-text)",
               fontWeight: 600,
               whiteSpace: "pre-line",
             }}
           >
-            {parseError}
+            {parseMessage}
           </span>
         </div>
       )}
