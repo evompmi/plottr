@@ -48,6 +48,8 @@ module.exports = {
   tokenizeDelimited: ctx.tokenizeDelimited,
   // Numeric detection
   isNumericValue: ctx.isNumericValue,
+  normalizeNumericString: ctx.normalizeNumericString,
+  toNumericValue: ctx.toNumericValue,
   // Parsing helpers
   detectHeader: ctx.detectHeader,
   parseRaw: ctx.parseRaw,

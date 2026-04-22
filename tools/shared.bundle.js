@@ -390,11 +390,46 @@ const roleColors = {
 
 // ── Numeric detection ────────────────────────────────────────────────────────
 
+// Unicode-aware normalisation before numeric parsing. Excel on macOS, PDFs,
+// Word docs, and statistical-paper copy-paste all routinely embed non-ASCII
+// minus-ish and whitespace-ish characters into number cells. These are
+// visually identical to the ASCII forms but break `Number()` parsing —
+// `Number("−5")` (U+2212 minus sign) is `NaN`, not `-5`. Normalise them
+// before regex + Number() so we don't silently drop legitimate values.
+const UNICODE_MINUS_CHARS = /[\u2212\u2013\u2014]/g; // − (minus) – (en-dash) — (em-dash)
+const UNICODE_SPACE_CHARS = /[\u00A0\u2009\u202F]/g; // NBSP, thin space, narrow NBSP
+function normalizeNumericString(v) {
+  if (typeof v !== "string") return v;
+  return v.replace(UNICODE_MINUS_CHARS, "-").replace(UNICODE_SPACE_CHARS, "");
+}
+
 // Returns true only for strings that are entirely a valid finite number.
-// Rejects values like "6wpi", "Infinity", "0xFF" that Number() would
-// accept or partially parse.
+// Rejects:
+//   - alphanumeric ("6wpi", "12abc", "0xFF"),
+//   - Number() specials ("Infinity", "NaN"),
+//   - overflow strings that coerce to ±Infinity ("1e999"),
+//   - leading-zero integer IDs ("007", "000123") that silently lose their
+//     zero-padded form when coerced — well plates, accession numbers, and
+//     LIMS codes commonly use this shape.
+// Accepts normalised Unicode variants: "−5" (U+2212), "–5" (en-dash), and
+// numbers containing NBSP / thin spaces from copy-paste.
 function isNumericValue(v) {
-  return /^\s*-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?\s*$/.test(v);
+  if (typeof v !== "string") return false;
+  const s = normalizeNumericString(v).trim();
+  if (s.length === 0) return false;
+  // Leading-zero integer guard: reject "007", "-007", "00012". Allow "0",
+  // "-0", "0.5", "0e3" (exponent notation starting with 0 is still a valid
+  // normalised number).
+  if (/^-?0\d/.test(s)) return false;
+  if (!/^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s)) return false;
+  return Number.isFinite(Number(s));
+}
+
+// Convenience: normalise + parse. Callers that already know `isNumericValue`
+// is true should route through this instead of `Number(v)` directly so
+// Unicode-minus / NBSP values parse correctly.
+function toNumericValue(v) {
+  return isNumericValue(v) ? Number(normalizeNumericString(v).trim()) : NaN;
 }
 
 // ── Seeded random ────────────────────────────────────────────────────────────
@@ -750,7 +785,7 @@ function parseWideMatrix(text, sepOv = "") {
       if (raw == null || raw === "") {
         values[ci] = NaN;
       } else if (isNumericValue(raw)) {
-        values[ci] = Number(raw);
+        values[ci] = toNumericValue(raw);
       } else {
         values[ci] = NaN;
         nonNumeric++;
@@ -776,7 +811,7 @@ function parseData(text, sepOv = "") {
     const rawVals = all[i].slice();
     while (rawVals.length < nCols) rawVals.push("");
     if (rawVals.every((v) => v === "")) continue;
-    data.push(rawVals.map((s) => (isNumericValue(s) ? Number(s) : null)));
+    data.push(rawVals.map((s) => (isNumericValue(s) ? toNumericValue(s) : null)));
     rawData.push(rawVals);
   }
   return { headers, data, rawData };
@@ -935,7 +970,7 @@ function kde(values, nPoints = 50) {
 
 function computeGroupStats(groups) {
   return Object.entries(groups).map(([name, vals]) => {
-    const nums = vals.filter((v) => v !== "" && isNumericValue(v)).map(Number);
+    const nums = vals.filter((v) => v !== "" && isNumericValue(v)).map(toNumericValue);
     const stats = computeStats(nums);
     if (!stats)
       return { name, n: 0, mean: null, sd: null, sem: null, min: null, max: null, median: null };
