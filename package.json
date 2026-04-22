@@ -1,4 +1,5 @@
 {
+  "name": "plottr",
   "private": true,
   "scripts": {
     "prebuild": "node scripts/write-version.js && node scripts/build-shared.js",

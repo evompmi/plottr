@@ -1,10 +1,12 @@
-# Dataviz — browser-only data-analysis toolbox for wet-lab scientists
+# Plöttr — A browser-only data-analysis toolbox
 
-Static web app for common plot-and-test workflows in wet-lab research. No server, no tracking, no data leaving the browser.
+Static web app for common plot-and-test workflows. No server, no tracking, no data leaving the browser.
 
-**Live:** [evompmi.github.io/dataviz](https://evompmi.github.io/dataviz) · **Source:** [github.com/evompmi/dataviz](https://github.com/evompmi/dataviz)
+**Live:** [evompmi.github.io/plottr](https://evompmi.github.io/plottr) · **Source:** [github.com/evompmi/plottr](https://github.com/evompmi/plottr)
 
-Originally built for the EVO team at LRSV (Toulouse), released publicly for anyone with similar needs.
+> Successor to the [dataviz](https://github.com/evompmi/dataviz) project. Same codebase, renamed to something less generic.
+
+Originally built for the "Evolution of plant-microbes interactions" team members at Toulouse Plant Sciences (University of Toulouse, France). Released publicly for anyone with similar needs.
 
 ## Design goals
 
@@ -69,13 +71,13 @@ Each tool has an in-app **How to** panel.
 
 All numerics (`tools/stats.js`) are cross-validated against **R 4.5** on real built-in datasets (`iris`, `PlantGrowth`, `ToothGrowth`, `mtcars`, …). Current run: **293 comparisons, max |Δ| ≈ 8 × 10⁻⁷**, reproducible via `npm run benchmark`. Results render as a public page at `benchmark.html` — failing rows are shown in red, not hidden.
 
-On top of that, **651 unit + integration tests** (CI-gated on every commit, alongside ESLint, Prettier, and `tsc --noEmit`) plus per-tool fuzz harnesses (`npm run fuzz:<tool>`) that run 2 × 1000 iterations of pathological-input corpus through each tool's pipeline.
+On top of that, **750 unit + integration tests** (CI-gated on every commit, alongside ESLint, Prettier, and `tsc --noEmit`) plus per-tool fuzz harnesses (`npm run fuzz:<tool>`) that run 2 × 1000 iterations of pathological-input corpus through each tool's pipeline.
 
 Covers: Shapiro–Wilk, Brown–Forsythe Levene, Student / Welch t, Mann–Whitney U, one-way ANOVA, Welch ANOVA, Kruskal–Wallis, Tukey HSD (studentised range), Games–Howell, Dunn + Benjamini–Hochberg, Cohen's _d_, Hedges' _g_, η², ε², compact letter display.
 
 ## Scope and limitations
 
-Deliberately narrow. Numerics are trustworthy, but the design covers a slice of real workflows.
+Numerics are trustworthy, but the design covers a slice of real workflows.
 
 **Fits best:** one-way group comparisons with a defensible test pick; quick exploratory plotting from pasted CSV/TSV; privacy-sensitive data; publication-ready SVG; a-priori power analysis; reproducibility via the one-click **⬇ R** script export (Group Plot / Aequorin / Power Analysis emit a runnable R script that embeds the data inline and reproduces the exact tests); niche Aequorin Ca²⁺ calibration not first-class anywhere else.
 
@@ -85,13 +87,13 @@ Use as a supplement to R / Prism / SPSS, not a replacement.
 
 ## Installation
 
-For casual use, visit [evompmi.github.io/dataviz](https://evompmi.github.io/dataviz).
+For casual use, visit [evompmi.github.io/plottr](https://evompmi.github.io/plottr).
 
 To run offline or modify the source:
 
 ```bash
-git clone https://github.com/evompmi/dataviz.git
-cd dataviz
+git clone https://github.com/evompmi/plottr.git
+cd plottr
 # Open index.html in any modern browser — no server required.
 ```
 
@@ -120,9 +122,9 @@ No runtime dependencies from external CDNs — `vendor/` ships React + ReactDOM 
 
 ## Citing
 
-If you use Dataviz in published research, cite the repository. A Zenodo DOI will be minted on tagged releases. Suggested citation:
+If you use Plöttr in published research, cite the repository. A Zenodo DOI will be minted on tagged releases. Suggested citation:
 
-> Dataviz — a browser-only data-analysis toolbox for plant scientists. EVO team, LRSV Toulouse. <https://github.com/evompmi/dataviz>
+> Plöttr — a browser-only data-analysis toolbox for plant scientists. EVO team, LRSV Toulouse. <https://github.com/evompmi/plottr>
 
 ## Acknowledgements
 
