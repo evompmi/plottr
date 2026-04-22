@@ -1,0 +1,296 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Theme variables — edit this file to tune either palette.
+   Plot cards (--plot-card-*) are intentionally white in both themes so that
+   exported SVG/PNG charts always sit on a white background.
+
+   Primary chrome accent is ink / slate-blue — near-greyscale with a faint
+   cool tint, deliberately chosen over any saturated hue to let chart
+   colours carry all the expression. Buttons and active pills use a very
+   soft slate-400-ish tone in light (#939eae) and a near-surface muted tone
+   in dark (#2c3646); both sit close to their surface so neither punches
+   against the chrome. Contrast for white pill/button text is deliberately
+   low (~2.9:1 in light) — a conscious trade-off picked by the user over
+   louder selector hues. Maximally editorial, journal-adjacent.
+
+   Dark-mode rule: every accent in dark mode is EQUAL or DIMMER than its
+   light-mode counterpart — never brighter. Dark mode is supposed to be
+   easier on the eyes, and a high-contrast glowing accent defeats that.
+   Chart colour palettes, DNA/molarity purple, and warning amber are left
+   alone; they're functional, not chrome.
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Page */
+  --page-bg: #f0f0f4;
+  --page-bg-dot: #d0d0d8;
+
+  /* Surfaces */
+  --surface: #ffffff;
+  --surface-subtle: #f8f8fa;
+  --surface-sunken: #f0f0f5;
+  --row-hover-bg: #e2e8f0;
+
+  /* Text */
+  --text: #222222;
+  --text-muted: #555555;
+  --text-faint: #888888;
+
+  /* Borders */
+  --border: #dddddd;
+  --border-strong: #cccccc;
+  --slider-track: #d1d5db;
+
+  /* Accents */
+  --accent-primary: #939eae;
+  --accent-primary-weak: rgba(147, 158, 174, 0.12);
+  --accent-plot: #2ec4b6;
+  --accent-dna: #785ef0;
+  --accent-warning: #f59e0b;
+  --accent-warning-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+
+  /* State — danger / warning / info */
+  --danger-bg: #fef2f2;
+  --danger-text: #dc2626;
+  --danger-border: #fca5a5;
+  --warning-bg: #fffbeb;
+  --warning-text: #92400e;
+  --warning-border: #fbbf24;
+  --info-bg: #f1f5f9;
+  --info-text: #475569;
+  --info-border: #cbd5e1;
+  --success-bg: #dcfce7;
+  --success-text: #166534;
+  --success-border: #86efac;
+  --step-ready: #3f6b2a;
+  --step-ready-bg: #eaf2df;
+  --step-ready-border: #b5cf9e;
+  --neutral-bg: #e5e7eb;
+  --neutral-text: #374151;
+  --subhead-bg: #475569;
+  --subhead-text: #ffffff;
+
+  /* Plot card — ALWAYS white so exports stay on a white canvas */
+  --plot-card-bg: #ffffff;
+  --plot-card-border: #dddddd;
+
+  /* Inverse-contrast text (e.g. text on an accent-filled button) */
+  --on-accent: #ffffff;
+  --on-accent-muted: rgba(255, 255, 255, 0.75);
+
+  /* Scatter aesthetic boxes — Color / Size / Shape selectors */
+  --aes-color-bg: #f1f5f9;
+  --aes-color-border: #cbd5e1;
+  --aes-color-header: #475569;
+  --aes-size-bg: #f0fdf4;
+  --aes-size-border: #86efac;
+  --aes-size-header: #16a34a;
+  --aes-shape-bg: #faf5ff;
+  --aes-shape-border: #d8b4fe;
+  --aes-shape-header: #9333ea;
+
+  /* "How to use" tiles — outer border, gradient header, soft slate shadow.
+     Gradient keeps the darker end (slate-700) so white header text stays
+     readable; the lighter end softens to slate-600. */
+  --howto-border: #475569;
+  --howto-header-from: #334155;
+  --howto-header-to: #475569;
+  --howto-shadow: 0 4px 20px rgba(71, 85, 105, 0.12);
+
+  /* Active step-nav pill (Upload / Configure / Filter / Output / Plot).
+     Softened ~30% further toward white for a calmer nav chrome. White
+     text on this bg is ~2.9:1 — below WCAG AA for body text but acceptable
+     for short, bolded pill labels where the user opted in to low-contrast
+     UI chrome over loud selectors. */
+  --step-active-bg: #939eae;
+  --step-active-border: #939eae;
+
+  /* Primary CTA button (`.dv-btn-primary` — Compute effect size, Continue to
+     plot, …). Softened ~30% further toward white from slate-500 so the
+     buttons stop punching against the chrome. Dark mode softens by the
+     mirror-image amount toward the dark surface. */
+  --cta-primary-bg: #939eae;
+  --cta-primary-shadow: 0 4px 12px -2px rgba(147, 158, 174, 0.2);
+
+  /* Toggle-pill teal (aequorin Σ Baseline-corrected). Mirrors the
+     --cta-primary-bg pattern: same as --accent-plot in light mode, dimmed in
+     dark so the "on" pill doesn't glow against the dark chrome. */
+  --cta-plot-bg: #2ec4b6;
+
+  /* Chrome-safe purple (molarity DNA mode cards). Same pattern as the
+     teal CTA tokens: identical to --accent-dna in light, dimmed in
+     dark so the ModeButton border/text doesn't glow. */
+  --cta-dna-bg: #785ef0;
+}
+
+/* Dark overrides — shared by the OS-follow media query and the explicit
+   [data-theme="dark"] selector. Keep them in sync.
+
+   Every accent below is EQUAL or DIMMER than its light-mode counterpart. */
+:root[data-theme="dark"] {
+  --page-bg: #12131a;
+  --page-bg-dot: #1e1f28;
+
+  --surface: #1a1b23;
+  --surface-subtle: #23242e;
+  --surface-sunken: #16171f;
+  --row-hover-bg: #334155;
+
+  --text: #e8e8ef;
+  --text-muted: #a8a8b5;
+  --text-faint: #777785;
+
+  --border: #2e2f3a;
+  --border-strong: #3e3f4c;
+  --slider-track: #2e2f3a;
+
+  --danger-bg: #2a1517;
+  --danger-text: #f87171;
+  --danger-border: #7f1d1d;
+  --warning-bg: #2a1f0a;
+  --warning-text: #fbbf24;
+  --warning-border: #78350f;
+  --info-bg: #1e293b;
+  --info-text: #94a3b8;
+  --info-border: #334155;
+  --success-bg: #0f2a1a;
+  --success-text: #86efac;
+  --success-border: #166534;
+  --step-ready: #7ba668;
+  --step-ready-bg: #1c2916;
+  --step-ready-border: #3f6b2a;
+  --neutral-bg: #2e2f3a;
+  --neutral-text: #d1d5db;
+  --subhead-bg: #334155;
+  --subhead-text: #e8e8ef;
+
+  --aes-color-bg: #1e293b;
+  --aes-color-border: #334155;
+  --aes-color-header: #64748b;
+  --aes-size-bg: #15241b;
+  --aes-size-border: #254a33;
+  --aes-size-header: #2d6a3f;
+  --aes-shape-bg: #221a2e;
+  --aes-shape-border: #3d2a55;
+  --aes-shape-header: #5e3a85;
+
+  --howto-border: #334155;
+  --howto-header-from: #0f172a;
+  --howto-header-to: #1e293b;
+  --howto-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+  --step-active-bg: #1e293b;
+  --step-active-border: #334155;
+
+  /* Primary CTA in dark is softened another ~30% toward the dark surface,
+     mirroring the light-mode softening. Still visibly brighter than the
+     step-nav pill above so it reads as "press me", and never brighter
+     than the light-mode primary. */
+  --cta-primary-bg: #2c3646;
+  --cta-primary-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.35);
+
+  /* Dimmed teal for toggle pills in dark mode (same role as --cta-primary-bg
+     for the primary CTA). Roughly matches the ~0.75× brightness drop applied
+     to the primary CTA so the two pills read as a matched pair. */
+  --cta-plot-bg: #1d7a6d;
+
+  --cta-dna-bg: #5a45b8;
+
+  /* Dim the sample-selection accent shadow in dark mode — the bright amber
+     glow from the light-mode rgba() reads too loud against the dark UI.
+     The accent color itself (--accent-warning) stays identical across
+     themes like all other --accent-* vars. */
+  --accent-primary: #3a4454;
+  --accent-primary-weak: rgba(58, 68, 84, 0.28);
+  --accent-warning-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* OS-preference fallback applies only if the user hasn't made an explicit
+   choice (no data-theme attribute written). Once they toggle, the explicit
+   attribute wins regardless of OS. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --page-bg: #12131a;
+    --page-bg-dot: #1e1f28;
+
+    --surface: #1a1b23;
+    --surface-subtle: #23242e;
+    --surface-sunken: #16171f;
+    --row-hover-bg: #334155;
+
+    --text: #e8e8ef;
+    --text-muted: #a8a8b5;
+    --text-faint: #777785;
+
+    --border: #2e2f3a;
+    --border-strong: #3e3f4c;
+    --slider-track: #2e2f3a;
+
+    --danger-bg: #2a1517;
+    --danger-text: #f87171;
+    --danger-border: #7f1d1d;
+    --warning-bg: #2a1f0a;
+    --warning-text: #fbbf24;
+    --warning-border: #78350f;
+    --info-bg: #1e293b;
+    --info-text: #94a3b8;
+    --info-border: #334155;
+    --success-bg: #0f2a1a;
+    --success-text: #86efac;
+    --success-border: #166534;
+    --step-ready: #7ba668;
+    --step-ready-bg: #1c2916;
+    --step-ready-border: #3f6b2a;
+    --neutral-bg: #2e2f3a;
+    --neutral-text: #d1d5db;
+    --subhead-bg: #334155;
+    --subhead-text: #e8e8ef;
+
+    --aes-color-bg: #1e293b;
+    --aes-color-border: #334155;
+    --aes-color-header: #64748b;
+    --aes-size-bg: #15241b;
+    --aes-size-border: #254a33;
+    --aes-size-header: #2d6a3f;
+    --aes-shape-bg: #221a2e;
+    --aes-shape-border: #3d2a55;
+    --aes-shape-header: #5e3a85;
+
+    --howto-border: #334155;
+    --howto-header-from: #0f172a;
+    --howto-header-to: #1e293b;
+    --howto-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+    --step-active-bg: #1e293b;
+    --step-active-border: #334155;
+
+    --cta-primary-bg: #2c3646;
+    --cta-primary-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.35);
+
+    --cta-plot-bg: #1d7a6d;
+
+    --cta-dna-bg: #5a45b8;
+
+    --accent-primary: #3a4454;
+    --accent-primary-weak: rgba(58, 68, 84, 0.28);
+    --accent-warning-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* Plot card dim in dark mode.
+   --plot-card-bg stays white so exported SVG/PNG render on a white canvas,
+   but on-screen we soften the tile so it doesn't glow against the dark UI.
+   `filter` is a CSS property and is NOT serialized into exported SVGs. */
+[data-theme="dark"] .dv-plot-card {
+  filter: brightness(0.85);
+}
+/* Prevent the dim filter from compounding when plot cards are nested
+   (e.g. aequorin faceted mode wraps each facet card inside an outer card). */
+[data-theme="dark"] .dv-plot-card .dv-plot-card {
+  filter: none;
+}
+
+/* Dim the scroll-edge fade overlays to match the .dv-plot-card beneath them
+   so dark mode doesn't read as bright slabs against the dimmed plot. */
+[data-theme="dark"] .dv-scroll-fade {
+  filter: brightness(0.85);
+}
