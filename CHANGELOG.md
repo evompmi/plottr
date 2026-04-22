@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CI guard for the landing-page test-count badge.** CLAUDE.md already requires the `N internal tests` badge in `index.html` to track the canonical sum of `X/X passed` lines from `npm test`, but nothing enforced it — a contributor adding a test without bumping the badge (or vice versa) would only be caught by a human reviewer. Added a `Verify landing-page test-count badge` step to `.github/workflows/test.yml` that captures `npm test` output (via `tee test-output.log`), parses the per-suite counters, sums them, and compares against the number in front of `internal tests` in `index.html`. Any drift fails CI with a clear message pointing at the badge. No change to the current count — today's badge (750) already matches the canonical total.
+
 ### Fixed
 
 - **UpSet handoff — `postMessage` listener now rejects cross-origin messages.** The `window.addEventListener("message", …)` handler in `tools/upset.tsx` accepted any payload matching `{type: "dataviz-handoff", …}` regardless of sender origin, so any page that could iframe the tool could inject arbitrary parsed data and attacker-controlled `fileName` text (which flows into SVG/CSV download filenames). Added an `e.origin !== window.location.origin` early-return at the top of the handler so only same-origin messages (the intended Venn → UpSet handoff in an embedding deployment) reach `handleHandoff`. Nothing leaves the browser in this app, but the injection surface is still worth closing. The `sessionStorage`-based handoff path (used by the live iframe routing in `index.html`) is unchanged — it's already same-origin by construction.

@@ -33,7 +33,22 @@ jobs:
         run: npm run typecheck
 
       - name: Run tests
-        run: npm test
+        run: npm test 2>&1 | tee test-output.log && exit ${PIPESTATUS[0]}
+
+      # CLAUDE.md requires the "N internal tests" badge in index.html to stay
+      # in lockstep with the canonical sum of the per-suite "X/X passed" lines
+      # that `npm test` prints. This step diffs the badge against that sum and
+      # fails CI on drift so the two can't silently desync.
+      - name: Verify landing-page test-count badge
+        run: |
+          actual=$(grep -E "^\s*[0-9]+/[0-9]+ passed" test-output.log | awk '{split($1,a,"/"); t+=a[1]} END{print t}')
+          claimed=$(grep -oE "[0-9]+ internal tests" index.html | head -1 | grep -oE "^[0-9]+")
+          echo "Canonical test count  : $actual"
+          echo "index.html badge claim: $claimed"
+          if [ "$actual" != "$claimed" ]; then
+            echo "::error file=index.html::Test-count drift: $actual tests ran but index.html claims $claimed. Update the badge and the CHANGELOG together."
+            exit 1
+          fi
 
       - name: Verify build
         run: npm run build
