@@ -1103,9 +1103,13 @@ function downloadCsv(headers, rows, filename) {
 
 // ── 1. Distribution functions ───────────────────────────────────────────────
 
-// Normal CDF — Abramowitz & Stegun 26.2.17 (max error 7.5e-8)
+// Normal CDF. Uses A&S 26.2.17 (max error 7.5e-8) for moderate |x|, and
+// switches to the tail-accurate `normsf` for |x| ≥ 7 — avoids the 1 − tiny
+// representation collapse at the edges of double precision.
 function normcdf(x) {
   if (x === 0) return 0.5;
+  if (x >= 7) return 1 - normsf(x);
+  if (x <= -7) return normsf(-x);
   const t = 1 / (1 + 0.2316419 * Math.abs(x));
   const d = 0.3989422804014327; // 1/sqrt(2*pi)
   const poly =
@@ -1113,6 +1117,40 @@ function normcdf(x) {
     (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
   const p = 1 - d * Math.exp(-0.5 * x * x) * poly;
   return x > 0 ? p : 1 - p;
+}
+
+// Normal survival 1 - Φ(x) — tail-accurate. For |x| < 7 we use the A&S 26.2.17
+// polynomial directly (no 1 − normcdf cancellation). For |x| ≥ 7 we switch to
+// the asymptotic expansion Φ̄(x) ≈ φ(x)/x · (1 − 1/x² + 3/x⁴ − 15/x⁶ + ...)
+// which stays accurate down to ~1e-300 where A&S 26.2.17 has already lost all
+// meaningful digits.
+function normsf(x) {
+  if (x === 0) return 0.5;
+  if (x < 0) return 1 - normsf(-x);
+  const d = 0.3989422804014327; // 1/sqrt(2*pi)
+  if (x < 7) {
+    const t = 1 / (1 + 0.2316419 * x);
+    const poly =
+      t *
+      (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+    return d * Math.exp(-0.5 * x * x) * poly;
+  }
+  // Asymptotic series. Truncate when a term is ≤ 1e-16 × running sum.
+  const x2 = x * x;
+  let term = 1;
+  let sum = 1;
+  let n = 1;
+  while (n < 40) {
+    term *= -(2 * n - 1) / x2;
+    const next = sum + term;
+    if (Math.abs(term) <= 1e-16 * Math.abs(next)) {
+      sum = next;
+      break;
+    }
+    sum = next;
+    n++;
+  }
+  return (d * Math.exp(-0.5 * x2) * sum) / x;
 }
 
 // Inverse normal CDF — Peter Acklam's rational approximation (max error 1.15e-9)
@@ -1174,17 +1212,45 @@ function gammaln(x) {
   return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
 }
 
-// Regularized incomplete beta function I_x(a, b) via continued fraction
+// Regularized incomplete beta function I_x(a, b) via continued fraction.
+//
+// Log-space final exponentiation: the prior `exp(logFront) * cf / a` path
+// underflowed `logFront` to 0 whenever `a*log(x) + b*log(1-x) - lnBeta` went
+// below ≈ −745 (double-precision exp floor). That silently destroyed deep-tail
+// p-values — the small-t branch for df/2 ≥ 30 with |t| > 5 routinely lands
+// at logFront ≈ −200 to −140, well within representable range but wiped to 0
+// if we exp() too early.
 function betai(a, b, x) {
   if (x < 0 || x > 1) return 0;
   if (x === 0) return 0;
   if (x === 1) return 1;
   const lnBeta = gammaln(a) + gammaln(b) - gammaln(a + b);
-  const front = Math.exp(Math.log(x) * a + Math.log(1 - x) * b - lnBeta);
+  const logFront = Math.log(x) * a + Math.log(1 - x) * b - lnBeta;
   if (x < (a + 1) / (a + b + 2)) {
-    return (front * betacf(a, b, x)) / a;
+    const cf = betacf(a, b, x);
+    return Math.exp(logFront + Math.log(cf / a));
   }
-  return 1 - (front * betacf(b, a, 1 - x)) / b;
+  const cf = betacf(b, a, 1 - x);
+  return 1 - Math.exp(logFront + Math.log(cf / b));
+}
+
+// Upper-tail of the regularized incomplete beta: 1 − I_x(a, b). Computing
+// 1 − betai() directly cancels when betai is near 1; this helper returns the
+// upper tail via the opposite branch of the continued fraction, so callers
+// like `fcdf_upper` and `tcdf_upper` stay accurate for tiny p-values.
+function betai_upper(a, b, x) {
+  if (x <= 0) return 1;
+  if (x >= 1) return 0;
+  const lnBeta = gammaln(a) + gammaln(b) - gammaln(a + b);
+  const logFront = Math.log(x) * a + Math.log(1 - x) * b - lnBeta;
+  if (x < (a + 1) / (a + b + 2)) {
+    // betai is small → 1 − tiny; direct subtraction is fine.
+    const cf = betacf(a, b, x);
+    return 1 - Math.exp(logFront + Math.log(cf / a));
+  }
+  // betai is ≈ 1 → upper tail = exp(logFront + log(cf/b)), no cancellation.
+  const cf = betacf(b, a, 1 - x);
+  return Math.exp(logFront + Math.log(cf / b));
 }
 
 // Continued fraction for incomplete beta (Lentz's method)
@@ -1237,7 +1303,9 @@ function gammainc(a, x) {
     sum += term;
     if (Math.abs(term) < Math.abs(sum) * 3e-14) break;
   }
-  return sum * Math.exp(-x + a * Math.log(x) - gammaln(a));
+  // Log-space final exponentiation — same motivation as betai: the prefactor
+  // exp(-x + a*ln(x) - gammaln(a)) can underflow intermediate at large a.
+  return Math.exp(Math.log(sum) + (-x + a * Math.log(x) - gammaln(a)));
 }
 
 // Upper regularized incomplete gamma Q(a,x) = 1 - P(a,x) via continued fraction
@@ -1259,7 +1327,7 @@ function gammainc_upper(a, x) {
     h *= del;
     if (Math.abs(del - 1) < 3e-14) break;
   }
-  return Math.exp(-x + a * Math.log(x) - gammaln(a)) * h;
+  return Math.exp(Math.log(h) + (-x + a * Math.log(x) - gammaln(a)));
 }
 
 // t-distribution CDF
@@ -1267,6 +1335,16 @@ function tcdf(t, df) {
   const x = df / (df + t * t);
   const p = 0.5 * betai(df / 2, 0.5, x);
   return t >= 0 ? 1 - p : p;
+}
+
+// Upper-tail 1 − tcdf(t, df). Avoids the `1 − (near-1)` cancellation that
+// silently drove `tTest` p-values to 0 for |t| > ~9 at large df — e.g. iris
+// SL setosa vs versicolor (t ≈ 10.5, df = 98) where R reports p ≈ 9e-18 but
+// JS underflowed to 0 because tcdf returned a float-rounded 1.0.
+function tcdf_upper(t, df) {
+  const x = df / (df + t * t);
+  const tail = 0.5 * betai(df / 2, 0.5, x);
+  return t >= 0 ? tail : 1 - tail;
 }
 
 // t-distribution PDF (computed in log space, used by tinv Newton-Raphson)
@@ -1353,6 +1431,14 @@ function tinv(p, df) {
 function fcdf(f, d1, d2) {
   if (f <= 0) return 0;
   return betai(d1 / 2, d2 / 2, (d1 * f) / (d1 * f + d2));
+}
+
+// Upper-tail 1 − fcdf(f, d1, d2). Same rationale as `tcdf_upper` — direct
+// computation avoids the 1 − (near-1) cancellation that underflows ANOVA /
+// Welch-ANOVA p-values at F > ~50.
+function fcdf_upper(f, d1, d2) {
+  if (f <= 0) return 1;
+  return betai_upper(d1 / 2, d2 / 2, (d1 * f) / (d1 * f + d2));
 }
 
 // Chi-square CDF
@@ -1476,7 +1562,7 @@ function nctcdf(t, df, delta) {
 // Starts at Poisson mode to avoid underflow for large λ.
 function ncf_sf(f, d1, d2, lambda) {
   if (f <= 0) return 1;
-  if (lambda <= 0) return 1 - fcdf(f, d1, d2);
+  if (lambda <= 0) return fcdf_upper(f, d1, d2);
   const halfLam = lambda / 2;
 
   // Large-λ short circuit: the Poisson mass around the mode has width
@@ -1507,7 +1593,7 @@ function ncf_sf(f, d1, d2, lambda) {
 
   function sfTerm(j) {
     const d1j = d1 + 2 * j;
-    return 1 - fcdf((f * d1) / d1j, d1j, d2);
+    return fcdf_upper((f * d1) / d1j, d1j, d2);
   }
 
   let logPMode = -halfLam + (jMode > 0 ? jMode * Math.log(halfLam) - gammaln(jMode + 1) : 0);
@@ -1843,7 +1929,7 @@ function shapiroWilk(x) {
     const sigma = Math.exp(1.3822 - 0.77857 * n + 0.062767 * n * n - 0.0020322 * n * n * n);
     const y = -Math.log(gamma - Math.log(1 - W));
     const z = (y - mu) / sigma;
-    p = 1 - normcdf(z);
+    p = normsf(z);
   } else {
     // n ≥ 12: log(1−W) is approximately normal after transform.
     const lnN = Math.log(n);
@@ -1851,7 +1937,7 @@ function shapiroWilk(x) {
     const sigma = Math.exp(-0.4803 - 0.082676 * lnN + 0.0030302 * lnN * lnN);
     const y = Math.log(1 - W);
     const z = (y - mu) / sigma;
-    p = 1 - normcdf(z);
+    p = normsf(z);
   }
 
   return { W, p };
@@ -1915,7 +2001,7 @@ function leveneTest(groups) {
     };
   }
   const F = ssBetween / df1 / (ssWithin / df2);
-  const p = 1 - fcdf(F, df1, df2);
+  const p = fcdf_upper(F, df1, df2);
   return { F, df1, df2, p };
 }
 
@@ -1967,8 +2053,9 @@ function tTest(x, y, opts = {}) {
     const den = (v1 / n1) ** 2 / (n1 - 1) + (v2 / n2) ** 2 / (n2 - 1);
     df = num / den;
   }
-  // Two-sided p
-  const p = 2 * (1 - tcdf(Math.abs(t), df));
+  // Two-sided p via tail-accurate upper helper (avoids 1 − (near-1) cancellation
+  // that underflowed p to 0 at |t| > ~9).
+  const p = 2 * tcdf_upper(Math.abs(t), df);
   return { t, df, p, mean1: m1, mean2: m2, var1: v1, var2: v2, n1, n2 };
 }
 
@@ -2006,7 +2093,8 @@ function mannWhitneyU(x, y) {
   else if (diff > 0) z = (diff - 0.5) / sigmaU;
   else if (diff < 0) z = (diff + 0.5) / sigmaU;
   else z = 0;
-  const p = 2 * (1 - normcdf(Math.abs(z)));
+  // Tail-accurate normsf — survives |z| > ~7 where 1 − normcdf cancels to 0.
+  const p = 2 * normsf(Math.abs(z));
   return { U, U1, U2, z, p, n1, n2 };
 }
 
@@ -2101,7 +2189,7 @@ function oneWayANOVA(groups) {
     };
   }
   const F = ssBetween / df1 / (ssWithin / df2);
-  const p = 1 - fcdf(F, df1, df2);
+  const p = fcdf_upper(F, df1, df2);
   return { F, df1, df2, p, ssBetween, ssWithin, grandMean };
 }
 
@@ -2148,7 +2236,7 @@ function welchANOVA(groups) {
   const F = num / den;
   const df1 = k - 1;
   const df2 = (k * k - 1) / (3 * h);
-  const p = 1 - fcdf(F, df1, df2);
+  const p = fcdf_upper(F, df1, df2);
   return { F, df1, df2, p };
 }
 
@@ -2235,7 +2323,52 @@ function epsilonSquared(groups) {
 // Both integrals are handled by the cached 48-point Gauss-Legendre rule.
 // Matches R's `ptukey` to ~5 decimal places on the cases we benchmark.
 
-// P(range of k standard normals ≤ w)
+// P(range of k standard normals > w). Tail-accurate companion to `_wprob`,
+// needed to compute ptukey's upper tail without the `1 − (near-1)` collapse
+// that produced the old ~2e-10 floor in Tukey HSD / Games-Howell p-values.
+//
+// Derivation:
+//   1 − F_R(w) = k·∫ φ(u)·[normsf(u)^{k−1} − d(u,w)^{k−1}] du   (with `d(u,w) = Φ(u+w) − Φ(u)`)
+// is the identity `1 − F_R = 1 − F_R` once you substitute `1 = k·∫ φ·normsf^{k-1}`,
+// but the INTEGRAND factorises without cancellation:
+//   a^{k-1} − b^{k-1} = (a − b) · Σ_{j=0}^{k-2} a^{k-2-j}·b^j
+// where a = normsf(u), b = d(u,w), and crucially a − b = normsf(u+w) —
+// computed as a single tail-accurate call, not as a subtraction of two
+// near-1 floats. Every factor on the right is a manifest non-negative.
+function _wprob_upper(w, k) {
+  if (w <= 0) return 1;
+  const gl = _gaussLegendre(48);
+  const lo = -8,
+    hi = 8;
+  const half = (hi - lo) / 2,
+    mid = (hi + lo) / 2;
+  const invSqrt2Pi = 1 / Math.sqrt(2 * Math.PI);
+  let sum = 0;
+  for (let i = 0; i < 48; i++) {
+    const u = mid + half * gl.nodes[i];
+    const phiU = invSqrt2Pi * Math.exp(-0.5 * u * u);
+    const a = normsf(u);
+    const aMinusB = normsf(u + w); // = a − b, direct (no cancellation)
+    if (a <= 0 || aMinusB <= 0) continue;
+    const b = a - aMinusB;
+    // Σ_{j=0}^{k-2} a^{k-2-j} · b^j
+    let geoSum = 0;
+    let term = Math.pow(a, k - 2);
+    const ratio = b / a;
+    for (let j = 0; j < k - 1; j++) {
+      geoSum += term;
+      term *= ratio;
+    }
+    const integrand = k * phiU * aMinusB * geoSum;
+    sum += half * gl.weights[i] * integrand;
+  }
+  return Math.max(0, Math.min(1, sum));
+}
+
+// P(range of k standard normals ≤ w). The inner difference Φ(u+w) − Φ(u) is
+// the source of the old ~2e-10 ptukey floor: for u > 0 and u+w both large,
+// subtracting `1 − tiny` from `1 − tiny′` kills precision. We branch so each
+// regime uses whichever of normcdf / normsf stays on the small side.
 function _wprob(w, k) {
   if (w <= 0) return 0;
   const gl = _gaussLegendre(48);
@@ -2249,7 +2382,17 @@ function _wprob(w, k) {
   for (let i = 0; i < 48; i++) {
     const u = mid + half * gl.nodes[i];
     const phiU = invSqrt2Pi * Math.exp(-0.5 * u * u);
-    const diff = normcdf(u + w) - normcdf(u);
+    let diff;
+    if (u >= 0) {
+      // Both args ≥ u ≥ 0 → both in the upper tail. normsf stays accurate.
+      diff = normsf(u) - normsf(u + w);
+    } else if (u + w <= 0) {
+      // Both args ≤ 0 → lower tail; normcdf stays accurate.
+      diff = normcdf(u + w) - normcdf(u);
+    } else {
+      // u < 0 < u+w — straddles 0; subtraction is numerically safe.
+      diff = normcdf(u + w) - normcdf(u);
+    }
     if (diff <= 0) continue;
     const term = k * phiU * Math.pow(diff, k - 1);
     sum += half * gl.weights[i] * term;
@@ -2286,6 +2429,35 @@ function ptukey(q, k, df) {
     const fSds = Math.exp(logFS);
     if (!Number.isFinite(fSds) || fSds === 0) continue;
     sum += halfW * gl.weights[i] * fSds * _wprob(q * s, k);
+  }
+  return Math.max(0, Math.min(1, sum));
+}
+
+// P(Q > q | k groups, df error degrees of freedom). Tail-accurate counterpart
+// to `ptukey`: shares the same outer structure but passes `_wprob_upper`
+// through the Gauss-Legendre integrator so the result never goes through a
+// `1 − (near-1)` subtraction. Callers that want the upper tail of Tukey HSD
+// or Games-Howell p-values use this instead of `1 - ptukey(...)`.
+function ptukey_upper(q, k, df) {
+  if (q <= 0) return 1;
+  if (k < 2 || df < 1) return NaN;
+  const gl = _gaussLegendre(48);
+  const chiLo = chi2inv(1e-10, df);
+  const chiHi = chi2inv(1 - 1e-10, df);
+  const yLo = 0.5 * Math.log(Math.max(chiLo, 1e-300) / df);
+  const yHi = 0.5 * Math.log(chiHi / df);
+  const halfDf = df / 2;
+  const logConst = Math.log(2) + halfDf * Math.log(halfDf) - gammaln(halfDf);
+  const halfW = (yHi - yLo) / 2;
+  const midW = (yHi + yLo) / 2;
+  let sum = 0;
+  for (let i = 0; i < 48; i++) {
+    const y = midW + halfW * gl.nodes[i];
+    const s = Math.exp(y);
+    const logFS = logConst + df * y - (df * s * s) / 2;
+    const fSds = Math.exp(logFS);
+    if (!Number.isFinite(fSds) || fSds === 0) continue;
+    sum += halfW * gl.weights[i] * fSds * _wprob_upper(q * s, k);
   }
   return Math.max(0, Math.min(1, sum));
 }
@@ -2356,7 +2528,7 @@ function tukeyHSD(groups, opts = {}) {
       const diff = means[j] - means[i];
       const se = Math.sqrt((mse * (1 / ns[i] + 1 / ns[j])) / 2);
       const q = Math.abs(diff) / se;
-      const p = 1 - ptukey(q, k, dfErr);
+      const p = ptukey_upper(q, k, dfErr);
       const margin = qCrit * se;
       pairs.push({
         i,
@@ -2410,7 +2582,7 @@ function gamesHowell(groups) {
       const num = (vi + vj) * (vi + vj);
       const den = (vi * vi) / (ns[i] - 1) + (vj * vj) / (ns[j] - 1);
       const df = num / den;
-      const p = 1 - ptukey(q, k, df);
+      const p = ptukey_upper(q, k, df);
       pairs.push({ i, j, diff, se, q, df, p });
     }
   }
@@ -2469,7 +2641,7 @@ function dunnTest(groups) {
     for (let j = i + 1; j < k; j++) {
       const se = Math.sqrt(sigma2 * (1 / ns[i] + 1 / ns[j]));
       const z = (meanR[i] - meanR[j]) / se;
-      const p = 2 * (1 - normcdf(Math.abs(z)));
+      const p = 2 * normsf(Math.abs(z));
       pairs.push({ i, j, z, p });
       rawPs.push(p);
     }

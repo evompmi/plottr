@@ -11,7 +11,18 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 
+// Tolerance model:
+//   Test statistics (t, F, H, W, U) → absolute delta ≤ TOL. These have natural
+//   scales where "close enough" is a fixed number.
+//   P-values → hybrid: when both p-values are ≥ P_ABS_CEILING, use absolute
+//   tolerance (noise at p ≈ 0.3 vs 0.3005 is irrelevant). When at least one is
+//   smaller, compare in log space — a relative mismatch at p = 1e-10 matters
+//   exactly as much as one at p = 1e-3, but absolute Δ can't see it. Prior
+//   versions used a plain absolute tolerance, which rubber-stamped anything
+//   below TOL regardless of correctness in the deep tail.
 const TOL = 5e-3; // ±0.5 % — same bar as the in-repo stats tests
+const P_ABS_CEILING = 1e-2; // switch to log-space comparison below this
+const P_LOG_TOL = Math.log(1 + 0.1); // ratio within [1/1.1, 1.1] on log-p
 
 // ── Load tools/stats.js into a sandbox ─────────────────────────────────────
 const code = fs.readFileSync(path.join(__dirname, "../tools/stats.js"), "utf-8");
@@ -59,6 +70,28 @@ function cmp(jsVal, rVal) {
   return { delta, pass: delta <= TOL };
 }
 
+// Compare two p-values. Above P_ABS_CEILING, use absolute tolerance. Below,
+// switch to log-space so a ratio of 10× at p=1e-10 is caught (old absolute
+// rule would rubber-stamp any p < TOL regardless of truth).
+function cmpP(jsP, rP) {
+  if (!Number.isFinite(jsP) || !Number.isFinite(rP)) {
+    return { delta: NaN, pass: false };
+  }
+  if (rP === 0 && jsP === 0) return { delta: 0, pass: true };
+  const absDelta = Math.abs(jsP - rP);
+  const maxP = Math.max(Math.abs(rP), Math.abs(jsP));
+  if (maxP >= P_ABS_CEILING) {
+    return { delta: absDelta, pass: absDelta <= TOL };
+  }
+  // Deep tail: one-sided zero is only acceptable if the other is subnormal.
+  if (rP <= 0 || jsP <= 0) {
+    const nonZero = rP <= 0 ? jsP : rP;
+    return { delta: absDelta, pass: nonZero < 1e-300 };
+  }
+  const logDelta = Math.abs(Math.log(rP) - Math.log(jsP));
+  return { delta: logDelta, pass: logDelta <= P_LOG_TOL };
+}
+
 // Pair lookup: find a JS pair whose (keys[i], keys[j]) equals R pair (i, j),
 // in either order.
 function findPair(jsPairs, keys, ri, rj) {
@@ -95,7 +128,15 @@ for (const t of data.tests) {
         js: j.W,
         ...cmp(j.W, t.r.statistic),
       });
-      pushRow({ category: cat, label: lbl, n, metric: "p", r: t.r.p, js: j.p, ...cmp(j.p, t.r.p) });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...cmpP(j.p, t.r.p),
+      });
     } else if (cat === "Levene (Brown-Forsythe)") {
       const { arrays } = groupsToArrays(t.inputs.groups);
       const j = leveneTest(arrays);
@@ -108,7 +149,15 @@ for (const t of data.tests) {
         js: j.F,
         ...cmp(j.F, t.r.statistic),
       });
-      pushRow({ category: cat, label: lbl, n, metric: "p", r: t.r.p, js: j.p, ...cmp(j.p, t.r.p) });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...cmpP(j.p, t.r.p),
+      });
     } else if (cat === "Student t" || cat === "Welch t") {
       const equalVar = cat === "Student t";
       const j = tTest(t.inputs.a, t.inputs.b, { equalVar });
@@ -121,7 +170,15 @@ for (const t of data.tests) {
         js: j.t,
         ...cmp(j.t, t.r.statistic),
       });
-      pushRow({ category: cat, label: lbl, n, metric: "p", r: t.r.p, js: j.p, ...cmp(j.p, t.r.p) });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...cmpP(j.p, t.r.p),
+      });
     } else if (cat === "Mann-Whitney U") {
       const j = mannWhitneyU(t.inputs.a, t.inputs.b);
       // R's wilcox.test reports W = U1 (sum of ranks - n1(n1+1)/2 of the 1st sample).
@@ -134,7 +191,15 @@ for (const t of data.tests) {
         js: j.U1,
         ...cmp(j.U1, t.r.statistic),
       });
-      pushRow({ category: cat, label: lbl, n, metric: "p", r: t.r.p, js: j.p, ...cmp(j.p, t.r.p) });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...cmpP(j.p, t.r.p),
+      });
     } else if (cat === "one-way ANOVA") {
       const { arrays } = groupsToArrays(t.inputs.groups);
       const j = oneWayANOVA(arrays);
@@ -147,7 +212,15 @@ for (const t of data.tests) {
         js: j.F,
         ...cmp(j.F, t.r.statistic),
       });
-      pushRow({ category: cat, label: lbl, n, metric: "p", r: t.r.p, js: j.p, ...cmp(j.p, t.r.p) });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...cmpP(j.p, t.r.p),
+      });
     } else if (cat === "Welch ANOVA") {
       const { arrays } = groupsToArrays(t.inputs.groups);
       const j = welchANOVA(arrays);
@@ -160,7 +233,15 @@ for (const t of data.tests) {
         js: j.F,
         ...cmp(j.F, t.r.statistic),
       });
-      pushRow({ category: cat, label: lbl, n, metric: "p", r: t.r.p, js: j.p, ...cmp(j.p, t.r.p) });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...cmpP(j.p, t.r.p),
+      });
     } else if (cat === "Kruskal-Wallis") {
       const { arrays } = groupsToArrays(t.inputs.groups);
       const j = kruskalWallis(arrays);
@@ -173,7 +254,15 @@ for (const t of data.tests) {
         js: j.H,
         ...cmp(j.H, t.r.statistic),
       });
-      pushRow({ category: cat, label: lbl, n, metric: "p", r: t.r.p, js: j.p, ...cmp(j.p, t.r.p) });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...cmpP(j.p, t.r.p),
+      });
     } else if (cat === "pairwise distance") {
       const mat = t.inputs.matrix.map((row) => row.slice());
       const metric = t.inputs.metric;
@@ -251,7 +340,7 @@ for (const t of data.tests) {
           metric: "pAdj",
           r: rp.pAdj,
           js: jsP,
-          ...cmp(jsP, rp.pAdj),
+          ...cmpP(jsP, rp.pAdj),
         });
       }
     } else {
@@ -516,7 +605,8 @@ const html = `<!doctype html>
     <ul class="lede">
       <li>Every function in <code>tools/stats.js</code> is rerun against its R ${escapeHtml(data.meta.r_version.replace(/^R version /, "").split(" ")[0])} counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
       <li>Inputs are bit-identical between R and the toolbox.</li>
-      <li>Target tolerance: |Δ| ≤ ${TOL} on test statistics and p-values. <strong>Achieved: max |Δ| = ${fmtDelta(maxDelta)}</strong> — ${((maxDelta / TOL) * 100).toFixed(3)}% of the tolerance budget.</li>
+      <li>Tolerance: |Δ| ≤ ${TOL} on test statistics and on p-values ≥ ${P_ABS_CEILING}. For deep-tail p-values (&lt; ${P_ABS_CEILING}), we compare in log space — the ratio between R's p and ours must stay within [1/1.1, 1.1], so a p of 1e-10 can't silently mis-match a p of 1e-9 the way it could under pure absolute tolerance.</li>
+      <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons. Prior versions hand-ported both algorithms in the R reference file and compared against the same hand-port in JS — a self-referential check that silently passed any shared bug.</li>
       <li>Failures are flagged in red and counted honestly — they mean we have work to do.</li>
       <li>Reproduce locally: <code>Rscript benchmark/run-r.R &amp;&amp; node benchmark/run.js</code></li>
       <li><a href="./index.html">← back to tools</a></li>
