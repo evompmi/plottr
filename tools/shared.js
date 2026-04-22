@@ -271,26 +271,172 @@ function autoDetectSep(text, override = "") {
   return ",";
 }
 
-// ── Decimal comma fix ─────────────────────────────────────────────────────────
-
-function fixDecimalCommas(text, sep) {
-  // If the separator is a comma, commas in values are column delimiters — never decimal separators.
-  // If sep is unknown, auto-detect: if commas dominate, treat them as column separators.
-  const knownSep = sep || "";
-  if (knownSep === ",") return { text, commaFixed: false, count: 0 };
-  if (knownSep === "") {
-    const h = text.slice(0, 2000);
-    const t = (h.match(/\t/g) || []).length,
-      s = (h.match(/;/g) || []).length,
-      c = (h.match(/,/g) || []).length;
-    if (c >= s && c >= t) return { text, commaFixed: false, count: 0 };
+// ── Delimited-text tokenizer ──────────────────────────────────────────────────
+//
+// RFC 4180-style state machine. Handles quoted fields with embedded separators,
+// embedded `\n` / `\r\n` inside quoted cells, escaped `""` pairs, a leading BOM,
+// and mixed CRLF/LF line endings. A `"` in the middle of an unquoted field is
+// preserved literally (so `5"` as an inch measurement survives) — only a
+// leading `"` at the start of a field opens a quoted run.
+//
+// Cells are post-trimmed to match the historical pre-state-machine behaviour.
+// `sep` may be a single-character string (`,`, `\t`, `;`) or a RegExp (only
+// used for the `autoDetectSep` whitespace fallback). For the RegExp path we
+// fall back to simple line-by-line `split(sep)` because quoted fields don't
+// make sense under an arbitrary-whitespace grammar.
+function tokenizeDelimited(text, sep) {
+  if (typeof text !== "string" || text.length === 0) return [];
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+  // Identify whitespace-fallback regex by duck-typing (an `instanceof RegExp`
+  // check would fail under the vm-context loader used by the tests because the
+  // regex is constructed in a different realm).
+  if (typeof sep !== "string") {
+    return text
+      .split(/\r?\n/)
+      .filter((l) => l.trim() !== "")
+      .map((l) => l.trim().split(sep));
   }
+  const rows = [];
+  let row = [];
+  let field = "";
+  let inQuoted = false;
+  let fieldStarted = false;
+  const flushRow = () => {
+    row.push(field);
+    if (!(row.length === 1 && row[0] === "")) {
+      for (let c = 0; c < row.length; c++) row[c] = row[c].trim();
+      rows.push(row);
+    }
+    row = [];
+    field = "";
+    fieldStarted = false;
+  };
+  const n = text.length;
+  let i = 0;
+  while (i < n) {
+    const ch = text[i];
+    if (inQuoted) {
+      if (ch === '"') {
+        if (i + 1 < n && text[i + 1] === '"') {
+          field += '"';
+          i += 2;
+        } else {
+          inQuoted = false;
+          i++;
+        }
+      } else {
+        field += ch;
+        i++;
+      }
+    } else if (!fieldStarted && ch === '"') {
+      inQuoted = true;
+      fieldStarted = true;
+      i++;
+    } else if (ch === sep) {
+      row.push(field);
+      for (let c = 0; c < 0; c++); // no-op; trim happens at flushRow
+      field = "";
+      fieldStarted = false;
+      i++;
+    } else if (ch === "\n" || ch === "\r") {
+      flushRow();
+      if (ch === "\r" && i + 1 < n && text[i + 1] === "\n") i += 2;
+      else i++;
+    } else {
+      field += ch;
+      fieldStarted = true;
+      i++;
+    }
+  }
+  if (field !== "" || row.length > 0) {
+    flushRow();
+  }
+  // `flushRow` only trims cells when the row wasn't empty; cells in mid-row
+  // positions pushed before the row-end still need trimming.
+  for (let r = 0; r < rows.length; r++) {
+    for (let c = 0; c < rows[r].length; c++) rows[r][c] = rows[r][c].trim();
+  }
+  return rows;
+}
+
+// ── Decimal comma fix (per-column) ────────────────────────────────────────────
+//
+// Old implementation did a global `/(\d),(\d)/g` text rewrite, which silently
+// mangled US-format thousand separators (`1,000.50` → `1.000.50` → NaN) and
+// mutated label cells containing commas (`"E,coli"` → `E.coli`).
+//
+// The new implementation tokenizes the text first, then decides per-column
+// whether commas are decimal separators. A column is flagged only when:
+//   - it has at least one cell containing a comma,
+//   - strictly more cells match `isNumericValue` after `,`→`.` than before,
+//   - at least one comma-cell has a non-3-digit fractional part (pure
+//     `1,000`/`2,500` patterns look like US thousand groups and are left
+//     alone).
+// Only flagged columns get rewritten; label columns, mixed-format columns, and
+// pure-thousand-grouping columns are preserved exactly.
+function fixDecimalCommas(text, sep) {
+  if (typeof text !== "string" || text.length === 0) {
+    return { text, commaFixed: false, count: 0 };
+  }
+  if (typeof sep !== "string") return { text, commaFixed: false, count: 0 };
+  if (sep === ",") return { text, commaFixed: false, count: 0 };
+  if (sep === "") return { text, commaFixed: false, count: 0 };
+  const rows = tokenizeDelimited(text, sep);
+  if (rows.length < 2) return { text, commaFixed: false, count: 0 };
+  const nCols = Math.max(...rows.map((r) => r.length));
+  const decimalCommaCols = new Set();
+  for (let c = 0; c < nCols; c++) {
+    let numericAsIs = 0;
+    let numericIfFixed = 0;
+    let hasComma = 0;
+    let nonEmpty = 0;
+    let anyNonThousandish = false;
+    for (let r = 1; r < rows.length; r++) {
+      const v = rows[r][c];
+      if (v == null || v === "") continue;
+      nonEmpty++;
+      if (v.indexOf(",") !== -1) {
+        hasComma++;
+        const last = v.lastIndexOf(",");
+        const after = v.slice(last + 1);
+        const m = after.match(/^\d+/);
+        if (!m || m[0].length !== 3) anyNonThousandish = true;
+      }
+      if (isNumericValue(v)) numericAsIs++;
+      if (isNumericValue(v.replace(/,/g, "."))) numericIfFixed++;
+    }
+    if (nonEmpty > 0 && hasComma > 0 && numericIfFixed > numericAsIs && anyNonThousandish) {
+      decimalCommaCols.add(c);
+    }
+  }
+  if (decimalCommaCols.size === 0) return { text, commaFixed: false, count: 0 };
   let count = 0;
-  const fixed = text.replace(/(\d),(\d)/g, (_, a, b) => {
-    count++;
-    return `${a}.${b}`;
-  });
-  return { text: fixed, commaFixed: count > 0, count };
+  for (let r = 0; r < rows.length; r++) {
+    for (const c of decimalCommaCols) {
+      const v = rows[r][c];
+      if (v && v.indexOf(",") !== -1) {
+        const fixed = v.replace(/,/g, ".");
+        if (isNumericValue(fixed)) {
+          rows[r][c] = fixed;
+          count++;
+        }
+      }
+    }
+  }
+  if (count === 0) return { text, commaFixed: false, count: 0 };
+  const q = (cell) => {
+    if (
+      cell.indexOf(sep) !== -1 ||
+      cell.indexOf('"') !== -1 ||
+      cell.indexOf("\n") !== -1 ||
+      cell.indexOf("\r") !== -1
+    ) {
+      return '"' + cell.replace(/"/g, '""') + '"';
+    }
+    return cell;
+  };
+  const rebuilt = rows.map((r) => r.map(q).join(sep)).join("\n");
+  return { text: rebuilt, commaFixed: true, count };
 }
 
 // ── Parsing helpers ───────────────────────────────────────────────────────────
@@ -312,13 +458,8 @@ function detectHeader(rows) {
 
 function parseRaw(text, sepOv = "") {
   const sep = autoDetectSep(text, sepOv);
-  const lines = text
-    .trim()
-    .split(/\r?\n/)
-    .filter((l) => l.trim() !== "");
-  if (lines.length < 1) return { headers: [], rows: [], hasHeader: false };
-  const all = lines.map((l) => l.split(sep).map((v) => v.trim().replace(/^"|"$/g, "")));
-  if (all.length === 0) return { headers: [], rows: [], hasHeader: false };
+  const all = tokenizeDelimited(text, sep);
+  if (all.length < 1) return { headers: [], rows: [], hasHeader: false };
   const mx = Math.max(...all.map((r) => r.length));
   const pad = all.map((r) => {
     while (r.length < mx) r.push("");
@@ -393,17 +534,14 @@ function parseWideMatrix(text, sepOv = "") {
 
 function parseData(text, sepOv = "") {
   const sep = autoDetectSep(text, sepOv);
-  const lines = text
-    .trim()
-    .split(/\r?\n/)
-    .filter((l) => l.trim() !== "");
-  if (lines.length < 2) return { headers: [], data: [], rawData: [] };
-  const headers = lines[0].split(sep).map((h) => h.trim().replace(/^"|"$/g, ""));
+  const all = tokenizeDelimited(text, sep);
+  if (all.length < 2) return { headers: [], data: [], rawData: [] };
+  const headers = all[0];
   const nCols = headers.length;
   const data = [],
     rawData = [];
-  for (let i = 1; i < lines.length; i++) {
-    const rawVals = lines[i].split(sep).map((v) => v.trim().replace(/^"|"$/g, ""));
+  for (let i = 1; i < all.length; i++) {
+    const rawVals = all[i].slice();
     while (rawVals.length < nCols) rawVals.push("");
     if (rawVals.every((v) => v === "")) continue;
     data.push(rawVals.map((s) => (isNumericValue(s) ? Number(s) : null)));

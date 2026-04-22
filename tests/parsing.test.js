@@ -10,6 +10,8 @@ const {
   parseData,
   dataToColumns,
   parseWideMatrix,
+  tokenizeDelimited,
+  fixDecimalCommas,
 } = require("./helpers/parsing-fns");
 
 // ── detectHeader ─────────────────────────────────────────────────────────────
@@ -384,6 +386,165 @@ test("handles TSV separator auto-detection", () => {
     [1, 2],
     [3, 4],
   ]);
+});
+
+// ── tokenizeDelimited (RFC 4180-ish state machine) ───────────────────────────
+
+suite("tokenizeDelimited");
+
+test("splits plain CSV like the old split-based parser", () => {
+  eq(tokenizeDelimited("a,b,c\n1,2,3", ","), [
+    ["a", "b", "c"],
+    ["1", "2", "3"],
+  ]);
+});
+
+test("quoted field containing the separator stays in one cell", () => {
+  eq(tokenizeDelimited('"Smith, John",42', ","), [["Smith, John", "42"]]);
+});
+
+test("escaped double-quotes unwrap to a single quote", () => {
+  eq(tokenizeDelimited('"a""b",c', ","), [['a"b', "c"]]);
+});
+
+test("embedded newline inside a quoted field is preserved", () => {
+  const out = tokenizeDelimited('"line1\nline2",right\n2,3', ",");
+  eq(out, [
+    ["line1\nline2", "right"],
+    ["2", "3"],
+  ]);
+});
+
+test('literal unbalanced quote inside an unquoted field is preserved (5" inch)', () => {
+  eq(tokenizeDelimited('5",6"\n7",8"', ","), [
+    ['5"', '6"'],
+    ['7"', '8"'],
+  ]);
+});
+
+test("BOM at start of text is stripped from the first cell", () => {
+  eq(tokenizeDelimited("﻿Gene,Value\nA,1", ","), [
+    ["Gene", "Value"],
+    ["A", "1"],
+  ]);
+});
+
+test("CRLF and LF line endings both split rows", () => {
+  eq(tokenizeDelimited("a,b\r\n1,2\n3,4", ","), [
+    ["a", "b"],
+    ["1", "2"],
+    ["3", "4"],
+  ]);
+});
+
+test("trailing newline and blank rows don't produce phantom rows", () => {
+  eq(tokenizeDelimited("a,b\n1,2\n\n", ","), [
+    ["a", "b"],
+    ["1", "2"],
+  ]);
+});
+
+test("whitespace-separator fallback (RegExp) splits by runs of whitespace", () => {
+  eq(tokenizeDelimited("Gene A\nGene B", /\s+/), [
+    ["Gene", "A"],
+    ["Gene", "B"],
+  ]);
+});
+
+// ── fixDecimalCommas (per-column) ─────────────────────────────────────────────
+
+suite("fixDecimalCommas — per-column detection");
+
+test("European `1,50`/`2,75` values are rewritten as decimals", () => {
+  const text = "sample\tmass\nA\t1,50\nB\t2,75";
+  const out = fixDecimalCommas(text, "\t");
+  assert(out.commaFixed);
+  assert(out.count === 2);
+  const parsed = parseRaw(out.text, "\t");
+  eq(parsed.rows, [
+    ["A", "1.50"],
+    ["B", "2.75"],
+  ]);
+});
+
+test("US-format thousand separators (`1,000.50`) are preserved", () => {
+  // Old global regex turned this into "1.000.50" → NaN. New per-column logic
+  // detects that no cell has a non-3-digit fractional run, so leaves it alone.
+  const text = "sample\tmass\nA\t1,000.50\nB\t2,500.75";
+  const out = fixDecimalCommas(text, "\t");
+  assert(!out.commaFixed);
+  assert(out.text === text);
+});
+
+test("label columns with commas are not rewritten", () => {
+  // Only column 1 is decimal-comma; the species column keeps its comma.
+  const text = 'species\tmass\n"E,coli"\t1,50\n"B,subtilis"\t2,75';
+  const out = fixDecimalCommas(text, "\t");
+  assert(out.commaFixed);
+  const parsed = parseRaw(out.text, "\t");
+  eq(parsed.rows, [
+    ["E,coli", "1.50"],
+    ["B,subtilis", "2.75"],
+  ]);
+});
+
+test("pure thousand-grouped `1,000` column is not rewritten", () => {
+  // Every comma-cell has exactly 3 digits after the last comma → looks like
+  // thousand-grouping, not decimal-comma. Leave untouched.
+  const text = "sample\tcount\nA\t1,000\nB\t2,500\nC\t3,750";
+  const out = fixDecimalCommas(text, "\t");
+  assert(!out.commaFixed);
+});
+
+test("comma-separator CSV is never decimal-comma fixed (commas are delimiters)", () => {
+  const text = "a,b\n1,2\n3,4";
+  const out = fixDecimalCommas(text, ",");
+  assert(!out.commaFixed);
+  assert(out.text === text);
+});
+
+test("RegExp (whitespace) separator is treated as a no-op", () => {
+  const out = fixDecimalCommas("a b\n1,5 2,5", /\s+/);
+  assert(!out.commaFixed);
+});
+
+test("fixDecimalCommas → parseData round-trip keeps labels and yields numeric values", () => {
+  const text = "group;mass\nctrl;1,50\ntreat;2,75";
+  const out = fixDecimalCommas(text, ";");
+  assert(out.commaFixed);
+  const parsed = parseData(out.text, ";");
+  eq(parsed.headers, ["group", "mass"]);
+  eq(
+    parsed.data.map((r) => r[1]),
+    [1.5, 2.75]
+  );
+  eq(
+    parsed.rawData.map((r) => r[0]),
+    ["ctrl", "treat"]
+  );
+});
+
+// ── parseRaw / parseData regression for quoted fields ─────────────────────────
+
+suite("parseRaw / parseData — quoted-field regressions");
+
+test("parseRaw keeps a quoted comma inside a cell instead of column-splitting", () => {
+  // Regression: prior `split(',')` + naive quote strip turned `"Smith, John",42`
+  // into 3 cells, shifting every subsequent column.
+  const { headers, rows } = parseRaw('name,age\n"Smith, John",42', ",");
+  eq(headers, ["name", "age"]);
+  eq(rows, [["Smith, John", "42"]]);
+});
+
+test("parseData keeps a quoted comma inside a cell", () => {
+  const { headers, rawData } = parseData('name,age\n"Smith, John",42', ",");
+  eq(headers, ["name", "age"]);
+  eq(rawData, [["Smith, John", "42"]]);
+});
+
+test("parseRaw strips a leading BOM from the first header", () => {
+  const { headers } = parseRaw("﻿Gene,Value\nA,1", ",");
+  eq(headers, ["Gene", "Value"]);
 });
 
 summary();

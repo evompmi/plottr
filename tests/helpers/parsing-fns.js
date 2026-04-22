@@ -10,6 +10,8 @@ const {
   parseData,
   dataToColumns,
   parseWideMatrix,
+  tokenizeDelimited,
+  fixDecimalCommas,
 } = require("./shared-loader");
 module.exports = {
   detectHeader,
@@ -19,4 +21,6 @@ module.exports = {
   parseData,
   dataToColumns,
   parseWideMatrix,
+  tokenizeDelimited,
+  fixDecimalCommas,
 };
