@@ -50,6 +50,21 @@ jobs:
             exit 1
           fi
 
+      # Fuzz harnesses at default cadence (FUZZ_N=1000, 2-loop). Total wall
+      # time is ~5 s on GitHub's ubuntu-latest runner, so cheap enough to gate
+      # every PR. CLAUDE.md's release bar is the heavier 10k × {seed 1, 42,
+      # 999} sweep, which runs in a separate workflow below (fuzz-release.yml).
+      # `FUZZ_QUIET=1` suppresses per-iteration output and only logs the final
+      # summary; a non-zero exit from any harness propagates via set -e.
+      - name: Fuzz (default cadence, every PR)
+        env:
+          FUZZ_QUIET: "1"
+        run: |
+          set -e
+          for t in heatmap boxplot scatter aequorin lineplot venn upset; do
+            npm run --silent fuzz:$t
+          done
+
       - name: Verify build
         run: npm run build
 

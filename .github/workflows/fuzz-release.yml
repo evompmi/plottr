@@ -1,0 +1,47 @@
+name: Fuzz (release cadence)
+
+# Heavier sweep than the per-PR fuzz step in test.yml: 10 000 iterations
+# across three seeds (1, 42, 999) per harness. CLAUDE.md calls out this
+# cadence as the "zero crashes before a release" bar. Runs weekly (Sunday
+# 03:00 UTC) so crashes surfaced by randomised inputs can't hide for a
+# full release cycle, and on-demand via workflow_dispatch when we want to
+# sweep before cutting a tag.
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared bundle
+        run: npm run build:shared
+
+      - name: Fuzz sweep (10k × {seed 1, 42, 999})
+        env:
+          FUZZ_QUIET: "1"
+          FUZZ_N: "10000"
+        run: |
+          set -e
+          for seed in 1 42 999; do
+            echo "── seed=$seed ──"
+            for t in heatmap boxplot scatter aequorin lineplot venn upset; do
+              FUZZ_SEED=$seed npm run --silent fuzz:$t
+            done
+          done
