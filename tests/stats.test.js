@@ -21,7 +21,11 @@ vm.runInContext(code, ctx);
 
 const {
   normcdf,
+  normsf,
   tcdf,
+  tcdf_upper,
+  fcdf,
+  fcdf_upper,
   tinv,
   shapiroWilk,
   sampleMean,
@@ -1617,6 +1621,105 @@ test("handles NaN entries pairwise without crashing", () => {
   assert(res.clusters[0] === res.clusters[1], "row 0 and 1 in same cluster");
   assert(res.clusters[2] === res.clusters[3], "row 2 and 3 in same cluster");
   assert(res.clusters[0] !== res.clusters[2], "the two pairs split");
+});
+
+// ── Tail-accuracy regressions (audit #13) ────────────────────────────────────
+
+suite("normsf — tail-accurate survival");
+
+test("normsf(0) = 0.5", () => {
+  approx(normsf(0), 0.5, 1e-15);
+});
+
+test("normsf matches 1 − normcdf for moderate x (x = 2)", () => {
+  approx(normsf(2), 1 - normcdf(2), 1e-8);
+});
+
+test("normsf(6) ≈ 9.87e-10 (R pnorm(6, lower.tail=FALSE), relative)", () => {
+  // A&S 26.2.17 polynomial (used for |x| < 7) has ~0.5 % relative error at
+  // x = 6. The key invariant is that normsf no longer underflows to 0 here,
+  // not that it matches R's pnorm to double precision.
+  const got = normsf(6);
+  const want = 9.865876e-10;
+  assert(Math.abs(got - want) / want < 5e-3, `normsf(6) = ${got}, expected ≈ ${want}`);
+});
+
+test("normsf(8) ≈ 6.22e-16 (deep tail, old 1-normcdf would round to 0)", () => {
+  approx(normsf(8), 6.22096e-16, 1e-18);
+});
+
+test("normsf(12) stays finite (no underflow) and > 0", () => {
+  const s = normsf(12);
+  assert(s > 0 && s < 1e-30, `expected tiny positive, got ${s}`);
+});
+
+test("normsf(-8) = 1 − normsf(8) reflection works", () => {
+  approx(normsf(-8), 1 - normsf(8), 1e-15);
+});
+
+suite("tcdf_upper — no 1 − (near-1) cancellation");
+
+test("tcdf_upper at |t| < 3 matches 1 − tcdf", () => {
+  approx(tcdf_upper(2.5, 20), 1 - tcdf(2.5, 20), 1e-12);
+});
+
+test("tcdf_upper(10.52, 98) ≈ 4.5e-18 (iris SL setosa/versicolor)", () => {
+  // R: pt(10.52, 98, lower.tail=FALSE) ≈ 4.49e-18. Old JS underflowed to 0.
+  const p = tcdf_upper(10.52, 98);
+  assert(p > 0 && p < 1e-15, `expected ~4.5e-18, got ${p}`);
+});
+
+test("tcdf_upper(20, 50) stays > 0 (no underflow)", () => {
+  const p = tcdf_upper(20, 50);
+  assert(p > 0 && p < 1e-20, `expected tiny positive, got ${p}`);
+});
+
+suite("fcdf_upper — no 1 − (near-1) cancellation");
+
+test("fcdf_upper matches 1 − fcdf for F < 10", () => {
+  approx(fcdf_upper(4, 3, 50), 1 - fcdf(4, 3, 50), 1e-12);
+});
+
+test("fcdf_upper(100, 3, 50) stays > 0 for large F (no underflow)", () => {
+  const p = fcdf_upper(100, 3, 50);
+  assert(p > 0 && p < 1e-15, `expected tiny positive, got ${p}`);
+});
+
+suite("Deep-tail p-values — audit #13 regression set");
+
+test("Shapiro-Wilk on heavily bimodal sample yields deep-tail p, not 0", () => {
+  // Two tight peaks at 0 and 5 (50 each) — strongly bimodal, Shapiro-Wilk
+  // should report a very small p. The old `1 − normcdf` path underflowed to 0
+  // for z-scores past ~6; with normsf it stays a positive number.
+  const bimodal = [];
+  for (let i = 0; i < 50; i++) bimodal.push(0 + 0.01 * i);
+  for (let i = 0; i < 50; i++) bimodal.push(5 + 0.01 * i);
+  const { p } = shapiroWilk(bimodal);
+  assert(p > 0, "p must be strictly positive (old code underflowed to 0)");
+  assert(p < 1e-10, `expected deep-tail p but got ${p}`);
+});
+
+test("tTest at |t| ≈ 10 reports non-zero p (iris-like setup)", () => {
+  // 50 values each, large mean shift — t ≈ 10-ish, df = 98.
+  const a = Array.from({ length: 50 }, (_, i) => 5.0 + 0.02 * i);
+  const b = Array.from({ length: 50 }, (_, i) => 6.0 + 0.02 * i);
+  const { t, p } = tTest(a, b, { equalVar: true });
+  assert(Math.abs(t) > 10, "sanity: expected |t| > 10");
+  assert(p > 0, "p must be strictly positive (old code underflowed)");
+  assert(p < 1e-10, `expected deep-tail p but got ${p}`);
+});
+
+test("oneWayANOVA with strong separation reports non-zero p", () => {
+  // 3 groups, strong separation → tiny p.
+  const groups = [
+    Array.from({ length: 30 }, (_, i) => 4.0 + 0.01 * i),
+    Array.from({ length: 30 }, (_, i) => 5.5 + 0.01 * i),
+    Array.from({ length: 30 }, (_, i) => 7.0 + 0.01 * i),
+  ];
+  const { F, p } = oneWayANOVA(groups);
+  assert(F > 1000, "sanity: expected huge F");
+  assert(p > 0, "p must be strictly positive (old code underflowed)");
+  assert(p < 1e-50, `expected very deep p but got ${p}`);
 });
 
 summary();
