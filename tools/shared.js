@@ -292,18 +292,75 @@ function makeLogTicks(dataMin, dataMax, base) {
 }
 
 // ── Separator detection ───────────────────────────────────────────────────────
-
+//
+// Picks the delimiter most likely to produce a consistent column count. The
+// naive "count occurrences across the first 2 kB" heuristic fails on TSVs
+// whose header has commas in free-text ("Sample, Description, Notes") — those
+// header-level commas can out-count the tabs in data rows and flip the
+// detection to `,`, collapsing 20 data columns to 1.
+//
+// Strategy: for each candidate (`\t`, `;`, `,`), measure how uniform the
+// per-line count is across the first ~50 non-empty lines. A real delimiter
+// partitions every line into the SAME number of columns, so its per-line
+// count has low variance and a median ≥ 1. A separator that sneaks into
+// quoted text or headers only produces inconsistent per-line counts.
+//
+// Ranking key: (medianPerLine >= 1, then low coefficient of variation, then
+// high total count). Falls back to `\s+` only when no candidate appears at
+// all.
 function autoDetectSep(text, override = "") {
   if (override !== "") return override;
   const h = text.slice(0, 2000);
-  const t = (h.match(/\t/g) || []).length,
-    s = (h.match(/;/g) || []).length,
-    c = (h.match(/,/g) || []).length;
-  const b = Math.max(t, s, c);
-  if (b === 0) return /\s+/;
-  if (t === b) return "\t";
-  if (s === b) return ";";
-  return ",";
+  // Bound the scan to ~50 non-empty lines — enough to see pattern, cheap.
+  const lines = h.split(/\r?\n/).filter((l) => l.trim() !== "");
+  const head = lines.slice(0, Math.min(50, lines.length));
+  if (head.length === 0) return /\s+/;
+
+  const CANDIDATES = ["\t", ";", ","];
+  const scores = CANDIDATES.map((sep) => {
+    const countPerLine = head.map((line) => {
+      // Quoted-field-aware count: skip chars inside "..." (matches the
+      // tokenizer so the detector can't be fooled by an inlined delimiter
+      // in a legitimately-quoted cell).
+      let n = 0;
+      let inQuoted = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          inQuoted = !inQuoted;
+          continue;
+        }
+        if (!inQuoted && ch === sep) n++;
+      }
+      return n;
+    });
+    const total = countPerLine.reduce((a, b) => a + b, 0);
+    const sorted = countPerLine.slice().sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const mean = total / countPerLine.length;
+    // Sample variance with Bessel correction collapses to 0 for uniform
+    // counts; coefficient of variation is σ / μ (0 when perfectly uniform).
+    let variance = 0;
+    if (countPerLine.length > 1) {
+      for (const n of countPerLine) variance += (n - mean) * (n - mean);
+      variance /= countPerLine.length - 1;
+    }
+    const cv = mean > 0 ? Math.sqrt(variance) / mean : Infinity;
+    return { sep, total, median, cv };
+  });
+
+  // Keep only candidates that actually show up in most lines. A separator
+  // with median 0 never partitions more than half the lines → it's noise.
+  const viable = scores.filter((s) => s.median >= 1);
+  if (viable.length === 0) {
+    // No candidate partitions consistently — fall back to "highest raw count"
+    // like the old heuristic, or to whitespace when nothing appears.
+    const best = scores.reduce((a, b) => (b.total > a.total ? b : a));
+    return best.total === 0 ? /\s+/ : best.sep;
+  }
+  // Prefer the most-uniform partition (lowest CV). Break ties by total count.
+  viable.sort((a, b) => a.cv - b.cv || b.total - a.total);
+  return viable[0].sep;
 }
 
 // ── Delimited-text tokenizer ──────────────────────────────────────────────────

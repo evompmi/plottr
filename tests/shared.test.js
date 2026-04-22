@@ -52,6 +52,32 @@ test("prefers the most frequent delimiter", () => {
   eq(autoDetectSep("a,b,c,d;e\n1,2,3,4;5"), ",");
 });
 
+test("ignores delimiters inside quoted cells when ranking (audit M1)", () => {
+  // Header has three commas in a single quoted free-text cell, data rows
+  // are tab-delimited. The old heuristic counted raw occurrences and would
+  // pick `,` because 3 header-commas outnumber the 2 tabs in the first data
+  // row. Now the per-line quote-aware counter ignores commas inside "..."
+  // entirely, so the tab wins.
+  const text = '"Sample, description, notes"\tvalue\n' + "s1\t1.2\n" + "s2\t3.4\n" + "s3\t5.6\n";
+  eq(autoDetectSep(text), "\t");
+});
+
+test("prefers the consistent-per-line delimiter over the high-count one (audit M1)", () => {
+  // Header has commas in free-text; data rows have only tabs. Commas appear
+  // exactly in the header line (count 2) and never after; tabs appear in
+  // every row (count 1 per line). Median-based detection picks tab.
+  const text = "Sample, Description\tValue\n" + "A\t10\n" + "B\t20\n" + "C\t30\n" + "D\t40\n";
+  eq(autoDetectSep(text), "\t");
+});
+
+test("picks the stable-per-line delimiter when total counts tie", () => {
+  // Comma appears 4x (once per row) — perfectly uniform.
+  // Semicolon also 4x but all in row 1 — spiky, high CV.
+  // Should pick comma (lower coefficient of variation).
+  const text = "a,b;c;d;e\n" + "1,2\n" + "3,4\n" + "5,6\n";
+  eq(autoDetectSep(text), ",");
+});
+
 // ── fixDecimalCommas ──────────────────────────────────────────────────────────
 
 suite("fixDecimalCommas");
