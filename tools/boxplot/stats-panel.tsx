@@ -750,62 +750,8 @@ export function BoxplotStatsPanel({
 
 /* ── Stats state reducer ───────────────────────────────────────────────────── */
 
-export const statsInit = {
-  displayMode: "none" as "none" | "cld" | "brackets",
-  showNs: false,
-  showSummary: false,
-  flatSummary: null as string | null,
-  flatAnnotation: null as any,
-  facetAnnotations: {} as Record<string, any>,
-  facetSummaries: {} as Record<string, string | null>,
-  subgroupSummaries: {} as Record<string, string | null>,
-  subgroupAnnotSpecs: {} as Record<string, any>,
-};
-export function statsReducer(state: typeof statsInit, a: any): typeof statsInit {
-  switch (a.type) {
-    case "reset":
-      return statsInit;
-    case "setDisplayMode":
-      if (a.value === "none") {
-        return {
-          ...state,
-          displayMode: "none",
-          flatAnnotation: null,
-          facetAnnotations: {},
-          subgroupAnnotSpecs: {},
-        };
-      }
-      return { ...state, displayMode: a.value };
-    case "setShowNs":
-      return { ...state, showNs: a.value };
-    case "setShowSummary":
-      if (!a.value) {
-        return {
-          ...state,
-          showSummary: false,
-          flatSummary: null,
-          facetSummaries: {},
-          subgroupSummaries: {},
-        };
-      }
-      return { ...state, showSummary: true };
-    case "setFlatSummary":
-      return { ...state, flatSummary: a.value };
-    case "setFlatAnnotation":
-      return { ...state, flatAnnotation: a.value };
-    case "setFacetAnnotation":
-      if (state.facetAnnotations[a.key] === a.value) return state;
-      return { ...state, facetAnnotations: { ...state.facetAnnotations, [a.key]: a.value } };
-    case "setFacetSummary":
-      if (state.facetSummaries[a.key] === a.value) return state;
-      return { ...state, facetSummaries: { ...state.facetSummaries, [a.key]: a.value } };
-    case "setSubgroupAnnotSpec":
-      if (state.subgroupAnnotSpecs[a.key] === a.value) return state;
-      return { ...state, subgroupAnnotSpecs: { ...state.subgroupAnnotSpecs, [a.key]: a.value } };
-    case "setSubgroupSummary":
-      if (state.subgroupSummaries[a.key] === a.value) return state;
-      return { ...state, subgroupSummaries: { ...state.subgroupSummaries, [a.key]: a.value } };
-    default:
-      return state;
-  }
-}
+// The reducer + init live in `./stats-reducer` so they can be unit-tested
+// without pulling this React-heavy file into the vm context. Re-exported
+// here for backward compatibility with existing `import { statsReducer,
+// statsInit } from "./stats-panel"` consumers.
+export { statsInit, statsReducer } from "./stats-reducer";

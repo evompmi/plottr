@@ -8,7 +8,7 @@
     "prewatch": "node scripts/write-version.js",
     "watch": "node scripts/watch.js",
     "pretest": "node scripts/build-shared.js",
-    "test": "node tests/shared.test.js && node tests/parsing.test.js && node tests/integration.test.js && node tests/components.test.js && node tests/power.test.js && node tests/stats.test.js && node tests/stats-dispatch.test.js && node tests/r-export.test.js && node tests/prefs.test.js && node tests/upset.test.js && node tests/scatter.test.js && node tests/heatmap.test.js && node tests/aequorin.test.js && node tests/lineplot.test.js",
+    "test": "node tests/shared.test.js && node tests/parsing.test.js && node tests/integration.test.js && node tests/components.test.js && node tests/power.test.js && node tests/stats.test.js && node tests/stats-dispatch.test.js && node tests/r-export.test.js && node tests/prefs.test.js && node tests/upset.test.js && node tests/scatter.test.js && node tests/heatmap.test.js && node tests/aequorin.test.js && node tests/lineplot.test.js && node tests/boxplot-stats-reducer.test.js",
     "fuzz:heatmap": "node tests/fuzz/heatmap.fuzz.js",
     "fuzz:boxplot": "node tests/fuzz/boxplot.fuzz.js",
     "fuzz:scatter": "node tests/fuzz/scatter.fuzz.js",
