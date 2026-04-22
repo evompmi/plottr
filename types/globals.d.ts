@@ -460,6 +460,9 @@ declare global {
     error?: string;
   };
   function bhAdjust(ps: number[]): number[];
+  function multisetIntersectionPExact(xObs: number, ns: number[], N: number): number;
+  function multisetIntersectionPPoisson(xObs: number, ns: number[], N: number): number;
+  function multisetIntersectionP(xObs: number, ns: number[], N: number): number;
   interface DunnPair {
     i: number;
     j: number;

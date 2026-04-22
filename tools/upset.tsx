@@ -1356,6 +1356,228 @@ const VIS_INIT_UPSET = {
   showSetSizeLabels: true,
 };
 
+/* ── Intersection significance panel ────────────────────────────────────────
+ *
+ * Click-to-compute SuperExactTest-style multi-set intersection p-value for
+ * the currently selected UpSet bar. Key design notes:
+ *
+ *   - Test input is the INCLUSIVE intersection count (items in all selected
+ *     sets, regardless of membership in other sets). The bar height shown in
+ *     the plot is the EXCLUSIVE intersection (items in ONLY these sets).
+ *     Both are displayed in the panel so the user understands which is tested.
+ *   - Null model is fixed-margin: each selected set is a uniformly-random
+ *     subset of the universe with its observed size. User-adjustable
+ *     "Universe size" governs this — defaults to the union of uploaded
+ *     items, but any real gene-list analysis needs a larger background
+ *     (genome, proteome). Tooltip explains the gravity of this choice.
+ *   - Cache keyed on `${mask}:${universe}` so re-renders don't recompute
+ *     and a universe change invalidates stale entries. BH adjustment runs
+ *     across all currently-cached tests so pAdj updates live.
+ *   - Exact path only — the Poisson approximation is available in stats.js
+ *     but we don't expose it here; at plant-science scale the exact DP is
+ *     fast enough and more accurate in the deep tail.
+ */
+function IntersectionStatsPanel({
+  intersection,
+  displaySetNames,
+  sets,
+  membershipMap,
+  universeSize,
+  setUniverseSize,
+  universeOverridden,
+  setUniverseOverridden,
+  defaultUniverseSize,
+  intersectionTests,
+  setIntersectionTests,
+}) {
+  if (!intersection) return null;
+
+  // Inclusive count: items whose bitmask covers every selected set.
+  const inclusiveSize = React.useMemo(() => {
+    const mask = intersection.mask;
+    let count = 0;
+    for (const m of membershipMap.values()) {
+      if ((m & mask) === mask) count++;
+    }
+    return count;
+  }, [intersection, membershipMap]);
+
+  const selectedSetSizes = intersection.setIndices.map(
+    (i) => (sets.get(displaySetNames[i]) || new Set()).size
+  );
+  const selectedSetNames = intersection.setIndices.map((i) => displaySetNames[i]);
+
+  const universeN = typeof universeSize === "number" ? universeSize : Number(universeSize);
+  const universeValid =
+    Number.isFinite(universeN) && universeN > 0 && selectedSetSizes.every((n) => n <= universeN);
+
+  const cacheKey = `${intersection.mask}:${universeN}`;
+  const cachedResult = intersectionTests.get(cacheKey);
+
+  const runTest = () => {
+    if (!universeValid) return;
+    const p = multisetIntersectionPExact(inclusiveSize, selectedSetSizes, universeN);
+    const next = new Map(intersectionTests);
+    next.set(cacheKey, {
+      mask: intersection.mask,
+      universe: universeN,
+      x: inclusiveSize,
+      xExclusive: intersection.size,
+      ns: selectedSetSizes,
+      p,
+    });
+    // BH-adjust across every test currently in the cache (independently of
+    // universe — each mask contributes its most recent result). This keeps
+    // the displayed pAdj live as the user tests more intersections.
+    const entries = [...next.values()] as Array<{
+      mask: number;
+      universe: number;
+      x: number;
+      xExclusive: number;
+      ns: number[];
+      p: number;
+      pAdj?: number | null;
+    }>;
+    const withIdx = entries.map((e, idx) => ({ idx, p: e.p })).filter((e) => Number.isFinite(e.p));
+    const rawPs = withIdx.map((e) => e.p);
+    const adjPs = bhAdjust(rawPs);
+    const adjByIdx = new Map();
+    withIdx.forEach((e, j) => adjByIdx.set(e.idx, adjPs[j]));
+    entries.forEach((e, idx) => {
+      e.pAdj = adjByIdx.has(idx) ? adjByIdx.get(idx) : null;
+    });
+    // Re-emit the Map so the cache → pAdj mapping is fresh.
+    const rebuilt = new Map();
+    let i = 0;
+    for (const [k] of next) {
+      rebuilt.set(k, entries[i++]);
+    }
+    setIntersectionTests(rebuilt);
+  };
+
+  const fmtP = (p) => {
+    if (p == null || !Number.isFinite(p)) return "—";
+    if (p === 0) return "0";
+    if (p >= 1e-4) return p.toPrecision(4);
+    return p.toExponential(3);
+  };
+
+  const sidebarSection = (label, value) =>
+    React.createElement(
+      "div",
+      { style: { display: "flex", justifyContent: "space-between", gap: 16 } },
+      React.createElement("span", { style: { color: "var(--text-muted)" } }, label),
+      React.createElement(
+        "span",
+        { style: { fontFamily: "monospace", color: "var(--text)" } },
+        value
+      )
+    );
+
+  return (
+    <div
+      className="dv-panel"
+      style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}
+    >
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+          Intersection significance
+        </p>
+        <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
+          SuperExactTest-style exact test against the fixed-margin null
+        </span>
+      </div>
+
+      <div style={{ display: "grid", gap: 4, fontSize: 12 }}>
+        {sidebarSection("Sets tested", selectedSetNames.join(" ∩ "))}
+        {sidebarSection("Set sizes (nᵢ)", selectedSetSizes.join(", "))}
+        {sidebarSection("Inclusive overlap (x)", String(inclusiveSize))}
+        {sidebarSection("Exclusive overlap (bar)", String(intersection.size))}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          borderTop: "1px solid var(--border)",
+          paddingTop: 10,
+        }}
+      >
+        <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Universe size (N)</label>
+        <input
+          type="number"
+          min={1}
+          value={universeSize}
+          onChange={(e) => {
+            const v = e.target.value;
+            setUniverseSize(v === "" ? "" : Number(v));
+            setUniverseOverridden(true);
+          }}
+          style={{ width: 100 }}
+          className="dv-input"
+        />
+        {universeOverridden && (
+          <button
+            type="button"
+            className="dv-btn dv-btn-secondary"
+            onClick={() => {
+              setUniverseOverridden(false);
+              setUniverseSize(defaultUniverseSize || "");
+            }}
+            style={{ fontSize: 11, padding: "2px 8px" }}
+          >
+            Reset to |∪|={defaultUniverseSize}
+          </button>
+        )}
+        <span
+          style={{ fontSize: 11, color: "var(--text-faint)" }}
+          title={
+            "The fixed-margin null assumes each set is a uniformly-random subset " +
+            "of a universe of this size. Defaults to the union of uploaded items " +
+            "(|∪|). Override with the genome / proteome / predefined background " +
+            "size for real enrichment analyses — a smaller universe inflates p-values."
+          }
+        >
+          ℹ️
+        </span>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <button
+          type="button"
+          className="dv-btn dv-btn-primary"
+          disabled={!universeValid}
+          onClick={runTest}
+          title={!universeValid ? "Enter a universe size ≥ max(nᵢ) to run the test" : undefined}
+        >
+          {cachedResult ? "Recompute" : "Run test"}
+        </button>
+        {cachedResult && (
+          <>
+            <span style={{ fontSize: 12 }}>
+              <span style={{ color: "var(--text-muted)" }}>p = </span>
+              <span style={{ fontFamily: "monospace", fontWeight: 600 }}>
+                {fmtP(cachedResult.p)}
+              </span>
+            </span>
+            <span style={{ fontSize: 12 }}>
+              <span style={{ color: "var(--text-muted)" }}>p_adj (BH) = </span>
+              <span style={{ fontFamily: "monospace", fontWeight: 600 }}>
+                {fmtP(cachedResult.pAdj)}
+              </span>
+            </span>
+            <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
+              adjusted across {intersectionTests.size} intersection
+              {intersectionTests.size === 1 ? "" : "s"} tested in this session
+            </span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const shell = usePlotToolState("upset", VIS_INIT_UPSET);
   const {
@@ -1384,6 +1606,17 @@ function App() {
   const [pendingMinDegree, setPendingMinDegree] = useState(1);
   const [pendingMaxDegree, setPendingMaxDegree] = useState<number>(Infinity);
 
+  // Significance-test state for the selected intersection (Phase 2 of the
+  // SuperExactTest-style work). The universe size defaults to the number of
+  // distinct items across all uploaded sets but is user-overridable — a real
+  // analysis often needs a larger background (e.g. the full genome, not just
+  // the union of uploaded lists). The cache is keyed on `${mask}:${universe}`
+  // so a universe-size change invalidates previously computed p-values. BH
+  // adjustment runs across the cache every time a new entry is added.
+  const [intersectionTests, setIntersectionTests] = useState(new Map());
+  const [universeSize, setUniverseSize] = useState<number | "">("");
+  const [universeOverridden, setUniverseOverridden] = useState(false);
+
   const chartRef = useRef();
 
   // Sets render size-descending; rename/reorder isn't supported since the
@@ -1394,11 +1627,23 @@ function App() {
     return copy;
   }, [setNames, sets]);
 
-  const allIntersections = useMemo(() => {
-    if (displaySetNames.length < 2) return [];
+  const { allIntersections, membershipMap } = useMemo(() => {
+    if (displaySetNames.length < 2) return { allIntersections: [], membershipMap: new Map() };
     const { membershipMap } = computeMemberships(displaySetNames, sets);
-    return enumerateIntersections(membershipMap, displaySetNames);
+    return {
+      allIntersections: enumerateIntersections(membershipMap, displaySetNames),
+      membershipMap,
+    };
   }, [displaySetNames, sets]);
+
+  // Default universe = number of distinct items across all sets. When the
+  // user hasn't explicitly overridden the field, track this automatically.
+  const defaultUniverseSize = membershipMap.size;
+  React.useEffect(() => {
+    if (!universeOverridden) {
+      setUniverseSize(defaultUniverseSize || "");
+    }
+  }, [defaultUniverseSize, universeOverridden]);
 
   const sortedIntersections = useMemo(
     () => sortIntersections(allIntersections, vis.sortMode),
@@ -1710,6 +1955,22 @@ function App() {
                   No intersections to show. Lower Minimum intersection size, lower Minimum degree,
                   or raise Maximum degree.
                 </div>
+              )}
+
+              {selectedIntersection && (
+                <IntersectionStatsPanel
+                  intersection={selectedIntersection}
+                  displaySetNames={displaySetNames}
+                  sets={sets}
+                  membershipMap={membershipMap}
+                  universeSize={universeSize}
+                  setUniverseSize={setUniverseSize}
+                  universeOverridden={universeOverridden}
+                  setUniverseOverridden={setUniverseOverridden}
+                  defaultUniverseSize={defaultUniverseSize}
+                  intersectionTests={intersectionTests}
+                  setIntersectionTests={setIntersectionTests}
+                />
               )}
 
               <div className="dv-panel" style={{ marginTop: 16 }}>
