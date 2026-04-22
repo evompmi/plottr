@@ -75,6 +75,8 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
     dotSize,
     showIntersectionLabels,
     showSetSizeLabels,
+    significanceDisplay,
+    significanceByMask,
   },
   ref
 ) {
@@ -296,6 +298,42 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
                 fontFamily="sans-serif"
               >
                 {inter.size}
+              </text>
+            );
+          })}
+        </g>
+      )}
+
+      {/* Significance markers: stars or p-value text above bars the user has
+          tested. Placed above the intersection-size label so the two never
+          collide. Only rendered when the sidebar toggle is on AND this bar's
+          mask is in `significanceByMask`. */}
+      {significanceDisplay && significanceDisplay !== "off" && significanceByMask && (
+        <g id="significance-markers">
+          {intersections.map((inter, i) => {
+            const sig = significanceByMask.get(inter.mask);
+            if (!sig || !Number.isFinite(sig.pAdj)) return null;
+            const cx = colX(i);
+            const h = topBarScale(inter.size);
+            const labelOffset = showIntersectionLabels !== false ? fSize + 2 : 3;
+            const text =
+              significanceDisplay === "stars" ? pStars(sig.pAdj) : "p=" + formatP(sig.pAdj);
+            // Stars render a hair bigger than the bar-size label; p-values
+            // render the same size as it so numeric widths stay aligned.
+            const tSize =
+              significanceDisplay === "stars" ? Math.max(10, fSize - 1) : Math.max(9, fSize - 3);
+            return (
+              <text
+                key={`sig-${inter.mask}`}
+                x={cx}
+                y={topPanelBottom - h - labelOffset}
+                textAnchor="middle"
+                fontSize={tSize}
+                fill={sig.pAdj < 0.05 ? "#1f6feb" : "#555555"}
+                fontFamily="sans-serif"
+                fontWeight={significanceDisplay === "stars" ? 700 : 400}
+              >
+                {text}
               </text>
             );
           })}
@@ -1324,6 +1362,60 @@ function PlotControls({
             })}
           </div>
         </div>
+        <div>
+          <div className="dv-label">Significance markers</div>
+          <div
+            style={{
+              display: "flex",
+              borderRadius: 6,
+              overflow: "hidden",
+              border: "1px solid var(--border-strong)",
+            }}
+          >
+            {(
+              [
+                ["off", "Off"],
+                ["stars", "Stars"],
+                ["p-value", "p-value"],
+              ] as const
+            ).map(([mode, label]) => {
+              const current = vis.significanceDisplay || "off";
+              const active = current === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => updVis({ significanceDisplay: mode })}
+                  style={{
+                    flex: 1,
+                    padding: "4px 0",
+                    fontSize: 11,
+                    fontWeight: active ? 700 : 400,
+                    fontFamily: "inherit",
+                    cursor: "pointer",
+                    border: "none",
+                    background: active ? "var(--accent-primary)" : "var(--surface)",
+                    color: active ? "var(--on-accent)" : "var(--text-muted)",
+                    transition: "background 120ms ease, color 120ms ease",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <p
+            style={{
+              margin: "4px 0 0",
+              fontSize: 10,
+              color: "var(--text-faint)",
+              lineHeight: 1.4,
+            }}
+          >
+            Only tested intersections are marked. Uses BH-adjusted p across every test run this
+            session.
+          </p>
+        </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span className="dv-label">Background</span>
           <ColorInput value={vis.plotBg} onChange={sv("plotBg")} size={24} />
@@ -1354,6 +1446,11 @@ const VIS_INIT_UPSET = {
   maxDegree: null,
   showIntersectionLabels: true,
   showSetSizeLabels: true,
+  // "off" | "stars" | "p-value". Controls what (if anything) is drawn
+  // above an intersection bar once the user has run the significance test
+  // for that intersection. Only affects tested intersections — untested
+  // bars never get a marker. Default: off (stays in the side panel only).
+  significanceDisplay: "off",
 };
 
 /* ── Intersection significance panel ────────────────────────────────────────
@@ -1645,6 +1742,21 @@ function App() {
     }
   }, [defaultUniverseSize, universeOverridden]);
 
+  // Chart-side lookup: only mark bars whose cached entry matches the current
+  // universe size. Prior results for a different N are deliberately ignored —
+  // they're stale under the active null.
+  const significanceByMask = useMemo(() => {
+    const m = new Map();
+    const currentN = typeof universeSize === "number" ? universeSize : Number(universeSize);
+    if (!Number.isFinite(currentN)) return m;
+    for (const entry of intersectionTests.values()) {
+      if (entry.universe === currentN) {
+        m.set(entry.mask, { p: entry.p, pAdj: entry.pAdj });
+      }
+    }
+    return m;
+  }, [intersectionTests, universeSize]);
+
   const sortedIntersections = useMemo(
     () => sortIntersections(allIntersections, vis.sortMode),
     [allIntersections, vis.sortMode]
@@ -1920,6 +2032,8 @@ function App() {
                   dotSize={vis.dotSize}
                   showIntersectionLabels={vis.showIntersectionLabels}
                   showSetSizeLabels={vis.showSetSizeLabels}
+                  significanceDisplay={vis.significanceDisplay}
+                  significanceByMask={significanceByMask}
                 />
               </ScrollablePlotCard>
 
