@@ -246,16 +246,20 @@ function App() {
     clearSelection,
   ]);
 
-  // Keep the CSV-export ref in sync with what's currently plotted.
-  matrixRef.current = {
-    rowLabels: rawMatrix.rowLabels,
-    colLabels: rawMatrix.colLabels,
-    matrix: normalized,
-    rowOrder,
-    colOrder,
-    rowClusterIds: rowCluster && rowCluster.mode === "kmeans" ? rowCluster.clusters : null,
-    colClusterIds: colCluster && colCluster.mode === "kmeans" ? colCluster.clusters : null,
-  };
+  // Keep the CSV-export ref in sync with what's currently plotted. Lives in
+  // an effect (not the render body) so Strict Mode's double-invoke can't
+  // leave the ref half-updated between the two renders.
+  React.useEffect(() => {
+    matrixRef.current = {
+      rowLabels: rawMatrix.rowLabels,
+      colLabels: rawMatrix.colLabels,
+      matrix: normalized,
+      rowOrder,
+      colOrder,
+      rowClusterIds: rowCluster && rowCluster.mode === "kmeans" ? rowCluster.clusters : null,
+      colClusterIds: colCluster && colCluster.mode === "kmeans" ? colCluster.clusters : null,
+    };
+  }, [rawMatrix, normalized, rowOrder, colOrder, rowCluster, colCluster]);
 
   const autoVRange = useCallback(() => {
     const diverging = DIVERGING_PALETTES.has(vis.palette) || normalization.startsWith("z");
