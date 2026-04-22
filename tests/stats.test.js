@@ -1722,4 +1722,55 @@ test("oneWayANOVA with strong separation reports non-zero p", () => {
   assert(p < 1e-50, `expected very deep p but got ${p}`);
 });
 
+suite("ptukey_upper — tail-accurate studentized range");
+
+test("_wprob_upper(w, 2) matches closed form 2·normsf(w/√2)", () => {
+  // k=2 has a closed form: P(R > w) = 2·(1 − Φ(w/√2)). Verifying here
+  // guarantees the geometric-series factorisation is correct before trusting
+  // larger k.
+  for (const w of [1, 3, 5]) {
+    const got = ctx._wprob_upper(w, 2);
+    const want = 2 * ctx.normsf(w / Math.SQRT2);
+    assert(Math.abs(got - want) / want < 5e-3, `w=${w}: got ${got}, want ${want}`);
+  }
+});
+
+test("_wprob + _wprob_upper ≈ 1 (complement identity)", () => {
+  for (const w of [1, 3, 7, 10]) {
+    for (const k of [2, 3, 5]) {
+      const lo = ctx._wprob(w, k);
+      const up = ctx._wprob_upper(w, k);
+      assert(
+        Math.abs(lo + up - 1) < 1e-6,
+        `w=${w}, k=${k}: ${lo} + ${up} = ${lo + up}, expected ≈ 1`
+      );
+    }
+  }
+});
+
+test("ptukey_upper(q, 2, df) matches 2·tcdf_upper(q/√2, df) (k=2 closed form)", () => {
+  for (const q of [1, 3, 5]) {
+    const got = ctx.ptukey_upper(q, 2, 50);
+    const want = 2 * tcdf_upper(q / Math.SQRT2, 50);
+    assert(Math.abs(got - want) / want < 5e-3, `q=${q}: got ${got}, want ${want}`);
+  }
+});
+
+test("ptukey_upper is monotonically decreasing in q", () => {
+  let prev = 1;
+  for (const q of [1, 2, 3, 5, 8, 12, 20]) {
+    const curr = ctx.ptukey_upper(q, 3, 50);
+    assert(curr <= prev, `non-monotonic at q=${q}: prev=${prev}, curr=${curr}`);
+    prev = curr;
+  }
+});
+
+test("ptukey_upper at extreme q stays positive (no 2e-10 floor)", () => {
+  // The old `1 − ptukey` path floored at 2e-10 because the chi² quantile
+  // bounds missed ~2e-10 of mass. `ptukey_upper` integrates the complementary
+  // _wprob_upper directly, so no floor.
+  const p = ctx.ptukey_upper(22, 3, 147);
+  assert(p > 0 && p < 1e-20, `expected tiny positive (no floor), got ${p}`);
+});
+
 summary();

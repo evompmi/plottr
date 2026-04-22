@@ -2323,6 +2323,48 @@ function epsilonSquared(groups) {
 // Both integrals are handled by the cached 48-point Gauss-Legendre rule.
 // Matches R's `ptukey` to ~5 decimal places on the cases we benchmark.
 
+// P(range of k standard normals > w). Tail-accurate companion to `_wprob`,
+// needed to compute ptukey's upper tail without the `1 − (near-1)` collapse
+// that produced the old ~2e-10 floor in Tukey HSD / Games-Howell p-values.
+//
+// Derivation:
+//   1 − F_R(w) = k·∫ φ(u)·[normsf(u)^{k−1} − d(u,w)^{k−1}] du   (with `d(u,w) = Φ(u+w) − Φ(u)`)
+// is the identity `1 − F_R = 1 − F_R` once you substitute `1 = k·∫ φ·normsf^{k-1}`,
+// but the INTEGRAND factorises without cancellation:
+//   a^{k-1} − b^{k-1} = (a − b) · Σ_{j=0}^{k-2} a^{k-2-j}·b^j
+// where a = normsf(u), b = d(u,w), and crucially a − b = normsf(u+w) —
+// computed as a single tail-accurate call, not as a subtraction of two
+// near-1 floats. Every factor on the right is a manifest non-negative.
+function _wprob_upper(w, k) {
+  if (w <= 0) return 1;
+  const gl = _gaussLegendre(48);
+  const lo = -8,
+    hi = 8;
+  const half = (hi - lo) / 2,
+    mid = (hi + lo) / 2;
+  const invSqrt2Pi = 1 / Math.sqrt(2 * Math.PI);
+  let sum = 0;
+  for (let i = 0; i < 48; i++) {
+    const u = mid + half * gl.nodes[i];
+    const phiU = invSqrt2Pi * Math.exp(-0.5 * u * u);
+    const a = normsf(u);
+    const aMinusB = normsf(u + w); // = a − b, direct (no cancellation)
+    if (a <= 0 || aMinusB <= 0) continue;
+    const b = a - aMinusB;
+    // Σ_{j=0}^{k-2} a^{k-2-j} · b^j
+    let geoSum = 0;
+    let term = Math.pow(a, k - 2);
+    const ratio = b / a;
+    for (let j = 0; j < k - 1; j++) {
+      geoSum += term;
+      term *= ratio;
+    }
+    const integrand = k * phiU * aMinusB * geoSum;
+    sum += half * gl.weights[i] * integrand;
+  }
+  return Math.max(0, Math.min(1, sum));
+}
+
 // P(range of k standard normals ≤ w). The inner difference Φ(u+w) − Φ(u) is
 // the source of the old ~2e-10 ptukey floor: for u > 0 and u+w both large,
 // subtracting `1 − tiny` from `1 − tiny′` kills precision. We branch so each
@@ -2387,6 +2429,35 @@ function ptukey(q, k, df) {
     const fSds = Math.exp(logFS);
     if (!Number.isFinite(fSds) || fSds === 0) continue;
     sum += halfW * gl.weights[i] * fSds * _wprob(q * s, k);
+  }
+  return Math.max(0, Math.min(1, sum));
+}
+
+// P(Q > q | k groups, df error degrees of freedom). Tail-accurate counterpart
+// to `ptukey`: shares the same outer structure but passes `_wprob_upper`
+// through the Gauss-Legendre integrator so the result never goes through a
+// `1 − (near-1)` subtraction. Callers that want the upper tail of Tukey HSD
+// or Games-Howell p-values use this instead of `1 - ptukey(...)`.
+function ptukey_upper(q, k, df) {
+  if (q <= 0) return 1;
+  if (k < 2 || df < 1) return NaN;
+  const gl = _gaussLegendre(48);
+  const chiLo = chi2inv(1e-10, df);
+  const chiHi = chi2inv(1 - 1e-10, df);
+  const yLo = 0.5 * Math.log(Math.max(chiLo, 1e-300) / df);
+  const yHi = 0.5 * Math.log(chiHi / df);
+  const halfDf = df / 2;
+  const logConst = Math.log(2) + halfDf * Math.log(halfDf) - gammaln(halfDf);
+  const halfW = (yHi - yLo) / 2;
+  const midW = (yHi + yLo) / 2;
+  let sum = 0;
+  for (let i = 0; i < 48; i++) {
+    const y = midW + halfW * gl.nodes[i];
+    const s = Math.exp(y);
+    const logFS = logConst + df * y - (df * s * s) / 2;
+    const fSds = Math.exp(logFS);
+    if (!Number.isFinite(fSds) || fSds === 0) continue;
+    sum += halfW * gl.weights[i] * fSds * _wprob_upper(q * s, k);
   }
   return Math.max(0, Math.min(1, sum));
 }
@@ -2457,7 +2528,7 @@ function tukeyHSD(groups, opts = {}) {
       const diff = means[j] - means[i];
       const se = Math.sqrt((mse * (1 / ns[i] + 1 / ns[j])) / 2);
       const q = Math.abs(diff) / se;
-      const p = 1 - ptukey(q, k, dfErr);
+      const p = ptukey_upper(q, k, dfErr);
       const margin = qCrit * se;
       pairs.push({
         i,
@@ -2511,7 +2582,7 @@ function gamesHowell(groups) {
       const num = (vi + vj) * (vi + vj);
       const den = (vi * vi) / (ns[i] - 1) + (vj * vj) / (ns[j] - 1);
       const df = num / den;
-      const p = 1 - ptukey(q, k, df);
+      const p = ptukey_upper(q, k, df);
       pairs.push({ i, j, diff, se, q, df, p });
     }
   }
