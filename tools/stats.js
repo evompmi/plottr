@@ -2288,6 +2288,65 @@ function multisetIntersectionPExact(xObs, ns, N) {
 // `multisetIntersectionPExact`, opposite sum direction. Use this when the
 // observed overlap is SMALLER than the expected intersection size
 // (`multisetIntersectionExpected`) and you want to test under-enrichment.
+// ── Exclusive-cell test (UpSet bar height) ────────────────────────────────
+//
+// The inclusive-intersection primitives above answer "is |∩ S_i| enriched?"
+// (SuperExactTest). But what a user reads off an UpSet bar is the EXCLUSIVE
+// count: items in every `inside` set AND no `outside` set. Those are
+// different quantities, with different expected values.
+//
+// Under the independence approximation (each item independently falls in
+// S_i with probability n_i/N), the exclusive count for a cell defined by
+//   inside = {S_i1, …, S_ip},  outside = {S_j1, …, S_jq}
+// is Binomial(N, p_M) with
+//   p_M = Π_{i∈inside}(n_i/N) · Π_{j∈outside}(1 − n_j/N)
+//
+// E[x_exc] = N · p_M, and the p-value uses the regularized incomplete beta
+// to compute the Binomial tail without building the CDF term-by-term.
+//
+// Why not the fixed-margin exact here? That's a 2^k multivariate
+// hypergeometric — intractable past k ≈ 6 and overkill for the UI case.
+// The independence Binomial is what published UpSet-style exclusive-cell
+// tests (VennPlex, pybedtools shuffle reference tables) use.
+
+function multisetExclusiveExpected(insideSizes, outsideSizes, N) {
+  if (!Number.isFinite(N) || N <= 0) return NaN;
+  let p = 1;
+  for (const n_i of insideSizes) {
+    if (!Number.isFinite(n_i) || n_i < 0 || n_i > N) return NaN;
+    p *= n_i / N;
+  }
+  for (const n_j of outsideSizes) {
+    if (!Number.isFinite(n_j) || n_j < 0 || n_j > N) return NaN;
+    p *= 1 - n_j / N;
+  }
+  return N * p;
+}
+
+// Binomial tail via regularized incomplete beta.
+//   tail = "upper" → P(X ≥ x) = I_p(x, N − x + 1)
+//   tail = "lower" → P(X ≤ x) = I_{1−p}(N − x, x + 1)
+function multisetExclusiveP(xObs, insideSizes, outsideSizes, N, opts) {
+  if (!Number.isFinite(N) || N <= 0) return NaN;
+  const Nint = Math.floor(N);
+  const expected = multisetExclusiveExpected(insideSizes, outsideSizes, Nint);
+  if (!Number.isFinite(expected)) return NaN;
+  const p = expected / Nint;
+  const tail = opts && opts.tail === "lower" ? "lower" : "upper";
+  if (tail === "upper") {
+    if (xObs <= 0) return 1;
+    if (xObs > Nint) return 0;
+    if (p <= 0) return 0;
+    if (p >= 1) return 1;
+    return betai(xObs, Nint - xObs + 1, p);
+  }
+  if (xObs < 0) return 0;
+  if (xObs >= Nint) return 1;
+  if (p <= 0) return 1;
+  if (p >= 1) return 0;
+  return betai(Nint - xObs, xObs + 1, 1 - p);
+}
+
 function multisetIntersectionPExactLower(xObs, ns, N) {
   if (!_validateMsiArgs(ns, N)) return NaN;
   if (xObs < 0) return 0;
