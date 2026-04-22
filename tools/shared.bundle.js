@@ -3457,11 +3457,14 @@ function FileDropZone({
   const [focus, setFocus] = React.useState(false);
   const [sizeError, setSizeError] = React.useState(null);
   const [sizeWarn, setSizeWarn] = React.useState(null);
+  const [readError, setReadError] = React.useState(null);
+  const [reading, setReading] = React.useState(false);
   const inputRef = React.useRef();
 
   const handle = (file) => {
     setSizeError(null);
     setSizeWarn(null);
+    setReadError(null);
     if (file.size > FILE_LIMIT_BYTES) {
       setSizeError(
         `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 2 MB — split the file or sample rows and try again.`
@@ -3474,7 +3477,19 @@ function FileDropZone({
       );
     }
     const reader = new FileReader();
-    reader.onload = (e) => onFileLoad(e.target.result, file.name);
+    // `onload` used to fire `onFileLoad` directly; `onerror` was never wired,
+    // so a corrupt file or blocked read silently did nothing and the user
+    // was left staring at the drop zone wondering what happened. Audit M3.
+    setReading(true);
+    reader.onload = (e) => {
+      setReading(false);
+      onFileLoad(e.target.result, file.name);
+    };
+    reader.onerror = () => {
+      setReading(false);
+      const msg = (reader.error && (reader.error.message || reader.error.name)) || "unknown error";
+      setReadError(`Couldn't read the file (${msg}). Check permissions and try again.`);
+    };
     reader.readAsText(file);
   };
 
@@ -3595,6 +3610,49 @@ function FileDropZone({
           { style: { fontSize: 12, color: "var(--warning-text)" } },
           sizeWarn
         )
+      ),
+    readError &&
+      React.createElement(
+        "div",
+        {
+          role: "alert",
+          style: {
+            marginTop: 10,
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: "var(--danger-bg)",
+            border: "1px solid var(--danger-border)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          },
+        },
+        React.createElement("span", { style: { fontSize: 16 }, "aria-hidden": "true" }, "🚫"),
+        React.createElement(
+          "span",
+          { style: { fontSize: 12, color: "var(--danger-text)", fontWeight: 600 } },
+          readError
+        )
+      ),
+    reading &&
+      React.createElement(
+        "div",
+        {
+          role: "status",
+          style: {
+            marginTop: 10,
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: "var(--info-bg)",
+            border: "1px solid var(--info-border)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 12,
+            color: "var(--info-text)",
+          },
+        },
+        "Reading file…"
       )
   );
 }

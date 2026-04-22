@@ -13,12 +13,18 @@ const esbuild = require("esbuild");
 const toolsDir = path.join(__dirname, "../../tools");
 const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
 const statsSrc = fs.readFileSync(path.join(toolsDir, "stats.js"), "utf8");
-const helpersSrc = fs.readFileSync(path.join(toolsDir, "aequorin/helpers.ts"), "utf8");
 
-const helpersCjs = esbuild.transformSync(helpersSrc, {
-  loader: "ts",
+// `helpers.ts` imports from `_shell/chart-layout` (audit M7 refactor) so a
+// plain `transformSync` leaves an unresolved `require("../_shell/...")` that
+// blows up in the vm context. `buildSync` with `bundle: true` inlines the
+// cross-module import the same way the production build does.
+const helpersCjs = esbuild.buildSync({
+  entryPoints: [path.join(toolsDir, "aequorin/helpers.ts")],
+  bundle: true,
   format: "cjs",
-}).code;
+  platform: "neutral",
+  write: false,
+}).outputFiles[0].text;
 
 const moduleObj = { exports: {} };
 const ctx = {
