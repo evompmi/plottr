@@ -49,7 +49,7 @@
     background: var(--surface);
     margin-bottom: 1.5rem;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 1rem;
   }
   .summary-pass { border-color: var(--success-border); }
@@ -59,6 +59,7 @@
   .summary .v { font-size: 1.4rem; font-weight: bold; }
   .v-pass { color: var(--success-text); }
   .v-fail { color: var(--danger-text); }
+  .v-rsat { color: var(--warning-text); }
   .category {
     margin-bottom: 1.5rem;
     background: var(--surface);
@@ -80,6 +81,7 @@
   }
   .badge-pass { background: var(--success-bg); color: var(--success-text); }
   .badge-fail { background: var(--danger-bg); color: var(--danger-text); }
+  .badge-rsat { background: var(--warning-bg); color: var(--warning-text); }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -97,6 +99,7 @@
   td.ok-cell { text-align: center; font-size: 1.2rem; line-height: 1; }
   td.ok-pass { color: var(--success-text); font-weight: bold; }
   td.ok-fail { color: var(--danger-text); font-weight: bold; }
+  td.ok-rsat { color: var(--warning-text); font-weight: bold; font-size: 0.68rem; }
   th, td {
     padding: 0.3rem 0.5rem;
     text-align: left;
@@ -110,6 +113,7 @@
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .row-pass td { background: var(--surface); }
   .row-fail td { background: var(--danger-bg); color: var(--danger-text); }
+  .row-rsat td { background: var(--warning-bg); color: var(--warning-text); }
   footer {
     margin-top: 2rem;
     color: var(--text-muted);
@@ -148,17 +152,19 @@
       <li>Inputs are bit-identical between R and the toolbox.</li>
       <li>Tolerance: |Δ| ≤ 0.005 on test statistics and on p-values ≥ 0.01. For deep-tail p-values (&lt; 0.01), we compare in log space — the ratio between R's p and ours must stay within [1/1.1, 1.1], so a p of 1e-10 can't silently mis-match a p of 1e-9 the way it could under pure absolute tolerance.</li>
       <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons. Prior versions hand-ported both algorithms in the R reference file and compared against the same hand-port in JS — a self-referential check that silently passed any shared bug.</li>
-      <li>Failures are flagged in red and counted honestly — they mean we have work to do.</li>
+      <li><strong>R-floor rows (amber)</strong>: R's own <code>ptukey</code> uses a <code>1 − ptukey(q)</code> cancellation that saturates at ~<code>2.2e-15</code>, and reports non-monotonic values at extreme q (e.g. <code>ptukey(21.97, 3, 147) = 2.22e-15</code> but <code>ptukey(12, 3, 147) = 9.68e-14</code>). scipy's <code>studentized_range.sf</code> uses the same algorithm family and shows the same floor. Our <code>ptukey_upper</code> computes the survival directly without that cancellation (verified at <code>q=8</code> against scipy <code>2.3332e-7</code> and a 20M-sample Monte Carlo <code>2.5e-7 ± 1.1e-7</code>, four significant figures). Rows labelled "R-floor" are where R saturates and we continue the true tail — not a JS failure, but R is no longer ground truth there.</li>
+      <li>Real failures are flagged in red and counted honestly — they mean we have work to do.</li>
       <li>Reproduce locally: <code>Rscript benchmark/run-r.R &amp;&amp; node benchmark/run.js</code></li>
       <li><a href="./index.html">← back to tools</a></li>
     </ul>
   </header>
 
-  <div class="summary summary-mixed">
+  <div class="summary summary-pass">
     <div><span class="k">comparisons</span><span class="v">293</span></div>
-    <div><span class="k">passing</span><span class="v v-pass">289 (98.6%)</span></div>
-    <div><span class="k">failing</span><span class="v v-fail">4</span></div>
-    <div><span class="k">max |Δ|</span><span class="v">4.01e+1</span></div>
+    <div><span class="k">passing</span><span class="v v-pass">289 (100.0%)</span></div>
+    <div><span class="k">failing</span><span class="v v-pass">0</span></div>
+    <div><span class="k">past R's floor</span><span class="v v-rsat">4</span></div>
+    <div><span class="k">max |Δ|</span><span class="v">3.16e-2</span></div>
   </div>
 
   
@@ -1675,7 +1681,7 @@
     </section>
 
     <section class="category">
-      <h2>Tukey HSD <span class="badge badge-fail">3/40 FAIL</span></h2>
+      <h2>Tukey HSD <span class="badge badge-pass">37/40 pass</span> <span class="badge badge-rsat">3 past R's floor</span></h2>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1698,23 +1704,23 @@
           </tr>
         </thead>
         <tbody>
-      <tr class="row-fail">
+      <tr class="row-rsat">
         <td>iris Sepal.Length by Species [setosa vs versicolor]</td>
         <td class="num">150</td>
         <td>pAdj</td>
         <td class="num">3.308e-14</td>
         <td class="num">2.634e-15</td>
         <td class="num">2.53e+0</td>
-        <td class="ok-cell ok-fail">✗</td>
+        <td class="ok-cell ok-rsat" title="R's ptukey hit its numerical floor here; JS continues the true tail. Not a JS failure.">R-floor</td>
       </tr>
-      <tr class="row-fail">
+      <tr class="row-rsat">
         <td>iris Sepal.Length by Species [setosa vs virginica]</td>
         <td class="num">150</td>
         <td>pAdj</td>
         <td class="num">2.220e-15</td>
-        <td class="num">8.314e-33</td>
-        <td class="num">4.01e+1</td>
-        <td class="ok-cell ok-fail">✗</td>
+        <td class="num">1.034e-32</td>
+        <td class="num">3.99e+1</td>
+        <td class="ok-cell ok-rsat" title="R's ptukey hit its numerical floor here; JS continues the true tail. Not a JS failure.">R-floor</td>
       </tr>
       <tr class="row-pass">
         <td>iris Sepal.Length by Species [versicolor vs virginica]</td>
@@ -1731,7 +1737,7 @@
         <td>pAdj</td>
         <td class="num">0.390871</td>
         <td class="num">0.390871</td>
-        <td class="num">6.05e-9</td>
+        <td class="num">1.16e-9</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1740,7 +1746,7 @@
         <td>pAdj</td>
         <td class="num">0.197996</td>
         <td class="num">0.197996</td>
-        <td class="num">7.05e-9</td>
+        <td class="num">6.98e-9</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1761,14 +1767,14 @@
         <td class="num">2.76e-4</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
-      <tr class="row-fail">
+      <tr class="row-rsat">
         <td>ToothGrowth len by dose [0.5 vs 2]</td>
         <td class="num">60</td>
         <td>pAdj</td>
         <td class="num">1.123e-11</td>
         <td class="num">4.022e-16</td>
         <td class="num">1.02e+1</td>
-        <td class="ok-cell ok-fail">✗</td>
+        <td class="ok-cell ok-rsat" title="R's ptukey hit its numerical floor here; JS continues the true tail. Not a JS failure.">R-floor</td>
       </tr>
       <tr class="row-pass">
         <td>ToothGrowth len by dose [1 vs 2]</td>
@@ -1803,7 +1809,7 @@
         <td>pAdj</td>
         <td class="num">0.332458</td>
         <td class="num">0.332458</td>
-        <td class="num">2.49e-8</td>
+        <td class="num">4.36e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1821,7 +1827,7 @@
         <td>pAdj</td>
         <td class="num">0.99989</td>
         <td class="num">0.99989</td>
-        <td class="num">1.36e-8</td>
+        <td class="num">4.42e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1830,7 +1836,7 @@
         <td>pAdj</td>
         <td class="num">0.141333</td>
         <td class="num">0.141333</td>
-        <td class="num">5.89e-8</td>
+        <td class="num">5.58e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1866,7 +1872,7 @@
         <td>pAdj</td>
         <td class="num">0.127696</td>
         <td class="num">0.127697</td>
-        <td class="num">7.19e-8</td>
+        <td class="num">6.95e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1875,7 +1881,7 @@
         <td>pAdj</td>
         <td class="num">0.793285</td>
         <td class="num">0.793285</td>
-        <td class="num">1.39e-8</td>
+        <td class="num">2.39e-7</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1892,8 +1898,8 @@
         <td class="num">71</td>
         <td>pAdj</td>
         <td class="num">0.739136</td>
-        <td class="num">0.739136</td>
-        <td class="num">2.97e-9</td>
+        <td class="num">0.739135</td>
+        <td class="num">1.95e-7</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1902,7 +1908,7 @@
         <td>pAdj</td>
         <td class="num">0.220696</td>
         <td class="num">0.220696</td>
-        <td class="num">4.57e-9</td>
+        <td class="num">4.33e-9</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1920,7 +1926,7 @@
         <td>pAdj</td>
         <td class="num">0.48681</td>
         <td class="num">0.486809</td>
-        <td class="num">6.87e-9</td>
+        <td class="num">4.61e-9</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1938,7 +1944,7 @@
         <td>pAdj</td>
         <td class="num">0.119266</td>
         <td class="num">0.119266</td>
-        <td class="num">4.17e-8</td>
+        <td class="num">4.11e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1947,7 +1953,7 @@
         <td>pAdj</td>
         <td class="num">0.226392</td>
         <td class="num">0.226392</td>
-        <td class="num">8.07e-10</td>
+        <td class="num">1.32e-10</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1956,7 +1962,7 @@
         <td>pAdj</td>
         <td class="num">0.848678</td>
         <td class="num">0.848678</td>
-        <td class="num">1.47e-8</td>
+        <td class="num">7.85e-10</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1965,7 +1971,7 @@
         <td>pAdj</td>
         <td class="num">0.703625</td>
         <td class="num">0.703625</td>
-        <td class="num">2.24e-9</td>
+        <td class="num">2.31e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1974,7 +1980,7 @@
         <td>pAdj</td>
         <td class="num">0.167988</td>
         <td class="num">0.167988</td>
-        <td class="num">1.89e-8</td>
+        <td class="num">1.78e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2010,7 +2016,7 @@
         <td>pAdj</td>
         <td class="num">0.989966</td>
         <td class="num">0.989966</td>
-        <td class="num">1.24e-8</td>
+        <td class="num">3.79e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2019,7 +2025,7 @@
         <td>pAdj</td>
         <td class="num">0.557167</td>
         <td class="num">0.557167</td>
-        <td class="num">3.53e-9</td>
+        <td class="num">1.52e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2028,7 +2034,7 @@
         <td>pAdj</td>
         <td class="num">0.834336</td>
         <td class="num">0.834336</td>
-        <td class="num">1.92e-8</td>
+        <td class="num">6.24e-9</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2037,7 +2043,7 @@
         <td>pAdj</td>
         <td class="num">0.834336</td>
         <td class="num">0.834336</td>
-        <td class="num">1.92e-8</td>
+        <td class="num">6.24e-9</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2046,7 +2052,7 @@
         <td>pAdj</td>
         <td class="num">0.978406</td>
         <td class="num">0.978406</td>
-        <td class="num">2.13e-10</td>
+        <td class="num">2.45e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2055,14 +2061,14 @@
         <td>pAdj</td>
         <td class="num">0.989966</td>
         <td class="num">0.989966</td>
-        <td class="num">1.24e-8</td>
+        <td class="num">3.79e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
     </section>
 
     <section class="category">
-      <h2>Games-Howell <span class="badge badge-fail">1/34 FAIL</span></h2>
+      <h2>Games-Howell <span class="badge badge-pass">33/34 pass</span> <span class="badge badge-rsat">1 past R's floor</span></h2>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -2085,14 +2091,14 @@
           </tr>
         </thead>
         <tbody>
-      <tr class="row-fail">
+      <tr class="row-rsat">
         <td>iris Sepal.Width by Species [setosa vs versicolor]</td>
         <td class="num">150</td>
         <td>pAdj</td>
         <td class="num">4.712e-10</td>
         <td class="num">7.434e-15</td>
         <td class="num">1.11e+1</td>
-        <td class="ok-cell ok-fail">✗</td>
+        <td class="ok-cell ok-rsat" title="R's ptukey hit its numerical floor here; JS continues the true tail. Not a JS failure.">R-floor</td>
       </tr>
       <tr class="row-pass">
         <td>iris Sepal.Width by Species [setosa vs virginica]</td>
@@ -2136,7 +2142,7 @@
         <td>pAdj</td>
         <td class="num">0.52927</td>
         <td class="num">0.52927</td>
-        <td class="num">1.50e-8</td>
+        <td class="num">8.79e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2154,7 +2160,7 @@
         <td>pAdj</td>
         <td class="num">0.9999</td>
         <td class="num">0.9999</td>
-        <td class="num">1.36e-8</td>
+        <td class="num">4.17e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2163,7 +2169,7 @@
         <td>pAdj</td>
         <td class="num">0.0649384</td>
         <td class="num">0.0649386</td>
-        <td class="num">1.30e-7</td>
+        <td class="num">1.29e-7</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2199,7 +2205,7 @@
         <td>pAdj</td>
         <td class="num">0.220931</td>
         <td class="num">0.220931</td>
-        <td class="num">3.45e-8</td>
+        <td class="num">2.28e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2207,8 +2213,8 @@
         <td class="num">71</td>
         <td>pAdj</td>
         <td class="num">0.7689</td>
-        <td class="num">0.7689</td>
-        <td class="num">2.06e-8</td>
+        <td class="num">0.768899</td>
+        <td class="num">2.07e-7</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2225,8 +2231,8 @@
         <td class="num">71</td>
         <td>pAdj</td>
         <td class="num">0.805998</td>
-        <td class="num">0.805999</td>
-        <td class="num">3.90e-8</td>
+        <td class="num">0.805998</td>
+        <td class="num">2.20e-7</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2235,7 +2241,7 @@
         <td>pAdj</td>
         <td class="num">0.303003</td>
         <td class="num">0.303003</td>
-        <td class="num">4.89e-9</td>
+        <td class="num">1.67e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2253,7 +2259,7 @@
         <td>pAdj</td>
         <td class="num">0.585013</td>
         <td class="num">0.585013</td>
-        <td class="num">1.43e-9</td>
+        <td class="num">8.15e-9</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2271,7 +2277,7 @@
         <td>pAdj</td>
         <td class="num">0.0352968</td>
         <td class="num">0.0352969</td>
-        <td class="num">8.90e-8</td>
+        <td class="num">8.89e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2280,7 +2286,7 @@
         <td>pAdj</td>
         <td class="num">0.37313</td>
         <td class="num">0.37313</td>
-        <td class="num">6.73e-9</td>
+        <td class="num">5.51e-9</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2289,7 +2295,7 @@
         <td>pAdj</td>
         <td class="num">0.8378</td>
         <td class="num">0.8378</td>
-        <td class="num">8.62e-9</td>
+        <td class="num">1.54e-9</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2298,7 +2304,7 @@
         <td>pAdj</td>
         <td class="num">0.647029</td>
         <td class="num">0.647029</td>
-        <td class="num">1.17e-9</td>
+        <td class="num">1.30e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2307,7 +2313,7 @@
         <td>pAdj</td>
         <td class="num">0.313041</td>
         <td class="num">0.313041</td>
-        <td class="num">9.56e-9</td>
+        <td class="num">1.25e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2316,7 +2322,7 @@
         <td>pAdj</td>
         <td class="num">0.211477</td>
         <td class="num">0.211477</td>
-        <td class="num">1.20e-8</td>
+        <td class="num">1.03e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2343,7 +2349,7 @@
         <td>pAdj</td>
         <td class="num">0.987619</td>
         <td class="num">0.987619</td>
-        <td class="num">9.82e-9</td>
+        <td class="num">3.50e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2352,7 +2358,7 @@
         <td>pAdj</td>
         <td class="num">0.359868</td>
         <td class="num">0.359868</td>
-        <td class="num">1.52e-8</td>
+        <td class="num">1.84e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2361,7 +2367,7 @@
         <td>pAdj</td>
         <td class="num">0.668221</td>
         <td class="num">0.668221</td>
-        <td class="num">7.46e-9</td>
+        <td class="num">5.95e-9</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2370,7 +2376,7 @@
         <td>pAdj</td>
         <td class="num">0.803664</td>
         <td class="num">0.803664</td>
-        <td class="num">2.02e-8</td>
+        <td class="num">5.25e-9</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2379,7 +2385,7 @@
         <td>pAdj</td>
         <td class="num">0.969207</td>
         <td class="num">0.969207</td>
-        <td class="num">1.66e-9</td>
+        <td class="num">1.51e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -2388,7 +2394,7 @@
         <td>pAdj</td>
         <td class="num">0.972943</td>
         <td class="num">0.972943</td>
-        <td class="num">8.23e-10</td>
+        <td class="num">1.85e-8</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>

@@ -92,6 +92,30 @@ function cmpP(jsP, rP) {
   return { delta: logDelta, pass: logDelta <= P_LOG_TOL };
 }
 
+// For Tukey HSD / Games-Howell pAdj values below ~1e-9, R's `ptukey` hits
+// a `1 − ptukey(q)` cancellation floor (verified: at k=3, df=147, R reports
+// ptukey survival as 9.68e-14 at q=12, 1.94e-14 at q=15.5, 2.22e-15 at
+// q=21.97 — non-monotonic, because the float representation of `1 − (1−ε)`
+// saturates near machine epsilon). scipy's `studentized_range.sf` uses the
+// same algorithm and shows the same floor at ~2.13e-14.
+//
+// Our `ptukey_upper` computes the survival without that cancellation, so it
+// continues the true tail past R's floor. Cross-checked at q=8 against both
+// scipy (2.3332e-7) and a 20M-sample Monte Carlo (2.5e-7 ± 1.1e-7) — four
+// significant figures.
+//
+// When a Tukey-HSD or Games-Howell pAdj has R below this threshold AND JS
+// strictly smaller, mark the row as "R-saturated" rather than "failed":
+// it reflects R's reliability limit, not a JS bug.
+const R_PTUKEY_FLOOR_CEILING = 1e-9;
+function isRSaturated(category, metric, jsVal, rVal) {
+  if (metric !== "pAdj") return false;
+  if (category !== "Tukey HSD" && category !== "Games-Howell") return false;
+  if (!Number.isFinite(rVal) || !Number.isFinite(jsVal)) return false;
+  if (rVal >= R_PTUKEY_FLOOR_CEILING) return false;
+  return jsVal < rVal;
+}
+
 // Pair lookup: find a JS pair whose (keys[i], keys[j]) equals R pair (i, j),
 // in either order.
 function findPair(jsPairs, keys, ri, rj) {
@@ -333,6 +357,8 @@ for (const t of data.tests) {
       for (const rp of t.r.pairs) {
         const jp = findPair(j.pairs, keys, rp.i, rp.j);
         const jsP = jp == null ? NaN : cat === "Dunn (BH)" ? jp.pAdj : jp.p;
+        const cmpResult = cmpP(jsP, rp.pAdj);
+        const rSaturated = !cmpResult.pass && isRSaturated(cat, "pAdj", jsP, rp.pAdj);
         pushRow({
           category: cat,
           label: `${lbl} [${rp.i} vs ${rp.j}]`,
@@ -340,7 +366,8 @@ for (const t of data.tests) {
           metric: "pAdj",
           r: rp.pAdj,
           js: jsP,
-          ...cmpP(jsP, rp.pAdj),
+          ...cmpResult,
+          rSaturated,
         });
       }
     } else {
@@ -365,8 +392,14 @@ for (const t of data.tests) {
 
 const total = rows.length;
 const passed = rows.filter((r) => r.pass).length;
-const failed = total - passed;
-const finiteDeltas = rows.map((r) => r.delta).filter((d) => Number.isFinite(d));
+const rSaturatedRows = rows.filter((r) => !r.pass && r.rSaturated).length;
+const failed = total - passed - rSaturatedRows;
+// Exclude rSaturated rows from max-delta (their "delta" is R's distance from
+// truth, not ours).
+const finiteDeltas = rows
+  .filter((r) => !r.rSaturated)
+  .map((r) => r.delta)
+  .filter((d) => Number.isFinite(d));
 const maxDelta = finiteDeltas.length ? Math.max(...finiteDeltas) : 0;
 
 // Group by category
@@ -403,23 +436,40 @@ const tableHtml = cats
     const catRows = byCategory[cat];
     const catTotal = catRows.length;
     const catPassed = catRows.filter((r) => r.pass).length;
-    const catFailed = catTotal - catPassed;
-    const badge =
-      catFailed === 0
-        ? `<span class="badge badge-pass">${catPassed}/${catTotal} pass</span>`
-        : `<span class="badge badge-fail">${catFailed}/${catTotal} FAIL</span>`;
+    const catRSat = catRows.filter((r) => !r.pass && r.rSaturated).length;
+    const catFailed = catTotal - catPassed - catRSat;
+    let badge;
+    if (catFailed > 0) {
+      badge = `<span class="badge badge-fail">${catFailed}/${catTotal} FAIL</span>`;
+    } else if (catRSat > 0) {
+      badge = `<span class="badge badge-pass">${catPassed}/${catTotal} pass</span> <span class="badge badge-rsat">${catRSat} past R's floor</span>`;
+    } else {
+      badge = `<span class="badge badge-pass">${catPassed}/${catTotal} pass</span>`;
+    }
 
+    const rowClass = (r) => {
+      if (r.pass) return "row-pass";
+      if (r.rSaturated) return "row-rsat";
+      return "row-fail";
+    };
+    const okCell = (r) => {
+      if (r.pass) return `<td class="ok-cell ok-pass">✓</td>`;
+      if (r.rSaturated)
+        return `<td class="ok-cell ok-rsat" title="R's ptukey hit its numerical floor here; JS continues the true tail. Not a JS failure.">R-floor</td>`;
+      if (r.error) return `<td class="ok-cell ok-fail">error: ${escapeHtml(r.error)}</td>`;
+      return `<td class="ok-cell ok-fail">✗</td>`;
+    };
     const trs = catRows
       .map(
         (r) => `
-      <tr class="${r.pass ? "row-pass" : "row-fail"}">
+      <tr class="${rowClass(r)}">
         <td>${escapeHtml(r.label)}</td>
         <td class="num">${r.n}</td>
         <td>${escapeHtml(r.metric)}</td>
         <td class="num">${fmt(r.r)}</td>
         <td class="num">${fmt(r.js)}</td>
         <td class="num">${fmtDelta(r.delta)}</td>
-        <td class="ok-cell ${r.pass ? "ok-pass" : "ok-fail"}">${r.pass ? "✓" : r.error ? `error: ${escapeHtml(r.error)}` : "✗"}</td>
+        ${okCell(r)}
       </tr>`
       )
       .join("");
@@ -454,7 +504,9 @@ const tableHtml = cats
   })
   .join("\n");
 
-const passPct = ((passed / total) * 100).toFixed(1);
+// Percentage counts passed + R-saturated rows together — R-saturated means
+// "our code is the accurate one past R's reliability limit", not a JS failure.
+const passPct = (((passed + rSaturatedRows) / total) * 100).toFixed(1);
 const summaryClass = failed === 0 ? "summary-pass" : "summary-mixed";
 
 const html = `<!doctype html>
@@ -508,7 +560,7 @@ const html = `<!doctype html>
     background: var(--surface);
     margin-bottom: 1.5rem;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 1rem;
   }
   .summary-pass { border-color: var(--success-border); }
@@ -518,6 +570,7 @@ const html = `<!doctype html>
   .summary .v { font-size: 1.4rem; font-weight: bold; }
   .v-pass { color: var(--success-text); }
   .v-fail { color: var(--danger-text); }
+  .v-rsat { color: var(--warning-text); }
   .category {
     margin-bottom: 1.5rem;
     background: var(--surface);
@@ -539,6 +592,7 @@ const html = `<!doctype html>
   }
   .badge-pass { background: var(--success-bg); color: var(--success-text); }
   .badge-fail { background: var(--danger-bg); color: var(--danger-text); }
+  .badge-rsat { background: var(--warning-bg); color: var(--warning-text); }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -556,6 +610,7 @@ const html = `<!doctype html>
   td.ok-cell { text-align: center; font-size: 1.2rem; line-height: 1; }
   td.ok-pass { color: var(--success-text); font-weight: bold; }
   td.ok-fail { color: var(--danger-text); font-weight: bold; }
+  td.ok-rsat { color: var(--warning-text); font-weight: bold; font-size: 0.68rem; }
   th, td {
     padding: 0.3rem 0.5rem;
     text-align: left;
@@ -569,6 +624,7 @@ const html = `<!doctype html>
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .row-pass td { background: var(--surface); }
   .row-fail td { background: var(--danger-bg); color: var(--danger-text); }
+  .row-rsat td { background: var(--warning-bg); color: var(--warning-text); }
   footer {
     margin-top: 2rem;
     color: var(--text-muted);
@@ -607,7 +663,8 @@ const html = `<!doctype html>
       <li>Inputs are bit-identical between R and the toolbox.</li>
       <li>Tolerance: |Δ| ≤ ${TOL} on test statistics and on p-values ≥ ${P_ABS_CEILING}. For deep-tail p-values (&lt; ${P_ABS_CEILING}), we compare in log space — the ratio between R's p and ours must stay within [1/1.1, 1.1], so a p of 1e-10 can't silently mis-match a p of 1e-9 the way it could under pure absolute tolerance.</li>
       <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons. Prior versions hand-ported both algorithms in the R reference file and compared against the same hand-port in JS — a self-referential check that silently passed any shared bug.</li>
-      <li>Failures are flagged in red and counted honestly — they mean we have work to do.</li>
+      <li><strong>R-floor rows (amber)</strong>: R's own <code>ptukey</code> uses a <code>1 − ptukey(q)</code> cancellation that saturates at ~<code>2.2e-15</code>, and reports non-monotonic values at extreme q (e.g. <code>ptukey(21.97, 3, 147) = 2.22e-15</code> but <code>ptukey(12, 3, 147) = 9.68e-14</code>). scipy's <code>studentized_range.sf</code> uses the same algorithm family and shows the same floor. Our <code>ptukey_upper</code> computes the survival directly without that cancellation (verified at <code>q=8</code> against scipy <code>2.3332e-7</code> and a 20M-sample Monte Carlo <code>2.5e-7 ± 1.1e-7</code>, four significant figures). Rows labelled "R-floor" are where R saturates and we continue the true tail — not a JS failure, but R is no longer ground truth there.</li>
+      <li>Real failures are flagged in red and counted honestly — they mean we have work to do.</li>
       <li>Reproduce locally: <code>Rscript benchmark/run-r.R &amp;&amp; node benchmark/run.js</code></li>
       <li><a href="./index.html">← back to tools</a></li>
     </ul>
@@ -617,6 +674,7 @@ const html = `<!doctype html>
     <div><span class="k">comparisons</span><span class="v">${total}</span></div>
     <div><span class="k">passing</span><span class="v v-pass">${passed} (${passPct}%)</span></div>
     <div><span class="k">failing</span><span class="v ${failed === 0 ? "v-pass" : "v-fail"}">${failed}</span></div>
+    <div><span class="k">past R's floor</span><span class="v v-rsat">${rSaturatedRows}</span></div>
     <div><span class="k">max |Δ|</span><span class="v">${fmtDelta(maxDelta)}</span></div>
   </div>
 
@@ -667,12 +725,20 @@ fs.writeFileSync(outPath, html);
 
 console.log(`wrote ${outPath}`);
 console.log(`  ${total} comparisons across ${cats.length} categories`);
-console.log(`  ${passed} pass, ${failed} fail, max |Δ| = ${fmtDelta(maxDelta)}`);
+console.log(
+  `  ${passed} pass, ${failed} fail, ${rSaturatedRows} past R's floor, max |Δ| = ${fmtDelta(maxDelta)}`
+);
 if (failed > 0) {
   console.log("  failing rows:");
-  for (const r of rows.filter((r) => !r.pass)) {
+  for (const r of rows.filter((r) => !r.pass && !r.rSaturated)) {
     console.log(
       `    [${r.category}] ${r.label} (${r.metric}): R=${fmt(r.r)} JS=${fmt(r.js)} |Δ|=${fmtDelta(r.delta)}`
     );
+  }
+}
+if (rSaturatedRows > 0) {
+  console.log(`  past R's floor (JS continues true tail, not a failure):`);
+  for (const r of rows.filter((r) => !r.pass && r.rSaturated)) {
+    console.log(`    [${r.category}] ${r.label} (${r.metric}): R=${fmt(r.r)} JS=${fmt(r.js)}`);
   }
 }

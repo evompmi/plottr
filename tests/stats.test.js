@@ -1773,4 +1773,25 @@ test("ptukey_upper at extreme q stays positive (no 2e-10 floor)", () => {
   assert(p > 0 && p < 1e-20, `expected tiny positive (no floor), got ${p}`);
 });
 
+test("_wprob_upper window adapts to peak u = −w/2 (k=2 closed form at large w)", () => {
+  // Regression: before the adaptive window, _wprob_upper integrated on a
+  // fixed [−8, 8] range, which misses the integrand peak (at u = −w/2) for
+  // w > ~16. The k=2 closed form `2·normsf(w/√2)` catches this — at w=22
+  // the fixed-window JS was off by 5 orders of magnitude.
+  for (const w of [20, 22, 25, 30]) {
+    const got = ctx._wprob_upper(w, 2);
+    const want = 2 * ctx.normsf(w / Math.SQRT2);
+    const rel = Math.abs(got - want) / want;
+    assert(rel < 1e-4, `w=${w}: got ${got}, want ${want}, rel=${rel}`);
+  }
+});
+
+test("ptukey_upper matches scipy at q=8 (independent cross-check)", () => {
+  // scipy.stats.studentized_range.sf(8, 3, 147) = 2.3332e-7 (verified 2026-04-22).
+  // MC with 20M samples: 2.50e-7 ± 1.12e-7. Both consistent with our value.
+  const p = ctx.ptukey_upper(8, 3, 147);
+  const want = 2.3332e-7;
+  assert(Math.abs(p - want) / want < 5e-3, `ptukey_upper(8, 3, 147) = ${p}, scipy = ${want}`);
+});
+
 summary();
