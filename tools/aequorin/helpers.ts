@@ -6,7 +6,33 @@
 // steps.tsx, controls.tsx, index.tsx).
 
 // ── Calibration defaults ─────────────────────────────────────────────────────
-
+//
+// These values are the kinetic rate constants for native shrimp aequorin in
+// solution, as determined experimentally and tabulated by Allen & Blinks:
+//
+//   Allen, D. G., & Blinks, J. R. (1978). "Calcium transients in aequorin-
+//   injected frog cardiac muscle." Nature 273(5663): 509-513.
+//
+//   • KR  = 7     — rate constant for the calcium-bound luminescent state
+//   • KTR = 118   — turnover rate from the triggered complex
+//
+// The Hill variant (Kd) and the adjustable Hill exponent (n) come from the
+// equilibrium treatment later adopted for plant aequorin:
+//
+//   Knight, M. R., Campbell, A. K., Smith, S. M., & Trewavas, A. J. (1991).
+//     "Transgenic plant aequorin reports the effects of touch and cold-shock
+//     and elicitors on cytoplasmic calcium." Nature 352(6335): 524-526.
+//
+//   Plieth, C. (2006). "Aequorin as a reporter gene." Methods in Molecular
+//     Biology 323: 307-327.
+//
+//   • KD         = 7   — dissociation constant for the Hill-equilibrium form
+//   • HILL_N     = 3   — the canonical triple-Ca²⁺-binding Hill coefficient
+//
+// These defaults are what plant-science papers almost always report; changing
+// them silently shifts every downstream [Ca²⁺] value. `tests/aequorin.test.js`
+// pins the (input, DEFAULT_*) → output map so a "tidy" edit can't drift them
+// without a test failure.
 export const DEFAULT_KR = 7;
 export const DEFAULT_KTR = 118;
 export const DEFAULT_KD = 7;

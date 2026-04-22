@@ -15,6 +15,10 @@ const {
   convertTime,
   buildAreaD,
   buildLineD,
+  DEFAULT_KR,
+  DEFAULT_KTR,
+  DEFAULT_KD,
+  DEFAULT_HILL_N,
 } = require("./helpers/aequorin-loader");
 
 // ── convertTime ─────────────────────────────────────────────────────────────
@@ -212,6 +216,72 @@ test("buildAreaD drops points whose bounds are null", () => {
   const d = buildAreaD(pts);
   // Only (5,…) and (10,…) contribute.
   eq(d, "M5.00,10.00L10.00,20.00L10.00,3.00L5.00,2.00Z");
+});
+
+// ── Calibration-defaults regression (audit M6) ───────────────────────────────
+//
+// The DEFAULT_KR / DEFAULT_KTR / DEFAULT_KD / DEFAULT_HILL_N constants are
+// the canonical shrimp-aequorin kinetic rate constants (Allen & Blinks
+// 1978) plus the Hill-equilibrium Kd and the canonical triple-binding
+// Hill coefficient — the numbers plant-science papers report. A silent
+// "tidy" edit (round 118 → 100, change 7 → 10) would shift every
+// downstream [Ca²⁺] value without any existing test noticing.
+//
+// This suite pins both the default values themselves AND a snapshot of
+// their output on a plausible geometric-decay rundown, so either kind of
+// drift breaks a test loudly.
+
+suite("Calibration defaults (audit M6 regression)");
+
+test("default rate constants match the Allen & Blinks / Knight-Plieth canonical values", () => {
+  eq(DEFAULT_KR, 7);
+  eq(DEFAULT_KTR, 118);
+  eq(DEFAULT_KD, 7);
+  eq(DEFAULT_HILL_N, 3);
+});
+
+// Single column, 5-point geometric decay. L/ΣL runs from ~61% down to ~1.6%.
+const RUNDOWN_DATA = [[100], [40], [16], [6.4], [2.56]];
+
+test("calibrate(RUNDOWN, DEFAULT_KR, DEFAULT_KTR) matches pinned snapshot", () => {
+  const out = calibrate(["col0"], RUNDOWN_DATA, DEFAULT_KR, DEFAULT_KTR);
+  const expected = [
+    [92.69802636783974],
+    [27.783077313522178],
+    [14.185709052491726],
+    [8.484463437852751],
+    [5.459208946431367],
+  ];
+  eq(out.length, expected.length);
+  for (let i = 0; i < expected.length; i++) {
+    approx(out[i][0], expected[i][0], 1e-9);
+  }
+});
+
+test("calibrateHill(RUNDOWN, DEFAULT_KD) matches pinned snapshot", () => {
+  const out = calibrateHill(["col0"], RUNDOWN_DATA, DEFAULT_KD);
+  const expected = [
+    [8.082568015731356],
+    [4.788443472490016],
+    [3.327475090445512],
+    [2.401191619637118],
+    [1.7551572007382183],
+  ];
+  eq(out.length, expected.length);
+  for (let i = 0; i < expected.length; i++) {
+    approx(out[i][0], expected[i][0], 1e-9);
+  }
+});
+
+test("calibrateGeneralized(RUNDOWN, DEFAULT_*) reduces to Allen & Blinks at n=3", () => {
+  // The Generalised formula reduces to Allen & Blinks when HILL_N=3 because
+  // f^(1/3) = Math.cbrt(f). The two must agree to double precision.
+  const ab = calibrate(["col0"], RUNDOWN_DATA, DEFAULT_KR, DEFAULT_KTR);
+  const gen = calibrateGeneralized(["col0"], RUNDOWN_DATA, DEFAULT_KR, DEFAULT_KTR, DEFAULT_HILL_N);
+  eq(ab.length, gen.length);
+  for (let i = 0; i < ab.length; i++) {
+    approx(gen[i][0], ab[i][0], 1e-12);
+  }
 });
 
 summary();
