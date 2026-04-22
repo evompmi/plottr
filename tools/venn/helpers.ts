@@ -47,3 +47,5 @@ export {
   buildVenn3LayoutClassic,
 } from "./layout";
 export { computeRegionCentroids } from "./centroids";
+export { detectLongFormat } from "./long-format-detect";
+export type { LongFormatDetection } from "./long-format-detect";

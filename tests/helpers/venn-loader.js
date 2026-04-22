@@ -57,4 +57,5 @@ module.exports = {
   buildRegionPaths: moduleObj.exports.buildRegionPaths,
   computeAllRegionAreas: moduleObj.exports.computeAllRegionAreas,
   tripleIntersectionArea: moduleObj.exports.tripleIntersectionArea,
+  detectLongFormat: moduleObj.exports.detectLongFormat,
 };

@@ -13,6 +13,7 @@ import {
   buildVenn2LayoutClassic,
   buildVenn3LayoutClassic,
   computeRegionCentroids,
+  detectLongFormat,
   VENN_CONFIG,
   VIS_INIT_VENN,
 } from "./venn/helpers";
@@ -1160,24 +1161,19 @@ function App() {
         return;
       }
 
-      // Detect a long-format upload (2 columns: item, set) so we don't silently
-      // treat it as a 2-set wide Venn when it's actually N distinct sets stacked
-      // into column 2. Strong signal: col 2 has fewer distinct values than rows
-      // (i.e. labels repeat), which never happens in a wide 2-column layout.
+      // Decide long-format vs wide. Logic extracted into `detectLongFormat`
+      // (tools/venn/long-format-detect.ts) so it's unit-testable; see that
+      // file for the decision rules and the audit-M2 history.
       let sn, ss;
       let usedLongFormat = false;
-      if (headers.length === 2) {
-        const col2 = rows.map((r) => (r[1] || "").trim()).filter(Boolean);
-        const col2Distinct = new Set(col2).size;
-        if (col2.length >= 4 && col2Distinct >= 2 && col2Distinct < col2.length) {
-          try {
-            const longParsed = parseLongFormatSets(headers, rows);
-            sn = longParsed.setNames;
-            ss = longParsed.sets;
-            usedLongFormat = true;
-          } catch {
-            /* fall through to wide parse */
-          }
+      if (headers.length === 2 && detectLongFormat(headers, rows).isLong) {
+        try {
+          const longParsed = parseLongFormatSets(headers, rows);
+          sn = longParsed.setNames;
+          ss = longParsed.sets;
+          usedLongFormat = true;
+        } catch {
+          /* fall through to wide parse */
         }
       }
       if (!usedLongFormat) {
