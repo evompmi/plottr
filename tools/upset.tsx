@@ -1695,7 +1695,12 @@ function IntersectionStatsPanel({
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        {cachedResult ? (
+        {intersection.degree < 2 ? (
+          <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
+            Single-set bars don't have a multi-set overlap p-value — pick a bar with at least two
+            dots in the matrix.
+          </span>
+        ) : cachedResult ? (
           <>
             <span style={{ fontSize: 12 }}>
               <span style={{ color: "var(--text-muted)" }}>p = </span>
@@ -1836,16 +1841,23 @@ function App() {
     if (computingStats) return;
     const universeN = typeof universeSize === "number" ? universeSize : Number(universeSize);
     if (!Number.isFinite(universeN) || universeN <= 0) return;
+    // Degree-1 intersections have no meaningful SuperExactTest p-value —
+    // asking "is |S_A| bigger than random?" under a null where |S_A| is
+    // fixed is trivially undefined, and `multisetIntersectionPExact` returns
+    // NaN for ns.length < 2. Skipping them protects the BH pass: a single
+    // NaN in bhAdjust's input poisons the running-min and every adj becomes
+    // NaN — which manifested as every pAdj showing as "—" on the panel.
     const bars = truncatedIntersections;
-    if (bars.length === 0) return;
+    const testable = bars.filter((b) => b.degree >= 2);
+    if (testable.length === 0) return;
 
     setComputingStats(true);
-    setComputeProgress({ done: 0, total: bars.length });
+    setComputeProgress({ done: 0, total: testable.length });
 
     const pending = new Map(intersectionTests);
     const CHUNK_SIZE = 16;
-    for (let i = 0; i < bars.length; i++) {
-      const inter = bars[i];
+    for (let i = 0; i < testable.length; i++) {
+      const inter = testable[i];
       const setSizes = inter.setIndices.map(
         (idx) => (sets.get(displaySetNames[idx]) || new Set()).size
       );
@@ -1864,16 +1876,18 @@ function App() {
         p,
         pAdj: null,
       });
-      if ((i + 1) % CHUNK_SIZE === 0 || i === bars.length - 1) {
-        setComputeProgress({ done: i + 1, total: bars.length });
+      if ((i + 1) % CHUNK_SIZE === 0 || i === testable.length - 1) {
+        setComputeProgress({ done: i + 1, total: testable.length });
         await new Promise((r) => setTimeout(r, 0));
       }
     }
 
-    // BH adjust across every result matching the current universe (including
-    // any that were computed earlier for the same N but for intersections
-    // no longer visible — folding them in keeps pAdj values stable).
-    const matching = [...pending.values()].filter((e) => e.universe === universeN);
+    // BH adjust across every finite-p entry for the current universe. Filter
+    // non-finite p-values out of the input — including a degree-1 leftover
+    // from a prior batch would otherwise propagate NaN through the adj vector.
+    const matching = [...pending.values()].filter(
+      (e) => e.universe === universeN && Number.isFinite(e.p)
+    );
     const ps = matching.map((e) => e.p);
     const adj = bhAdjust(ps);
     matching.forEach((e, j) => {
