@@ -11,6 +11,7 @@ const {
   shadeColor,
   seededRandom,
   isNumericValue,
+  toNumericValue,
   wideToLong,
   reshapeWide,
   computeStats,
@@ -280,6 +281,63 @@ test("rejects hex literals that Number() would accept", () => {
 test("rejects plain text", () => {
   assert(!isNumericValue("ctrl"));
   assert(!isNumericValue("treatment"));
+});
+
+test("rejects overflow strings like '1e999' (would coerce to Infinity)", () => {
+  assert(!isNumericValue("1e999"));
+  assert(!isNumericValue("-1e999"));
+});
+
+test("rejects leading-zero integer IDs like '007' / '00012' (well plates, accession codes)", () => {
+  assert(!isNumericValue("007"));
+  assert(!isNumericValue("00012"));
+  assert(!isNumericValue("-007"));
+  // But zero by itself and decimals starting with 0 stay valid.
+  assert(isNumericValue("0"));
+  assert(isNumericValue("-0"));
+  assert(isNumericValue("0.5"));
+  assert(isNumericValue("0e3"));
+});
+
+test("accepts Unicode minus / en-dash / em-dash variants (Excel, PDFs, Word)", () => {
+  assert(isNumericValue("−5")); // U+2212 minus
+  assert(isNumericValue("–5")); // U+2013 en-dash
+  assert(isNumericValue("—5")); // U+2014 em-dash
+  assert(isNumericValue("−3.14"));
+});
+
+test("strips NBSP / thin spaces from numeric candidates", () => {
+  assert(isNumericValue("5 000")); // U+00A0 NBSP
+  assert(isNumericValue("5 000")); // U+2009 thin space
+  assert(isNumericValue("5 000")); // U+202F narrow NBSP
+});
+
+// ── toNumericValue / normalizeNumericString ──────────────────────────────────
+
+suite("toNumericValue (normalise + parse)");
+
+test("returns the same value Number() would for ASCII inputs", () => {
+  eq(toNumericValue("42"), 42);
+  eq(toNumericValue("-3.14"), -3.14);
+  eq(toNumericValue("1e2"), 100);
+});
+
+test("converts Unicode-minus values to a real negative Number", () => {
+  eq(toNumericValue("−5"), -5);
+  eq(toNumericValue("–3.14"), -3.14);
+});
+
+test("parses NBSP-separated thousands", () => {
+  // Build the NBSP input from escape codes so no editor / prettier pass can
+  // silently normalise it to a plain ASCII space.
+  const NBSP = String.fromCharCode(0x00a0);
+  eq(toNumericValue("5" + NBSP + "000"), 5000);
+});
+
+test("returns NaN for non-numeric input", () => {
+  assert(Number.isNaN(toNumericValue("abc")));
+  assert(Number.isNaN(toNumericValue("007"))); // leading-zero ID rejected
+  assert(Number.isNaN(toNumericValue("1e999"))); // overflow rejected
 });
 
 // ── computeStats ──────────────────────────────────────────────────────────────
