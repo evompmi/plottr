@@ -15,10 +15,32 @@ const toolsDir = path.join(__dirname, "../../tools");
 function createReactMock() {
   let stateIdx = 0;
   const states = [];
+  // Queue of pending effect callbacks captured during a render. React runs
+  // effects *after* commit; we can't faithfully "commit" without a DOM, but
+  // we can run them synchronously after the render function returns so
+  // listener-attachment bugs, ref-initialisation bugs, and teardown throws
+  // all surface in the smoke test. `render()` calls `flushEffects()` after
+  // the component returns.
+  const pendingEffects = [];
 
   function resetHooks() {
     stateIdx = 0;
     states.length = 0;
+    pendingEffects.length = 0;
+  }
+
+  function flushEffects() {
+    while (pendingEffects.length > 0) {
+      const fn = pendingEffects.shift();
+      // Any throw from the effect propagates out of flushEffects — render-
+      // smoke tests should see effect failures. We deliberately do NOT call
+      // the returned cleanup here: React only runs cleanup on subsequent
+      // renders with changed deps or on unmount, neither of which the
+      // single-pass harness models. What we want to catch is throws *during
+      // attachment*, not teardown semantics.
+      const cleanup = fn();
+      void cleanup;
+    }
   }
 
   const React = {
@@ -42,9 +64,12 @@ function createReactMock() {
         },
       ];
     },
-    useReducer(reducer, init) {
+    useReducer(reducer, init, initArg) {
       const idx = stateIdx++;
-      if (states[idx] === undefined) states[idx] = init;
+      if (states[idx] === undefined) {
+        // Match React's `init` function signature: `useReducer(r, initArg, init)`.
+        states[idx] = typeof initArg === "function" ? initArg(init) : init;
+      }
       const i = idx;
       return [
         states[i],
@@ -62,11 +87,47 @@ function createReactMock() {
     useRef(init) {
       return { current: init !== undefined ? init : null };
     },
-    useEffect() {},
+    useEffect(fn) {
+      pendingEffects.push(fn);
+    },
+    useLayoutEffect(fn) {
+      pendingEffects.push(fn);
+    },
+    useInsertionEffect() {
+      // No-op. Used for CSS-in-JS libraries; none of the tool components use it.
+    },
+    useDebugValue() {
+      // No-op. Dev-tools hint; no behavioural effect.
+    },
     useId() {
       const idx = stateIdx++;
       if (states[idx] === undefined) states[idx] = ":r" + idx + ":";
       return states[idx];
+    },
+    // Minimal context support. `Provider` and `Consumer` just pass children
+    // through; `useContext` returns the default value. No provider-tree
+    // scoping (no component in plottr currently uses context — this is
+    // scaffolding so a future addition doesn't crash the mock). If a component
+    // ever actually needs per-provider overrides, extend this with a context
+    // stack pushed/popped around createElement of a Provider.
+    createContext(defaultValue) {
+      const context = {
+        _currentValue: defaultValue,
+        _isContext: true,
+      };
+      context.Provider = function Provider(props) {
+        return props && props.children;
+      };
+      context.Consumer = function Consumer(props) {
+        if (props && typeof props.children === "function") {
+          return props.children(context._currentValue);
+        }
+        return props && props.children;
+      };
+      return context;
+    },
+    useContext(context) {
+      return context && context._isContext ? context._currentValue : undefined;
     },
     memo(fn) {
       return fn;
@@ -80,6 +141,7 @@ function createReactMock() {
       return comp;
     },
     Fragment: "Fragment",
+    StrictMode: "StrictMode",
     Component: class {
       constructor(props) {
         this.props = props;
@@ -95,13 +157,13 @@ function createReactMock() {
     },
   };
 
-  return { React: React, resetHooks: resetHooks };
+  return { React: React, resetHooks: resetHooks, flushEffects: flushEffects };
 }
 
 // ── Build a vm context with all the globals tools expect ────────────────────
 
 function buildContext() {
-  const { React, resetHooks } = createReactMock();
+  const { React, resetHooks, flushEffects } = createReactMock();
 
   const ctx = {
     Math,
@@ -218,14 +280,14 @@ function buildContext() {
   const bundleSrc = fs.readFileSync(bundlePath, "utf8");
   vm.runInContext(bundleSrc, ctx);
 
-  return { ctx: ctx, resetHooks: resetHooks };
+  return { ctx: ctx, resetHooks: resetHooks, flushEffects: flushEffects };
 }
 
 // ── Load a compiled tool .js file into its own context ──────────────────────
 // Each tool gets a fresh context since they define conflicting top-level names.
 
 function loadTool(toolName) {
-  const { ctx, resetHooks } = buildContext();
+  const { ctx, resetHooks, flushEffects } = buildContext();
   // Some tools ship as folder-split entries (e.g. tools/boxplot/index.js);
   // fall back to the folder layout when the flat .js is missing.
   const flatPath = path.join(toolsDir, toolName + ".js");
@@ -251,14 +313,19 @@ function loadTool(toolName) {
   Object.keys(exports).forEach(function (k) {
     if (exports[k] !== undefined) ctx[k] = exports[k];
   });
-  return { ctx: ctx, resetHooks: resetHooks };
+  return { ctx: ctx, resetHooks: resetHooks, flushEffects: flushEffects };
 }
 
 // ── Helper: render a component (call the function) and return the element ───
 
-function render(component, props, resetHooks) {
+function render(component, props, resetHooks, flushEffects) {
   if (resetHooks) resetHooks();
-  return component(props);
+  const tree = component(props);
+  // Run any effects queued during this render so listener-attachment
+  // throws surface in the test. Safe to call with no flusher — callers
+  // that only want the element tree can still omit it.
+  if (typeof flushEffects === "function") flushEffects();
+  return tree;
 }
 
 // ── Helper: count elements in a tree recursively ────────────────────────────

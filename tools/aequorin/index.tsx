@@ -28,6 +28,9 @@ const VIS_INIT_AEQUORIN = {
   xEnd: 800,
   yMin: 0.1,
   yMax: 1.4,
+  // When true, the y-axis auto-rescales to the visible x-window. Any manual
+  // edit of yMin / yMax flips this off so the user's range sticks.
+  autoYRange: true,
   faceted: false,
   plotTitle: "",
   plotSubtitle: "",
@@ -198,8 +201,11 @@ function App() {
     [stats, replicateSumsByPrefix]
   );
 
-  // Auto-rescale y-axis whenever formula, data, or visible x window changes
+  // Auto-rescale y-axis whenever formula, data, or visible x window changes —
+  // only while `vis.autoYRange` is on. A manual edit of Y min / Y max in the
+  // controls sets it to false and the user's range sticks.
   React.useEffect(() => {
+    if (!vis.autoYRange) return;
     if (!calData || calData.length === 0) return;
     const r0 = Math.max(0, Math.floor(vis.xStart));
     const r1 = Math.min(calData.length - 1, Math.ceil(vis.xEnd));
@@ -216,7 +222,7 @@ function App() {
       const round2 = (v) => Math.round(v * 100) / 100;
       updVis({ yMin: round2(Math.max(0, lo * 0.9)), yMax: round2(hi * 1.1) });
     }
-  }, [formula, calData, vis.xStart, vis.xEnd]);
+  }, [formula, calData, vis.xStart, vis.xEnd, vis.autoYRange]);
 
   const csvText = useMemo(() => {
     if (!calData || !parsed) return "";

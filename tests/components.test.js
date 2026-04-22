@@ -969,4 +969,114 @@ test("preserves original pair order", function () {
 
 // ════════════════════════════════════════════════════════════════════════════
 
+// ── React-mock upgrades (audit #11) ─────────────────────────────────────────
+//
+// Before this pass, `useEffect` in the render mock was a no-op, so any
+// subscription / ref-initialisation / teardown-throw inside a tool component
+// silently passed render-smoke tests while breaking in the browser. The mock
+// now queues effect callbacks during render and flushes them after the
+// component returns — catching listener-attachment failures, ref bugs, and
+// missing-context errors. These tests pin that the upgrade actually surfaces
+// issues that the old mock would have swallowed.
+
+suite("React-mock: useEffect runs after render");
+
+test("useEffect callback is invoked when the render is flushed", function () {
+  const mock = buildContext();
+  const React = mock.ctx.React;
+  let effectRan = false;
+  function Subscriber() {
+    React.useEffect(function () {
+      effectRan = true;
+    }, []);
+    return React.createElement("div", null);
+  }
+  render(Subscriber, {}, mock.resetHooks, mock.flushEffects);
+  assert(effectRan, "useEffect body must execute after render flush");
+});
+
+test("useEffect exceptions surface as render errors (no silent swallow)", function () {
+  const mock = buildContext();
+  const React = mock.ctx.React;
+  function Broken() {
+    React.useEffect(function () {
+      throw new Error("boom from effect");
+    }, []);
+    return React.createElement("div", null);
+  }
+  let thrown = null;
+  try {
+    render(Broken, {}, mock.resetHooks, mock.flushEffects);
+  } catch (err) {
+    thrown = err;
+  }
+  assert(thrown != null, "effect throw must propagate through render()");
+  assert(/boom from effect/.test(thrown.message), "original error message preserved");
+});
+
+test("useLayoutEffect runs on the same pass as useEffect", function () {
+  const mock = buildContext();
+  const React = mock.ctx.React;
+  let sequence = [];
+  function C() {
+    React.useEffect(function () {
+      sequence.push("effect");
+    });
+    React.useLayoutEffect(function () {
+      sequence.push("layout");
+    });
+    return React.createElement("div", null);
+  }
+  render(C, {}, mock.resetHooks, mock.flushEffects);
+  assert(sequence.includes("effect"), "useEffect ran");
+  assert(sequence.includes("layout"), "useLayoutEffect ran");
+});
+
+test("useEffect can attach to `document` without crashing the mock", function () {
+  // Mirrors the real-world pattern that PrefsPanel and theme.js rely on —
+  // a global `mousedown` / `keydown` listener attached from an effect.
+  // The old no-op mock silently skipped this path; now it runs against the
+  // DOM stubs baked into buildContext and must not throw.
+  const mock = buildContext();
+  const React = mock.ctx.React;
+  const document = mock.ctx.document;
+  function DocListener() {
+    React.useEffect(function () {
+      document.addEventListener("mousedown", function () {});
+      return function () {
+        document.removeEventListener("mousedown", function () {});
+      };
+    }, []);
+    return React.createElement("div", null);
+  }
+  let thrown = null;
+  try {
+    render(DocListener, {}, mock.resetHooks, mock.flushEffects);
+  } catch (err) {
+    thrown = err;
+  }
+  assert(thrown == null, "effect using document.addEventListener must not throw");
+});
+
+suite("React-mock: createContext / useContext scaffolding");
+
+test("createContext returns an object with Provider and Consumer", function () {
+  const mock = buildContext();
+  const Ctx = mock.ctx.React.createContext("default-value");
+  assert(typeof Ctx.Provider === "function", "Provider is a function");
+  assert(typeof Ctx.Consumer === "function", "Consumer is a function");
+});
+
+test("useContext returns the default value (no provider tree tracked)", function () {
+  const mock = buildContext();
+  const React = mock.ctx.React;
+  const Theme = React.createContext("light");
+  function Reader() {
+    const theme = React.useContext(Theme);
+    return React.createElement("span", null, theme);
+  }
+  const tree = render(Reader, {}, mock.resetHooks, mock.flushEffects);
+  assert(tree != null && tree.children[0] === "light", "useContext returns default");
+});
+
 summary();
