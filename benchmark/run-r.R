@@ -4,13 +4,18 @@
 #
 # Run with: Rscript benchmark/run-r.R
 #
-# Brown-Forsythe Levene, Games-Howell, and Dunn-BH are implemented inline to
-# avoid dependencies on car / PMCMRplus / FSA (keeps reproduction simple).
+# Brown-Forsythe Levene is implemented inline because `car::leveneTest` uses
+# the same aov(|x - median|) formulation and adding car just for one test
+# would dwarf the cost. Games-Howell and Dunn-BH use PMCMRplus (the canonical
+# package for non-parametric multiple comparisons). Prior versions of this
+# script hand-ported those two tests and compared against that same hand-port
+# in JS — a self-referential cross-check that silently passed any shared bug.
 
 suppressPackageStartupMessages(library(jsonlite))
 suppressPackageStartupMessages(library(datasets))
+suppressPackageStartupMessages(library(PMCMRplus))
 
-# ── Inline implementations matching tools/stats.js ─────────────────────────
+# ── Inline Brown-Forsythe Levene (single aov call on |x - median|) ────────
 
 brown_forsythe <- function(values, groups) {
   groups <- as.factor(groups)
@@ -20,63 +25,43 @@ brown_forsythe <- function(values, groups) {
   list(statistic = unname(a[["F value"]][1]), p = unname(a[["Pr(>F)"]][1]))
 }
 
+# ── Games-Howell via PMCMRplus ─────────────────────────────────────────────
+# gamesHowellTest returns a PMCMR object with a lower-triangular p.value
+# matrix (rows are "later" levels, cols are "earlier"). We flatten it back
+# into the same { i, j, pAdj } list shape the JS benchmark consumes.
 games_howell <- function(values, groups) {
   groups <- as.factor(groups)
   lvl <- levels(groups)
   k <- length(lvl)
-  ns <- tapply(values, groups, length)
-  ms <- tapply(values, groups, mean)
-  vs <- tapply(values, groups, var)
+  res <- suppressWarnings(gamesHowellTest(x = as.numeric(values), g = groups))
+  pm <- res$p.value
   pairs <- list()
   for (i in 1:(k - 1)) {
     for (j in (i + 1):k) {
-      d <- ms[j] - ms[i]
-      se <- sqrt(vs[i] / ns[i] + vs[j] / ns[j])
-      t <- d / se
-      df_num <- (vs[i] / ns[i] + vs[j] / ns[j])^2
-      df_den <- (vs[i] / ns[i])^2 / (ns[i] - 1) + (vs[j] / ns[j])^2 / (ns[j] - 1)
-      df <- df_num / df_den
-      # Games-Howell uses studentized range statistic: q = sqrt(2) * |t|
-      q <- sqrt(2) * abs(t)
-      p <- ptukey(q, nmeans = k, df = df, lower.tail = FALSE)
+      p <- pm[rownames(pm) == lvl[j], colnames(pm) == lvl[i]]
       pairs[[length(pairs) + 1]] <- list(i = lvl[i], j = lvl[j], pAdj = unname(p))
     }
   }
   pairs
 }
 
+# ── Dunn (BH) via PMCMRplus ────────────────────────────────────────────────
+# kwAllPairsDunnTest with method = "bh" applies the Benjamini-Hochberg
+# correction directly; we convert its p.value matrix the same way.
 dunn_bh <- function(values, groups) {
   groups <- as.factor(groups)
   lvl <- levels(groups)
   k <- length(lvl)
-  N <- length(values)
-  # Rank all, compute mean rank per group, with tie correction
-  r <- rank(values)
-  ns <- tapply(values, groups, length)
-  mean_r <- tapply(r, groups, mean)
-  # Tie correction for Dunn: C = sum(t^3 - t) / (12*(N-1))
-  tbl <- table(r)
-  tie_adj <- sum((tbl^3 - tbl)) / (12 * (N - 1))
-  sigma2_base <- N * (N + 1) / 12 - tie_adj
-  raw_p <- c()
-  pair_ids <- list()
+  res <- suppressWarnings(
+    kwAllPairsDunnTest(x = as.numeric(values), g = groups, p.adjust.method = "BH")
+  )
+  pm <- res$p.value
+  out <- list()
   for (i in 1:(k - 1)) {
     for (j in (i + 1):k) {
-      z <- (mean_r[i] - mean_r[j]) / sqrt(sigma2_base * (1 / ns[i] + 1 / ns[j]))
-      p <- 2 * pnorm(-abs(z))
-      raw_p <- c(raw_p, unname(p))
-      pair_ids[[length(pair_ids) + 1]] <- list(i = lvl[i], j = lvl[j])
+      p <- pm[rownames(pm) == lvl[j], colnames(pm) == lvl[i]]
+      out[[length(out) + 1]] <- list(i = lvl[i], j = lvl[j], pAdj = unname(p))
     }
-  }
-  # BH adjust
-  adj <- p.adjust(raw_p, method = "BH")
-  out <- list()
-  for (idx in seq_along(pair_ids)) {
-    out[[idx]] <- list(
-      i = pair_ids[[idx]]$i,
-      j = pair_ids[[idx]]$j,
-      pAdj = adj[idx]
-    )
   }
   out
 }
