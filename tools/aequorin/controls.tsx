@@ -146,12 +146,12 @@ export function PlotControls({
             />
           </label>
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
           <label style={{ flex: 1, display: "block" }}>
             <span className="dv-label">Y min</span>
             <NumberInput
               value={vis.yMin}
-              onChange={(e) => updVis({ yMin: Number(e.target.value) })}
+              onChange={(e) => updVis({ yMin: Number(e.target.value), autoYRange: false })}
               style={{ width: "100%" }}
               step="0.1"
             />
@@ -160,11 +160,25 @@ export function PlotControls({
             <span className="dv-label">Y max</span>
             <NumberInput
               value={vis.yMax}
-              onChange={(e) => updVis({ yMax: Number(e.target.value) })}
+              onChange={(e) => updVis({ yMax: Number(e.target.value), autoYRange: false })}
               style={{ width: "100%" }}
               step="0.1"
             />
           </label>
+          <button
+            type="button"
+            className="dv-btn dv-btn-secondary"
+            onClick={() => updVis({ autoYRange: true })}
+            disabled={vis.autoYRange !== false}
+            title={
+              vis.autoYRange === false
+                ? "Re-enable auto-scaling of Y to the visible X window"
+                : "Auto-scaling is on — Y follows the visible X window"
+            }
+            style={{ height: 28, padding: "0 10px", whiteSpace: "nowrap" }}
+          >
+            {vis.autoYRange === false ? "Auto" : "Auto ✓"}
+          </button>
         </div>
         <SliderControl
           label="Smooth (±pts)"
