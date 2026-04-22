@@ -1639,12 +1639,88 @@ function IntersectionStatsPanel({
         </span>
       </div>
 
-      <div style={{ display: "grid", gap: 4, fontSize: 12 }}>
-        {sidebarSection("Sets tested", selectedSetNames.join(" ∩ "))}
-        {sidebarSection("Set sizes (nᵢ)", selectedSetSizes.join(", "))}
-        {sidebarSection("Inclusive overlap (x)", String(inclusiveSize))}
-        {sidebarSection("Exclusive overlap (bar)", String(intersection.size))}
-      </div>
+      {(() => {
+        // Expected overlap and direction are derived from the current set
+        // sizes and universe, so they refresh automatically when the user
+        // picks a different bar or changes N — no need to wait for
+        // "Compute stats" to know whether this intersection is enriched or
+        // depleted. For degree-1 bars and invalid universes `expected` is
+        // NaN and we hide the direction pill.
+        const degreeOk = intersection.degree >= 2;
+        const universeFinite = Number.isFinite(universeN) && universeN > 0;
+        const expected =
+          degreeOk && universeFinite
+            ? multisetIntersectionExpected(selectedSetSizes, universeN)
+            : NaN;
+        const expectedKnown = Number.isFinite(expected);
+        const direction = !expectedKnown
+          ? null
+          : Math.abs(inclusiveSize - expected) < 1e-9
+            ? "neutral"
+            : inclusiveSize > expected
+              ? "enriched"
+              : "depleted";
+        const directionGlyph =
+          direction === "enriched"
+            ? "↑ enriched"
+            : direction === "depleted"
+              ? "↓ depleted"
+              : direction === "neutral"
+                ? "≈ as expected"
+                : "";
+        const directionColor =
+          direction === "enriched"
+            ? "var(--accent-plot, #1f6feb)"
+            : direction === "depleted"
+              ? "var(--warning-text, #b45309)"
+              : "var(--text-muted)";
+        const fmtExpected = (v) => {
+          if (!Number.isFinite(v)) return "—";
+          if (v === 0) return "0";
+          if (v >= 0.01 && v < 1000) return v.toPrecision(4).replace(/\.?0+$/, "");
+          return v.toExponential(3);
+        };
+        return (
+          <div style={{ display: "grid", gap: 4, fontSize: 12 }}>
+            {sidebarSection("Sets tested", selectedSetNames.join(" ∩ "))}
+            {sidebarSection("Set sizes (nᵢ)", selectedSetSizes.join(", "))}
+            {sidebarSection(
+              "Inclusive overlap (x)",
+              <span style={{ display: "inline-flex", gap: 8, alignItems: "baseline" }}>
+                <span>{inclusiveSize}</span>
+                {direction && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: directionColor,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {directionGlyph}
+                  </span>
+                )}
+              </span>
+            )}
+            {sidebarSection("Exclusive overlap (bar)", String(intersection.size))}
+            {expectedKnown &&
+              sidebarSection(
+                "Expected under null",
+                <span style={{ display: "inline-flex", gap: 6, alignItems: "baseline" }}>
+                  <span>{fmtExpected(expected)}</span>
+                  <span
+                    style={{ fontSize: 10, color: "var(--text-faint)" }}
+                    title={
+                      "E[|∩|] = Π(nᵢ) / N^(k-1) under the fixed-margin null " +
+                      "(each set is a uniformly-random subset of the universe)."
+                    }
+                  >
+                    = Π(nᵢ) / N^(k-1)
+                  </span>
+                </span>
+              )}
+          </div>
+        );
+      })()}
 
       <div
         style={{
@@ -1694,38 +1770,79 @@ function IntersectionStatsPanel({
         </span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        {intersection.degree < 2 ? (
-          <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
-            Single-set bars don't have a multi-set overlap p-value — pick a bar with at least two
-            dots in the matrix.
-          </span>
-        ) : cachedResult ? (
-          <>
-            <span style={{ fontSize: 12 }}>
-              <span style={{ color: "var(--text-muted)" }}>p = </span>
-              <span style={{ fontFamily: "monospace", fontWeight: 600 }}>
-                {fmtP(cachedResult.p)}
-              </span>
-            </span>
-            <span style={{ fontSize: 12 }}>
-              <span style={{ color: "var(--text-muted)" }}>p_adj (BH) = </span>
-              <span style={{ fontFamily: "monospace", fontWeight: 600 }}>
-                {fmtP(cachedResult.pAdj)}
-              </span>
-            </span>
-            <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
-              adjusted across {intersectionTests.size} intersection
-              {intersectionTests.size === 1 ? "" : "s"} cached for N={universeN}
-            </span>
-          </>
-        ) : (
-          <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
-            No result for this intersection yet — use <strong>Compute stats</strong> in the sidebar
-            to run the test across every visible bar in one pass.
-          </span>
-        )}
-      </div>
+      {intersection.degree < 2 ? (
+        <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
+          Single-set bars don't have a multi-set overlap p-value — pick a bar with at least two dots
+          in the matrix.
+        </div>
+      ) : cachedResult ? (
+        // Both one-sided tails are cached by the batch-compute. We lay them out as
+        // two rows so the user can read enrichment and depletion independently —
+        // the one matching the observed direction (see the "↑ enriched" /
+        // "↓ depleted" pill above) is the primary answer; the other is near 1
+        // by construction but useful for completeness.
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {(() => {
+            const enr = Number.isFinite(cachedResult.pUpper) ? cachedResult.pUpper : cachedResult.p;
+            const enrAdj = Number.isFinite(cachedResult.pAdjUpper)
+              ? cachedResult.pAdjUpper
+              : cachedResult.pAdj;
+            const dep = cachedResult.pLower;
+            const depAdj = cachedResult.pAdjLower;
+            const rowStyle = {
+              display: "flex",
+              alignItems: "baseline",
+              gap: 10,
+              flexWrap: "wrap" as const,
+              fontSize: 12,
+            };
+            const renderRow = (label, hint, p, pAdj) => (
+              <div style={rowStyle}>
+                <span
+                  style={{
+                    color: "var(--text-muted)",
+                    minWidth: 110,
+                    display: "inline-block",
+                  }}
+                >
+                  {label}
+                </span>
+                <span>
+                  <span style={{ color: "var(--text-muted)" }}>p = </span>
+                  <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{fmtP(p)}</span>
+                </span>
+                <span>
+                  <span style={{ color: "var(--text-muted)" }}>p_adj = </span>
+                  <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{fmtP(pAdj)}</span>
+                </span>
+                <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{hint}</span>
+              </div>
+            );
+            return (
+              <>
+                {renderRow("Enrichment", "P(|∩| ≥ x) — upper tail", enr, enrAdj)}
+                {renderRow("Depletion", "P(|∩| ≤ x) — lower tail", dep, depAdj)}
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: "var(--text-faint)",
+                    marginTop: 2,
+                  }}
+                >
+                  BH-adjusted within each tail separately, across {intersectionTests.size}{" "}
+                  intersection
+                  {intersectionTests.size === 1 ? "" : "s"} cached for N={universeN}.
+                </span>
+              </>
+            );
+          })()}
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
+          No p-value for this intersection yet — use <strong>Compute stats</strong> in the sidebar
+          to run both one-sided tests (enrichment + depletion) across every visible bar in one pass.
+        </div>
+      )}
     </div>
   );
 }
@@ -1865,7 +1982,20 @@ function App() {
       for (const m of membershipMap.values()) {
         if ((m & inter.mask) === inter.mask) inclusiveSize++;
       }
-      const p = multisetIntersectionPExact(inclusiveSize, setSizes, universeN);
+      // Compute both one-sided p-values. `pUpper` (enrichment, the canonical
+      // SuperExactTest p) answers "is the overlap surprisingly LARGE?";
+      // `pLower` (depletion) answers "is it surprisingly SMALL?". The
+      // expected value and direction come from the fixed-margin null mean
+      // λ = Π(nᵢ)/N^(k-1).
+      const pUpper = multisetIntersectionPExact(inclusiveSize, setSizes, universeN);
+      const pLower = multisetIntersectionPExactLower(inclusiveSize, setSizes, universeN);
+      const expected = multisetIntersectionExpected(setSizes, universeN);
+      const direction =
+        !Number.isFinite(expected) || Math.abs(inclusiveSize - expected) < 1e-9
+          ? "neutral"
+          : inclusiveSize > expected
+            ? "enriched"
+            : "depleted";
       const key = `${inter.mask}:${universeN}`;
       pending.set(key, {
         mask: inter.mask,
@@ -1873,8 +2003,14 @@ function App() {
         x: inclusiveSize,
         xExclusive: inter.size,
         ns: setSizes,
-        p,
+        expected,
+        direction,
+        p: pUpper, // backward-compat alias, same value as pUpper
+        pUpper,
+        pLower,
         pAdj: null,
+        pAdjUpper: null,
+        pAdjLower: null,
       });
       if ((i + 1) % CHUNK_SIZE === 0 || i === testable.length - 1) {
         setComputeProgress({ done: i + 1, total: testable.length });
@@ -1882,16 +2018,21 @@ function App() {
       }
     }
 
-    // BH adjust across every finite-p entry for the current universe. Filter
-    // non-finite p-values out of the input — including a degree-1 leftover
-    // from a prior batch would otherwise propagate NaN through the adj vector.
+    // BH adjust both tails separately, each across every finite-p entry tied
+    // to the current universe. Running one BH across a mixed enrichment /
+    // depletion family would be meaningless — they're testing different
+    // hypotheses (large vs small overlap), so each gets its own family.
     const matching = [...pending.values()].filter(
-      (e) => e.universe === universeN && Number.isFinite(e.p)
+      (e) => e.universe === universeN && Number.isFinite(e.pUpper) && Number.isFinite(e.pLower)
     );
-    const ps = matching.map((e) => e.p);
-    const adj = bhAdjust(ps);
+    const adjUpper = bhAdjust(matching.map((e) => e.pUpper));
+    const adjLower = bhAdjust(matching.map((e) => e.pLower));
     matching.forEach((e, j) => {
-      e.pAdj = adj[j];
+      e.pAdjUpper = adjUpper[j];
+      e.pAdjLower = adjLower[j];
+      // Legacy alias — plot markers still read `pAdj` (= upper-tail, i.e.
+      // enrichment) for star/p-value overlays. Keep in sync with pAdjUpper.
+      e.pAdj = adjUpper[j];
     });
 
     setIntersectionTests(pending);

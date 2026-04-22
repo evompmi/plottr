@@ -3406,25 +3406,20 @@ function _logSumExp(a, b) {
   return max + Math.log(Math.exp(a - max) + Math.exp(b - max));
 }
 
-function multisetIntersectionPExact(xObs, ns, N) {
-  if (!Array.isArray(ns) || ns.length < 2) return NaN;
-  if (!Number.isFinite(N) || N <= 0) return NaN;
-  for (const n_i of ns) {
-    if (!Number.isFinite(n_i) || n_i < 0 || n_i > N) return NaN;
-  }
-  if (xObs <= 0) return 1;
+// Internal: full log-probability distribution of |∩ S_i| under the fixed-
+// margin null. Factored out of the public `multisetIntersectionPExact` so
+// `multisetIntersectionPExactLower` can reuse the DP result instead of
+// recomputing it. Returns an array indexed 0 … min(ns); entries outside
+// the support are -Infinity.
+function _multisetIntersectionLogPmf(ns, N) {
+  // Caller has already validated ns.length ≥ 2, N > 0, and 0 ≤ n_i ≤ N.
   // Smallest set first — keeps intermediate Y vectors narrower (Y_i is bounded
   // by min of {Y_{i-1}, n_i}, so sorting ascending shrinks the state space).
   const sorted = [...ns].sort((a, b) => a - b);
-  if (xObs > sorted[0]) return 0;
-
-  // Step 1: P(Y_2 = y) for y in [0, sorted[0]].
   let logP = new Array(sorted[0] + 1);
   for (let y = 0; y <= sorted[0]; y++) {
     logP[y] = _logHypergeomPmf(y, N, sorted[0], sorted[1]);
   }
-
-  // Steps 3…k: marginalise through Hypergeometric(N, Y_{i-1}, n_i).
   for (let i = 2; i < sorted.length; i++) {
     const n_i = sorted[i];
     const prev = logP;
@@ -3441,15 +3436,66 @@ function multisetIntersectionPExact(xObs, ns, N) {
     }
     logP = curr;
   }
+  return logP;
+}
 
-  // Tail: P(|∩| ≥ x_obs).
+function _validateMsiArgs(ns, N) {
+  if (!Array.isArray(ns) || ns.length < 2) return false;
+  if (!Number.isFinite(N) || N <= 0) return false;
+  for (const n_i of ns) {
+    if (!Number.isFinite(n_i) || n_i < 0 || n_i > N) return false;
+  }
+  return true;
+}
+
+function multisetIntersectionPExact(xObs, ns, N) {
+  if (!_validateMsiArgs(ns, N)) return NaN;
+  if (xObs <= 0) return 1;
+  const minN = Math.min(...ns);
+  if (xObs > minN) return 0;
+  const logP = _multisetIntersectionLogPmf(ns, N);
+  // Upper tail: P(|∩| ≥ x_obs).
   let logTail = -Infinity;
   for (let x = xObs; x < logP.length; x++) {
     if (Number.isFinite(logP[x])) logTail = _logSumExp(logTail, logP[x]);
   }
   if (!Number.isFinite(logTail)) return 0;
-  const p = Math.exp(logTail);
-  return Math.max(0, Math.min(1, p));
+  return Math.max(0, Math.min(1, Math.exp(logTail)));
+}
+
+// Lower-tail companion: P(|∩| ≤ x_obs) — the depletion test. Same DP as
+// `multisetIntersectionPExact`, opposite sum direction. Use this when the
+// observed overlap is SMALLER than the expected intersection size
+// (`multisetIntersectionExpected`) and you want to test under-enrichment.
+function multisetIntersectionPExactLower(xObs, ns, N) {
+  if (!_validateMsiArgs(ns, N)) return NaN;
+  if (xObs < 0) return 0;
+  const minN = Math.min(...ns);
+  if (xObs >= minN) return 1;
+  const logP = _multisetIntersectionLogPmf(ns, N);
+  let logTail = -Infinity;
+  for (let x = 0; x <= xObs && x < logP.length; x++) {
+    if (Number.isFinite(logP[x])) logTail = _logSumExp(logTail, logP[x]);
+  }
+  if (!Number.isFinite(logTail)) return 0;
+  return Math.max(0, Math.min(1, Math.exp(logTail)));
+}
+
+// Expected value of |∩ S_i| under the fixed-margin null: each item
+// independently falls in every S_i with marginal probability n_i / N, so the
+// expected intersection size is N · Π(n_i / N) = Π(n_i) / N^(k-1). Kept in
+// log-space to avoid Π(n_i) overflow for large k or n_i.
+function multisetIntersectionExpected(ns, N) {
+  if (!Array.isArray(ns) || ns.length === 0) return NaN;
+  if (!Number.isFinite(N) || N <= 0) return NaN;
+  let logLambda = 0;
+  for (const n_i of ns) {
+    if (!Number.isFinite(n_i) || n_i < 0 || n_i > N) return NaN;
+    if (n_i === 0) return 0;
+    logLambda += Math.log(n_i);
+  }
+  logLambda -= (ns.length - 1) * Math.log(N);
+  return Math.exp(logLambda);
 }
 
 function multisetIntersectionPPoisson(xObs, ns, N) {
