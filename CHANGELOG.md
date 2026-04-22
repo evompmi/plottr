@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-04-22
+
+First release under the Plöttr name. Supersedes the `dataviz` lineage (v0.4.0 – v0.10.0 below). No code regressions — the `1.0.0` bump marks the rename and stable public surface.
+
 ### Changed
 
 - **Project renamed from `dataviz` to `Plöttr`.** "dataviz" is a generic term that says nothing about the project — it's hard to search for, hard to reference in talks, and collides with every other plotting helper on GitHub. Renamed to **Plöttr** (lowkey Nordic-glyph joke, pronounceable once spoken). Updated `package.json` name, `README.md` header / live-URL / source-URL / clone-URL / citation block (with a transition note pointing back to the dataviz repo), landing `index.html` `<title>` and `<h1>`, every tool HTML `<title>` (`aequorin.html`, `boxplot.html`, `heatmap.html`, `lineplot.html`, `molarity.html`, `power.html`, `scatter.html`, `upset.html`, `venn.html`), and `benchmark.html` `<title>`. The live site will move to `evompmi.github.io/plottr` and source to `github.com/evompmi/plottr`; the old `dataviz` repo will be left in read-only mode. **Intentionally unchanged:** every `localStorage` key and cross-tab event name (`dataviz-theme`, `dataviz-theme-change`, `dataviz-handoff`, per-tool `dataviz-prefs:*` keys). Renaming them would invalidate every existing user's saved theme choice and per-tool auto-prefs on first visit to the new domain — not worth the pain for an internal name. If we ever do migrate, it should be a one-shot read-old-write-new shim on load, not a hard break.
@@ -47,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Moss accent propagated from the stepper to download chips and stats greens.** After settling on moss (`#3f6b2a` light / `#7ba668` dark) for `--step-ready`, the same family now drives the two other places plot-tool chrome signals "good / significant / done": the `.dv-btn-dl` download chip and the stats-panel accents (significant p-values, achieved power ≥ 0.8, significance pairing markers, result pills). Added sibling tokens `--step-ready-bg` (`#eaf2df` / `#1c2916`) and `--step-ready-border` (`#b5cf9e` / `#3f6b2a`) to `tools/theme.css` — same pale-bg / mid-border / deep-text triplet shape as the existing `--success-*` family, but tuned to moss. Retargeted `.dv-btn-dl` in `tools/components.css` to the new triplet and swapped its hover box-shadow to moss rgba; the existing alpha + outline-darkens-on-hover behavior is unchanged. Swapped `var(--success-text)` / `var(--success-bg)` → `var(--step-ready)` / `var(--step-ready-bg)` in the stats-accent spots only: `tools/shared-stats-tile.js`, `tools/lineplot.tsx`, `tools/aequorin/stats-panel.tsx`, `tools/boxplot/stats-panel.tsx`. Danger reds (`--danger-*`) and non-stats success banners (boxplot's valid-assignment banner, venn / upset picker status, molarity calculator result tiles) are untouched — moss is reserved for "done / significant" signals, not "valid input" acknowledgements.
 
-## [2.4.0] - 2026-04-22
+## [0.10.0] - 2026-04-22
 
 ### Changed
 
@@ -73,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Upload step — S-tier polish pass (microcopy, accessibility, token hygiene).** Bundled fix for eleven small issues flagged in a UI audit of every plot tool's step-1 upload page. Microcopy: the drop-zone headline is now "Drop CSV, TSV, or TXT — or click to browse" (was the more verbose "Drop your data file here, or click to browse"); the separator gate title is "Column separator" with a real `<label htmlFor>` binding (was "1. Choose your column separator:" — numbered for a step that isn't one); the oversized-file banner now appends "split the file or sample rows and try again" so the error is actionable; the `CommaFixBanner` second line drops the redundant "The data was corrected automatically." sentence (already implied by the heading). Consistency: added `exampleLabel="Plant biomass under drought / salt (3 genotypes × 3 treatments × 8 reps)"` to boxplot (was falling back to the generic "Load example dataset →"); removed the seven duplicate `<p>⚠ Max file size: 2 MB</p>` paragraphs that floated below `UploadPanel` in every tool and folded the 2 MB ceiling into `FileDropZone`'s existing hint slot — the limit now lives inside the affordance instead of as an afterthought paragraph (which also normalised the 5-tools-with-⚠ / 2-tools-without drift). Accessibility: `FileDropZone` is now keyboard-reachable (`role="button"`, `tabIndex=0`, Enter/Space handler, focus ring via `var(--accent-primary)`); all decorative emojis (📂 🚫 ⚠️ 🔄) get `aria-hidden="true"` so screen readers no longer announce "prohibited sign" / "open file folder"; `CommaFixBanner` gets `role="status"` and `ParseErrorBanner` + the size-error banner get `role="alert"` so state changes are announced; the disabled drop-zone placeholder's "Pick a column separator above" message replaces the previous "Select a column separator above to enable file loading" (terser, same meaning). Token hygiene: `FileDropZone`'s drag-over background was `rgba(100,143,255,0.06)` hard-coded and nearly invisible in dark mode on `--surface-sunken`; swapped to a new `--accent-primary-weak` theme variable (light: `rgba(147,158,174,0.12)`, dark: `rgba(58,68,84,0.28)`) that stays visible across both themes. No UX flow change — every keyboard and pointer path that worked before still works; parse-error banner location and how-to-card disclosure are untouched (those are M-tier items in the same audit and land separately).
 
-## [2.3.1] - 2026-04-21
+## [0.9.1] - 2026-04-21
 
 ### Changed
 
@@ -87,7 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Internal — dedicated unit-test files for scatter, heatmap, aequorin, and lineplot pure helpers.** Follow-up to the v2.3.0 code-review: four of the seven plot tools had their `helpers.ts` modules covered only by fuzz harnesses (which assert structural invariants, not numerical correctness). A silent sign-flip or off-by-one in any of the calibration formulas, normalisation paths, regression math, or per-x stats pipeline could have passed fuzz unchanged. Added `tests/scatter.test.js` (13 tests — `fmtTick` formatting boundaries, `SHAPES` catalogue, `computeLinearRegression` with perfect / noisy / degenerate / null-filtered fixtures and the "zero y-variance → r² = NaN" edge), `tests/heatmap.test.js` (26 tests — `finiteMean` / `finiteSD` with NaN handling, `normalizeMatrix` for all three modes including zero-variance row and `log2` guard, `autoRange` symmetric / single-value / all-NaN branches, `buildDendroLayout` + `pruneDendroTree` on a hand-constructed 3-leaf tree, `fmtColorbarTick`), `tests/aequorin.test.js` (21 tests — `convertTime` round-trips, Allen & Blinks / Hill / generalized calibration pinned to textbook reference values at f=1/3, `detectConditions` pooling vs rep-wise, `smooth` null handling, `buildAreaD` / `buildLineD` path output), and `tests/lineplot.test.js` (14 tests — `buildLineD` / `formatX`, `computeSeries` group ordering + mean/SD/SEM, `computePerXStats` eligibility + BH adjustment monotonicity). Wired into `package.json` test script. Landing-page counter bumped 676 → 750.
 
-## [2.3.0] - 2026-04-21
+## [0.9.0] - 2026-04-21
 
 ### Fixed
 
@@ -321,7 +325,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Group Plot no longer renders garbled overlays or mislabelled axes after toggling a condition back on** — repro: disable a condition in the right-hand chip list, rename another condition to the same display name as a disabled one (or use a subgroup that repeats group names across subgroups), then re-enable the first — multiple rendered elements would share the same React key (derived from the displayed group name), so React reconciliation reused DOM nodes across different groups and bars/boxes/points stacked on top of each other while axis labels pointed at the wrong column. Fixed by combining the positional index `gi` with the group name for every chart-level React `key`: top-level group `<g>` (box/violin/bar), jitter `<circle>`, outlier `<circle>`, the x/y-axis label `<React.Fragment>` that holds the group name and `n=` text, and the composition-pie `<g>` rendered under each group. Siblings are now uniquely keyed even when two visible groups share a display label or the same group name appears in more than one subgroup.
 - **Power Analysis curve fills the plot card instead of sticking to the top** — the `PowerCurve` SVG was sized with `height: auto` on top of a `flex: 1` card, so any extra vertical space in the right-hand column (notably when the "Result" panel below was short) left a white gap under the curve. The SVG now renders at `height: 100%` with `preserveAspectRatio="xMidYMid meet"` inside a flex-centered card, so it stretches to use the available real estate while keeping its 2:1 aspect and centering when one axis has slack.
 
-## [2.2.0] - 2026-04-18
+## [0.8.0] - 2026-04-18
 
 ### Changed
 
@@ -400,14 +404,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`compactLetterDisplay` and `kruskalWallis` degenerate-input guards** — CLD now skips NaN pairs instead of treating them as significant; Kruskal-Wallis all-tied case returns `NaN` + error instead of the misleading `H = 0, p = 1`.
 - **Root-finder bracket expansion in `bisect`, `qtukey`, `powerAnova`** — fixed brackets were silently clamping to stale endpoints. All three now expand as needed; `bisect` refuses unbracketed targets.
 
-## [2.1.1] - 2026-04-13
+## [0.7.1] - 2026-04-13
 
 ### Fixed
 
 - **StatsTile test assertions** — updated from `el.type === "div"` to `"Fragment"` after the component switched to returning a fragment.
 - **Prettier formatting** — reformatted files flagged by `format:check` in CI.
 
-## [2.1.0] - 2026-04-13
+## [0.7.0] - 2026-04-13
 
 ### Added
 
@@ -471,7 +475,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Venn exports rendered as black blobs in Inkscape** — click-hit circles used `fill="transparent"` (HTML/CSS-only). Swapped to `fill="none" pointer-events="all"`.
 - **Aequorin faceted time-course over-dimmed in dark mode** — nested `.dv-plot-card` compounded `filter: brightness()`. Added a `.dv-plot-card .dv-plot-card { filter: none }` override.
 
-## [2.0.0] - 2026-04-12
+## [0.6.0] - 2026-04-12
 
 ### Added
 
@@ -517,7 +521,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Filter panel missing checkboxes** for numeric columns when the user explicitly assigned them a `filter` or `text` role.
 - **Calculator tool mobile scrolling** — added `overflow-y: auto` + touch scroll on body; last result tile reachable.
 
-## [1.1.1] - 2026-04-11
+## [0.5.1] - 2026-04-11
 
 ### Added
 
@@ -527,7 +531,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`kde()` mean-in-reduce bug** — precompute the mean before the variance reduce; bandwidth selection was O(n²) and violin/raincloud on ~10k points hung for seconds. Output unchanged.
 
-## [1.1.0] - 2026-04-11
+## [0.5.0] - 2026-04-11
 
 ### Added
 
@@ -541,7 +545,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`ColorInput` accepts 3-digit hex** (`#abc` → `#aabbcc`) and normalises to lowercase 6-digit.
 - **README trimmed** to a single overview table; per-tool walkthroughs now live in each tool's How-to panel.
 
-## [1.0.0] - 2026-04-11
+## [0.4.0] - 2026-04-11
 
 First tracked release. Baseline of features shipped to GitHub Pages prior to the introduction of this changelog.
 
@@ -559,9 +563,10 @@ First tracked release. Baseline of features shipped to GitHub Pages prior to the
 - Minified esbuild output for production bundles.
 - Custom test harness with tests across shared utilities, parsing, components, and power calculators.
 
-[Unreleased]: https://github.com/evompmi/dataviz/compare/v2.1.1...HEAD
-[2.1.1]: https://github.com/evompmi/dataviz/compare/v2.1.0...v2.1.1
-[2.1.0]: https://github.com/evompmi/dataviz/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/evompmi/dataviz/compare/v1.1.1...v2.0.0
-[1.1.1]: https://github.com/evompmi/dataviz/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/evompmi/dataviz/compare/v1.0.0...v1.1.0
+[Unreleased]: https://github.com/evompmi/plottr/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/evompmi/plottr/compare/v0.10.0...v1.0.0
+[0.7.1]: https://github.com/evompmi/dataviz/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/evompmi/dataviz/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/evompmi/dataviz/compare/v0.5.1...v0.6.0
+[0.5.1]: https://github.com/evompmi/dataviz/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/evompmi/dataviz/compare/v0.4.0...v0.5.0
