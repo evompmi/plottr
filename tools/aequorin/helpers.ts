@@ -5,6 +5,9 @@
 // tools/aequorin/ (chart.tsx, stats-panel.tsx, reports.ts, plot-area.tsx,
 // steps.tsx, controls.tsx, index.tsx).
 
+import { CHART_MARGIN, buildLineD } from "../_shell/chart-layout";
+export { buildLineD };
+
 // ── Calibration defaults ─────────────────────────────────────────────────────
 //
 // These values are the kinetic rate constants for native shrimp aequorin in
@@ -227,12 +230,7 @@ export function buildAreaD(pts) {
   return "M" + fwd.join("L") + "L" + rev.join("L") + "Z";
 }
 
-export function buildLineD(pts) {
-  const valid = pts.filter((p) => p.y != null);
-  if (valid.length < 2) return "";
-  return "M" + valid.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join("L");
-}
-
 // ── Chart layout constant ────────────────────────────────────────────────────
-
-export const MARGIN = { top: 20, right: 20, bottom: 48, left: 62 };
+// Re-exported from `_shell/chart-layout.ts` (audit M7 — was byte-identical
+// with lineplot's `MARGIN`).
+export const MARGIN = CHART_MARGIN;
