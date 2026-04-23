@@ -354,6 +354,45 @@
         font-size: 12px;
         color: #d6336c;
       }
+
+      /* Mobile-phone scope — plot tools need a wider canvas for full stats
+         panels and crisp figures (they have a 1100 px floor by design), so
+         on phones we hide the plot tile block and surface only the
+         statistics & calculators, with a short banner beneath explaining
+         why. The "Plots" label + its tiles stay direct children of
+         .tile-groups (so the label keeps its original centered placement
+         and original spacing); we just tag them with classes so the
+         @media rule can hide both at once without wrapping them. */
+      .mobile-hint {
+        display: none;
+      }
+      @media (max-width: 900px) {
+        .plots-label,
+        .plots-tiles {
+          display: none;
+        }
+        .mobile-hint {
+          display: block;
+          /* Width matches the 2-column tile grid (2 × 150 px tiles + 14 px
+             gap = 314 px) so the banner's left / right edges line up flush
+             with the tiles above it. */
+          width: 314px;
+          max-width: 100%;
+          box-sizing: border-box;
+          padding: 14px 16px;
+          background: var(--info-bg);
+          border: 1px solid var(--info-border);
+          border-radius: 10px;
+          color: var(--info-text);
+          font-size: 13px;
+          line-height: 1.5;
+        }
+        .mobile-hint strong {
+          display: block;
+          margin-bottom: 4px;
+          font-size: 14px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -391,8 +430,8 @@
         <div class="tagline">- Paste, plot, publish -</div>
       </div>
       <div class="tile-groups">
-        <span class="tile-group-label">Plots</span>
-        <div class="tiles">
+        <span class="tile-group-label plots-label">Plots</span>
+        <div class="tiles plots-tiles">
           <button class="tile" data-tool="boxplot">
             <span class="tile-icon"
               ><svg
@@ -584,6 +623,12 @@
             <span class="tile-label">Calculator</span>
             <span class="tile-desc">Molarity, dilution<br />&amp; batch prep sheets</span>
           </button>
+        </div>
+        <div class="mobile-hint" role="note">
+          <strong>Where are my Plötter plots?!</strong>
+          Charts and stats panels need a wider screen to render cleanly. The calculators above work
+          anywhere — handy for sanity-checking stats on the go or double-checking a molarity
+          calculation.
         </div>
       </div>
       <div class="prefetch-bar" id="prefetch-bar">
