@@ -45,6 +45,105 @@ function BpAesBox({ theme, children }) {
   );
 }
 
+// Compact "Other columns" panel — replaces the old ColumnRoleEditor. Group
+// and Value are already assigned by the AesBox cards above, so this list
+// only surfaces the remaining columns and gives each one a single binary
+// decision: "use as filter" (on = role `filter`; off = role `ignore`).
+// Users can still rename; the per-column value preview stays. If nothing
+// remains after Group + Value (2-column file), the panel hides itself.
+function OtherColumnsPanel({ headers, rows, colRoles, colNames, onRoleChange, onNameChange }) {
+  const groupColIdx = colRoles.indexOf("group");
+  const valueColIdx = colRoles.indexOf("value");
+  const otherIdxs = headers.map((_, i) => i).filter((i) => i !== groupColIdx && i !== valueColIdx);
+  if (otherIdxs.length === 0) return null;
+
+  return (
+    <div className="dv-panel">
+      <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+        Other columns
+      </p>
+      <p style={{ margin: "0 0 10px", fontSize: 11, color: "var(--text-faint)", lineHeight: 1.4 }}>
+        Toggle <strong style={{ color: roleColors.filter }}>filter</strong> to keep the column
+        available for the Filter step and for color / facet / subgroup mapping on the plot.
+        Otherwise the column is ignored.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {otherIdxs.map((i) => {
+          const seen = new Set();
+          const u = [];
+          rows.forEach((r) => {
+            const v = r[i];
+            if (!seen.has(v)) {
+              seen.add(v);
+              u.push(v);
+            }
+          });
+          const pv = u.slice(0, 5).join(", ") + (u.length > 5 ? ` … (${u.length})` : "");
+          const isFilter = colRoles[i] === "filter";
+          return (
+            <div
+              key={`col-${i}`}
+              style={{
+                display: "flex",
+                gap: 10,
+                alignItems: "center",
+                padding: "6px 10px",
+                background: "var(--surface)",
+                borderRadius: 6,
+                border: `1.5px solid ${isFilter ? roleColors.filter : "var(--border)"}`,
+              }}
+            >
+              <span
+                style={{ fontWeight: 700, color: "var(--text-muted)", minWidth: 20, fontSize: 11 }}
+              >
+                #{i + 1}
+              </span>
+              <input
+                value={colNames[i]}
+                onChange={(e) => onNameChange(i, e.target.value)}
+                className="dv-input"
+                style={{ width: 140, fontWeight: 600, fontSize: 12 }}
+              />
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 11,
+                  color: isFilter ? roleColors.filter : "var(--text-muted)",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isFilter}
+                  onChange={(e) => onRoleChange(i, e.target.checked ? "filter" : "ignore")}
+                  style={{ accentColor: roleColors.filter, cursor: "pointer" }}
+                />
+                filter
+              </label>
+              <span
+                style={{
+                  fontSize: 10,
+                  color: "var(--text-faint)",
+                  flex: 1,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+                title={pv}
+              >
+                {pv}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function UploadStep({
   sepOverride,
   onSepChange,
@@ -460,10 +559,10 @@ export function ConfigureStep({
       {/* Primary role shortcuts — AesBox cards matching scatter's aesthetic
           selectors. Each picks the single column playing that role; the
           parent's `onRoleChange` handler automatically demotes the previous
-          holder to "filter" when a new column is chosen. The ColumnRoleEditor
-          below still offers full per-column role assignment (filter / ignore
-          / swap), so these cards are a visual shortcut, not a
-          replacement. */}
+          holder to "filter" when a new column is chosen. Every non-primary
+          column is then handled by the compact `OtherColumnsPanel` below
+          with a single filter/ignore toggle per row — no duplicate entry
+          point for group / value here. */}
       <div
         style={{
           display: "grid",
@@ -517,7 +616,7 @@ export function ConfigureStep({
           </div>
         </BpAesBox>
       </div>
-      <ColumnRoleEditor
+      <OtherColumnsPanel
         headers={parsedHeaders}
         rows={parsedRows}
         colRoles={colRoles}
