@@ -186,8 +186,16 @@
       .prefetch-bar.ready {
         color: var(--success-text);
       }
+      /* Decoupled from var(--success-text): that var is tuned for text
+         contrast (very dark green on light bg, bright pastel on dark bg) —
+         on a solid fill bar that reads "too dark" in light mode and "too
+         bright" in dark mode. Use vivid mid-tone greens instead, with the
+         dark-mode value dimmer than the light (per project convention). */
       .prefetch-bar.ready .pf-fill {
-        background: var(--success-text);
+        background: #22c55e;
+      }
+      [data-theme="dark"] .prefetch-bar.ready .pf-fill {
+        background: #16a34a;
       }
 
       .tool-view {
