@@ -622,14 +622,6 @@ function ConfigureStep({
   const canPlot = xCol != null && yCol != null && numericCols.length >= 2;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div className="dv-panel" style={{ marginBottom: 0 }}>
-        <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--text-muted)" }}>
-          Loaded <strong style={{ color: "var(--text)" }}>{fileName || "pasted data"}</strong> —{" "}
-          {parsed.rawData.length} rows × {parsed.headers.length} columns
-        </p>
-        <DataPreview headers={parsed.headers} rows={parsed.rawData} maxRows={10} />
-      </div>
-
       <div
         style={{
           display: "grid",
@@ -695,6 +687,14 @@ function ConfigureStep({
           Need at least two numeric columns to plot.
         </p>
       )}
+
+      <div className="dv-panel" style={{ marginBottom: 0 }}>
+        <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--text-muted)" }}>
+          Loaded <strong style={{ color: "var(--text)" }}>{fileName || "pasted data"}</strong> —{" "}
+          {parsed.rawData.length} rows × {parsed.headers.length} columns
+        </p>
+        <DataPreview headers={parsed.headers} rows={parsed.rawData} maxRows={10} />
+      </div>
     </div>
   );
 }
