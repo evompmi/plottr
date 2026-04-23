@@ -573,18 +573,21 @@ const aesTheme = {
     bg: "var(--aes-color-bg)",
     border: "var(--aes-color-border)",
     header: "var(--aes-color-header)",
+    headerText: "var(--aes-color-header-text)",
     label: "Color",
   },
   size: {
     bg: "var(--aes-size-bg)",
     border: "var(--aes-size-border)",
     header: "var(--aes-size-header)",
+    headerText: "var(--aes-size-header-text)",
     label: "Size",
   },
   shape: {
     bg: "var(--aes-shape-bg)",
     border: "var(--aes-shape-border)",
     header: "var(--aes-shape-header)",
+    headerText: "var(--aes-shape-header-text)",
     label: "Shape",
   },
 };
@@ -645,7 +648,7 @@ function AesBox({ theme, children }) {
       <div style={{ background: t.header, padding: "8px 14px", borderRadius: "8px 8px 0 0" }}>
         <span
           style={{
-            color: "#fff",
+            color: t.headerText,
             fontWeight: 700,
             fontSize: 12,
             textTransform: "uppercase",
