@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Lineplot — "None" option in the Error bars selector.** Adds a fourth segmented-control option (None / SEM / SD / 95% CI) so analysts can render clean mean-only curves when the spread is being shown elsewhere (box in a sibling panel, separate SD plot, etc.). `errOf(p)` now returns `null` when `errorType === "none"` — the existing render-loop guard (`!e || !Number.isFinite(e) → return null`) cleanly skips the bar. The auto-axis computation also treats "none" as zero so the y-range contracts to the mean instead of padding for bars that no longer render. Default stays SEM.
+
 ### Changed
 
 - **Boxplot — "Bar outline" toggle swapped from a checkbox to a segmented selector (Off / On).** The barplot variant's bar-outline control was the last remaining `<input type="checkbox">` in the style section; every other on/off toggle in the boxplot sidebar ("Show points", "Grid", etc.) uses the shared `.dv-seg` / `.dv-seg-btn` segmented pattern. Swapped to match so the controls read consistently at a glance. Uses the existing classes — no new CSS.

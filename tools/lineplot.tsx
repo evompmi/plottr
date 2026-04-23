@@ -97,7 +97,10 @@ const Chart = forwardRef<SVGSVGElement, any>(function Chart(
   const xTicks = makeTicks(xMin, xMax, 8);
   const yTicks = makeTicks(yMin, yMax, 6);
 
-  const errOf = (p) => (errorType === "sd" ? p.sd : errorType === "ci95" ? p.ci95 : p.sem);
+  // errorType === "none" returns null so the render loop's
+  // `!e || !Number.isFinite(e)` guard skips the bar entirely.
+  const errOf = (p) =>
+    errorType === "none" ? null : errorType === "sd" ? p.sd : errorType === "ci95" ? p.ci95 : p.sem;
 
   return (
     <svg
@@ -1816,7 +1819,16 @@ function App() {
         if (p.x < xMin) xMin = p.x;
         if (p.x > xMax) xMax = p.x;
         if (p.mean == null) continue;
-        const e = errorType === "sd" ? p.sd : errorType === "ci95" ? p.ci95 : p.sem;
+        // Auto-axis contracts to the mean when errorType is "none" so the
+        // y-range isn't padded for bars the user doesn't want to see.
+        const e =
+          errorType === "none"
+            ? 0
+            : errorType === "sd"
+              ? p.sd
+              : errorType === "ci95"
+                ? p.ci95
+                : p.sem;
         const hi = p.mean + (e || 0);
         const lo = p.mean - (e || 0);
         if (lo < yLo) yLo = lo;
