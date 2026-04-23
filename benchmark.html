@@ -66,6 +66,51 @@
     border: 1px solid var(--border);
     padding: 1rem 1.25rem;
   }
+  /* <details> collapsed = summary is the only visible content; the
+     browser's default triangle is hidden so the small ▸ / ▾ prefix on
+     the h2 does the job instead. The h2's margin-bottom collapses when
+     closed so a grid of headers reads compact. */
+  .category summary {
+    cursor: pointer;
+    list-style: none;
+  }
+  .category summary::-webkit-details-marker {
+    display: none;
+  }
+  .category summary h2 {
+    margin-bottom: 0;
+  }
+  .category[open] summary h2 {
+    margin-bottom: 0.6rem;
+  }
+  .category summary h2::before {
+    content: "▸";
+    color: var(--text-muted);
+    font-size: 0.85em;
+    margin-right: 0.1em;
+  }
+  .category[open] summary h2::before {
+    content: "▾";
+  }
+  .category-toolbar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .category-toolbar button {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.7rem;
+    background: var(--surface);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .category-toolbar button:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+  }
   .category h2 {
     font-size: 1rem;
     margin-bottom: 0.6rem;
@@ -167,9 +212,18 @@
     <div><span class="k">max |Δ|</span><span class="v">3.16e-2</span></div>
   </div>
 
-  
-    <section class="category">
-      <h2>Shapiro-Wilk <span class="badge badge-pass">44/44 pass</span></h2>
+  <div class="category-toolbar">
+    <button onclick="document.querySelectorAll('details.category').forEach(function(d){d.open=true})">
+      Expand all
+    </button>
+    <button onclick="document.querySelectorAll('details.category').forEach(function(d){d.open=false})">
+      Collapse all
+    </button>
+  </div>
+
+
+    <details class="category">
+      <summary><h2>Shapiro-Wilk <span class="badge badge-pass">44/44 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -589,10 +643,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>Levene (Brown-Forsythe) <span class="badge badge-pass">24/24 pass</span></h2>
+    <details class="category">
+      <summary><h2>Levene (Brown-Forsythe) <span class="badge badge-pass">24/24 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -832,10 +886,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>Student t <span class="badge badge-pass">12/12 pass</span></h2>
+    <details class="category">
+      <summary><h2>Student t <span class="badge badge-pass">12/12 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -967,10 +1021,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>Welch t <span class="badge badge-pass">12/12 pass</span></h2>
+    <details class="category">
+      <summary><h2>Welch t <span class="badge badge-pass">12/12 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1102,10 +1156,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>Mann-Whitney U <span class="badge badge-pass">12/12 pass</span></h2>
+    <details class="category">
+      <summary><h2>Mann-Whitney U <span class="badge badge-pass">12/12 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1237,10 +1291,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>one-way ANOVA <span class="badge badge-pass">16/16 pass</span></h2>
+    <details class="category">
+      <summary><h2>one-way ANOVA <span class="badge badge-pass">16/16 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1408,10 +1462,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>Welch ANOVA <span class="badge badge-pass">12/12 pass</span></h2>
+    <details class="category">
+      <summary><h2>Welch ANOVA <span class="badge badge-pass">12/12 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1543,10 +1597,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>Kruskal-Wallis <span class="badge badge-pass">12/12 pass</span></h2>
+    <details class="category">
+      <summary><h2>Kruskal-Wallis <span class="badge badge-pass">12/12 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1678,10 +1732,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>Tukey HSD <span class="badge badge-pass">37/40 pass</span> <span class="badge badge-rsat">3 past R's floor</span></h2>
+    <details class="category">
+      <summary><h2>Tukey HSD <span class="badge badge-pass">37/40 pass</span> <span class="badge badge-rsat">3 past R's floor</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -2065,10 +2119,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>Games-Howell <span class="badge badge-pass">33/34 pass</span> <span class="badge badge-rsat">1 past R's floor</span></h2>
+    <details class="category">
+      <summary><h2>Games-Howell <span class="badge badge-pass">33/34 pass</span> <span class="badge badge-rsat">1 past R's floor</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -2398,10 +2452,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>Dunn (BH) <span class="badge badge-pass">67/67 pass</span></h2>
+    <details class="category">
+      <summary><h2>Dunn (BH) <span class="badge badge-pass">67/67 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -3028,10 +3082,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>pairwise distance <span class="badge badge-pass">3/3 pass</span></h2>
+    <details class="category">
+      <summary><h2>pairwise distance <span class="badge badge-pass">3/3 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -3082,10 +3136,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>hclust heights <span class="badge badge-pass">5/5 pass</span></h2>
+    <details class="category">
+      <summary><h2>hclust heights <span class="badge badge-pass">5/5 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -3154,10 +3208,10 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
-    <section class="category">
-      <h2>Multi-set intersection (cpsets) <span class="badge badge-pass">10/10 pass</span></h2>
+    <details class="category">
+      <summary><h2>Multi-set intersection (cpsets) <span class="badge badge-pass">10/10 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -3271,7 +3325,7 @@
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
-    </section>
+    </details>
 
   <footer>
     R reference generated 2026-04-22 21:30:33 UTC.
