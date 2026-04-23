@@ -726,6 +726,8 @@ function ItemListPanel({ intersection, allSetNames, fileName }) {
             color: "var(--success-text)",
             fontWeight: 600,
             fontSize: 11,
+            marginLeft: "auto",
+            flexShrink: 0,
           }}
         >
           ⬇ CSV

@@ -484,7 +484,7 @@ export function AequorinStatsPanel({
             Click the row to inspect decision trace, assumptions, post-hoc and power.
           </p>
         </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
           <button
             type="button"
             className="dv-btn dv-btn-dl"

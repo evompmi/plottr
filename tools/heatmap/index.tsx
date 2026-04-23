@@ -491,7 +491,15 @@ function App() {
                         </span>
                       )}
                     </div>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 6,
+                        flexWrap: "wrap",
+                        marginLeft: "auto",
+                        flexShrink: 0,
+                      }}
+                    >
                       <button
                         onClick={(e) => {
                           const bn = fileBaseName(fileName || "heatmap") || "heatmap";

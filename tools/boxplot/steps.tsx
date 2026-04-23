@@ -567,6 +567,7 @@ export function OutputStep({
           </p>
           <button
             className="dv-btn dv-btn-dl"
+            style={{ marginLeft: "auto", flexShrink: 0 }}
             onClick={(e) => {
               downloadCsv(
                 activeColIdxs.map((i) => colNames[i]),
@@ -600,6 +601,7 @@ export function OutputStep({
             </p>
             <button
               className="dv-btn dv-btn-dl"
+              style={{ marginLeft: "auto", flexShrink: 0 }}
               onClick={(e) => {
                 downloadCsv(
                   wideData.headers,

@@ -386,6 +386,7 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                     flashSaved(e.currentTarget);
                   }}
                   className="dv-btn dv-btn-dl"
+                  style={{ marginLeft: "auto", flexShrink: 0 }}
                 >
                   ⬇ CSV
                 </button>

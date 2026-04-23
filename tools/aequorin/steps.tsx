@@ -463,6 +463,7 @@ export function ConfigureStep({
               flashSaved(e.currentTarget);
             }}
             className="dv-btn dv-btn-dl"
+            style={{ marginLeft: "auto", flexShrink: 0 }}
           >
             ⬇ CSV
           </button>
