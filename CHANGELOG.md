@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Group / category colour choices now round-trip through Save / Load prefs and the auto-persist localStorage slot.** The PrefsPanel Save-to-file + Load-from-file flow and the debounced auto-persist only captured what's in `vis` (the reducer state driven by sidebar controls); per-group colours lived OUTSIDE `vis` as local `useState` in each tool, so colour picks silently dropped on reload. Moved the colour maps INTO `vis` — lineplot's `groupColors`, boxplot's `boxplotColors` and `categoryColors` — so the existing prefs machinery covers them with no changes to `shared-prefs.js`. Exposed as read-through `const name = vis.name || {}` plus a `useCallback` setter that accepts both direct-value and functional-updater calls (preserving every existing call site). New keys default to `{}` in `VIS_INIT_LINEPLOT` / `VIS_INIT_BOXPLOT`. On reload, names that match a saved entry pick up the stored colour; mismatched names fall back to the palette — so switching datasets is non-destructive.
+
 ### Changed
 
 - **AesBox header bands desaturated — pale tint + deep text instead of saturated fill + white text.** The earlier headers (slate `#475569` / emerald `#16a34a` / purple `#9333ea` with white text in light mode) read as "first-draft dashboard" / Stabilo-highlighter next to the rest of the understated UI. Swapped to low-saturation tints with the label text in the deeper role hue: slate-200 (`#e2e8f0`) behind slate-700 text; green-100 (`#dcfce7`) behind green-700 text; violet-100 (`#ede9fe`) behind violet-700 text. Dark-mode counterparts match the "dark ≤ light brightness" convention (slate-700 behind slate-400; dark green tint behind green-300; dark purple tint behind violet-300). New CSS var pair `--aes-*-header` (band tint) + `--aes-*-header-text` (label hue) per role in both light + dark blocks of `theme.css`. The three components that consume AesBox (scatter.tsx, lineplot.tsx, boxplot/steps.tsx) pick up the text colour through their `aesTheme` map instead of the previous hard-coded `"#fff"`.

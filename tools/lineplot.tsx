@@ -42,6 +42,11 @@ const VIS_INIT_LINEPLOT = {
   pointRadius: 3.5,
   errorStrokeWidth: 1,
   errorCapWidth: 6,
+  // Per-group line colours, keyed by group name. Lives in `vis` (rather
+  // than local useState) so it auto-persists to localStorage + round-
+  // trips through the PrefsPanel file save/load. Groups whose name
+  // doesn't match a saved entry fall back to the palette default.
+  groupColors: {},
 };
 
 // Pure helpers (series + per-x stats, constants, small utilities) live in
@@ -1865,7 +1870,8 @@ function App() {
 
   const [errorType, setErrorType] = useState("sem");
   const [showStars, setShowStars] = useState(true);
-  const [groupColors, setGroupColors] = useState<Record<string, string>>({});
+  // groupColors now lives in `vis` (persisted via prefs); read from there.
+  const groupColors = vis.groupColors || {};
 
   const svgRef = useRef<SVGSVGElement>(null);
   const sepRef = useRef("");
@@ -1897,8 +1903,8 @@ function App() {
   }, [parsed, xCol, yCol, groupCol, groupColors]);
 
   const setGroupColor = useCallback(
-    (name, color) => setGroupColors((prev) => ({ ...prev, [name]: color })),
-    []
+    (name, color) => updVis({ groupColors: { ...(vis.groupColors || {}), [name]: color } }),
+    [updVis, vis.groupColors]
   );
 
   const statsRows = useMemo(() => (series.length >= 2 ? computePerXStats(series) : []), [series]);
@@ -1998,7 +2004,7 @@ function App() {
     setXCol(nums[0] !== undefined ? nums[0] : 0);
     setYCol(nums[1] !== undefined ? nums[1] : nums[0] !== undefined ? nums[0] : 1);
     setGroupCol(cats[0] !== undefined ? cats[0] : null);
-    setGroupColors({});
+    updVis({ groupColors: {} });
     setStep("configure");
   }, []);
 
