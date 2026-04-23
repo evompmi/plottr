@@ -1498,25 +1498,28 @@ function PlotControls({
         />
       </ControlSection>
 
-      <ControlSection title="Display">
-        <div>
-          <div className="dv-label">Title</div>
+      <ControlSection title="Labels">
+        <label style={{ display: "block" }}>
+          <span className="dv-label">Title</span>
           <input
             value={vis.plotTitle}
             onChange={(e) => updVis({ plotTitle: e.target.value })}
             className="dv-input"
             style={{ width: "100%" }}
           />
-        </div>
-        <div>
-          <div className="dv-label">Subtitle</div>
+        </label>
+        <label style={{ display: "block" }}>
+          <span className="dv-label">Subtitle</span>
           <input
             value={vis.plotSubtitle}
             onChange={(e) => updVis({ plotSubtitle: e.target.value })}
             className="dv-input"
             style={{ width: "100%" }}
           />
-        </div>
+        </label>
+      </ControlSection>
+
+      <ControlSection title="Display">
         <SliderControl
           label="Bar opacity"
           value={vis.barOpacity}

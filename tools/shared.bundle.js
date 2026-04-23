@@ -384,7 +384,6 @@ const roleColors = {
   group: "#0072B2",
   value: "#009E73",
   filter: "#E69F00",
-  text: "#CC79A7",
   ignore: "var(--border-strong)",
 };
 
@@ -800,7 +799,7 @@ function guessColumnType(vals) {
   if (ne.filter((v) => isNumericValue(v)).length / ne.length > 0.8) return "value";
   const u = new Set(ne);
   if (u.size <= 20 && u.size < ne.length * 0.5) return "group";
-  return "text";
+  return "filter";
 }
 
 function detectWideFormat(headers, rows) {
@@ -5934,7 +5933,6 @@ function ColumnRoleEditor(props) {
             React.createElement("option", { value: "group" }, "group"),
             React.createElement("option", { value: "value" }, "value"),
             React.createElement("option", { value: "filter" }, "filter"),
-            React.createElement("option", { value: "text" }, "text"),
             React.createElement("option", { value: "ignore" }, "ignore")
           ),
           React.createElement(
@@ -5989,7 +5987,11 @@ function FilterCheckboxPanel(props) {
       "div",
       { style: { display: "flex", gap: 16, flexWrap: "wrap", alignItems: "stretch", flex: 1 } },
       headers.map(function (h, i) {
-        if (colRoles[i] === "ignore") return null;
+        // Hide the value column's tile here too: it was assigned in Configure
+        // and is guaranteed to stay (rows are kept if their value is numeric);
+        // a filter tile adds no affordance and the old "numeric — use axis
+        // range in plot" placeholder was pure noise.
+        if (colRoles[i] === "ignore" || colRoles[i] === "value") return null;
         const u = filters[i] ? filters[i].unique : [];
         const isNumCol =
           u.length > 0 &&
@@ -5998,7 +6000,7 @@ function FilterCheckboxPanel(props) {
           }).length /
             u.length >
             0.5;
-        if (isNumCol && colRoles[i] !== "filter" && colRoles[i] !== "text") {
+        if (isNumCol && colRoles[i] !== "filter") {
           return React.createElement(
             "div",
             {

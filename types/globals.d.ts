@@ -90,10 +90,11 @@ declare global {
   // x-axis categorical column, "value" picks the numeric column, "filter" keeps
   // the column visible in the filter/rename UI without driving the plot, "text"
   // is a free-text annotation column, and "ignore" hides the column entirely.
-  // `guessColumnType` only ever returns the four non-"filter" roles; the boxplot
-  // configure step demotes duplicates to "filter" before the user sees them.
-  type ColumnRole = "group" | "value" | "filter" | "text" | "ignore";
-  function guessColumnType(vals: string[]): Exclude<ColumnRole, "filter">;
+  // guessColumnType can return any of the four roles directly; the boxplot
+  // configure step then demotes duplicates of "group" / "value" to "filter"
+  // so each role stays singular where the plot requires it.
+  type ColumnRole = "group" | "value" | "filter" | "ignore";
+  function guessColumnType(vals: string[]): ColumnRole;
   function detectWideFormat(headers: string[], rows: string[][]): boolean;
 
   interface ParseDataResult {

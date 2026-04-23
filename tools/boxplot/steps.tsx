@@ -4,6 +4,148 @@
 // (UploadPanel, DataPreview, ColumnRoleEditor, FilterCheckboxPanel,
 // RenameReorderPanel, StatsTable, …) resolves through shared.bundle.js.
 
+// Role-colour themes for the Configure-step AesBox cards. Reuses scatter's
+// `--aes-*` CSS vars so the visual language is consistent across tools
+// (slate "Color" theme → Group; emerald "Size" theme → Value). Theme-aware
+// light/dark variants come free — vars defined per-theme in theme.css.
+const BP_AES_THEMES = {
+  group: {
+    bg: "var(--aes-shape-bg)",
+    border: "var(--aes-shape-border)",
+    header: "var(--aes-shape-header)",
+    headerText: "var(--aes-shape-header-text)",
+    label: "Group (X axis)",
+  },
+  value: {
+    bg: "var(--aes-size-bg)",
+    border: "var(--aes-size-border)",
+    header: "var(--aes-size-header)",
+    headerText: "var(--aes-size-header-text)",
+    label: "Value (Y axis)",
+  },
+};
+
+function BpAesBox({ theme, children }) {
+  const t = BP_AES_THEMES[theme];
+  return (
+    <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
+      <div style={{ background: t.header, padding: "8px 14px", borderRadius: "8px 8px 0 0" }}>
+        <span
+          style={{
+            color: t.headerText,
+            fontWeight: 700,
+            fontSize: 12,
+            textTransform: "uppercase",
+            letterSpacing: "0.8px",
+          }}
+        >
+          {t.label}
+        </span>
+      </div>
+      <div style={{ padding: "12px 14px", minHeight: 40 }}>{children}</div>
+    </div>
+  );
+}
+
+// Compact "Other columns" panel — replaces the old ColumnRoleEditor. Group
+// and Value are already assigned by the AesBox cards above, so this list
+// only surfaces the remaining columns and gives each one a single binary
+// decision: "use as filter" (on = role `filter`; off = role `ignore`).
+// Users can still rename; the per-column value preview stays. If nothing
+// remains after Group + Value (2-column file), the panel hides itself.
+function OtherColumnsPanel({ headers, rows, colRoles, colNames, onRoleChange, onNameChange }) {
+  const groupColIdx = colRoles.indexOf("group");
+  const valueColIdx = colRoles.indexOf("value");
+  const otherIdxs = headers.map((_, i) => i).filter((i) => i !== groupColIdx && i !== valueColIdx);
+  if (otherIdxs.length === 0) return null;
+
+  return (
+    <div className="dv-panel">
+      <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+        Other columns
+      </p>
+      <p style={{ margin: "0 0 10px", fontSize: 11, color: "var(--text-faint)", lineHeight: 1.4 }}>
+        Toggle <strong style={{ color: roleColors.filter }}>filter</strong> to keep the column
+        available for the Filter step and for color / facet / subgroup mapping on the plot.
+        Otherwise the column is ignored.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {otherIdxs.map((i) => {
+          const seen = new Set();
+          const u = [];
+          rows.forEach((r) => {
+            const v = r[i];
+            if (!seen.has(v)) {
+              seen.add(v);
+              u.push(v);
+            }
+          });
+          const pv = u.slice(0, 5).join(", ") + (u.length > 5 ? ` … (${u.length})` : "");
+          const isFilter = colRoles[i] === "filter";
+          return (
+            <div
+              key={`col-${i}`}
+              style={{
+                display: "flex",
+                gap: 10,
+                alignItems: "center",
+                padding: "6px 10px",
+                background: "var(--surface)",
+                borderRadius: 6,
+                border: `1.5px solid ${isFilter ? roleColors.filter : "var(--border)"}`,
+              }}
+            >
+              <span
+                style={{ fontWeight: 700, color: "var(--text-muted)", minWidth: 20, fontSize: 11 }}
+              >
+                #{i + 1}
+              </span>
+              <input
+                value={colNames[i]}
+                onChange={(e) => onNameChange(i, e.target.value)}
+                className="dv-input"
+                style={{ width: 140, fontWeight: 600, fontSize: 12 }}
+              />
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 11,
+                  color: isFilter ? roleColors.filter : "var(--text-muted)",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isFilter}
+                  onChange={(e) => onRoleChange(i, e.target.checked ? "filter" : "ignore")}
+                  style={{ accentColor: roleColors.filter, cursor: "pointer" }}
+                />
+                filter
+              </label>
+              <span
+                style={{
+                  fontSize: 10,
+                  color: "var(--text-faint)",
+                  flex: 1,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+                title={pv}
+              >
+                {pv}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function UploadStep({
   sepOverride,
   onSepChange,
@@ -209,7 +351,7 @@ export function UploadStep({
             { icon: "📂", text: "Upload: drop or select your CSV / TSV / TXT / DAT file." },
             {
               icon: "⚙️",
-              text: "Configure: assign roles — group (X axis), value (Y axis), filter, text, or ignore.",
+              text: "Configure: assign roles — group (X axis), value (Y axis), filter, or ignore.",
             },
             {
               icon: "🔍",
@@ -413,9 +555,102 @@ export function ConfigureStep({
   onRoleChange,
   onNameChange,
 }) {
+  const groupColIdx = colRoles.indexOf("group");
   return (
     <div>
-      <ColumnRoleEditor
+      {/* Primary role shortcuts — AesBox cards matching scatter's aesthetic
+          selectors. Each picks the single column playing that role; the
+          parent's `onRoleChange` handler automatically demotes the previous
+          holder to "filter" when a new column is chosen. Every non-primary
+          column is then handled by the compact `OtherColumnsPanel` below
+          with a single filter/ignore toggle per row — no duplicate entry
+          point for group / value here. */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
+        <BpAesBox theme="group">
+          <select
+            value={groupColIdx >= 0 ? groupColIdx : ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") return;
+              onRoleChange(Number(raw), "group");
+            }}
+            className="dv-select"
+            style={{ width: "100%" }}
+          >
+            {groupColIdx < 0 && <option value="">— choose a group column —</option>}
+            {parsedHeaders.map((_, i) => (
+              <option key={i} value={i}>
+                {colNames[i]}
+              </option>
+            ))}
+          </select>
+          {groupColIdx >= 0 && (
+            <label
+              style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}
+              title="Rename the selected column. The new name is used on the X-axis label and in exports."
+            >
+              <span style={{ fontSize: 10, color: "var(--text-faint)", whiteSpace: "nowrap" }}>
+                Display as
+              </span>
+              <input
+                value={colNames[groupColIdx]}
+                onChange={(e) => onNameChange(groupColIdx, e.target.value)}
+                className="dv-input"
+                style={{ flex: 1, fontSize: 12, fontWeight: 600 }}
+              />
+            </label>
+          )}
+          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
+            Categorical column that defines the X-axis groups (genotypes, treatments, …).
+          </div>
+        </BpAesBox>
+        <BpAesBox theme="value">
+          <select
+            value={valueColIdx >= 0 ? valueColIdx : ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") return;
+              onRoleChange(Number(raw), "value");
+            }}
+            className="dv-select"
+            style={{ width: "100%" }}
+          >
+            {valueColIdx < 0 && <option value="">— choose a value column —</option>}
+            {parsedHeaders.map((_, i) => (
+              <option key={i} value={i}>
+                {colNames[i]}
+              </option>
+            ))}
+          </select>
+          {valueColIdx >= 0 && (
+            <label
+              style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}
+              title="Rename the selected column. The new name is used on the Y-axis label and in exports."
+            >
+              <span style={{ fontSize: 10, color: "var(--text-faint)", whiteSpace: "nowrap" }}>
+                Display as
+              </span>
+              <input
+                value={colNames[valueColIdx]}
+                onChange={(e) => onNameChange(valueColIdx, e.target.value)}
+                className="dv-input"
+                style={{ flex: 1, fontSize: 12, fontWeight: 600 }}
+              />
+            </label>
+          )}
+          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
+            Numeric column plotted as the Y-axis measurement.
+          </div>
+        </BpAesBox>
+      </div>
+      <OtherColumnsPanel
         headers={parsedHeaders}
         rows={parsedRows}
         colRoles={colRoles}
@@ -486,6 +721,25 @@ export function FilterStep({
   dragState,
   setDragState,
 }) {
+  // Feedback for filters whose effect falls past the first preview rows:
+  // (1) live delta in the title ("N of M rows · K filtered out"), (2) a
+  // brief 300 ms background flash on the preview card whenever the kept-
+  // row count changes. The flashKey remount is the standard React idiom
+  // for re-triggering a one-shot CSS animation; the DataPreview inside
+  // is pure props-driven so remounting it each toggle has no cost.
+  const [flashKey, setFlashKey] = React.useState(0);
+  const prevKeptRef = React.useRef(filteredRows.length);
+  React.useEffect(() => {
+    if (prevKeptRef.current !== filteredRows.length) {
+      prevKeptRef.current = filteredRows.length;
+      setFlashKey((k) => k + 1);
+    }
+  }, [filteredRows.length]);
+
+  const keptCount = filteredRows.length;
+  const totalCount = parsedRows.length;
+  const filteredOut = totalCount - keptCount;
+
   return (
     <div>
       <div style={{ display: "flex", gap: 16, alignItems: "stretch", marginBottom: 16 }}>
@@ -514,18 +768,27 @@ export function FilterStep({
         />
       </div>
       <div
+        key={`preview-${flashKey}`}
         style={{
           borderRadius: 10,
           padding: 16,
           marginBottom: 16,
-          border: "1px solid var(--success-border)",
-          background: "var(--success-bg)",
+          border: "1px solid var(--border)",
+          background: "var(--surface-subtle)",
+          animation: flashKey > 0 ? "bp-filter-flash 300ms ease-out" : undefined,
         }}
       >
-        <p
-          style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 600, color: "var(--success-text)" }}
-        >
-          Preview ({renamedRows.length} rows):
+        <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+          Preview · <strong>{keptCount.toLocaleString()}</strong> of {totalCount.toLocaleString()}{" "}
+          rows
+          {filteredOut > 0 && (
+            <>
+              {" · "}
+              <span style={{ color: "var(--warning-text)" }}>
+                <strong>{filteredOut.toLocaleString()}</strong> filtered out
+              </span>
+            </>
+          )}
         </p>
         <DataPreview
           headers={activeColIdxs.map((i) => colNames[i])}
@@ -533,6 +796,12 @@ export function FilterStep({
           maxRows={10}
         />
       </div>
+      <style>{`
+        @keyframes bp-filter-flash {
+          0%   { background: var(--success-bg); }
+          100% { background: var(--surface-subtle); }
+        }
+      `}</style>
     </div>
   );
 }

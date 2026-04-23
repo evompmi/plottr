@@ -560,6 +560,56 @@ function UploadStep({
 // ── ConfigureStep ──────────────────────────────────────────────────────────
 // Preview the parsed table and confirm the column roles before plotting.
 
+// Role-colour themes. Reuse scatter's `--aes-*` CSS vars so the configure-
+// step cards feel visually related to scatter's aesthetic selectors —
+// slate (X), emerald (Y), purple (Group). Adds the theme-aware light/dark
+// palette for free (vars defined per-theme in tools/theme.css).
+const LP_AES_THEMES = {
+  x: {
+    bg: "var(--aes-color-bg)",
+    border: "var(--aes-color-border)",
+    header: "var(--aes-color-header)",
+    headerText: "var(--aes-color-header-text)",
+    label: "X axis",
+  },
+  y: {
+    bg: "var(--aes-size-bg)",
+    border: "var(--aes-size-border)",
+    header: "var(--aes-size-header)",
+    headerText: "var(--aes-size-header-text)",
+    label: "Y axis",
+  },
+  group: {
+    bg: "var(--aes-shape-bg)",
+    border: "var(--aes-shape-border)",
+    header: "var(--aes-shape-header)",
+    headerText: "var(--aes-shape-header-text)",
+    label: "Group by",
+  },
+};
+
+function LpAesBox({ theme, children }) {
+  const t = LP_AES_THEMES[theme];
+  return (
+    <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
+      <div style={{ background: t.header, padding: "8px 14px", borderRadius: "8px 8px 0 0" }}>
+        <span
+          style={{
+            color: t.headerText,
+            fontWeight: 700,
+            fontSize: 12,
+            textTransform: "uppercase",
+            letterSpacing: "0.8px",
+          }}
+        >
+          {t.label}
+        </span>
+      </div>
+      <div style={{ padding: "12px 14px", minHeight: 40 }}>{children}</div>
+    </div>
+  );
+}
+
 function ConfigureStep({
   parsed,
   fileName,
@@ -575,79 +625,78 @@ function ConfigureStep({
   const canPlot = xCol != null && yCol != null && numericCols.length >= 2;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 12,
+        }}
+      >
+        <LpAesBox theme="x">
+          <select
+            value={xCol ?? ""}
+            onChange={(e) => setXCol(parseInt(e.target.value))}
+            className="dv-select"
+            style={{ width: "100%" }}
+          >
+            {numericCols.map((i) => (
+              <option key={i} value={i}>
+                {parsed.headers[i]}
+              </option>
+            ))}
+          </select>
+          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
+            Numeric column plotted along the X axis.
+          </div>
+        </LpAesBox>
+        <LpAesBox theme="y">
+          <select
+            value={yCol ?? ""}
+            onChange={(e) => setYCol(parseInt(e.target.value))}
+            className="dv-select"
+            style={{ width: "100%" }}
+          >
+            {numericCols.map((i) => (
+              <option key={i} value={i}>
+                {parsed.headers[i]}
+              </option>
+            ))}
+          </select>
+          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
+            Numeric column plotted along the Y axis.
+          </div>
+        </LpAesBox>
+        <LpAesBox theme="group">
+          <select
+            value={groupCol == null ? "" : groupCol}
+            onChange={(e) => setGroupCol(e.target.value === "" ? null : parseInt(e.target.value))}
+            className="dv-select"
+            style={{ width: "100%" }}
+          >
+            <option value="">— None (single line) —</option>
+            {categoricalCols.map((i) => (
+              <option key={i} value={i}>
+                {parsed.headers[i]}
+              </option>
+            ))}
+          </select>
+          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
+            Categorical column used to split the data into coloured lines.
+          </div>
+        </LpAesBox>
+      </div>
+      {!canPlot && (
+        <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--warning-text)" }}>
+          Need at least two numeric columns to plot.
+        </p>
+      )}
+
       <div className="dv-panel" style={{ marginBottom: 0 }}>
         <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--text-muted)" }}>
           Loaded <strong style={{ color: "var(--text)" }}>{fileName || "pasted data"}</strong> —{" "}
           {parsed.rawData.length} rows × {parsed.headers.length} columns
         </p>
         <DataPreview headers={parsed.headers} rows={parsed.rawData} maxRows={10} />
-      </div>
-
-      <div className="dv-panel" style={{ marginBottom: 0 }}>
-        <p
-          style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}
-        >
-          Column roles
-        </p>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 12,
-          }}
-        >
-          <div>
-            <div className="dv-label">X (numeric)</div>
-            <select
-              value={xCol ?? ""}
-              onChange={(e) => setXCol(parseInt(e.target.value))}
-              className="dv-select"
-              style={{ width: "100%" }}
-            >
-              {numericCols.map((i) => (
-                <option key={i} value={i}>
-                  {parsed.headers[i]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <div className="dv-label">Y (numeric)</div>
-            <select
-              value={yCol ?? ""}
-              onChange={(e) => setYCol(parseInt(e.target.value))}
-              className="dv-select"
-              style={{ width: "100%" }}
-            >
-              {numericCols.map((i) => (
-                <option key={i} value={i}>
-                  {parsed.headers[i]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <div className="dv-label">Group by</div>
-            <select
-              value={groupCol == null ? "" : groupCol}
-              onChange={(e) => setGroupCol(e.target.value === "" ? null : parseInt(e.target.value))}
-              className="dv-select"
-              style={{ width: "100%" }}
-            >
-              <option value="">(single line)</option>
-              {categoricalCols.map((i) => (
-                <option key={i} value={i}>
-                  {parsed.headers[i]}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        {!canPlot && (
-          <p style={{ margin: "10px 0 0", fontSize: 11, color: "var(--warning-text)" }}>
-            Need at least two numeric columns to plot.
-          </p>
-        )}
       </div>
     </div>
   );
@@ -726,56 +775,65 @@ function PlotControls({
         }
       />
 
-      <ControlSection title="Columns" defaultOpen>
-        <label style={{ display: "block" }}>
-          <span className="dv-label">X (numeric)</span>
-          <select
-            value={xCol}
-            onChange={(e) => setXCol(parseInt(e.target.value))}
-            className="dv-select"
-            style={{ width: "100%" }}
-          >
-            {numericCols.map((i) => (
-              <option key={i} value={i}>
-                {parsed.headers[i]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label style={{ display: "block" }}>
-          <span className="dv-label">Y (numeric)</span>
-          <select
-            value={yCol}
-            onChange={(e) => setYCol(parseInt(e.target.value))}
-            className="dv-select"
-            style={{ width: "100%" }}
-          >
-            {numericCols.map((i) => (
-              <option key={i} value={i}>
-                {parsed.headers[i]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label style={{ display: "block" }}>
-          <span className="dv-label">Group by</span>
-          <select
-            value={groupCol == null ? "" : groupCol}
-            onChange={(e) => setGroupCol(e.target.value === "" ? null : parseInt(e.target.value))}
-            className="dv-select"
-            style={{ width: "100%" }}
-          >
-            <option value="">(single line)</option>
-            {categoricalCols.map((i) => (
-              <option key={i} value={i}>
-                {parsed.headers[i]}
-              </option>
-            ))}
-          </select>
-        </label>
-      </ControlSection>
+      {/* Permanent "Variables" panel — matches scatter's column-role picker
+          pattern: always visible at the top of the sidebar, never collapsed.
+          These selects define what the plot IS; hiding them behind a
+          disclosure widget would be a UX downgrade. */}
+      <div className="dv-panel">
+        <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+          Variables
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label style={{ display: "block" }}>
+            <span className="dv-label">X axis</span>
+            <select
+              value={xCol}
+              onChange={(e) => setXCol(parseInt(e.target.value))}
+              className="dv-select"
+              style={{ width: "100%" }}
+            >
+              {numericCols.map((i) => (
+                <option key={i} value={i}>
+                  {parsed.headers[i]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: "block" }}>
+            <span className="dv-label">Y axis</span>
+            <select
+              value={yCol}
+              onChange={(e) => setYCol(parseInt(e.target.value))}
+              className="dv-select"
+              style={{ width: "100%" }}
+            >
+              {numericCols.map((i) => (
+                <option key={i} value={i}>
+                  {parsed.headers[i]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: "block" }}>
+            <span className="dv-label">Group by</span>
+            <select
+              value={groupCol == null ? "" : groupCol}
+              onChange={(e) => setGroupCol(e.target.value === "" ? null : parseInt(e.target.value))}
+              className="dv-select"
+              style={{ width: "100%" }}
+            >
+              <option value="">(single line)</option>
+              {categoricalCols.map((i) => (
+                <option key={i} value={i}>
+                  {parsed.headers[i]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
 
-      <ControlSection title="Groups" defaultOpen={series.length > 0 && series.length <= 6}>
+      <ControlSection title="Groups">
         {series.length === 0 ? (
           <p style={{ margin: 0, fontSize: 11, color: "var(--text-faint)" }}>
             No groups yet — pick a grouping column.
@@ -792,7 +850,7 @@ function PlotControls({
         )}
       </ControlSection>
 
-      <ControlSection title="Error bars" defaultOpen>
+      <ControlSection title="Error bars">
         <div className="dv-seg" role="group" aria-label="Error bar type">
           {ERROR_KINDS.map((k) => (
             <button
@@ -890,25 +948,14 @@ function PlotControls({
       </ControlSection>
 
       <ControlSection title="Style">
-        <div>
-          <span className="dv-label">Grid</span>
-          <div className="dv-seg" role="group" aria-label="Grid">
-            <button
-              type="button"
-              className={"dv-seg-btn" + (!vis.showGrid ? " dv-seg-btn-active" : "")}
-              onClick={() => updVis({ showGrid: false })}
-            >
-              Off
-            </button>
-            <button
-              type="button"
-              className={"dv-seg-btn" + (vis.showGrid ? " dv-seg-btn-active" : "")}
-              onClick={() => updVis({ showGrid: true })}
-            >
-              On
-            </button>
-          </div>
-        </div>
+        <BaseStyleControls
+          plotBg={vis.plotBg}
+          onPlotBgChange={(v) => updVis({ plotBg: v })}
+          showGrid={vis.showGrid}
+          onShowGridChange={(v) => updVis({ showGrid: v })}
+          gridColor={vis.gridColor}
+          onGridColorChange={(v) => updVis({ gridColor: v })}
+        />
         <SliderControl
           label="Line width"
           value={vis.lineWidth}

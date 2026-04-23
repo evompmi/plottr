@@ -152,7 +152,6 @@ const roleColors = {
   group: "#0072B2",
   value: "#009E73",
   filter: "#E69F00",
-  text: "#CC79A7",
   ignore: "var(--border-strong)",
 };
 
@@ -568,7 +567,7 @@ function guessColumnType(vals) {
   if (ne.filter((v) => isNumericValue(v)).length / ne.length > 0.8) return "value";
   const u = new Set(ne);
   if (u.size <= 20 && u.size < ne.length * 0.5) return "group";
-  return "text";
+  return "filter";
 }
 
 function detectWideFormat(headers, rows) {

@@ -77,16 +77,24 @@
   --on-accent: #ffffff;
   --on-accent-muted: rgba(255, 255, 255, 0.75);
 
-  /* Scatter aesthetic boxes — Color / Size / Shape selectors */
+  /* Scatter aesthetic boxes — Color / Size / Shape selectors.
+     `--aes-*-header` is the pale band behind the role label (a quiet
+     tint, kept close to the card body). `--aes-*-header-text` is the
+     deeper hue used for the label itself. The earlier saturated
+     headers-with-white-text read as loud / amateurish; these muted
+     tints keep the per-role cue without the Stabilo-highlighter vibe. */
   --aes-color-bg: #f1f5f9;
   --aes-color-border: #cbd5e1;
-  --aes-color-header: #475569;
+  --aes-color-header: #e2e8f0;
+  --aes-color-header-text: #334155;
   --aes-size-bg: #f0fdf4;
   --aes-size-border: #86efac;
-  --aes-size-header: #16a34a;
+  --aes-size-header: #dcfce7;
+  --aes-size-header-text: #15803d;
   --aes-shape-bg: #faf5ff;
   --aes-shape-border: #d8b4fe;
-  --aes-shape-header: #9333ea;
+  --aes-shape-header: #ede9fe;
+  --aes-shape-header-text: #6d28d9;
 
   /* "How to use" tiles — outer border, gradient header, soft slate shadow.
      Gradient keeps the darker end (slate-700) so white header text stays
@@ -165,13 +173,16 @@
 
   --aes-color-bg: #1e293b;
   --aes-color-border: #334155;
-  --aes-color-header: #64748b;
+  --aes-color-header: #334155;
+  --aes-color-header-text: #94a3b8;
   --aes-size-bg: #15241b;
   --aes-size-border: #254a33;
-  --aes-size-header: #2d6a3f;
+  --aes-size-header: #1e3a2a;
+  --aes-size-header-text: #86efac;
   --aes-shape-bg: #221a2e;
   --aes-shape-border: #3d2a55;
-  --aes-shape-header: #5e3a85;
+  --aes-shape-header: #2d2240;
+  --aes-shape-header-text: #c4b5fd;
 
   --howto-border: #334155;
   --howto-header-from: #0f172a;
@@ -247,13 +258,16 @@
 
     --aes-color-bg: #1e293b;
     --aes-color-border: #334155;
-    --aes-color-header: #64748b;
+    --aes-color-header: #334155;
+    --aes-color-header-text: #94a3b8;
     --aes-size-bg: #15241b;
     --aes-size-border: #254a33;
-    --aes-size-header: #2d6a3f;
+    --aes-size-header: #1e3a2a;
+    --aes-size-header-text: #86efac;
     --aes-shape-bg: #221a2e;
     --aes-shape-border: #3d2a55;
-    --aes-shape-header: #5e3a85;
+    --aes-shape-header: #2d2240;
+    --aes-shape-header-text: #c4b5fd;
 
     --howto-border: #334155;
     --howto-header-from: #0f172a;

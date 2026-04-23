@@ -186,8 +186,16 @@
       .prefetch-bar.ready {
         color: var(--success-text);
       }
+      /* Decoupled from var(--success-text): that var is tuned for text
+         contrast (very dark green on light bg, bright pastel on dark bg) —
+         on a solid fill bar that reads "too dark" in light mode and "too
+         bright" in dark mode. Use vivid mid-tone greens instead, with the
+         dark-mode value dimmer than the light (per project convention). */
       .prefetch-bar.ready .pf-fill {
-        background: var(--success-text);
+        background: #22c55e;
+      }
+      [data-theme="dark"] .prefetch-bar.ready .pf-fill {
+        background: #16a34a;
       }
 
       .tool-view {
@@ -391,6 +399,17 @@
           display: block;
           margin-bottom: 4px;
           font-size: 14px;
+        }
+
+        /* Tool topbar on mobile: strip cross-tool navigation down to the two
+           allowed calculators (power + molarity) plus the theme toggle. The
+           home button and links to plot tools are hidden so a user who
+           opened one calculator can only switch to the other calculator —
+           no invitation to try a plot tool that won't render usefully. */
+        .tool-topbar [data-back],
+        .tool-topbar .tb-sep,
+        .tool-topbar [data-tool]:not([data-tool="power"]):not([data-tool="molarity"]) {
+          display: none !important;
         }
       }
     </style>
@@ -625,10 +644,9 @@
           </button>
         </div>
         <div class="mobile-hint" role="note">
-          <strong>Where are my Plötter plots?!</strong>
+          <strong>Where are my Plöttr plots?!</strong>
           Charts and stats panels need a wider screen to render cleanly. The calculators above work
-          anywhere — handy for sanity-checking stats on the go or double-checking a molarity
-          calculation.
+          anywhere — handy for sanity-checking stats on the go or verifying a molarity calculation.
         </div>
       </div>
       <div class="prefetch-bar" id="prefetch-bar">
