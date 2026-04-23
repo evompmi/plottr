@@ -797,10 +797,13 @@ function App() {
         </div>
       </div>
 
-      {/* ── Main row: controls (left) + plot/result (right) ── */}
-      <div style={{ display: "flex", gap: 20, alignItems: "stretch" }}>
+      {/* ── Main row: controls (left) + plot/result (right). Mobile (≤ 900 px)
+          collapses to a single column via .power-main-row + scraps the chart
+          card (see power.html @media rule). */}
+      <div className="power-main-row" style={{ display: "flex", gap: 20, alignItems: "stretch" }}>
         {/* ── Left panel ── */}
         <div
+          className="power-col-left"
           style={{ width: 279, flexShrink: 0, display: "flex", flexDirection: "column", gap: 6 }}
         >
           {/* Effect size */}
@@ -951,10 +954,13 @@ function App() {
         </div>
 
         {/* ── Right panel ── */}
-        <div style={{ flex: 1, minWidth: 360, display: "flex", flexDirection: "column", gap: 6 }}>
+        <div
+          className="power-col-right"
+          style={{ flex: 1, minWidth: 360, display: "flex", flexDirection: "column", gap: 6 }}
+        >
           {/* Power curve */}
           <div
-            className="dv-plot-card"
+            className="dv-plot-card power-chart-card"
             style={{
               background: "var(--plot-card-bg)",
               border: "1px solid var(--plot-card-border)",

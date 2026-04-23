@@ -31,6 +31,28 @@
         background-size: 20px 20px;
         color: var(--text);
       }
+
+      /* Mobile-phone layout: stack the left (controls) + right (chart +
+         result) columns vertically and scrap the power curve entirely — a
+         320-to-600 px viewport has no room for an axis chart with ticks, and
+         the result number + parameter tiles are what the user came for
+         anyway (sanity-checking stats at a conference). */
+      @media (max-width: 900px) {
+        .power-main-row {
+          flex-direction: column !important;
+          gap: 10px !important;
+          align-items: stretch !important;
+        }
+        .power-col-left {
+          width: 100% !important;
+        }
+        .power-col-right {
+          min-width: 0 !important;
+        }
+        .power-chart-card {
+          display: none !important;
+        }
+      }
     </style>
     <script src="shared.bundle.js"></script>
   </head>
