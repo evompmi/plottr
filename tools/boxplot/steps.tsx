@@ -589,6 +589,22 @@ export function ConfigureStep({
               </option>
             ))}
           </select>
+          {groupColIdx >= 0 && (
+            <label
+              style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}
+              title="Rename the selected column. The new name is used on the X-axis label and in exports."
+            >
+              <span style={{ fontSize: 10, color: "var(--text-faint)", whiteSpace: "nowrap" }}>
+                Display as
+              </span>
+              <input
+                value={colNames[groupColIdx]}
+                onChange={(e) => onNameChange(groupColIdx, e.target.value)}
+                className="dv-input"
+                style={{ flex: 1, fontSize: 12, fontWeight: 600 }}
+              />
+            </label>
+          )}
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
             Categorical column that defines the X-axis groups (genotypes, treatments, …).
           </div>
@@ -611,6 +627,22 @@ export function ConfigureStep({
               </option>
             ))}
           </select>
+          {valueColIdx >= 0 && (
+            <label
+              style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}
+              title="Rename the selected column. The new name is used on the Y-axis label and in exports."
+            >
+              <span style={{ fontSize: 10, color: "var(--text-faint)", whiteSpace: "nowrap" }}>
+                Display as
+              </span>
+              <input
+                value={colNames[valueColIdx]}
+                onChange={(e) => onNameChange(valueColIdx, e.target.value)}
+                className="dv-input"
+                style={{ flex: 1, fontSize: 12, fontWeight: 600 }}
+              />
+            </label>
+          )}
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
             Numeric column plotted as the Y-axis measurement.
           </div>
