@@ -460,6 +460,23 @@ declare global {
     error?: string;
   };
   function bhAdjust(ps: number[]): number[];
+  function multisetIntersectionPExact(xObs: number, ns: number[], N: number): number;
+  function multisetIntersectionPExactLower(xObs: number, ns: number[], N: number): number;
+  function multisetIntersectionPPoisson(xObs: number, ns: number[], N: number): number;
+  function multisetIntersectionP(xObs: number, ns: number[], N: number): number;
+  function multisetIntersectionExpected(ns: number[], N: number): number;
+  function multisetExclusiveExpected(
+    insideSizes: number[],
+    outsideSizes: number[],
+    N: number
+  ): number;
+  function multisetExclusiveP(
+    xObs: number,
+    insideSizes: number[],
+    outsideSizes: number[],
+    N: number,
+    opts?: { tail?: "upper" | "lower" }
+  ): number;
   interface DunnPair {
     i: number;
     j: number;

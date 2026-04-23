@@ -10,9 +10,9 @@ const {
   sortIntersections,
   truncateIntersections,
   intersectionLabel,
+  intersectionShortLabel,
   intersectionFilenamePart,
   buildBarTicks,
-  shouldRotateColumnIds,
 } = require("./helpers/upset-loader");
 
 // ── parseSetData ─────────────────────────────────────────────────────────────
@@ -383,51 +383,28 @@ test("handles spaces in set names", () => {
   eq(intersectionFilenamePart(label), "Set_A_and_Set_B");
 });
 
-// ── shouldRotateColumnIds ────────────────────────────────────────────────────
-// Regression tests for the rotation heuristic that keeps "I#" labels readable
-// past the collision threshold. Previously used a magic `nCols > 10` cutoff;
-// now compares the horizontal label width against the column width so it
-// adapts to font size and any future colW change.
+// ── intersectionShortLabel ───────────────────────────────────────────────────
 
-suite("shouldRotateColumnIds");
+suite("intersectionShortLabel");
 
-test("does not rotate when horizontal label fits inside the column", () => {
-  // 5 columns → "I5" is 2 chars, width ≈ 2 * 10 * 0.58 = 11.6 px. colW at the
-  // MAX_COL_W cap is 36 px → plenty of room, no rotation needed.
-  assert(!shouldRotateColumnIds(5, 36, 10), "5 cols in 36 px columns should not rotate");
+test("joins S# ids in given order", () => {
+  eq(intersectionShortLabel([0, 2, 4]), "S1 ∩ S3 ∩ S5");
 });
 
-test("rotates when horizontal label would overflow the column", () => {
-  // At the MIN_COL_W floor (18 px) and default idFontSize (10), any nCols ≥ 4
-  // produces a label ("I4" onward) wide enough to crowd or overflow — the
-  // original complaint was ≥10 columns, which always hits this branch.
-  assert(shouldRotateColumnIds(20, 18, 10), "20 cols at 18 px should rotate");
-  assert(shouldRotateColumnIds(100, 18, 10), "100 cols at 18 px should rotate");
+test("single index returns a single S# token", () => {
+  eq(intersectionShortLabel([3]), "S4");
 });
 
-test("threshold is colW-aware, not a fixed nCols cutoff", () => {
-  // Identical nCols but different colW must reach opposite decisions —
-  // this is the property the old `nCols > 10` check lacked.
-  const sameN = 12;
-  assert(!shouldRotateColumnIds(sameN, 36, 10), "12 cols in 36 px columns stays horizontal");
-  assert(shouldRotateColumnIds(sameN, 18, 10), "12 cols in 18 px columns rotates");
+test("returns empty string for empty indices", () => {
+  // Not expected in practice, but guards against an undefined intersection.
+  eq(intersectionShortLabel([]), "");
 });
 
-test("threshold scales with idFontSize", () => {
-  // Larger font widens the horizontal label, so the same layout that was OK at
-  // fontSize 8 can tip into rotation at fontSize 10. At nCols=99 the label is
-  // 3 chars ("I99") → widths are 3*8*0.58 = 13.92 vs 3*10*0.58 = 17.4, which
-  // straddle a colW of 18.
-  const nCols = 99;
-  const colW = 18;
-  assert(!shouldRotateColumnIds(nCols, colW, 8), "8 px font keeps labels horizontal");
-  assert(shouldRotateColumnIds(nCols, colW, 10), "10 px font forces rotation");
-});
-
-test("guards against empty input (nCols = 0)", () => {
-  // Shouldn't throw on String(0).length — the clamp to max(1, nCols) handles it
-  // and a single-digit "I#" comfortably fits any reasonable colW.
-  assert(!shouldRotateColumnIds(0, 36, 10), "0 cols should not rotate");
+test("is independent of set names — compact even for very long names", () => {
+  // This is the whole point: long names shouldn't widen this string.
+  const short = intersectionShortLabel([0, 1]);
+  eq(short, "S1 ∩ S2");
+  assert(short.length < 20, "short label must stay short");
 });
 
 summary();

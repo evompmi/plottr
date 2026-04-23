@@ -10,10 +10,10 @@ import {
   sortIntersections,
   truncateIntersections,
   intersectionLabel,
+  intersectionShortLabel,
   intersectionFilenamePart,
   intersectionIdKey,
   buildBarTicks,
-  shouldRotateColumnIds,
 } from "./upset/helpers";
 
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
@@ -43,6 +43,13 @@ const EMPTY_DOT = "#DDDDDD";
 const ZEBRA_FILL = "#F4F4F4";
 const TEXT_DARK = "#333333";
 const TEXT_MUTED = "#555555";
+// Significance-colour palette for the "Color by significance" toggle. Green
+// flags a significantly enriched bar (observed exclusive count > expected,
+// BH-adjusted upper-tail p < 0.05); dark red flags a significantly depleted
+// one (observed < expected, BH-adjusted lower-tail p < 0.05). Both are
+// colour-blind-safe Brewer 7-class PiYG/YlGn-green and -red endpoints.
+const BAR_FILL_ENRICHED = "#2ca25f";
+const BAR_FILL_DEPLETED = "#a50f15";
 
 // Row height is tuned so tall set lists stay legible without dominating the view.
 function computeRowHeight(nSets) {
@@ -75,6 +82,9 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
     dotSize,
     showIntersectionLabels,
     showSetSizeLabels,
+    significanceDisplay,
+    significanceByMask,
+    colorBarsBySignificance,
   },
   ref
 ) {
@@ -90,7 +100,16 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
   const labelFontSize = Math.max(10, fSize - 1);
   const estLabelW = Math.max(0, ...setNames.map((n) => String(n).length * labelFontSize * 0.58));
   const leftLabelArea = Math.max(LEFT_LABEL_AREA_MIN, Math.ceil(estLabelW) + 6);
-  const matrixLeftX = LEFT_MARGIN + LEFT_BAR_MAX + LEFT_GAP + leftLabelArea;
+  // Set-id lane: a dedicated column between the set-name labels and the
+  // matrix, rendering "S1", "S2", … in display order. Mirrors the column-id
+  // lane below the matrix so the on-screen plot is always the source of
+  // truth for which number maps to which set — a downloaded SVG and the
+  // exported intersection CSV can sit in the same folder with no ambiguity.
+  const setIdFontSize = Math.max(8, Math.min(10, fSize - 4));
+  const maxSetIdChars = 1 + String(Math.max(1, nSets)).length;
+  const setIdLaneW = Math.ceil(maxSetIdChars * setIdFontSize * 0.6) + 6;
+  const setIdLaneX = LEFT_MARGIN + LEFT_BAR_MAX + LEFT_GAP + leftLabelArea;
+  const matrixLeftX = setIdLaneX + setIdLaneW;
 
   const rowH = computeRowHeight(nSets);
   const colW = computeColWidth(nCols, matrixLeftX);
@@ -99,14 +118,12 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
   const subH = plotSubtitle ? SUBTITLE_H : 0;
   const topPanelY = titleH + subH;
   const matrixY = topPanelY + TOP_PANEL_H + MATRIX_TOP_PAD;
-  // Column ids ("I1", "I2", …) render horizontally by default, but flip to a
-  // vertical (rotated -90°) orientation whenever the horizontal label would be
-  // wider than the matrix column (plus a 2 px gap). 0.58 is the shared
-  // average-glyph-width factor used above for set-name labels.
+  // Column ids ("I1", "I2", …) always render rotated -90° (reading
+  // bottom-to-top) so they stay readable no matter how narrow the columns are.
+  // 0.58 is the shared average-glyph-width factor used above for set-name labels.
   const idFontSize = Math.max(8, Math.min(10, fSize - 4));
   const maxIdChars = 1 + String(Math.max(1, nCols)).length;
-  const rotateColumnIds = shouldRotateColumnIds(nCols, colW, idFontSize);
-  const idLabelSpan = rotateColumnIds ? Math.ceil(maxIdChars * idFontSize * 0.58) : idFontSize;
+  const idLabelSpan = Math.ceil(maxIdChars * idFontSize * 0.58);
   const legendFS = Math.max(9, fSize - 3);
   const idLaneOffset = 10;
   const legendOffset = idLaneOffset + idLabelSpan + 8;
@@ -124,7 +141,34 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
   const topAxisMax = Math.max(1, ...intersections.map((r) => r.size));
   const topTicks = buildBarTicks(topAxisMax, 4);
   const topDomainMax = topTicks[topTicks.length - 1];
-  const topBarScale = (v) => (v / topDomainMax) * TOP_PANEL_H;
+  // Both the intersection-size labels and the significance markers render
+  // rotated -90°, which means they extend *upward* from the bar top. The
+  // tallest bar is the binding constraint — if we scaled bars to the full
+  // TOP_PANEL_H, their rotated labels would spill above topPanelY into the
+  // title/subtitle and get clipped by the viewBox on dense plots. Reserve a
+  // dynamic `labelHeadroom` based on the widest possible rotated label and
+  // scale bars into `barAreaHeight = TOP_PANEL_H - labelHeadroom` instead.
+  // Shorter bars have natural extra gap so their (shorter) labels comfortably
+  // fit in the same reserved strip.
+  const sizeLabelFS = Math.max(9, fSize - 3);
+  const sizeLabelShown = showIntersectionLabels !== false;
+  const maxSizeChars = String(topAxisMax).length;
+  const maxSizeLabelHeight = sizeLabelShown ? Math.ceil(maxSizeChars * sizeLabelFS * 0.58) : 0;
+  let maxSigLabelHeight = 0;
+  if (significanceDisplay === "stars") {
+    // Longest in-use token is "****" (4 chars) at the larger stars font.
+    maxSigLabelHeight = Math.ceil(4 * Math.max(10, fSize - 1) * 0.58);
+  } else if (significanceDisplay === "p-value") {
+    // "p=1.2e-99" (9 chars) covers the worst-case scientific form.
+    maxSigLabelHeight = Math.ceil(9 * Math.max(9, fSize - 3) * 0.58);
+  }
+  const hasAnyLabel = maxSizeLabelHeight > 0 || maxSigLabelHeight > 0;
+  const gapBetweenLabels = maxSizeLabelHeight > 0 && maxSigLabelHeight > 0 ? 4 : 0;
+  const labelHeadroom =
+    maxSizeLabelHeight + maxSigLabelHeight + gapBetweenLabels + (hasAnyLabel ? 6 : 0);
+  const barAreaHeight = Math.max(40, TOP_PANEL_H - labelHeadroom);
+  const topBarScale = (v) => (v / topDomainMax) * barAreaHeight;
+  const barAreaTop = topPanelBottom - barAreaHeight;
 
   // Left (set-size) bar area — same scaling strategy as the top panel.
   const setSizeMax = Math.max(1, ...setNames.map((n) => setSizes.get(n) || 0));
@@ -189,12 +233,13 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
         </g>
       )}
 
-      {/* Top axis — intersection size. */}
+      {/* Top axis — intersection size. Line spans the bar area only (not the
+          reserved label headroom above it) so it matches the tallest tick. */}
       <g id="axis-intersection-size">
         <line
           x1={topAxisX}
           x2={topAxisX}
-          y1={topPanelY}
+          y1={barAreaTop}
           y2={topPanelBottom}
           stroke={TEXT_DARK}
           strokeWidth="1"
@@ -249,7 +294,15 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
         })()}
       </g>
 
-      {/* Intersection bars + their numeric labels. */}
+      {/* Intersection bars + their numeric labels. Bar fill switches to green /
+          dark red when the "Color by significance" toggle is on AND a cached
+          two-sided test crosses p_adj < 0.05. Direction (enrichment vs
+          depletion) is read from the entry's `direction` field (sign of
+          observed − expected); significance is judged on `pAdjTwoSided` — the
+          same honest two-sided family that drives the stars / p-value markers
+          above, so colour and marker always agree about which bars are
+          significant. Bars with no cached test, or tests that don't cross
+          p < 0.05, fall back to the default black fill. */}
       <g id="intersection-bars">
         {intersections.map((inter, i) => {
           const cx = colX(i);
@@ -258,6 +311,14 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           const h = topBarScale(inter.size);
           const isSelected = selectedMask === inter.mask;
           const idKey = intersectionIdKey(inter.setIndices, setNames);
+          let fill = BAR_FILL;
+          if (colorBarsBySignificance && significanceByMask) {
+            const sig = significanceByMask.get(inter.mask);
+            if (sig && Number.isFinite(sig.pAdjTwoSided) && sig.pAdjTwoSided < 0.05) {
+              if (sig.direction === "enriched") fill = BAR_FILL_ENRICHED;
+              else if (sig.direction === "depleted") fill = BAR_FILL_DEPLETED;
+            }
+          }
           return (
             <g
               key={`tb-${inter.mask}`}
@@ -270,7 +331,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
                 y={topPanelBottom - h}
                 width={barW}
                 height={h}
-                fill={BAR_FILL}
+                fill={fill}
                 fillOpacity={barOp}
                 stroke={isSelected ? TEXT_DARK : "none"}
                 strokeWidth={isSelected ? 1.5 : 0}
@@ -280,22 +341,82 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
         })}
       </g>
 
-      {showIntersectionLabels !== false && (
+      {sizeLabelShown && (
         <g id="intersection-bar-labels">
           {intersections.map((inter, i) => {
             const cx = colX(i);
             const h = topBarScale(inter.size);
+            const anchorY = topPanelBottom - h - 3;
             return (
               <text
                 key={`tbl-${inter.mask}`}
                 x={cx}
-                y={topPanelBottom - h - 3}
-                textAnchor="middle"
-                fontSize={Math.max(9, fSize - 3)}
+                y={anchorY}
+                textAnchor="start"
+                dominantBaseline="central"
+                fontSize={sizeLabelFS}
                 fill={TEXT_DARK}
                 fontFamily="sans-serif"
+                transform={`rotate(-90 ${cx} ${anchorY})`}
               >
                 {inter.size}
+              </text>
+            );
+          })}
+        </g>
+      )}
+
+      {/* Significance markers: stars or p-value text above bars the user has
+          tested. Rotated -90° (reading bottom-to-top) so the label stacks
+          vertically above its bar and never overlaps neighbouring columns.
+          Placed above the intersection-size label so the two never collide.
+          Only rendered when the sidebar toggle is on AND this bar's mask is
+          in `significanceByMask`. */}
+      {significanceDisplay && significanceDisplay !== "off" && significanceByMask && (
+        <g id="significance-markers">
+          {intersections.map((inter, i) => {
+            const sig = significanceByMask.get(inter.mask);
+            if (!sig || !Number.isFinite(sig.pAdj)) return null;
+            const cx = colX(i);
+            const h = topBarScale(inter.size);
+            // Size label is rotated -90°, so its on-screen height equals its
+            // glyph-string width (char count * fontSize * 0.58). Stack the
+            // (also-rotated) sig marker on top with a 4 px gap.
+            const thisSizeLabelHeight = sizeLabelShown
+              ? String(inter.size).length * sizeLabelFS * 0.58
+              : 0;
+            const labelOffset = sizeLabelShown ? thisSizeLabelHeight + 7 : 3;
+            const text =
+              significanceDisplay === "stars" ? pStars(sig.pAdj) : "p=" + formatP(sig.pAdj);
+            // Size: star glyphs render a hair bigger than the bar-size label;
+            // "ns" renders smaller so a non-significant bar stays visually
+            // quiet; p-values match the bar-size label so numeric widths stay
+            // aligned with the intersection size above.
+            const isStarsMode = significanceDisplay === "stars";
+            const isNs = isStarsMode && text === "ns";
+            const tSize = isNs
+              ? Math.max(8, fSize - 4)
+              : isStarsMode
+                ? Math.max(10, fSize - 1)
+                : Math.max(9, fSize - 3);
+            // Stars / "ns" always render in black; p-values use blue below 0.05
+            // to match the usual "significant" colour convention.
+            const fill = isStarsMode ? "#111111" : sig.pAdj < 0.05 ? "#1f6feb" : "#555555";
+            const anchorY = topPanelBottom - h - labelOffset;
+            return (
+              <text
+                key={`sig-${inter.mask}`}
+                x={cx}
+                y={anchorY}
+                textAnchor="start"
+                dominantBaseline="central"
+                fontSize={tSize}
+                fill={fill}
+                fontFamily="sans-serif"
+                fontWeight={isStarsMode && !isNs ? 700 : 400}
+                transform={`rotate(-90 ${cx} ${anchorY})`}
+              >
+                {text}
               </text>
             );
           })}
@@ -321,12 +442,13 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
         )}
       </g>
 
-      {/* Set labels inside the left panel, right-aligned against the matrix. */}
+      {/* Set labels inside the left panel, right-aligned against the S# id
+          lane (the id lane sits between the names and the matrix). */}
       <g id="set-labels">
         {setNames.map((name, i) => (
           <text
             key={`sl-${i}`}
-            x={matrixLeftX - LEFT_GAP - 2}
+            x={setIdLaneX - 2}
             y={rowY(i)}
             textAnchor="end"
             dominantBaseline="central"
@@ -340,12 +462,36 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
         ))}
       </g>
 
+      {/* Set-id lane: monospace "S1", "S2", … between the set-name labels
+          and the matrix, in display order. Mirrors the per-column id lane
+          below the matrix — the plot is the source of truth for which
+          number maps to which set, so a downloaded SVG stays unambiguous
+          alongside the exported intersection CSV. Re-numbering when the
+          user shows/hides sets is intentional (same contract as I#). */}
+      <g id="set-ids">
+        {setNames.map((_, i) => (
+          <text
+            key={`sid-${i}`}
+            id={`set-id-${i + 1}`}
+            x={setIdLaneX + setIdLaneW / 2}
+            y={rowY(i)}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={setIdFontSize}
+            fontFamily="monospace"
+            fill={TEXT_MUTED}
+          >
+            {`S${i + 1}`}
+          </text>
+        ))}
+      </g>
+
       {/* Set-size horizontal bars. */}
       <g id="set-size-bars">
         {setNames.map((name, i) => {
           const size = setSizes.get(name) || 0;
           const w = leftBarScale(size);
-          const barRightX = matrixLeftX - LEFT_GAP - leftLabelArea;
+          const barRightX = setIdLaneX - LEFT_GAP - leftLabelArea;
           return (
             <rect
               key={`sb-${i}`}
@@ -366,7 +512,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           {setNames.map((name, i) => {
             const size = setSizes.get(name) || 0;
             const w = leftBarScale(size);
-            const barRightX = matrixLeftX - LEFT_GAP - leftLabelArea;
+            const barRightX = setIdLaneX - LEFT_GAP - leftLabelArea;
             return (
               <text
                 key={`sbl-${i}`}
@@ -388,7 +534,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
       {/* Set-size axis: baseline + downward ticks + labels below the matrix. */}
       <g id="axis-set-size">
         {(() => {
-          const barRightX = matrixLeftX - LEFT_GAP - leftLabelArea;
+          const barRightX = setIdLaneX - LEFT_GAP - leftLabelArea;
           const axisY = matrixY + matrixH + 4;
           const axisLeftX = barRightX - LEFT_BAR_MAX;
           return (
@@ -457,12 +603,12 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
                 id={`column-id-${i + 1}`}
                 x={cx}
                 y={idLaneY}
-                textAnchor={rotateColumnIds ? "end" : "middle"}
-                dominantBaseline={rotateColumnIds ? "middle" : "hanging"}
+                textAnchor="end"
+                dominantBaseline="middle"
                 fontSize={idFontSize}
                 fontFamily="monospace"
                 fill={TEXT_MUTED}
-                transform={rotateColumnIds ? `rotate(-90 ${cx} ${idLaneY})` : undefined}
+                transform={`rotate(-90 ${cx} ${idLaneY})`}
               >
                 {`I${i + 1}`}
               </text>
@@ -488,7 +634,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
               fontStyle="italic"
               fill={TEXT_MUTED}
             >
-              I# = intersection id (used as bulk-download filename)
+              I# = intersection id (used as bulk-download filename) · S# = set id (rows)
             </text>
           );
         })()}
@@ -680,9 +826,114 @@ function UploadStep({
           >
             Controls
           </div>
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
-            Sort by size or degree, filter with minimum intersection size and minimum degree.
-          </p>
+          <ul
+            style={{
+              margin: 0,
+              padding: 0,
+              listStyle: "none",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              fontSize: 12,
+              color: "var(--text-muted)",
+              lineHeight: 1.5,
+            }}
+          >
+            <li style={{ display: "flex", gap: 10 }}>
+              <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>🔀</span>
+              <span>
+                <strong>Sort</strong> bars by size, degree, or set order.
+              </span>
+            </li>
+            <li style={{ display: "flex", gap: 10 }}>
+              <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>🎚️</span>
+              <span>
+                <strong>Filter</strong> by minimum intersection size (any integer, range auto-fits
+                your data) and a min / max degree window — keep only 2-way overlaps, drop
+                singletons, etc.
+              </span>
+            </li>
+            <li style={{ display: "flex", gap: 10 }}>
+              <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>🎨</span>
+              <span>
+                <strong>Style</strong>: opacity, dot size, font size, and label visibility — all
+                live.
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: 10,
+            padding: "14px 18px",
+            border: "1.5px solid var(--info-border)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: "var(--accent-primary)",
+              marginBottom: 10,
+              textTransform: "uppercase",
+              letterSpacing: "1px",
+            }}
+          >
+            Statistics
+          </div>
+          <ul
+            style={{
+              margin: 0,
+              padding: 0,
+              listStyle: "none",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              fontSize: 12,
+              color: "var(--text-muted)",
+              lineHeight: 1.5,
+            }}
+          >
+            <li style={{ display: "flex", gap: 10 }}>
+              <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>🧪</span>
+              <span>
+                Click <strong>Compute stats</strong> — tests every intersection against an
+                independence null (Binomial; each item placed in each set at its marginal rate).
+              </span>
+            </li>
+            <li style={{ display: "flex", gap: 10 }}>
+              <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>⚖️</span>
+              <span>
+                Headline p is <strong>two-sided</strong>: bars flag as surprisingly tall (
+                <strong>enrichment</strong>) or surprisingly short (<strong>depletion</strong> —
+                sets that avoid each other).
+              </span>
+            </li>
+            <li style={{ display: "flex", gap: 10 }}>
+              <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>📐</span>
+              <span>
+                BH-adjusted across the full family in one pass. View filters never change which
+                tests ran.
+              </span>
+            </li>
+            <li style={{ display: "flex", gap: 10 }}>
+              <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>👁️</span>
+              <span>
+                Turn on <strong>Significance markers</strong> (stars or p=…) and{" "}
+                <strong>Color bars</strong> (green = enriched, dark red = depleted) to read the
+                result straight off the plot.
+              </span>
+            </li>
+            <li style={{ display: "flex", gap: 10 }}>
+              <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>🌐</span>
+              <span>
+                Override <strong>Universe size</strong> in the sidebar if your null is a fixed
+                background (genome, proteome) rather than the union of uploaded items.
+              </span>
+            </li>
+          </ul>
         </div>
 
         <div
@@ -707,7 +958,8 @@ function UploadStep({
           </div>
           <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
             Download the plot as <strong>SVG</strong> or <strong>PNG</strong>, plus two CSVs: the
-            full intersection table and the long membership matrix.
+            full intersection table and the long membership matrix. One-click bulk-download of
+            every intersection's item list is also available.
           </p>
         </div>
 
@@ -715,7 +967,8 @@ function UploadStep({
           {[
             "4+ sets",
             "Exclusive intersections",
-            "Sort / filter",
+            "Sort / filter / stats",
+            "Two-sided significance (enrichment + depletion)",
             "Wide or long input",
             "SVG / PNG / CSV export",
             "100% browser-side",
@@ -1080,9 +1333,23 @@ function PlotControls({
   resetAll,
   fileName,
   intersections,
+  computeAllIntersectionStats,
+  clearIntersectionStats,
+  computingStats,
+  computeProgress,
+  intersectionTestsCount,
+  universeSize,
+  setUniverseSize,
+  universeOverridden,
+  setUniverseOverridden,
+  defaultUniverseSize,
+  maxAllIntersectionSize,
+  allIntersectionsCount,
 }) {
   const baseName = fileBaseName(fileName, "upset");
   const sv = (k) => (v) => updVis({ [k]: v });
+  const universeValid =
+    universeSize !== "" && Number.isFinite(Number(universeSize)) && Number(universeSize) > 0;
   return (
     <PlotSidebar>
       <ActionsPanel
@@ -1171,14 +1438,36 @@ function PlotControls({
             <option value="sets">Set order</option>
           </select>
         </div>
-        <SliderControl
-          label="Minimum intersection size"
-          value={vis.minSize}
-          min={0}
-          max={20}
-          step={1}
-          onChange={sv("minSize")}
-        />
+        <label style={{ display: "block" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              marginBottom: 2,
+            }}
+          >
+            <span className="dv-label">Minimum intersection size</span>
+            {maxAllIntersectionSize > 0 && (
+              <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
+                max in data: {maxAllIntersectionSize.toLocaleString()}
+              </span>
+            )}
+          </div>
+          <NumberInput
+            value={vis.minSize}
+            min={0}
+            max={maxAllIntersectionSize > 0 ? maxAllIntersectionSize : undefined}
+            step={1}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              if (!Number.isFinite(v)) return;
+              const cap = maxAllIntersectionSize > 0 ? maxAllIntersectionSize : v;
+              updVis({ minSize: Math.max(0, Math.min(cap, v)) });
+            }}
+            style={{ width: "100%" }}
+          />
+        </label>
         <SliderControl
           label="Minimum degree"
           value={vis.minDegree}
@@ -1329,6 +1618,268 @@ function PlotControls({
           <ColorInput value={vis.plotBg} onChange={sv("plotBg")} size={24} />
         </div>
       </ControlSection>
+
+      <ControlSection title="Statistics">
+        <div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              marginBottom: 2,
+            }}
+          >
+            <span className="dv-label">Universe size (N)</span>
+            {universeOverridden && Number.isFinite(Number(defaultUniverseSize)) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setUniverseOverridden(false);
+                  setUniverseSize(defaultUniverseSize || "");
+                }}
+                style={{
+                  fontSize: 10,
+                  padding: "1px 8px",
+                  background: "none",
+                  border: "1px solid var(--border-strong)",
+                  borderRadius: 4,
+                  color: "var(--text-muted)",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+                title="Revert to the union of uploaded items"
+              >
+                Reset to |∪|={defaultUniverseSize}
+              </button>
+            )}
+          </div>
+          <NumberInput
+            value={universeSize}
+            min={1}
+            step={1}
+            onChange={(e) => {
+              const v = e.target.value;
+              setUniverseSize(v === "" ? "" : Number(v));
+              setUniverseOverridden(true);
+            }}
+            style={{ width: "100%" }}
+          />
+          <p
+            style={{
+              margin: "4px 0 0",
+              fontSize: 10,
+              color: "var(--text-faint)",
+              lineHeight: 1.4,
+            }}
+          >
+            Defaults to the union of uploaded items (|∪|). Override with the genome / proteome /
+            predefined background for real enrichment analyses — a smaller universe inflates
+            p-values.
+          </p>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="dv-label">Intersection statistics</div>
+          <button
+            type="button"
+            className="dv-btn dv-btn-primary"
+            onClick={computeAllIntersectionStats}
+            disabled={computingStats || !universeValid || allIntersectionsCount === 0}
+            title={
+              !universeValid
+                ? "Set a Universe size above before computing stats"
+                : computingStats
+                  ? "Computing…"
+                  : `Run the SuperExactTest exact test for every one of the ${allIntersectionsCount} intersections in the active set selection and BH-adjust across them. Display filters (minimum size / degree) do NOT change which intersections are tested.`
+            }
+            style={{
+              fontSize: 12,
+              padding: "6px 10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
+            {computingStats ? (
+              <>
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: 12,
+                    height: 12,
+                    border: "2px solid currentColor",
+                    borderRightColor: "transparent",
+                    borderRadius: "50%",
+                    animation: "dv-spin 0.9s linear infinite",
+                  }}
+                  aria-hidden="true"
+                />
+                Computing {computeProgress.done}/{computeProgress.total}…
+              </>
+            ) : intersectionTestsCount > 0 ? (
+              `Recompute stats (${allIntersectionsCount} intersections)`
+            ) : (
+              `Compute stats (${allIntersectionsCount} intersections)`
+            )}
+          </button>
+          {computingStats && computeProgress.total > 0 && (
+            <div
+              style={{
+                height: 3,
+                borderRadius: 2,
+                background: "var(--border)",
+                overflow: "hidden",
+              }}
+              aria-hidden="true"
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${(computeProgress.done / computeProgress.total) * 100}%`,
+                  background: "var(--accent-primary)",
+                  transition: "width 120ms linear",
+                }}
+              />
+            </div>
+          )}
+          {intersectionTestsCount > 0 && !computingStats && (
+            <button
+              type="button"
+              onClick={clearIntersectionStats}
+              className="dv-btn dv-btn-secondary"
+              style={{ fontSize: 11, padding: "3px 8px" }}
+            >
+              Clear {intersectionTestsCount} cached{" "}
+              {intersectionTestsCount === 1 ? "result" : "results"}
+            </button>
+          )}
+          <p
+            style={{
+              margin: "2px 0 0",
+              fontSize: 10,
+              color: "var(--text-faint)",
+              lineHeight: 1.4,
+            }}
+          >
+            Computes the exact Binomial p (upper tail, lower tail, and the headline two-sided =
+            smaller tail × 2) per intersection, then BH-adjusts each family across every
+            intersection in the active set selection. Display filters (minimum size / degree) only
+            affect what's shown on the plot — they never change the BH family.
+          </p>
+          <style>{`@keyframes dv-spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+
+        <div>
+          <div className="dv-label">Significance markers</div>
+          <div
+            style={{
+              display: "flex",
+              borderRadius: 6,
+              overflow: "hidden",
+              border: "1px solid var(--border-strong)",
+            }}
+          >
+            {(
+              [
+                ["off", "Off"],
+                ["stars", "Stars"],
+                ["p-value", "p-value"],
+              ] as const
+            ).map(([mode, label]) => {
+              const current = vis.significanceDisplay || "off";
+              const active = current === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => updVis({ significanceDisplay: mode })}
+                  style={{
+                    flex: 1,
+                    padding: "4px 0",
+                    fontSize: 11,
+                    fontWeight: active ? 700 : 400,
+                    fontFamily: "inherit",
+                    cursor: "pointer",
+                    border: "none",
+                    background: active ? "var(--accent-primary)" : "var(--surface)",
+                    color: active ? "var(--on-accent)" : "var(--text-muted)",
+                    transition: "background 120ms ease, color 120ms ease",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <p
+            style={{
+              margin: "4px 0 0",
+              fontSize: 10,
+              color: "var(--text-faint)",
+              lineHeight: 1.4,
+            }}
+          >
+            Only tested intersections are marked. Uses the two-sided p (smaller tail × 2, BH-
+            adjusted across every test run this session), so both enrichment and depletion show up.
+          </p>
+        </div>
+
+        <div>
+          <div className="dv-label">Color bars by significance</div>
+          <div
+            style={{
+              display: "flex",
+              borderRadius: 6,
+              overflow: "hidden",
+              border: "1px solid var(--border-strong)",
+            }}
+          >
+            {(
+              [
+                [false, "Off"],
+                [true, "On"],
+              ] as const
+            ).map(([value, label]) => {
+              const active = !!vis.colorBarsBySignificance === value;
+              return (
+                <button
+                  key={String(value)}
+                  type="button"
+                  onClick={() => updVis({ colorBarsBySignificance: value })}
+                  style={{
+                    flex: 1,
+                    padding: "4px 0",
+                    fontSize: 11,
+                    fontWeight: active ? 700 : 400,
+                    fontFamily: "inherit",
+                    cursor: "pointer",
+                    border: "none",
+                    background: active ? "var(--accent-primary)" : "var(--surface)",
+                    color: active ? "var(--on-accent)" : "var(--text-muted)",
+                    transition: "background 120ms ease, color 120ms ease",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <p
+            style={{
+              margin: "4px 0 0",
+              fontSize: 10,
+              color: "var(--text-faint)",
+              lineHeight: 1.4,
+            }}
+          >
+            <span style={{ color: BAR_FILL_ENRICHED, fontWeight: 700 }}>Green</span> = enriched.{" "}
+            <span style={{ color: BAR_FILL_DEPLETED, fontWeight: 700 }}>Dark red</span> = depleted.
+            Both at two-sided p_adj &lt; 0.05, direction from the sign of observed − expected.
+            Untested or non-significant bars stay black.
+          </p>
+        </div>
+      </ControlSection>
     </PlotSidebar>
   );
 }
@@ -1354,7 +1905,279 @@ const VIS_INIT_UPSET = {
   maxDegree: null,
   showIntersectionLabels: true,
   showSetSizeLabels: true,
+  // "off" | "stars" | "p-value". Controls what (if anything) is drawn
+  // above an intersection bar once the user has run the significance test
+  // for that intersection. Only affects tested intersections — untested
+  // bars never get a marker. Default: off (stays in the side panel only).
+  significanceDisplay: "off",
+  // When true, intersection bars with a cached test are coloured by
+  // direction: green for significant enrichment, dark red for significant
+  // depletion, black otherwise. Both tails can trigger — depletion is not a
+  // dead branch (e.g. observed=0 against expected=5 gives a tiny lower-tail
+  // p and a non-significant upper-tail p), so this surfaces findings the
+  // star/p-value markers alone would hide.
+  colorBarsBySignificance: false,
 };
+
+/* ── Intersection significance panel ────────────────────────────────────────
+ *
+ * Click-to-compute SuperExactTest-style multi-set intersection p-value for
+ * the currently selected UpSet bar. Key design notes:
+ *
+ *   - Test input is the INCLUSIVE intersection count (items in all selected
+ *     sets, regardless of membership in other sets). The bar height shown in
+ *     the plot is the EXCLUSIVE intersection (items in ONLY these sets).
+ *     Both are displayed in the panel so the user understands which is tested.
+ *   - Null model is fixed-margin: each selected set is a uniformly-random
+ *     subset of the universe with its observed size. User-adjustable
+ *     "Universe size" governs this — defaults to the union of uploaded
+ *     items, but any real gene-list analysis needs a larger background
+ *     (genome, proteome). Tooltip explains the gravity of this choice.
+ *   - Cache keyed on `${mask}:${universe}` so re-renders don't recompute
+ *     and a universe change invalidates stale entries. BH adjustment runs
+ *     across all currently-cached tests so pAdj updates live.
+ *   - Exact path only — the Poisson approximation is available in stats.js
+ *     but we don't expose it here; at plant-science scale the exact DP is
+ *     fast enough and more accurate in the deep tail.
+ */
+function IntersectionStatsPanel({
+  intersection,
+  displaySetNames,
+  sets,
+  membershipMap,
+  universeSize,
+  intersectionTests,
+}) {
+  if (!intersection) return null;
+
+  // Inclusive count: items whose bitmask covers every selected set.
+  const inclusiveSize = React.useMemo(() => {
+    const mask = intersection.mask;
+    let count = 0;
+    for (const m of membershipMap.values()) {
+      if ((m & mask) === mask) count++;
+    }
+    return count;
+  }, [intersection, membershipMap]);
+
+  const selectedSetSizes = intersection.setIndices.map(
+    (i) => (sets.get(displaySetNames[i]) || new Set()).size
+  );
+  const selectedSetNames = intersection.setIndices.map((i) => displaySetNames[i]);
+
+  const universeN = typeof universeSize === "number" ? universeSize : Number(universeSize);
+
+  const cacheKey = `${intersection.mask}:${universeN}`;
+  const cachedResult = intersectionTests.get(cacheKey);
+
+  const fmtP = (p) => {
+    if (p == null || !Number.isFinite(p)) return "—";
+    if (p === 0) return "0";
+    if (p >= 1e-4) return p.toPrecision(4);
+    return p.toExponential(3);
+  };
+
+  const sidebarSection = (label, value, tooltip = null) =>
+    React.createElement(
+      "div",
+      { style: { display: "flex", justifyContent: "space-between", gap: 16 } },
+      React.createElement("span", { style: { color: "var(--text-muted)" } }, label),
+      React.createElement(
+        "span",
+        {
+          style: {
+            fontFamily: "monospace",
+            color: "var(--text)",
+            cursor: tooltip ? "help" : undefined,
+          },
+          title: tooltip || undefined,
+        },
+        value
+      )
+    );
+
+  return (
+    <div
+      className="dv-panel"
+      style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}
+    >
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+          Intersection significance
+        </p>
+        <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
+          SuperExactTest-style exact test against the fixed-margin null
+        </span>
+      </div>
+
+      {(() => {
+        // Expected value + direction track the EXCLUSIVE bar height — the
+        // count the user actually reads off the plot. Under the independence
+        // approximation each item lands in this cell with probability
+        //   p_M = Π(nᵢ/N for nᵢ in insideSizes) · Π(1 − nⱼ/N for nⱼ in outsideSizes)
+        // so E[exclusive] = N · p_M. Refreshes on bar selection / universe
+        // change — no need to click "Compute stats" to see the direction.
+        const universeFinite = Number.isFinite(universeN) && universeN > 0;
+        const xExclusive = intersection.size;
+        // Inside sets: the ones the bar's mask selects. Outside sets:
+        // every other set in the active upload.
+        const outsideSetSizes: number[] = [];
+        for (let j = 0; j < displaySetNames.length; j++) {
+          if (!intersection.setIndices.includes(j)) {
+            outsideSetSizes.push((sets.get(displaySetNames[j]) || new Set()).size);
+          }
+        }
+        const expected = universeFinite
+          ? multisetExclusiveExpected(selectedSetSizes, outsideSetSizes, universeN)
+          : NaN;
+        const expectedKnown = Number.isFinite(expected);
+        const direction = !expectedKnown
+          ? null
+          : Math.abs(xExclusive - expected) < 1e-9
+            ? "neutral"
+            : xExclusive > expected
+              ? "enriched"
+              : "depleted";
+        const directionGlyph =
+          direction === "enriched"
+            ? "↑ enriched"
+            : direction === "depleted"
+              ? "↓ depleted"
+              : direction === "neutral"
+                ? "≈ as expected"
+                : "";
+        const directionColor =
+          direction === "enriched"
+            ? "var(--accent-plot, #1f6feb)"
+            : direction === "depleted"
+              ? "var(--warning-text, #b45309)"
+              : "var(--text-muted)";
+        const fmtExpected = (v) => {
+          if (!Number.isFinite(v)) return "—";
+          if (v === 0) return "0";
+          if (v >= 0.01 && v < 1000) return v.toPrecision(4).replace(/\.?0+$/, "");
+          return v.toExponential(3);
+        };
+        return (
+          <div style={{ display: "grid", gap: 4, fontSize: 12 }}>
+            {sidebarSection(
+              "Sets tested",
+              intersectionShortLabel(intersection.setIndices),
+              selectedSetNames.join(" ∩ ")
+            )}
+            {sidebarSection("Set sizes (nᵢ)", selectedSetSizes.join(", "))}
+            {sidebarSection(
+              "Exclusive overlap (bar)",
+              <span style={{ display: "inline-flex", gap: 8, alignItems: "baseline" }}>
+                <span>{xExclusive}</span>
+                {direction && (
+                  <span style={{ fontSize: 11, color: directionColor, fontWeight: 600 }}>
+                    {directionGlyph}
+                  </span>
+                )}
+              </span>
+            )}
+            {expectedKnown &&
+              sidebarSection(
+                "Expected under null",
+                <span style={{ display: "inline-flex", gap: 6, alignItems: "baseline" }}>
+                  <span>{fmtExpected(expected)}</span>
+                  <span
+                    style={{ fontSize: 10, color: "var(--text-faint)" }}
+                    title={
+                      "E[exclusive] = N · Π(nᵢ/N) · Π(1 − nⱼ/N) under the " +
+                      "independence approximation (each item falls in each set with " +
+                      "its marginal probability). Inside: sets the bar covers. " +
+                      "Outside: the other uploaded sets."
+                    }
+                  >
+                    = N · Π(nᵢ/N) · Π(1 − nⱼ/N)
+                  </span>
+                </span>
+              )}
+            {sidebarSection(
+              <span style={{ color: "var(--text-faint)" }}>Inclusive overlap</span>,
+              <span style={{ color: "var(--text-faint)" }}>{inclusiveSize}</span>
+            )}
+          </div>
+        );
+      })()}
+
+
+      {cachedResult ? (
+        // Headline two-sided p on the EXCLUSIVE bar height, followed by the
+        // two one-sided tails for directional breakdown. One of the tails
+        // matches the direction pill above; the other is near 1 by
+        // construction.
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {(() => {
+            const two = cachedResult.pTwoSided;
+            const twoAdj = cachedResult.pAdjTwoSided;
+            const enr = Number.isFinite(cachedResult.pUpper) ? cachedResult.pUpper : cachedResult.p;
+            const enrAdj = cachedResult.pAdjUpper;
+            const dep = cachedResult.pLower;
+            const depAdj = cachedResult.pAdjLower;
+            const rowStyle = {
+              display: "flex",
+              alignItems: "baseline",
+              gap: 10,
+              flexWrap: "wrap" as const,
+              fontSize: 12,
+            };
+            const renderRow = (label, hint, p, pAdj) => (
+              <div style={rowStyle}>
+                <span
+                  style={{
+                    color: "var(--text-muted)",
+                    minWidth: 110,
+                    display: "inline-block",
+                  }}
+                >
+                  {label}
+                </span>
+                <span>
+                  <span style={{ color: "var(--text-muted)" }}>p = </span>
+                  <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{fmtP(p)}</span>
+                </span>
+                <span>
+                  <span style={{ color: "var(--text-muted)" }}>p_adj = </span>
+                  <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{fmtP(pAdj)}</span>
+                </span>
+                <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{hint}</span>
+              </div>
+            );
+            return (
+              <>
+                {renderRow(
+                  "Two-sided",
+                  "min(2·pUpper, 2·pLower, 1) — headline p, drives plot markers + bar colour",
+                  two,
+                  twoAdj
+                )}
+                {renderRow("Enrichment", "P(X ≥ bar) — Binomial(N, p_M), upper tail", enr, enrAdj)}
+                {renderRow("Depletion", "P(X ≤ bar) — lower tail", dep, depAdj)}
+                <span style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>
+                  Each family BH-adjusted separately across {intersectionTests.size} intersection
+                  {intersectionTests.size === 1 ? "" : "s"} cached for N={universeN}. The two-sided
+                  p is the honest headline (one test per bar, no cherry-picking); the per-tail rows
+                  are there for directional breakdown. The Binomial null assumes each item is
+                  independently placed in every set at its marginal rate.
+                </span>
+              </>
+            );
+          })()}
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
+          No p-value for this intersection yet — use <strong>Compute stats</strong> in the sidebar
+          to run the two-sided Binomial test (plus the per-tail enrichment / depletion breakdown)
+          on the exclusive bar height for every intersection in the current set selection in one
+          pass.
+        </div>
+      )}
+    </div>
+  );
+}
 
 function App() {
   const shell = usePlotToolState("upset", VIS_INIT_UPSET);
@@ -1384,6 +2207,21 @@ function App() {
   const [pendingMinDegree, setPendingMinDegree] = useState(1);
   const [pendingMaxDegree, setPendingMaxDegree] = useState<number>(Infinity);
 
+  // Significance-test state for the selected intersection (Phase 2 of the
+  // SuperExactTest-style work). The universe size defaults to the number of
+  // distinct items across all uploaded sets but is user-overridable — a real
+  // analysis often needs a larger background (e.g. the full genome, not just
+  // the union of uploaded lists). The cache is keyed on `${mask}:${universe}`
+  // so a universe-size change invalidates previously computed p-values. BH
+  // adjustment runs across the cache every time a new entry is added.
+  const [intersectionTests, setIntersectionTests] = useState(new Map());
+  const [universeSize, setUniverseSize] = useState<number | "">("");
+  const [universeOverridden, setUniverseOverridden] = useState(false);
+  // Batch-compute state: `computingStats` gates the "Compute stats" button
+  // (prevents double-fire mid-run); `computeProgress` drives the loader.
+  const [computingStats, setComputingStats] = useState(false);
+  const [computeProgress, setComputeProgress] = useState({ done: 0, total: 0 });
+
   const chartRef = useRef();
 
   // Sets render size-descending; rename/reorder isn't supported since the
@@ -1394,16 +2232,69 @@ function App() {
     return copy;
   }, [setNames, sets]);
 
-  const allIntersections = useMemo(() => {
-    if (displaySetNames.length < 2) return [];
+  const { allIntersections, membershipMap } = useMemo(() => {
+    if (displaySetNames.length < 2) return { allIntersections: [], membershipMap: new Map() };
     const { membershipMap } = computeMemberships(displaySetNames, sets);
-    return enumerateIntersections(membershipMap, displaySetNames);
+    return {
+      allIntersections: enumerateIntersections(membershipMap, displaySetNames),
+      membershipMap,
+    };
   }, [displaySetNames, sets]);
+
+  // Default universe = number of distinct items across all sets. When the
+  // user hasn't explicitly overridden the field, track this automatically.
+  const defaultUniverseSize = membershipMap.size;
+  React.useEffect(() => {
+    if (!universeOverridden) {
+      setUniverseSize(defaultUniverseSize || "");
+    }
+  }, [defaultUniverseSize, universeOverridden]);
+
+  // Chart-side lookup: only mark bars whose cached entry matches the current
+  // universe size. Prior results for a different N are deliberately ignored —
+  // they're stale under the active null.
+  const significanceByMask = useMemo(() => {
+    const m = new Map();
+    const currentN = typeof universeSize === "number" ? universeSize : Number(universeSize);
+    if (!Number.isFinite(currentN)) return m;
+    for (const entry of intersectionTests.values()) {
+      if (entry.universe === currentN) {
+        m.set(entry.mask, {
+          p: entry.p,
+          pAdj: entry.pAdj,
+          pAdjUpper: entry.pAdjUpper,
+          pAdjLower: entry.pAdjLower,
+          pAdjTwoSided: entry.pAdjTwoSided,
+          direction: entry.direction,
+        });
+      }
+    }
+    return m;
+  }, [intersectionTests, universeSize]);
 
   const sortedIntersections = useMemo(
     () => sortIntersections(allIntersections, vis.sortMode),
     [allIntersections, vis.sortMode]
   );
+
+  // Largest intersection size in the current dataset (pre-filter). Drives the
+  // dynamic max of the "Minimum intersection size" slider so the slider range
+  // always matches what's actually on screen.
+  const maxAllIntersectionSize = useMemo(
+    () => allIntersections.reduce((m, r) => (r.size > m ? r.size : m), 0),
+    [allIntersections]
+  );
+
+  // If the persisted minSize exceeds the current dataset's largest intersection,
+  // clamp it down so the filter doesn't silently hide every bar after a
+  // dataset swap (prefs persist per-tool, not per-dataset).
+  // Intentionally depends only on maxAllIntersectionSize: we want to clamp
+  // when the dataset changes, not on every minSize slider tick.
+  React.useEffect(() => {
+    if (maxAllIntersectionSize > 0 && vis.minSize > maxAllIntersectionSize) {
+      updVis({ minSize: maxAllIntersectionSize });
+    }
+  }, [maxAllIntersectionSize]);
 
   const truncatedIntersections = useMemo(
     () =>
@@ -1414,6 +2305,135 @@ function App() {
       }),
     [sortedIntersections, vis.minSize, vis.minDegree, vis.maxDegree]
   );
+
+  // Batch-compute significance for every intersection under the active set
+  // selection — NOT the display-filtered subset. The minSize / minDegree /
+  // maxDegree controls in the plot sidebar are purely visual; letting them
+  // scope the BH family would make the multiple-testing correction depend on
+  // the view, which is a real stats-validity bug (hide bars → BH adjusts over
+  // a smaller family → surviving p-values look more significant). Active set
+  // selection still scopes the null — that one IS a scientific choice.
+  // Runs asynchronously in ~16-bar chunks with `setTimeout(0)` between them
+  // so the progress bar actually animates and the browser doesn't freeze on
+  // large configurations.
+  const computeAllIntersectionStats = useCallback(async () => {
+    if (computingStats) return;
+    const universeN = typeof universeSize === "number" ? universeSize : Number(universeSize);
+    if (!Number.isFinite(universeN) || universeN <= 0) return;
+    // Test the EXCLUSIVE bar height. Under the independence approximation,
+    // each item is in this cell with probability
+    //   p_M = Π_{i∈inside}(nᵢ/N) · Π_{j∈outside}(1 − n_j/N),
+    // so the count follows Binomial(N, p_M). Degree-1 bars are fine under
+    // this null — "items in ONLY S_A" is a meaningful enrichment question.
+    const bars = allIntersections;
+    if (bars.length === 0) return;
+
+    setComputingStats(true);
+    setComputeProgress({ done: 0, total: bars.length });
+
+    const pending = new Map(intersectionTests);
+    const CHUNK_SIZE = 16;
+    for (let i = 0; i < bars.length; i++) {
+      const inter = bars[i];
+      const insideSizes = inter.setIndices.map(
+        (idx) => (sets.get(displaySetNames[idx]) || new Set()).size
+      );
+      const outsideSizes: number[] = [];
+      for (let j = 0; j < displaySetNames.length; j++) {
+        if (!inter.setIndices.includes(j)) {
+          outsideSizes.push((sets.get(displaySetNames[j]) || new Set()).size);
+        }
+      }
+      const xExclusive = inter.size;
+      const expected = multisetExclusiveExpected(insideSizes, outsideSizes, universeN);
+      const direction =
+        !Number.isFinite(expected) || Math.abs(xExclusive - expected) < 1e-9
+          ? "neutral"
+          : xExclusive > expected
+            ? "enriched"
+            : "depleted";
+      const pUpper = multisetExclusiveP(xExclusive, insideSizes, outsideSizes, universeN, {
+        tail: "upper",
+      });
+      const pLower = multisetExclusiveP(xExclusive, insideSizes, outsideSizes, universeN, {
+        tail: "lower",
+      });
+      // Two-sided p — textbook "double the smaller tail" convention for a
+      // Binomial one-parameter test. This is the honest headline value: it
+      // doesn't require the viewer to pick a tail after seeing the data
+      // (cherry-picking inflates false positives), and it captures signals
+      // from whichever side is surprising — significantly enriched OR
+      // significantly depleted. The per-tail values stay around for anyone
+      // who wants the directional breakdown (shown in the ItemList panel).
+      const pTwoSided =
+        Number.isFinite(pUpper) && Number.isFinite(pLower)
+          ? Math.min(1, 2 * Math.min(pUpper, pLower))
+          : NaN;
+      const key = `${inter.mask}:${universeN}`;
+      pending.set(key, {
+        mask: inter.mask,
+        universe: universeN,
+        xExclusive,
+        insideSizes,
+        outsideSizes,
+        expected,
+        direction,
+        p: pTwoSided, // headline raw p is two-sided; tails kept alongside
+        pUpper,
+        pLower,
+        pTwoSided,
+        pAdj: null,
+        pAdjUpper: null,
+        pAdjLower: null,
+        pAdjTwoSided: null,
+      });
+      if ((i + 1) % CHUNK_SIZE === 0 || i === bars.length - 1) {
+        setComputeProgress({ done: i + 1, total: bars.length });
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    }
+
+    // BH adjustment. The headline `pAdj` (drives plot markers + bar colour)
+    // comes from the two-sided family: one test per bar, one BH pass, no
+    // cherry-picking. The per-tail adjustments are kept around for the
+    // directional breakdown in the ItemList panel (so a user who wants to
+    // see "how significant was the enrichment side specifically" still can).
+    // NaN filter guards any stale / invalid entries from an earlier batch.
+    const matching = [...pending.values()].filter(
+      (e) =>
+        e.universe === universeN &&
+        Number.isFinite(e.pUpper) &&
+        Number.isFinite(e.pLower) &&
+        Number.isFinite(e.pTwoSided)
+    );
+    const adjUpper = bhAdjust(matching.map((e) => e.pUpper));
+    const adjLower = bhAdjust(matching.map((e) => e.pLower));
+    const adjTwoSided = bhAdjust(matching.map((e) => e.pTwoSided));
+    matching.forEach((e, j) => {
+      e.pAdjUpper = adjUpper[j];
+      e.pAdjLower = adjLower[j];
+      e.pAdjTwoSided = adjTwoSided[j];
+      e.pAdj = adjTwoSided[j]; // plot markers + bar colour key on `pAdj`
+    });
+
+    setIntersectionTests(pending);
+    setComputingStats(false);
+    setComputeProgress({ done: 0, total: 0 });
+  }, [
+    computingStats,
+    universeSize,
+    allIntersections,
+    intersectionTests,
+    sets,
+    displaySetNames,
+    membershipMap,
+  ]);
+
+  // Clear all cached stats — useful after a universe change if the user
+  // wants to wipe stale entries before recomputing.
+  const clearIntersectionStats = useCallback(() => {
+    setIntersectionTests(new Map());
+  }, []);
 
   const canNavigate = useCallback(
     (target) => {
@@ -1639,6 +2659,18 @@ function App() {
               resetAll={resetAll}
               fileName={fileName}
               intersections={truncatedIntersections}
+              computeAllIntersectionStats={computeAllIntersectionStats}
+              clearIntersectionStats={clearIntersectionStats}
+              computingStats={computingStats}
+              computeProgress={computeProgress}
+              intersectionTestsCount={intersectionTests.size}
+              universeSize={universeSize}
+              setUniverseSize={setUniverseSize}
+              universeOverridden={universeOverridden}
+              setUniverseOverridden={setUniverseOverridden}
+              defaultUniverseSize={defaultUniverseSize}
+              maxAllIntersectionSize={maxAllIntersectionSize}
+              allIntersectionsCount={allIntersections.length}
             />
 
             <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
@@ -1675,6 +2707,9 @@ function App() {
                   dotSize={vis.dotSize}
                   showIntersectionLabels={vis.showIntersectionLabels}
                   showSetSizeLabels={vis.showSetSizeLabels}
+                  significanceDisplay={vis.significanceDisplay}
+                  significanceByMask={significanceByMask}
+                  colorBarsBySignificance={vis.colorBarsBySignificance}
                 />
               </ScrollablePlotCard>
 
@@ -1710,6 +2745,17 @@ function App() {
                   No intersections to show. Lower Minimum intersection size, lower Minimum degree,
                   or raise Maximum degree.
                 </div>
+              )}
+
+              {selectedIntersection && (
+                <IntersectionStatsPanel
+                  intersection={selectedIntersection}
+                  displaySetNames={displaySetNames}
+                  sets={sets}
+                  membershipMap={membershipMap}
+                  universeSize={universeSize}
+                  intersectionTests={intersectionTests}
+                />
               )}
 
               <div className="dv-panel" style={{ marginTop: 16 }}>

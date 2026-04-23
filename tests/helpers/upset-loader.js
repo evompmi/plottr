@@ -50,7 +50,7 @@ module.exports = {
   sortIntersections: moduleObj.exports.sortIntersections,
   truncateIntersections: moduleObj.exports.truncateIntersections,
   intersectionLabel: moduleObj.exports.intersectionLabel,
+  intersectionShortLabel: moduleObj.exports.intersectionShortLabel,
   intersectionFilenamePart: moduleObj.exports.intersectionFilenamePart,
   buildBarTicks: moduleObj.exports.buildBarTicks,
-  shouldRotateColumnIds: moduleObj.exports.shouldRotateColumnIds,
 };
