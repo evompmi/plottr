@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Lineplot — Grid off by default and the significance-stars toggle moved to the below-plot stats tile.** Two alignment fixes with the broader tool suite. (1) `showGrid: true → false` in `VIS_INIT_LINEPLOT` — matches the default of every other plot tool (users turn it on per-plot if they want it, rather than the chart coming out of the box with cross-hatching a user needs to disable for clean figures). (2) The "Significance stars" Off/On segmented control moved from the sidebar Style section to a `Display on plot` secondary toolbar at the top of the below-plot per-x statistics tile, mirroring the boxplot stats-panel convention (`Display on plot [Off | ... ]` row under the panel header). Intentionally omitted the boxplot's "Print summary below plot" option — per-x text blocks would clutter a line chart. `showStars` / `setShowStars` now thread through `PlotStep → PerXStatsPanel` instead of PlotControls.
+
 ### Added
 
 - **Lineplot — "None" option in the Error bars selector.** Adds a fourth segmented-control option (None / SEM / SD / 95% CI) so analysts can render clean mean-only curves when the spread is being shown elsewhere (box in a sibling panel, separate SD plot, etc.). `errOf(p)` now returns `null` when `errorType === "none"` — the existing render-loop guard (`!e || !Number.isFinite(e) → return null`) cleanly skips the bar. The auto-axis computation also treats "none" as zero so the y-range contracts to the mean instead of padding for bars that no longer render. Default stays SEM.
