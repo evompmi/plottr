@@ -5987,7 +5987,11 @@ function FilterCheckboxPanel(props) {
       "div",
       { style: { display: "flex", gap: 16, flexWrap: "wrap", alignItems: "stretch", flex: 1 } },
       headers.map(function (h, i) {
-        if (colRoles[i] === "ignore") return null;
+        // Hide the value column's tile here too: it was assigned in Configure
+        // and is guaranteed to stay (rows are kept if their value is numeric);
+        // a filter tile adds no affordance and the old "numeric — use axis
+        // range in plot" placeholder was pure noise.
+        if (colRoles[i] === "ignore" || colRoles[i] === "value") return null;
         const u = filters[i] ? filters[i].unique : [];
         const isNumCol =
           u.length > 0 &&
