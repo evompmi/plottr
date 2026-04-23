@@ -349,6 +349,7 @@ function App() {
       title="Heatmap"
       visInit={VIS_INIT_HEATMAP}
       steps={["upload", "configure", "plot"]}
+      stepLabels={{ configure: "Import check" }}
       canNavigate={canNavigate}
     >
       {step === "upload" && (
