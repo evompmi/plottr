@@ -460,14 +460,28 @@ export function PlotControls({
                 onChange={sv("errStrokeWidth")}
               />
             )}
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span className="dv-label">Bar outline</span>
-              <input
-                type="checkbox"
-                checked={vis.showBarOutline}
-                onChange={(e) => updVis({ showBarOutline: e.target.checked })}
-                style={{ accentColor: "var(--cta-primary-bg)" }}
-              />
+            <div>
+              <div className="dv-label">Bar outline</div>
+              <div className="dv-seg" role="group" aria-label="Bar outline">
+                {(
+                  [
+                    [false, "Off"],
+                    [true, "On"],
+                  ] as const
+                ).map(([value, label]) => {
+                  const active = !!vis.showBarOutline === value;
+                  return (
+                    <button
+                      key={String(value)}
+                      type="button"
+                      className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
+                      onClick={() => updVis({ showBarOutline: value })}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             {vis.showBarOutline && (
               <>
