@@ -890,25 +890,14 @@ function PlotControls({
       </ControlSection>
 
       <ControlSection title="Style">
-        <div>
-          <span className="dv-label">Grid</span>
-          <div className="dv-seg" role="group" aria-label="Grid">
-            <button
-              type="button"
-              className={"dv-seg-btn" + (!vis.showGrid ? " dv-seg-btn-active" : "")}
-              onClick={() => updVis({ showGrid: false })}
-            >
-              Off
-            </button>
-            <button
-              type="button"
-              className={"dv-seg-btn" + (vis.showGrid ? " dv-seg-btn-active" : "")}
-              onClick={() => updVis({ showGrid: true })}
-            >
-              On
-            </button>
-          </div>
-        </div>
+        <BaseStyleControls
+          plotBg={vis.plotBg}
+          onPlotBgChange={(v) => updVis({ plotBg: v })}
+          showGrid={vis.showGrid}
+          onShowGridChange={(v) => updVis({ showGrid: v })}
+          gridColor={vis.gridColor}
+          onGridColorChange={(v) => updVis({ gridColor: v })}
+        />
         <SliderControl
           label="Line width"
           value={vis.lineWidth}

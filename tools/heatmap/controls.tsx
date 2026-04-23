@@ -437,40 +437,44 @@ export function PlotControls({
       </ControlSection>
 
       <ControlSection title="Labels">
-        <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
-          Title
+        <label style={{ display: "block" }}>
+          <span className="dv-label">Title</span>
           <input
             type="text"
             value={vis.plotTitle}
             onChange={(e) => updVis({ plotTitle: e.target.value })}
-            style={{ width: "100%", fontSize: 11, marginTop: 2 }}
+            className="dv-input"
+            style={{ width: "100%" }}
           />
         </label>
-        <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
-          Subtitle
+        <label style={{ display: "block" }}>
+          <span className="dv-label">Subtitle</span>
           <input
             type="text"
             value={vis.plotSubtitle}
             onChange={(e) => updVis({ plotSubtitle: e.target.value })}
-            style={{ width: "100%", fontSize: 11, marginTop: 2 }}
+            className="dv-input"
+            style={{ width: "100%" }}
           />
         </label>
-        <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
-          X-axis label
+        <label style={{ display: "block" }}>
+          <span className="dv-label">X-axis label</span>
           <input
             type="text"
             value={vis.colAxisLabel}
             onChange={(e) => updVis({ colAxisLabel: e.target.value })}
-            style={{ width: "100%", fontSize: 11, marginTop: 2 }}
+            className="dv-input"
+            style={{ width: "100%" }}
           />
         </label>
-        <label style={{ fontSize: 11, display: "block", marginBottom: 6 }}>
-          Y-axis label
+        <label style={{ display: "block" }}>
+          <span className="dv-label">Y-axis label</span>
           <input
             type="text"
             value={vis.rowAxisLabel}
             onChange={(e) => updVis({ rowAxisLabel: e.target.value })}
-            style={{ width: "100%", fontSize: 11, marginTop: 2 }}
+            className="dv-input"
+            style={{ width: "100%" }}
           />
         </label>
         <div style={{ marginTop: 8 }}>

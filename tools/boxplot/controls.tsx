@@ -413,14 +413,7 @@ export function PlotControls({
             />
             <div>
               <div className="dv-label">Error bars</div>
-              <div
-                style={{
-                  display: "flex",
-                  borderRadius: 6,
-                  overflow: "hidden",
-                  border: "1px solid var(--border-strong)",
-                }}
-              >
+              <div className="dv-seg" role="group" aria-label="Error bars">
                 {(["none", "sem", "sd", "ci95"] as const).map((mode) => {
                   const active = vis.errorType === mode;
                   const label =
@@ -429,19 +422,8 @@ export function PlotControls({
                     <button
                       key={mode}
                       type="button"
+                      className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                       onClick={() => updVis({ errorType: mode })}
-                      style={{
-                        flex: 1,
-                        padding: "4px 0",
-                        fontSize: 11,
-                        fontWeight: active ? 700 : 400,
-                        fontFamily: "inherit",
-                        cursor: "pointer",
-                        border: "none",
-                        background: active ? "var(--accent-primary)" : "var(--surface)",
-                        color: active ? "var(--on-accent)" : "var(--text-muted)",
-                        transition: "background 120ms ease, color 120ms ease",
-                      }}
                     >
                       {label}
                     </button>
