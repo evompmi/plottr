@@ -39,6 +39,12 @@ const VIS_INIT_BOXPLOT = {
   barOutlineWidth: 1.5,
   barOutlineColor: "#333333",
   barOpacity: 0.25,
+  // Per-group / per-colour-category colours, keyed by name. Live in `vis`
+  // (rather than local useState) so they auto-persist to localStorage +
+  // round-trip through the PrefsPanel file save/load. Names that don't
+  // match a saved entry fall back to the palette default.
+  boxplotColors: {},
+  categoryColors: {},
 };
 
 /* ── Main App (orchestrator) ───────────────────────────────────────────────── */
@@ -74,8 +80,20 @@ function App() {
   const [filters, setFilters] = useState({});
   const [valueRenames, setValueRenames] = useState({});
 
-  // Plot state
-  const [boxplotColors, setBoxplotColors] = useState({});
+  // Plot state. boxplotColors + categoryColors now live in `vis` so the
+  // PrefsPanel's Save / Load file and the auto-persist localStorage slot
+  // cover them. Exposed as read-through variables with function-capable
+  // setters so existing call sites (including functional updaters) work
+  // unchanged.
+  const boxplotColors = vis.boxplotColors || {};
+  const setBoxplotColors = useCallback(
+    (updater) =>
+      updVis({
+        boxplotColors:
+          typeof updater === "function" ? updater(vis.boxplotColors || {}) : updater || {},
+      }),
+    [updVis, vis.boxplotColors]
+  );
   const [plotGroupRenames, setPlotGroupRenames] = useState({});
   const [disabledGroups, setDisabledGroups] = useState({});
   // Per-column ordering keyed by column index. Any column that can appear in
@@ -85,7 +103,15 @@ function App() {
   const [columnOrders, setColumnOrders] = useState({});
   const setOrderForCol = (i, newOrder) => setColumnOrders((prev) => ({ ...prev, [i]: newOrder }));
   const [colorByCol, setColorByCol] = useState(-1);
-  const [categoryColors, setCategoryColors] = useState({});
+  const categoryColors = vis.categoryColors || {};
+  const setCategoryColors = useCallback(
+    (updater) =>
+      updVis({
+        categoryColors:
+          typeof updater === "function" ? updater(vis.categoryColors || {}) : updater || {},
+      }),
+    [updVis, vis.categoryColors]
+  );
   const [dragState, setDragState] = useState(null);
   const [facetByCol, _setFacetByCol] = useState(-1);
   const [subgroupByCol, _setSubgroupByCol] = useState(-1);

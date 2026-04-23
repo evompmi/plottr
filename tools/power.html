@@ -80,6 +80,13 @@
         .power-chart-card {
           display: none !important;
         }
+        /* Hide the R-script download chip on phones — mobile users are
+           sanity-checking stats on the go, not authoring reproducible
+           R scripts, and the absolutely-positioned chip was bumping
+           into the result number on narrow cards anyway. */
+        .power-r-dl {
+          display: none !important;
+        }
       }
     </style>
     <script src="shared.bundle.js"></script>

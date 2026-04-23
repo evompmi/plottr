@@ -1038,7 +1038,7 @@ function App() {
             )}
             {result != null && typeof buildRScriptForPower === "function" && (
               <button
-                className="dv-btn dv-btn-dl"
+                className="dv-btn dv-btn-dl power-r-dl"
                 onClick={(e) => {
                   e.stopPropagation();
                   const script = buildRScriptForPower({
