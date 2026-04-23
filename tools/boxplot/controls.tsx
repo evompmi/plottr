@@ -639,78 +639,61 @@ export function PlotControls({
         )}
       </ControlSection>
 
-      {/* Split by */}
+      {/* Split by — two plain selects mirror the column-role picker
+          pattern used by scatter + lineplot's Variables panel. Facet and
+          subgroup are mutually exclusive by design (the plot engine can't
+          render both at once), so picking a column on one axis clears the
+          other in onChange. Same affordance as picking X/Y elsewhere: a
+          single label + select per role, `(none)` as the default option. */}
       <ControlSection title="Split by">
-        <div
-          style={{
-            display: "flex",
-            borderRadius: 6,
-            overflow: "hidden",
-            border: "1px solid var(--border-strong)",
-            marginBottom: facetByCol >= 0 || subgroupByCol >= 0 ? 6 : 0,
-          }}
-        >
-          {(["none", "facet", "subgroup"] as const).map((mode) => {
-            const active =
-              mode === "facet"
-                ? facetByCol >= 0
-                : mode === "subgroup"
-                  ? subgroupByCol >= 0
-                  : facetByCol < 0 && subgroupByCol < 0;
-            return (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => {
-                  if (mode === "none") {
-                    setFacetByCol(-1);
-                    setSubgroupByCol(-1);
-                  } else if (mode === "facet") {
-                    setSubgroupByCol(-1);
-                    if (facetByCol < 0 && colorByCandidates.length > 0)
-                      setFacetByCol(colorByCandidates[0]);
-                  } else {
-                    setFacetByCol(-1);
-                    if (subgroupByCol < 0 && colorByCandidates.length > 0)
-                      setSubgroupByCol(colorByCandidates[0]);
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  padding: "4px 0",
-                  fontSize: 11,
-                  fontWeight: active ? 700 : 400,
-                  fontFamily: "inherit",
-                  cursor: "pointer",
-                  border: "none",
-                  background: active ? "var(--accent-primary)" : "var(--surface)",
-                  color: active ? "var(--on-accent)" : "var(--text-muted)",
-                  transition: "background 120ms ease, color 120ms ease",
-                }}
-              >
-                {mode === "none" ? "None" : mode === "facet" ? "Facet" : "Subgroup"}
-              </button>
-            );
-          })}
-        </div>
-        {(facetByCol >= 0 || subgroupByCol >= 0) && (
+        <label style={{ display: "block" }}>
+          <span className="dv-label">Facet by</span>
           <select
-            value={facetByCol >= 0 ? facetByCol : subgroupByCol}
+            value={facetByCol >= 0 ? facetByCol : ""}
             onChange={(e) => {
-              const v = Number(e.target.value);
-              if (facetByCol >= 0) setFacetByCol(v);
-              else setSubgroupByCol(v);
+              const raw = e.target.value;
+              if (raw === "") {
+                setFacetByCol(-1);
+              } else {
+                setFacetByCol(Number(raw));
+                setSubgroupByCol(-1);
+              }
             }}
-            className="dv-input"
-            style={{ cursor: "pointer", fontSize: 11, width: "100%" }}
+            className="dv-select"
+            style={{ width: "100%" }}
           >
+            <option value="">(none)</option>
             {colorByCandidates.map((ci) => (
               <option key={ci} value={ci}>
                 {colNames[ci]}
               </option>
             ))}
           </select>
-        )}
+        </label>
+        <label style={{ display: "block" }}>
+          <span className="dv-label">Subgroup by</span>
+          <select
+            value={subgroupByCol >= 0 ? subgroupByCol : ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") {
+                setSubgroupByCol(-1);
+              } else {
+                setSubgroupByCol(Number(raw));
+                setFacetByCol(-1);
+              }
+            }}
+            className="dv-select"
+            style={{ width: "100%" }}
+          >
+            <option value="">(none)</option>
+            {colorByCandidates.map((ci) => (
+              <option key={ci} value={ci}>
+                {colNames[ci]}
+              </option>
+            ))}
+          </select>
+        </label>
       </ControlSection>
 
       {/* Axes & labels */}

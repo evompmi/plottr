@@ -924,8 +924,8 @@ function PlotStep({
             Variables
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div>
-              <div className="dv-label">X axis</div>
+            <label style={{ display: "block" }}>
+              <span className="dv-label">X axis</span>
               <select
                 value={xCol}
                 onChange={(e) => setXCol(parseInt(e.target.value))}
@@ -938,9 +938,9 @@ function PlotStep({
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <div className="dv-label">Y axis</div>
+            </label>
+            <label style={{ display: "block" }}>
+              <span className="dv-label">Y axis</span>
               <select
                 value={yCol}
                 onChange={(e) => setYCol(parseInt(e.target.value))}
@@ -953,7 +953,7 @@ function PlotStep({
                   </option>
                 ))}
               </select>
-            </div>
+            </label>
           </div>
         </div>
 

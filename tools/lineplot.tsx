@@ -726,54 +726,63 @@ function PlotControls({
         }
       />
 
-      <ControlSection title="Columns" defaultOpen>
-        <label style={{ display: "block" }}>
-          <span className="dv-label">X (numeric)</span>
-          <select
-            value={xCol}
-            onChange={(e) => setXCol(parseInt(e.target.value))}
-            className="dv-select"
-            style={{ width: "100%" }}
-          >
-            {numericCols.map((i) => (
-              <option key={i} value={i}>
-                {parsed.headers[i]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label style={{ display: "block" }}>
-          <span className="dv-label">Y (numeric)</span>
-          <select
-            value={yCol}
-            onChange={(e) => setYCol(parseInt(e.target.value))}
-            className="dv-select"
-            style={{ width: "100%" }}
-          >
-            {numericCols.map((i) => (
-              <option key={i} value={i}>
-                {parsed.headers[i]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label style={{ display: "block" }}>
-          <span className="dv-label">Group by</span>
-          <select
-            value={groupCol == null ? "" : groupCol}
-            onChange={(e) => setGroupCol(e.target.value === "" ? null : parseInt(e.target.value))}
-            className="dv-select"
-            style={{ width: "100%" }}
-          >
-            <option value="">(single line)</option>
-            {categoricalCols.map((i) => (
-              <option key={i} value={i}>
-                {parsed.headers[i]}
-              </option>
-            ))}
-          </select>
-        </label>
-      </ControlSection>
+      {/* Permanent "Variables" panel — matches scatter's column-role picker
+          pattern: always visible at the top of the sidebar, never collapsed.
+          These selects define what the plot IS; hiding them behind a
+          disclosure widget would be a UX downgrade. */}
+      <div className="dv-panel">
+        <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+          Variables
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label style={{ display: "block" }}>
+            <span className="dv-label">X axis</span>
+            <select
+              value={xCol}
+              onChange={(e) => setXCol(parseInt(e.target.value))}
+              className="dv-select"
+              style={{ width: "100%" }}
+            >
+              {numericCols.map((i) => (
+                <option key={i} value={i}>
+                  {parsed.headers[i]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: "block" }}>
+            <span className="dv-label">Y axis</span>
+            <select
+              value={yCol}
+              onChange={(e) => setYCol(parseInt(e.target.value))}
+              className="dv-select"
+              style={{ width: "100%" }}
+            >
+              {numericCols.map((i) => (
+                <option key={i} value={i}>
+                  {parsed.headers[i]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: "block" }}>
+            <span className="dv-label">Group by</span>
+            <select
+              value={groupCol == null ? "" : groupCol}
+              onChange={(e) => setGroupCol(e.target.value === "" ? null : parseInt(e.target.value))}
+              className="dv-select"
+              style={{ width: "100%" }}
+            >
+              <option value="">(single line)</option>
+              {categoricalCols.map((i) => (
+                <option key={i} value={i}>
+                  {parsed.headers[i]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
 
       <ControlSection title="Groups">
         {series.length === 0 ? (
