@@ -501,7 +501,7 @@ export function PlotControls({
       </ControlSection>
 
       {/* Data points */}
-      <ControlSection title="Data points" defaultOpen>
+      <ControlSection title="Data points">
         <div>
           <div className="dv-label">Show points</div>
           <div
@@ -640,7 +640,7 @@ export function PlotControls({
       </ControlSection>
 
       {/* Split by */}
-      <ControlSection title="Split by" defaultOpen>
+      <ControlSection title="Split by">
         <div
           style={{
             display: "flex",

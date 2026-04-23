@@ -191,7 +191,7 @@ export function PlotControls({
         ]}
       />
 
-      <ControlSection title="Normalisation" defaultOpen={true}>
+      <ControlSection title="Normalisation">
         <div className="dv-seg" role="group" aria-label="Normalisation">
           {NORM_OPTIONS.map((o) => (
             <button

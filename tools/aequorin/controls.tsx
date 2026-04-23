@@ -127,7 +127,7 @@ export function PlotControls({
       </ControlSection>
 
       {/* Axes */}
-      <ControlSection title="Axes" defaultOpen>
+      <ControlSection title="Axes">
         <div style={{ display: "flex", gap: 6 }}>
           <label style={{ flex: 1, display: "block" }}>
             <span className="dv-label">X start</span>

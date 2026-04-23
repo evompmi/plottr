@@ -1740,7 +1740,7 @@ function PlotStep({
         </ControlSection>
 
         {/* Style */}
-        <ControlSection title="Style" defaultOpen>
+        <ControlSection title="Style">
           <BaseStyleControls
             plotBg={vis.plotBg}
             onPlotBgChange={(v) => updVis({ plotBg: v })}

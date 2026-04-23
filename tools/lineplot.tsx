@@ -775,7 +775,7 @@ function PlotControls({
         </label>
       </ControlSection>
 
-      <ControlSection title="Groups" defaultOpen={series.length > 0 && series.length <= 6}>
+      <ControlSection title="Groups">
         {series.length === 0 ? (
           <p style={{ margin: 0, fontSize: 11, color: "var(--text-faint)" }}>
             No groups yet — pick a grouping column.
@@ -792,7 +792,7 @@ function PlotControls({
         )}
       </ControlSection>
 
-      <ControlSection title="Error bars" defaultOpen>
+      <ControlSection title="Error bars">
         <div className="dv-seg" role="group" aria-label="Error bar type">
           {ERROR_KINDS.map((k) => (
             <button
