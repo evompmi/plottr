@@ -308,9 +308,9 @@ export function PlotControls({
               </>
             )}
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
-              Leaf order + cluster structure stay applied when hidden. Drag on the heatmap to open
-              a zoomed selection if you still need per-cluster exports. Applies to both the main
-              and zoomed plots.
+              Leaf order + cluster structure stay applied when hidden. Drag on the heatmap to open a
+              zoomed selection if you still need per-cluster exports. Applies to both the main and
+              zoomed plots.
             </div>
           </div>
         )}
