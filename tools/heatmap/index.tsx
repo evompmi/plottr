@@ -25,14 +25,16 @@ const VIS_INIT_HEATMAP = {
   rowAxisLabel: "",
   showRowLabels: false,
   showColLabels: true,
-  // Whether the hierarchical-clustering dendrograms render on the plot.
-  // Dendrograms are essential for defining / selecting clusters (click a
-  // branch to open the zoomed selection), but once the order + cluster
-  // structure is locked in, users often want a cleaner final figure.
-  // Turning this off hides the tree lines + hit-rects; leaf ORDER from
-  // hierarchical clustering is preserved (that's what the user committed
-  // to); drag-select on the heatmap still works for opening detail views.
-  showDendrograms: true,
+  // Whether each hierarchical-clustering dendrogram renders on the plot
+  // (independent per axis). Dendrograms are essential for defining /
+  // selecting clusters (click a branch to open the zoomed selection), but
+  // once the order + cluster structure is locked in, users often want a
+  // cleaner final figure. Turning one off hides that axis's tree lines +
+  // hit-rects and reclaims the reserved margin; leaf ORDER is preserved
+  // (that's what the user committed to); drag-select on the heatmap still
+  // opens detail views. Applies to both the main and zoomed plots.
+  showRowDendrogram: true,
+  showColDendrogram: true,
 };
 
 // ── Embedded example dataset (500 genes × 6 samples) ────────────────────────
@@ -554,7 +556,8 @@ function App() {
                     colAxisLabel={vis.colAxisLabel}
                     showRowLabels={vis.showRowLabels}
                     showColLabels={vis.showColLabels}
-                    showDendrograms={vis.showDendrograms}
+                    showRowDendrogram={vis.showRowDendrogram}
+                    showColDendrogram={vis.showColDendrogram}
                     interactive={true}
                     selection={selection}
                     onBrushEnd={onBrushEnd}

@@ -253,32 +253,64 @@ export function PlotControls({
                 </button>
               ))}
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 4px" }}>
-              Hierarchical · Show dendrograms
-            </div>
-            <div className="dv-seg" role="group" aria-label="Show dendrograms">
-              {(
-                [
-                  [false, "Off"],
-                  [true, "On"],
-                ] as const
-              ).map(([value, label]) => {
-                const active = !!vis.showDendrograms === value;
-                return (
-                  <button
-                    key={String(value)}
-                    type="button"
-                    className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
-                    onClick={() => updVis({ showDendrograms: value })}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+            {rowMode === "hierarchical" && (
+              <>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 4px" }}>
+                  Hierarchical · Row dendrogram
+                </div>
+                <div className="dv-seg" role="group" aria-label="Show row dendrogram">
+                  {(
+                    [
+                      [false, "Off"],
+                      [true, "On"],
+                    ] as const
+                  ).map(([value, label]) => {
+                    const active = !!vis.showRowDendrogram === value;
+                    return (
+                      <button
+                        key={String(value)}
+                        type="button"
+                        className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
+                        onClick={() => updVis({ showRowDendrogram: value })}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            {colMode === "hierarchical" && (
+              <>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 4px" }}>
+                  Hierarchical · Column dendrogram
+                </div>
+                <div className="dv-seg" role="group" aria-label="Show column dendrogram">
+                  {(
+                    [
+                      [false, "Off"],
+                      [true, "On"],
+                    ] as const
+                  ).map(([value, label]) => {
+                    const active = !!vis.showColDendrogram === value;
+                    return (
+                      <button
+                        key={String(value)}
+                        type="button"
+                        className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
+                        onClick={() => updVis({ showColDendrogram: value })}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
               Leaf order + cluster structure stay applied when hidden. Drag on the heatmap to open
-              a zoomed selection if you still need per-cluster exports.
+              a zoomed selection if you still need per-cluster exports. Applies to both the main
+              and zoomed plots.
             </div>
           </div>
         )}
