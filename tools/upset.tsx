@@ -131,7 +131,34 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
   const topAxisMax = Math.max(1, ...intersections.map((r) => r.size));
   const topTicks = buildBarTicks(topAxisMax, 4);
   const topDomainMax = topTicks[topTicks.length - 1];
-  const topBarScale = (v) => (v / topDomainMax) * TOP_PANEL_H;
+  // Both the intersection-size labels and the significance markers render
+  // rotated -90°, which means they extend *upward* from the bar top. The
+  // tallest bar is the binding constraint — if we scaled bars to the full
+  // TOP_PANEL_H, their rotated labels would spill above topPanelY into the
+  // title/subtitle and get clipped by the viewBox on dense plots. Reserve a
+  // dynamic `labelHeadroom` based on the widest possible rotated label and
+  // scale bars into `barAreaHeight = TOP_PANEL_H - labelHeadroom` instead.
+  // Shorter bars have natural extra gap so their (shorter) labels comfortably
+  // fit in the same reserved strip.
+  const sizeLabelFS = Math.max(9, fSize - 3);
+  const sizeLabelShown = showIntersectionLabels !== false;
+  const maxSizeChars = String(topAxisMax).length;
+  const maxSizeLabelHeight = sizeLabelShown ? Math.ceil(maxSizeChars * sizeLabelFS * 0.58) : 0;
+  let maxSigLabelHeight = 0;
+  if (significanceDisplay === "stars") {
+    // Longest in-use token is "****" (4 chars) at the larger stars font.
+    maxSigLabelHeight = Math.ceil(4 * Math.max(10, fSize - 1) * 0.58);
+  } else if (significanceDisplay === "p-value") {
+    // "p=1.2e-99" (9 chars) covers the worst-case scientific form.
+    maxSigLabelHeight = Math.ceil(9 * Math.max(9, fSize - 3) * 0.58);
+  }
+  const hasAnyLabel = maxSizeLabelHeight > 0 || maxSigLabelHeight > 0;
+  const gapBetweenLabels = maxSizeLabelHeight > 0 && maxSigLabelHeight > 0 ? 4 : 0;
+  const labelHeadroom =
+    maxSizeLabelHeight + maxSigLabelHeight + gapBetweenLabels + (hasAnyLabel ? 6 : 0);
+  const barAreaHeight = Math.max(40, TOP_PANEL_H - labelHeadroom);
+  const topBarScale = (v) => (v / topDomainMax) * barAreaHeight;
+  const barAreaTop = topPanelBottom - barAreaHeight;
 
   // Left (set-size) bar area — same scaling strategy as the top panel.
   const setSizeMax = Math.max(1, ...setNames.map((n) => setSizes.get(n) || 0));
@@ -196,12 +223,13 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
         </g>
       )}
 
-      {/* Top axis — intersection size. */}
+      {/* Top axis — intersection size. Line spans the bar area only (not the
+          reserved label headroom above it) so it matches the tallest tick. */}
       <g id="axis-intersection-size">
         <line
           x1={topAxisX}
           x2={topAxisX}
-          y1={topPanelY}
+          y1={barAreaTop}
           y2={topPanelBottom}
           stroke={TEXT_DARK}
           strokeWidth="1"
@@ -312,20 +340,23 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
         })}
       </g>
 
-      {showIntersectionLabels !== false && (
+      {sizeLabelShown && (
         <g id="intersection-bar-labels">
           {intersections.map((inter, i) => {
             const cx = colX(i);
             const h = topBarScale(inter.size);
+            const anchorY = topPanelBottom - h - 3;
             return (
               <text
                 key={`tbl-${inter.mask}`}
                 x={cx}
-                y={topPanelBottom - h - 3}
-                textAnchor="middle"
-                fontSize={Math.max(9, fSize - 3)}
+                y={anchorY}
+                textAnchor="start"
+                dominantBaseline="central"
+                fontSize={sizeLabelFS}
                 fill={TEXT_DARK}
                 fontFamily="sans-serif"
+                transform={`rotate(-90 ${cx} ${anchorY})`}
               >
                 {inter.size}
               </text>
@@ -347,7 +378,13 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
             if (!sig || !Number.isFinite(sig.pAdj)) return null;
             const cx = colX(i);
             const h = topBarScale(inter.size);
-            const labelOffset = showIntersectionLabels !== false ? fSize + 2 : 3;
+            // Size label is rotated -90°, so its on-screen height equals its
+            // glyph-string width (char count * fontSize * 0.58). Stack the
+            // (also-rotated) sig marker on top with a 4 px gap.
+            const thisSizeLabelHeight = sizeLabelShown
+              ? String(inter.size).length * sizeLabelFS * 0.58
+              : 0;
+            const labelOffset = sizeLabelShown ? thisSizeLabelHeight + 7 : 3;
             const text =
               significanceDisplay === "stars" ? pStars(sig.pAdj) : "p=" + formatP(sig.pAdj);
             // Size: star glyphs render a hair bigger than the bar-size label;
