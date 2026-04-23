@@ -687,6 +687,25 @@ export function FilterStep({
   dragState,
   setDragState,
 }) {
+  // Feedback for filters whose effect falls past the first preview rows:
+  // (1) live delta in the title ("N of M rows · K filtered out"), (2) a
+  // brief 300 ms background flash on the preview card whenever the kept-
+  // row count changes. The flashKey remount is the standard React idiom
+  // for re-triggering a one-shot CSS animation; the DataPreview inside
+  // is pure props-driven so remounting it each toggle has no cost.
+  const [flashKey, setFlashKey] = React.useState(0);
+  const prevKeptRef = React.useRef(filteredRows.length);
+  React.useEffect(() => {
+    if (prevKeptRef.current !== filteredRows.length) {
+      prevKeptRef.current = filteredRows.length;
+      setFlashKey((k) => k + 1);
+    }
+  }, [filteredRows.length]);
+
+  const keptCount = filteredRows.length;
+  const totalCount = parsedRows.length;
+  const filteredOut = totalCount - keptCount;
+
   return (
     <div>
       <div style={{ display: "flex", gap: 16, alignItems: "stretch", marginBottom: 16 }}>
@@ -715,18 +734,29 @@ export function FilterStep({
         />
       </div>
       <div
+        key={`preview-${flashKey}`}
         style={{
           borderRadius: 10,
           padding: 16,
           marginBottom: 16,
           border: "1px solid var(--success-border)",
           background: "var(--success-bg)",
+          animation: flashKey > 0 ? "bp-filter-flash 300ms ease-out" : undefined,
         }}
       >
         <p
           style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 600, color: "var(--success-text)" }}
         >
-          Preview ({renamedRows.length} rows):
+          Preview · <strong>{keptCount.toLocaleString()}</strong> of {totalCount.toLocaleString()}{" "}
+          rows
+          {filteredOut > 0 && (
+            <>
+              {" · "}
+              <span style={{ color: "var(--warning-text)" }}>
+                <strong>{filteredOut.toLocaleString()}</strong> filtered out
+              </span>
+            </>
+          )}
         </p>
         <DataPreview
           headers={activeColIdxs.map((i) => colNames[i])}
@@ -734,6 +764,12 @@ export function FilterStep({
           maxRows={10}
         />
       </div>
+      <style>{`
+        @keyframes bp-filter-flash {
+          0%   { background: var(--warning-bg); }
+          100% { background: var(--success-bg); }
+        }
+      `}</style>
     </div>
   );
 }
