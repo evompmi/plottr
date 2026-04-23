@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-04-23
+
 ### Fixed
 
 - **Group / category colour choices now round-trip through Save / Load prefs and the auto-persist localStorage slot.** The PrefsPanel Save-to-file + Load-from-file flow and the debounced auto-persist only captured what's in `vis` (the reducer state driven by sidebar controls); per-group colours lived OUTSIDE `vis` as local `useState` in each tool, so colour picks silently dropped on reload. Moved the colour maps INTO `vis` — lineplot's `groupColors`, boxplot's `boxplotColors` and `categoryColors` — so the existing prefs machinery covers them with no changes to `shared-prefs.js`. Exposed as read-through `const name = vis.name || {}` plus a `useCallback` setter that accepts both direct-value and functional-updater calls (preserving every existing call site). New keys default to `{}` in `VIS_INIT_LINEPLOT` / `VIS_INIT_BOXPLOT`. On reload, names that match a saved entry pick up the stored colour; mismatched names fall back to the palette — so switching datasets is non-destructive.
