@@ -128,7 +128,6 @@ function ColumnRoleEditor(props) {
             React.createElement("option", { value: "group" }, "group"),
             React.createElement("option", { value: "value" }, "value"),
             React.createElement("option", { value: "filter" }, "filter"),
-            React.createElement("option", { value: "text" }, "text"),
             React.createElement("option", { value: "ignore" }, "ignore")
           ),
           React.createElement(
@@ -192,7 +191,7 @@ function FilterCheckboxPanel(props) {
           }).length /
             u.length >
             0.5;
-        if (isNumCol && colRoles[i] !== "filter" && colRoles[i] !== "text") {
+        if (isNumCol && colRoles[i] !== "filter") {
           return React.createElement(
             "div",
             {

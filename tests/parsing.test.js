@@ -160,9 +160,9 @@ test("returns 'ignore' for an empty column", () => {
 });
 
 test("threshold is strictly >80% — exactly 80% (4/5) is NOT 'value'", () => {
-  // 4 numeric + 1 text = 80%, which is not > 0.8, so falls to group/text check
+  // 4 numeric + 1 text = 80%, which is not > 0.8, so falls to group/filter check
   const result = guessColumnType(["1.2", "3.4", "5.6", "7.8", "abc"]);
-  assert(result !== "value", `expected group or text but got ${result}`);
+  assert(result !== "value", `expected group or filter but got ${result}`);
 });
 
 test("returns 'group' for a low-cardinality categorical column", () => {
@@ -170,10 +170,10 @@ test("returns 'group' for a low-cardinality categorical column", () => {
   eq(guessColumnType(vals), "group");
 });
 
-test("returns 'text' for a high-cardinality string column (IDs, names)", () => {
-  // 25 unique values in 30 rows → u.size > 20 → text
+test("returns 'filter' for a high-cardinality string column (IDs, names)", () => {
+  // 25 unique values in 30 rows → u.size > 20 → not 'group', bucketed as 'filter'.
   const vals = Array.from({ length: 30 }, (_, i) => `id_${i}`);
-  eq(guessColumnType(vals), "text");
+  eq(guessColumnType(vals), "filter");
 });
 
 test("ignores empty strings when determining numeric ratio", () => {

@@ -250,7 +250,7 @@ export function UploadStep({
             { icon: "📂", text: "Upload: drop or select your CSV / TSV / TXT / DAT file." },
             {
               icon: "⚙️",
-              text: "Configure: assign roles — group (X axis), value (Y axis), filter, text, or ignore.",
+              text: "Configure: assign roles — group (X axis), value (Y axis), filter, or ignore.",
             },
             {
               icon: "🔍",
@@ -461,8 +461,8 @@ export function ConfigureStep({
           selectors. Each picks the single column playing that role; the
           parent's `onRoleChange` handler automatically demotes the previous
           holder to "filter" when a new column is chosen. The ColumnRoleEditor
-          below still offers full per-column role assignment (filter / text /
-          ignore / swap), so these cards are a visual shortcut, not a
+          below still offers full per-column role assignment (filter / ignore
+          / swap), so these cards are a visual shortcut, not a
           replacement. */}
       <div
         style={{

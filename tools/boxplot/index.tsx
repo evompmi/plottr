@@ -324,7 +324,7 @@ function App() {
           (i) =>
             i !== groupColIdx &&
             i !== valueColIdx &&
-            (colRoles[i] === "filter" || colRoles[i] === "group" || colRoles[i] === "text")
+            (colRoles[i] === "filter" || colRoles[i] === "group")
         ),
     [parsedHeaders, groupColIdx, valueColIdx, colRoles]
   );
