@@ -42,6 +42,13 @@ const EMPTY_DOT = "#DDDDDD";
 const ZEBRA_FILL = "#F4F4F4";
 const TEXT_DARK = "#333333";
 const TEXT_MUTED = "#555555";
+// Significance-colour palette for the "Color by significance" toggle. Green
+// flags a significantly enriched bar (observed exclusive count > expected,
+// BH-adjusted upper-tail p < 0.05); dark red flags a significantly depleted
+// one (observed < expected, BH-adjusted lower-tail p < 0.05). Both are
+// colour-blind-safe Brewer 7-class PiYG/YlGn-green and -red endpoints.
+const BAR_FILL_ENRICHED = "#2ca25f";
+const BAR_FILL_DEPLETED = "#a50f15";
 
 // Row height is tuned so tall set lists stay legible without dominating the view.
 function computeRowHeight(nSets) {
@@ -76,6 +83,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
     showSetSizeLabels,
     significanceDisplay,
     significanceByMask,
+    colorBarsBySignificance,
   },
   ref
 ) {
@@ -248,7 +256,13 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
         })()}
       </g>
 
-      {/* Intersection bars + their numeric labels. */}
+      {/* Intersection bars + their numeric labels. Bar fill switches to green /
+          dark red when the "Color by significance" toggle is on AND a cached
+          significance test exists for that bar. Direction (enrichment vs
+          depletion) is read from the entry's `direction` field; the tail-
+          specific adjusted p is read from `pAdjUpper` / `pAdjLower`. Bars
+          with no cached test, or tests that don't cross p < 0.05 on their
+          matching tail, fall back to the default black fill. */}
       <g id="intersection-bars">
         {intersections.map((inter, i) => {
           const cx = colX(i);
@@ -257,6 +271,25 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           const h = topBarScale(inter.size);
           const isSelected = selectedMask === inter.mask;
           const idKey = intersectionIdKey(inter.setIndices, setNames);
+          let fill = BAR_FILL;
+          if (colorBarsBySignificance && significanceByMask) {
+            const sig = significanceByMask.get(inter.mask);
+            if (sig) {
+              if (
+                sig.direction === "enriched" &&
+                Number.isFinite(sig.pAdjUpper) &&
+                sig.pAdjUpper < 0.05
+              ) {
+                fill = BAR_FILL_ENRICHED;
+              } else if (
+                sig.direction === "depleted" &&
+                Number.isFinite(sig.pAdjLower) &&
+                sig.pAdjLower < 0.05
+              ) {
+                fill = BAR_FILL_DEPLETED;
+              }
+            }
+          }
           return (
             <g
               key={`tb-${inter.mask}`}
@@ -269,7 +302,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
                 y={topPanelBottom - h}
                 width={barW}
                 height={h}
-                fill={BAR_FILL}
+                fill={fill}
                 fillOpacity={barOp}
                 stroke={isSelected ? TEXT_DARK : "none"}
                 strokeWidth={isSelected ? 1.5 : 0}
@@ -1136,6 +1169,8 @@ function PlotControls({
   computeProgress,
   intersectionTestsCount,
   universeSize,
+  maxAllIntersectionSize,
+  allIntersectionsCount,
 }) {
   const baseName = fileBaseName(fileName, "upset");
   const sv = (k) => (v) => updVis({ [k]: v });
@@ -1229,14 +1264,36 @@ function PlotControls({
             <option value="sets">Set order</option>
           </select>
         </div>
-        <SliderControl
-          label="Minimum intersection size"
-          value={vis.minSize}
-          min={0}
-          max={20}
-          step={1}
-          onChange={sv("minSize")}
-        />
+        <label style={{ display: "block" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              marginBottom: 2,
+            }}
+          >
+            <span className="dv-label">Minimum intersection size</span>
+            {maxAllIntersectionSize > 0 && (
+              <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
+                max in data: {maxAllIntersectionSize.toLocaleString()}
+              </span>
+            )}
+          </div>
+          <NumberInput
+            value={vis.minSize}
+            min={0}
+            max={maxAllIntersectionSize > 0 ? maxAllIntersectionSize : undefined}
+            step={1}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              if (!Number.isFinite(v)) return;
+              const cap = maxAllIntersectionSize > 0 ? maxAllIntersectionSize : v;
+              updVis({ minSize: Math.max(0, Math.min(cap, v)) });
+            }}
+            style={{ width: "100%" }}
+          />
+        </label>
         <SliderControl
           label="Minimum degree"
           value={vis.minDegree}
@@ -1388,13 +1445,13 @@ function PlotControls({
             type="button"
             className="dv-btn dv-btn-primary"
             onClick={computeAllIntersectionStats}
-            disabled={computingStats || !universeValid || intersections.length === 0}
+            disabled={computingStats || !universeValid || allIntersectionsCount === 0}
             title={
               !universeValid
                 ? "Set a Universe size below the plot before computing stats"
                 : computingStats
                   ? "Computing…"
-                  : `Run the SuperExactTest exact test for every one of the ${intersections.length} visible intersections and BH-adjust across them`
+                  : `Run the SuperExactTest exact test for every one of the ${allIntersectionsCount} intersections in the active set selection and BH-adjust across them. Display filters (minimum size / degree) do NOT change which intersections are tested.`
             }
             style={{
               fontSize: 12,
@@ -1422,9 +1479,9 @@ function PlotControls({
                 Computing {computeProgress.done}/{computeProgress.total}…
               </>
             ) : intersectionTestsCount > 0 ? (
-              `Recompute stats (${intersections.length} visible)`
+              `Recompute stats (${allIntersectionsCount} intersections)`
             ) : (
-              `Compute stats (${intersections.length} visible)`
+              `Compute stats (${allIntersectionsCount} intersections)`
             )}
           </button>
           {computingStats && computeProgress.total > 0 && (
@@ -1466,8 +1523,9 @@ function PlotControls({
               lineHeight: 1.4,
             }}
           >
-            Runs the SuperExactTest exact p-value per intersection, then BH-adjusts across all
-            visible bars.
+            Runs the SuperExactTest exact p-value per intersection, then BH-adjusts across every
+            intersection in the active set selection. Display filters (minimum size / degree) only
+            affect what's shown on the plot — they never change the BH family.
           </p>
           <style>{`@keyframes dv-spin { to { transform: rotate(360deg); } }`}</style>
         </div>
@@ -1526,6 +1584,61 @@ function PlotControls({
             session.
           </p>
         </div>
+
+        <div>
+          <div className="dv-label">Color bars by significance</div>
+          <div
+            style={{
+              display: "flex",
+              borderRadius: 6,
+              overflow: "hidden",
+              border: "1px solid var(--border-strong)",
+            }}
+          >
+            {(
+              [
+                [false, "Off"],
+                [true, "On"],
+              ] as const
+            ).map(([value, label]) => {
+              const active = !!vis.colorBarsBySignificance === value;
+              return (
+                <button
+                  key={String(value)}
+                  type="button"
+                  onClick={() => updVis({ colorBarsBySignificance: value })}
+                  style={{
+                    flex: 1,
+                    padding: "4px 0",
+                    fontSize: 11,
+                    fontWeight: active ? 700 : 400,
+                    fontFamily: "inherit",
+                    cursor: "pointer",
+                    border: "none",
+                    background: active ? "var(--accent-primary)" : "var(--surface)",
+                    color: active ? "var(--on-accent)" : "var(--text-muted)",
+                    transition: "background 120ms ease, color 120ms ease",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <p
+            style={{
+              margin: "4px 0 0",
+              fontSize: 10,
+              color: "var(--text-faint)",
+              lineHeight: 1.4,
+            }}
+          >
+            <span style={{ color: BAR_FILL_ENRICHED, fontWeight: 700 }}>Green</span> = enriched
+            (pAdj &lt; 0.05, upper tail).{" "}
+            <span style={{ color: BAR_FILL_DEPLETED, fontWeight: 700 }}>Dark red</span> = depleted
+            (pAdj &lt; 0.05, lower tail). Untested bars stay black.
+          </p>
+        </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span className="dv-label">Background</span>
           <ColorInput value={vis.plotBg} onChange={sv("plotBg")} size={24} />
@@ -1561,6 +1674,13 @@ const VIS_INIT_UPSET = {
   // for that intersection. Only affects tested intersections — untested
   // bars never get a marker. Default: off (stays in the side panel only).
   significanceDisplay: "off",
+  // When true, intersection bars with a cached test are coloured by
+  // direction: green for significant enrichment, dark red for significant
+  // depletion, black otherwise. Both tails can trigger — depletion is not a
+  // dead branch (e.g. observed=0 against expected=5 gives a tiny lower-tail
+  // p and a non-significant upper-tail p), so this surfaces findings the
+  // star/p-value markers alone would hide.
+  colorBarsBySignificance: false,
 };
 
 /* ── Intersection significance panel ────────────────────────────────────────
@@ -1846,8 +1966,8 @@ function IntersectionStatsPanel({
       ) : (
         <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
           No p-value for this intersection yet — use <strong>Compute stats</strong> in the sidebar
-          to run both one-sided tests (enrichment + depletion) on the exclusive bar height across
-          every visible bar in one pass.
+          to run both one-sided tests (enrichment + depletion) on the exclusive bar height for
+          every intersection in the current set selection in one pass.
         </div>
       )}
     </div>
@@ -1934,7 +2054,13 @@ function App() {
     if (!Number.isFinite(currentN)) return m;
     for (const entry of intersectionTests.values()) {
       if (entry.universe === currentN) {
-        m.set(entry.mask, { p: entry.p, pAdj: entry.pAdj });
+        m.set(entry.mask, {
+          p: entry.p,
+          pAdj: entry.pAdj,
+          pAdjUpper: entry.pAdjUpper,
+          pAdjLower: entry.pAdjLower,
+          direction: entry.direction,
+        });
       }
     }
     return m;
@@ -1944,6 +2070,25 @@ function App() {
     () => sortIntersections(allIntersections, vis.sortMode),
     [allIntersections, vis.sortMode]
   );
+
+  // Largest intersection size in the current dataset (pre-filter). Drives the
+  // dynamic max of the "Minimum intersection size" slider so the slider range
+  // always matches what's actually on screen.
+  const maxAllIntersectionSize = useMemo(
+    () => allIntersections.reduce((m, r) => (r.size > m ? r.size : m), 0),
+    [allIntersections]
+  );
+
+  // If the persisted minSize exceeds the current dataset's largest intersection,
+  // clamp it down so the filter doesn't silently hide every bar after a
+  // dataset swap (prefs persist per-tool, not per-dataset).
+  // Intentionally depends only on maxAllIntersectionSize: we want to clamp
+  // when the dataset changes, not on every minSize slider tick.
+  React.useEffect(() => {
+    if (maxAllIntersectionSize > 0 && vis.minSize > maxAllIntersectionSize) {
+      updVis({ minSize: maxAllIntersectionSize });
+    }
+  }, [maxAllIntersectionSize]);
 
   const truncatedIntersections = useMemo(
     () =>
@@ -1955,12 +2100,16 @@ function App() {
     [sortedIntersections, vis.minSize, vis.minDegree, vis.maxDegree]
   );
 
-  // Batch-compute significance for every currently-visible intersection.
+  // Batch-compute significance for every intersection under the active set
+  // selection — NOT the display-filtered subset. The minSize / minDegree /
+  // maxDegree controls in the plot sidebar are purely visual; letting them
+  // scope the BH family would make the multiple-testing correction depend on
+  // the view, which is a real stats-validity bug (hide bars → BH adjusts over
+  // a smaller family → surviving p-values look more significant). Active set
+  // selection still scopes the null — that one IS a scientific choice.
   // Runs asynchronously in ~16-bar chunks with `setTimeout(0)` between them
   // so the progress bar actually animates and the browser doesn't freeze on
-  // large configurations. BH adjustment runs across every result tied to the
-  // current universe size, so previously-computed entries (for the same N)
-  // are folded in and live alongside the new ones.
+  // large configurations.
   const computeAllIntersectionStats = useCallback(async () => {
     if (computingStats) return;
     const universeN = typeof universeSize === "number" ? universeSize : Number(universeSize);
@@ -1970,7 +2119,7 @@ function App() {
     //   p_M = Π_{i∈inside}(nᵢ/N) · Π_{j∈outside}(1 − n_j/N),
     // so the count follows Binomial(N, p_M). Degree-1 bars are fine under
     // this null — "items in ONLY S_A" is a meaningful enrichment question.
-    const bars = truncatedIntersections;
+    const bars = allIntersections;
     if (bars.length === 0) return;
 
     setComputingStats(true);
@@ -2045,7 +2194,7 @@ function App() {
   }, [
     computingStats,
     universeSize,
-    truncatedIntersections,
+    allIntersections,
     intersectionTests,
     sets,
     displaySetNames,
@@ -2288,6 +2437,8 @@ function App() {
               computeProgress={computeProgress}
               intersectionTestsCount={intersectionTests.size}
               universeSize={universeSize}
+              maxAllIntersectionSize={maxAllIntersectionSize}
+              allIntersectionsCount={allIntersections.length}
             />
 
             <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
@@ -2326,6 +2477,7 @@ function App() {
                   showSetSizeLabels={vis.showSetSizeLabels}
                   significanceDisplay={vis.significanceDisplay}
                   significanceByMask={significanceByMask}
+                  colorBarsBySignificance={vis.colorBarsBySignificance}
                 />
               </ScrollablePlotCard>
 
