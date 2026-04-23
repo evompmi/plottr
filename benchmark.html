@@ -25,6 +25,7 @@
 </script>
 <title>Plöttr · statistical benchmark vs R</title>
 <link rel="stylesheet" href="tools/theme.css" />
+<link rel="stylesheet" href="tools/components.css" />
 <script src="tools/shared.bundle.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -66,10 +67,10 @@
     border: 1px solid var(--border);
     padding: 1rem 1.25rem;
   }
-  /* <details> collapsed = summary is the only visible content; the
-     browser's default triangle is hidden so the small ▸ / ▾ prefix on
-     the h2 does the job instead. The h2's margin-bottom collapses when
-     closed so a grid of headers reads compact. */
+  /* <details> collapsed = summary is the only visible content; hide the
+     browser-default triangle and let the shared `.dv-disclosure` widget
+     (same circular chevron as the tool control panels) handle the open/
+     closed indication via a CSS attribute selector on [open]. */
   .category summary {
     cursor: pointer;
     list-style: none;
@@ -83,14 +84,10 @@
   .category[open] summary h2 {
     margin-bottom: 0.6rem;
   }
-  .category summary h2::before {
-    content: "▸";
-    color: var(--text-muted);
-    font-size: 0.85em;
-    margin-right: 0.1em;
-  }
-  .category[open] summary h2::before {
-    content: "▾";
+  /* Pin the shared chevron's open-rotation to the <details> state since
+     we can't toggle the `dv-disclosure-open` class on a <summary>. */
+  .category[open] summary .dv-disclosure {
+    transform: rotate(90deg);
   }
   .category-toolbar {
     display: flex;
@@ -195,10 +192,10 @@
     <ul class="lede">
       <li>Every function in <code>tools/stats.js</code> is rerun against its R 4.5.3 counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
       <li>Inputs are bit-identical between R and Plöttr.</li>
-      <li>Tolerance: |Δ| ≤ 0.005 on test statistics and on p-values ≥ 0.01. For deep-tail p-values (&lt; 0.01), we compare in log space — the ratio between R's p and ours must stay within [1/1.1, 1.1], so a p of 1e-10 can't silently mis-match a p of 1e-9 the way it could under pure absolute tolerance.</li>
+      <li>Tolerance: |Δ| ≤ 0.005 on test statistics and on p-values ≥ 0.01. For deep-tail p-values (&lt; 0.01), Plöttr compares in log space — the ratio between R's p and Plöttr's must stay within [1/1.1, 1.1], so a p of 1e-10 can't silently mis-match a p of 1e-9 the way it could under pure absolute tolerance.</li>
       <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons. Prior versions hand-ported both algorithms in the R reference file and compared against the same hand-port in JS — a self-referential check that silently passed any shared bug.</li>
-      <li><strong>R-floor rows (amber)</strong>: R's own <code>ptukey</code> uses a <code>1 − ptukey(q)</code> cancellation that saturates at ~<code>2.2e-15</code>, and reports non-monotonic values at extreme q (e.g. <code>ptukey(21.97, 3, 147) = 2.22e-15</code> but <code>ptukey(12, 3, 147) = 9.68e-14</code>). scipy's <code>studentized_range.sf</code> uses the same algorithm family and shows the same floor. Our <code>ptukey_upper</code> computes the survival directly without that cancellation (verified at <code>q=8</code> against scipy <code>2.3332e-7</code> and a 20M-sample Monte Carlo <code>2.5e-7 ± 1.1e-7</code>, four significant figures). Rows labelled "R-floor" are where R saturates and we continue the true tail — not a JS failure, but R is no longer ground truth there.</li>
-      <li>Real failures are flagged in red and counted honestly — they mean we have work to do.</li>
+      <li><strong>R-floor rows (amber)</strong>: R's own <code>ptukey</code> uses a <code>1 − ptukey(q)</code> cancellation that saturates at ~<code>2.2e-15</code>, and reports non-monotonic values at extreme q (e.g. <code>ptukey(21.97, 3, 147) = 2.22e-15</code> but <code>ptukey(12, 3, 147) = 9.68e-14</code>). scipy's <code>studentized_range.sf</code> uses the same algorithm family and shows the same floor. Plöttr's <code>ptukey_upper</code> computes the survival directly without that cancellation (verified at <code>q=8</code> against scipy <code>2.3332e-7</code> and a 20M-sample Monte Carlo <code>2.5e-7 ± 1.1e-7</code>, four significant figures). Rows labelled "R-floor" are where R saturates and Plöttr continues the true tail — not a JS failure, but R is no longer ground truth there.</li>
+      <li>Real failures are flagged in red and counted honestly — they mean Plöttr has drifted from R and needs fixing.</li>
       <li>Reproduce locally: <code>Rscript benchmark/run-r.R &amp;&amp; node benchmark/run.js</code></li>
       <li><a href="./index.html">← back to tools</a></li>
     </ul>
@@ -223,7 +220,7 @@
 
 
     <details class="category">
-      <summary><h2>Shapiro-Wilk <span class="badge badge-pass">44/44 pass</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Shapiro-Wilk <span class="badge badge-pass">44/44 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -646,7 +643,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>Levene (Brown-Forsythe) <span class="badge badge-pass">24/24 pass</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Levene (Brown-Forsythe) <span class="badge badge-pass">24/24 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -889,7 +886,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>Student t <span class="badge badge-pass">12/12 pass</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Student t <span class="badge badge-pass">12/12 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1024,7 +1021,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>Welch t <span class="badge badge-pass">12/12 pass</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Welch t <span class="badge badge-pass">12/12 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1159,7 +1156,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>Mann-Whitney U <span class="badge badge-pass">12/12 pass</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Mann-Whitney U <span class="badge badge-pass">12/12 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1294,7 +1291,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>one-way ANOVA <span class="badge badge-pass">16/16 pass</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>one-way ANOVA <span class="badge badge-pass">16/16 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1465,7 +1462,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>Welch ANOVA <span class="badge badge-pass">12/12 pass</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Welch ANOVA <span class="badge badge-pass">12/12 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1600,7 +1597,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>Kruskal-Wallis <span class="badge badge-pass">12/12 pass</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Kruskal-Wallis <span class="badge badge-pass">12/12 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1735,7 +1732,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>Tukey HSD <span class="badge badge-pass">37/40 pass</span> <span class="badge badge-rsat">3 past R's floor</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Tukey HSD <span class="badge badge-pass">37/40 pass</span> <span class="badge badge-rsat">3 past R's floor</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -2122,7 +2119,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>Games-Howell <span class="badge badge-pass">33/34 pass</span> <span class="badge badge-rsat">1 past R's floor</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Games-Howell <span class="badge badge-pass">33/34 pass</span> <span class="badge badge-rsat">1 past R's floor</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -2455,7 +2452,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>Dunn (BH) <span class="badge badge-pass">67/67 pass</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Dunn (BH) <span class="badge badge-pass">67/67 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -3085,7 +3082,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>pairwise distance <span class="badge badge-pass">3/3 pass</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>pairwise distance <span class="badge badge-pass">3/3 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -3139,7 +3136,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>hclust heights <span class="badge badge-pass">5/5 pass</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>hclust heights <span class="badge badge-pass">5/5 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -3211,7 +3208,7 @@
     </details>
 
     <details class="category">
-      <summary><h2>Multi-set intersection (cpsets) <span class="badge badge-pass">10/10 pass</span></h2></summary>
+      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Multi-set intersection (cpsets) <span class="badge badge-pass">10/10 pass</span></h2></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
