@@ -253,6 +253,33 @@ export function PlotControls({
                 </button>
               ))}
             </div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 4px" }}>
+              Hierarchical · Show dendrograms
+            </div>
+            <div className="dv-seg" role="group" aria-label="Show dendrograms">
+              {(
+                [
+                  [false, "Off"],
+                  [true, "On"],
+                ] as const
+              ).map(([value, label]) => {
+                const active = !!vis.showDendrograms === value;
+                return (
+                  <button
+                    key={String(value)}
+                    type="button"
+                    className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
+                    onClick={() => updVis({ showDendrograms: value })}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
+              Leaf order + cluster structure stay applied when hidden. Drag on the heatmap to open
+              a zoomed selection if you still need per-cluster exports.
+            </div>
           </div>
         )}
         {anyKmeans && (

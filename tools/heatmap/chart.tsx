@@ -68,6 +68,11 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
     colAxisLabel,
     showRowLabels = true,
     showColLabels = true,
+    // Hide the hierarchical-clustering dendrograms (lines + hit-rects) on
+    // the plot. Leaf order from the tree is preserved; cluster selection
+    // stays available via drag on the heatmap. Defaults to true so existing
+    // callers get the old behaviour; main-plot sidebar toggle drives this.
+    showDendrograms = true,
     // Interactivity — absent on the detail chart except tooltips.
     interactive = false,
     selection = null,
@@ -194,8 +199,13 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   const plotW = basePlotW != null ? basePlotW : cellW * nCols + totalColGap;
   const plotH = basePlotH != null ? basePlotH : cellH * nRows + totalRowGap;
 
-  const computedDendroTop = colIsHier ? 60 : colIsKmeans ? 14 : 0;
-  const computedDendroLeft = rowIsHier ? 60 : rowIsKmeans ? 14 : 0;
+  // When dendrograms are hidden on a hierarchical axis, reclaim the margin
+  // (otherwise there's a big empty strip where the tree would have been).
+  // K-means strips are independent (their own showKmeansStrip control).
+  const computedDendroTop =
+    colIsHier && showDendrograms ? 60 : colIsKmeans ? 14 : 0;
+  const computedDendroLeft =
+    rowIsHier && showDendrograms ? 60 : rowIsKmeans ? 14 : 0;
   const DENDRO_SIZE_TOP = baseDendroSizeTop != null ? baseDendroSizeTop : computedDendroTop;
   const DENDRO_SIZE_LEFT = baseDendroSizeLeft != null ? baseDendroSizeLeft : computedDendroLeft;
   // Extra reserved margin for rotated per-band "Cluster n° X" labels above the
@@ -1003,8 +1013,8 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
           </g>
         )}
 
-        {showClusterStrip && renderColDendrogram()}
-        {showClusterStrip && renderRowDendrogram()}
+        {showClusterStrip && showDendrograms && renderColDendrogram()}
+        {showClusterStrip && showDendrograms && renderRowDendrogram()}
         {(showKmeansStrip != null ? showKmeansStrip : showClusterStrip) && renderColClusterStrip()}
         {(showKmeansStrip != null ? showKmeansStrip : showClusterStrip) && renderRowClusterStrip()}
 
