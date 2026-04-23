@@ -1439,6 +1439,13 @@ function PlotControls({
             })}
           </div>
         </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span className="dv-label">Background</span>
+          <ColorInput value={vis.plotBg} onChange={sv("plotBg")} size={24} />
+        </div>
+      </ControlSection>
+
+      <ControlSection title="Statistics">
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div className="dv-label">Intersection statistics</div>
           <button
@@ -1638,10 +1645,6 @@ function PlotControls({
             <span style={{ color: BAR_FILL_DEPLETED, fontWeight: 700 }}>Dark red</span> = depleted
             (pAdj &lt; 0.05, lower tail). Untested bars stay black.
           </p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span className="dv-label">Background</span>
-          <ColorInput value={vis.plotBg} onChange={sv("plotBg")} size={24} />
         </div>
       </ControlSection>
     </PlotSidebar>
