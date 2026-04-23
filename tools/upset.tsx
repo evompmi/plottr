@@ -958,8 +958,8 @@ function UploadStep({
           </div>
           <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
             Download the plot as <strong>SVG</strong> or <strong>PNG</strong>, plus two CSVs: the
-            full intersection table and the long membership matrix. One-click bulk-download of
-            every intersection's item list is also available.
+            full intersection table and the long membership matrix. One-click bulk-download of every
+            intersection's item list is also available.
           </p>
         </div>
 
@@ -2103,7 +2103,6 @@ function IntersectionStatsPanel({
         );
       })()}
 
-
       {cachedResult ? (
         // Headline two-sided p on the EXCLUSIVE bar height, followed by the
         // two one-sided tails for directional breakdown. One of the tails
@@ -2170,9 +2169,8 @@ function IntersectionStatsPanel({
       ) : (
         <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
           No p-value for this intersection yet — use <strong>Compute stats</strong> in the sidebar
-          to run the two-sided Binomial test (plus the per-tail enrichment / depletion breakdown)
-          on the exclusive bar height for every intersection in the current set selection in one
-          pass.
+          to run the two-sided Binomial test (plus the per-tail enrichment / depletion breakdown) on
+          the exclusive bar height for every intersection in the current set selection in one pass.
         </div>
       )}
     </div>
