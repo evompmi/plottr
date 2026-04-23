@@ -286,11 +286,13 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
 
       {/* Intersection bars + their numeric labels. Bar fill switches to green /
           dark red when the "Color by significance" toggle is on AND a cached
-          significance test exists for that bar. Direction (enrichment vs
-          depletion) is read from the entry's `direction` field; the tail-
-          specific adjusted p is read from `pAdjUpper` / `pAdjLower`. Bars
-          with no cached test, or tests that don't cross p < 0.05 on their
-          matching tail, fall back to the default black fill. */}
+          two-sided test crosses p_adj < 0.05. Direction (enrichment vs
+          depletion) is read from the entry's `direction` field (sign of
+          observed − expected); significance is judged on `pAdjTwoSided` — the
+          same honest two-sided family that drives the stars / p-value markers
+          above, so colour and marker always agree about which bars are
+          significant. Bars with no cached test, or tests that don't cross
+          p < 0.05, fall back to the default black fill. */}
       <g id="intersection-bars">
         {intersections.map((inter, i) => {
           const cx = colX(i);
@@ -302,20 +304,9 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           let fill = BAR_FILL;
           if (colorBarsBySignificance && significanceByMask) {
             const sig = significanceByMask.get(inter.mask);
-            if (sig) {
-              if (
-                sig.direction === "enriched" &&
-                Number.isFinite(sig.pAdjUpper) &&
-                sig.pAdjUpper < 0.05
-              ) {
-                fill = BAR_FILL_ENRICHED;
-              } else if (
-                sig.direction === "depleted" &&
-                Number.isFinite(sig.pAdjLower) &&
-                sig.pAdjLower < 0.05
-              ) {
-                fill = BAR_FILL_DEPLETED;
-              }
+            if (sig && Number.isFinite(sig.pAdjTwoSided) && sig.pAdjTwoSided < 0.05) {
+              if (sig.direction === "enriched") fill = BAR_FILL_ENRICHED;
+              else if (sig.direction === "depleted") fill = BAR_FILL_DEPLETED;
             }
           }
           return (
@@ -1567,7 +1558,8 @@ function PlotControls({
               lineHeight: 1.4,
             }}
           >
-            Runs the SuperExactTest exact p-value per intersection, then BH-adjusts across every
+            Computes the exact Binomial p (upper tail, lower tail, and the headline two-sided =
+            smaller tail × 2) per intersection, then BH-adjusts each family across every
             intersection in the active set selection. Display filters (minimum size / degree) only
             affect what's shown on the plot — they never change the BH family.
           </p>
@@ -1624,8 +1616,8 @@ function PlotControls({
               lineHeight: 1.4,
             }}
           >
-            Only tested intersections are marked. Uses BH-adjusted p across every test run this
-            session.
+            Only tested intersections are marked. Uses the two-sided p (smaller tail × 2, BH-
+            adjusted across every test run this session), so both enrichment and depletion show up.
           </p>
         </div>
 
@@ -1677,10 +1669,10 @@ function PlotControls({
               lineHeight: 1.4,
             }}
           >
-            <span style={{ color: BAR_FILL_ENRICHED, fontWeight: 700 }}>Green</span> = enriched
-            (pAdj &lt; 0.05, upper tail).{" "}
-            <span style={{ color: BAR_FILL_DEPLETED, fontWeight: 700 }}>Dark red</span> = depleted
-            (pAdj &lt; 0.05, lower tail). Untested bars stay black.
+            <span style={{ color: BAR_FILL_ENRICHED, fontWeight: 700 }}>Green</span> = enriched.{" "}
+            <span style={{ color: BAR_FILL_DEPLETED, fontWeight: 700 }}>Dark red</span> = depleted.
+            Both at two-sided p_adj &lt; 0.05, direction from the sign of observed − expected.
+            Untested or non-significant bars stay black.
           </p>
         </div>
       </ControlSection>
@@ -1949,14 +1941,16 @@ function IntersectionStatsPanel({
       </div>
 
       {cachedResult ? (
-        // Both one-sided tails on the EXCLUSIVE bar height — one matches the
-        // direction pill above; the other is near 1 by construction.
+        // Headline two-sided p on the EXCLUSIVE bar height, followed by the
+        // two one-sided tails for directional breakdown. One of the tails
+        // matches the direction pill above; the other is near 1 by
+        // construction.
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {(() => {
+            const two = cachedResult.pTwoSided;
+            const twoAdj = cachedResult.pAdjTwoSided;
             const enr = Number.isFinite(cachedResult.pUpper) ? cachedResult.pUpper : cachedResult.p;
-            const enrAdj = Number.isFinite(cachedResult.pAdjUpper)
-              ? cachedResult.pAdjUpper
-              : cachedResult.pAdj;
+            const enrAdj = cachedResult.pAdjUpper;
             const dep = cachedResult.pLower;
             const depAdj = cachedResult.pAdjLower;
             const rowStyle = {
@@ -1990,14 +1984,20 @@ function IntersectionStatsPanel({
             );
             return (
               <>
+                {renderRow(
+                  "Two-sided",
+                  "min(2·pUpper, 2·pLower, 1) — headline p, drives plot markers + bar colour",
+                  two,
+                  twoAdj
+                )}
                 {renderRow("Enrichment", "P(X ≥ bar) — Binomial(N, p_M), upper tail", enr, enrAdj)}
                 {renderRow("Depletion", "P(X ≤ bar) — lower tail", dep, depAdj)}
                 <span style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>
-                  BH-adjusted within each tail separately, across {intersectionTests.size}{" "}
-                  intersection
-                  {intersectionTests.size === 1 ? "" : "s"} cached for N={universeN}. The Binomial
-                  null assumes each item is independently placed in every set at its marginal rate —
-                  standard for UpSet-cell enrichment tests.
+                  Each family BH-adjusted separately across {intersectionTests.size} intersection
+                  {intersectionTests.size === 1 ? "" : "s"} cached for N={universeN}. The two-sided
+                  p is the honest headline (one test per bar, no cherry-picking); the per-tail rows
+                  are there for directional breakdown. The Binomial null assumes each item is
+                  independently placed in every set at its marginal rate.
                 </span>
               </>
             );
@@ -2006,8 +2006,9 @@ function IntersectionStatsPanel({
       ) : (
         <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
           No p-value for this intersection yet — use <strong>Compute stats</strong> in the sidebar
-          to run both one-sided tests (enrichment + depletion) on the exclusive bar height for
-          every intersection in the current set selection in one pass.
+          to run the two-sided Binomial test (plus the per-tail enrichment / depletion breakdown)
+          on the exclusive bar height for every intersection in the current set selection in one
+          pass.
         </div>
       )}
     </div>
@@ -2099,6 +2100,7 @@ function App() {
           pAdj: entry.pAdj,
           pAdjUpper: entry.pAdjUpper,
           pAdjLower: entry.pAdjLower,
+          pAdjTwoSided: entry.pAdjTwoSided,
           direction: entry.direction,
         });
       }
@@ -2192,6 +2194,17 @@ function App() {
       const pLower = multisetExclusiveP(xExclusive, insideSizes, outsideSizes, universeN, {
         tail: "lower",
       });
+      // Two-sided p — textbook "double the smaller tail" convention for a
+      // Binomial one-parameter test. This is the honest headline value: it
+      // doesn't require the viewer to pick a tail after seeing the data
+      // (cherry-picking inflates false positives), and it captures signals
+      // from whichever side is surprising — significantly enriched OR
+      // significantly depleted. The per-tail values stay around for anyone
+      // who wants the directional breakdown (shown in the ItemList panel).
+      const pTwoSided =
+        Number.isFinite(pUpper) && Number.isFinite(pLower)
+          ? Math.min(1, 2 * Math.min(pUpper, pLower))
+          : NaN;
       const key = `${inter.mask}:${universeN}`;
       pending.set(key, {
         mask: inter.mask,
@@ -2201,12 +2214,14 @@ function App() {
         outsideSizes,
         expected,
         direction,
-        p: pUpper, // alias — plot markers still key on `pAdj` below
+        p: pTwoSided, // headline raw p is two-sided; tails kept alongside
         pUpper,
         pLower,
+        pTwoSided,
         pAdj: null,
         pAdjUpper: null,
         pAdjLower: null,
+        pAdjTwoSided: null,
       });
       if ((i + 1) % CHUNK_SIZE === 0 || i === bars.length - 1) {
         setComputeProgress({ done: i + 1, total: bars.length });
@@ -2214,18 +2229,27 @@ function App() {
       }
     }
 
-    // BH within each tail separately — enrichment and depletion are
-    // different hypothesis families. NaN filter guards any stale / invalid
-    // entries that might have leaked in from an earlier batch.
+    // BH adjustment. The headline `pAdj` (drives plot markers + bar colour)
+    // comes from the two-sided family: one test per bar, one BH pass, no
+    // cherry-picking. The per-tail adjustments are kept around for the
+    // directional breakdown in the ItemList panel (so a user who wants to
+    // see "how significant was the enrichment side specifically" still can).
+    // NaN filter guards any stale / invalid entries from an earlier batch.
     const matching = [...pending.values()].filter(
-      (e) => e.universe === universeN && Number.isFinite(e.pUpper) && Number.isFinite(e.pLower)
+      (e) =>
+        e.universe === universeN &&
+        Number.isFinite(e.pUpper) &&
+        Number.isFinite(e.pLower) &&
+        Number.isFinite(e.pTwoSided)
     );
     const adjUpper = bhAdjust(matching.map((e) => e.pUpper));
     const adjLower = bhAdjust(matching.map((e) => e.pLower));
+    const adjTwoSided = bhAdjust(matching.map((e) => e.pTwoSided));
     matching.forEach((e, j) => {
       e.pAdjUpper = adjUpper[j];
       e.pAdjLower = adjLower[j];
-      e.pAdj = adjUpper[j]; // plot markers read `pAdj` — keep in sync with upper tail
+      e.pAdjTwoSided = adjTwoSided[j];
+      e.pAdj = adjTwoSided[j]; // plot markers + bar colour key on `pAdj`
     });
 
     setIntersectionTests(pending);
