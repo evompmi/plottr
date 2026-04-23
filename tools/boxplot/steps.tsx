@@ -739,14 +739,12 @@ export function FilterStep({
           borderRadius: 10,
           padding: 16,
           marginBottom: 16,
-          border: "1px solid var(--success-border)",
-          background: "var(--success-bg)",
+          border: "1px solid var(--border)",
+          background: "var(--surface-subtle)",
           animation: flashKey > 0 ? "bp-filter-flash 300ms ease-out" : undefined,
         }}
       >
-        <p
-          style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 600, color: "var(--success-text)" }}
-        >
+        <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
           Preview · <strong>{keptCount.toLocaleString()}</strong> of {totalCount.toLocaleString()}{" "}
           rows
           {filteredOut > 0 && (
@@ -766,8 +764,8 @@ export function FilterStep({
       </div>
       <style>{`
         @keyframes bp-filter-flash {
-          0%   { background: var(--warning-bg); }
-          100% { background: var(--success-bg); }
+          0%   { background: var(--success-bg); }
+          100% { background: var(--surface-subtle); }
         }
       `}</style>
     </div>
