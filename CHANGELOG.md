@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Landing page — trust badges near the tagline + a "How it works" step strip under the tile grid.** The `846 internal tests / 293 cross-checks vs R 4.5` line at the foot of the page was Plöttr's strongest trust signal for a scientific audience but the least visible piece of chrome on the landing page. Promoted that signal into a pill-shaped `Validated against R 4.5` badge (links to `benchmark.html`, same destination as the footer count) sitting directly under the tagline, paired with a `Data stays in your browser` badge for the browser-only / no-tracking story — two trust pills, low-saturation, readable in a glance. Added a second new element below the tile grid: a `How it works` step strip — four numbered pills (`Paste CSV → Assign roles → Tweak plot → Download SVG + R`) reflecting the common Upload → Configure → Filter → Output stepper every plot tool shares, so first-time visitors know the flow is consistent across tools before they click into one. Both elements are desktop-only: the mobile media rule (`max-width: 900px`) hides `.how-it-works` alongside the existing plot-tile hides (the four-step flow only applies to the plot tools, which don't render on phones). The trust badges stay visible on mobile since they describe the product itself, not the plot workflow. No JS wiring beyond the existing `data-benchmark-link` handler already used by the footer link.
+
 ## [1.0.1] - 2026-04-23
 
 ### Fixed
