@@ -761,17 +761,28 @@ export function PlotControls({
         </div>
         <div>
           <div className="dv-label">Y scale</div>
-          <select
-            value={vis.yScale}
-            onChange={(e) => updVis({ yScale: e.target.value })}
-            className="dv-select"
-            style={{ width: "100%", fontSize: 11 }}
-          >
-            <option value="linear">Linear</option>
-            <option value="log10">{" Log\u2081\u2080"}</option>
-            <option value="log2">{" Log\u2082"}</option>
-            <option value="ln">{" Ln (natural)"}</option>
-          </select>
+          <div className="dv-seg" role="group" aria-label="Y scale">
+            {(
+              [
+                ["linear", "Linear"],
+                ["log10", "Log\u2081\u2080"],
+                ["log2", "Log\u2082"],
+                ["ln", "Ln"],
+              ] as const
+            ).map(([value, label]) => {
+              const active = (vis.yScale || "linear") === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
+                  onClick={() => updVis({ yScale: value })}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <SliderControl
           label="Group label angle"
