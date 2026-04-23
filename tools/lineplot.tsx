@@ -36,7 +36,7 @@ const VIS_INIT_LINEPLOT = {
   plotTitle: "",
   plotSubtitle: "",
   plotBg: "#ffffff",
-  showGrid: true,
+  showGrid: false,
   gridColor: "#e0e0e0",
   lineWidth: 1.5,
   pointRadius: 3.5,
@@ -97,7 +97,10 @@ const Chart = forwardRef<SVGSVGElement, any>(function Chart(
   const xTicks = makeTicks(xMin, xMax, 8);
   const yTicks = makeTicks(yMin, yMax, 6);
 
-  const errOf = (p) => (errorType === "sd" ? p.sd : errorType === "ci95" ? p.ci95 : p.sem);
+  // errorType === "none" returns null so the render loop's
+  // `!e || !Number.isFinite(e)` guard skips the bar entirely.
+  const errOf = (p) =>
+    errorType === "none" ? null : errorType === "sd" ? p.sd : errorType === "ci95" ? p.ci95 : p.sem;
 
   return (
     <svg
@@ -670,8 +673,6 @@ function PlotControls({
   autoAxis,
   errorType,
   setErrorType,
-  showStars,
-  setShowStars,
   statsRows,
   svgRef,
   resetAll,
@@ -903,25 +904,6 @@ function PlotControls({
               type="button"
               className={"dv-seg-btn" + (vis.showGrid ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showGrid: true })}
-            >
-              On
-            </button>
-          </div>
-        </div>
-        <div>
-          <span className="dv-label">Significance stars</span>
-          <div className="dv-seg" role="group" aria-label="Significance stars">
-            <button
-              type="button"
-              className={"dv-seg-btn" + (!showStars ? " dv-seg-btn-active" : "")}
-              onClick={() => setShowStars(false)}
-            >
-              Off
-            </button>
-            <button
-              type="button"
-              className={"dv-seg-btn" + (showStars ? " dv-seg-btn-active" : "")}
-              onClick={() => setShowStars(true)}
             >
               On
             </button>
@@ -1419,7 +1401,7 @@ function PerXDetail({ row, onOverrideTest, isOverridden }) {
   );
 }
 
-function PerXStatsPanel({ rows, xLabel, fileName }) {
+function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [hovered, setHovered] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
@@ -1568,6 +1550,68 @@ function PerXStatsPanel({ rows, xLabel, fileName }) {
           )}
         </div>
       </div>
+
+      {/* Display-on-plot toolbar — mirrors the boxplot stats-panel header
+          secondary row. Binary (Off / Stars) since lineplot has no CLD or
+          brackets layer; stars render at each x whose BH-adjusted p < 0.05.
+          No "Print summary below plot" option — per-x text would clutter
+          the line chart. */}
+      {setShowStars && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            flexWrap: "wrap",
+            padding: "10px 14px",
+            borderBottom: "1px solid var(--border)",
+            background: "var(--surface-subtle)",
+          }}
+        >
+          <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>
+            Display on plot
+          </span>
+          <div
+            style={{
+              display: "flex",
+              borderRadius: 6,
+              overflow: "hidden",
+              border: "1px solid var(--border-strong)",
+            }}
+          >
+            {(
+              [
+                [false, "Off"],
+                [true, "Stars"],
+              ] as const
+            ).map(([value, label]) => {
+              const active = !!showStars === value;
+              return (
+                <button
+                  key={String(value)}
+                  type="button"
+                  onClick={() => setShowStars(value)}
+                  style={{
+                    flex: "0 0 auto",
+                    padding: "4px 10px",
+                    fontSize: 11,
+                    fontWeight: active ? 700 : 400,
+                    fontFamily: "inherit",
+                    cursor: "pointer",
+                    border: "none",
+                    background: active ? "var(--accent-primary)" : "var(--surface)",
+                    color: active ? "var(--on-accent)" : "var(--text-muted)",
+                    transition: "background 120ms ease, color 120ms ease",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
@@ -1669,6 +1713,7 @@ function PlotStep(props) {
     effAxis,
     errorType,
     showStars,
+    setShowStars,
     svgRef,
     svgLegend,
   } = props;
@@ -1734,7 +1779,13 @@ function PlotStep(props) {
         </div>
 
         {statsRows.length > 0 && (
-          <PerXStatsPanel rows={statsRows} xLabel={xLabelForStats} fileName={fileName} />
+          <PerXStatsPanel
+            rows={statsRows}
+            xLabel={xLabelForStats}
+            fileName={fileName}
+            showStars={showStars}
+            setShowStars={setShowStars}
+          />
         )}
       </div>
     </div>
@@ -1816,7 +1867,16 @@ function App() {
         if (p.x < xMin) xMin = p.x;
         if (p.x > xMax) xMax = p.x;
         if (p.mean == null) continue;
-        const e = errorType === "sd" ? p.sd : errorType === "ci95" ? p.ci95 : p.sem;
+        // Auto-axis contracts to the mean when errorType is "none" so the
+        // y-range isn't padded for bars the user doesn't want to see.
+        const e =
+          errorType === "none"
+            ? 0
+            : errorType === "sd"
+              ? p.sd
+              : errorType === "ci95"
+                ? p.ci95
+                : p.sem;
         const hi = p.mean + (e || 0);
         const lo = p.mean - (e || 0);
         if (lo < yLo) yLo = lo;

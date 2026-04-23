@@ -66,8 +66,14 @@ export function DetailView({
     }
     return null;
   }, [mainColCluster, mainColIsKmeans, mainColIsHier, detailColOrder]);
-  const detailShowDendrogram =
-    (mainRowIsHier && detailRowCluster) || (mainColIsHier && detailColCluster);
+  // Respect the per-axis "show dendrogram" prefs on the detail view too —
+  // otherwise the user hides dendrograms on the main plot for a clean
+  // figure but still sees them when zooming in.
+  const detailRowDendroVisible =
+    mainRowIsHier && detailRowCluster && vis.showRowDendrogram !== false;
+  const detailColDendroVisible =
+    mainColIsHier && detailColCluster && vis.showColDendrogram !== false;
+  const detailShowDendrogram = detailRowDendroVisible || detailColDendroVisible;
 
   // When the selection came from a k-means cluster-strip click we tag the
   // downloaded filenames with the 1-based cluster id so a user can tell
@@ -161,6 +167,8 @@ export function DetailView({
           rowCluster={detailRowCluster}
           colCluster={detailColCluster}
           showClusterStrip={detailShowDendrogram}
+          showRowDendrogram={vis.showRowDendrogram !== false}
+          showColDendrogram={vis.showColDendrogram !== false}
           showKmeansStrip={mainRowIsKmeans || mainColIsKmeans}
           dendrogramStrokeWidth={
             DETAIL_DENDRO_STROKE_WIDTHS[detailDendroStroke] || DETAIL_DENDRO_STROKE_WIDTHS.medium

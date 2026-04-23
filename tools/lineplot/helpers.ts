@@ -15,6 +15,7 @@ export { buildLineD };
 export const STAR_ROW_H = 18;
 
 export const ERROR_KINDS = [
+  { value: "none", label: "None" },
   { value: "sem", label: "SEM" },
   { value: "sd", label: "SD" },
   { value: "ci95", label: "95% CI" },
