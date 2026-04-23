@@ -160,8 +160,8 @@
   </header>
 
   <div class="summary summary-pass">
-    <div><span class="k">comparisons</span><span class="v">293</span></div>
-    <div><span class="k">passing</span><span class="v v-pass">289 (100.0%)</span></div>
+    <div><span class="k">comparisons</span><span class="v">303</span></div>
+    <div><span class="k">passing</span><span class="v v-pass">299 (100.0%)</span></div>
     <div><span class="k">failing</span><span class="v v-pass">0</span></div>
     <div><span class="k">past R's floor</span><span class="v v-rsat">4</span></div>
     <div><span class="k">max |Δ|</span><span class="v">3.16e-2</span></div>
@@ -3156,8 +3156,125 @@
       </table>
     </section>
 
+    <section class="category">
+      <h2>Multi-set intersection (cpsets) <span class="badge badge-pass">10/10 pass</span></h2>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Toolbox</th>
+            <th class="num">|Δ|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>k=2 hypergeometric</td>
+        <td class="num">100</td>
+        <td>p</td>
+        <td class="num">0.790837</td>
+        <td class="num">0.790837</td>
+        <td class="num">4.11e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>k=2 moderate-large N</td>
+        <td class="num">200</td>
+        <td>p</td>
+        <td class="num">0.977532</td>
+        <td class="num">0.977532</td>
+        <td class="num">2.87e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>k=2 small (near-1)</td>
+        <td class="num">1000</td>
+        <td>p</td>
+        <td class="num">0.0960315</td>
+        <td class="num">0.0960315</td>
+        <td class="num">1.63e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>k=3 moderate</td>
+        <td class="num">100</td>
+        <td>p</td>
+        <td class="num">0.441005</td>
+        <td class="num">0.441005</td>
+        <td class="num">2.99e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>k=3 N=1000 p~1e-3</td>
+        <td class="num">1000</td>
+        <td>p</td>
+        <td class="num">0.00304692</td>
+        <td class="num">0.00304692</td>
+        <td class="num">1.25e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>k=3 N=5000 deeper</td>
+        <td class="num">5000</td>
+        <td>p</td>
+        <td class="num">1.724e-4</td>
+        <td class="num">1.724e-4</td>
+        <td class="num">1.37e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>k=5 shallow</td>
+        <td class="num">200</td>
+        <td>p</td>
+        <td class="num">8.709e-4</td>
+        <td class="num">8.709e-4</td>
+        <td class="num">4.59e-7</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>k=5 N=10000 deep</td>
+        <td class="num">10000</td>
+        <td>p</td>
+        <td class="num">2.250e-15</td>
+        <td class="num">2.250e-15</td>
+        <td class="num">2.09e-7</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>k=2 deep tail ~1e-31</td>
+        <td class="num">1000</td>
+        <td>p</td>
+        <td class="num">6.086e-31</td>
+        <td class="num">6.086e-31</td>
+        <td class="num">1.32e-10</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>k=2 very deep tail ~1e-14</td>
+        <td class="num">500</td>
+        <td>p</td>
+        <td class="num">3.122e-14</td>
+        <td class="num">3.122e-14</td>
+        <td class="num">2.28e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </section>
+
   <footer>
-    R reference generated 2026-04-22 12:54:17 UTC.
+    R reference generated 2026-04-22 21:30:33 UTC.
     Tolerance 0.005. Tool source: <code>tools/stats.js</code>.
   </footer>
 </div>

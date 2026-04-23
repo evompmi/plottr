@@ -83,6 +83,15 @@ export function intersectionLabel(setIndices, setNames) {
   return setIndices.map((i) => setNames[i]).join(" ∩ ");
 }
 
+// Short label using display-order set ids: "S1 ∩ S3 ∩ S5". Used in UI panels
+// where long set names would overflow — the numbers are the same "S#" ids
+// shown in the dedicated lane between the set-name labels and the matrix on
+// the plot, so the on-screen plot is always the source of truth for which
+// set a number refers to.
+export function intersectionShortLabel(setIndices) {
+  return setIndices.map((i) => `S${i + 1}`).join(" ∩ ");
+}
+
 // Filename-safe rendering — "A ∩ B" → "A_and_B".
 export function intersectionFilenamePart(label) {
   return label
@@ -94,18 +103,6 @@ export function intersectionFilenamePart(label) {
 // Stable id fragment for <g id="col-..."> built from the setIndices.
 export function intersectionIdKey(setIndices, setNames) {
   return setIndices.map((i) => svgSafeId(setNames[i])).join("-") || "empty";
-}
-
-// Decide whether column-id labels ("I1", "I2", …) should render rotated -90°
-// (reading bottom-to-top) instead of horizontally. Rotation kicks in as soon
-// as the horizontal label would be wider than the matrix column plus a small
-// gap, so behaviour adapts to nCols, font size, and any future colW change.
-// The 0.58 factor is the same shared average-glyph-width estimate used for
-// set-name label sizing in upset.tsx.
-export function shouldRotateColumnIds(nCols, colW, idFontSize) {
-  const maxIdChars = 1 + String(Math.max(1, nCols)).length;
-  const horizontalIdWidth = maxIdChars * idFontSize * 0.58;
-  return horizontalIdWidth + 2 > colW;
 }
 
 // Build axis ticks for a bar panel: evenly spaced pretty ticks from 0 up to a
