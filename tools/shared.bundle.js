@@ -4643,10 +4643,18 @@ function StepNavBar(props) {
   const steps = props.steps,
     currentStep = props.currentStep,
     onStepChange = props.onStepChange,
-    canNavigate = props.canNavigate;
+    canNavigate = props.canNavigate,
+    stepLabels = props.stepLabels || {};
   const currentIdx = steps.indexOf(currentStep);
   const capitalize = function (s) {
     return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+  // Allow callers to override the visible label for a step key without
+  // changing the key itself. Keys remain the stable identifier used by
+  // navigation state; labels can be dynamic (e.g. venn showing "Import
+  // check" vs "Configure" depending on detected set count).
+  const labelFor = function (s) {
+    return stepLabels[s] || capitalize(s);
   };
   const cells = steps.map(function (s, i) {
     const enabled = canNavigate ? canNavigate(s) : true;
@@ -4763,7 +4771,7 @@ function StepNavBar(props) {
           whiteSpace: "nowrap",
         },
       },
-      capitalize(s)
+      labelFor(s)
     );
 
     const button = React.createElement(
@@ -4778,7 +4786,7 @@ function StepNavBar(props) {
           : undefined,
         disabled: !enabled,
         "aria-current": isCurrent ? "step" : undefined,
-        "aria-label": "Step " + (i + 1) + " of " + steps.length + ": " + capitalize(s),
+        "aria-label": "Step " + (i + 1) + " of " + steps.length + ": " + labelFor(s),
         style: {
           all: "unset",
           display: "flex",

@@ -19,6 +19,11 @@ interface PlotToolShellProps<TVis extends object> {
   visInit: TVis;
   steps: string[];
   canNavigate: (target: string) => boolean;
+  // Optional override for the step label shown in the nav bar. Useful when a
+  // step's *purpose* varies with dataset shape (e.g. venn's step 2 is just an
+  // import check with ≤ 3 sets but becomes a real configure flow with ≥ 4).
+  // Keys = step identifiers (unchanged); values = human-readable labels.
+  stepLabels?: Record<string, string>;
   children: React.ReactNode;
 }
 
@@ -55,6 +60,7 @@ export function PlotToolShell<TVis extends object>({
   visInit,
   steps,
   canNavigate,
+  stepLabels,
   children,
 }: PlotToolShellProps<TVis>) {
   return (
@@ -68,6 +74,7 @@ export function PlotToolShell<TVis extends object>({
             currentStep={state.step}
             onStepChange={state.setStep}
             canNavigate={canNavigate}
+            stepLabels={stepLabels}
           />
         }
         right={

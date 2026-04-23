@@ -132,7 +132,15 @@ export function DetailView({
             </div>
           ) : null}
         </div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            flexWrap: "wrap",
+            marginLeft: "auto",
+            flexShrink: 0,
+          }}
+        >
           {downloadButton("SVG", () =>
             downloadSvg(detailChartRef.current, `${base}_heatmap${clusterSuffix}_detail.svg`)
           )}
@@ -237,7 +245,7 @@ export function DetailPreviewCard({
             flashSaved(e.currentTarget);
           }}
           className="dv-btn dv-btn-dl"
-          style={{ padding: "4px 10px", fontSize: 11 }}
+          style={{ padding: "4px 10px", fontSize: 11, marginLeft: "auto", flexShrink: 0 }}
         >
           ⬇ CSV
         </button>

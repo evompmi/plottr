@@ -349,6 +349,7 @@ function App() {
       title="Heatmap"
       visInit={VIS_INIT_HEATMAP}
       steps={["upload", "configure", "plot"]}
+      stepLabels={{ configure: "Import check" }}
       canNavigate={canNavigate}
     >
       {step === "upload" && (
@@ -491,7 +492,15 @@ function App() {
                         </span>
                       )}
                     </div>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 6,
+                        flexWrap: "wrap",
+                        marginLeft: "auto",
+                        flexShrink: 0,
+                      }}
+                    >
                       <button
                         onClick={(e) => {
                           const bn = fileBaseName(fileName || "heatmap") || "heatmap";

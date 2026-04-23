@@ -726,6 +726,8 @@ function ItemListPanel({ intersection, allSetNames, fileName }) {
             color: "var(--success-text)",
             fontWeight: 600,
             fontSize: 11,
+            marginLeft: "auto",
+            flexShrink: 0,
           }}
         >
           ⬇ CSV
@@ -1287,6 +1289,14 @@ function App() {
       title="Venn Diagram"
       visInit={VIS_INIT_VENN}
       steps={["upload", "configure", "plot"]}
+      stepLabels={{
+        // With 2–3 detected sets, step 2 is just a post-import sanity check
+        // (rename / pick a colour and carry on). With 4+ it turns into a
+        // real configure flow: the UpSet nudge, the 3-set cap, and the
+        // rename/recolour picker all live there. Relabel so the stepper
+        // tells users which it is at a glance.
+        configure: allColumnNames.length >= 4 ? "Configure" : "Import check",
+      }}
       canNavigate={canNavigate}
     >
       {step === "upload" && (

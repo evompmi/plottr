@@ -1541,7 +1541,7 @@ function PerXStatsPanel({ rows, xLabel, fileName }) {
             BH-adjusted across the x-axis.
           </p>
         </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
           <button
             type="button"
             className="dv-btn dv-btn-dl"
