@@ -752,8 +752,9 @@ function App() {
         <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>{test.question}</div>
       </div>
 
-      {/* ── Top row: test type + solve for ── */}
-      <div style={{ display: "flex", gap: 20, marginBottom: 6 }}>
+      {/* ── Top row: test type + solve for. Stacks single-column on mobile
+          via .power-top-row + @media rule in power.html. */}
+      <div className="power-top-row" style={{ display: "flex", gap: 20, marginBottom: 6 }}>
         <div className="dv-panel" style={{ padding: 12, flex: 1, minWidth: 200 }}>
           <div className="dv-label">Statistical test</div>
           <select
