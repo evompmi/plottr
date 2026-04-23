@@ -13,7 +13,6 @@ import {
   intersectionFilenamePart,
   intersectionIdKey,
   buildBarTicks,
-  shouldRotateColumnIds,
 } from "./upset/helpers";
 
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
@@ -101,14 +100,12 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
   const subH = plotSubtitle ? SUBTITLE_H : 0;
   const topPanelY = titleH + subH;
   const matrixY = topPanelY + TOP_PANEL_H + MATRIX_TOP_PAD;
-  // Column ids ("I1", "I2", …) render horizontally by default, but flip to a
-  // vertical (rotated -90°) orientation whenever the horizontal label would be
-  // wider than the matrix column (plus a 2 px gap). 0.58 is the shared
-  // average-glyph-width factor used above for set-name labels.
+  // Column ids ("I1", "I2", …) always render rotated -90° (reading
+  // bottom-to-top) so they stay readable no matter how narrow the columns are.
+  // 0.58 is the shared average-glyph-width factor used above for set-name labels.
   const idFontSize = Math.max(8, Math.min(10, fSize - 4));
   const maxIdChars = 1 + String(Math.max(1, nCols)).length;
-  const rotateColumnIds = shouldRotateColumnIds(nCols, colW, idFontSize);
-  const idLabelSpan = rotateColumnIds ? Math.ceil(maxIdChars * idFontSize * 0.58) : idFontSize;
+  const idLabelSpan = Math.ceil(maxIdChars * idFontSize * 0.58);
   const legendFS = Math.max(9, fSize - 3);
   const idLaneOffset = 10;
   const legendOffset = idLaneOffset + idLabelSpan + 8;
@@ -305,9 +302,11 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
       )}
 
       {/* Significance markers: stars or p-value text above bars the user has
-          tested. Placed above the intersection-size label so the two never
-          collide. Only rendered when the sidebar toggle is on AND this bar's
-          mask is in `significanceByMask`. */}
+          tested. Rotated -90° (reading bottom-to-top) so the label stacks
+          vertically above its bar and never overlaps neighbouring columns.
+          Placed above the intersection-size label so the two never collide.
+          Only rendered when the sidebar toggle is on AND this bar's mask is
+          in `significanceByMask`. */}
       {significanceDisplay && significanceDisplay !== "off" && significanceByMask && (
         <g id="significance-markers">
           {intersections.map((inter, i) => {
@@ -318,20 +317,33 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
             const labelOffset = showIntersectionLabels !== false ? fSize + 2 : 3;
             const text =
               significanceDisplay === "stars" ? pStars(sig.pAdj) : "p=" + formatP(sig.pAdj);
-            // Stars render a hair bigger than the bar-size label; p-values
-            // render the same size as it so numeric widths stay aligned.
-            const tSize =
-              significanceDisplay === "stars" ? Math.max(10, fSize - 1) : Math.max(9, fSize - 3);
+            // Size: star glyphs render a hair bigger than the bar-size label;
+            // "ns" renders smaller so a non-significant bar stays visually
+            // quiet; p-values match the bar-size label so numeric widths stay
+            // aligned with the intersection size above.
+            const isStarsMode = significanceDisplay === "stars";
+            const isNs = isStarsMode && text === "ns";
+            const tSize = isNs
+              ? Math.max(8, fSize - 4)
+              : isStarsMode
+                ? Math.max(10, fSize - 1)
+                : Math.max(9, fSize - 3);
+            // Stars / "ns" always render in black; p-values use blue below 0.05
+            // to match the usual "significant" colour convention.
+            const fill = isStarsMode ? "#111111" : sig.pAdj < 0.05 ? "#1f6feb" : "#555555";
+            const anchorY = topPanelBottom - h - labelOffset;
             return (
               <text
                 key={`sig-${inter.mask}`}
                 x={cx}
-                y={topPanelBottom - h - labelOffset}
-                textAnchor="middle"
+                y={anchorY}
+                textAnchor="start"
+                dominantBaseline="central"
                 fontSize={tSize}
-                fill={sig.pAdj < 0.05 ? "#1f6feb" : "#555555"}
+                fill={fill}
                 fontFamily="sans-serif"
-                fontWeight={significanceDisplay === "stars" ? 700 : 400}
+                fontWeight={isStarsMode && !isNs ? 700 : 400}
+                transform={`rotate(-90 ${cx} ${anchorY})`}
               >
                 {text}
               </text>
@@ -495,12 +507,12 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
                 id={`column-id-${i + 1}`}
                 x={cx}
                 y={idLaneY}
-                textAnchor={rotateColumnIds ? "end" : "middle"}
-                dominantBaseline={rotateColumnIds ? "middle" : "hanging"}
+                textAnchor="end"
+                dominantBaseline="middle"
                 fontSize={idFontSize}
                 fontFamily="monospace"
                 fill={TEXT_MUTED}
-                transform={rotateColumnIds ? `rotate(-90 ${cx} ${idLaneY})` : undefined}
+                transform={`rotate(-90 ${cx} ${idLaneY})`}
               >
                 {`I${i + 1}`}
               </text>
