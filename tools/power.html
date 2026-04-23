@@ -37,10 +37,34 @@
          320-to-600 px viewport has no room for an axis chart with ticks, and
          the result number + parameter tiles are what the user came for
          anyway (sanity-checking stats at a conference). */
+      /* Top-row cards share the same flex parent so a single CSS `order`
+         rule can reshuffle them per viewport (see @media block below).
+         On desktop the question banner wraps onto a second line beneath
+         the Test + Solve-for pickers (`flex-basis: 100%` forces wrap). */
+      .power-top-test {
+        order: 1;
+      }
+      .power-top-solve {
+        order: 2;
+      }
+      .power-top-desc {
+        order: 3;
+        flex-basis: 100%;
+      }
+
       @media (max-width: 900px) {
         .power-top-row {
           flex-direction: column !important;
           gap: 10px !important;
+        }
+        /* Mobile reorder: Test → Question → Solve-for so the descriptor
+           sits right under the test picker (read immediately after
+           choosing a test) and above the Solve-for toggle. */
+        .power-top-desc {
+          order: 2 !important;
+        }
+        .power-top-solve {
+          order: 3 !important;
         }
         .power-main-row {
           flex-direction: column !important;

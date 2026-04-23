@@ -744,18 +744,20 @@ function App() {
     <div style={{ maxWidth: 960, padding: "24px 32px" }}>
       <PageHeader title="Power Analysis" icon={toolIcon("power")} />
 
-      {/* Question banner */}
+      {/* ── Top group: test + solve + question banner. CSS order + flex-wrap
+          rules in power.html position them differently per viewport:
+            Desktop (row, wrap):   [Test] [Solve-for]
+                                   [Question banner full-width below]
+            Mobile  (column):      [Test]
+                                   [Question banner]
+                                   [Solve-for]
+          — the descriptor sits between the two pickers on phones (so it's
+          read right after choosing a test) but below both on wide screens. */}
       <div
-        className="dv-panel"
-        style={{ padding: "12px 16px", marginBottom: 16, borderLeft: "4px solid #0072B2" }}
+        className="power-top-row"
+        style={{ display: "flex", flexWrap: "wrap", gap: 20, marginBottom: 16 }}
       >
-        <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>{test.question}</div>
-      </div>
-
-      {/* ── Top row: test type + solve for. Stacks single-column on mobile
-          via .power-top-row + @media rule in power.html. */}
-      <div className="power-top-row" style={{ display: "flex", gap: 20, marginBottom: 6 }}>
-        <div className="dv-panel" style={{ padding: 12, flex: 1, minWidth: 200 }}>
+        <div className="dv-panel power-top-test" style={{ padding: 12, flex: 1, minWidth: 200 }}>
           <div className="dv-label">Statistical test</div>
           <select
             value={testKey}
@@ -770,7 +772,7 @@ function App() {
             ))}
           </select>
         </div>
-        <div className="dv-panel" style={{ padding: 12, flex: 1, minWidth: 200 }}>
+        <div className="dv-panel power-top-solve" style={{ padding: 12, flex: 1, minWidth: 200 }}>
           <div className="dv-label" style={{ marginBottom: 6 }}>
             What do you need to find?
           </div>
@@ -795,6 +797,12 @@ function App() {
               );
             })}
           </div>
+        </div>
+        <div
+          className="dv-panel power-top-desc"
+          style={{ padding: "12px 16px", borderLeft: "4px solid #0072B2" }}
+        >
+          <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>{test.question}</div>
         </div>
       </div>
 
