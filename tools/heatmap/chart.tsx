@@ -1174,7 +1174,11 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
           height={plotH}
           fill="none"
           pointerEvents="all"
-          style={{ cursor: interactive ? "crosshair" : "default" }}
+          // Crosshair whether the overlay is interactive (drag-to-select on
+          // the main plot) or not (detail view still surfaces the per-cell
+          // tooltip) — the cursor signals that a cell is about to be
+          // highlighted, which is true in both cases.
+          style={{ cursor: "crosshair" }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
