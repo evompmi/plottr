@@ -1001,7 +1001,23 @@ function App() {
               style={{
                 fontSize: 36,
                 fontWeight: 700,
-                color: result != null ? "#0072B2" : "var(--border-strong)",
+                // When solving for power, traffic-light the readout so the
+                // user sees at a glance whether the design is adequately
+                // powered (≥ 80%, default green), marginal (60–80%, amber
+                // `--accent-warning`) or under-powered (< 60%, red
+                // `--danger-text`). Both semantic vars are theme-aware:
+                // `--accent-warning` is stable across light/dark by
+                // design, and `--danger-text` dims from #dc2626 → #f87171
+                // in dark mode so the alert doesn't shout. All other
+                // solveFor targets (sample size) stay on the default.
+                color:
+                  result == null
+                    ? "var(--border-strong)"
+                    : solveFor === "power" && result < 0.6
+                      ? "var(--danger-text)"
+                      : solveFor === "power" && result < 0.8
+                        ? "var(--accent-warning)"
+                        : "#0072B2",
                 fontFamily: "monospace",
               }}
             >
