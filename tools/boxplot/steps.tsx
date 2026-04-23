@@ -4,6 +4,47 @@
 // (UploadPanel, DataPreview, ColumnRoleEditor, FilterCheckboxPanel,
 // RenameReorderPanel, StatsTable, …) resolves through shared.bundle.js.
 
+// Role-colour themes for the Configure-step AesBox cards. Reuses scatter's
+// `--aes-*` CSS vars so the visual language is consistent across tools
+// (slate "Color" theme → Group; emerald "Size" theme → Value). Theme-aware
+// light/dark variants come free — vars defined per-theme in theme.css.
+const BP_AES_THEMES = {
+  group: {
+    bg: "var(--aes-shape-bg)",
+    border: "var(--aes-shape-border)",
+    header: "var(--aes-shape-header)",
+    label: "Group (X axis)",
+  },
+  value: {
+    bg: "var(--aes-size-bg)",
+    border: "var(--aes-size-border)",
+    header: "var(--aes-size-header)",
+    label: "Value (Y axis)",
+  },
+};
+
+function BpAesBox({ theme, children }) {
+  const t = BP_AES_THEMES[theme];
+  return (
+    <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
+      <div style={{ background: t.header, padding: "8px 14px", borderRadius: "8px 8px 0 0" }}>
+        <span
+          style={{
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: 12,
+            textTransform: "uppercase",
+            letterSpacing: "0.8px",
+          }}
+        >
+          {t.label}
+        </span>
+      </div>
+      <div style={{ padding: "12px 14px", minHeight: 40 }}>{children}</div>
+    </div>
+  );
+}
+
 export function UploadStep({
   sepOverride,
   onSepChange,
@@ -413,8 +454,69 @@ export function ConfigureStep({
   onRoleChange,
   onNameChange,
 }) {
+  const groupColIdx = colRoles.indexOf("group");
   return (
     <div>
+      {/* Primary role shortcuts — AesBox cards matching scatter's aesthetic
+          selectors. Each picks the single column playing that role; the
+          parent's `onRoleChange` handler automatically demotes the previous
+          holder to "filter" when a new column is chosen. The ColumnRoleEditor
+          below still offers full per-column role assignment (filter / text /
+          ignore / swap), so these cards are a visual shortcut, not a
+          replacement. */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
+        <BpAesBox theme="group">
+          <select
+            value={groupColIdx >= 0 ? groupColIdx : ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") return;
+              onRoleChange(Number(raw), "group");
+            }}
+            className="dv-select"
+            style={{ width: "100%" }}
+          >
+            {groupColIdx < 0 && <option value="">— choose a group column —</option>}
+            {parsedHeaders.map((_, i) => (
+              <option key={i} value={i}>
+                {colNames[i]}
+              </option>
+            ))}
+          </select>
+          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
+            Categorical column that defines the X-axis groups (genotypes, treatments, …).
+          </div>
+        </BpAesBox>
+        <BpAesBox theme="value">
+          <select
+            value={valueColIdx >= 0 ? valueColIdx : ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") return;
+              onRoleChange(Number(raw), "value");
+            }}
+            className="dv-select"
+            style={{ width: "100%" }}
+          >
+            {valueColIdx < 0 && <option value="">— choose a value column —</option>}
+            {parsedHeaders.map((_, i) => (
+              <option key={i} value={i}>
+                {colNames[i]}
+              </option>
+            ))}
+          </select>
+          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
+            Numeric column plotted as the Y-axis measurement.
+          </div>
+        </BpAesBox>
+      </div>
       <ColumnRoleEditor
         headers={parsedHeaders}
         rows={parsedRows}
