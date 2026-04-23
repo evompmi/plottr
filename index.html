@@ -392,6 +392,17 @@
           margin-bottom: 4px;
           font-size: 14px;
         }
+
+        /* Tool topbar on mobile: strip cross-tool navigation down to the two
+           allowed calculators (power + molarity) plus the theme toggle. The
+           home button and links to plot tools are hidden so a user who
+           opened one calculator can only switch to the other calculator —
+           no invitation to try a plot tool that won't render usefully. */
+        .tool-topbar [data-back],
+        .tool-topbar .tb-sep,
+        .tool-topbar [data-tool]:not([data-tool="power"]):not([data-tool="molarity"]) {
+          display: none !important;
+        }
       }
     </style>
   </head>
