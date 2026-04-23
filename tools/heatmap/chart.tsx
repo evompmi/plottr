@@ -205,10 +205,8 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   // reserved margin (otherwise there's a big empty strip where the tree
   // would have been). K-means strips are independent (their own
   // showKmeansStrip control).
-  const computedDendroTop =
-    colIsHier && showColDendrogram ? 60 : colIsKmeans ? 14 : 0;
-  const computedDendroLeft =
-    rowIsHier && showRowDendrogram ? 60 : rowIsKmeans ? 14 : 0;
+  const computedDendroTop = colIsHier && showColDendrogram ? 60 : colIsKmeans ? 14 : 0;
+  const computedDendroLeft = rowIsHier && showRowDendrogram ? 60 : rowIsKmeans ? 14 : 0;
   const DENDRO_SIZE_TOP = baseDendroSizeTop != null ? baseDendroSizeTop : computedDendroTop;
   const DENDRO_SIZE_LEFT = baseDendroSizeLeft != null ? baseDendroSizeLeft : computedDendroLeft;
   // Extra reserved margin for rotated per-band "Cluster n° X" labels above the
@@ -293,10 +291,21 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   };
 
   // ── Interaction state — tooltip + brush + branch hover ─────────────────────
-  const [hover, setHover] = useState(null); // { ri, ci, clientX, clientY }
+  // Tooltip coords are stored as wrapper-local pixels (relative to the
+  // outer `position: relative` div). We can't use `position: fixed` +
+  // `clientX / clientY` because `.dv-plot-card` gets a `filter:
+  // brightness(0.85)` in dark mode, and any non-`none` CSS filter
+  // establishes a containing block for `position: fixed` descendants —
+  // so the tooltip would be anchored to the card instead of the viewport
+  // and jump offset by the card's origin. Anchoring via `position:
+  // absolute` to the wrapper sidesteps the containing-block issue cleanly
+  // and also works when the zoomed plot appears beside the main plot
+  // (each chart has its own wrapper; tooltip positioning stays local).
+  const [hover, setHover] = useState(null); // { ri, ci, localX, localY }
   const [brush, setBrush] = useState(null); // { anchorRi, anchorCi, curRi, curCi }
   const [axisHover, setAxisHover] = useState(null); // { axis, leaves: Set }
   const svgLocalRef = useRef(null);
+  const wrapperRef = useRef(null);
 
   // The forwarded ref and our local ref both need to point at the SVG.
   const setRefs = useCallback(
@@ -354,7 +363,13 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
     const p = svgPoint(e);
     const hit = pointToCell(p);
     if (hit) {
-      setHover({ ri: hit.ri, ci: hit.ci, clientX: e.clientX, clientY: e.clientY });
+      // Convert viewport clientX/Y to wrapper-local pixels so the tooltip's
+      // `position: absolute` lands correctly regardless of any filter /
+      // transform on an ancestor (dark-mode .dv-plot-card has a filter).
+      const wrapRect = wrapperRef.current && wrapperRef.current.getBoundingClientRect();
+      const localX = wrapRect ? e.clientX - wrapRect.left : 0;
+      const localY = wrapRect ? e.clientY - wrapRect.top : 0;
+      setHover({ ri: hit.ri, ci: hit.ci, localX, localY });
     } else {
       setHover(null);
     }
@@ -942,7 +957,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   );
 
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={wrapperRef} style={{ position: "relative" }}>
       <svg
         ref={setRefs}
         xmlns="http://www.w3.org/2000/svg"
@@ -1170,9 +1185,9 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
       {hoverInfo && (
         <div
           style={{
-            position: "fixed",
-            left: hover.clientX + 12,
-            top: hover.clientY + 12,
+            position: "absolute",
+            left: hover.localX + 12,
+            top: hover.localY + 12,
             background: "var(--surface)",
             color: "var(--text)",
             border: "1px solid var(--border)",
