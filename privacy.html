@@ -72,12 +72,6 @@
         letter-spacing: 0.3px;
         margin-bottom: 0.5rem;
       }
-      .lede {
-        color: var(--text-muted);
-        font-size: 0.92rem;
-        max-width: 720px;
-      }
-
       /* ── Diagram card ─────────────────────────────────────────────────── */
       .diagram-card {
         background: var(--surface);
@@ -91,17 +85,10 @@
         height: auto;
         display: block;
       }
-      .diagram-caption {
-        text-align: center;
-        font-size: 0.78rem;
-        color: var(--text-faint);
-        margin-top: 0.2rem;
-      }
-
       /* ── Trust statements grid ────────────────────────────────────────── */
       .trust-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 0.9rem;
         margin-top: 1.5rem;
       }
@@ -207,7 +194,7 @@
         border-color: var(--accent-primary);
       }
 
-      @media (max-width: 640px) {
+      @media (max-width: 720px) {
         .trust-grid {
           grid-template-columns: 1fr;
         }
@@ -220,18 +207,12 @@
     <div class="container">
       <header>
         <div class="breadcrumb"><a href="index.html">← Plöttr</a></div>
-        <h1>How Plöttr handles your data</h1>
-        <p class="lede">
-          Plöttr is a static site. The page you're reading right now — and every plot tool — arrives
-          in your browser as plain HTML, CSS, and JavaScript. After that, nothing leaves your
-          computer. No uploads. No analytics. No "phone home". Below is the full picture in one
-          diagram.
-        </p>
+        <h1>How Plöttr handles your data, in one diagram</h1>
       </header>
 
       <!-- ── Diagram ─────────────────────────────────────────────────────── -->
       <div class="diagram-card" aria-label="Data-flow diagram">
-        <svg viewBox="0 0 800 480" role="img" aria-labelledby="diagram-title diagram-desc">
+        <svg viewBox="0 0 800 450" role="img" aria-labelledby="diagram-title diagram-desc">
           <title id="diagram-title">Plöttr data flow</title>
           <desc id="diagram-desc">
             A static-file host (e.g. GitHub Pages) sends the Plöttr HTML, CSS, and JavaScript once
@@ -268,25 +249,26 @@
 
           <!-- ── Static host (top, outside the trust box) ─────────────────── -->
           <g id="static-host">
-            <!-- a simple "cloud" silhouette -->
+            <!-- Wider cloud silhouette (~250 wide × 65 tall, centered at x=395)
+                 so two lines of text fit comfortably. Uses convex absolute
+                 arcs for each top bump and a flat base. -->
             <path
-              d="
-                M 320,40
-                a 28,28 0 0 1 56,-6
-                a 22,22 0 0 1 42,4
-                a 24,24 0 0 1 30,22
-                a 26,26 0 0 1 -22,28
-                l -98,0
-                a 28,28 0 0 1 -8,-48 z"
+              d="M 270,90
+                 A 22 22 0 0 1 280,55
+                 A 26 26 0 0 1 335,40
+                 A 32 32 0 0 1 395,25
+                 A 30 30 0 0 1 455,42
+                 A 26 26 0 0 1 510,55
+                 A 22 22 0 0 1 520,90 Z"
               fill="var(--surface-subtle)"
               stroke="var(--border-strong)"
               stroke-width="1.2"
             />
             <text
               x="395"
-              y="60"
+              y="62"
               text-anchor="middle"
-              font-size="13"
+              font-size="14"
               font-weight="700"
               fill="var(--text)"
               font-family="ui-monospace, Menlo, monospace"
@@ -295,7 +277,7 @@
             </text>
             <text
               x="395"
-              y="76"
+              y="80"
               text-anchor="middle"
               font-size="11"
               fill="var(--text-muted)"
@@ -311,29 +293,20 @@
               x1="395"
               y1="100"
               x2="395"
-              y2="158"
+              y2="160"
               stroke="var(--accent-primary)"
               stroke-width="2"
               marker-end="url(#arrow-good)"
             />
             <text
               x="408"
-              y="135"
+              y="130"
               font-size="11"
               fill="var(--accent-primary)"
               font-family="ui-monospace, Menlo, monospace"
               font-weight="600"
             >
               page load
-            </text>
-            <text
-              x="408"
-              y="150"
-              font-size="10"
-              fill="var(--text-muted)"
-              font-family="ui-monospace, Menlo, monospace"
-            >
-              static HTML / JS / CSS
             </text>
           </g>
 
@@ -343,7 +316,7 @@
               x="40"
               y="170"
               width="720"
-              height="240"
+              height="260"
               rx="14"
               fill="var(--surface)"
               stroke="var(--accent-primary)"
@@ -472,17 +445,6 @@
             >
               entirely in your browser
             </text>
-            <text
-              x="400"
-              y="325"
-              text-anchor="middle"
-              font-size="9"
-              fill="var(--text-faint)"
-              font-family="ui-monospace, Menlo, monospace"
-              font-style="italic"
-            >
-              React + JS only · no server
-            </text>
           </g>
 
           <!-- Arrow Plöttr → outputs -->
@@ -490,14 +452,14 @@
             <line
               x1="510"
               y1="290"
-              x2="630"
+              x2="624"
               y2="290"
               stroke="var(--accent-primary)"
               stroke-width="2"
               marker-end="url(#arrow-good)"
             />
             <text
-              x="570"
+              x="567"
               y="280"
               text-anchor="middle"
               font-size="10"
@@ -509,72 +471,63 @@
           </g>
 
           <!-- ── Outputs (right side, inside the trust box) ──────────────── -->
+          <!-- Stack of three offset documents to convey "multiple file
+               formats", but with the format list moved BELOW the icon so
+               the labels have actual room. Front document gets a small
+               folded-corner detail to read as "document". -->
           <g id="outputs">
-            <!-- stack of three documents -->
+            <!-- back document -->
             <rect
-              x="650"
+              x="630"
               y="245"
-              width="78"
-              height="64"
+              width="80"
+              height="68"
               rx="3"
               fill="var(--surface-sunken)"
               stroke="var(--border-strong)"
               stroke-width="1.2"
             />
+            <!-- mid document -->
             <rect
-              x="660"
+              x="640"
               y="255"
-              width="78"
-              height="64"
+              width="80"
+              height="68"
               rx="3"
               fill="var(--surface-subtle)"
               stroke="var(--border-strong)"
               stroke-width="1.2"
             />
-            <rect
-              x="670"
-              y="265"
-              width="78"
-              height="64"
-              rx="3"
+            <!-- front document, with a small corner-fold and accent stroke -->
+            <path
+              d="M 650,265 h 70 l 12,12 v 56 a 4,4 0 0 1 -4,4 h -78 a 4,4 0 0 1 -4,-4 v -64 a 4,4 0 0 1 4,-4 z"
               fill="var(--surface)"
               stroke="var(--accent-primary)"
               stroke-width="1.4"
             />
+            <path
+              d="M 720,265 v 12 h 12"
+              fill="none"
+              stroke="var(--accent-primary)"
+              stroke-width="1.2"
+            />
+            <line x1="660" y1="290" x2="720" y2="290" stroke="var(--text-muted)" stroke-width="1" />
+            <line x1="660" y1="300" x2="720" y2="300" stroke="var(--text-muted)" stroke-width="1" />
+            <line x1="660" y1="310" x2="708" y2="310" stroke="var(--text-muted)" stroke-width="1" />
             <text
-              x="709"
-              y="295"
-              text-anchor="middle"
-              font-size="10"
-              fill="var(--text-muted)"
-              font-family="ui-monospace, Menlo, monospace"
-            >
-              SVG · PNG
-            </text>
-            <text
-              x="709"
-              y="310"
-              text-anchor="middle"
-              font-size="10"
-              fill="var(--text-muted)"
-              font-family="ui-monospace, Menlo, monospace"
-            >
-              CSV · R script
-            </text>
-            <text
-              x="688"
-              y="345"
+              x="678"
+              y="357"
               text-anchor="middle"
               font-size="12"
               font-weight="700"
               fill="var(--text)"
               font-family="ui-monospace, Menlo, monospace"
             >
-              outputs
+              SVG · PNG · CSV · R
             </text>
             <text
-              x="688"
-              y="360"
+              x="678"
+              y="373"
               text-anchor="middle"
               font-size="10"
               fill="var(--text-muted)"
@@ -583,35 +536,7 @@
               to your local disk
             </text>
           </g>
-
-          <!-- ── "No data leaves" barrier (below the trust box) ──────────── -->
-          <g id="no-network">
-            <line
-              x1="40"
-              y1="430"
-              x2="760"
-              y2="430"
-              stroke="var(--text-muted)"
-              stroke-dasharray="3 5"
-              stroke-width="1"
-            />
-            <text
-              x="400"
-              y="455"
-              text-anchor="middle"
-              font-size="12"
-              fill="var(--text-muted)"
-              font-family="ui-monospace, Menlo, monospace"
-            >
-              ✕ no analytics &nbsp;·&nbsp; ✕ no cookies &nbsp;·&nbsp; ✕ no third-party scripts
-              &nbsp;·&nbsp; ✕ no “phone home”
-            </text>
-          </g>
         </svg>
-        <p class="diagram-caption">
-          A static host serves the code once. After that, your computer is the only thing touching
-          your data.
-        </p>
       </div>
 
       <!-- ── Trust statements ──────────────────────────────────────────── -->
@@ -621,18 +546,17 @@
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
                 d="M2 8.5 L6 12.5 L14 4.5"
-                stroke="currentColor"
-                stroke-width="1.8"
+                stroke="var(--success-text)"
+                stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
               />
             </svg>
-            Local-only processing
+            Your data is safe
           </h3>
           <p>
-            Every parser, every statistical function, every chart — all run in your browser's
-            JavaScript engine. Your data is read with the standard
-            <code>FileReader</code> API and never travels through a network request.
+            When you drop a file in, the chart and the statistics are built right there, inside your
+            browser tab. Plöttr has no servers.
           </p>
         </div>
 
@@ -641,18 +565,17 @@
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
                 d="M2 8.5 L6 12.5 L14 4.5"
-                stroke="currentColor"
-                stroke-width="1.8"
+                stroke="var(--success-text)"
+                stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
               />
             </svg>
-            No tracking, no telemetry
+            No monitoring
           </h3>
           <p>
-            No Google Analytics. No Plausible. No error reporters. No cookies. No third-party
-            scripts of any kind. The only network call this site ever makes is fetching the
-            HTML/CSS/JS from the host you opened it on.
+            No analytics, no cookies, no trackers. The page doesn't record what you click, what you
+            upload, or how long you stayed.
           </p>
         </div>
 
@@ -661,38 +584,18 @@
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
                 d="M2 8.5 L6 12.5 L14 4.5"
-                stroke="currentColor"
-                stroke-width="1.8"
+                stroke="var(--success-text)"
+                stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
               />
             </svg>
-            No server, no upload
+            Open to scrutiny
           </h3>
           <p>
-            Plöttr has no backend. There's nothing to upload to. The
-            <code>npm</code> dependency tree is build-tools only (esbuild, prettier, eslint,
-            typescript, react). Zero runtime dependencies hit the wire.
-          </p>
-        </div>
-
-        <div class="trust-card">
-          <h3>
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path
-                d="M2 8.5 L6 12.5 L14 4.5"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-            Open source, inspectable
-          </h3>
-          <p>
-            Every line — including the page you're reading and the diagram above — is on
-            <a href="https://github.com/evompmi/plottr">GitHub</a>. Open the browser DevTools
-            Network tab and watch: after page load, no further requests fire.
+            Plöttr is open source. The whole codebase — including this page — is on
+            <a href="https://github.com/evompmi/plottr">GitHub</a>. Read it, fork it, or run a local
+            copy.
           </p>
         </div>
       </div>
@@ -711,8 +614,7 @@
         >
         <br /><br />
         That's it. No build step, no install. Every plot tool works the same way running from your
-        own filesystem as it does from a server. Compare what's on disk against what your browser
-        executes if you want bit-level confidence.
+        own filesystem as it does from a server.
       </div>
 
       <footer>
