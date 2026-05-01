@@ -60,6 +60,7 @@ const {
   hclust,
   dendrogramLayout,
   kmeans,
+  formatP,
 } = ctx;
 
 // ── Primitives smoke test ──────────────────────────────────────────────────
@@ -170,6 +171,63 @@ test("tinv ↔ tcdf round-trip stays tight at small + large df", () => {
       approx(tcdf(tinv(p, df), df), p, 1e-9);
     }
   }
+});
+
+// ── Audit-23 #19 — pin the formatP contract ────────────────────────────────
+//
+// formatP collapses every non-finite p to "—" by convention. The audit
+// flagged the lack of distinction (p === 0 underflow vs Infinity vs NaN
+// vs negative all share one display) as a low-priority polish concern.
+// Per Plöttr's "silent libraries" rule, stats.js doesn't emit console.warn
+// for impossible values either. These tests pin the existing contract so a
+// future change has to be deliberate, not silent.
+
+suite("formatP — non-finite contract (audit-23 #19)");
+
+test("null / undefined return '—'", () => {
+  eq(formatP(null), "—");
+  eq(formatP(undefined), "—");
+});
+
+test("NaN, +Infinity, -Infinity all return '—'", () => {
+  eq(formatP(NaN), "—");
+  eq(formatP(Infinity), "—");
+  eq(formatP(-Infinity), "—");
+});
+
+test("negative or > 1 finite values still pass through to numeric format (silent)", () => {
+  // Documented as known: formatP doesn't sanity-check the [0, 1] domain. A
+  // numerical regression that produces negative p or p > 1 would format
+  // numerically, not "—" — but it would NOT crash, and the deltas vs the
+  // legitimate range are large enough that a downstream caller's display
+  // ("p = -0.5" or "p = 1.5") would still look clearly wrong to a user.
+  // Pinning so the next contributor knows the policy is "trust the caller,
+  // never throw, never warn". If you change this, update the audit too.
+  eq(typeof formatP(-0.5), "string");
+  eq(typeof formatP(1.5), "string");
+  // Nothing about "—" — these legitimately go through the toFixed branch.
+  assert(formatP(-0.5) !== "—", "negative p must NOT collapse to em-dash today");
+  assert(formatP(1.5) !== "—", "p > 1 must NOT collapse to em-dash today");
+});
+
+test("p === 0 (underflow) renders as '0.0e+0' via toExponential", () => {
+  // p === 0 is technically finite, so it goes through the < 1e-4 branch,
+  // not the non-finite "—" branch. Matches what users see when a numerical
+  // chain underflows to literal zero.
+  eq(formatP(0), "0.0e+0");
+});
+
+test("standard format ranges", () => {
+  // Pin the format thresholds so a future "small refactor" of the cutoffs
+  // doesn't silently shift display across releases. Boundaries use strict
+  // `<`: p === 1e-3 falls into the `toFixed(4)` branch (not toExponential),
+  // p === 1e-4 falls into the `toExponential(2)` branch (not (1)).
+  eq(formatP(0.5), "0.5000"); // ≥ 1e-3 — toFixed(4)
+  eq(formatP(1e-3), "0.0010"); // == 1e-3 boundary, NOT < 1e-3 — toFixed(4)
+  eq(formatP(5e-4), "5.00e-4"); // strictly < 1e-3 but ≥ 1e-4 — toExponential(2)
+  eq(formatP(1e-4), "1.00e-4"); // == 1e-4 boundary, NOT < 1e-4 — toExponential(2)
+  eq(formatP(5e-5), "5.0e-5"); // strictly < 1e-4 — toExponential(1)
+  eq(formatP(1e-9), "1.0e-9"); // deep tail — toExponential(1)
 });
 
 test("fcdf + fcdf_upper sum to 1 in the central body", () => {
