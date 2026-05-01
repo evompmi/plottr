@@ -61,6 +61,26 @@ function buildBundle() {
   });
 
   const bundle = header + segments.join("\n");
+
+  // Audit-23 #15: parse the concatenated bundle before writing. A typo in any
+  // tools/shared-*.js (missing brace, stray backtick, mistyped regex) would
+  // otherwise overwrite the previous good shared.bundle.js with a syntactically
+  // broken file — every tool's HTML would white-screen on next reload, and in
+  // --watch mode the broken state would persist silently until the next save.
+  // `new Function(bundle)` parses the script without executing it (the function
+  // body is never invoked); SyntaxError on parse failure is the signal we want.
+  // No acorn dep needed — Node's parser is exactly what the browser will use.
+  try {
+    new Function(bundle);
+  } catch (err) {
+    const where = err && err.stack ? err.stack.split("\n").slice(0, 3).join("\n  ") : err.message;
+    throw new Error(
+      `[build-shared] concatenated bundle did not parse — leaving previous tools/shared.bundle.js untouched.\n` +
+        `  Underlying error: ${err.message}\n  ${where}\n` +
+        `  Fix the typo in one of the source files: ${FILES.join(", ")}`
+    );
+  }
+
   fs.writeFileSync(OUT_FILE, bundle);
   return { bytes: Buffer.byteLength(bundle), fileCount: FILES.length };
 }
