@@ -2574,10 +2574,7 @@ function App() {
       // crafted payload can't produce a download name like "../../etc/passwd"
       // when the user later exports a CSV.
       const rawName = typeof payload.fileName === "string" ? payload.fileName : "";
-      const safeName = rawName
-        .slice(0, 255)
-        .replace(/[/\\]/g, "_")
-        .replace(/^\.+/, "");
+      const safeName = rawName.slice(0, 255).replace(/[/\\]/g, "_").replace(/^\.+/, "");
       setFileName(safeName);
       setSepOverride(sep);
       setFormat(fmt);

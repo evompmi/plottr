@@ -617,8 +617,7 @@ function App() {
   // facet × subgroup combination of "S3" × "pGFP". Plant-science labels
   // routinely contain "::" — separator collisions were the audit-23 #2
   // finding.
-  const cellKey = (facetCat: string, sgName: string) =>
-    JSON.stringify([facetCat, sgName]);
+  const cellKey = (facetCat: string, sgName: string) => JSON.stringify([facetCat, sgName]);
 
   // Merge per-subgroup annotation specs (extracted from the unified
   // cellAnnotations dict) into a single chart-level spec with offset
