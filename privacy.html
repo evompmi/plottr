@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // file:// origins partition localStorage per-file, so the landing
+      // page's stored theme can't be read here directly. We accept a
+      // ?theme=dark|light query param as a cross-origin push from the
+      // landing page link and persist it locally.
+      try {
+        var p = (location.search.match(/[?&]theme=(dark|light)/) || [])[1];
+        var t = p || localStorage.getItem("dataviz-theme");
+        if (t === "dark" || t === "light") {
+          document.documentElement.setAttribute("data-theme", t);
+          if (p) {
+            try {
+              localStorage.setItem("dataviz-theme", t);
+            } catch (e) {}
+            try {
+              history.replaceState(null, "", location.pathname + location.hash);
+            } catch (e) {}
+          }
+        }
+      } catch (e) {}
+    </script>
+    <title>Plöttr · how your data is handled</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='8' cy='22' r='3.5' fill='%23648FFF'/><circle cx='14' cy='12' r='2.5' fill='%23648FFF'/><circle cx='22' cy='18' r='4' fill='%23648FFF'/><circle cx='26' cy='8' r='2.5' fill='%23648FFF'/></svg>"
+    />
+    <link rel="stylesheet" href="tools/theme.css" />
+    <link rel="stylesheet" href="tools/components.css" />
+    <script src="tools/shared.bundle.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: monospace;
+        background: var(--page-bg);
+        background-image: radial-gradient(circle, var(--page-bg-dot) 0.8px, transparent 0.8px);
+        background-size: 20px 20px;
+        color: var(--text);
+        padding: 2rem 1rem 4rem;
+        line-height: 1.55;
+      }
+      .container {
+        max-width: 880px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.6rem;
+      }
+      .breadcrumb {
+        font-size: 0.78rem;
+        color: var(--text-faint);
+        margin-bottom: 0.6rem;
+      }
+      .breadcrumb a {
+        color: var(--accent-primary);
+        text-decoration: none;
+      }
+      .breadcrumb a:hover {
+        text-decoration: underline;
+      }
+      h1 {
+        font-size: 1.45rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        margin-bottom: 0.5rem;
+      }
+      .lede {
+        color: var(--text-muted);
+        font-size: 0.92rem;
+        max-width: 720px;
+      }
+
+      /* ── Diagram card ─────────────────────────────────────────────────── */
+      .diagram-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1.4rem 1.4rem 1rem;
+        margin-top: 1.6rem;
+      }
+      .diagram-card svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .diagram-caption {
+        text-align: center;
+        font-size: 0.78rem;
+        color: var(--text-faint);
+        margin-top: 0.2rem;
+      }
+
+      /* ── Trust statements grid ────────────────────────────────────────── */
+      .trust-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.9rem;
+        margin-top: 1.5rem;
+      }
+      .trust-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.95rem 1.1rem;
+      }
+      .trust-card h3 {
+        font-size: 0.84rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        color: var(--accent-primary);
+        margin-bottom: 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .trust-card h3 svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+      .trust-card p {
+        font-size: 0.86rem;
+        color: var(--text-muted);
+        margin: 0;
+      }
+      .trust-card code {
+        background: var(--surface-sunken);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 0.05rem 0.35rem;
+        font-size: 0.8rem;
+        color: var(--text);
+      }
+
+      /* ── Inspect-it-yourself footer ───────────────────────────────────── */
+      .inspect-block {
+        margin-top: 1.6rem;
+        padding: 1rem 1.2rem;
+        background: var(--surface-subtle);
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+        font-size: 0.84rem;
+        color: var(--text-muted);
+      }
+      .inspect-block strong {
+        color: var(--text);
+      }
+      .inspect-block code {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 0.05rem 0.4rem;
+        font-size: 0.8rem;
+        color: var(--text);
+      }
+      .inspect-block a {
+        color: var(--accent-primary);
+        text-decoration: none;
+      }
+      .inspect-block a:hover {
+        text-decoration: underline;
+      }
+
+      footer {
+        margin-top: 2rem;
+        color: var(--text-faint);
+        font-size: 0.74rem;
+        text-align: center;
+      }
+      footer a {
+        color: var(--text-muted);
+        text-decoration: none;
+      }
+      footer a:hover {
+        color: var(--accent-primary);
+      }
+
+      .theme-toggle {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+        cursor: pointer;
+        line-height: 0;
+        font-family: inherit;
+        z-index: 10;
+      }
+      .theme-toggle:hover {
+        border-color: var(--accent-primary);
+      }
+
+      @media (max-width: 640px) {
+        .trust-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle theme"></button>
+
+    <div class="container">
+      <header>
+        <div class="breadcrumb"><a href="index.html">← Plöttr</a></div>
+        <h1>How Plöttr handles your data</h1>
+        <p class="lede">
+          Plöttr is a static site. The page you're reading right now — and every plot tool — arrives
+          in your browser as plain HTML, CSS, and JavaScript. After that, nothing leaves your
+          computer. No uploads. No analytics. No "phone home". Below is the full picture in one
+          diagram.
+        </p>
+      </header>
+
+      <!-- ── Diagram ─────────────────────────────────────────────────────── -->
+      <div class="diagram-card" aria-label="Data-flow diagram">
+        <svg viewBox="0 0 800 480" role="img" aria-labelledby="diagram-title diagram-desc">
+          <title id="diagram-title">Plöttr data flow</title>
+          <desc id="diagram-desc">
+            A static-file host (e.g. GitHub Pages) sends the Plöttr HTML, CSS, and JavaScript once
+            to your browser at page load. From then on, the trust boundary is your own computer: you
+            drop a CSV file in, Plöttr runs the analysis locally, and the resulting SVG / PNG / CSV
+            / R-script files download to the same machine. No outbound connection ever carries your
+            data.
+          </desc>
+
+          <defs>
+            <marker
+              id="arrow-good"
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path d="M0,1 L8,5 L0,9 z" fill="var(--accent-primary)" />
+            </marker>
+            <marker
+              id="arrow-neutral"
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path d="M0,1 L8,5 L0,9 z" fill="var(--text-muted)" />
+            </marker>
+          </defs>
+
+          <!-- ── Static host (top, outside the trust box) ─────────────────── -->
+          <g id="static-host">
+            <!-- a simple "cloud" silhouette -->
+            <path
+              d="
+                M 320,40
+                a 28,28 0 0 1 56,-6
+                a 22,22 0 0 1 42,4
+                a 24,24 0 0 1 30,22
+                a 26,26 0 0 1 -22,28
+                l -98,0
+                a 28,28 0 0 1 -8,-48 z"
+              fill="var(--surface-subtle)"
+              stroke="var(--border-strong)"
+              stroke-width="1.2"
+            />
+            <text
+              x="395"
+              y="60"
+              text-anchor="middle"
+              font-size="13"
+              font-weight="700"
+              fill="var(--text)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              GitHub Pages
+            </text>
+            <text
+              x="395"
+              y="76"
+              text-anchor="middle"
+              font-size="11"
+              fill="var(--text-muted)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              (or any static host)
+            </text>
+          </g>
+
+          <!-- One-way "page load" arrow into the trust box, labeled. -->
+          <g id="page-load-arrow">
+            <line
+              x1="395"
+              y1="100"
+              x2="395"
+              y2="158"
+              stroke="var(--accent-primary)"
+              stroke-width="2"
+              marker-end="url(#arrow-good)"
+            />
+            <text
+              x="408"
+              y="135"
+              font-size="11"
+              fill="var(--accent-primary)"
+              font-family="ui-monospace, Menlo, monospace"
+              font-weight="600"
+            >
+              page load
+            </text>
+            <text
+              x="408"
+              y="150"
+              font-size="10"
+              fill="var(--text-muted)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              static HTML / JS / CSS
+            </text>
+          </g>
+
+          <!-- ── Trust boundary (your computer) ───────────────────────────── -->
+          <g id="trust-boundary">
+            <rect
+              x="40"
+              y="170"
+              width="720"
+              height="240"
+              rx="14"
+              fill="var(--surface)"
+              stroke="var(--accent-primary)"
+              stroke-width="2"
+              stroke-dasharray="6 4"
+            />
+            <text
+              x="60"
+              y="195"
+              font-size="12"
+              font-weight="700"
+              fill="var(--accent-primary)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              YOUR COMPUTER
+            </text>
+            <text
+              x="170"
+              y="195"
+              font-size="11"
+              fill="var(--text-muted)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              — nothing inside this box ever leaves it
+            </text>
+          </g>
+
+          <!-- ── CSV in (left side, inside the trust box) ────────────────── -->
+          <g id="csv-input">
+            <!-- folder/file icon -->
+            <path
+              d="M85,255 h70 l8,8 v50 a4,4 0 0 1 -4,4 h-74 a4,4 0 0 1 -4,-4 v-54 a4,4 0 0 1 4,-4 z"
+              fill="var(--surface-subtle)"
+              stroke="var(--border-strong)"
+              stroke-width="1.4"
+            />
+            <line x1="92" y1="280" x2="155" y2="280" stroke="var(--text-muted)" stroke-width="1" />
+            <line x1="92" y1="290" x2="155" y2="290" stroke="var(--text-muted)" stroke-width="1" />
+            <line x1="92" y1="300" x2="140" y2="300" stroke="var(--text-muted)" stroke-width="1" />
+            <text
+              x="120"
+              y="345"
+              text-anchor="middle"
+              font-size="12"
+              font-weight="700"
+              fill="var(--text)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              your CSV / TSV
+            </text>
+            <text
+              x="120"
+              y="360"
+              text-anchor="middle"
+              font-size="10"
+              fill="var(--text-muted)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              from your local disk
+            </text>
+          </g>
+
+          <!-- Arrow CSV → Plöttr -->
+          <g>
+            <line
+              x1="170"
+              y1="290"
+              x2="290"
+              y2="290"
+              stroke="var(--accent-primary)"
+              stroke-width="2"
+              marker-end="url(#arrow-good)"
+            />
+            <text
+              x="230"
+              y="280"
+              text-anchor="middle"
+              font-size="10"
+              fill="var(--text-muted)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              you drop a file
+            </text>
+          </g>
+
+          <!-- ── Plöttr app box (center) ──────────────────────────────────── -->
+          <g id="plottr-app">
+            <rect
+              x="295"
+              y="240"
+              width="210"
+              height="100"
+              rx="10"
+              fill="var(--surface-subtle)"
+              stroke="var(--accent-primary)"
+              stroke-width="2"
+            />
+            <text
+              x="400"
+              y="270"
+              text-anchor="middle"
+              font-size="14"
+              font-weight="700"
+              fill="var(--accent-primary)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              Plöttr
+            </text>
+            <text
+              x="400"
+              y="290"
+              text-anchor="middle"
+              font-size="11"
+              fill="var(--text-muted)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              parses · computes · renders
+            </text>
+            <text
+              x="400"
+              y="305"
+              text-anchor="middle"
+              font-size="11"
+              fill="var(--text-muted)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              entirely in your browser
+            </text>
+            <text
+              x="400"
+              y="325"
+              text-anchor="middle"
+              font-size="9"
+              fill="var(--text-faint)"
+              font-family="ui-monospace, Menlo, monospace"
+              font-style="italic"
+            >
+              React + JS only · no server
+            </text>
+          </g>
+
+          <!-- Arrow Plöttr → outputs -->
+          <g>
+            <line
+              x1="510"
+              y1="290"
+              x2="630"
+              y2="290"
+              stroke="var(--accent-primary)"
+              stroke-width="2"
+              marker-end="url(#arrow-good)"
+            />
+            <text
+              x="570"
+              y="280"
+              text-anchor="middle"
+              font-size="10"
+              fill="var(--text-muted)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              you download
+            </text>
+          </g>
+
+          <!-- ── Outputs (right side, inside the trust box) ──────────────── -->
+          <g id="outputs">
+            <!-- stack of three documents -->
+            <rect
+              x="650"
+              y="245"
+              width="78"
+              height="64"
+              rx="3"
+              fill="var(--surface-sunken)"
+              stroke="var(--border-strong)"
+              stroke-width="1.2"
+            />
+            <rect
+              x="660"
+              y="255"
+              width="78"
+              height="64"
+              rx="3"
+              fill="var(--surface-subtle)"
+              stroke="var(--border-strong)"
+              stroke-width="1.2"
+            />
+            <rect
+              x="670"
+              y="265"
+              width="78"
+              height="64"
+              rx="3"
+              fill="var(--surface)"
+              stroke="var(--accent-primary)"
+              stroke-width="1.4"
+            />
+            <text
+              x="709"
+              y="295"
+              text-anchor="middle"
+              font-size="10"
+              fill="var(--text-muted)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              SVG · PNG
+            </text>
+            <text
+              x="709"
+              y="310"
+              text-anchor="middle"
+              font-size="10"
+              fill="var(--text-muted)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              CSV · R script
+            </text>
+            <text
+              x="688"
+              y="345"
+              text-anchor="middle"
+              font-size="12"
+              font-weight="700"
+              fill="var(--text)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              outputs
+            </text>
+            <text
+              x="688"
+              y="360"
+              text-anchor="middle"
+              font-size="10"
+              fill="var(--text-muted)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              to your local disk
+            </text>
+          </g>
+
+          <!-- ── "No data leaves" barrier (below the trust box) ──────────── -->
+          <g id="no-network">
+            <line
+              x1="40"
+              y1="430"
+              x2="760"
+              y2="430"
+              stroke="var(--text-muted)"
+              stroke-dasharray="3 5"
+              stroke-width="1"
+            />
+            <text
+              x="400"
+              y="455"
+              text-anchor="middle"
+              font-size="12"
+              fill="var(--text-muted)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              ✕ no analytics &nbsp;·&nbsp; ✕ no cookies &nbsp;·&nbsp; ✕ no third-party scripts
+              &nbsp;·&nbsp; ✕ no “phone home”
+            </text>
+          </g>
+        </svg>
+        <p class="diagram-caption">
+          A static host serves the code once. After that, your computer is the only thing touching
+          your data.
+        </p>
+      </div>
+
+      <!-- ── Trust statements ──────────────────────────────────────────── -->
+      <div class="trust-grid">
+        <div class="trust-card">
+          <h3>
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M2 8.5 L6 12.5 L14 4.5"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Local-only processing
+          </h3>
+          <p>
+            Every parser, every statistical function, every chart — all run in your browser's
+            JavaScript engine. Your data is read with the standard
+            <code>FileReader</code> API and never travels through a network request.
+          </p>
+        </div>
+
+        <div class="trust-card">
+          <h3>
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M2 8.5 L6 12.5 L14 4.5"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            No tracking, no telemetry
+          </h3>
+          <p>
+            No Google Analytics. No Plausible. No error reporters. No cookies. No third-party
+            scripts of any kind. The only network call this site ever makes is fetching the
+            HTML/CSS/JS from the host you opened it on.
+          </p>
+        </div>
+
+        <div class="trust-card">
+          <h3>
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M2 8.5 L6 12.5 L14 4.5"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            No server, no upload
+          </h3>
+          <p>
+            Plöttr has no backend. There's nothing to upload to. The
+            <code>npm</code> dependency tree is build-tools only (esbuild, prettier, eslint,
+            typescript, react). Zero runtime dependencies hit the wire.
+          </p>
+        </div>
+
+        <div class="trust-card">
+          <h3>
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M2 8.5 L6 12.5 L14 4.5"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Open source, inspectable
+          </h3>
+          <p>
+            Every line — including the page you're reading and the diagram above — is on
+            <a href="https://github.com/evompmi/plottr">GitHub</a>. Open the browser DevTools
+            Network tab and watch: after page load, no further requests fire.
+          </p>
+        </div>
+      </div>
+
+      <!-- ── Inspect / clone block ─────────────────────────────────────── -->
+      <div class="inspect-block">
+        <strong>Want zero network at all?</strong>
+        Plöttr is a static site, so you can clone it once and run it forever offline:
+        <br /><br />
+        <code>git clone https://github.com/evompmi/plottr.git</code><br />
+        <code>cd plottr &amp;&amp; open index.html</code> &nbsp;·&nbsp;
+        <span style="color: var(--text-faint)"
+          >(or any
+          <code>file://</code>
+          opener)</span
+        >
+        <br /><br />
+        That's it. No build step, no install. Every plot tool works the same way running from your
+        own filesystem as it does from a server. Compare what's on disk against what your browser
+        executes if you want bit-level confidence.
+      </div>
+
+      <footer>
+        <a href="index.html">← Back to Plöttr</a>
+        &nbsp;·&nbsp;
+        <a href="benchmark.html" data-benchmark-link>statistical benchmark vs R 4.5</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/evompmi/plottr">source on GitHub</a>
+      </footer>
+    </div>
+
+    <script>
+      // Theme toggle — same icon-swap pattern as benchmark.html.
+      (function () {
+        var SUN =
+          '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="3.2"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg>';
+        var MOON =
+          '<svg viewBox="0 0 20 20" fill="currentColor" stroke="none" width="16" height="16" aria-hidden="true"><path d="M16.5 12.8A6.5 6.5 0 0 1 7.2 3.5a.6.6 0 0 0-.8-.78 8 8 0 1 0 10.86 10.86.6.6 0 0 0-.78-.78z"/></svg>';
+        function render() {
+          var dark = typeof getTheme === "function" ? getTheme() === "dark" : false;
+          document.querySelectorAll("[data-theme-toggle]").forEach(function (btn) {
+            btn.innerHTML = dark ? SUN : MOON;
+            btn.title = dark ? "Switch to light mode" : "Switch to dark mode";
+          });
+        }
+        document.querySelectorAll("[data-theme-toggle]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            if (typeof setTheme === "function" && typeof getTheme === "function") {
+              setTheme(getTheme() === "dark" ? "light" : "dark");
+            }
+            render();
+          });
+        });
+        // Cross-page theme push for any link with data-benchmark-link (covers
+        // the benchmark + back-to-landing links). Same trick the landing page
+        // uses to smuggle a ?theme= query param across file:// origin
+        // partitions.
+        document.querySelectorAll("[data-benchmark-link]").forEach(function (a) {
+          a.addEventListener("click", function () {
+            var current = typeof getTheme === "function" ? getTheme() : "light";
+            var base = a.getAttribute("href").split("?")[0].split("#")[0];
+            a.setAttribute("href", base + "?theme=" + current);
+          });
+        });
+        window.addEventListener("dataviz-theme-change", render);
+        window.addEventListener("storage", function (e) {
+          if (e.key === "dataviz-theme") render();
+        });
+        render();
+      })();
+    </script>
+  </body>
+</html>
