@@ -613,7 +613,12 @@ function App() {
   // reducer treat keys as opaque strings. Using "::" as separator with empty
   // strings for missing dimensions guarantees a stable, unique key per cell.
   const FLAT_KEY = "flat";
-  const cellKey = (facetCat: string, sgName: string) => `${facetCat}::${sgName}`;
+  // JSON-encoded so a category named e.g. "S3::pGFP" cannot collide with a
+  // facet × subgroup combination of "S3" × "pGFP". Plant-science labels
+  // routinely contain "::" — separator collisions were the audit-23 #2
+  // finding.
+  const cellKey = (facetCat: string, sgName: string) =>
+    JSON.stringify([facetCat, sgName]);
 
   // Merge per-subgroup annotation specs (extracted from the unified
   // cellAnnotations dict) into a single chart-level spec with offset
@@ -776,13 +781,21 @@ function App() {
       return f;
     });
 
-  const setRenameVal = (ci, ov, nv) =>
+  const setRenameVal = (ci, ov, nv) => {
+    // If the rename touches the active facet or subgroup column, drop every
+    // cellAnnotation / cellSummary entry — the cellKey is built from the
+    // (renamed) category name, so stale entries would orphan under the old
+    // name and silently leak across the session.
+    if (ci === facetByCol || ci === subgroupByCol) {
+      dispatchStats({ type: "clearCells" });
+    }
     setValueRenames((p) => {
       const r = { ...p };
       if (!r[ci]) r[ci] = {};
       r[ci] = { ...r[ci], [ov]: nv };
       return r;
     });
+  };
 
   // Group Plot has exactly one x-axis grouping column and one numeric value
   // column, so "group" and "value" are exclusive roles. Picking either on a
@@ -790,7 +803,14 @@ function App() {
   // instead of silently ending up with two columns whose role select says
   // the same thing but only the first one actually drives the plot
   // (valueColIdx / groupColIdx are both `colRoles.indexOf(...)`).
-  const updateRole = (i: number, role: ColumnRole) =>
+  const updateRole = (i: number, role: ColumnRole) => {
+    // Demoting the column that's currently driving facet-by or subgroup-by
+    // would leave cellAnnotations / cellSummaries keyed against categories
+    // that no longer correspond to the active split. Wipe to avoid stale
+    // reads.
+    if (i === facetByCol || i === subgroupByCol) {
+      dispatchStats({ type: "clearCells" });
+    }
     setColRoles((p) =>
       p.map((r, j) => {
         if (j === i) return role;
@@ -798,6 +818,7 @@ function App() {
         return r;
       })
     );
+  };
   const updateColName = (i, nm) => setColNames((p) => p.map((n, j) => (j === i ? nm : n)));
 
   const yMinVal = vis.yMinCustom !== "" ? Number(vis.yMinCustom) : null;
