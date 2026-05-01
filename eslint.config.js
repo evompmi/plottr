@@ -191,6 +191,16 @@ module.exports = [
     },
   },
 
+  // ES-module Node scripts (utility tools that use top-level await / import).
+  {
+    files: ["scripts/**/*.mjs", "benchmark/**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: { ...globals.node },
+    },
+  },
+
   // Tool TSX sources — consume shared globals. Uses the TypeScript parser so
   // ESLint can understand type annotations; actual type-checking is handled
   // separately by `tsc --noEmit`.
