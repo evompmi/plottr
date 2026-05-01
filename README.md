@@ -18,17 +18,17 @@ Originally built for the "Evolution of plant-microbes interactions" team members
 
 ## Tools
 
-| Tool               | Purpose                                                                                                                               |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Tool               | Purpose                                                                                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **RLU timecourse** | Luminescence time-course with mean ± SD, per-replicate integrals, inline stats, and optional aequorin Ca²⁺ calibration (Allen & Blinks / Hill / Generalised). |
-| **Group Plot**     | Box / violin / raincloud / bar with auto-selected test (t / Welch / Mann–Whitney / ANOVA / Welch-ANOVA / Kruskal–Wallis) + post-hocs. |
-| **Line Plot**      | Mean ± SEM / SD / 95 % CI per group across a shared x, with per-x significance markers.                                               |
-| **Scatter Plot**   | XY with colour / size / shape mapping, reference lines, and optional linear regression overlay.                                       |
-| **Heatmap**        | Matrix heatmap with row / column clustering (hierarchical, k-means), dendrograms, and zoomed detail view.                             |
-| **Venn Diagram**   | 2–3 set area-proportional Venn with click-to-extract region members.                                                                  |
-| **UpSet Plot**     | 4+ set intersection plot — top bar chart, matrix of participation dots, per-set totals. Click a column to inspect its items.          |
-| **Power Analysis** | A-priori and post-hoc power for t (indep / paired / one-sample), one-way ANOVA, χ², correlation.                                      |
-| **Calculator**     | Molarity, dilution (C₁V₁ = C₂V₂), ligation ratio, batch prep sheets.                                                                  |
+| **Group Plot**     | Box / violin / raincloud / bar with auto-selected test (t / Welch / Mann–Whitney / ANOVA / Welch-ANOVA / Kruskal–Wallis) + post-hocs.                         |
+| **Line Plot**      | Mean ± SEM / SD / 95 % CI per group across a shared x, with per-x significance markers.                                                                       |
+| **Scatter Plot**   | XY with colour / size / shape mapping, reference lines, and optional linear regression overlay.                                                               |
+| **Heatmap**        | Matrix heatmap with row / column clustering (hierarchical, k-means), dendrograms, and zoomed detail view.                                                     |
+| **Venn Diagram**   | 2–3 set area-proportional Venn with click-to-extract region members.                                                                                          |
+| **UpSet Plot**     | 4+ set intersection plot — top bar chart, matrix of participation dots, per-set totals. Click a column to inspect its items.                                  |
+| **Power Analysis** | A-priori and post-hoc power for t (indep / paired / one-sample), one-way ANOVA, χ², correlation.                                                              |
+| **Calculator**     | Molarity, dilution (C₁V₁ = C₂V₂), ligation ratio, batch prep sheets.                                                                                          |
 
 Each tool has an in-app **How to** panel.
 

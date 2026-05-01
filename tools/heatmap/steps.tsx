@@ -109,8 +109,8 @@ export function UploadStep({ sepOverride, setSepOverride, handleFileLoad, onLoad
               <strong>R script</strong> that reproduces the plot
             </li>
             <li>
-              Drag-to-zoom on the heatmap to select a sub-region and export just that cluster's
-              rows / columns
+              Drag-to-zoom on the heatmap to select a sub-region and export just that cluster's rows
+              / columns
             </li>
           </ul>
         </div>

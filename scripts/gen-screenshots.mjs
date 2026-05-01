@@ -39,9 +39,7 @@ const FIREFOX_BIN_CANDIDATES = [
 
 function findFirefox() {
   for (const p of FIREFOX_BIN_CANDIDATES) if (existsSync(p)) return p;
-  throw new Error(
-    "No Firefox binary found. Tried: " + FIREFOX_BIN_CANDIDATES.join(", "),
-  );
+  throw new Error("No Firefox binary found. Tried: " + FIREFOX_BIN_CANDIDATES.join(", "));
 }
 
 async function captureToolSvg(driver, url, label, customFilePath) {
@@ -50,7 +48,7 @@ async function captureToolSvg(driver, url, label, customFilePath) {
 
   await driver.wait(
     until.elementLocated(By.xpath("//*[contains(text(), 'Try sample data')]")),
-    15000,
+    15000
   );
 
   if (customFilePath) {
@@ -87,11 +85,11 @@ async function captureToolSvg(driver, url, label, customFilePath) {
       input.dispatchEvent(new Event('change', { bubbles: true }));
     `,
       csvText,
-      "heatmap-screenshot.csv",
+      "heatmap-screenshot.csv"
     );
   } else {
     const loadBtn = await driver.findElement(
-      By.xpath("//*[contains(text(), 'Try sample data')]/following-sibling::button"),
+      By.xpath("//*[contains(text(), 'Try sample data')]/following-sibling::button")
     );
     console.log(`[${label}] clicking Load example`);
     await driver.executeScript("arguments[0].click()", loadBtn);
@@ -233,10 +231,12 @@ async function main() {
       // SVG's intrinsic aspect ratio.
       execSync(
         `inkscape --export-type=png --export-filename="${innerPath}" --export-width=${MAX_W} --export-background=white --export-background-opacity=1 "${svgPath}"`,
-        { stdio: ["ignore", "ignore", "inherit"] },
+        { stdio: ["ignore", "ignore", "inherit"] }
       );
       // If the result is too tall, re-render constrained on height instead.
-      const dims = execSync(`python3 -c "from PIL import Image; im = Image.open('${innerPath}'); print(im.width, im.height)"`)
+      const dims = execSync(
+        `python3 -c "from PIL import Image; im = Image.open('${innerPath}'); print(im.width, im.height)"`
+      )
         .toString()
         .trim()
         .split(" ")
@@ -244,7 +244,7 @@ async function main() {
       if (dims[1] > MAX_H) {
         execSync(
           `inkscape --export-type=png --export-filename="${innerPath}" --export-height=${MAX_H} --export-background=white --export-background-opacity=1 "${svgPath}"`,
-          { stdio: ["ignore", "ignore", "inherit"] },
+          { stdio: ["ignore", "ignore", "inherit"] }
         );
       }
       // Composite the natural-aspect inner PNG onto a white canvas at the
@@ -259,10 +259,12 @@ y = (${HEIGHT} - inner.height) // 2
 canvas.paste(inner, (x, y), inner)
 canvas.convert('RGB').save('${pngPath}', 'PNG', optimize=True)
 "`,
-        { stdio: ["ignore", "ignore", "inherit"] },
+        { stdio: ["ignore", "ignore", "inherit"] }
       );
       execSync(`rm "${svgPath}" "${innerPath}"`);
-      console.log(`[${label}] composited → ${pngPath} (${WIDTH}×${HEIGHT}, natural aspect preserved)`);
+      console.log(
+        `[${label}] composited → ${pngPath} (${WIDTH}×${HEIGHT}, natural aspect preserved)`
+      );
     }
     console.log("done — both PNGs at 1648×1250 in docs/screenshots/");
   } finally {
