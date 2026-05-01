@@ -108,6 +108,8 @@ Common variables: `--page-bg`, `--surface`, `--surface-subtle`, `--surface-sunke
 ### Data flow
 File upload/paste -> `autoDetectSep` + `fixDecimalCommas` + `parseRaw` -> `DataPreview` table -> user assigns column roles -> `computeStats`/`quartiles` -> React SVG rendering -> SVG/CSV export
 
+**Ingest size policy:** any new ingest surface (paste textarea, URL fetch, clipboard handler, …) must gate on `FILE_LIMIT_BYTES` (2 MB hard reject) and `FILE_WARN_BYTES` (1 MB warn) from `tools/shared-file-drop.js` and surface the same red-banner UX `FileDropZone` uses. Both names are script-scope globals via the shared bundle — don't redeclare a local 2-MB number.
+
 ### Per-tool palettes
 `PALETTE` is defined in `shared.js` as the global default. Tools may override if needed.
 
