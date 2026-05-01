@@ -141,7 +141,7 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
     }));
   }, [series, ts, convFactor]);
 
-  const baseName = fileBaseName(fileName, "aequorin");
+  const baseName = fileBaseName(fileName, "rlu_timecourse");
 
   React.useImperativeHandle(
     ref,

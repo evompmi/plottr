@@ -20,7 +20,7 @@ Originally built for the "Evolution of plant-microbes interactions" team members
 
 | Tool               | Purpose                                                                                                                               |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Aequorin Ca²⁺**  | Luminescence time-course with Allen & Blinks / Hill calibration, baseline correction, per-replicate integrals and inline stats.       |
+| **RLU timecourse** | Luminescence time-course with mean ± SD, per-replicate integrals, inline stats, and optional aequorin Ca²⁺ calibration (Allen & Blinks / Hill / Generalised). |
 | **Group Plot**     | Box / violin / raincloud / bar with auto-selected test (t / Welch / Mann–Whitney / ANOVA / Welch-ANOVA / Kruskal–Wallis) + post-hocs. |
 | **Line Plot**      | Mean ± SEM / SD / 95 % CI per group across a shared x, with per-x significance markers.                                               |
 | **Scatter Plot**   | XY with colour / size / shape mapping, reference lines, and optional linear regression overlay.                                       |
@@ -37,8 +37,8 @@ Each tool has an in-app **How to** panel.
 <table>
   <tr>
     <td width="50%" align="center">
-      <img src="docs/screenshots/aequorin.png?v=2" alt="Aequorin Ca²⁺ time-course">
-      <br><sub><b>Aequorin Ca²⁺</b></sub>
+      <img src="docs/screenshots/aequorin.png?v=2" alt="RLU timecourse with aequorin Ca²⁺ calibration">
+      <br><sub><b>RLU timecourse</b></sub>
     </td>
     <td width="50%" align="center">
       <img src="docs/screenshots/boxplot.png?v=2" alt="Group plot with significance brackets">
@@ -89,7 +89,7 @@ Covers: Shapiro–Wilk, Brown–Forsythe Levene, Student / Welch t, Mann–Whitn
 
 Numerics are trustworthy, but the design covers a slice of real workflows.
 
-**Fits best:** one-way group comparisons with a defensible test pick; quick exploratory plotting from pasted CSV/TSV; privacy-sensitive data; publication-ready SVG; a-priori power analysis; reproducibility via the one-click **⬇ R** script export (Group Plot / Aequorin / Power Analysis emit a runnable R script that embeds the data inline and reproduces the exact tests); niche Aequorin Ca²⁺ calibration not first-class anywhere else.
+**Fits best:** one-way group comparisons with a defensible test pick; quick exploratory plotting from pasted CSV/TSV; privacy-sensitive data; publication-ready SVG; a-priori power analysis; reproducibility via the one-click **⬇ R** script export (Group Plot / RLU timecourse / Power Analysis emit a runnable R script that embeds the data inline and reproduces the exact tests); niche aequorin Ca²⁺ calibration not first-class anywhere else.
 
 **You will outgrow it for:** repeated-measures / mixed models, factorial designs (no two-way ANOVA, no interactions, no ANCOVA), Dunnett's test, multiple / logistic / non-linear regression, survival / ROC / time-to-event, large datasets (browser-only, millions of rows won't work), headless batch processing. Per-group Shapiro–Wilk at α = 0.05 inflates family-wise FPR at large _k_ and biases the auto-pick toward Kruskal–Wallis — documented in-source, adjustable via `alphaNormality`.
 

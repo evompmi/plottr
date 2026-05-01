@@ -76,9 +76,9 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
       style={{ width: "100%", height: "auto", display: "block" }}
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label={plotTitle || "Aequorin luminescence chart"}
+      aria-label={plotTitle || "RLU timecourse chart"}
     >
-      <title>{plotTitle || "Aequorin luminescence chart"}</title>
+      <title>{plotTitle || "RLU timecourse chart"}</title>
       <desc>{`Time series chart with ${series.length} series${xLabel ? `, X: ${xLabel}` : ""}${yLabel ? `, Y: ${yLabel}` : ""}`}</desc>
       {plotTitle && (
         <g id="title">

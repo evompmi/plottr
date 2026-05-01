@@ -11,8 +11,8 @@ export function HowToSection() {
   return (
     <HowToCard
       toolName="aequorin"
-      title="Aequorin Ca²⁺ Calibration — How to use"
-      subtitle="RLU → [Ca²⁺] • Raw or calibrated • Time-course plotting • Σ barplots"
+      title="RLU timecourse — How to use"
+      subtitle="Plot luminescence over time • optional aequorin / Ca²⁺ calibration • Σ barplots"
     >
       <div
         style={{
@@ -36,10 +36,10 @@ export function HowToSection() {
           Purpose
         </div>
         <p style={{ fontSize: 12, lineHeight: 1.75, color: "var(--text-muted)", margin: 0 }}>
-          Plots aequorin luminescence time-courses — either as raw RLU values or converted to [Ca²⁺]
-          using calibration formulas (Allen &amp; Blinks 1978, Hill, Generalised). Computes mean ±
-          SD across replicates and generates Σ barplots (raw and baseline-corrected) for the
-          selected time window.
+          Plots luminescence (RLU) time-courses with mean ± SD across replicates and generates Σ
+          barplots (raw and baseline-corrected) for the selected time window. Optional aequorin
+          Ca²⁺ calibration (Allen &amp; Blinks 1978, Hill, Generalised) is offered as a conversion
+          step on the Configure page.
         </p>
       </div>
       <div
@@ -345,7 +345,7 @@ export function ConfigureStep({
           <p
             style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}
           >
-            Calibration formula
+            Aequorin calibration formula
           </p>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
             <div>
