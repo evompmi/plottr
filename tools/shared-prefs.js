@@ -21,6 +21,36 @@ function prefsStorageKey(toolName) {
   return PREFS_STORAGE_PREFIX + toolName;
 }
 
+// Schema migration. Today every persisted blob is v1, so the function is a
+// pass-through. When a future bump renames or restructures keys, add a
+// `case 1: settings = migrate1To2(settings); fromVersion = 2;` step and
+// fall through. Returns null to signal "unrecognised future version, drop"
+// — better than mixing old + new under a whitelist merge.
+//
+// Why: previous audit (audit_22-04-2026.md, M2) flagged that the version
+// field was written at save time but never validated at load time. Without
+// this scaffolding the next schema bump would silently mix old keys that
+// happen to overlap with new ones.
+function migratePrefs(settings, fromVersion) {
+  if (typeof fromVersion !== "number" || !Number.isFinite(fromVersion)) {
+    // No version field at all — treat as v1 for back-compat with blobs
+    // written before the schema was numbered (none should exist today,
+    // but cheap defensive default).
+    fromVersion = 1;
+  }
+  if (fromVersion > PREFS_SCHEMA_VERSION) return null; // future version we can't read
+  let v = fromVersion;
+  let s = settings;
+  // Migration steps land here. Example for the next bump:
+  //   if (v === 1) { s = migrate1To2(s); v = 2; }
+  while (v < PREFS_SCHEMA_VERSION) {
+    // No migration steps yet — every supported version IS the current one.
+    // Reaching this with v < current means a step is missing; bail safely.
+    return null;
+  }
+  return s;
+}
+
 // Type-check a candidate value against the default in visInit. Accepts exact
 // type matches; for null defaults (e.g. lineplot.xMin = null meaning "auto"),
 // also accepts null or any finite number.
@@ -71,7 +101,13 @@ function loadAutoPrefs(toolName, visInit) {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return { ...visInit };
     if (parsed.tool && parsed.tool !== toolName) return { ...visInit };
-    const settings = parsed.settings || parsed;
+    const rawSettings = parsed.settings || parsed;
+    // Run through the migration scaffold so the next schema bump has a
+    // single seam to thread through. Today this is a pass-through for
+    // version === 1; a stranger or unsupported future version returns
+    // null, falling back to defaults.
+    const settings = migratePrefs(rawSettings, parsed.version);
+    if (!settings) return { ...visInit };
     return mergePrefsSettings(visInit, settings, { onlyStyle: true });
   } catch (_e) {
     return { ...visInit };

@@ -320,4 +320,54 @@ test("lineplot — errorType + showStars round-trip", () => {
   eq(loaded.showStars, false);
 });
 
+// ── Audit-23 #8 — schema-version migration scaffold ─────────────────────────
+
+suite("shared-prefs.js — migratePrefs (audit-23 #8)");
+
+test("current-version settings pass through unchanged", () => {
+  const c = freshContext();
+  // Use the version recorded at save time to stay version-agnostic — the
+  // test cares about "current goes through" not the literal number.
+  c.flushAutoPrefs("scatter", { pointSize: 7 });
+  const stored = JSON.parse(c.localStorage.getItem("dataviz-prefs-scatter"));
+  const out = c.migratePrefs({ pointSize: 5, plotBg: "#fff" }, stored.version);
+  eq(out.pointSize, 5);
+  eq(out.plotBg, "#fff");
+});
+
+test("missing version field defaults to v1 pass-through (back-compat)", () => {
+  // Blobs written before the version field existed (none in production today,
+  // but cheap defensive default).
+  const c = freshContext();
+  const out = c.migratePrefs({ pointSize: 5 }, undefined);
+  eq(out.pointSize, 5);
+});
+
+test("future version (> current) returns null instead of mixing keys", () => {
+  const c = freshContext();
+  // A user upgrading TO an older app version after running a newer one
+  // would have v=99 in localStorage. The whitelist merge could overlap on
+  // keys with the same name but different semantics — return null and fall
+  // back to defaults instead.
+  const out = c.migratePrefs({ pointSize: 5 }, 99);
+  eq(out, null);
+});
+
+test("loadAutoPrefs falls back to defaults when migration returns null", () => {
+  const c = freshContext();
+  // Manually inject a future-version blob into storage.
+  c.localStorage.setItem(
+    "dataviz-prefs-scatter",
+    JSON.stringify({
+      tool: "scatter",
+      version: 99,
+      savedAt: "2026-05-01",
+      settings: { pointSize: 99 },
+    })
+  );
+  const loaded = c.loadAutoPrefs("scatter", { pointSize: 5 });
+  // Falls back to visInit default, not the v=99 value.
+  eq(loaded.pointSize, 5);
+});
+
 summary();

@@ -76,6 +76,8 @@ function freshContext() {
     mergePrefsSettings: ctx.mergePrefsSettings,
     extractStylePrefs: ctx.extractStylePrefs,
     isLabelKey: ctx.isLabelKey,
+    migratePrefs: ctx.migratePrefs,
+    PREFS_SCHEMA_VERSION: ctx.PREFS_SCHEMA_VERSION,
   };
 }
 
