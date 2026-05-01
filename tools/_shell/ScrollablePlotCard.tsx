@@ -5,8 +5,11 @@
 // a ResizeObserver on the scroll container + its first child so the
 // overlays stay accurate across window resizes and SVG re-renders.
 //
-// Lifted verbatim from tools/upset.tsx; copies in venn.tsx and heatmap.tsx
-// will migrate here too in follow-up phase-B passes.
+// Used only by upset.tsx today. Lives in `_shell/` because the lifted
+// behaviour was extracted from the original inline implementation in
+// upset.tsx; venn and heatmap don't need the affordance (their charts
+// auto-fit). Keep here as the canonical home for any future tool that grows
+// horizontally-scrolling content.
 
 const { useState, useRef, useEffect, useCallback } = React;
 
