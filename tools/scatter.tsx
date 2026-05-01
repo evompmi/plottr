@@ -798,12 +798,43 @@ function UploadStep({
           </p>
         </div>
 
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: 10,
+            padding: "14px 18px",
+            border: "1.5px solid var(--info-border)",
+            gridColumn: "1/-1",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: "var(--accent-primary)",
+              marginBottom: 10,
+              textTransform: "uppercase",
+              letterSpacing: "1px",
+            }}
+          >
+            Overlays
+          </div>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
+            Add a <strong>linear regression</strong> with R² / p-value label (four position
+            presets), or any number of <strong>reference lines</strong> (horizontal / vertical, with
+            custom labels and styling) from the plot controls.
+          </p>
+        </div>
+
         <div style={{ gridColumn: "1/-1", display: "flex", gap: 6, flexWrap: "wrap" }}>
           {[
             "X/Y dropdown selection",
             "Color / size / shape mapping",
+            "Linear regression overlay",
+            "Reference lines",
             "Row filtering",
-            "8 gradient palettes",
+            "12 gradient palettes",
+            "SVG / PNG / CSV export",
             "100% browser-side",
           ].map((t) => (
             <span

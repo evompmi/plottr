@@ -361,7 +361,14 @@ export function UploadStep({
               icon: "📊",
               text: "Output: summary stats (n, mean, median, SD, SEM), long & wide CSV exports.",
             },
-            { icon: "🎨", text: "Plot: color-by, facet-by, jitter controls, and SVG download." },
+            {
+              icon: "🎨",
+              text: "Plot: color-by, subgroup-by, facet-by, jitter, and SVG / PNG export.",
+            },
+            {
+              icon: "🧪",
+              text: "Stats panel below the chart: auto-routed test selection (t / Welch / Mann–Whitney / ANOVA / Welch-ANOVA / Kruskal–Wallis), post-hocs (Tukey / Games–Howell / Dunn + BH), CLD letters and significance brackets overlaid on the plot, plus TXT and runnable R-script reports.",
+            },
           ].map(({ icon, text }) => (
             <div
               key={icon}
