@@ -37,9 +37,9 @@ export function HowToSection() {
         </div>
         <p style={{ fontSize: 12, lineHeight: 1.75, color: "var(--text-muted)", margin: 0 }}>
           Plots luminescence (RLU) time-courses with mean ± SD across replicates and generates Σ
-          barplots (raw and baseline-corrected) for the selected time window. Optional aequorin
-          Ca²⁺ calibration (Allen &amp; Blinks 1978, Hill, Generalised) is offered as a conversion
-          step on the Configure page.
+          barplots (raw and baseline-corrected) for the selected time window. Optional aequorin Ca²⁺
+          calibration (Allen &amp; Blinks 1978, Hill, Generalised) is offered as a conversion step
+          on the Configure page.
         </p>
       </div>
       <div
