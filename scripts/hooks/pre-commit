@@ -10,10 +10,18 @@
 # Strategy: if staged changes touch anything that affects the build
 # (tools/*.tsx, tools/*/*.ts(x), tools/_shell/*, tools/shared*.js, stats.js,
 # theme.js, scripts/build-shared.js, scripts/write-version.js), rebuild and
-# re-stage any compiled output that changed as a result.
+# re-stage any compiled output whose post-build content differs from the
+# index.
 #
-# Bypass with `git commit --no-verify` if you truly need to commit without
-# rebuilding (e.g. reverting only compiled outputs).
+# Audit-23 #14: stash unstaged + untracked changes before rebuild so the
+# build reflects only the about-to-commit state. Re-stage paths whose diff
+# is non-empty relative to the INDEX (not the working tree) — otherwise
+# pre-existing unstaged drift in compiled outputs would get pulled into an
+# unrelated source commit. Pop the stash on exit; if pop conflicts (because
+# the user had a deliberate hot-patch on a compiled output that the rebuild
+# also touched), leave the stash in place with a clear warning so they can
+# resolve it manually. Bypass with `git commit --no-verify` if you truly
+# need to commit without rebuilding (e.g. reverting only compiled outputs).
 
 set -euo pipefail
 
@@ -32,12 +40,44 @@ fi
 echo "[pre-commit] Source files staged — rebuilding to keep compiled outputs in sync:"
 echo "$STAGED" | sed 's/^/  /'
 
+# Stash unstaged + untracked so the rebuild reflects only the staged state.
+# --keep-index keeps staged content in the working tree (so the build sees
+# what's about to be committed). --include-untracked covers any new files
+# the developer has dropped into the tree but not `git add`'d yet.
+DID_STASH=0
+if ! git diff --quiet || ! git diff --cached --quiet || \
+   [ -n "$(git ls-files --others --exclude-standard)" ]; then
+  # Only stash when there's something to stash AND not everything is staged.
+  if [ -n "$(git status --porcelain | grep -v '^[AMDR] ')" ]; then
+    if git stash push --keep-index --include-untracked --quiet \
+         --message "pre-commit-rebuild-$(date +%s)"; then
+      DID_STASH=1
+    fi
+  fi
+fi
+
+restore_stash() {
+  if [ "$DID_STASH" = "1" ]; then
+    if ! git stash pop --quiet 2>/dev/null; then
+      echo
+      echo "[pre-commit] WARNING: git stash pop conflicted — your unstaged work"
+      echo "             is preserved in stash@{0}. Resolve manually after the"
+      echo "             commit lands, or run \`git stash drop\` if you no longer"
+      echo "             need it."
+    fi
+  fi
+}
+trap restore_stash EXIT
+
 # Rebuild. prebuild script also regenerates tools/version.js and
 # tools/shared.bundle.js, so we don't need separate invocations.
 npm run --silent build >/dev/null
 
-# Find any compiled artifact that changed as a result of the build.
-REBUILT=$(git diff --name-only -- \
+# Find compiled outputs that differ from the INDEX. `git diff` (no flags)
+# already shows working tree vs index — exactly what we want. Pre-existing
+# unstaged drift would have been stashed away above, so anything surfacing
+# here is a genuine consequence of the rebuild on the staged source.
+REBUILT=$(git diff --name-only --diff-filter=ACMR -- \
   'tools/*.js' 'tools/*.js.map' \
   'tools/*/index.js' 'tools/*/index.js.map' \
   'tools/shared.bundle.js' 'tools/shared.bundle.js.map' \
