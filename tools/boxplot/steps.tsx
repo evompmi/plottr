@@ -883,6 +883,19 @@ export function OutputStep({
               ⬇ Wide CSV
             </button>
           </div>
+          {wideData.unlabelled > 0 && (
+            <p
+              style={{
+                margin: "0 0 8px",
+                fontSize: 11,
+                color: "var(--warning-text)",
+                fontStyle: "italic",
+              }}
+            >
+              ⚠ {wideData.unlabelled} {wideData.unlabelled === 1 ? "row had" : "rows had"} an empty
+              group cell — all merged under the &quot;?&quot; column.
+            </p>
+          )}
           <DataPreview headers={wideData.headers} rows={wideData.rows} maxRows={8} />
         </div>
       )}

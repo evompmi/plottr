@@ -903,30 +903,46 @@ function dataToColumns(data, nCols) {
 
 // ── Wide / long format helpers ────────────────────────────────────────────────
 
+// Returns `{ headers, rows, skipped }`. `skipped` is the number of (row,
+// column) cells that were empty or non-numeric and therefore omitted from
+// the long output — surfaced by the upload-step UX so the user knows when
+// the reshape silently shrank the dataset.
 function wideToLong(headers, rows) {
   const longRows = [];
+  let skipped = 0;
   rows.forEach((r) => {
     headers.forEach((h, ci) => {
-      if (r[ci] !== "" && isNumericValue(r[ci])) longRows.push([h, r[ci]]);
+      if (r[ci] !== "" && isNumericValue(r[ci])) {
+        longRows.push([h, r[ci]]);
+      } else {
+        skipped++;
+      }
     });
   });
-  return { headers: ["Group", "Value"], rows: longRows };
+  return { headers: ["Group", "Value"], rows: longRows, skipped };
 }
 
+// Returns `{ headers, rows, unlabelled }`. `unlabelled` is the number of
+// input rows whose group cell was empty and therefore collapsed into the
+// "?" bucket — surfaced by the download tile so the user knows multiple
+// rows merged under a single placeholder name.
 function reshapeWide(rows, gi, vi) {
   const g = {};
+  let unlabelled = 0;
   rows.forEach((r) => {
-    const k = r[gi] || "?";
+    const raw = r[gi];
+    if (raw === "" || raw == null) unlabelled++;
+    const k = raw || "?";
     if (!g[k]) g[k] = [];
     g[k].push(r[vi]);
   });
   const vals = Object.values(g);
-  if (vals.length === 0) return { headers: [], rows: [] };
+  if (vals.length === 0) return { headers: [], rows: [], unlabelled };
   const mx = Math.max(...vals.map((v) => v.length));
   const names = Object.keys(g);
   const w = [];
   for (let i = 0; i < mx; i++) w.push(names.map((n) => (g[n][i] != null ? g[n][i] : "")));
-  return { headers: names, rows: w };
+  return { headers: names, rows: w, unlabelled };
 }
 
 // ── Set-membership parsing (Venn / UpSet) ─────────────────────────────────────

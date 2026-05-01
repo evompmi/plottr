@@ -576,6 +576,68 @@ test("parseRaw strips a leading BOM from the first header", () => {
   eq(headers, ["Gene", "Value"]);
 });
 
+// ── wideToLong + reshapeWide skipped counts (audit-23 #10 / #17) ────────────
+
+suite("wideToLong — skipped count");
+
+test("skipped is 0 when every cell is numeric", () => {
+  const result = require("./helpers/shared-loader").wideToLong(
+    ["A", "B"],
+    [
+      ["1", "2"],
+      ["3", "4"],
+    ]
+  );
+  eq(result.skipped, 0);
+  eq(result.rows.length, 4);
+});
+
+test("skipped counts every empty / non-numeric cell that was dropped", () => {
+  const result = require("./helpers/shared-loader").wideToLong(
+    ["A", "B", "C"],
+    [
+      ["1", "", "n/a"], // 2 skips
+      ["2", "3", "missing"], // 1 skip
+    ]
+  );
+  eq(result.skipped, 3);
+  eq(result.rows.length, 3); // 6 cells - 3 skipped = 3 kept
+});
+
+suite("reshapeWide — unlabelled count");
+
+test("unlabelled is 0 when every group cell has a value", () => {
+  const result = require("./helpers/shared-loader").reshapeWide(
+    [
+      ["ctrl", "1"],
+      ["treat", "2"],
+    ],
+    0,
+    1
+  );
+  eq(result.unlabelled, 0);
+});
+
+test("unlabelled counts rows whose group cell was empty (collapsed into '?')", () => {
+  // 3 rows have empty group keys → all merge into a single "?" bucket; the
+  // count exposes the silent merge. Two rows have proper group names.
+  const result = require("./helpers/shared-loader").reshapeWide(
+    [
+      ["", "1"],
+      ["ctrl", "2"],
+      ["", "3"],
+      ["treat", "4"],
+      ["", "5"],
+    ],
+    0,
+    1
+  );
+  eq(result.unlabelled, 3);
+  // ? bucket has all three unlabelled values
+  const qIdx = result.headers.indexOf("?");
+  assert(qIdx >= 0, "'?' bucket must exist");
+});
+
 // ── buildCsvString ↔ parseRaw round-trip ────────────────────────────────────
 
 suite("buildCsvString — RFC 4180 round-trip with parseRaw");

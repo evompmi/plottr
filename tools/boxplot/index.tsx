@@ -68,6 +68,10 @@ function App() {
   // Upload & navigation
   const [rawText, setRawText] = useState(null);
   const [dataFormat, setDataFormat] = useState("long");
+  // Count of cells dropped by wideToLong on the last parse (audit-23 #10).
+  // 0 means clean reshape; >0 means the user should know about silent
+  // shrinkage from empty / non-numeric cells in their wide-format input.
+  const [wideSkipped, setWideSkipped] = useState(0);
 
   // Parsing
   const [parsedHeaders, setParsedHeaders] = useState([]);
@@ -194,7 +198,7 @@ function App() {
 
     const isWide = detectWideFormat(headers, rows);
     if (isWide) {
-      const { headers: lh, rows: lr } = wideToLong(headers, rows);
+      const { headers: lh, rows: lr, skipped } = wideToLong(headers, rows);
       setParsedHeaders(lh);
       setParsedRows(lr);
       setHasHeader(true);
@@ -203,8 +207,10 @@ function App() {
       setFilters(buildFilters(lh, lr));
       resetDerived();
       setDataFormat("wide");
+      setWideSkipped(skipped || 0);
       setStep("plot");
     } else {
+      setWideSkipped(0);
       setParsedHeaders(headers);
       setParsedRows(rows);
       setHasHeader(hh);
@@ -928,6 +934,24 @@ function App() {
         />
       )}
 
+      {step === "plot" && canPlot && wideSkipped > 0 && (
+        <div
+          role="status"
+          style={{
+            background: "var(--warning-bg)",
+            color: "var(--warning-text)",
+            border: "1px solid var(--warning-border)",
+            borderRadius: 6,
+            padding: "8px 12px",
+            fontSize: 12,
+            marginBottom: 12,
+          }}
+        >
+          Wide-to-long reshape skipped <strong>{wideSkipped}</strong>{" "}
+          {wideSkipped === 1 ? "cell" : "cells"} that were empty or non-numeric. Sample size shrank
+          silently — verify the kept rows match what you expected.
+        </div>
+      )}
       {step === "plot" && canPlot && (
         <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
           <PlotControls
