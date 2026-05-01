@@ -61,6 +61,16 @@ Each tool has an in-app **How to** panel.
       <br><sub><b>Venn Diagram</b></sub>
     </td>
     <td align="center">
+      <img src="docs/screenshots/upset.png?v=2" alt="UpSet plot">
+      <br><sub><b>UpSet Plot</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/heatmap.png?v=2" alt="Heatmap with row + column dendrograms">
+      <br><sub><b>Heatmap</b></sub>
+    </td>
+    <td align="center">
       <img src="docs/screenshots/power.png?v=2" alt="Power analysis">
       <br><sub><b>Power Analysis</b></sub>
     </td>
