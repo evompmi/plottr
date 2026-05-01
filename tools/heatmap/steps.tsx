@@ -55,7 +55,7 @@ export function UploadStep({ sepOverride, setSepOverride, handleFileLoad, onLoad
               marginBottom: 6,
             }}
           >
-            2 · Explore it
+            2 · Normalise & cluster
           </div>
           <ul
             style={{
@@ -66,9 +66,52 @@ export function UploadStep({ sepOverride, setSepOverride, handleFileLoad, onLoad
               lineHeight: 1.6,
             }}
           >
-            <li>Z-score by row to compare patterns across genes of different baseline</li>
-            <li>Toggle row / column clustering (Euclidean + UPGMA by default)</li>
+            <li>
+              Normalisation: <strong>None</strong>, <strong>Z-score by row</strong> (compare
+              patterns across genes of different baseline), <strong>Z-score by column</strong>, or{" "}
+              <strong>log₂</strong>
+            </li>
+            <li>
+              Clustering: hierarchical (3 distance metrics — Euclidean / Manhattan / 1−r — × 3
+              linkages — average / complete / single) or <strong>k-means</strong> with seed control;
+              toggle row and column independently
+            </li>
+            <li>
+              Show / hide the row & column <strong>dendrograms</strong> and the cluster strips that
+              colour-code group membership
+            </li>
             <li>Switch to a diverging palette (RdBu / bwr) when values are centred on 0</li>
+          </ul>
+        </div>
+        <div>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: "var(--info-text)",
+              marginBottom: 6,
+            }}
+          >
+            3 · Export
+          </div>
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: 18,
+              fontSize: 11,
+              color: "var(--text-muted)",
+              lineHeight: 1.6,
+            }}
+          >
+            <li>
+              <strong>SVG / PNG</strong> of the rendered heatmap, <strong>CSV</strong> of the
+              plotted matrix (post-normalisation, post-reorder), or a runnable{" "}
+              <strong>R script</strong> that reproduces the plot
+            </li>
+            <li>
+              Drag-to-zoom on the heatmap to select a sub-region and export just that cluster's
+              rows / columns
+            </li>
           </ul>
         </div>
       </HowToCard>

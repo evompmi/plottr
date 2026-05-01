@@ -226,12 +226,12 @@ function UploadStep({ sepOverride, setSepOverride, handleFileLoad, onLoadExample
         onFileLoad={handleFileLoad}
         onLoadExample={onLoadExample}
         exampleLabel="Arabidopsis abiotic stress genes (Drought / Heat / Salt)"
-        hint="CSV · TSV · TXT — one column per set (2–3), items in rows · 2 MB max"
+        hint="CSV · TSV · TXT — wide (one column per set, 2–3) or long (item, set) · 2 MB max"
       />
       <HowToCard
         toolName="venn"
         title="Venn Diagram — How to use"
-        subtitle="Upload wide-format data → review sets → plot"
+        subtitle="Upload wide or long data → review sets → plot"
       >
         <div
           style={{
@@ -264,6 +264,8 @@ function UploadStep({ sepOverride, setSepOverride, handleFileLoad, onLoadExample
           >
             Each <strong>column</strong> = one set (2 to 3 columns). Each <strong>row</strong> lists
             one item per set. Columns can have different lengths — empty cells are ignored.
+            Long-format files with two columns (<em>item</em>, <em>set</em>) are auto-detected and
+            reshaped to wide on upload.
           </p>
           <table style={{ borderCollapse: "collapse", fontSize: 11, width: "100%" }}>
             <thead>

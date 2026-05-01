@@ -133,16 +133,16 @@ export function HowToSection() {
         </div>
         {[
           {
-            icon: "🔬",
-            text: "Column grouping: identical header names are pooled as replicates by default. Switch to Individual to treat each column separately. Uncheck any column to exclude it from the analysis and exports.",
+            icon: "⚙️",
+            text: "Calibration: defaults to None (raw RLU). Switch to Allen & Blinks (1978), Hill equilibrium, or Generalised Allen & Blinks — constants (Kr, Ktr, Kd, Hill exponent n) are adjustable.",
           },
           {
             icon: "⏱️",
             text: "Time axis: set the time step per row and its base unit (ms, s, min, h…). The display unit can be changed independently on the plot page.",
           },
           {
-            icon: "⚙️",
-            text: "Calibration: defaults to None (raw RLU). Switch to Allen & Blinks (1978), Hill equilibrium, or Generalised Allen & Blinks — constants are adjustable.",
+            icon: "⬇️",
+            text: "Calibrated values can be downloaded as CSV directly from the Configure step.",
           },
         ].map(({ icon, text }) => (
           <div
@@ -183,11 +183,11 @@ export function HowToSection() {
           },
           {
             icon: "📈",
-            text: "Σ barplots shown below the main chart: raw sums and baseline-corrected sums (Σv − n×min) per condition, with SD/SEM error bars computed across replicates.",
+            text: "Σ barplots shown below the main chart: raw sums and baseline-corrected sums (Σv − n×min) per condition, with optional error bars (None / SEM / SD / 95 % CI) computed across replicates.",
           },
           {
             icon: "⬇️",
-            text: "Each barplot tile has a matching CSV table below it — download per-replicate sums directly from the plot page.",
+            text: "Export the time-course and barplots as SVG or PNG; each barplot tile has a matching CSV download for per-replicate sums.",
           },
         ].map(({ icon, text }) => (
           <div

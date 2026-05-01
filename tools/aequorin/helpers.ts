@@ -93,6 +93,17 @@ export const FORMULA_DEFS = {
 
 // ── Calibration ──────────────────────────────────────────────────────────────
 
+// Allen & Blinks (1978):
+//   [Ca²⁺] = ((1 + Ktr) · f^⅓ − 1) / (Kr · (1 − f^⅓))    with f = L(t) / ΣL
+//
+// Standard rate-constant form for native shrimp aequorin in solution. f is the
+// fraction of the cell's remaining aequorin pool consumed at time t (rundown
+// fraction); the cube root reflects the three Ca²⁺-binding sites.
+//
+//   Allen, D. G., & Blinks, J. R. (1978). "Calcium transients in aequorin-
+//     injected frog cardiac muscle." Nature 273(5663): 509-513.
+//
+// Defaults: Kr = 7, Ktr = 118 (DEFAULT_KR / DEFAULT_KTR above).
 export function calibrate(headers, data, Kr, Ktr) {
   const nCols = headers.length,
     nRows = data.length;
@@ -117,7 +128,23 @@ export function calibrate(headers, data, Kr, Ktr) {
   return cal;
 }
 
-// Hill equilibrium: [Ca²⁺] = Kd · (f/(1−f))^(1/3)  where f = L/Ltotal
+// Hill equilibrium:
+//   [Ca²⁺] = Kd · (f / (1 − f))^⅓    with f = L(t) / ΣL
+//
+// Equilibrium-binding treatment adopted for plant aequorin. The cube root is
+// the canonical triple-Ca²⁺-binding Hill coefficient (n = 3); Kd is the
+// apparent dissociation constant of the Ca²⁺–aequorin complex.
+//
+//   Knight, M. R., Campbell, A. K., Smith, S. M., & Trewavas, A. J. (1991).
+//     "Transgenic plant aequorin reports the effects of touch and cold-shock
+//     and elicitors on cytoplasmic calcium." Nature 352(6335): 524-526.
+//
+//   Plieth, C. (2006). "Aequorin as a reporter gene." Methods in Molecular
+//     Biology 323: 307-327.
+//
+// Default: Kd = 7 (DEFAULT_KD above). Note: published Kd values for plant
+// aequorin vary between groups; this default is what plant-science papers
+// most commonly report — change it if your reference uses a different value.
 export function calibrateHill(headers, data, Kd) {
   const nCols = headers.length,
     nRows = data.length;
@@ -145,7 +172,18 @@ export function calibrateHill(headers, data, Kd) {
   return cal;
 }
 
-// Generalised Allen & Blinks: adjustable Hill exponent n (standard uses n=3)
+// Generalised Allen & Blinks:
+//   [Ca²⁺] = ((1 + Ktr) · f^(1/n) − 1) / (Kr · (1 − f^(1/n)))    with f = L(t) / ΣL
+//
+// Same rate-constant form as Allen & Blinks (1978) above, with the cube root
+// replaced by an adjustable Hill exponent n. Setting n = 3 recovers the
+// standard Allen & Blinks expression exactly. The generalised exponent treatment
+// is described in:
+//
+//   Plieth, C. (2006). "Aequorin as a reporter gene." Methods in Molecular
+//     Biology 323: 307-327.
+//
+// Defaults: Kr = 7, Ktr = 118, n = 3 (DEFAULT_KR / DEFAULT_KTR / DEFAULT_HILL_N).
 export function calibrateGeneralized(headers, data, Kr, Ktr, n) {
   const nCols = headers.length,
     nRows = data.length;
