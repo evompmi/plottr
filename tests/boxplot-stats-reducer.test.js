@@ -12,12 +12,8 @@ test("init shape has the expected keys and defaults", () => {
   eq(statsInit.displayMode, "none");
   eq(statsInit.showNs, false);
   eq(statsInit.showSummary, false);
-  eq(statsInit.flatSummary, null);
-  eq(statsInit.flatAnnotation, null);
-  eq(Object.keys(statsInit.facetAnnotations).length, 0);
-  eq(Object.keys(statsInit.facetSummaries).length, 0);
-  eq(Object.keys(statsInit.subgroupAnnotSpecs).length, 0);
-  eq(Object.keys(statsInit.subgroupSummaries).length, 0);
+  eq(Object.keys(statsInit.cellAnnotations).length, 0);
+  eq(Object.keys(statsInit.cellSummaries).length, 0);
 });
 
 test("reset returns a fresh init", () => {
@@ -28,96 +24,87 @@ test("reset returns a fresh init", () => {
 
 suite("statsReducer — setDisplayMode");
 
-test("setting displayMode to 'none' clears annotations across all three modes", () => {
+test("setting displayMode to 'none' clears every cell annotation", () => {
   const populated = {
     ...statsInit,
     displayMode: "brackets",
-    flatAnnotation: { bracket: 1 },
-    facetAnnotations: { setosa: { bracket: 2 } },
-    subgroupAnnotSpecs: { "A|x": { spec: true } },
+    cellAnnotations: {
+      flat: { bracket: 1 },
+      "setosa::": { bracket: 2 },
+      "::A|x": { spec: true },
+      "setosa::A|x": { combined: true },
+    },
   };
   const next = statsReducer(populated, { type: "setDisplayMode", value: "none" });
   eq(next.displayMode, "none");
-  eq(next.flatAnnotation, null);
-  eq(Object.keys(next.facetAnnotations).length, 0);
-  eq(Object.keys(next.subgroupAnnotSpecs).length, 0);
+  eq(Object.keys(next.cellAnnotations).length, 0);
 });
 
 test("switching to a non-none displayMode preserves annotations", () => {
-  const withFacet = {
+  const withCells = {
     ...statsInit,
-    facetAnnotations: { setosa: { bracket: 2 } },
+    cellAnnotations: { "setosa::": { bracket: 2 } },
   };
-  const next = statsReducer(withFacet, { type: "setDisplayMode", value: "brackets" });
+  const next = statsReducer(withCells, { type: "setDisplayMode", value: "brackets" });
   eq(next.displayMode, "brackets");
-  eq(next.facetAnnotations.setosa.bracket, 2);
+  eq(next.cellAnnotations["setosa::"].bracket, 2);
 });
 
-suite("statsReducer — clearFacetState / clearSubgroupState (audit M5)");
+suite("statsReducer — clearCells");
 
-test("clearFacetState wipes facetAnnotations and facetSummaries", () => {
+test("clearCells wipes both annotation + summary dicts", () => {
   const populated = {
     ...statsInit,
-    facetAnnotations: { setosa: { bracket: 1 }, versicolor: { bracket: 2 } },
-    facetSummaries: { setosa: "n=50, W=0.98", versicolor: "n=50, W=0.95" },
+    cellAnnotations: { "setosa::A": { bracket: 1 }, "setosa::B": { bracket: 2 } },
+    cellSummaries: { "setosa::A": "n=10", "setosa::B": "n=20" },
   };
-  const next = statsReducer(populated, { type: "clearFacetState" });
-  eq(Object.keys(next.facetAnnotations).length, 0);
-  eq(Object.keys(next.facetSummaries).length, 0);
+  const next = statsReducer(populated, { type: "clearCells" });
+  eq(Object.keys(next.cellAnnotations).length, 0);
+  eq(Object.keys(next.cellSummaries).length, 0);
 });
 
-test("clearFacetState leaves flat + subgroup state untouched", () => {
+test("clearCells leaves displayMode / showNs / showSummary untouched", () => {
   const populated = {
     ...statsInit,
-    flatAnnotation: { bracket: 99 },
-    facetAnnotations: { setosa: { bracket: 1 } },
-    subgroupAnnotSpecs: { "A|x": { spec: true } },
-    subgroupSummaries: { "A|x": "n=10" },
+    displayMode: "brackets",
+    showNs: true,
+    showSummary: true,
+    cellAnnotations: { x: { spec: 1 } },
   };
-  const next = statsReducer(populated, { type: "clearFacetState" });
-  eq(next.flatAnnotation.bracket, 99);
-  eq(next.subgroupAnnotSpecs["A|x"].spec, true);
-  eq(next.subgroupSummaries["A|x"], "n=10");
+  const next = statsReducer(populated, { type: "clearCells" });
+  eq(next.displayMode, "brackets");
+  eq(next.showNs, true);
+  eq(next.showSummary, true);
 });
 
-test("clearFacetState is a no-op when both facet dicts are already empty (avoids gratuitous re-renders)", () => {
-  const next = statsReducer(statsInit, { type: "clearFacetState" });
+test("clearCells is a no-op when both dicts are already empty (avoids gratuitous re-renders)", () => {
+  const next = statsReducer(statsInit, { type: "clearCells" });
   assert(next === statsInit, "should return the exact same object reference");
 });
 
-test("clearSubgroupState wipes subgroupAnnotSpecs and subgroupSummaries", () => {
-  const populated = {
-    ...statsInit,
-    subgroupAnnotSpecs: { "A|x": { spec: 1 }, "B|y": { spec: 2 } },
-    subgroupSummaries: { "A|x": "n=10", "B|y": "n=20" },
-  };
-  const next = statsReducer(populated, { type: "clearSubgroupState" });
-  eq(Object.keys(next.subgroupAnnotSpecs).length, 0);
-  eq(Object.keys(next.subgroupSummaries).length, 0);
+suite("statsReducer — per-key setters");
+
+test("setCellAnnotation stamps a composite key", () => {
+  const next = statsReducer(statsInit, {
+    type: "setCellAnnotation",
+    key: "facetA::sgX",
+    value: { kind: "brackets" },
+  });
+  eq(next.cellAnnotations["facetA::sgX"].kind, "brackets");
 });
 
-test("clearSubgroupState leaves flat + facet state untouched", () => {
-  const populated = {
-    ...statsInit,
-    flatAnnotation: { bracket: 99 },
-    facetAnnotations: { setosa: { bracket: 1 } },
-    subgroupAnnotSpecs: { "A|x": { spec: true } },
-  };
-  const next = statsReducer(populated, { type: "clearSubgroupState" });
-  eq(next.flatAnnotation.bracket, 99);
-  eq(next.facetAnnotations.setosa.bracket, 1);
+test("setCellSummary stamps a composite key", () => {
+  const next = statsReducer(statsInit, {
+    type: "setCellSummary",
+    key: "facetA::sgX",
+    value: "n=42",
+  });
+  eq(next.cellSummaries["facetA::sgX"], "n=42");
 });
 
-test("clearSubgroupState is a no-op when both subgroup dicts are empty", () => {
-  const next = statsReducer(statsInit, { type: "clearSubgroupState" });
-  assert(next === statsInit, "should return the exact same object reference");
-});
-
-suite("statsReducer — per-key setters preserve identity on no-op");
-
-test("setFacetAnnotation with the same value returns the same state reference", () => {
+test("setCellAnnotation with the same value returns the same state reference", () => {
   const s1 = statsReducer(statsInit, {
-    type: "setFacetAnnotation",
+    type: "setCellAnnotation",
     key: "setosa",
     value: null,
   });
@@ -126,12 +113,25 @@ test("setFacetAnnotation with the same value returns the same state reference", 
   // first call should create a new state. A second identical call should
   // be the no-op.
   const s2 = statsReducer(s1, {
-    type: "setFacetAnnotation",
+    type: "setCellAnnotation",
     key: "setosa",
     value: null,
   });
   assert(s1 !== statsInit, "first set allocates");
   assert(s2 === s1, "second identical set is a no-op");
+});
+
+test("setShowSummary(false) clears summaries; setShowSummary(true) does not", () => {
+  const populated = {
+    ...statsInit,
+    showSummary: true,
+    cellSummaries: { a: "n=1" },
+  };
+  const off = statsReducer(populated, { type: "setShowSummary", value: false });
+  eq(off.showSummary, false);
+  eq(Object.keys(off.cellSummaries).length, 0);
+  const on = statsReducer(statsInit, { type: "setShowSummary", value: true });
+  eq(on.showSummary, true);
 });
 
 summary();

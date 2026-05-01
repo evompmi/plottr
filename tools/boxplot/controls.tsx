@@ -641,10 +641,10 @@ export function PlotControls({
 
       {/* Split by — two plain selects mirror the column-role picker
           pattern used by scatter + lineplot's Variables panel. Facet and
-          subgroup are mutually exclusive by design (the plot engine can't
-          render both at once), so picking a column on one axis clears the
-          other in onChange. Same affordance as picking X/Y elsewhere: a
-          single label + select per role, `(none)` as the default option. */}
+          subgroup are independent: each filters the other's pool so the
+          same column can't drive both axes (degenerate — every facet would
+          contain a single subgroup). When both are active, each facet
+          renders as its own chart with subgroup bands inside. */}
       <ControlSection title="Split by">
         <label style={{ display: "block" }}>
           <span className="dv-label">Facet by</span>
@@ -652,22 +652,19 @@ export function PlotControls({
             value={facetByCol >= 0 ? facetByCol : ""}
             onChange={(e) => {
               const raw = e.target.value;
-              if (raw === "") {
-                setFacetByCol(-1);
-              } else {
-                setFacetByCol(Number(raw));
-                setSubgroupByCol(-1);
-              }
+              setFacetByCol(raw === "" ? -1 : Number(raw));
             }}
             className="dv-select"
             style={{ width: "100%" }}
           >
             <option value="">(none)</option>
-            {colorByCandidates.map((ci) => (
-              <option key={ci} value={ci}>
-                {colNames[ci]}
-              </option>
-            ))}
+            {colorByCandidates
+              .filter((ci) => ci !== subgroupByCol)
+              .map((ci) => (
+                <option key={ci} value={ci}>
+                  {colNames[ci]}
+                </option>
+              ))}
           </select>
         </label>
         <label style={{ display: "block" }}>
@@ -676,22 +673,19 @@ export function PlotControls({
             value={subgroupByCol >= 0 ? subgroupByCol : ""}
             onChange={(e) => {
               const raw = e.target.value;
-              if (raw === "") {
-                setSubgroupByCol(-1);
-              } else {
-                setSubgroupByCol(Number(raw));
-                setFacetByCol(-1);
-              }
+              setSubgroupByCol(raw === "" ? -1 : Number(raw));
             }}
             className="dv-select"
             style={{ width: "100%" }}
           >
             <option value="">(none)</option>
-            {colorByCandidates.map((ci) => (
-              <option key={ci} value={ci}>
-                {colNames[ci]}
-              </option>
-            ))}
+            {colorByCandidates
+              .filter((ci) => ci !== facetByCol)
+              .map((ci) => (
+                <option key={ci} value={ci}>
+                  {colNames[ci]}
+                </option>
+              ))}
           </select>
         </label>
       </ControlSection>

@@ -115,46 +115,38 @@ function App() {
   const [dragState, setDragState] = useState(null);
   const [facetByCol, _setFacetByCol] = useState(-1);
   const [subgroupByCol, _setSubgroupByCol] = useState(-1);
-  // Facet and subgroup are mutually exclusive. Flipping one on turns the
-  // other off. Each transition also clears the corresponding keyed
-  // annotation / summary dicts in `statsUi` — otherwise stale entries from
-  // previous facet / subgroup categories accumulate across long sessions
-  // (dict-grows-without-bound; harmless visually because downstream lookups
-  // key by current category, but a real memory leak nonetheless).
+  // Facet and subgroup are independent. The only cross-guard is that they
+  // can't be the same column (degenerate: every facet has one subgroup).
+  // The dropdowns also filter each other's pool so the user can't pick a
+  // collision. Each column change clears the keyed cell-annotation /
+  // summary dicts so stale entries from previous categories don't
+  // accumulate across long sessions.
   const handleSetFacetByCol = (v) => {
-    if (facetByCol !== v) dispatchStats({ type: "clearFacetState" });
+    if (facetByCol !== v) dispatchStats({ type: "clearCells" });
     _setFacetByCol(v);
-    if (v >= 0 && subgroupByCol >= 0) {
-      dispatchStats({ type: "clearSubgroupState" });
-      _setSubgroupByCol(-1);
-    }
+    if (v >= 0 && v === subgroupByCol) _setSubgroupByCol(-1);
   };
   const handleSetSubgroupByCol = (v) => {
-    if (subgroupByCol !== v) dispatchStats({ type: "clearSubgroupState" });
+    if (subgroupByCol !== v) dispatchStats({ type: "clearCells" });
     _setSubgroupByCol(v);
-    if (v >= 0 && facetByCol >= 0) {
-      dispatchStats({ type: "clearFacetState" });
-      _setFacetByCol(-1);
-    }
+    if (v >= 0 && v === facetByCol) _setFacetByCol(-1);
   };
-  // Flat / facet / subgroup each own their own summary + annotation state so
-  // nothing leaks across modes. Panel display prefs live in the same reducer
-  // so their reset semantics (mode="none" clears annotations; showSummary=off
-  // clears summaries) stay co-located with the state they drive.
+  // One composite-key dict covers every plot mode. The active mode shapes
+  // the keys (App composes `${facet}::${subgroup}`, with empty strings for
+  // missing dimensions) and the panel below stamps annotations / summaries
+  // back into the dict via setCell*.
   const [statsUi, dispatchStats] = useReducer(statsReducer, statsInit);
-  const setFlatStatsSummary = (v) => dispatchStats({ type: "setFlatSummary", value: v });
-  const setFlatStatsAnnotation = (v) => dispatchStats({ type: "setFlatAnnotation", value: v });
   const handleStatsShowSummaryChange = (v) => dispatchStats({ type: "setShowSummary", value: v });
   const handleStatsDisplayModeChange = (v) => dispatchStats({ type: "setDisplayMode", value: v });
   const setStatsShowNs = (v) => dispatchStats({ type: "setShowNs", value: v });
   // Stable references so `FacetTrio`'s shallow-compare memo can skip
-  // re-rendering unaffected facets when one facet's map entry updates.
-  const setAnnotationsFor = useCallback(
-    (key, spec) => dispatchStats({ type: "setFacetAnnotation", key, value: spec }),
+  // re-rendering unaffected facets when one map entry updates.
+  const setCellAnnotation = useCallback(
+    (key, spec) => dispatchStats({ type: "setCellAnnotation", key, value: spec }),
     []
   );
-  const setSummaryFor = useCallback(
-    (key, txt) => dispatchStats({ type: "setFacetSummary", key, value: txt }),
+  const setCellSummary = useCallback(
+    (key, txt) => dispatchStats({ type: "setCellSummary", key, value: txt }),
     []
   );
 
@@ -484,17 +476,14 @@ function App() {
     return m;
   }, [parsedHeaders, colRoles, valueColIdx, renamedRows, columnOrders]);
 
-  // Faceted groups: one boxplot per facet category
-  const facetedData = useMemo(() => {
-    if (facetByCol < 0) return [];
-    const globalColorMap = {};
-    boxplotGroups.forEach((g) => {
-      globalColorMap[g.name] = g.color;
-    });
-    return facetByCategories.map((cat) => {
-      const catRows = renamedRows.filter((r) => r[facetByCol] === cat);
-      const gm = {};
-      catRows.forEach((r) => {
+  // Build the boxplot groups for one (facet, subgroup) cell. Pure helper —
+  // closes over global color map / disabled groups / color-by state to match
+  // what `boxplotGroups` does for the flat case. `cellRows` is already
+  // filtered to a single facet × subgroup combo.
+  const buildCellGroups = useCallback(
+    (cellRows: any[], globalColorMap: Record<string, string>) => {
+      const gm: Record<string, Record<string, number[]>> = {};
+      cellRows.forEach((r) => {
         if (groupColIdx >= r.length || valueColIdx >= r.length) return;
         const g = r[groupColIdx],
           v = Number(r[valueColIdx]);
@@ -510,7 +499,7 @@ function App() {
         }
       });
       const cats = colorByCol >= 0 ? colorByCategories : ["_all"];
-      const groups = effectiveOrder
+      return effectiveOrder
         .filter((name) => gm[name] && !disabledGroups[name])
         .map((name, gi) => {
           const catMap = gm[name];
@@ -530,73 +519,77 @@ function App() {
             color: globalColorMap[name] || boxplotColors[name] || PALETTE[gi % PALETTE.length],
           };
         });
-      return { category: cat, groups };
+    },
+    [
+      groupColIdx,
+      valueColIdx,
+      colorByCol,
+      colorByCategories,
+      effectiveOrder,
+      disabledGroups,
+      boxplotColors,
+    ]
+  );
+
+  // Faceted data with optional subgroup nesting. Shape per entry:
+  //   { category, groups, subgroups | null, flatGroups | null }
+  // — `groups` is what BoxplotChart consumes (== flatGroups when subgrouped,
+  // else the per-facet boxes). `subgroups` carries the {name,startIndex,count}
+  // band metadata when subgroupByCol is active. The non-facet flat path is
+  // handled separately below.
+  const facetedData = useMemo(() => {
+    if (facetByCol < 0) return [];
+    const globalColorMap: Record<string, string> = {};
+    boxplotGroups.forEach((g) => {
+      globalColorMap[g.name] = g.color;
+    });
+    const sgOrder = subgroupByCol >= 0 ? orderableCols[subgroupByCol]?.order || [] : null;
+    return facetByCategories.map((cat) => {
+      const catRows = renamedRows.filter((r) => r[facetByCol] === cat);
+      if (sgOrder && sgOrder.length > 0) {
+        const subgroups: Array<{ name: string; startIndex: number; count: number }> = [];
+        const flatGroups: any[] = [];
+        let startIndex = 0;
+        for (const sgCat of sgOrder) {
+          const sgRows = catRows.filter((r) => r[subgroupByCol] === sgCat);
+          const groups = buildCellGroups(sgRows, globalColorMap);
+          if (groups.length > 0) {
+            subgroups.push({ name: sgCat, startIndex, count: groups.length });
+            flatGroups.push(...groups);
+            startIndex += groups.length;
+          }
+        }
+        return { category: cat, groups: flatGroups, subgroups, flatGroups };
+      }
+      const groups = buildCellGroups(catRows, globalColorMap);
+      return { category: cat, groups, subgroups: null, flatGroups: null };
     });
   }, [
     facetByCol,
     facetByCategories,
-    colorByCol,
-    colorByCategories,
+    subgroupByCol,
+    orderableCols,
     renamedRows,
-    groupColIdx,
-    valueColIdx,
-    effectiveOrder,
-    boxplotColors,
     boxplotGroups,
-    disabledGroups,
+    buildCellGroups,
   ]);
 
-  // Subgrouped data: single plot with groups partitioned by subgroup column
+  // Subgroup-only data: single plot with groups partitioned by subgroup column.
+  // (Facet+subgroup mode threads subgroups through facetedData above instead.)
   const subgroupedData = useMemo(() => {
-    if (subgroupByCol < 0 || groupColIdx < 0 || valueColIdx < 0) return null;
+    if (subgroupByCol < 0 || facetByCol >= 0 || groupColIdx < 0 || valueColIdx < 0) return null;
     const sgOrder = orderableCols[subgroupByCol]?.order || [];
     if (sgOrder.length === 0) return null;
     const globalColorMap: Record<string, string> = {};
     boxplotGroups.forEach((g) => {
       globalColorMap[g.name] = g.color;
     });
-    const cats = colorByCol >= 0 ? colorByCategories : ["_all"];
     const subgroups: Array<{ name: string; startIndex: number; count: number }> = [];
-    const flatGroups: typeof boxplotGroups = [];
+    const flatGroups: any[] = [];
     let startIndex = 0;
     for (const sgCat of sgOrder) {
-      const catRows = renamedRows.filter((r) => r[subgroupByCol] === sgCat);
-      const gm: Record<string, Record<string, number[]>> = {};
-      catRows.forEach((r) => {
-        if (groupColIdx >= r.length || valueColIdx >= r.length) return;
-        const g = r[groupColIdx],
-          v = Number(r[valueColIdx]);
-        if (r[valueColIdx] === "" || isNaN(v)) return;
-        if (!gm[g]) gm[g] = {};
-        if (colorByCol >= 0) {
-          const cc = (colorByCol < r.length ? r[colorByCol] : null) || "?";
-          if (!gm[g][cc]) gm[g][cc] = [];
-          gm[g][cc].push(v);
-        } else {
-          if (!gm[g]["_all"]) gm[g]["_all"] = [];
-          gm[g]["_all"].push(v);
-        }
-      });
-      const groups = effectiveOrder
-        .filter((name) => gm[name] && !disabledGroups[name])
-        .map((name, gi) => {
-          const catMap = gm[name];
-          const sources = cats
-            .filter((c) => catMap[c])
-            .map((c, si) => ({
-              colIndex: si,
-              values: catMap[c],
-              category: c,
-            }));
-          const allValues = sources.flatMap((s) => s.values);
-          return {
-            name,
-            sources,
-            allValues,
-            stats: { ...quartiles(allValues), ...computeStats(allValues) },
-            color: globalColorMap[name] || boxplotColors[name] || PALETTE[gi % PALETTE.length],
-          };
-        });
+      const sgRows = renamedRows.filter((r) => r[subgroupByCol] === sgCat);
+      const groups = buildCellGroups(sgRows, globalColorMap);
       if (groups.length > 0) {
         subgroups.push({ name: sgCat, startIndex, count: groups.length });
         flatGroups.push(...groups);
@@ -607,38 +600,164 @@ function App() {
     return { subgroups, flatGroups };
   }, [
     subgroupByCol,
+    facetByCol,
     orderableCols,
     renamedRows,
     groupColIdx,
     valueColIdx,
-    colorByCol,
-    colorByCategories,
-    effectiveOrder,
-    disabledGroups,
-    boxplotColors,
     boxplotGroups,
+    buildCellGroups,
   ]);
 
-  // Merge per-subgroup annotation specs from the stats panel into a single
-  // spec with offset indices so the shared chart renders CLD letters /
-  // brackets across the flat axis.
+  // Cell key composition. App owns the keying convention; the panel and
+  // reducer treat keys as opaque strings. Using "::" as separator with empty
+  // strings for missing dimensions guarantees a stable, unique key per cell.
+  const FLAT_KEY = "flat";
+  const cellKey = (facetCat: string, sgName: string) => `${facetCat}::${sgName}`;
+
+  // Merge per-subgroup annotation specs (extracted from the unified
+  // cellAnnotations dict) into a single chart-level spec with offset
+  // indices. Used by both subgroup-only mode and (per-facet) facet+subgroup
+  // mode to project per-cell brackets / CLD letters onto the flat axis.
+  const mergeAnnotForSubgroups = useCallback(
+    (subgroups: any[], flatGroups: any[], facetCat: string) => {
+      const renamedFlat = flatGroups.map((g) => ({
+        ...g,
+        name: plotGroupRenames[g.name] ?? g.name,
+      }));
+      const perKeySpecs: Record<string, unknown> = {};
+      for (const sg of subgroups) {
+        perKeySpecs[sg.name] = statsUi.cellAnnotations[cellKey(facetCat, sg.name)] || null;
+      }
+      return mergeSubgroupAnnotations(subgroups, renamedFlat, perKeySpecs);
+    },
+    [statsUi.cellAnnotations, plotGroupRenames]
+  );
+
   const mergedSubgroupAnnot = useMemo(() => {
     if (!subgroupedData) return null;
-    const renamedFlat = subgroupedData.flatGroups.map((g) => ({
-      ...g,
-      name: plotGroupRenames[g.name] ?? g.name,
-    }));
-    return mergeSubgroupAnnotations(
-      subgroupedData.subgroups,
-      renamedFlat,
-      statsUi.subgroupAnnotSpecs
-    );
-  }, [subgroupedData, statsUi.subgroupAnnotSpecs, plotGroupRenames]);
+    return mergeAnnotForSubgroups(subgroupedData.subgroups, subgroupedData.flatGroups, "");
+  }, [subgroupedData, mergeAnnotForSubgroups]);
+
   // The non-facet chart gets a single annotation spec and a single summary
   // line chosen by the active mode.
   const chartAnnotations =
-    subgroupByCol >= 0 && subgroupedData ? mergedSubgroupAnnot : statsUi.flatAnnotation;
-  const chartSummary = subgroupByCol >= 0 && subgroupedData ? null : statsUi.flatSummary;
+    subgroupByCol >= 0 && subgroupedData
+      ? mergedSubgroupAnnot
+      : statsUi.cellAnnotations[FLAT_KEY] || null;
+  const chartSummary =
+    subgroupByCol >= 0 && subgroupedData ? null : statsUi.cellSummaries[FLAT_KEY] || null;
+
+  // Per-facet annotation + per-subgroup-band summaries for the FacetTrio
+  // chart. Computed once here so FacetPlotList can pass typed maps in
+  // without each FacetTrio recomputing on every parent render.
+  const perFacetChartAnnotations = useMemo(() => {
+    if (facetByCol < 0) return {};
+    const out: Record<string, unknown> = {};
+    for (const fd of facetedData) {
+      if (fd.subgroups && fd.flatGroups) {
+        out[fd.category] = mergeAnnotForSubgroups(fd.subgroups, fd.flatGroups, fd.category);
+      } else {
+        out[fd.category] = statsUi.cellAnnotations[cellKey(fd.category, "")] || null;
+      }
+    }
+    return out;
+  }, [facetByCol, facetedData, statsUi.cellAnnotations, mergeAnnotForSubgroups]);
+
+  const perFacetSubgroupSummaries = useMemo(() => {
+    if (facetByCol < 0) return {};
+    const out: Record<string, Record<string, string | null>> = {};
+    for (const fd of facetedData) {
+      if (!fd.subgroups) continue;
+      const map: Record<string, string | null> = {};
+      for (const sg of fd.subgroups) {
+        map[sg.name] = statsUi.cellSummaries[cellKey(fd.category, sg.name)] || null;
+      }
+      out[fd.category] = map;
+    }
+    return out;
+  }, [facetByCol, facetedData, statsUi.cellSummaries]);
+
+  const perFacetSummaries = useMemo(() => {
+    if (facetByCol < 0) return {};
+    const out: Record<string, string | null> = {};
+    for (const fd of facetedData) {
+      if (fd.subgroups) continue;
+      out[fd.category] = statsUi.cellSummaries[cellKey(fd.category, "")] || null;
+    }
+    return out;
+  }, [facetByCol, facetedData, statsUi.cellSummaries]);
+
+  // One bottom stats panel for every mode. The set list is shaped per mode so
+  // each tile's `name` makes its scope obvious — flat / facet / subgroup /
+  // facet × subgroup — and the `key` matches the cellAnnotations / cellSummaries
+  // dict the panel writes back into. ≥2-group filter mirrors the panel's own
+  // skip rule (a single group can't be tested against itself).
+  const statsPanelMode: "flat" | "facet" | "subgroup" | "facetSubgroup" =
+    facetByCol >= 0 && subgroupByCol >= 0
+      ? "facetSubgroup"
+      : facetByCol >= 0
+        ? "facet"
+        : subgroupByCol >= 0
+          ? "subgroup"
+          : "flat";
+  const statsPanelLabel = useMemo(() => {
+    if (statsPanelMode === "facet") return "Facet";
+    if (statsPanelMode === "subgroup") return "Subgroup";
+    if (statsPanelMode === "facetSubgroup") return "Facet × Subgroup";
+    return "";
+  }, [statsPanelMode]);
+  const statsPanelSets = useMemo(() => {
+    const renamedValues = (gs: any[]) =>
+      gs.map((g) => ({ name: plotGroupRenames[g.name] ?? g.name, values: g.allValues }));
+    if (statsPanelMode === "flat") {
+      if (displayBoxplotGroups.length < 2) return [];
+      return [
+        {
+          key: FLAT_KEY,
+          name: "",
+          groups: displayBoxplotGroups.map((g) => ({ name: g.name, values: g.allValues })),
+        },
+      ];
+    }
+    if (statsPanelMode === "facet") {
+      return facetedData
+        .filter((fd) => fd.groups.length >= 2)
+        .map((fd) => ({
+          key: cellKey(fd.category, ""),
+          name: fd.category,
+          groups: renamedValues(fd.groups),
+        }));
+    }
+    if (statsPanelMode === "subgroup") {
+      if (!subgroupedData) return [];
+      return subgroupedData.subgroups
+        .map((sg) => {
+          const sgGroups = subgroupedData.flatGroups.slice(sg.startIndex, sg.startIndex + sg.count);
+          return {
+            key: cellKey("", sg.name),
+            name: sg.name,
+            groups: renamedValues(sgGroups),
+          };
+        })
+        .filter((s) => s.groups.length >= 2);
+    }
+    // facet × subgroup
+    const out: any[] = [];
+    for (const fd of facetedData) {
+      if (!fd.subgroups || !fd.flatGroups) continue;
+      for (const sg of fd.subgroups) {
+        const sgGroups = fd.flatGroups.slice(sg.startIndex, sg.startIndex + sg.count);
+        if (sgGroups.length < 2) continue;
+        out.push({
+          key: cellKey(fd.category, sg.name),
+          name: `${fd.category} — ${sg.name}`,
+          groups: renamedValues(sgGroups),
+        });
+      }
+    }
+    return out;
+  }, [statsPanelMode, displayBoxplotGroups, facetedData, subgroupedData, plotGroupRenames]);
 
   const toggleFilter = (ci, v) =>
     setFilters((p) => {
@@ -842,149 +961,75 @@ function App() {
                 </div>
               )}
             {facetByCol < 0 ? (
-              <>
-                <PlotArea
-                  colorByCol={colorByCol}
-                  colorByCategories={colorByCategories}
-                  colNames={colNames}
-                  categoryColors={categoryColors}
-                  facetByCol={facetByCol}
-                  facetedData={facetedData}
-                  chartRef={chartRef}
-                  displayBoxplotGroups={
-                    subgroupByCol >= 0 && subgroupedData
-                      ? subgroupedData.flatGroups.map((g) => ({
-                          ...g,
-                          name: plotGroupRenames[g.name] ?? g.name,
-                          color: boxplotColors[g.name] ?? g.color,
-                        }))
-                      : displayBoxplotGroups
-                  }
-                  vis={vis}
-                  yMinVal={yMinVal}
-                  yMaxVal={yMaxVal}
-                  chartAnnotations={chartAnnotations}
-                  chartSummary={chartSummary}
-                  subgroups={subgroupByCol >= 0 && subgroupedData ? subgroupedData.subgroups : null}
-                  subgroupSummaries={subgroupByCol >= 0 ? statsUi.subgroupSummaries : null}
-                />
-                {subgroupByCol >= 0 && subgroupedData
-                  ? (() => {
-                      const sets = subgroupedData.subgroups
-                        .map((sg) => {
-                          const sgGroups = subgroupedData.flatGroups.slice(
-                            sg.startIndex,
-                            sg.startIndex + sg.count
-                          );
-                          return {
-                            key: sg.name,
-                            name: sg.name,
-                            groups: sgGroups.map((g) => ({
-                              name: plotGroupRenames[g.name] ?? g.name,
-                              values: g.allValues,
-                            })),
-                          };
-                        })
-                        .filter((s) => s.groups.length >= 2);
-                      if (sets.length === 0) return null;
-                      return (
-                        <BoxplotStatsPanel
-                          key="stats-panel-subgroup"
-                          sets={sets}
-                          setLabel="Subgroup"
-                          fileStem={fileStem}
-                          onAnnotationForKey={(key, spec) =>
-                            dispatchStats({ type: "setSubgroupAnnotSpec", key, value: spec })
-                          }
-                          onSummaryForKey={(key, txt) =>
-                            dispatchStats({ type: "setSubgroupSummary", key, value: txt })
-                          }
-                          displayMode={statsUi.displayMode}
-                          onDisplayModeChange={handleStatsDisplayModeChange}
-                          showNs={statsUi.showNs}
-                          onShowNsChange={setStatsShowNs}
-                          showSummary={statsUi.showSummary}
-                          onShowSummaryChange={handleStatsShowSummaryChange}
-                          errorBarLabel={
-                            vis.plotStyle === "bar" ? ERROR_BAR_LABELS[vis.errorType] : null
-                          }
-                        />
-                      );
-                    })()
-                  : displayBoxplotGroups.length >= 2 && (
-                      <BoxplotStatsPanel
-                        key="stats-panel-flat"
-                        sets={[
-                          {
-                            key: "flat",
-                            name: "",
-                            groups: displayBoxplotGroups.map((g) => ({
-                              name: g.name,
-                              values: g.allValues,
-                            })),
-                          },
-                        ]}
-                        setLabel=""
-                        fileStem={`${fileStem}_stats`}
-                        singletonAutoExpand
-                        onAnnotationForKey={(_key, spec) => setFlatStatsAnnotation(spec)}
-                        onSummaryForKey={(_key, txt) => setFlatStatsSummary(txt)}
-                        displayMode={statsUi.displayMode}
-                        onDisplayModeChange={handleStatsDisplayModeChange}
-                        showNs={statsUi.showNs}
-                        onShowNsChange={setStatsShowNs}
-                        showSummary={statsUi.showSummary}
-                        onShowSummaryChange={handleStatsShowSummaryChange}
-                        errorBarLabel={
-                          vis.plotStyle === "bar" ? ERROR_BAR_LABELS[vis.errorType] : null
-                        }
-                      />
-                    )}
-              </>
+              <PlotArea
+                colorByCol={colorByCol}
+                colorByCategories={colorByCategories}
+                colNames={colNames}
+                categoryColors={categoryColors}
+                facetByCol={facetByCol}
+                facetedData={facetedData}
+                chartRef={chartRef}
+                displayBoxplotGroups={
+                  subgroupByCol >= 0 && subgroupedData
+                    ? subgroupedData.flatGroups.map((g) => ({
+                        ...g,
+                        name: plotGroupRenames[g.name] ?? g.name,
+                        color: boxplotColors[g.name] ?? g.color,
+                      }))
+                    : displayBoxplotGroups
+                }
+                vis={vis}
+                yMinVal={yMinVal}
+                yMaxVal={yMaxVal}
+                chartAnnotations={chartAnnotations}
+                chartSummary={chartSummary}
+                subgroups={subgroupByCol >= 0 && subgroupedData ? subgroupedData.subgroups : null}
+                subgroupSummaries={
+                  subgroupByCol >= 0 && subgroupedData
+                    ? Object.fromEntries(
+                        subgroupedData.subgroups.map((sg) => [
+                          sg.name,
+                          statsUi.cellSummaries[cellKey("", sg.name)] || null,
+                        ])
+                      )
+                    : null
+                }
+              />
             ) : (
-              <>
-                <FacetPlotList
-                  facetedData={facetedData}
-                  facetRefs={facetRefs}
-                  vis={vis}
-                  yMinVal={yMinVal}
-                  yMaxVal={yMaxVal}
-                  plotGroupRenames={plotGroupRenames}
-                  boxplotColors={boxplotColors}
-                  categoryColors={categoryColors}
-                  colorByCol={colorByCol}
-                  colorByCategories={colorByCategories}
-                  colNames={colNames}
-                  facetStatsAnnotations={statsUi.facetAnnotations}
-                  facetStatsSummary={statsUi.facetSummaries}
-                />
-                {facetedData && facetedData.length > 0 && (
-                  <BoxplotStatsPanel
-                    key="stats-panel-facet"
-                    sets={facetedData
-                      .filter((fd) => fd.groups.length >= 2)
-                      .map((fd) => ({
-                        key: fd.category,
-                        name: fd.category,
-                        groups: fd.groups.map((g) => ({
-                          name: plotGroupRenames[g.name] ?? g.name,
-                          values: g.allValues,
-                        })),
-                      }))}
-                    setLabel="Facet"
-                    fileStem={fileStem}
-                    onAnnotationForKey={(key, spec) => setAnnotationsFor(key, spec)}
-                    onSummaryForKey={(key, txt) => setSummaryFor(key, txt)}
-                    displayMode={statsUi.displayMode}
-                    onDisplayModeChange={handleStatsDisplayModeChange}
-                    showNs={statsUi.showNs}
-                    onShowNsChange={setStatsShowNs}
-                    showSummary={statsUi.showSummary}
-                    onShowSummaryChange={handleStatsShowSummaryChange}
-                    errorBarLabel={vis.plotStyle === "bar" ? ERROR_BAR_LABELS[vis.errorType] : null}
-                  />
-                )}
-              </>
+              <FacetPlotList
+                facetedData={facetedData}
+                facetRefs={facetRefs}
+                vis={vis}
+                yMinVal={yMinVal}
+                yMaxVal={yMaxVal}
+                plotGroupRenames={plotGroupRenames}
+                boxplotColors={boxplotColors}
+                categoryColors={categoryColors}
+                colorByCol={colorByCol}
+                colorByCategories={colorByCategories}
+                colNames={colNames}
+                facetStatsAnnotations={perFacetChartAnnotations}
+                facetStatsSummary={perFacetSummaries}
+                facetSubgroupSummaries={perFacetSubgroupSummaries}
+              />
+            )}
+            {statsPanelSets.length > 0 && (
+              <BoxplotStatsPanel
+                key={`stats-panel-${statsPanelMode}`}
+                sets={statsPanelSets}
+                setLabel={statsPanelLabel}
+                fileStem={fileStem}
+                singletonAutoExpand={statsPanelMode === "flat"}
+                onAnnotationForKey={setCellAnnotation}
+                onSummaryForKey={setCellSummary}
+                displayMode={statsUi.displayMode}
+                onDisplayModeChange={handleStatsDisplayModeChange}
+                showNs={statsUi.showNs}
+                onShowNsChange={setStatsShowNs}
+                showSummary={statsUi.showSummary}
+                onShowSummaryChange={handleStatsShowSummaryChange}
+                errorBarLabel={vis.plotStyle === "bar" ? ERROR_BAR_LABELS[vis.errorType] : null}
+              />
             )}
           </div>
         </div>
