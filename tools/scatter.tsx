@@ -2038,7 +2038,6 @@ function App() {
     showStats: true,
     position: "tl",
   };
-  const setRegression = useCallback((next) => updVis({ regression: next }), [updVis]);
   const updRegression = (patch) => updVis({ regression: { ...regression, ...patch } });
   const svgRef = useRef();
   const sepRef = useRef("");
@@ -2363,28 +2362,20 @@ function App() {
     setXCol(nums[0] !== undefined ? nums[0] : 0);
     setYCol(nums[1] !== undefined ? nums[1] : nums[0] !== undefined ? nums[0] : 1);
 
-    // Reset aesthetics
+    // Reset only dataset-tied state. Visual prefs (pointColor / pointSize /
+    // strokeColor / strokeWidth / pointOpacity / colorMapPalette / refLines /
+    // regression sub-object) persist across parses now that they live in
+    // `vis` — wiping them on every upload would defeat the audit-23 #1
+    // persistence fix. Per-category mapping dicts (colorMapDiscrete /
+    // sizeMapDiscrete / shapeMapDiscrete) ALSO persist by design: they're
+    // keyed by category NAME, so on a new dataset the orphaned keys are
+    // harmless and any matching category names retain the user's colour.
+    // Column indices reset because they refer to the previous dataset's
+    // column layout.
     setColorMapCol(null);
-    setColorMapDiscrete({});
     setSizeMapCol(null);
-    setSizeMapDiscrete({});
     setShapeMapCol(null);
-    setShapeMapDiscrete({});
     setFilterState({});
-    setRefLines([]);
-    setRegression({
-      on: false,
-      color: "#dc2626",
-      strokeWidth: 1.5,
-      dashed: false,
-      showStats: true,
-      position: "tl",
-    });
-    setPointColor("#648FFF");
-    setPointSize(5);
-    setPointOpacity(0.8);
-    setStrokeColor("#000000");
-    setStrokeWidth(1);
 
     setStep("plot");
   }, []);
