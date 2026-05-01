@@ -210,6 +210,7 @@ const FacetTrio = memo(function FacetTrio({
   fd,
   annotations,
   statsSummary,
+  subgroupSummaries,
   vis,
   yMinVal,
   yMaxVal,
@@ -256,13 +257,15 @@ const FacetTrio = memo(function FacetTrio({
       barOutlineWidth: vis.barOutlineWidth,
       barOutlineColor: vis.barOutlineColor,
       horizontal: vis.horizontal,
-      subgroups: null,
+      subgroups: fd.subgroups || null,
+      subgroupSummaries: subgroupSummaries || null,
       svgLegend,
     }),
     [
       fd,
       annotations,
       statsSummary,
+      subgroupSummaries,
       vis,
       yMinVal,
       yMaxVal,
@@ -273,8 +276,11 @@ const FacetTrio = memo(function FacetTrio({
       svgLegend,
     ]
   );
+  // Subgrouped facets need extra horizontal room (one band per subgroup
+  // plus separator gaps), so widen the cap when subgroups are present.
+  const maxWidth = fd.subgroups && fd.subgroups.length > 1 ? undefined : 720;
   return (
-    <div style={{ maxWidth: 720 }}>
+    <div style={{ maxWidth }}>
       <FacetBoxplotItem
         fd={fd}
         facetRefs={facetRefs}
@@ -299,6 +305,7 @@ export function FacetPlotList({
   colNames,
   facetStatsAnnotations,
   facetStatsSummary,
+  facetSubgroupSummaries,
 }: any) {
   // Stabilise svgLegend so FacetTrio's shallow-compare can hold across
   // unrelated re-renders. Without this, it would be a fresh array literal
@@ -359,7 +366,10 @@ export function FacetPlotList({
           key={fd.category}
           fd={fd}
           annotations={facetStatsAnnotations[fd.category] || null}
-          statsSummary={facetStatsSummary[fd.category] || null}
+          statsSummary={facetStatsSummary?.[fd.category] || null}
+          subgroupSummaries={
+            facetSubgroupSummaries ? facetSubgroupSummaries[fd.category] || null : null
+          }
           vis={vis}
           yMinVal={yMinVal}
           yMaxVal={yMaxVal}

@@ -5,6 +5,7 @@
 // which keep the font-size and line-height arithmetic testable.
 
 import { STATS_LINE_H, STATS_FONT, statsSummaryHeight } from "./helpers";
+import { SignificanceBrackets, CldLabels } from "../_shell/chart-annotations";
 
 const { forwardRef, useRef } = React;
 
@@ -981,116 +982,23 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
         })}
       </g>
 
-      {annotations &&
-        _hasLabels &&
-        (hz ? (
-          <g id="cld-annotations">
-            {(annotations.labels || []).map((lbl, gi) =>
-              lbl != null ? (
-                <text
-                  key={`cld-${gi}`}
-                  x={M.left + w - subgroupLabelPad - 10}
-                  y={bx(gi)}
-                  textAnchor="end"
-                  dominantBaseline="middle"
-                  fontSize="13"
-                  fontWeight="700"
-                  fill="#222"
-                  fontFamily="sans-serif"
-                >
-                  {lbl}
-                </text>
-              ) : null
-            )}
-          </g>
-        ) : (
-          <g id="cld-annotations">
-            {(annotations.labels || []).map((lbl, gi) =>
-              lbl != null ? (
-                <text
-                  key={`cld-${gi}`}
-                  x={bx(gi)}
-                  y={M.top + subgroupLabelPad + 15}
-                  textAnchor="middle"
-                  fontSize="13"
-                  fontWeight="700"
-                  fill="#222"
-                  fontFamily="sans-serif"
-                >
-                  {lbl}
-                </text>
-              ) : null
-            )}
-          </g>
-        ))}
+      {annotations && _hasLabels && (
+        <CldLabels
+          labels={annotations.labels || []}
+          axisCoord={bx}
+          crossCoord={hz ? M.left + w - subgroupLabelPad - 10 : M.top + subgroupLabelPad + 15}
+          orientation={hz ? "horizontal-right" : "vertical-top"}
+        />
+      )}
 
-      {annotations &&
-        _hasPairs &&
-        (hz ? (
-          <g id="significance-brackets">
-            {annotPairs.map((pr, idx) => {
-              const y1b = bx(pr.i);
-              const y2b = bx(pr.j);
-              const lvl = pr._level || 0;
-              const xLine = M.left + w - annotTopPad + 6 + lvl * 20;
-              const tick = 4;
-              return (
-                <g key={`br-${idx}`}>
-                  <path
-                    d={`M${xLine - tick},${y1b} L${xLine},${y1b} L${xLine},${y2b} L${xLine - tick},${y2b}`}
-                    stroke="#333"
-                    strokeWidth="1"
-                    fill="none"
-                  />
-                  <text
-                    x={xLine + 6}
-                    y={(y1b + y2b) / 2}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fontSize="12"
-                    fontWeight="700"
-                    fill="#222"
-                    fontFamily="sans-serif"
-                    transform={`rotate(90,${xLine + 6},${(y1b + y2b) / 2})`}
-                  >
-                    {pr.label}
-                  </text>
-                </g>
-              );
-            })}
-          </g>
-        ) : (
-          <g id="significance-brackets">
-            {annotPairs.map((pr, idx) => {
-              const x1 = bx(pr.i);
-              const x2 = bx(pr.j);
-              const lvl = pr._level || 0;
-              const yLine = M.top + annotTopPad - 6 - lvl * 20;
-              const tick = 4;
-              return (
-                <g key={`br-${idx}`}>
-                  <path
-                    d={`M${x1},${yLine + tick} L${x1},${yLine} L${x2},${yLine} L${x2},${yLine + tick}`}
-                    stroke="#333"
-                    strokeWidth="1"
-                    fill="none"
-                  />
-                  <text
-                    x={(x1 + x2) / 2}
-                    y={yLine - 2}
-                    textAnchor="middle"
-                    fontSize="12"
-                    fontWeight="700"
-                    fill="#222"
-                    fontFamily="sans-serif"
-                  >
-                    {pr.label}
-                  </text>
-                </g>
-              );
-            })}
-          </g>
-        ))}
+      {annotations && _hasPairs && (
+        <SignificanceBrackets
+          pairs={annotPairs}
+          axisCoord={bx}
+          baseline={hz ? M.left + w - annotTopPad + 6 : M.top + annotTopPad - 6}
+          orientation={hz ? "horizontal-right" : "vertical-top"}
+        />
+      )}
 
       {yLabel && (
         <g id={hz ? "x-axis-label" : "y-axis-label"}>

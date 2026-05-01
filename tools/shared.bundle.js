@@ -3671,6 +3671,12 @@ function ColorInput({ value, onChange, size = 22 }) {
 // shared-file-drop.js — plain JS, no JSX
 // Requires React to be loaded globally before this script.
 
+// Canonical data-ingest size policy. Concatenated into shared.bundle.js so
+// these names are script-scope globals — any tool or future ingest surface
+// (paste textarea, URL fetch, clipboard image OCR, …) must gate on
+// `FILE_LIMIT_BYTES` and surface the same red-banner UX as `FileDropZone`
+// before the bytes reach the parse pipeline. Add a new ingest surface? Use
+// these constants. Don't redeclare a local 2-MB number; don't pick your own.
 const FILE_LIMIT_BYTES = 2 * 1024 * 1024; // 2 MB — hard reject
 const FILE_WARN_BYTES = 1 * 1024 * 1024; // 1 MB — show warning but allow
 

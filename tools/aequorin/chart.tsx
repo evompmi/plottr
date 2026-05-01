@@ -6,6 +6,7 @@
 // assignBracketLevels, seededRandom, tinv) resolved through shared.bundle.js.
 
 import { MARGIN, buildAreaD, buildLineD } from "./helpers";
+import { SignificanceBrackets, CldLabels } from "../_shell/chart-annotations";
 
 const { forwardRef, useRef, useEffect, memo } = React;
 
@@ -615,60 +616,22 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
           <line id="plot-frame-left" x1={M.left} y1={M.top} x2={M.left} y2={M.top + h} />
         </g>
         {annotations && annotations.kind === "cld" && annotations.labels && (
-          <g id="cld-annotations">
-            {annotations.labels.map((letter, i) => {
-              if (i >= bars.length || letter == null) return null;
-              return (
-                <text
-                  key={`cld-${i}`}
-                  x={bx(i)}
-                  y={M.top + 15}
-                  textAnchor="middle"
-                  fontSize="10"
-                  fontWeight="700"
-                  fill="#222"
-                  fontFamily="sans-serif"
-                >
-                  {letter}
-                </text>
-              );
-            })}
-          </g>
+          <CldLabels
+            labels={(annotations.labels as (string | null)[]).map((lbl, i) =>
+              i >= bars.length ? null : lbl
+            )}
+            axisCoord={bx}
+            crossCoord={M.top + 15}
+            orientation="vertical-top"
+          />
         )}
         {annotations && annotations.kind === "brackets" && (
-          <g id="significance-brackets">
-            {annotPairs.map((pr, pi) => {
-              const x1 = bx(pr.i);
-              const x2 = bx(pr.j);
-              const lvl = pr._level || 0;
-              const yLine = M.top + annotTopPad - 6 - lvl * 20;
-              const tick = 4;
-              const p = pr.pAdj != null ? pr.pAdj : pr.p;
-              const label =
-                p >= 0.05 ? "ns" : p < 0.0001 ? "****" : p < 0.001 ? "***" : p < 0.01 ? "**" : "*";
-              return (
-                <g key={`br-${pi}`}>
-                  <path
-                    d={`M${x1},${yLine + tick} L${x1},${yLine} L${x2},${yLine} L${x2},${yLine + tick}`}
-                    stroke="#222"
-                    strokeWidth="1"
-                    fill="none"
-                  />
-                  <text
-                    x={(x1 + x2) / 2}
-                    y={yLine - 2}
-                    textAnchor="middle"
-                    fontSize="10"
-                    fontWeight="700"
-                    fill="#222"
-                    fontFamily="sans-serif"
-                  >
-                    {label}
-                  </text>
-                </g>
-              );
-            })}
-          </g>
+          <SignificanceBrackets
+            pairs={annotPairs}
+            axisCoord={bx}
+            baseline={M.top + annotTopPad - 6}
+            orientation="vertical-top"
+          />
         )}
         <g id="y-axis-label">
           <text
