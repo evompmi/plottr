@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Privacy / data-flow page (`privacy.html`).** The "Data stays in your browser" trust badge on the landing page used to be a tooltip-only `<span>` — clicking it did nothing. Now it links to a dedicated page mirroring `benchmark.html`'s shell (theme preload, theme toggle, breadcrumb back to `index.html`) that explains how Plöttr handles user data via a single inline-SVG schematic. The diagram shows: a static-file host (GitHub Pages) sending HTML/CSS/JS once at page load (one-way arrow into the trust boundary); a dashed "Your computer" boundary box containing the Plöttr app, your local CSV/TSV input, and the SVG/PNG/CSV/R-script outputs; and an explicit barrier line below the box reading "no analytics · no cookies · no third-party scripts · no 'phone home'". Underneath: four trust-statement cards (local-only processing, no tracking/telemetry, no server/upload, open source) and an "inspect-it-yourself" block with the `git clone` instructions for fully-offline operation. Theme toggle + cross-page `?theme=` query-param push reuses the existing `data-benchmark-link` plumbing so dark mode persists across navigation. The badge SVG, hover styling, and layout match the existing trust-badge pair on the landing page; this is the first time clicking it leads anywhere.
+
 ## [1.0.2] - 2026-05-01
 
 ### Fixed
