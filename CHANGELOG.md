@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-05-01
+
 ### Changed
 
 - **Aequorin tool renamed to "RLU timecourse".** The tool always plotted luminescence (RLU) time-courses with optional Ca²⁺ calibration on top, but the name "Aequorin Ca²⁺ Calibration" foregrounded the niche calibration feature over the broader use case. The tool is now "RLU timecourse" everywhere a user sees the name (page `<title>`, landing-page tile, in-app `PageHeader`, How-to card, ErrorBoundary fallback, default download filenames `rlu_timecourse_example.tsv` / `rlu_timecourse_stats.txt`, TXT and R-script report headers, SVG `aria-label`). The aequorin Ca²⁺ calibration is now positioned as a "plus" feature: surfaced in the How-to subtitle (`"Plot luminescence over time • optional aequorin / Ca²⁺ calibration • Σ barplots"`), described once in the purpose paragraph, and the Configure step's dropdown gets an explicit "Aequorin calibration formula" label so the term still anchors the relevant control. Internal identifiers (file paths `tools/aequorin/`, component names `AequorinStatsPanel`, localStorage key `aequorin`, runtime global `__AEQUORIN_EXAMPLE__`, citation comments in `helpers.ts`) are deliberately left as-is so existing users' saved auto-prefs and any external links to `tools/aequorin.html` keep working — the rename is a user-facing label change, not a structural rewrite.
