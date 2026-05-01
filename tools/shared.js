@@ -564,7 +564,25 @@ function parseRaw(text, sepOv = "") {
 function guessColumnType(vals) {
   const ne = vals.filter((v) => v != null && v !== "");
   if (ne.length === 0) return "ignore";
-  if (ne.filter((v) => isNumericValue(v)).length / ne.length > 0.8) return "value";
+  if (ne.filter((v) => isNumericValue(v)).length / ne.length > 0.8) {
+    // Years (2024 / 2025 / 2026), binary flags (0 / 1), and small integer
+    // enumerations are 100 % numeric but semantically categorical. Demote to
+    // "group" before the value branch returns: small distinct count, all
+    // integer, and many repetitions per value (cardinality << row count).
+    // Threshold matches the "group" rule below (≤ 12 distinct, < 30 % of
+    // rows) — tighter than the generic ≤ 20 to avoid pulling continuous
+    // small-N data (e.g. 5 unique fluorescence intensities) into the wrong
+    // bucket.
+    const u = new Set(ne);
+    if (u.size <= 12 && u.size < ne.length * 0.3) {
+      const allIntegers = ne.every((v) => {
+        const n = Number(String(v).trim());
+        return Number.isFinite(n) && Number.isInteger(n);
+      });
+      if (allIntegers) return "group";
+    }
+    return "value";
+  }
   const u = new Set(ne);
   if (u.size <= 20 && u.size < ne.length * 0.5) return "group";
   return "filter";
@@ -653,30 +671,46 @@ function dataToColumns(data, nCols) {
 
 // ── Wide / long format helpers ────────────────────────────────────────────────
 
+// Returns `{ headers, rows, skipped }`. `skipped` is the number of (row,
+// column) cells that were empty or non-numeric and therefore omitted from
+// the long output — surfaced by the upload-step UX so the user knows when
+// the reshape silently shrank the dataset.
 function wideToLong(headers, rows) {
   const longRows = [];
+  let skipped = 0;
   rows.forEach((r) => {
     headers.forEach((h, ci) => {
-      if (r[ci] !== "" && isNumericValue(r[ci])) longRows.push([h, r[ci]]);
+      if (r[ci] !== "" && isNumericValue(r[ci])) {
+        longRows.push([h, r[ci]]);
+      } else {
+        skipped++;
+      }
     });
   });
-  return { headers: ["Group", "Value"], rows: longRows };
+  return { headers: ["Group", "Value"], rows: longRows, skipped };
 }
 
+// Returns `{ headers, rows, unlabelled }`. `unlabelled` is the number of
+// input rows whose group cell was empty and therefore collapsed into the
+// "?" bucket — surfaced by the download tile so the user knows multiple
+// rows merged under a single placeholder name.
 function reshapeWide(rows, gi, vi) {
   const g = {};
+  let unlabelled = 0;
   rows.forEach((r) => {
-    const k = r[gi] || "?";
+    const raw = r[gi];
+    if (raw === "" || raw == null) unlabelled++;
+    const k = raw || "?";
     if (!g[k]) g[k] = [];
     g[k].push(r[vi]);
   });
   const vals = Object.values(g);
-  if (vals.length === 0) return { headers: [], rows: [] };
+  if (vals.length === 0) return { headers: [], rows: [], unlabelled };
   const mx = Math.max(...vals.map((v) => v.length));
   const names = Object.keys(g);
   const w = [];
   for (let i = 0; i < mx; i++) w.push(names.map((n) => (g[n][i] != null ? g[n][i] : "")));
-  return { headers: names, rows: w };
+  return { headers: names, rows: w, unlabelled };
 }
 
 // ── Set-membership parsing (Venn / UpSet) ─────────────────────────────────────

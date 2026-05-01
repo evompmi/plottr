@@ -191,6 +191,34 @@ test("treats '6wpi' and '8wpi' as non-numeric (isNumericValue fix)", () => {
   eq(guessColumnType(col), "group");
 });
 
+test("year columns demote from 'value' to 'group' (audit-23 #9)", () => {
+  // Years are 100% numeric so the old heuristic returned "value" without
+  // checking cardinality. Now: small distinct count + all integers ⇒ group.
+  // 30-row column with three years repeated 10× each.
+  const col = Array.from({ length: 30 }, (_, i) => String([2024, 2025, 2026][i % 3]));
+  eq(guessColumnType(col), "group");
+});
+
+test("binary 0/1 columns demote from 'value' to 'group' (audit-23 #9)", () => {
+  // Treatment / responder flags coded as 0/1 are 100% numeric but
+  // semantically two-level categorical. Distinct=2, all integers ⇒ group.
+  const col = Array.from({ length: 20 }, (_, i) => (i % 2 === 0 ? "0" : "1"));
+  eq(guessColumnType(col), "group");
+});
+
+test("small-N continuous data stays 'value' (audit-23 #9 boundary check)", () => {
+  // 5 unique fluorescence values in 5 rows — distinct == row count, so the
+  // group-demotion gate (size < ne.length * 0.3) does NOT fire. Stays value.
+  eq(guessColumnType(["1.5", "2.7", "3.1", "4.0", "5.8"]), "value");
+});
+
+test("non-integer numeric data keeps 'value' even with low cardinality", () => {
+  // 30-row column of three repeated DECIMALS. Low cardinality, but not
+  // integers — the demotion gate checks Number.isInteger so this stays value.
+  const col = Array.from({ length: 30 }, (_, i) => ["1.5", "2.7", "3.1"][i % 3]);
+  eq(guessColumnType(col), "value");
+});
+
 test("treats hex and Infinity as non-numeric", () => {
   // Number('0xFF')===255 and Number('Infinity') are finite/valid for isNaN,
   // but isNumericValue correctly rejects them.
@@ -546,6 +574,68 @@ test("parseData keeps a quoted comma inside a cell", () => {
 test("parseRaw strips a leading BOM from the first header", () => {
   const { headers } = parseRaw("﻿Gene,Value\nA,1", ",");
   eq(headers, ["Gene", "Value"]);
+});
+
+// ── wideToLong + reshapeWide skipped counts (audit-23 #10 / #17) ────────────
+
+suite("wideToLong — skipped count");
+
+test("skipped is 0 when every cell is numeric", () => {
+  const result = require("./helpers/shared-loader").wideToLong(
+    ["A", "B"],
+    [
+      ["1", "2"],
+      ["3", "4"],
+    ]
+  );
+  eq(result.skipped, 0);
+  eq(result.rows.length, 4);
+});
+
+test("skipped counts every empty / non-numeric cell that was dropped", () => {
+  const result = require("./helpers/shared-loader").wideToLong(
+    ["A", "B", "C"],
+    [
+      ["1", "", "n/a"], // 2 skips
+      ["2", "3", "missing"], // 1 skip
+    ]
+  );
+  eq(result.skipped, 3);
+  eq(result.rows.length, 3); // 6 cells - 3 skipped = 3 kept
+});
+
+suite("reshapeWide — unlabelled count");
+
+test("unlabelled is 0 when every group cell has a value", () => {
+  const result = require("./helpers/shared-loader").reshapeWide(
+    [
+      ["ctrl", "1"],
+      ["treat", "2"],
+    ],
+    0,
+    1
+  );
+  eq(result.unlabelled, 0);
+});
+
+test("unlabelled counts rows whose group cell was empty (collapsed into '?')", () => {
+  // 3 rows have empty group keys → all merge into a single "?" bucket; the
+  // count exposes the silent merge. Two rows have proper group names.
+  const result = require("./helpers/shared-loader").reshapeWide(
+    [
+      ["", "1"],
+      ["ctrl", "2"],
+      ["", "3"],
+      ["treat", "4"],
+      ["", "5"],
+    ],
+    0,
+    1
+  );
+  eq(result.unlabelled, 3);
+  // ? bucket has all three unlabelled values
+  const qIdx = result.headers.indexOf("?");
+  assert(qIdx >= 0, "'?' bucket must exist");
 });
 
 // ── buildCsvString ↔ parseRaw round-trip ────────────────────────────────────

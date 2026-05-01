@@ -19,6 +19,33 @@ const VIS_INIT_SCATTER = {
   plotBg: "#ffffff",
   showGrid: false,
   gridColor: "#e0e0e0",
+  // Per-style + per-mapping prefs that used to live in local useState. They
+  // auto-persist to localStorage and round-trip through PrefsPanel save /
+  // load, mirroring boxplot's boxplotColors / categoryColors migration in
+  // 0b7fecb. Per-category dicts (colorMapDiscrete / sizeMapDiscrete /
+  // shapeMapDiscrete) are keyed by category NAME so they survive a
+  // dataset swap as long as names match. refLines and the regression
+  // styling block are part of the user's "look I built" and persist too.
+  pointColor: "#648FFF",
+  pointSize: 5,
+  pointOpacity: 0.8,
+  strokeColor: "#000000",
+  strokeWidth: 1,
+  colorMapPalette: "viridis",
+  colorMapDiscrete: {},
+  sizeMapMin: 3,
+  sizeMapMax: 15,
+  sizeMapDiscrete: {},
+  shapeMapDiscrete: {},
+  refLines: [] as any[],
+  regression: {
+    on: false,
+    color: "#dc2626",
+    strokeWidth: 1.5,
+    dashed: false,
+    showStats: true,
+    position: "tl",
+  },
 };
 
 // COLOR_PALETTES and interpolateColor are now globals from shared.js so that
@@ -1932,41 +1959,87 @@ function App() {
   const [xCol, setXCol] = useState(0);
   const [yCol, setYCol] = useState(1);
 
-  // Point defaults
-  const [pointColor, setPointColor] = useState("#648FFF");
-  const [pointSize, setPointSize] = useState(5);
-  const [pointOpacity, setPointOpacity] = useState(0.8);
-  const [strokeColor, setStrokeColor] = useState("#000000");
-  const [strokeWidth, setStrokeWidth] = useState(1);
+  // Point defaults + style + mappings + refLines + regression: all migrated
+  // into `vis` so they auto-persist via PrefsPanel + localStorage. Read-
+  // through `const` for value access, useCallback setters that accept both
+  // direct values AND functional updaters so existing call sites (including
+  // setShape((prev) => ({...prev, [k]: v})) patterns) keep working unchanged.
+  const pointColor = vis.pointColor ?? "#648FFF";
+  const setPointColor = useCallback((v) => updVis({ pointColor: v }), [updVis]);
+  const pointSize = vis.pointSize ?? 5;
+  const setPointSize = useCallback((v) => updVis({ pointSize: v }), [updVis]);
+  const pointOpacity = vis.pointOpacity ?? 0.8;
+  const setPointOpacity = useCallback((v) => updVis({ pointOpacity: v }), [updVis]);
+  const strokeColor = vis.strokeColor ?? "#000000";
+  const setStrokeColor = useCallback((v) => updVis({ strokeColor: v }), [updVis]);
+  const strokeWidth = vis.strokeWidth ?? 1;
+  const setStrokeWidth = useCallback((v) => updVis({ strokeWidth: v }), [updVis]);
 
-  // Aesthetic mappings
+  // Column-index mappings stay local — they're tied to the current dataset's
+  // columns, not a visual pref the user wants restored across reloads.
   const [colorMapCol, setColorMapCol] = useState(null);
-  const [colorMapPalette, setColorMapPalette] = useState("viridis");
-  const [colorMapDiscrete, setColorMapDiscrete] = useState({});
+  const colorMapPalette = vis.colorMapPalette ?? "viridis";
+  const setColorMapPalette = useCallback((v) => updVis({ colorMapPalette: v }), [updVis]);
+  const colorMapDiscrete = vis.colorMapDiscrete || {};
+  const setColorMapDiscrete = useCallback(
+    (updater) =>
+      updVis({
+        colorMapDiscrete:
+          typeof updater === "function" ? updater(vis.colorMapDiscrete || {}) : updater || {},
+      }),
+    [updVis, vis.colorMapDiscrete]
+  );
 
   const [sizeMapCol, setSizeMapCol] = useState(null);
-  const [sizeMapMin, setSizeMapMin] = useState(3);
-  const [sizeMapMax, setSizeMapMax] = useState(15);
-  const [sizeMapDiscrete, setSizeMapDiscrete] = useState({});
+  const sizeMapMin = vis.sizeMapMin ?? 3;
+  const setSizeMapMin = useCallback((v) => updVis({ sizeMapMin: v }), [updVis]);
+  const sizeMapMax = vis.sizeMapMax ?? 15;
+  const setSizeMapMax = useCallback((v) => updVis({ sizeMapMax: v }), [updVis]);
+  const sizeMapDiscrete = vis.sizeMapDiscrete || {};
+  const setSizeMapDiscrete = useCallback(
+    (updater) =>
+      updVis({
+        sizeMapDiscrete:
+          typeof updater === "function" ? updater(vis.sizeMapDiscrete || {}) : updater || {},
+      }),
+    [updVis, vis.sizeMapDiscrete]
+  );
 
   const [shapeMapCol, setShapeMapCol] = useState(null);
-  const [shapeMapDiscrete, setShapeMapDiscrete] = useState({});
+  const shapeMapDiscrete = vis.shapeMapDiscrete || {};
+  const setShapeMapDiscrete = useCallback(
+    (updater) =>
+      updVis({
+        shapeMapDiscrete:
+          typeof updater === "function" ? updater(vis.shapeMapDiscrete || {}) : updater || {},
+      }),
+    [updVis, vis.shapeMapDiscrete]
+  );
 
-  // Filter state
+  // Filter state stays local — depends on the current dataset's column values.
   const [filterState, setFilterState] = useState<Record<string, string[]>>({});
 
-  const [refLines, setRefLines] = useState([]);
+  const refLines = vis.refLines || [];
+  const setRefLines = useCallback(
+    (updater) =>
+      updVis({
+        refLines: typeof updater === "function" ? updater(vis.refLines || []) : updater || [],
+      }),
+    [updVis, vis.refLines]
+  );
 
-  // Regression line
-  const [regression, setRegression] = useState({
+  // Regression styling is a sub-object; merge patches via updRegression so
+  // existing `updRegression({ on: true })` call sites stay unchanged.
+  const regression = vis.regression || {
     on: false,
     color: "#dc2626",
     strokeWidth: 1.5,
     dashed: false,
     showStats: true,
     position: "tl",
-  });
-  const updRegression = (patch) => setRegression((prev) => ({ ...prev, ...patch }));
+  };
+  const setRegression = useCallback((next) => updVis({ regression: next }), [updVis]);
+  const updRegression = (patch) => updVis({ regression: { ...regression, ...patch } });
   const svgRef = useRef();
   const sepRef = useRef("");
 
