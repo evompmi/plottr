@@ -7,7 +7,7 @@
 //   1e-4  — distribution primitives (normcdf, gammaln, tcdf, ...)
 //   5e-3  — test statistics (W) and p-values (matches power-tool bar)
 
-const { suite, test, assert, approx, summary } = require("./harness");
+const { suite, test, assert, approx, eq, summary } = require("./harness");
 const vm = require("vm");
 const fs = require("fs");
 const path = require("path");
@@ -22,6 +22,7 @@ vm.runInContext(code, ctx);
 const {
   normcdf,
   normsf,
+  norminv,
   tcdf,
   tcdf_upper,
   fcdf,
@@ -70,6 +71,119 @@ suite("stats.js — primitive smoke tests");
 test("normcdf(0) === 0.5", () => approx(normcdf(0), 0.5, 1e-4));
 test("normcdf(1.96) ≈ 0.975", () => approx(normcdf(1.96), 0.975, 1e-4));
 test("tcdf(0, 10) === 0.5", () => approx(tcdf(0, 10), 0.5, 1e-4));
+
+// ── Audit-23 #12 — direct primitive edge + symmetry tests ──────────────────
+//
+// The primitives are well-covered indirectly through the high-level tests
+// they feed (tTest uses tinv, fcdf etc.). These tests pin behaviour the
+// transitive coverage masks: a regression that breaks tcdf symmetry or
+// chi2cdf(x<0) return value would still pass the high-level tests because
+// the breakage gets clamped before surfacing.
+
+suite("primitive edges — symmetry + boundaries (audit-23 #12)");
+
+test("normcdf is reflection-symmetric: normcdf(-x) = 1 - normcdf(x)", () => {
+  for (const x of [0.1, 0.5, 1, 1.96, 3, 4, 5, 7.5]) {
+    approx(normcdf(-x), 1 - normcdf(x), 1e-12);
+  }
+});
+
+test("normcdf saturates at extreme +/- inputs without overflow", () => {
+  // Both should return finite results; the asymptotic expansion in normsf
+  // takes over above |x| = 7 and stays accurate to ~1e-300.
+  approx(normcdf(20), 1, 1e-15);
+  approx(normcdf(-20), 0, 1e-15);
+  // Very large positive x — the implementation routes through normsf which
+  // returns a tiny but finite probability. Not exactly 1.
+  assert(normcdf(50) > 1 - 1e-15 && normcdf(50) <= 1, "normcdf(50) ≈ 1");
+  assert(normcdf(-50) >= 0 && normcdf(-50) < 1e-15, "normcdf(-50) ≈ 0");
+});
+
+test("norminv handles boundary p=0 and p=1 by returning ±Infinity", () => {
+  // Documented contract: clamp at infinities rather than NaN. Tests pin
+  // this so a future "guard" that returns NaN doesn't quietly break power
+  // analysis solvers that rely on the +/-Infinity sentinel.
+  eq(norminv(0), -Infinity);
+  eq(norminv(1), Infinity);
+  // Out-of-range still maps to infinity (saturate instead of NaN).
+  eq(norminv(-0.5), -Infinity);
+  eq(norminv(1.5), Infinity);
+});
+
+test("tcdf symmetry: tcdf(-x, df) = 1 - tcdf(x, df) for any df ≥ 1", () => {
+  for (const df of [1, 2, 5, 10, 30, 100]) {
+    for (const x of [0.5, 1, 2, 3, 5]) {
+      approx(tcdf(-x, df), 1 - tcdf(x, df), 1e-10);
+    }
+  }
+});
+
+test("tcdf(0, df) = 0.5 across df", () => {
+  for (const df of [1, 2, 5, 10, 100, 1000]) {
+    approx(tcdf(0, df), 0.5, 1e-12);
+  }
+});
+
+test("fcdf(0, d1, d2) === 0", () => {
+  // F is right-bounded at 0; cdf at 0 must be exactly 0.
+  for (const [d1, d2] of [
+    [1, 1],
+    [1, 5],
+    [3, 50],
+    [10, 100],
+  ]) {
+    eq(fcdf(0, d1, d2), 0);
+  }
+});
+
+test("fcdf(-x, d1, d2) === 0 (out-of-domain saturates)", () => {
+  // Negative F has no probability mass; implementation guards `f <= 0`.
+  eq(fcdf(-5, 3, 50), 0);
+  eq(fcdf(-1e-9, 1, 1), 0);
+});
+
+test("chi2cdf(x ≤ 0, k) === 0", () => {
+  // Chi-square is supported on [0, ∞); cdf at or below 0 must be 0.
+  eq(chi2cdf(0, 1), 0);
+  eq(chi2cdf(0, 5), 0);
+  eq(chi2cdf(-1, 5), 0);
+  eq(chi2cdf(-1e9, 30), 0);
+});
+
+test("chi2cdf grows monotonically with x for fixed df", () => {
+  for (const k of [1, 5, 30]) {
+    let prev = -1;
+    for (const x of [0.1, 1, 5, 10, 30, 100]) {
+      const cur = chi2cdf(x, k);
+      assert(cur > prev, `chi2cdf monotonicity broke at k=${k}, x=${x}`);
+      prev = cur;
+    }
+  }
+});
+
+test("tinv ↔ tcdf round-trip stays tight at small + large df", () => {
+  // Existing tests cover df=2,3,5,10,30. Here: pin the boundary cases that
+  // exercise different code paths inside tinv (df=1 closed form, df→large
+  // Cornish-Fisher approximation).
+  for (const df of [1, 2, 4, 50, 200]) {
+    for (const p of [0.05, 0.25, 0.75, 0.95]) {
+      approx(tcdf(tinv(p, df), df), p, 1e-9);
+    }
+  }
+});
+
+test("fcdf + fcdf_upper sum to 1 in the central body", () => {
+  // Tail-accurate fcdf_upper exists to avoid the 1 - fcdf cancellation at
+  // F > 50; in the central body both routes should agree to high precision.
+  for (const [d1, d2, f] of [
+    [1, 1, 0.5],
+    [3, 50, 4],
+    [5, 100, 2.5],
+    [10, 30, 1.8],
+  ]) {
+    approx(fcdf(f, d1, d2) + fcdf_upper(f, d1, d2), 1, 1e-12);
+  }
+});
 
 // ── tinv extreme-quantile coverage ─────────────────────────────────────────
 //

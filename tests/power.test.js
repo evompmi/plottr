@@ -61,6 +61,7 @@ const {
   tcdf,
   tinv,
   fcdf,
+  fcdf_upper,
   chi2cdf,
   chi2inv,
   nctcdf,
@@ -309,6 +310,98 @@ test("ncf_sf output is always in [0, 1]", () => {
     const s = ncf_sf(f, d1, d2, lam);
     assert(s >= 0 && s <= 1 && !isNaN(s), `ncf_sf(${f},${d1},${d2},${lam})=${s} out of bounds`);
   });
+});
+
+// ── Audit-23 #11 — small-d2 regime is excluded from the closed-form short-
+// circuit (variance has (d2-4) in the denominator), so the code falls through
+// to the Poisson loop. Pin its adequacy. ────────────────────────────────────
+
+test("ncf_sf at d2 ∈ {1,2,3,4} stays in [0,1] across λ ∈ {0..5000}", () => {
+  for (const d2 of [1, 2, 3, 4]) {
+    for (const lam of [0, 1, 10, 100, 1000, 5000]) {
+      for (const f of [0.1, 1, 5, 20, 100]) {
+        const s = ncf_sf(f, 2, d2, lam);
+        assert(
+          s >= 0 && s <= 1 && Number.isFinite(s) && !Number.isNaN(s),
+          `ncf_sf(${f}, 2, ${d2}, ${lam}) = ${s} out of bounds`
+        );
+      }
+    }
+  }
+});
+
+test("ncf_sf at small d2 monotonically decreases in f for fixed (d1, d2, λ)", () => {
+  // Monotone-in-f invariant — power-analysis solvers rely on this. The
+  // closed-form short-circuit normally guarantees it for d2>4; the Poisson
+  // loop must keep the same property at d2 ∈ {1,2,3,4}.
+  for (const d2 of [1, 2, 3, 4]) {
+    for (const lam of [10, 500, 5000]) {
+      let prev = Infinity;
+      for (const f of [0.5, 1, 2, 5, 10, 50, 100]) {
+        const s = ncf_sf(f, 3, d2, lam);
+        assert(
+          s <= prev + 1e-12,
+          `ncf_sf monotonicity broke: d2=${d2}, λ=${lam}, f=${f}, prev=${prev}, cur=${s}`
+        );
+        prev = s;
+      }
+    }
+  }
+});
+
+test("ncf_sf at small d2 monotonically increases in λ for fixed (d1, d2, f)", () => {
+  // The audit-22 #13 fix added the closed-form short-circuit for d2>4.
+  // For d2≤4 we depend entirely on the Poisson loop. More noncentrality
+  // should always give more survival mass above f.
+  for (const d2 of [1, 2, 3, 4]) {
+    let prev = -1;
+    for (const lam of [0, 1, 10, 100, 1000, 5000]) {
+      const s = ncf_sf(3, 3, d2, lam);
+      assert(
+        s >= prev - 1e-12,
+        `ncf_sf λ-monotonicity broke: d2=${d2}, λ=${lam}, prev=${prev}, cur=${s}`
+      );
+      prev = s;
+    }
+  }
+});
+
+test("ncf_sf at small d2 with λ=0 matches central F survival (anchor)", () => {
+  // λ=0 is the only point with a closed-form anchor. Central-F survival is
+  // exact (no Poisson sum) so any drift here would point at a sign / bound
+  // bug in the loop.
+  for (const d2 of [1, 2, 3, 4]) {
+    for (const f of [1, 5, 20]) {
+      approx(ncf_sf(f, 3, d2, 0), fcdf_upper(f, 3, d2), 1e-10, `d2=${d2}, f=${f}`);
+    }
+  }
+});
+
+test("ncf_sf at small d2 + huge λ stays sensible at f near 0 and at huge f", () => {
+  // Far-left sanity: at λ very large and f near 0, almost all mass is above
+  // f (the noncentral mode is far to the right). Survival should approach 1.
+  // Far-right sanity: F-distributions with d2 ≤ 2 have undefined mean (heavy
+  // tails) and d2 ≤ 4 have undefined variance, so we don't assert strict
+  // small-survival caps at huge f for those — instead just confirm the
+  // survival drops monotonically *below* the f≈0 anchor.
+  for (const d2 of [1, 2, 3, 4]) {
+    const sNear0 = ncf_sf(0.01, 3, d2, 5000);
+    assert(sNear0 > 0.99, `ncf_sf(0.01, 3, ${d2}, 5000) = ${sNear0} should be ≈ 1`);
+    const sLarge = ncf_sf(1e6, 3, d2, 5000);
+    assert(
+      sLarge < sNear0 && sLarge >= 0 && sLarge <= 1,
+      `ncf_sf(1e6, 3, ${d2}, 5000) = ${sLarge} should drop below the f≈0 anchor`
+    );
+    // For d2 ≥ 3 (finite mean), tighten the far-right tail to < 0.01 since
+    // the closed-form NCF mean = (d2/(d2-2)) × ((d1+λ)/d1) is finite and the
+    // f=1e6 query sits ~thousands of σ above it. d2 ∈ {1,2} skipped.
+    if (d2 >= 3) {
+      assert(
+        sLarge < 0.01,
+        `ncf_sf(1e6, 3, ${d2}, 5000) = ${sLarge} should be ≈ 0 (d2≥3, mean is finite)`
+      );
+    }
+  }
 });
 
 test("ncf_sf for very large f → 0", () => {
