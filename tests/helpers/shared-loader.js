@@ -50,6 +50,8 @@ module.exports = {
   isNumericValue: ctx.isNumericValue,
   normalizeNumericString: ctx.normalizeNumericString,
   toNumericValue: ctx.toNumericValue,
+  // CSV builder (pure — round-trip with parseRaw)
+  buildCsvString: ctx.buildCsvString,
   // Parsing helpers
   detectHeader: ctx.detectHeader,
   parseRaw: ctx.parseRaw,

@@ -1156,12 +1156,18 @@ function downloadText(text, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// RFC 4180 CSV string builder. Pure (no DOM / Blob) so it round-trips through
+// `parseRaw` in tests without needing a browser context. Headers go through
+// the same escape as data cells — a header containing a comma
+// ("Sample, Note") used to write a malformed first line that Plöttr's own
+// parseRaw split into N+1 columns on re-import.
+function buildCsvString(headers, rows) {
+  const escape = (v) => `"${String(v).replace(/"/g, '""')}"`;
+  return [headers.map(escape).join(","), ...rows.map((r) => r.map(escape).join(","))].join("\n");
+}
+
 function downloadCsv(headers, rows, filename) {
-  const lines = [
-    headers.join(","),
-    ...rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")),
-  ];
-  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+  const blob = new Blob([buildCsvString(headers, rows)], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

@@ -12,6 +12,7 @@ const {
   parseWideMatrix,
   tokenizeDelimited,
   fixDecimalCommas,
+  buildCsvString,
 } = require("./shared-loader");
 module.exports = {
   detectHeader,
@@ -23,4 +24,5 @@ module.exports = {
   parseWideMatrix,
   tokenizeDelimited,
   fixDecimalCommas,
+  buildCsvString,
 };
