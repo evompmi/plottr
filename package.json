@@ -16,7 +16,7 @@
     "fuzz:lineplot": "node tests/fuzz/lineplot.fuzz.js",
     "fuzz:venn": "node tests/fuzz/venn.fuzz.js",
     "fuzz:upset": "node tests/fuzz/upset.fuzz.js",
-    "benchmark": "Rscript benchmark/run-r.R && node benchmark/run.js",
+    "benchmark": "Rscript benchmark/run-r.R && node benchmark/run.js && node benchmark/run-r-export.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

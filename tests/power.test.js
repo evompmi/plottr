@@ -386,10 +386,7 @@ test("ncf_sf at small d2 + huge λ stays sensible at f near 0 and at huge f", ()
   // survival drops monotonically *below* the f≈0 anchor.
   for (const d2 of [1, 2, 3, 4]) {
     const sNear0 = ncf_sf(0.01, 3, d2, 5000);
-    assert(
-      sNear0 > 0.99,
-      `ncf_sf(0.01, 3, ${d2}, 5000) = ${sNear0} should be ≈ 1`
-    );
+    assert(sNear0 > 0.99, `ncf_sf(0.01, 3, ${d2}, 5000) = ${sNear0} should be ≈ 1`);
     const sLarge = ncf_sf(1e6, 3, d2, 5000);
     assert(
       sLarge < sNear0 && sLarge >= 0 && sLarge <= 1,
