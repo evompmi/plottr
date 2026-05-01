@@ -12,6 +12,7 @@ const {
   parseWideMatrix,
   tokenizeDelimited,
   fixDecimalCommas,
+  buildCsvString,
 } = require("./helpers/parsing-fns");
 
 // ── detectHeader ─────────────────────────────────────────────────────────────
@@ -545,6 +546,50 @@ test("parseData keeps a quoted comma inside a cell", () => {
 test("parseRaw strips a leading BOM from the first header", () => {
   const { headers } = parseRaw("﻿Gene,Value\nA,1", ",");
   eq(headers, ["Gene", "Value"]);
+});
+
+// ── buildCsvString ↔ parseRaw round-trip ────────────────────────────────────
+
+suite("buildCsvString — RFC 4180 round-trip with parseRaw");
+
+test("plain headers + plain rows round-trip exactly", () => {
+  const headers = ["Group", "Value"];
+  const rows = [
+    ["ctrl", "1.5"],
+    ["treat", "2.7"],
+  ];
+  const csv = buildCsvString(headers, rows);
+  const parsed = parseRaw(csv, ",");
+  eq(parsed.headers, headers);
+  eq(parsed.rows, rows);
+});
+
+test("comma-in-header survives the round-trip (regression for audit-23 #16)", () => {
+  // Before the fix, headers used `headers.join(",")` without quoting, so a
+  // header containing a comma wrote a malformed first line that parseRaw
+  // split into N+1 columns on re-import.
+  const headers = ["Sample, Note", "Value"];
+  const rows = [["A", "1"]];
+  const csv = buildCsvString(headers, rows);
+  const parsed = parseRaw(csv, ",");
+  eq(parsed.headers, ["Sample, Note", "Value"]);
+  eq(parsed.rows, [["A", "1"]]);
+});
+
+test("quotes inside a cell escape and re-parse cleanly", () => {
+  const headers = ["label", "value"];
+  const rows = [['He said "hi"', "42"]];
+  const csv = buildCsvString(headers, rows);
+  const parsed = parseRaw(csv, ",");
+  eq(parsed.rows, [['He said "hi"', "42"]]);
+});
+
+test("newline inside a cell survives the round-trip", () => {
+  const headers = ["label", "value"];
+  const rows = [["line1\nline2", "1"]];
+  const csv = buildCsvString(headers, rows);
+  const parsed = parseRaw(csv, ",");
+  eq(parsed.rows, [["line1\nline2", "1"]]);
 });
 
 summary();

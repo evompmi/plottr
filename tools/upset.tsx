@@ -2561,9 +2561,21 @@ function App() {
   const handleHandoff = useCallback(
     (payload) => {
       if (!payload || typeof payload.text !== "string") return;
+      // Audit policy: any ingest surface must gate on FILE_LIMIT_BYTES (see
+      // doc-comment in tools/shared-file-drop.js). Same-origin only after
+      // the origin check on the message listener — but a 100 MB hostile
+      // payload from a compromised sibling tool would freeze the main thread
+      // on next load with no error UX, so reject before doParse sees the
+      // bytes.
+      if (payload.text.length > FILE_LIMIT_BYTES) return;
       const sep = typeof payload.sep === "string" ? payload.sep : "";
       const fmt = payload.format === "long" ? "long" : "wide";
-      setFileName(typeof payload.fileName === "string" ? payload.fileName : "");
+      // Bound fileName length and strip path separators / leading dots so a
+      // crafted payload can't produce a download name like "../../etc/passwd"
+      // when the user later exports a CSV.
+      const rawName = typeof payload.fileName === "string" ? payload.fileName : "";
+      const safeName = rawName.slice(0, 255).replace(/[/\\]/g, "_").replace(/^\.+/, "");
+      setFileName(safeName);
       setSepOverride(sep);
       setFormat(fmt);
       setSelectedMask(null);
