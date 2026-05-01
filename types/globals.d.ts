@@ -51,6 +51,10 @@ declare global {
   const sepSelect: CSSProperties;
   const roleColors: Record<string, string>;
 
+  // ── Ingest size policy (shared-file-drop.js) ───────────────────────────────
+  const FILE_LIMIT_BYTES: number;
+  const FILE_WARN_BYTES: number;
+
   // ── Numeric detection & seeded RNG ─────────────────────────────────────────
   function isNumericValue(v: unknown): boolean;
   function seededRandom(seed: number): () => number;
