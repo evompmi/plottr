@@ -564,7 +564,25 @@ function parseRaw(text, sepOv = "") {
 function guessColumnType(vals) {
   const ne = vals.filter((v) => v != null && v !== "");
   if (ne.length === 0) return "ignore";
-  if (ne.filter((v) => isNumericValue(v)).length / ne.length > 0.8) return "value";
+  if (ne.filter((v) => isNumericValue(v)).length / ne.length > 0.8) {
+    // Years (2024 / 2025 / 2026), binary flags (0 / 1), and small integer
+    // enumerations are 100 % numeric but semantically categorical. Demote to
+    // "group" before the value branch returns: small distinct count, all
+    // integer, and many repetitions per value (cardinality << row count).
+    // Threshold matches the "group" rule below (≤ 12 distinct, < 30 % of
+    // rows) — tighter than the generic ≤ 20 to avoid pulling continuous
+    // small-N data (e.g. 5 unique fluorescence intensities) into the wrong
+    // bucket.
+    const u = new Set(ne);
+    if (u.size <= 12 && u.size < ne.length * 0.3) {
+      const allIntegers = ne.every((v) => {
+        const n = Number(String(v).trim());
+        return Number.isFinite(n) && Number.isInteger(n);
+      });
+      if (allIntegers) return "group";
+    }
+    return "value";
+  }
   const u = new Set(ne);
   if (u.size <= 20 && u.size < ne.length * 0.5) return "group";
   return "filter";

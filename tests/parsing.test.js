@@ -191,6 +191,34 @@ test("treats '6wpi' and '8wpi' as non-numeric (isNumericValue fix)", () => {
   eq(guessColumnType(col), "group");
 });
 
+test("year columns demote from 'value' to 'group' (audit-23 #9)", () => {
+  // Years are 100% numeric so the old heuristic returned "value" without
+  // checking cardinality. Now: small distinct count + all integers ⇒ group.
+  // 30-row column with three years repeated 10× each.
+  const col = Array.from({ length: 30 }, (_, i) => String([2024, 2025, 2026][i % 3]));
+  eq(guessColumnType(col), "group");
+});
+
+test("binary 0/1 columns demote from 'value' to 'group' (audit-23 #9)", () => {
+  // Treatment / responder flags coded as 0/1 are 100% numeric but
+  // semantically two-level categorical. Distinct=2, all integers ⇒ group.
+  const col = Array.from({ length: 20 }, (_, i) => (i % 2 === 0 ? "0" : "1"));
+  eq(guessColumnType(col), "group");
+});
+
+test("small-N continuous data stays 'value' (audit-23 #9 boundary check)", () => {
+  // 5 unique fluorescence values in 5 rows — distinct == row count, so the
+  // group-demotion gate (size < ne.length * 0.3) does NOT fire. Stays value.
+  eq(guessColumnType(["1.5", "2.7", "3.1", "4.0", "5.8"]), "value");
+});
+
+test("non-integer numeric data keeps 'value' even with low cardinality", () => {
+  // 30-row column of three repeated DECIMALS. Low cardinality, but not
+  // integers — the demotion gate checks Number.isInteger so this stays value.
+  const col = Array.from({ length: 30 }, (_, i) => ["1.5", "2.7", "3.1"][i % 3]);
+  eq(guessColumnType(col), "value");
+});
+
 test("treats hex and Infinity as non-numeric", () => {
   // Number('0xFF')===255 and Number('Infinity') are finite/valid for isNaN,
   // but isNumericValue correctly rejects them.
