@@ -208,4 +208,116 @@ test("mergePrefsSettings with onlyStyle=true drops labels", () => {
   eq(merged.boxOpacity, 0.9);
 });
 
+// ── Audit-23 #1 — scatter + lineplot persisted slots round-trip ────────────
+
+suite("shared-prefs.js — scatter/lineplot styling round-trip (audit-23 #1)");
+
+const scatterVisInit = {
+  plotTitle: "",
+  plotBg: "#ffffff",
+  showGrid: false,
+  gridColor: "#e0e0e0",
+  pointColor: "#648FFF",
+  pointSize: 5,
+  pointOpacity: 0.8,
+  strokeColor: "#000000",
+  strokeWidth: 1,
+  colorMapPalette: "viridis",
+  colorMapDiscrete: {},
+  sizeMapMin: 3,
+  sizeMapMax: 15,
+  sizeMapDiscrete: {},
+  shapeMapDiscrete: {},
+  refLines: [],
+  regression: {
+    on: false,
+    color: "#dc2626",
+    strokeWidth: 1.5,
+    dashed: false,
+    showStats: true,
+    position: "tl",
+  },
+};
+
+test("scatter — point styling round-trips through prefs", () => {
+  const c = freshContext();
+  const vis = {
+    ...scatterVisInit,
+    pointColor: "#ff00aa",
+    pointSize: 9,
+    pointOpacity: 0.4,
+    strokeColor: "#222222",
+    strokeWidth: 2,
+  };
+  c.flushAutoPrefs("scatter", vis);
+  const loaded = c.loadAutoPrefs("scatter", scatterVisInit);
+  eq(loaded.pointColor, "#ff00aa");
+  eq(loaded.pointSize, 9);
+  eq(loaded.pointOpacity, 0.4);
+  eq(loaded.strokeColor, "#222222");
+  eq(loaded.strokeWidth, 2);
+});
+
+test("scatter — per-category mapping dicts round-trip by category name", () => {
+  const c = freshContext();
+  const vis = {
+    ...scatterVisInit,
+    colorMapDiscrete: { Wildtype: "#0066cc", Mutant: "#cc3300" },
+    sizeMapDiscrete: { low: 2, mid: 5, high: 8 },
+    shapeMapDiscrete: { ctrl: "circle", treat: "triangle" },
+  };
+  c.flushAutoPrefs("scatter", vis);
+  const loaded = c.loadAutoPrefs("scatter", scatterVisInit);
+  eq(loaded.colorMapDiscrete.Wildtype, "#0066cc");
+  eq(loaded.colorMapDiscrete.Mutant, "#cc3300");
+  eq(loaded.sizeMapDiscrete.mid, 5);
+  eq(loaded.shapeMapDiscrete.treat, "triangle");
+});
+
+test("scatter — refLines + regression sub-object round-trip", () => {
+  const c = freshContext();
+  const vis = {
+    ...scatterVisInit,
+    refLines: [
+      { value: 0, axis: "y", color: "#888888", style: "dashed" },
+      { value: 1, axis: "x", color: "#ff0000" },
+    ],
+    regression: {
+      on: true,
+      color: "#0099ff",
+      strokeWidth: 2.5,
+      dashed: true,
+      showStats: false,
+      position: "br",
+    },
+  };
+  c.flushAutoPrefs("scatter", vis);
+  const loaded = c.loadAutoPrefs("scatter", scatterVisInit);
+  eq(loaded.refLines.length, 2);
+  eq(loaded.refLines[0].axis, "y");
+  eq(loaded.refLines[0].color, "#888888");
+  eq(loaded.regression.on, true);
+  eq(loaded.regression.color, "#0099ff");
+  eq(loaded.regression.position, "br");
+});
+
+const lineplotVisInit = {
+  plotTitle: "",
+  plotBg: "#ffffff",
+  showGrid: false,
+  gridColor: "#e0e0e0",
+  groupColors: {},
+  errorType: "sem",
+  showStars: true,
+};
+
+test("lineplot — errorType + showStars round-trip", () => {
+  const c = freshContext();
+  const vis = { ...lineplotVisInit, errorType: "ci95", showStars: false };
+  c.flushAutoPrefs("lineplot", vis);
+  const loaded = c.loadAutoPrefs("lineplot", lineplotVisInit);
+  eq(loaded.errorType, "ci95");
+  eq(loaded.showStars, false);
+});
+
 summary();

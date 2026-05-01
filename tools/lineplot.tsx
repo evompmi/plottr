@@ -47,6 +47,12 @@ const VIS_INIT_LINEPLOT = {
   // trips through the PrefsPanel file save/load. Groups whose name
   // doesn't match a saved entry fall back to the palette default.
   groupColors: {},
+  // Error-bar type and significance-star visibility. Used to be local
+  // useState, but visual prefs the user actively tunes deserve to round-
+  // trip through the prefs save / load — same rationale as boxplot's
+  // boxplotColors + categoryColors migration in 0b7fecb.
+  errorType: "sem",
+  showStars: true,
 };
 
 // Pure helpers (series + per-x stats, constants, small utilities) live in
@@ -1868,9 +1874,12 @@ function App() {
   const [yCol, setYCol] = useState(1);
   const [groupCol, setGroupCol] = useState<number | null>(null);
 
-  const [errorType, setErrorType] = useState("sem");
-  const [showStars, setShowStars] = useState(true);
-  // groupColors now lives in `vis` (persisted via prefs); read from there.
+  // errorType + showStars + groupColors now live in `vis` so the PrefsPanel
+  // Save / Load file and the auto-persist localStorage slot cover them.
+  const errorType = vis.errorType ?? "sem";
+  const setErrorType = useCallback((v) => updVis({ errorType: v }), [updVis]);
+  const showStars = vis.showStars ?? true;
+  const setShowStars = useCallback((v) => updVis({ showStars: v }), [updVis]);
   const groupColors = vis.groupColors || {};
 
   const svgRef = useRef<SVGSVGElement>(null);
