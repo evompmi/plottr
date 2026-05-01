@@ -395,7 +395,7 @@ export function AequorinStatsPanel({
   const stem =
     typeof fileStem === "string" && fileStem.trim()
       ? (typeof svgSafeId === "function" ? svgSafeId(fileStem) : fileStem).replace(/^-+|-+$/g, "")
-      : "aequorin_stats";
+      : "rlu_timecourse_stats";
   const downloadReport = (e: any) => {
     downloadText(buildAqAggregateReport([enriched]), `${stem}.txt`);
     flashSaved(e.currentTarget);

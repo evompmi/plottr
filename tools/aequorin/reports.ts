@@ -185,7 +185,7 @@ export function buildAqSetTextBlock(row) {
 
 export function buildAqAggregateReport(rows) {
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-  const head = ["Aequorin — statistical analysis", "Generated: " + now, ""];
+  const head = ["RLU timecourse — statistical analysis", "Generated: " + now, ""];
   return head.join("\n") + rows.map((r) => buildAqSetTextBlock(r)).join("");
 }
 
@@ -194,7 +194,7 @@ export function buildAqAggregateRScript(rows) {
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const header = [
     "# -----------------------------------------------------------------------------",
-    "# Dataviz Toolbox — Aequorin R script export",
+    "# Dataviz Toolbox — RLU timecourse R script export",
     "# Generated: " + now,
     "# -----------------------------------------------------------------------------",
     "",

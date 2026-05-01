@@ -378,7 +378,7 @@ function App() {
       return;
     }
     setSepOverride("\t");
-    setFileName("aequorin_example.tsv");
+    setFileName("rlu_timecourse_example.tsv");
     doParse(text, "\t");
   }, [doParse]);
   const resetAll = () => {
@@ -393,7 +393,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${fileBaseName(fileName, "aequorin")}_calibrated.csv`;
+    a.download = `${fileBaseName(fileName, "rlu_timecourse")}_calibrated.csv`;
     a.style.display = "none";
     document.body.appendChild(a);
     a.click();
@@ -407,7 +407,7 @@ function App() {
     <PlotToolShell
       state={shell}
       toolName="aequorin"
-      title="Aequorin Ca²⁺ Calibration"
+      title="RLU timecourse"
       visInit={VIS_INIT_AEQUORIN}
       steps={["upload", "configure", "plot"]}
       canNavigate={canNavigate}
@@ -709,7 +709,7 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <ErrorBoundary toolName="Aequorin calibration">
+  <ErrorBoundary toolName="RLU timecourse">
     <App />
   </ErrorBoundary>
 );
