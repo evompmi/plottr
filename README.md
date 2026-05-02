@@ -4,8 +4,6 @@ Static web app for common plot-and-test workflows. No server, no tracking, no da
 
 **Live:** [evompmi.github.io/plottr](https://evompmi.github.io/plottr) · **Source:** [github.com/evompmi/plottr](https://github.com/evompmi/plottr)
 
-> Successor to the [dataviz](https://github.com/evompmi/dataviz) project. Same codebase, renamed to something less generic.
-
 Originally built for the "Evolution of plant-microbes interactions" team members at Toulouse Plant Sciences (University of Toulouse, France). Released publicly for anyone with similar needs.
 
 ## Design goals
@@ -79,7 +77,7 @@ Each tool has an in-app **How to** panel.
 
 ## Statistical validation
 
-All numerics (`tools/stats.js`) are cross-validated against **R 4.5** on real built-in datasets (`iris`, `PlantGrowth`, `ToothGrowth`, `mtcars`, …). Current run: **293 comparisons, max |Δ| ≈ 8 × 10⁻⁷**, reproducible via `npm run benchmark`. Results render as a public page at `benchmark.html` — failing rows are shown in red, not hidden.
+All numerics (`tools/stats.js`) are cross-validated against **R 4.5** on real built-in datasets (`iris`, `PlantGrowth`, `ToothGrowth`, `mtcars`, …). Current run: **303 comparisons, max absolute |R − JS| ≈ 8 × 10⁻⁷** (max over test statistics alone is 4 × 10⁻⁹); zero comparisons exceed 10⁻⁶ in absolute terms. Reproducible via `npm run benchmark`. Results render as a public page at `benchmark.html` — failing rows are shown in red, not hidden.
 
 On top of that, **891 unit + integration tests** (CI-gated on every commit, alongside ESLint, Prettier, and `tsc --noEmit`) plus per-tool fuzz harnesses (`npm run fuzz:<tool>`) that run 2 × 1000 iterations of pathological-input corpus through each tool's pipeline.
 
