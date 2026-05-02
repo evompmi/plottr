@@ -638,6 +638,7 @@ function ControlSection({
     <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
       <button
         onClick={() => setOpen(!open)}
+        className="dv-tile-title"
         style={{
           display: "flex",
           alignItems: "center",
@@ -647,10 +648,7 @@ function ControlSection({
           background: "none",
           border: "none",
           cursor: "pointer",
-          fontSize: 13,
-          fontWeight: 600,
-          color: "var(--text-muted)",
-          fontFamily: "inherit",
+          textAlign: "left",
         }}
       >
         <span
@@ -979,9 +977,7 @@ function PlotStep({
 
         {/* X / Y selection */}
         <div className="dv-panel">
-          <p
-            style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}
-          >
+          <p className="dv-tile-title" style={{ margin: "0 0 8px" }}>
             Variables
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1070,7 +1066,7 @@ function PlotStep({
               marginBottom: regression.on ? 10 : 0,
             }}
           >
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+            <p className="dv-tile-title" style={{ margin: 0 }}>
               Regression line
             </p>
             <div
@@ -1823,7 +1819,7 @@ function PlotStep({
                 className={"dv-disclosure" + (filtersOpen ? " dv-disclosure-open" : "")}
                 aria-hidden="true"
               />
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+              <p className="dv-tile-title" style={{ margin: 0 }}>
                 Filters
               </p>
               <span style={{ fontSize: 10, color: "var(--text-faint)" }}>

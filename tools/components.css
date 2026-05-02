@@ -452,6 +452,32 @@ input[type="range"]::-moz-range-thumb {
   overflow-y: auto;
 }
 
+/* Control-tile title — `dv-tile-title`.
+
+   Single source of truth for the typography of every plot-tool sidebar
+   control tile heading (heatmap "Display / Style / Cluster", aequorin
+   "Conditions / Axes / Style", boxplot "Shape & fill / Data points",
+   etc.) and shared panel title (Actions, Prefs picker open buttons,
+   inline Sets / Display / Variables / Filters cards on venn / scatter
+   / upset). Heatmap was already using this style inline; the rest of
+   the app drifted to plain mixed-case 12 px or 13 px regular weights,
+   making the same control look louder in heatmap than elsewhere.
+
+   Apply with `className="dv-tile-title"` on whatever element wraps
+   the title text (`<button>` for collapsible ControlSection headers,
+   `<p>` for static panel titles). Drop the corresponding fontSize /
+   fontWeight / color / textTransform / letterSpacing from any inline
+   `style={…}` — inline styles win against external rules, so leaving
+   them in keeps the old look. */
+.dv-tile-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: inherit;
+}
+
 /* RLU timecourse — chart column responsive toggles.
 
    The right side of the plot step has two widgets at the top: the

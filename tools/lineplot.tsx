@@ -398,6 +398,7 @@ function ControlSection({ title, defaultOpen = false, children }) {
     <div ref={rootRef} className="dv-panel" style={{ marginBottom: 0, padding: 0 }}>
       <button
         onClick={() => setOpen(!open)}
+        className="dv-tile-title"
         style={{
           display: "flex",
           alignItems: "center",
@@ -407,9 +408,6 @@ function ControlSection({ title, defaultOpen = false, children }) {
           background: "none",
           border: "none",
           cursor: "pointer",
-          fontSize: 12,
-          fontWeight: 600,
-          color: "var(--text-muted)",
           textAlign: "left",
         }}
       >
@@ -791,7 +789,7 @@ function PlotControls({
           These selects define what the plot IS; hiding them behind a
           disclosure widget would be a UX downgrade. */}
       <div className="dv-panel">
-        <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+        <p className="dv-tile-title" style={{ margin: "0 0 8px" }}>
           Variables
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

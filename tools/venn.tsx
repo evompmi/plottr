@@ -839,7 +839,7 @@ function PlotControls({
       />
 
       <div className="dv-panel">
-        <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+        <p className="dv-tile-title" style={{ margin: "0 0 8px" }}>
           Sets
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -925,7 +925,7 @@ function PlotControls({
       </div>
 
       <div className="dv-panel">
-        <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+        <p className="dv-tile-title" style={{ margin: "0 0 8px" }}>
           Display
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
