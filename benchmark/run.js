@@ -496,8 +496,8 @@ const tableHtml = cats
       .join("");
 
     return `
-    <section class="category">
-      <h2>${escapeHtml(cat)} ${badge}</h2>
+    <details class="category" open>
+      <summary><span class="cat-title">${escapeHtml(cat)}</span> ${badge}</summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -521,7 +521,7 @@ const tableHtml = cats
         </thead>
         <tbody>${trs}</tbody>
       </table>
-    </section>`;
+    </details>`;
   })
   .join("\n");
 
@@ -598,12 +598,41 @@ const html = `<!doctype html>
     border: 1px solid var(--border);
     padding: 1rem 1.25rem;
   }
-  .category h2 {
-    font-size: 1rem;
-    margin-bottom: 0.6rem;
+  .category > summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
     display: flex;
     align-items: center;
     gap: 0.6rem;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+    padding: 0;
+  }
+  .category > summary::-webkit-details-marker { display: none; }
+  .category > summary::before {
+    content: "";
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 6px solid var(--text-muted);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    transition: transform 120ms ease;
+    flex-shrink: 0;
+  }
+  .category[open] > summary::before {
+    transform: rotate(90deg);
+  }
+  .category > summary .cat-title {
+    flex-shrink: 0;
+  }
+  .category[open] > summary {
+    margin-bottom: 0.6rem;
+  }
+  .category:not([open]) > summary {
+    margin-bottom: 0;
   }
   .badge {
     font-size: 0.7rem;
