@@ -1384,81 +1384,172 @@ function betai_upper(a, b, x) {
   return Math.exp(logFront + Math.log(cf / b));
 }
 
-// Continued fraction for incomplete beta (Lentz's method)
+// ── Continued-fraction primitives — Cephes-derived ──────────────────────────
+//
+// betacf, gammainc, and gammainc_upper below are ported from the Cephes
+// Mathematical Library (Stephen L. Moshier), which the author dedicated to
+// the public domain. See `incbet.c` and `igam.c` at:
+//   https://www.netlib.org/cephes/
+//   "Cephes Math Library Release 2.8" — Stephen L. Moshier, 2000
+//
+// Cephes uses a three-term recurrence (pkm1/pkm2/qkm1/qkm2) with periodic
+// big/biginv rescaling to keep partial numerators/denominators inside
+// representable range. This is structurally distinct from Lentz's modified
+// per-step floor clamp; both converge to the same value within machine
+// precision for the input range we use here. The Plöttr-specific polish
+// (log-space final exponentiation in gammainc / gammainc_upper, and the
+// √a-scaled iteration cap so chi2cdf / ptukey stay accurate at huge df)
+// is layered on top of the Cephes recurrence.
+//
+// Constants below match Cephes' incbet.c / igam.c literally.
+const CEPHES_BIG = 4.503599627370496e15; // 2^52
+const CEPHES_BIGINV = 2.220446049250313e-16; // 2^-52
+const CEPHES_MACHEP = 1.1102230246251565e-16;
+
+// Continued fraction for the regularized incomplete beta — forward form
+// (Cephes' incbcf). Returns the bare CF value `pk/qk`; betai / betai_upper
+// then multiply by the log-space prefactor.
 function betacf(a, b, x) {
-  const maxIter = 200,
-    eps = 3e-14;
-  const qab = a + b,
-    qap = a + 1,
-    qam = a - 1;
-  let c = 1,
-    d = 1 - (qab * x) / qap;
-  if (Math.abs(d) < 1e-30) d = 1e-30;
-  d = 1 / d;
-  let h = d;
-  for (let m = 1; m <= maxIter; m++) {
-    const m2 = 2 * m;
-    let aa = (m * (b - m) * x) / ((qam + m2) * (a + m2));
-    d = 1 + aa * d;
-    if (Math.abs(d) < 1e-30) d = 1e-30;
-    d = 1 / d;
-    c = 1 + aa / c;
-    if (Math.abs(c) < 1e-30) c = 1e-30;
-    h *= d * c;
-    aa = (-(a + m) * (qab + m) * x) / ((a + m2) * (qap + m2));
-    d = 1 + aa * d;
-    if (Math.abs(d) < 1e-30) d = 1e-30;
-    d = 1 / d;
-    c = 1 + aa / c;
-    if (Math.abs(c) < 1e-30) c = 1e-30;
-    const del = d * c;
-    h *= del;
-    if (Math.abs(del - 1) < eps) break;
+  let k1 = a;
+  let k2 = a + b;
+  let k3 = a;
+  let k4 = a + 1;
+  let k5 = 1;
+  let k6 = b - 1;
+  let k7 = k4;
+  let k8 = a + 2;
+
+  let pkm2 = 0;
+  let qkm2 = 1;
+  let pkm1 = 1;
+  let qkm1 = 1;
+  let ans = 1;
+  let r = 1;
+  const thresh = 3 * CEPHES_MACHEP;
+
+  for (let n = 0; n < 300; n++) {
+    let xk = -((x * k1 * k2) / (k3 * k4));
+    let pk = pkm1 + pkm2 * xk;
+    let qk = qkm1 + qkm2 * xk;
+    pkm2 = pkm1;
+    pkm1 = pk;
+    qkm2 = qkm1;
+    qkm1 = qk;
+
+    xk = (x * k5 * k6) / (k7 * k8);
+    pk = pkm1 + pkm2 * xk;
+    qk = qkm1 + qkm2 * xk;
+    pkm2 = pkm1;
+    pkm1 = pk;
+    qkm2 = qkm1;
+    qkm1 = qk;
+
+    let t;
+    if (qk !== 0) r = pk / qk;
+    if (r !== 0) {
+      t = Math.abs((ans - r) / r);
+      ans = r;
+    } else {
+      t = 1;
+    }
+    if (t < thresh) return ans;
+
+    k1 += 1;
+    k2 += 1;
+    k3 += 2;
+    k4 += 2;
+    k5 += 1;
+    k6 -= 1;
+    k7 += 2;
+    k8 += 2;
+
+    if (Math.abs(qk) + Math.abs(pk) > CEPHES_BIG) {
+      pkm2 *= CEPHES_BIGINV;
+      pkm1 *= CEPHES_BIGINV;
+      qkm2 *= CEPHES_BIGINV;
+      qkm1 *= CEPHES_BIGINV;
+    }
+    if (Math.abs(qk) < CEPHES_BIGINV || Math.abs(pk) < CEPHES_BIGINV) {
+      pkm2 *= CEPHES_BIG;
+      pkm1 *= CEPHES_BIG;
+      qkm2 *= CEPHES_BIG;
+      qkm1 *= CEPHES_BIG;
+    }
   }
-  return h;
+  return ans;
 }
 
-// Regularized incomplete gamma function P(a, x) — series expansion
+// Regularized lower incomplete gamma P(a, x) — Cephes' igam series form.
+// Cephes uses `r += 1; c *= x/r; ans += c` with a `c/ans < MACHEP`
+// termination test. We layer a √a-scaled iteration cap on top because the
+// series converges in ~O(√a) steps when x ≈ a (Poisson-like concentration
+// around n ≈ x − a with width √a) — chi2cdf / ptukey at huge df otherwise
+// truncate before convergence. Switchover threshold (`x > 1 && x > a`)
+// matches Cephes literally, not NR's `x < a + 1`.
 function gammainc(a, x) {
   if (x < 0) return 0;
   if (x === 0) return 0;
-  if (x > a + 1) return 1 - gammainc_upper(a, x);
-  // Series converges in ~O(√a) steps when x ≈ a (Poisson-like concentration
-  // around n ≈ x−a with width √a). A fixed 200-step cap silently truncated
-  // large-a calls; scale with √a so chi2cdf / ptukey stay accurate at huge df.
-  const maxIter = Math.max(200, Math.ceil(20 * Math.sqrt(a + 1)));
-  let sum = 1 / a,
-    term = 1 / a;
-  for (let n = 1; n < maxIter; n++) {
-    term *= x / (a + n);
-    sum += term;
-    if (Math.abs(term) < Math.abs(sum) * 3e-14) break;
+  if (x > 1 && x > a) return 1 - gammainc_upper(a, x);
+
+  let r = a;
+  let c = 1;
+  let ans = 1;
+  const maxIter = Math.max(700, Math.ceil(20 * Math.sqrt(a + 1)));
+  for (let i = 0; i < maxIter; i++) {
+    r += 1;
+    c *= x / r;
+    ans += c;
+    if (c / ans < CEPHES_MACHEP) break;
   }
-  // Log-space final exponentiation — same motivation as betai: the prefactor
-  // exp(-x + a*ln(x) - gammaln(a)) can underflow intermediate at large a.
-  return Math.exp(Math.log(sum) + (-x + a * Math.log(x) - gammaln(a)));
+  // Log-space final exponentiation: the prefactor `exp(a*ln(x) - x - lnΓ(a))`
+  // can underflow at large a even when ans*ax/a is well within range.
+  return Math.exp(Math.log(ans / a) + a * Math.log(x) - x - gammaln(a));
 }
 
-// Upper regularized incomplete gamma Q(a,x) = 1 - P(a,x) via continued fraction
+// Regularized upper incomplete gamma Q(a, x) = 1 − P(a, x) — Cephes' igamc
+// continued-fraction form. Three-term recurrence on (pkm, qkm) with the
+// `pk = pkm1*z − pkm2*yc` update; `c` and `y` advance by integer steps each
+// iteration. Big/biginv rescaling keeps |pk| from running away.
 function gammainc_upper(a, x) {
-  let f = x + 1 - a,
-    c = 1 / 1e-30,
-    d = 1 / f,
-    h = d;
-  const maxIter = Math.max(200, Math.ceil(20 * Math.sqrt(a + 1)));
-  for (let i = 1; i < maxIter; i++) {
-    const an = -i * (i - a);
-    const bn = x + 2 * i + 1 - a;
-    d = bn + an * d;
-    if (Math.abs(d) < 1e-30) d = 1e-30;
-    d = 1 / d;
-    c = bn + an / c;
-    if (Math.abs(c) < 1e-30) c = 1e-30;
-    const del = d * c;
-    h *= del;
-    if (Math.abs(del - 1) < 3e-14) break;
+  let y = 1 - a;
+  let z = x + y + 1;
+  let c = 0;
+  let pkm2 = 1;
+  let qkm2 = x;
+  let pkm1 = x + 1;
+  let qkm1 = z * x;
+  let ans = pkm1 / qkm1;
+
+  const maxIter = Math.max(300, Math.ceil(20 * Math.sqrt(a + 1)));
+  for (let i = 0; i < maxIter; i++) {
+    c += 1;
+    y += 1;
+    z += 2;
+    const yc = y * c;
+    const pk = pkm1 * z - pkm2 * yc;
+    const qk = qkm1 * z - qkm2 * yc;
+    let t;
+    if (qk !== 0) {
+      const r = pk / qk;
+      t = Math.abs((ans - r) / r);
+      ans = r;
+    } else {
+      t = 1;
+    }
+    pkm2 = pkm1;
+    pkm1 = pk;
+    qkm2 = qkm1;
+    qkm1 = qk;
+    if (Math.abs(pk) > CEPHES_BIG) {
+      pkm2 *= CEPHES_BIGINV;
+      pkm1 *= CEPHES_BIGINV;
+      qkm2 *= CEPHES_BIGINV;
+      qkm1 *= CEPHES_BIGINV;
+    }
+    if (t < CEPHES_MACHEP) break;
   }
-  return Math.exp(Math.log(h) + (-x + a * Math.log(x) - gammaln(a)));
+  // Log-space final exponentiation — see comment in gammainc.
+  return Math.exp(Math.log(ans) + a * Math.log(x) - x - gammaln(a));
 }
 
 // t-distribution CDF
