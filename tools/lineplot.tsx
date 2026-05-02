@@ -1124,7 +1124,7 @@ function buildAggregateRScript(rows, xLabel) {
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const header = [
     "# -----------------------------------------------------------------------------",
-    "# Dataviz Toolbox — Line Plot R script export (combined per-x analysis)",
+    "# Plöttr — Line Plot R script export (combined per-x analysis)",
     "# Generated: " + now,
     `# X axis: ${xLabel || "x"} — ${rows.length} eligible points.`,
     "# Each section redefines `df` for one x value and runs its assumption checks,",

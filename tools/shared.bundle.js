@@ -6859,10 +6859,10 @@ function _rPackagesFor(postHocName) {
 function _headerComment(generated, dataNote) {
   const lines = [
     "# -----------------------------------------------------------------------------",
-    "# Dataviz Toolbox — R script export",
+    "# Plöttr — R script export",
     "# Generated: " + generated,
     "#",
-    "# This script reproduces the statistical tests run in the browser toolbox.",
+    "# This script reproduces the statistical tests run in the browser tool.",
     "# Plots are intentionally omitted — regenerate them in ggplot2 from `df` below.",
   ];
   if (dataNote) {
@@ -7102,7 +7102,7 @@ function buildRScriptForPower(state) {
 
   const lines = [];
   lines.push("# -----------------------------------------------------------------------------");
-  lines.push("# Dataviz Toolbox — Power analysis R export");
+  lines.push("# Plöttr — Power analysis R export");
   lines.push("# Generated: " + generated);
   lines.push("#");
   lines.push("# Test:        " + (_R_POWER_TEST_LABELS[testKey] || testKey || "(unknown)"));
