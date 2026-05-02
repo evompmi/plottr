@@ -64,6 +64,14 @@ restore_stash() {
       echo "             is preserved in stash@{0}. Resolve manually after the"
       echo "             commit lands, or run \`git stash drop\` if you no longer"
       echo "             need it."
+      echo
+      echo "             Common case (the conflict is a re-built compiled output"
+      echo "             that drifted from your unstaged copy):"
+      echo "               git checkout --theirs tools/<file>.js tools/<file>.js.map"
+      echo "               git add tools/<file>.js tools/<file>.js.map"
+      echo "               git stash drop"
+      echo "             '--theirs' here is the freshly-rebuilt version on disk;"
+      echo "             '--ours' is the stashed pre-rebuild copy."
     fi
   fi
 }
