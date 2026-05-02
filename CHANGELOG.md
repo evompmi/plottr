@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Suggested citation now describes Plöttr as a toolbox "for wet-lab scientists" rather than "for plant scientists".** The product never had any plant-specific code paths — `tools/stats.js` and the seven plot tools are domain-neutral (the `tools/aequorin/helpers.ts` calibration formula is the only plant-aequorin-specific piece, and even that is a single optional pipeline inside the RLU timecourse tool). The narrower phrasing in `README.md`'s suggested-citation block undersold the audience and hid the tool from the broader wet-lab community it was always intended to serve. Single-line edit; the only occurrence of the phrase in the repo. Provenance comments inside `tools/aequorin/helpers.ts` (e.g. "treatment adopted for plant aequorin") are scientific scope notes about the calibration formula and stay unchanged.
+
 ### Fixed
 
 - **Privacy page — "GitHub" link in the "Open to scrutiny" trust-card now follows site link conventions.** The third trust-card on `privacy.html` ("Plöttr is open source. The whole codebase — including this page — is on GitHub. Read it, fork it, or run a local copy.") had no `.trust-card a` rule, so the inline `<a href="https://github.com/evompmi/plottr">GitHub</a>` fell back to the UA-default `#0000EE` blue — same WCAG-AA contrast failure pattern fixed for the landing-page footer "view benchmark →" link in the previous accessibility pass. Added `.trust-card a` mirroring the convention used by `.inspect-block a` on the same page (`color: var(--accent-primary)`, no underline by default, underline on hover) so all three card-body links theme correctly and stay legible in both modes. No markup change.

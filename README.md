@@ -132,7 +132,7 @@ No runtime dependencies from external CDNs — `vendor/` ships React + ReactDOM 
 
 If you use Plöttr in published research, cite the repository. A Zenodo DOI will be minted on tagged releases. Suggested citation:
 
-> Plöttr — a browser-only data-analysis toolbox for plant scientists. EVO team, LRSV Toulouse. <https://github.com/evompmi/plottr>
+> Plöttr — a browser-only data-analysis toolbox for wet-lab scientists. EVO team, LRSV Toulouse. <https://github.com/evompmi/plottr>
 
 ## License
 
