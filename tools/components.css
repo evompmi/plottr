@@ -451,3 +451,46 @@ input[type="range"]::-moz-range-thumb {
   box-sizing: border-box;
   overflow-y: auto;
 }
+
+/* RLU timecourse — chart column responsive toggles.
+
+   The right side of the plot step has two widgets at the top: the
+   sticky "🔬 Sample selection" pill on the left (must keep its
+   differential stickiness so it stays visible while scrolling), and
+   an absolute-positioned Series + Layout toggle group on the right
+   (intentionally non-sticky so it scrolls away with the page). When
+   the chart column is wide both share one row comfortably; when
+   narrow (e.g. window < ~1280 px with the controls panel taking its
+   ~360 px share), the two horizontally-laid toggle groups crowd into
+   the sticky sample pill on the left.
+
+   Fix: a container query on the chart column flips Series + Layout
+   from a horizontal row into a right-aligned vertical stack below
+   ~620 px of inline-size. Preserves the wide-screen look and the
+   per-widget stickiness contract. */
+.dv-aeq-chart-area {
+  container-type: inline-size;
+  container-name: aeq-chart;
+}
+.dv-aeq-toggles-group {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 19;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+@container aeq-chart (max-width: 620px) {
+  /* Narrow column: drop the absolute positioning so the toggles enter
+     normal flow and push the chart (and any sticky neighbours below
+     them) downward instead of overlapping. They still scroll away
+     normally — Sample selection alone retains its `position: sticky`. */
+  .dv-aeq-toggles-group {
+    position: static;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+}
