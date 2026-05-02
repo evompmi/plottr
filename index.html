@@ -1046,6 +1046,13 @@
       // by posting { type: "openTool", tool: "<name>" } — used by Venn's
       // "try UpSet" nudge banner.
       window.addEventListener("message", function (e) {
+        // Origin pin: this listener accepts cross-frame nav commands and the
+        // openTool channel is the route every "send-to-X" hand-off uses
+        // (Venn → UpSet, RLU timecourse → Boxplot, …). A malicious page
+        // embedding Plöttr in an iframe could otherwise spam openTool to
+        // thrash the visible tool. Same-origin only, mirroring upset.tsx's
+        // hand-off receiver.
+        if (!e || e.origin !== window.location.origin) return;
         var d = e && e.data;
         if (!d || d.type !== "openTool" || typeof d.tool !== "string") return;
         if (document.getElementById("view-" + d.tool)) openTool(d.tool);
@@ -1131,7 +1138,10 @@
             } catch (e) {}
             try {
               if (f.contentWindow) {
-                f.contentWindow.postMessage({ type: "dataviz-theme-set", theme: mode }, "*");
+                f.contentWindow.postMessage(
+                  { type: "dataviz-theme-set", theme: mode },
+                  window.location.origin
+                );
               }
             } catch (e) {}
           });

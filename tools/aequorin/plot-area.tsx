@@ -432,7 +432,10 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                       //    consumes the payload reactively.
                       if (window.parent !== window.self) {
                         try {
-                          window.parent.postMessage({ type: "openTool", tool: "boxplot" }, "*");
+                          window.parent.postMessage(
+                            { type: "openTool", tool: "boxplot" },
+                            window.location.origin
+                          );
                           return;
                         } catch (err) {
                           /* fall through to top-level nav */
