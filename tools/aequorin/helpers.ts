@@ -272,3 +272,36 @@ export function buildAreaD(pts) {
 // Re-exported from `_shell/chart-layout.ts` (audit M7 — was byte-identical
 // with lineplot's `MARGIN`).
 export const MARGIN = CHART_MARGIN;
+
+// ── Auto Y-axis range over a visible x-window ────────────────────────────────
+// Returns { yMin, yMax } padded ±10% (lower clamped at 0, both rounded to
+// 2 decimal places — matches the prior inline logic in index.tsx). Returns
+// `null` when calData is empty / window contains no finite values, so the
+// caller can short-circuit instead of pushing NaN through updVis.
+//
+// Pure for testability: the React layer (useLayoutEffect in index.tsx) calls
+// this and pushes the result into vis.{yMin,yMax}. Pre-existing values in
+// vis.* (e.g. rehydrated from auto-prefs of a previous session) are
+// irrelevant — this function is keyed only on the actual data, so the
+// chart never paints with a stale persisted range.
+export function computeAutoYRange(calData, xStart, xEnd) {
+  if (!calData || calData.length === 0) return null;
+  const r0 = Math.max(0, Math.floor(xStart));
+  const r1 = Math.min(calData.length - 1, Math.ceil(xEnd));
+  let lo = Infinity,
+    hi = -Infinity;
+  for (let r = r0; r <= r1; r++) {
+    const row = calData[r];
+    if (!row) continue;
+    for (let c = 0; c < row.length; c++) {
+      const v = row[c];
+      if (v != null && Number.isFinite(v)) {
+        if (v < lo) lo = v;
+        if (v > hi) hi = v;
+      }
+    }
+  }
+  if (!isFinite(lo) || !isFinite(hi)) return null;
+  const round2 = (v) => Math.round(v * 100) / 100;
+  return { yMin: round2(Math.max(0, lo * 0.9)), yMax: round2(hi * 1.1) };
+}

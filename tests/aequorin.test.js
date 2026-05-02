@@ -15,6 +15,7 @@ const {
   convertTime,
   buildAreaD,
   buildLineD,
+  computeAutoYRange,
   DEFAULT_KR,
   DEFAULT_KTR,
   DEFAULT_KD,
@@ -282,6 +283,105 @@ test("calibrateGeneralized(RUNDOWN, DEFAULT_*) reduces to Allen & Blinks at n=3"
   for (let i = 0; i < ab.length; i++) {
     approx(gen[i][0], ab[i][0], 1e-12);
   }
+});
+
+// ── computeAutoYRange ───────────────────────────────────────────────────────
+//
+// Pinned to guard against the "first-render glitch" regression: the auto-Y
+// range used to be inlined in a useEffect that ran *after* paint, so the
+// chart briefly rendered with whatever vis.{yMin,yMax} had been rehydrated
+// from a previous session's auto-prefs. Extracting the math makes the data
+// the only input — verified here — and the React side now calls it from a
+// useLayoutEffect so the corrected range commits before paint.
+
+suite("computeAutoYRange");
+
+test("returns ±10% padding around the visible-window data range", () => {
+  // Three rows × two columns; visible window is the full data.
+  const data = [
+    [1.0, 2.0],
+    [3.0, 4.0],
+    [5.0, 6.0],
+  ];
+  const r = computeAutoYRange(data, 0, 2);
+  // hi = 6 → yMax = 6.6; lo = 1 → yMin = 0.9 (max(0, 1*0.9)).
+  approx(r.yMax, 6.6, 1e-9);
+  approx(r.yMin, 0.9, 1e-9);
+});
+
+test("clamps yMin at zero for non-negative data", () => {
+  // lo = 0.05 would give 0.045 unrounded; round2 → 0.05; max(0, …) leaves it.
+  const r = computeAutoYRange([[0.05]], 0, 0);
+  assert(r.yMin >= 0);
+});
+
+test("ignores rows outside the [xStart, xEnd] window", () => {
+  // Row 5 contains a huge spike that would dominate if the window weren't
+  // honoured. Window 0..2 should not see it.
+  const data = [[1], [2], [3], [4], [5], [99999]];
+  const r = computeAutoYRange(data, 0, 2);
+  approx(r.yMax, 3 * 1.1, 1e-9);
+});
+
+test("ignores nulls and non-finite cells", () => {
+  const data = [
+    [1, null, 3],
+    [NaN, 2, Infinity],
+    [4, 5, null],
+  ];
+  const r = computeAutoYRange(data, 0, 2);
+  // Visible finite values: 1,3,2,4,5 → hi = 5, lo = 1.
+  approx(r.yMax, 5.5, 1e-9);
+  approx(r.yMin, 0.9, 1e-9);
+});
+
+test("returns null on empty data or all-null window (caller short-circuits)", () => {
+  eq(computeAutoYRange(null, 0, 10), null);
+  eq(computeAutoYRange([], 0, 10), null);
+  eq(computeAutoYRange([[null, null]], 0, 0), null);
+});
+
+test("xStart/xEnd are clamped to the data length, never producing NaN", () => {
+  // xEnd far past the end of data should still produce a finite range.
+  const data = [[1], [2], [3]];
+  const r = computeAutoYRange(data, 0, 999);
+  approx(r.yMax, 3.3, 1e-9);
+  // Negative xStart is clamped to 0.
+  const r2 = computeAutoYRange(data, -50, 1);
+  approx(r2.yMax, 2.2, 1e-9);
+});
+
+test("rounds to 2 decimal places", () => {
+  // hi = 1.23456 → 1.23456 * 1.1 = 1.358016 → round2 → 1.36
+  const r = computeAutoYRange([[1.23456]], 0, 0);
+  eq(r.yMax, 1.36);
+});
+
+test("range is independent of any previously persisted vis.yMin / vis.yMax", () => {
+  // Regression guard: the helper takes only (calData, xStart, xEnd); the
+  // pre-fix bug surfaced because vis.{yMin,yMax} from auto-prefs of an
+  // unrelated dataset leaked into the first paint. Now the math has no
+  // way to see them — re-running with identical inputs always yields the
+  // same output, regardless of what the React layer happens to be holding.
+  const data = [
+    [10, 20],
+    [30, 40],
+  ];
+  const r1 = computeAutoYRange(data, 0, 1);
+  const r2 = computeAutoYRange(data, 0, 1);
+  eq(r1.yMin, r2.yMin);
+  eq(r1.yMax, r2.yMax);
+  // And an entirely different dataset must produce a different range —
+  // not the first one's range carried over.
+  const r3 = computeAutoYRange(
+    [
+      [0.001, 0.002],
+      [0.003, 0.004],
+    ],
+    0,
+    1
+  );
+  assert(r3.yMax !== r1.yMax);
 });
 
 summary();

@@ -15,6 +15,7 @@ import {
   calibrate,
   calibrateHill,
   calibrateGeneralized,
+  computeAutoYRange,
   detectConditions,
 } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
@@ -209,24 +210,16 @@ function App() {
   // Auto-rescale y-axis whenever formula, data, or visible x window changes —
   // only while `vis.autoYRange` is on. A manual edit of Y min / Y max in the
   // controls sets it to false and the user's range sticks.
-  React.useEffect(() => {
+  //
+  // useLayoutEffect (not useEffect): the rescale must commit before the
+  // browser paints, otherwise the chart paints once with the stale
+  // vis.yMin / vis.yMax (rehydrated from auto-prefs of a previous session
+  // or VIS_INIT_AEQUORIN's 0.1 / 1.4 defaults), then snaps to the correct
+  // range one frame later — the visible "first-render glitch".
+  React.useLayoutEffect(() => {
     if (!vis.autoYRange) return;
-    if (!calData || calData.length === 0) return;
-    const r0 = Math.max(0, Math.floor(vis.xStart));
-    const r1 = Math.min(calData.length - 1, Math.ceil(vis.xEnd));
-    let lo = Infinity,
-      hi = -Infinity;
-    for (let r = r0; r <= r1; r++)
-      calData[r].forEach((v) => {
-        if (v != null) {
-          if (v < lo) lo = v;
-          if (v > hi) hi = v;
-        }
-      });
-    if (isFinite(lo) && isFinite(hi)) {
-      const round2 = (v) => Math.round(v * 100) / 100;
-      updVis({ yMin: round2(Math.max(0, lo * 0.9)), yMax: round2(hi * 1.1) });
-    }
+    const range = computeAutoYRange(calData, vis.xStart, vis.xEnd);
+    if (range) updVis(range);
   }, [formula, calData, vis.xStart, vis.xEnd, vis.autoYRange]);
 
   const csvText = useMemo(() => {
