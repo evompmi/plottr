@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`scripts/write-version.js` reads the version from `CHANGELOG.md` instead of `git describe`, closing a deploy race.** Symptom: after pushing `chore(release): 1.0.5` followed by `git push origin v1.0.5`, the deployed `tools/version.js` on `gh-pages` still showed `v1.0.4` even though the source on `master` had `v1.0.5` correctly committed. Root cause: the `Build & Deploy` workflow triggers on a push to `master`, but the tag is pushed in a separate `git push origin <tag>` command a few seconds later. The deploy workflow's `npm run build` runs `prebuild` → `node scripts/write-version.js`, which called `git describe --tags --abbrev=0`. At workflow-trigger time the tag hadn't reached the GitHub side yet, so `git describe` returned the _previous_ release tag and the build overwrote the hand-set `v1.0.5` in `tools/version.js` with `v1.0.4` before pushing to `gh-pages`. Fix: `write-version.js` now derives the version from the first concrete (non-`Unreleased`) `## [X.Y.Z] - DATE` heading in `CHANGELOG.md` — that file is bumped synchronously with the release commit, so it's deterministic regardless of tag-push timing — and falls back to `git describe` then to `"dev"` if CHANGELOG is missing or malformed. No change to the run-time behaviour of the version badge; same `window.__APP_VERSION__` shape, same `<script src="tools/version.js">` load. As a one-off, the v1.0.5 deploy was unblocked by re-running the deploy workflow against `master` after the tag had been pushed (`gh workflow run deploy.yml --ref master`); the new race-proof generator means future releases don't need that follow-up step.
+
 ## [1.0.5] - 2026-05-02
 
 ### Changed
