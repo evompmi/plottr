@@ -60,6 +60,7 @@ module.exports = {
   convertTime: moduleObj.exports.convertTime,
   buildAreaD: moduleObj.exports.buildAreaD,
   buildLineD: moduleObj.exports.buildLineD,
+  computeAutoYRange: moduleObj.exports.computeAutoYRange,
   DEFAULT_KR: moduleObj.exports.DEFAULT_KR,
   DEFAULT_KTR: moduleObj.exports.DEFAULT_KTR,
   DEFAULT_KD: moduleObj.exports.DEFAULT_KD,
