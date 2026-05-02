@@ -7,7 +7,7 @@
 // shared.bundle.js; TIME_UNITS comes from ./helpers.
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
-import { TIME_UNITS } from "./helpers";
+import { TIME_UNITS, convertTime } from "./helpers";
 import { ConditionEditor } from "./plot-area";
 
 const { useState, useRef, useEffect } = React;
@@ -100,6 +100,23 @@ export function PlotControls({
   downloadCalibrated,
   resetAll,
 }) {
+  // X start / X end are stored in `vis` as row indices (integers — used to
+  // slice calData rows downstream). The chart converts them to display-unit
+  // time via `displayX = xRow * timeStep * convFactor`. The input fields
+  // here mirror the same conversion so what the user types matches the
+  // axis they see, and switching Display unit re-renders the input value
+  // in the new unit. Round-trip is row → display → row; storage stays as
+  // row indices so saved prefs and the `Math.floor(vis.xStart)` slicing
+  // logic at index.tsx:179 keep working.
+  const ts = vis.timeStep || 1;
+  const bUnit = vis.baseUnit || "s";
+  const dUnit = vis.displayUnit || bUnit;
+  const tsConv = ts * convertTime(1, bUnit, dUnit);
+  const tsConvSafe = tsConv || 1;
+  const displayXStart = vis.xStart * tsConv;
+  const displayXEnd = vis.xEnd * tsConv;
+  const unitLabel = (TIME_UNITS.find((u) => u.key === dUnit) || { key: dUnit }).key;
+
   return (
     <PlotSidebar>
       {/* Actions tile */}
@@ -130,19 +147,21 @@ export function PlotControls({
       <ControlSection title="Axes">
         <div style={{ display: "flex", gap: 6 }}>
           <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">X start</span>
+            <span className="dv-label">X start ({unitLabel})</span>
             <NumberInput
-              value={vis.xStart}
-              onChange={(e) => updVis({ xStart: Number(e.target.value) })}
+              value={displayXStart}
+              onChange={(e) => updVis({ xStart: Number(e.target.value) / tsConvSafe })}
               style={{ width: "100%" }}
+              step="any"
             />
           </label>
           <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">X end</span>
+            <span className="dv-label">X end ({unitLabel})</span>
             <NumberInput
-              value={vis.xEnd}
-              onChange={(e) => updVis({ xEnd: Number(e.target.value) })}
+              value={displayXEnd}
+              onChange={(e) => updVis({ xEnd: Number(e.target.value) / tsConvSafe })}
               style={{ width: "100%" }}
+              step="any"
             />
           </label>
         </div>

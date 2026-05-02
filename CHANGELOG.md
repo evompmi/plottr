@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **RLU timecourse — X start / X end inputs now follow the Display unit.** `vis.xStart` and `vis.xEnd` are stored as row indices (integers used to slice calData), and the chart correctly multiplies them by `timeStep * convFactor` to render the X axis in display units. The input fields in the Axes control panel skipped the conversion: switching Display unit from e.g. `s` to `min` re-rendered the chart correctly but left the inputs showing the raw row-index number, so the user couldn't type a coherent range in the new unit. The inputs now apply the same `* timeStep * convertTime(base→display)` round-trip the chart uses, and the labels carry the active unit (`X start (min)` / `X end (s)` / etc.) so it's obvious which scale to type in. Storage stays as row indices — no migration needed for saved auto-prefs, no change to the row-slicing logic at `tools/aequorin/index.tsx:179`.
+
 ## [1.0.3] - 2026-05-01
 
 ### Changed
