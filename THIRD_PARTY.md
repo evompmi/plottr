@@ -136,8 +136,9 @@ independently coded.
 ### Color and palettes
 
 - **Okabe–Ito qualitative palette** — Wong, "Color blindness", _Nature
-  Methods_ 8 (2011). Hex coordinates are facts (color values), not
-  copyrightable; cited as a courtesy.
+  Methods_ 8 (2011). The eight-colour set was designed for accessibility to
+  colour-vision-deficient readers and is widely shared in the scientific
+  community; we use it as the default qualitative palette throughout Plöttr.
 - **Sequential and diverging palettes** — viridis / plasma / magma / inferno
   derived from the Matplotlib palettes (released CC0 / public domain by
   their authors Stéfan van der Walt & Nathaniel Smith); cividis from
