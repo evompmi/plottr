@@ -148,9 +148,13 @@ document.addEventListener("visibilitychange", () => {
 // Parent-to-iframe sync: the landing page's top-bar toggle posts a message to
 // every tool iframe because the `storage` event doesn't fire in the window
 // that wrote the key, and file:// origins can block direct contentDocument
-// access from the parent. Accept only our own message shape.
+// access from the parent. Accept only our own message shape, and only from
+// the same origin — a hostile embedder could otherwise spam theme flips.
+// In `file://` deploys both sides serialise to `"null"`, so the same-origin
+// equality holds and the offline workflow keeps working.
 window.addEventListener("message", (e) => {
-  const data = e && e.data;
+  if (!e || e.origin !== window.location.origin) return;
+  const data = e.data;
   if (!data || data.type !== "dataviz-theme-set") return;
   const v = data.theme === "dark" || data.theme === "light" ? data.theme : null;
   _applyThemeAttr(v);
@@ -6859,10 +6863,10 @@ function _rPackagesFor(postHocName) {
 function _headerComment(generated, dataNote) {
   const lines = [
     "# -----------------------------------------------------------------------------",
-    "# Dataviz Toolbox — R script export",
+    "# Plöttr — R script export",
     "# Generated: " + generated,
     "#",
-    "# This script reproduces the statistical tests run in the browser toolbox.",
+    "# This script reproduces the statistical tests run in the browser tool.",
     "# Plots are intentionally omitted — regenerate them in ggplot2 from `df` below.",
   ];
   if (dataNote) {
@@ -7102,7 +7106,7 @@ function buildRScriptForPower(state) {
 
   const lines = [];
   lines.push("# -----------------------------------------------------------------------------");
-  lines.push("# Dataviz Toolbox — Power analysis R export");
+  lines.push("# Plöttr — Power analysis R export");
   lines.push("# Generated: " + generated);
   lines.push("#");
   lines.push("# Test:        " + (_R_POWER_TEST_LABELS[testKey] || testKey || "(unknown)"));

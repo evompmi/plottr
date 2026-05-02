@@ -194,7 +194,7 @@ export function buildAqAggregateRScript(rows) {
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const header = [
     "# -----------------------------------------------------------------------------",
-    "# Dataviz Toolbox — RLU timecourse R script export",
+    "# Plöttr — RLU timecourse R script export",
     "# Generated: " + now,
     "# -----------------------------------------------------------------------------",
     "",

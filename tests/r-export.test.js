@@ -263,6 +263,19 @@ test("includes generated timestamp", () => {
   assert(out.includes("Generated: 2026-04-15T00:00:00Z"), "missing generated timestamp");
 });
 
+test("header brand line says 'Plöttr', not the legacy 'Dataviz Toolbox'", () => {
+  // Regression guard for the 1.0.4 → 1.0.5 brand-rename drift: the prose
+  // "Dataviz Toolbox" stayed embedded in six R-export headers (one shared,
+  // five per-tool) for two releases because the rename swept HTML chrome
+  // but missed the literal strings inside the script-builder modules.
+  // Users archive these scripts alongside published figures, so a stale
+  // brand survives long after the in-app rename. Pin the new value here so
+  // any future rename HAS to come back to this test.
+  const out = buildRScript(ctxTwoGroups("welchT"));
+  assert(out.includes("# Plöttr —"), "header missing 'Plöttr —' brand line");
+  assert(!out.includes("Dataviz Toolbox"), "stale 'Dataviz Toolbox' brand still present");
+});
+
 test("dataNote appears in the header block", () => {
   const out = buildRScript(
     ctxTwoGroups("welchT", {

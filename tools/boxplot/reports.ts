@@ -96,7 +96,7 @@ export function buildBpAggregateRScript(rows, setLabel) {
   const label = setLabel || "Set";
   const header = [
     "# -----------------------------------------------------------------------------",
-    "# Dataviz Toolbox — Group Plot R script export (combined analysis)",
+    "# Plöttr — Group Plot R script export (combined analysis)",
     "# Generated: " + now,
     `# ${label}${rows.length === 1 ? "" : "s"}: ${rows.length}. Each section redefines df and runs its checks.`,
     "# -----------------------------------------------------------------------------",

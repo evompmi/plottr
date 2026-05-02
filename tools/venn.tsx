@@ -438,11 +438,17 @@ function ConfigureStep({
     if (window.parent && window.parent !== window) {
       try {
         const frame = window.parent.document.getElementById("frame-upset") as HTMLIFrameElement;
-        if (frame && frame.contentWindow) frame.contentWindow.postMessage(payload, "*");
+        // Origin-pin both targets so a hostile embedder can't sniff the
+        // handoff payload by intercepting wildcard postMessages. Both
+        // hops are same-origin by construction (sibling iframes from the
+        // landing page); pin to `window.location.origin` and let the
+        // browser drop the message if any frame ever lands cross-origin.
+        if (frame && frame.contentWindow)
+          frame.contentWindow.postMessage(payload, window.location.origin);
       } catch {
         /* cross-origin or detached — fall through to the openTool ask */
       }
-      window.parent.postMessage({ type: "openTool", tool: "upset" }, "*");
+      window.parent.postMessage({ type: "openTool", tool: "upset" }, window.location.origin);
     } else {
       // Standalone path: stash in sessionStorage and full-page navigate.
       // UpSet's mount-time effect consumes the entry and clears it.

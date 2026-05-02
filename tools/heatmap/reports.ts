@@ -59,7 +59,7 @@ export function buildHeatmapRScript({
     distanceMetric === "correlation" ? "correlation" : distanceMetric || "euclidean";
 
   const lines = [];
-  lines.push("# Dataviz Toolbox — Heatmap R script export");
+  lines.push("# Plöttr — Heatmap R script export");
   lines.push("# Generated " + new Date().toISOString());
   lines.push("#");
   lines.push("# Reproduces the normalisation + hierarchical clustering");
