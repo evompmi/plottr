@@ -73,8 +73,8 @@ function cmp(jsVal, rVal) {
 }
 
 // Compare two p-values. Above P_ABS_CEILING, use absolute tolerance. Below,
-// switch to log-space so a ratio of 10× at p=1e-10 is caught (old absolute
-// rule would rubber-stamp any p < TOL regardless of truth).
+// switch to log-space so a ratio of 10× at p=1e-10 is caught (a plain
+// absolute rule would rubber-stamp any p < TOL regardless of truth).
 function cmpP(jsP, rP) {
   if (!Number.isFinite(jsP) || !Number.isFinite(rP)) {
     return { delta: NaN, pass: false };
@@ -101,10 +101,10 @@ function cmpP(jsP, rP) {
 // saturates near machine epsilon). scipy's `studentized_range.sf` uses the
 // same algorithm and shows the same floor at ~2.13e-14.
 //
-// Our `ptukey_upper` computes the survival without that cancellation, so it
-// continues the true tail past R's floor. Cross-checked at q=8 against both
-// scipy (2.3332e-7) and a 20M-sample Monte Carlo (2.5e-7 ± 1.1e-7) — four
-// significant figures.
+// Plöttr's `ptukey_upper` computes the survival without that cancellation, so
+// it continues the true tail past R's floor. Cross-checked at q=8 against
+// both scipy (2.3332e-7) and a 20M-sample Monte Carlo (2.5e-7 ± 1.1e-7) —
+// four significant figures.
 //
 // When a Tukey-HSD or Games-Howell pAdj has R below this threshold AND JS
 // strictly smaller, mark the row as "R-saturated" rather than "failed":
@@ -497,7 +497,7 @@ const tableHtml = cats
 
     return `
     <details class="category" open>
-      <summary><span class="cat-title">${escapeHtml(cat)}</span> ${badge}</summary>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">${escapeHtml(cat)}</span> ${badge}</summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -557,6 +557,7 @@ const html = `<!doctype html>
 </script>
 <title>Plöttr · statistical benchmark vs R</title>
 <link rel="stylesheet" href="tools/theme.css" />
+<link rel="stylesheet" href="tools/components.css" />
 <script src="tools/shared.bundle.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -611,22 +612,29 @@ const html = `<!doctype html>
     padding: 0;
   }
   .category > summary::-webkit-details-marker { display: none; }
-  .category > summary::before {
-    content: "";
-    display: inline-block;
-    width: 0;
-    height: 0;
-    border-left: 6px solid var(--text-muted);
-    border-top: 4px solid transparent;
-    border-bottom: 4px solid transparent;
-    transition: transform 120ms ease;
-    flex-shrink: 0;
-  }
-  .category[open] > summary::before {
-    transform: rotate(90deg);
-  }
+  .category > summary > .dv-disclosure { margin-right: 0.1rem; }
+  .category[open] > summary > .dv-disclosure { transform: rotate(90deg); }
   .category > summary .cat-title {
     flex-shrink: 0;
+  }
+  .toggle-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 1rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .toggle-all:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+  .toggle-all:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 1px;
   }
   .category[open] > summary {
     margin-bottom: 0.6rem;
@@ -709,12 +717,12 @@ const html = `<!doctype html>
   <header>
     <h1>statistical cross-validation vs R ${escapeHtml(data.meta.r_version.replace(/^R version /, ""))}</h1>
     <ul class="lede">
-      <li>Every function in <code>tools/stats.js</code> is rerun against its R ${escapeHtml(data.meta.r_version.replace(/^R version /, "").split(" ")[0])} counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
+      <li>Plöttr reruns every function in <code>tools/stats.js</code> against its R ${escapeHtml(data.meta.r_version.replace(/^R version /, "").split(" ")[0])} counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
       <li>Inputs are bit-identical between R and Plöttr.</li>
-      <li>Tolerance: |Δ| ≤ ${TOL} on test statistics and on p-values ≥ ${P_ABS_CEILING}. For deep-tail p-values (&lt; ${P_ABS_CEILING}), we compare in log space — the ratio between R's p and ours must stay within [1/1.1, 1.1], so a p of 1e-10 can't silently mis-match a p of 1e-9 the way it could under pure absolute tolerance.</li>
-      <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons. Prior versions hand-ported both algorithms in the R reference file and compared against the same hand-port in JS — a self-referential check that silently passed any shared bug.</li>
-      <li><strong>R-floor rows (amber)</strong>: R's own <code>ptukey</code> uses a <code>1 − ptukey(q)</code> cancellation that saturates at ~<code>2.2e-15</code>, and reports non-monotonic values at extreme q (e.g. <code>ptukey(21.97, 3, 147) = 2.22e-15</code> but <code>ptukey(12, 3, 147) = 9.68e-14</code>). scipy's <code>studentized_range.sf</code> uses the same algorithm family and shows the same floor. Our <code>ptukey_upper</code> computes the survival directly without that cancellation (verified at <code>q=8</code> against scipy <code>2.3332e-7</code> and a 20M-sample Monte Carlo <code>2.5e-7 ± 1.1e-7</code>, four significant figures). Rows labelled "R-floor" are where R saturates and we continue the true tail — not a JS failure, but R is no longer ground truth there.</li>
-      <li>Real failures are flagged in red and counted honestly — they mean we have work to do.</li>
+      <li>Tolerance: |Δ| ≤ ${TOL} on test statistics and on p-values ≥ ${P_ABS_CEILING}. Deep-tail p-values (&lt; ${P_ABS_CEILING}) are compared in log space, so the ratio between R's p and Plöttr's stays within [1/1.1, 1.1].</li>
+      <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons.</li>
+      <li><strong>R-floor rows (amber)</strong>: R's <code>ptukey</code> saturates at ~<code>2.2e-15</code> due to a <code>1 − ptukey(q)</code> cancellation. Plöttr's <code>ptukey_upper</code> computes the survival directly and continues the true tail past that floor (cross-checked against scipy and Monte Carlo). These rows are not JS failures — R is simply no longer ground truth there.</li>
+      <li>Real failures are flagged in red and counted honestly.</li>
       <li>Reproduce locally: <code>Rscript benchmark/run-r.R &amp;&amp; node benchmark/run.js</code></li>
       <li><a href="./index.html">← back to tools</a></li>
     </ul>
@@ -727,6 +735,8 @@ const html = `<!doctype html>
     <div><span class="k">past R's floor</span><span class="v v-rsat">${rSaturatedRows}</span></div>
     <div><span class="k">max |Δ|</span><span class="v">${fmtDelta(maxDelta)}</span></div>
   </div>
+
+  <button type="button" class="toggle-all" data-toggle-all aria-expanded="true">Collapse all</button>
 
   ${tableHtml}
 
@@ -764,6 +774,27 @@ const html = `<!doctype html>
       if (e.key === "dataviz-theme") render();
     });
     render();
+  })();
+
+  // Expand all / Collapse all toggle for the per-category <details> blocks.
+  (function () {
+    var btn = document.querySelector("[data-toggle-all]");
+    if (!btn) return;
+    var cats = document.querySelectorAll("details.category");
+    function syncLabel() {
+      var anyClosed = false;
+      cats.forEach(function (d) { if (!d.open) anyClosed = true; });
+      btn.textContent = anyClosed ? "Expand all" : "Collapse all";
+      btn.setAttribute("aria-expanded", anyClosed ? "false" : "true");
+    }
+    btn.addEventListener("click", function () {
+      var anyClosed = false;
+      cats.forEach(function (d) { if (!d.open) anyClosed = true; });
+      cats.forEach(function (d) { d.open = anyClosed; });
+      syncLabel();
+    });
+    cats.forEach(function (d) { d.addEventListener("toggle", syncLabel); });
+    syncLabel();
   })();
 </script>
 </body>

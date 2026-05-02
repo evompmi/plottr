@@ -67,53 +67,48 @@
     border: 1px solid var(--border);
     padding: 1rem 1.25rem;
   }
-  /* <details> collapsed = summary is the only visible content; hide the
-     browser-default triangle and let the shared `.dv-disclosure` widget
-     (same circular chevron as the tool control panels) handle the open/
-     closed indication via a CSS attribute selector on [open]. */
-  .category summary {
-    cursor: pointer;
+  .category > summary {
     list-style: none;
-  }
-  .category summary::-webkit-details-marker {
-    display: none;
-  }
-  .category summary h2 {
-    margin-bottom: 0;
-  }
-  .category[open] summary h2 {
-    margin-bottom: 0.6rem;
-  }
-  /* Pin the shared chevron's open-rotation to the <details> state since
-     we can't toggle the `dv-disclosure-open` class on a <summary>. */
-  .category[open] summary .dv-disclosure {
-    transform: rotate(90deg);
-  }
-  .category-toolbar {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-  .category-toolbar button {
-    font-size: 0.75rem;
-    padding: 0.3rem 0.7rem;
-    background: var(--surface);
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-    border-radius: 4px;
     cursor: pointer;
-    font-family: inherit;
-  }
-  .category-toolbar button:hover {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-  }
-  .category h2 {
-    font-size: 1rem;
-    margin-bottom: 0.6rem;
+    user-select: none;
     display: flex;
     align-items: center;
     gap: 0.6rem;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+    padding: 0;
+  }
+  .category > summary::-webkit-details-marker { display: none; }
+  .category > summary > .dv-disclosure { margin-right: 0.1rem; }
+  .category[open] > summary > .dv-disclosure { transform: rotate(90deg); }
+  .category > summary .cat-title {
+    flex-shrink: 0;
+  }
+  .toggle-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 1rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .toggle-all:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+  .toggle-all:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 1px;
+  }
+  .category[open] > summary {
+    margin-bottom: 0.6rem;
+  }
+  .category:not([open]) > summary {
+    margin-bottom: 0;
   }
   .badge {
     font-size: 0.7rem;
@@ -190,12 +185,12 @@
   <header>
     <h1>statistical cross-validation vs R 4.5.3 (2026-03-11)</h1>
     <ul class="lede">
-      <li>Every function in <code>tools/stats.js</code> is rerun against its R 4.5.3 counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
+      <li>Plöttr reruns every function in <code>tools/stats.js</code> against its R 4.5.3 counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
       <li>Inputs are bit-identical between R and Plöttr.</li>
-      <li>Tolerance: |Δ| ≤ 0.005 on test statistics and on p-values ≥ 0.01. For deep-tail p-values (&lt; 0.01), Plöttr compares in log space — the ratio between R's p and Plöttr's must stay within [1/1.1, 1.1], so a p of 1e-10 can't silently mis-match a p of 1e-9 the way it could under pure absolute tolerance.</li>
+      <li>Tolerance: |Δ| ≤ 0.005 on test statistics and on p-values ≥ 0.01. Deep-tail p-values (&lt; 0.01) are compared in log space, so the ratio between R's p and Plöttr's stays within [1/1.1, 1.1].</li>
       <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons.</li>
-      <li><strong>R-floor rows (amber)</strong>: R's own <code>ptukey</code> uses a <code>1 − ptukey(q)</code> cancellation that saturates at ~<code>2.2e-15</code>, and reports non-monotonic values at extreme q (e.g. <code>ptukey(21.97, 3, 147) = 2.22e-15</code> but <code>ptukey(12, 3, 147) = 9.68e-14</code>). scipy's <code>studentized_range.sf</code> uses the same algorithm family and shows the same floor. Plöttr's <code>ptukey_upper</code> computes the survival directly without that cancellation (verified at <code>q=8</code> against scipy <code>2.3332e-7</code> and a 20M-sample Monte Carlo <code>2.5e-7 ± 1.1e-7</code>, four significant figures). Rows labelled "R-floor" are where R saturates and Plöttr continues the true tail — not a JS failure, but R is no longer ground truth there.</li>
-      <li>Real failures are flagged in red and counted honestly — they mean Plöttr has drifted from R and needs fixing.</li>
+      <li><strong>R-floor rows (amber)</strong>: R's <code>ptukey</code> saturates at ~<code>2.2e-15</code> due to a <code>1 − ptukey(q)</code> cancellation. Plöttr's <code>ptukey_upper</code> computes the survival directly and continues the true tail past that floor (cross-checked against scipy and Monte Carlo). These rows are not JS failures — R is simply no longer ground truth there.</li>
+      <li>Real failures are flagged in red and counted honestly.</li>
       <li>Reproduce locally: <code>Rscript benchmark/run-r.R &amp;&amp; node benchmark/run.js</code></li>
       <li><a href="./index.html">← back to tools</a></li>
     </ul>
@@ -209,18 +204,11 @@
     <div><span class="k">max |Δ|</span><span class="v">3.16e-2</span></div>
   </div>
 
-  <div class="category-toolbar">
-    <button onclick="document.querySelectorAll('details.category').forEach(function(d){d.open=true})">
-      Expand all
-    </button>
-    <button onclick="document.querySelectorAll('details.category').forEach(function(d){d.open=false})">
-      Collapse all
-    </button>
-  </div>
+  <button type="button" class="toggle-all" data-toggle-all aria-expanded="true">Collapse all</button>
 
-
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Shapiro-Wilk <span class="badge badge-pass">44/44 pass</span></h2></summary>
+  
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Shapiro-Wilk</span> <span class="badge badge-pass">44/44 pass</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -642,8 +630,8 @@
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Levene (Brown-Forsythe) <span class="badge badge-pass">24/24 pass</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Levene (Brown-Forsythe)</span> <span class="badge badge-pass">24/24 pass</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -771,7 +759,7 @@
         <td>p</td>
         <td class="num">0.58961</td>
         <td class="num">0.58961</td>
-        <td class="num">9.03e-13</td>
+        <td class="num">9.02e-13</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -789,7 +777,7 @@
         <td>p</td>
         <td class="num">0.00422279</td>
         <td class="num">0.00422279</td>
-        <td class="num">1.86e-12</td>
+        <td class="num">1.85e-12</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -843,7 +831,7 @@
         <td>p</td>
         <td class="num">0.162196</td>
         <td class="num">0.162196</td>
-        <td class="num">3.00e-13</td>
+        <td class="num">3.01e-13</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -885,8 +873,8 @@
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Student t <span class="badge badge-pass">12/12 pass</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Student t</span> <span class="badge badge-pass">12/12 pass</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -978,7 +966,7 @@
         <td>p</td>
         <td class="num">0.0791867</td>
         <td class="num">0.0791867</td>
-        <td class="num">6.22e-14</td>
+        <td class="num">6.18e-14</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1020,8 +1008,8 @@
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Welch t <span class="badge badge-pass">12/12 pass</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Welch t</span> <span class="badge badge-pass">12/12 pass</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1059,7 +1047,7 @@
         <td>p</td>
         <td class="num">0.0606345</td>
         <td class="num">0.0606345</td>
-        <td class="num">6.68e-14</td>
+        <td class="num">6.50e-14</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1113,7 +1101,7 @@
         <td>p</td>
         <td class="num">0.00310694</td>
         <td class="num">0.00310694</td>
-        <td class="num">2.29e-13</td>
+        <td class="num">2.18e-13</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr>
       <tr class="row-pass">
@@ -1149,14 +1137,14 @@
         <td>p</td>
         <td class="num">0.0118634</td>
         <td class="num">0.0118634</td>
-        <td class="num">4.59e-13</td>
+        <td class="num">4.58e-13</td>
         <td class="ok-cell ok-pass">✓</td>
       </tr></tbody>
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Mann-Whitney U <span class="badge badge-pass">12/12 pass</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Mann-Whitney U</span> <span class="badge badge-pass">12/12 pass</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1290,8 +1278,8 @@
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>one-way ANOVA <span class="badge badge-pass">16/16 pass</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">one-way ANOVA</span> <span class="badge badge-pass">16/16 pass</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1461,8 +1449,8 @@
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Welch ANOVA <span class="badge badge-pass">12/12 pass</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Welch ANOVA</span> <span class="badge badge-pass">12/12 pass</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1596,8 +1584,8 @@
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Kruskal-Wallis <span class="badge badge-pass">12/12 pass</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Kruskal-Wallis</span> <span class="badge badge-pass">12/12 pass</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -1731,8 +1719,8 @@
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Tukey HSD <span class="badge badge-pass">37/40 pass</span> <span class="badge badge-rsat">3 past R's floor</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Tukey HSD</span> <span class="badge badge-pass">37/40 pass</span> <span class="badge badge-rsat">3 past R's floor</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -2118,8 +2106,8 @@
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Games-Howell <span class="badge badge-pass">33/34 pass</span> <span class="badge badge-rsat">1 past R's floor</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Games-Howell</span> <span class="badge badge-pass">33/34 pass</span> <span class="badge badge-rsat">1 past R's floor</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -2451,8 +2439,8 @@
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Dunn (BH) <span class="badge badge-pass">67/67 pass</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Dunn (BH)</span> <span class="badge badge-pass">67/67 pass</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -3081,8 +3069,8 @@
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>pairwise distance <span class="badge badge-pass">3/3 pass</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">pairwise distance</span> <span class="badge badge-pass">3/3 pass</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -3135,8 +3123,8 @@
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>hclust heights <span class="badge badge-pass">5/5 pass</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">hclust heights</span> <span class="badge badge-pass">5/5 pass</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -3207,8 +3195,8 @@
       </table>
     </details>
 
-    <details class="category">
-      <summary><h2><span class="dv-disclosure" aria-hidden="true"></span>Multi-set intersection (cpsets) <span class="badge badge-pass">10/10 pass</span></h2></summary>
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Multi-set intersection (cpsets)</span> <span class="badge badge-pass">10/10 pass</span></summary>
       <table>
         <colgroup>
           <col class="c-dataset" />
@@ -3325,7 +3313,7 @@
     </details>
 
   <footer>
-    R reference generated 2026-04-22 21:30:33 UTC.
+    R reference generated 2026-05-02 13:54:51 UTC.
     Tolerance 0.005. Tool source: <code>tools/stats.js</code>.
   </footer>
 </div>
@@ -3358,6 +3346,27 @@
       if (e.key === "dataviz-theme") render();
     });
     render();
+  })();
+
+  // Expand all / Collapse all toggle for the per-category <details> blocks.
+  (function () {
+    var btn = document.querySelector("[data-toggle-all]");
+    if (!btn) return;
+    var cats = document.querySelectorAll("details.category");
+    function syncLabel() {
+      var anyClosed = false;
+      cats.forEach(function (d) { if (!d.open) anyClosed = true; });
+      btn.textContent = anyClosed ? "Expand all" : "Collapse all";
+      btn.setAttribute("aria-expanded", anyClosed ? "false" : "true");
+    }
+    btn.addEventListener("click", function () {
+      var anyClosed = false;
+      cats.forEach(function (d) { if (!d.open) anyClosed = true; });
+      cats.forEach(function (d) { d.open = anyClosed; });
+      syncLabel();
+    });
+    cats.forEach(function (d) { d.addEventListener("toggle", syncLabel); });
+    syncLabel();
   })();
 </script>
 </body>
