@@ -68,6 +68,7 @@ export function ControlSection({ title, defaultOpen = false, children }) {
     <div ref={rootRef} className="dv-panel" style={{ marginBottom: 0, padding: 0 }}>
       <button
         onClick={() => setOpen(!open)}
+        className="dv-tile-title"
         style={{
           display: "flex",
           alignItems: "center",
@@ -77,11 +78,6 @@ export function ControlSection({ title, defaultOpen = false, children }) {
           background: "none",
           border: "none",
           cursor: "pointer",
-          fontSize: 12,
-          fontWeight: 600,
-          color: "var(--text-muted)",
-          textTransform: "uppercase" as const,
-          letterSpacing: 0.5,
           textAlign: "left",
         }}
       >

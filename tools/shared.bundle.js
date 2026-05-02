@@ -5414,12 +5414,8 @@ function ActionsPanel(props) {
     React.createElement(
       "p",
       {
-        style: {
-          margin: "0 0 8px",
-          fontSize: 13,
-          fontWeight: 600,
-          color: "var(--text-muted)",
-        },
+        className: "dv-tile-title",
+        style: { margin: "0 0 8px" },
       },
       "Actions"
     ),

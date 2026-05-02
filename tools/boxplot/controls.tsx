@@ -25,6 +25,7 @@ export function ControlSection({
     <div ref={rootRef} className="dv-panel" style={{ marginBottom: 6, padding: 0 }}>
       <button
         onClick={() => setOpen(!open)}
+        className="dv-tile-title"
         style={{
           display: "flex",
           alignItems: "center",
@@ -34,9 +35,7 @@ export function ControlSection({
           background: "none",
           border: "none",
           cursor: "pointer",
-          fontSize: 12,
-          fontWeight: 600,
-          color: "var(--text-muted)",
+          textAlign: "left",
         }}
       >
         <span

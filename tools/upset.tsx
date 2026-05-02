@@ -710,7 +710,7 @@ function UploadStep({
   return (
     <div>
       <div className="dv-panel" style={{ marginBottom: 12 }}>
-        <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>
+        <p className="dv-tile-title" style={{ margin: "0 0 6px" }}>
           Data format
         </p>
         <div
@@ -1058,7 +1058,7 @@ function ConfigureStep({
   return (
     <div>
       <div className="dv-panel">
-        <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+        <p className="dv-tile-title" style={{ margin: "0 0 4px" }}>
           Sets to include
         </p>
         <p style={{ margin: "0 0 10px", fontSize: 11, color: pickerStatusColor }}>
@@ -1119,7 +1119,7 @@ function ConfigureStep({
 
       {needsCutoff && (
         <div className="dv-panel" style={{ marginTop: 16 }}>
-          <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+          <p className="dv-tile-title" style={{ margin: "0 0 4px" }}>
             Intersection cutoff
           </p>
           <p style={{ margin: "0 0 10px", fontSize: 11, color: "var(--text-muted)" }}>
@@ -1296,6 +1296,7 @@ function ControlSection({ title, defaultOpen = false, children }) {
     <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
       <button
         onClick={() => setOpen(!open)}
+        className="dv-tile-title"
         style={{
           display: "flex",
           alignItems: "center",
@@ -1305,10 +1306,7 @@ function ControlSection({ title, defaultOpen = false, children }) {
           background: "none",
           border: "none",
           cursor: "pointer",
-          fontSize: 13,
-          fontWeight: 600,
-          color: "var(--text-muted)",
-          fontFamily: "inherit",
+          textAlign: "left",
         }}
       >
         <span
@@ -2007,7 +2005,7 @@ function IntersectionStatsPanel({
       style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}
     >
       <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+        <p className="dv-tile-title" style={{ margin: 0 }}>
           Intersection significance
         </p>
         <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
