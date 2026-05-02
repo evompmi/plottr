@@ -480,29 +480,30 @@ function App() {
             />
 
             {/* RIGHT: chart area */}
-            <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+            <div
+              className="dv-aeq-chart-area"
+              style={{ flex: 1, minWidth: 0, position: "relative" }}
+            >
               {/* Non-sticky Series (Pool/Individual) + Layout (Combined/Faceted)
-                  toggles — absolutely positioned at the top-right so on landing
-                  they share a row with the sticky Sample-selection pill, but
-                  scroll away normally while Sample selection alone continues
-                  to stick. The two groups are separated by a gap and carry
-                  tiny captions because they're orthogonal axes: Series is a
-                  data-shape decision (how replicates are pooled), Layout is a
-                  visual decision (one plot vs. one per condition). Both use
-                  the shared --step-active-* slate accent to match the rest
-                  of the app chrome — the caption + grouping carries the
-                  distinction, not a bespoke hue. */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                  zIndex: 19,
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 18,
-                }}
-              >
+                  toggles. On wide chart columns they're absolutely positioned
+                  at the top-right so on landing they share a row with the
+                  sticky Sample-selection pill, but scroll away normally
+                  while Sample selection alone continues to stick. The two
+                  groups are separated by a gap and carry tiny captions
+                  because they're orthogonal axes: Series is a data-shape
+                  decision (how replicates are pooled), Layout is a visual
+                  decision (one plot vs. one per condition). Both use the
+                  shared --step-active-* slate accent to match the rest of
+                  the app chrome — the caption + grouping carries the
+                  distinction, not a bespoke hue.
+
+                  All positioning + the responsive collapse live in
+                  components.css under `.dv-aeq-toggles-group`. A container
+                  query on `.dv-aeq-chart-area` (max-width: 620px) flips
+                  this to a right-aligned vertical stack AND drops it back
+                  into flow (`position: static`) so the chart below moves
+                  downstairs instead of being overlapped. */}
+              <div className="dv-aeq-toggles-group">
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
                   <span
                     style={{
