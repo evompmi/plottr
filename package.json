@@ -1,6 +1,7 @@
 {
   "name": "plottr",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "prebuild": "node scripts/write-version.js && node scripts/build-shared.js",
     "build": "esbuild tools/boxplot/index.tsx tools/scatter.tsx tools/aequorin/index.tsx tools/lineplot.tsx tools/venn.tsx tools/heatmap/index.tsx tools/molarity.tsx tools/power.tsx tools/upset.tsx --bundle --format=esm --outdir=tools --jsx=transform --minify-syntax --minify-whitespace --sourcemap",
