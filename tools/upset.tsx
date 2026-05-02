@@ -1468,32 +1468,58 @@ function PlotControls({
             style={{ width: "100%" }}
           />
         </label>
-        <SliderControl
-          label="Minimum degree"
-          value={vis.minDegree}
-          min={1}
-          max={Math.max(1, activeSetNames.length)}
-          step={1}
-          onChange={(v) => {
-            const clamped = Math.max(1, Math.min(activeSetNames.length || 1, v));
-            const patch: { minDegree: number; maxDegree?: number } = { minDegree: clamped };
-            if (vis.maxDegree != null && clamped > vis.maxDegree) patch.maxDegree = clamped;
-            updVis(patch);
-          }}
-        />
-        <SliderControl
-          label="Maximum degree"
-          value={vis.maxDegree ?? Math.max(1, activeSetNames.length)}
-          min={1}
-          max={Math.max(1, activeSetNames.length)}
-          step={1}
-          onChange={(v) => {
-            const clamped = Math.max(1, Math.min(activeSetNames.length || 1, v));
-            const patch: { maxDegree: number; minDegree?: number } = { maxDegree: clamped };
-            if (clamped < vis.minDegree) patch.minDegree = clamped;
-            updVis(patch);
-          }}
-        />
+        <label style={{ display: "block" }}>
+          <span className="dv-label">Minimum degree</span>
+          <NumberInput
+            value={vis.minDegree}
+            min={1}
+            max={Math.max(1, activeSetNames.length)}
+            step={1}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              if (!Number.isFinite(v)) return;
+              const cap = Math.max(1, activeSetNames.length);
+              const clamped = Math.max(1, Math.min(cap, v));
+              const patch: { minDegree: number; maxDegree?: number } = { minDegree: clamped };
+              if (vis.maxDegree != null && clamped > vis.maxDegree) patch.maxDegree = clamped;
+              updVis(patch);
+            }}
+            style={{ width: "100%" }}
+          />
+        </label>
+        <label style={{ display: "block" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              marginBottom: 2,
+            }}
+          >
+            <span className="dv-label">Maximum degree</span>
+            {activeSetNames.length > 0 && (
+              <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
+                max in data: {activeSetNames.length.toLocaleString()}
+              </span>
+            )}
+          </div>
+          <NumberInput
+            value={vis.maxDegree ?? Math.max(1, activeSetNames.length)}
+            min={1}
+            max={Math.max(1, activeSetNames.length)}
+            step={1}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              if (!Number.isFinite(v)) return;
+              const cap = Math.max(1, activeSetNames.length);
+              const clamped = Math.max(1, Math.min(cap, v));
+              const patch: { maxDegree: number; minDegree?: number } = { maxDegree: clamped };
+              if (clamped < vis.minDegree) patch.minDegree = clamped;
+              updVis(patch);
+            }}
+            style={{ width: "100%" }}
+          />
+        </label>
       </ControlSection>
 
       <ControlSection title="Labels">
