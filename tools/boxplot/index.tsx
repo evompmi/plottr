@@ -262,6 +262,50 @@ function App() {
     doParse(csv, ",");
   }, [doParse]);
 
+  // Inter-tool hand-off consumer. When the user clicks "↗ Open in Boxplot"
+  // in another tool (e.g. RLU timecourse's Σ barplot tile), that tool
+  // writes a payload to localStorage under the shared `dataviz-handoff`
+  // key and either top-level-navigates here (standalone) or postMessages
+  // the landing page to switch the visible iframe (embedded). We
+  // handle both cases:
+  //
+  //   1. Mount-time: top-level-navigation case — App() mounts fresh,
+  //      consumeHandoff() at first run finds the payload, parses it,
+  //      jumps to the plot step. The source tool already produced
+  //      clean structured data so the configure step is skipped.
+  //
+  //   2. `storage` event: embedded case — the landing page's iframes
+  //      are eagerly mounted, so this App() already finished its
+  //      mount-time check (and found nothing) by the time the user
+  //      clicks the source tool's button. Same-origin writes from
+  //      another window fire `storage` events here; we re-consume
+  //      reactively and route through the same path.
+  //
+  // The source tool already produced clean structured data and the
+  // user has implicitly confirmed the column roles by choosing this
+  // destination, so both paths skip the configure step.
+  React.useEffect(() => {
+    if (typeof consumeHandoff !== "function") return;
+    const apply = (payload) => {
+      if (!payload || !payload.csv) return;
+      setSepOverride(",");
+      setFileName(payload.fileName || "from_handoff.csv");
+      doParse(payload.csv, ",");
+      setStep("plot");
+    };
+    apply(consumeHandoff("boxplot"));
+    const onStorage = (e) => {
+      // Only react to a fresh write of the hand-off key; deletions
+      // (newValue == null) come from our own consumeHandoff in another
+      // tab and shouldn't trigger anything here.
+      if (e.key !== "dataviz-handoff" || !e.newValue) return;
+      apply(consumeHandoff("boxplot"));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const resetAll = () => {
     setRawText(null);
     setParsedRows([]);

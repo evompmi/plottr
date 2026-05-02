@@ -372,24 +372,99 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                     Per replicate
                   </h3>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const rows = replicateSums.flatMap((rs) =>
-                      rs.repSums.map((rep, ri) => [
-                        rs.prefix,
-                        `Rep ${ri + 1}`,
-                        rep[sumKey] != null ? rep[sumKey].toFixed(6) : "",
-                      ])
-                    );
-                    downloadCsv(["Condition", "Replicate", sumLabel], rows, csvFileName);
-                    flashSaved(e.currentTarget);
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    marginLeft: "auto",
+                    flexShrink: 0,
                   }}
-                  className="dv-btn dv-btn-dl"
-                  style={{ marginLeft: "auto", flexShrink: 0 }}
                 >
-                  ⬇ CSV
-                </button>
+                  {/* Open the same per-replicate Σ data directly in the
+                      Group Plot tool (boxplot / violin / raincloud / bar).
+                      Bypasses the export-CSV-then-re-upload round trip:
+                      the data is already clean (one row per replicate,
+                      Condition + Σ value), so we hand it off via
+                      localStorage and let boxplot's mount-time hand-off
+                      consumer skip its own upload step entirely. */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rows = replicateSums.flatMap((rs) =>
+                        rs.repSums.map((rep) => [
+                          rs.prefix,
+                          rep[sumKey] != null ? rep[sumKey].toFixed(6) : "",
+                        ])
+                      );
+                      const header = ["Condition", sumLabel];
+                      const csv = [header, ...rows]
+                        .map((r) =>
+                          r
+                            .map((c) =>
+                              /[",\n]/.test(String(c)) ? `"${c.replace(/"/g, '""')}"` : c
+                            )
+                            .join(",")
+                        )
+                        .join("\n");
+                      if (typeof setHandoff === "function") {
+                        setHandoff({
+                          tool: "boxplot",
+                          csv,
+                          mode: "long",
+                          source: "RLU timecourse — Σ barplot",
+                          fileName: csvFileName.replace(/\.csv$/i, "") + "_boxplot.csv",
+                        });
+                      }
+                      // Two cases:
+                      // 1. Standalone tool page (user navigated directly
+                      //    to tools/aequorin.html): top-level navigate
+                      //    to the sibling boxplot.html. Browser back
+                      //    returns here.
+                      // 2. Iframe inside the landing page (index.html):
+                      //    postMessage to parent so its iframe-switcher
+                      //    (the same `openTool` channel Venn's UpSet
+                      //    nudge uses) can swap to the boxplot iframe,
+                      //    which is already mounted. Boxplot's mount-
+                      //    time consumer already ran and found nothing,
+                      //    so a storage-event listener over there picks
+                      //    up the write we just did to localStorage and
+                      //    consumes the payload reactively.
+                      if (window.parent !== window.self) {
+                        try {
+                          window.parent.postMessage({ type: "openTool", tool: "boxplot" }, "*");
+                          return;
+                        } catch (err) {
+                          /* fall through to top-level nav */
+                        }
+                      }
+                      window.location.assign("boxplot.html");
+                    }}
+                    className="dv-btn dv-btn-secondary"
+                    style={{ flexShrink: 0 }}
+                    title="Open this per-replicate Σ data directly in the Group Plot tool (boxplot / violin / raincloud / bar)"
+                  >
+                    ↗ Open in Boxplot
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rows = replicateSums.flatMap((rs) =>
+                        rs.repSums.map((rep, ri) => [
+                          rs.prefix,
+                          `Rep ${ri + 1}`,
+                          rep[sumKey] != null ? rep[sumKey].toFixed(6) : "",
+                        ])
+                      );
+                      downloadCsv(["Condition", "Replicate", sumLabel], rows, csvFileName);
+                      flashSaved(e.currentTarget);
+                    }}
+                    className="dv-btn dv-btn-dl"
+                    style={{ flexShrink: 0 }}
+                  >
+                    ⬇ CSV
+                  </button>
+                </div>
               </div>
               {replicateTableOpen && (
                 <table

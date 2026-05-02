@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Concatenates the 12 shared browser scripts into a single tools/shared.bundle.js
-// so every HTML file loads one <script> instead of twelve. The order below is the
+// Concatenates the 13 shared browser scripts into a single tools/shared.bundle.js
+// so every HTML file loads one <script> instead of thirteen. The order below is the
 // single source of truth — if you add a new tools/shared-*.js file, add it here,
 // not to each HTML.
 //
@@ -35,6 +35,7 @@ const FILES = [
   "shared-long-format.js",
   "shared-r-export.js",
   "shared-stats-tile.js",
+  "shared-handoff.js",
 ];
 
 function buildBundle() {
