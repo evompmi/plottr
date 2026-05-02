@@ -514,7 +514,7 @@ const tableHtml = cats
             <th class="num">n</th>
             <th>metric</th>
             <th class="num">R</th>
-            <th class="num">Toolbox</th>
+            <th class="num">Plöttr</th>
             <th class="num">|Δ|</th>
             <th></th>
           </tr>
@@ -555,7 +555,7 @@ const html = `<!doctype html>
     }
   } catch (e) {}
 </script>
-<title>dataviz · statistical benchmark vs R</title>
+<title>Plöttr · statistical benchmark vs R</title>
 <link rel="stylesheet" href="tools/theme.css" />
 <script src="tools/shared.bundle.js"></script>
 <style>
@@ -710,7 +710,7 @@ const html = `<!doctype html>
     <h1>statistical cross-validation vs R ${escapeHtml(data.meta.r_version.replace(/^R version /, ""))}</h1>
     <ul class="lede">
       <li>Every function in <code>tools/stats.js</code> is rerun against its R ${escapeHtml(data.meta.r_version.replace(/^R version /, "").split(" ")[0])} counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
-      <li>Inputs are bit-identical between R and the toolbox.</li>
+      <li>Inputs are bit-identical between R and Plöttr.</li>
       <li>Tolerance: |Δ| ≤ ${TOL} on test statistics and on p-values ≥ ${P_ABS_CEILING}. For deep-tail p-values (&lt; ${P_ABS_CEILING}), we compare in log space — the ratio between R's p and ours must stay within [1/1.1, 1.1], so a p of 1e-10 can't silently mis-match a p of 1e-9 the way it could under pure absolute tolerance.</li>
       <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons. Prior versions hand-ported both algorithms in the R reference file and compared against the same hand-port in JS — a self-referential check that silently passed any shared bug.</li>
       <li><strong>R-floor rows (amber)</strong>: R's own <code>ptukey</code> uses a <code>1 − ptukey(q)</code> cancellation that saturates at ~<code>2.2e-15</code>, and reports non-monotonic values at extreme q (e.g. <code>ptukey(21.97, 3, 147) = 2.22e-15</code> but <code>ptukey(12, 3, 147) = 9.68e-14</code>). scipy's <code>studentized_range.sf</code> uses the same algorithm family and shows the same floor. Our <code>ptukey_upper</code> computes the survival directly without that cancellation (verified at <code>q=8</code> against scipy <code>2.3332e-7</code> and a 20M-sample Monte Carlo <code>2.5e-7 ± 1.1e-7</code>, four significant figures). Rows labelled "R-floor" are where R saturates and we continue the true tail — not a JS failure, but R is no longer ground truth there.</li>
