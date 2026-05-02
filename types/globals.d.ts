@@ -284,6 +284,19 @@ declare global {
   ): Record<string, any>;
   function extractStylePrefs(vis: Record<string, any>): Record<string, any>;
   function isLabelKey(key: string): boolean;
+
+  // ── Inter-tool data hand-off (shared-handoff.js) ───────────────────────────
+  interface HandoffPayload {
+    tool: string;
+    csv?: string;
+    mode?: "long" | "wide";
+    source?: string;
+    fileName?: string;
+    colRoles?: string[];
+    [key: string]: any;
+  }
+  function setHandoff(payload: HandoffPayload): boolean;
+  function consumeHandoff(targetTool: string): HandoffPayload | null;
   const PrefsPanel: FC<{
     tool: string;
     vis: Record<string, any>;
