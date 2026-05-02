@@ -17,7 +17,7 @@
     <title>Plöttr — Toolbox</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='8' cy='22' r='3.5' fill='%23648FFF'/><circle cx='14' cy='12' r='2.5' fill='%23648FFF'/><circle cx='22' cy='18' r='4' fill='%23648FFF'/><circle cx='26' cy='8' r='2.5' fill='%23648FFF'/></svg>"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='none' stroke='%23648FFF' stroke-width='2'/><g fill='none' stroke='%23648FFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M 13 6.5 L 13 25.5'/><path d='M 13 6.5 L 22 11.5'/><path d='M 13 13 L 22 18'/></g></svg>"
     />
     <link rel="stylesheet" href="tools/theme.css" />
     <link rel="stylesheet" href="tools/components.css" />
@@ -54,7 +54,6 @@
         font-size: 26px;
         font-weight: 700;
         color: var(--text);
-        letter-spacing: 0.5px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -83,6 +82,14 @@
         margin-top: 6px;
         font-size: 11px;
         color: var(--text-faint);
+      }
+      .landing-header p a {
+        color: var(--text-muted);
+        text-decoration: underline;
+        transition: color 0.15s ease;
+      }
+      .landing-header p a:hover {
+        color: var(--accent-primary);
       }
       .trust-badges {
         margin-top: 14px;
@@ -213,6 +220,10 @@
         box-shadow: 0 6px 20px rgba(100, 143, 255, 0.15);
         transform: translateY(-4px);
       }
+      .tile:focus-visible {
+        outline: 2px solid var(--accent-primary);
+        outline-offset: 2px;
+      }
       .tile-icon {
         line-height: 1;
         display: flex;
@@ -230,7 +241,7 @@
       }
       .tile-desc {
         font-size: 10px;
-        color: var(--text-faint);
+        color: var(--text-muted);
         text-align: center;
         padding: 0 10px;
         line-height: 1.4;
@@ -507,7 +518,7 @@
       class="theme-toggle-btn"
       data-theme-toggle
       id="landing-theme-toggle"
-      style="position: fixed; top: 16px; right: calc(50% - 157px); z-index: 10"
+      style="position: fixed; top: 16px; right: 16px; z-index: 10"
     ></button>
     <div class="landing" id="landing">
       <div class="landing-header">
@@ -534,7 +545,7 @@
           </svg>
           <span>Plöttr<span class="version" id="app-version">dev</span></span>
         </h1>
-        <div class="tagline">- Paste, plot, publish -</div>
+        <div class="tagline">— Paste, plot, publish —</div>
         <div class="trust-badges">
           <a
             href="benchmark.html"
@@ -686,7 +697,7 @@
                   d="M4 36 C8 36, 10 36, 12 34 C14 30, 15 8, 17 6 C19 4, 20 14, 22 22 C24 28, 25 32, 27 34 C29 36, 32 36, 40 36"
                 /></svg
             ></span>
-            <span class="tile-label">RLU timecourse</span>
+            <span class="tile-label">RLU Timecourse</span>
             <span class="tile-desc">Optional Ca&#xB2;&#x207A;<br />calibration</span>
           </button>
           <button class="tile" data-tool="venn">
@@ -705,22 +716,22 @@
                 <rect x="18" y="7" width="4" height="7" fill="#648FFF" />
                 <rect x="26" y="10" width="4" height="4" fill="#648FFF" />
                 <rect x="34" y="11" width="4" height="3" fill="#648FFF" />
-                <line x1="12" y1="22" x2="12" y2="36" stroke="#333" stroke-width="1.5" />
-                <line x1="20" y1="22" x2="20" y2="36" stroke="#333" stroke-width="1.5" />
-                <circle cx="12" cy="22" r="2.5" fill="#333" />
-                <circle cx="20" cy="22" r="2.5" fill="#333" />
-                <circle cx="28" cy="22" r="2.5" fill="#DDD" />
-                <circle cx="36" cy="22" r="2.5" fill="#DDD" />
-                <circle cx="12" cy="29" r="2.5" fill="#333" />
-                <circle cx="20" cy="29" r="2.5" fill="#DDD" />
-                <circle cx="28" cy="29" r="2.5" fill="#333" />
-                <circle cx="36" cy="29" r="2.5" fill="#DDD" />
-                <circle cx="12" cy="36" r="2.5" fill="#DDD" />
-                <circle cx="20" cy="36" r="2.5" fill="#333" />
-                <circle cx="28" cy="36" r="2.5" fill="#DDD" />
-                <circle cx="36" cy="36" r="2.5" fill="#333" /></svg
+                <line x1="12" y1="22" x2="12" y2="36" stroke="currentColor" stroke-width="1.5" />
+                <line x1="20" y1="22" x2="20" y2="36" stroke="currentColor" stroke-width="1.5" />
+                <circle cx="12" cy="22" r="2.5" fill="currentColor" />
+                <circle cx="20" cy="22" r="2.5" fill="currentColor" />
+                <circle cx="28" cy="22" r="2.5" fill="currentColor" fill-opacity="0.25" />
+                <circle cx="36" cy="22" r="2.5" fill="currentColor" fill-opacity="0.25" />
+                <circle cx="12" cy="29" r="2.5" fill="currentColor" />
+                <circle cx="20" cy="29" r="2.5" fill="currentColor" fill-opacity="0.25" />
+                <circle cx="28" cy="29" r="2.5" fill="currentColor" />
+                <circle cx="36" cy="29" r="2.5" fill="currentColor" fill-opacity="0.25" />
+                <circle cx="12" cy="36" r="2.5" fill="currentColor" fill-opacity="0.25" />
+                <circle cx="20" cy="36" r="2.5" fill="currentColor" />
+                <circle cx="28" cy="36" r="2.5" fill="currentColor" fill-opacity="0.25" />
+                <circle cx="36" cy="36" r="2.5" fill="currentColor" /></svg
             ></span>
-            <span class="tile-label">UpSet plot</span>
+            <span class="tile-label">UpSet Plot</span>
             <span class="tile-desc">Set overlaps<br />4+ sets</span>
           </button>
           <button class="tile" data-tool="heatmap">
@@ -801,11 +812,9 @@
         <span id="pf-label">Loading dependencies…</span>
       </div>
       <div class="landing-header">
-        <p>
-          891 internal tests<br />
-          293 cross-checks vs R 4.5<br />
-          <a href="benchmark.html" data-benchmark-link>view benchmark →</a>
-        </p>
+        <p>891 internal tests</p>
+        <p>293 cross-checks vs R 4.5</p>
+        <p><a href="benchmark.html" data-benchmark-link>view benchmark →</a></p>
       </div>
     </div>
 
@@ -937,11 +946,11 @@
             svg: '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="16" cy="20" r="12"/><circle cx="28" cy="20" r="12"/></svg>',
           },
           upset: {
-            label: "UpSet plot",
+            label: "UpSet Plot",
             svg: '<svg viewBox="0 0 44 44" fill="none" stroke="none" aria-hidden="true"><rect x="10" y="4" width="4" height="10" fill="currentColor"/><rect x="18" y="7" width="4" height="7" fill="currentColor"/><rect x="26" y="10" width="4" height="4" fill="currentColor"/><rect x="34" y="11" width="4" height="3" fill="currentColor"/><circle cx="12" cy="22" r="2.5" fill="currentColor"/><circle cx="20" cy="22" r="2.5" fill="currentColor"/><circle cx="28" cy="22" r="2.5" fill="currentColor" fill-opacity="0.25"/><circle cx="36" cy="22" r="2.5" fill="currentColor" fill-opacity="0.25"/><circle cx="12" cy="29" r="2.5" fill="currentColor"/><circle cx="20" cy="29" r="2.5" fill="currentColor" fill-opacity="0.25"/><circle cx="28" cy="29" r="2.5" fill="currentColor"/><circle cx="36" cy="29" r="2.5" fill="currentColor" fill-opacity="0.25"/></svg>',
           },
           aequorin: {
-            label: "RLU timecourse",
+            label: "RLU Timecourse",
             svg: '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 36 C8 36, 10 36, 12 34 C14 30, 15 8, 17 6 C19 4, 20 14, 22 22 C24 28, 25 32, 27 34 C29 36, 32 36, 40 36"/></svg>',
           },
           heatmap: {
