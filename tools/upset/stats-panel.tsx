@@ -3,6 +3,8 @@
 // currently-selected intersection. Driven by the parent App's
 // intersectionTests cache.
 
+import { intersectionShortLabel } from "./helpers";
+
 const { useMemo } = React;
 
 /* ── Intersection significance panel ────────────────────────────────────────

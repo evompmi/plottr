@@ -2,9 +2,14 @@
 // ConfigureStep (rename / colour / include + degree window), and
 // ItemListPanel (the per-intersection items table + CSV download).
 
-import { intersectionLabel, intersectionFilenamePart } from "./helpers";
+import {
+  intersectionLabel,
+  intersectionFilenamePart,
+  computeMemberships,
+  enumerateIntersections,
+} from "./helpers";
 
-const { useEffect } = React;
+const { useEffect, useMemo } = React;
 
 // ── Upload step ─────────────────────────────────────────────────────────────
 

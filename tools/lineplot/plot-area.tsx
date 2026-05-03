@@ -3,6 +3,7 @@
 
 import { Chart } from "./chart";
 import { PerXStatsPanel } from "./stats-panel";
+import { PlotControls } from "./controls";
 
 export function PlotStep(props: any) {
   const {

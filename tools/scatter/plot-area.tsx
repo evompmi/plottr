@@ -7,6 +7,8 @@ import { aesTheme, AesBox, ControlSection } from "./steps";
 import { fmtTick, SHAPES, computeLinearRegression } from "./helpers";
 import { PlotSidebar } from "../_shell/PlotSidebar";
 
+const { useState, useRef, useEffect } = React;
+
 export function PlotStep({
   parsed,
   fileName,

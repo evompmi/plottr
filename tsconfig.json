@@ -21,6 +21,19 @@
     "types": ["react", "react-dom"],
     "strictNullChecks": true
   },
-  "include": ["tools/*.tsx", "tools/_shell/**/*.ts", "tools/_shell/**/*.tsx", "types/**/*.d.ts"],
-  "exclude": ["node_modules", "vendor", "tests", "tools/*.js", "tools/shared*.js"]
+  "include": [
+    "tools/*.tsx",
+    "tools/_shell/**/*.ts",
+    "tools/_shell/**/*.tsx",
+    "tools/lineplot/**/*.ts",
+    "tools/lineplot/**/*.tsx",
+    "tools/scatter/**/*.ts",
+    "tools/scatter/**/*.tsx",
+    "tools/upset/**/*.ts",
+    "tools/upset/**/*.tsx",
+    "tools/venn/**/*.ts",
+    "tools/venn/**/*.tsx",
+    "types/**/*.d.ts"
+  ],
+  "exclude": ["node_modules", "vendor", "tests", "tools/**/*.js", "tools/shared*.js"]
 }

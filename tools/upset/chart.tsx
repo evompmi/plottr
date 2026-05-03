@@ -4,7 +4,7 @@
 // intersections, set sizes, and the optional intersection-test cache
 // from the parent App.
 
-import { intersectionLabel, buildBarTicks } from "./helpers";
+import { intersectionLabel, intersectionIdKey, buildBarTicks } from "./helpers";
 
 const { forwardRef } = React;
 
@@ -35,8 +35,8 @@ const TEXT_MUTED = "#555555";
 // BH-adjusted upper-tail p < 0.05); dark red flags a significantly depleted
 // one (observed < expected, BH-adjusted lower-tail p < 0.05). Both are
 // colour-blind-safe Brewer 7-class PiYG/YlGn-green and -red endpoints.
-const BAR_FILL_ENRICHED = "#2ca25f";
-const BAR_FILL_DEPLETED = "#a50f15";
+export const BAR_FILL_ENRICHED = "#2ca25f";
+export const BAR_FILL_DEPLETED = "#a50f15";
 
 // Row height is tuned so tall set lists stay legible without dominating the view.
 function computeRowHeight(nSets: number): number {

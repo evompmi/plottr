@@ -5,10 +5,15 @@
 
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
+import { SHAPES, computeLinearRegression } from "./helpers";
 import { UploadStep } from "./steps";
 import { PlotStep } from "./plot-area";
 
 const { useState, useMemo, useCallback, useEffect, useRef } = React;
+
+// Module-scope counter for stable per-session refLine ids. Stays outside
+// App so dev-mode StrictMode double-renders don't reset it.
+let refLineCounter = 0;
 
 const VIS_INIT_SCATTER = {
   xMin: null,

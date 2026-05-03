@@ -3,7 +3,7 @@
 // labels, axis bounds, error-bar style, and per-group colour overrides.
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
-import { ERROR_KINDS } from "./helpers";
+import { ERROR_KINDS, formatX, round2 } from "./helpers";
 import { ControlSection } from "./steps";
 
 export function PlotControls({

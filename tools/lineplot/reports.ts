@@ -2,6 +2,8 @@
 // download chips. Pure functions; no React. Test/post-hoc labels live here
 // so PerXDetail and PerXStatsPanel can share them.
 
+import { formatX } from "./helpers";
+
 //
 // One compact summary table: one row per eligible x. Click a row to expand
 // the decision trace + post-hoc inline. Aggregate TXT / R downloads at the

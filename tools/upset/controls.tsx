@@ -5,6 +5,7 @@
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { intersectionLabel, intersectionShortLabel, intersectionFilenamePart } from "./helpers";
+import { BAR_FILL_ENRICHED, BAR_FILL_DEPLETED } from "./chart";
 
 const { useState, useRef, useEffect } = React;
 
