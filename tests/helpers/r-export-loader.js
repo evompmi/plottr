@@ -28,6 +28,7 @@ module.exports = {
   buildRScript: ctx.buildRScript,
   buildRScriptForPower: ctx.buildRScriptForPower,
   sanitizeRString: ctx.sanitizeRString,
+  sanitizeRComment: ctx.sanitizeRComment,
   formatRNumber: ctx.formatRNumber,
   formatRVector: ctx.formatRVector,
 };

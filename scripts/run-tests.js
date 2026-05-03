@@ -26,6 +26,7 @@ const TESTS = [
   "tests/stats.test.js",
   "tests/stats-dispatch.test.js",
   "tests/r-export.test.js",
+  "tests/formula-injection.test.js",
   "tests/prefs.test.js",
   "tests/upset.test.js",
   "tests/scatter.test.js",

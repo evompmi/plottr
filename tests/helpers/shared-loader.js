@@ -52,6 +52,8 @@ module.exports = {
   toNumericValue: ctx.toNumericValue,
   // CSV builder (pure — round-trip with parseRaw)
   buildCsvString: ctx.buildCsvString,
+  // Formula-injection scanner (security audit Tier A #1)
+  scanForFormulaInjection: ctx.scanForFormulaInjection,
   // Parsing helpers
   detectHeader: ctx.detectHeader,
   parseRaw: ctx.parseRaw,

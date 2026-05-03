@@ -26,6 +26,11 @@ export interface PlotToolState<TVis extends object> {
   setCommaFixed: (b: boolean) => void;
   commaFixCount: number;
   setCommaFixCount: (n: number) => void;
+  // Result of scanForFormulaInjection on the most recent ingest. Set by each
+  // tool's parse handler; null when the dataset is clean. Surfaced via
+  // FormulaInjectionBanner inside PlotToolShell.
+  injectionWarning: FormulaInjectionWarning | null;
+  setInjectionWarning: (w: FormulaInjectionWarning | null) => void;
   vis: TVis;
   updVis: (patch: Partial<TVis> | { _reset: true }) => void;
 }
@@ -40,6 +45,7 @@ export function usePlotToolState<TVis extends object>(
   const [sepOverride, setSepOverride] = useState("");
   const [commaFixed, setCommaFixed] = useState(false);
   const [commaFixCount, setCommaFixCount] = useState(0);
+  const [injectionWarning, setInjectionWarning] = useState<FormulaInjectionWarning | null>(null);
 
   // The reducer captures `initialVis` by reference; React only invokes the
   // third argument (the initializer) once, so a new inline initialVis object
@@ -69,6 +75,8 @@ export function usePlotToolState<TVis extends object>(
     setCommaFixed,
     commaFixCount,
     setCommaFixCount,
+    injectionWarning,
+    setInjectionWarning,
     vis,
     updVis,
   };

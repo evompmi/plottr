@@ -2218,6 +2218,7 @@ function App() {
     setSepOverride,
     setCommaFixed,
     setCommaFixCount,
+    setInjectionWarning,
     vis,
     updVis,
   } = shell;
@@ -2522,7 +2523,8 @@ function App() {
       const dc = fixDecimalCommas(text, sep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
-      const { headers, rows } = parseRaw(dc.text, sep);
+      const { headers, rows, injectionWarnings } = parseRaw(dc.text, sep);
+      setInjectionWarning(injectionWarnings);
       if (!headers.length || !rows.length) {
         setParseError("The file appears to be empty or has no data rows.");
         return;
@@ -2634,6 +2636,7 @@ function App() {
     setSetNames([]);
     setSets(new Map());
     setParseError(null);
+    setInjectionWarning(null);
     setSelectedMask(null);
     updVis({ _reset: true });
   };

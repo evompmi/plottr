@@ -550,15 +550,28 @@ function detectHeader(rows) {
 function parseRaw(text, sepOv = "") {
   const sep = autoDetectSep(text, sepOv);
   const all = tokenizeDelimited(text, sep);
-  if (all.length < 1) return { headers: [], rows: [], hasHeader: false };
+  if (all.length < 1) return { headers: [], rows: [], hasHeader: false, injectionWarnings: null };
   const mx = Math.max(...all.map((r) => r.length));
   const pad = all.map((r) => {
     while (r.length < mx) r.push("");
     return r;
   });
   const hh = detectHeader(pad);
-  if (hh) return { headers: pad[0], rows: pad.slice(1), hasHeader: true };
-  return { headers: pad[0].map((_, i) => `Col_${i + 1}`), rows: pad, hasHeader: false };
+  let headers, rows;
+  if (hh) {
+    headers = pad[0];
+    rows = pad.slice(1);
+  } else {
+    headers = pad[0].map((_, i) => `Col_${i + 1}`);
+    rows = pad;
+  }
+  const scan = scanForFormulaInjection(headers, rows);
+  return {
+    headers,
+    rows,
+    hasHeader: !!hh,
+    injectionWarnings: scan.count > 0 ? scan : null,
+  };
 }
 
 function guessColumnType(vals) {
@@ -606,13 +619,15 @@ function detectWideFormat(headers, rows) {
 // Returns { rowLabels, colLabels, matrix, warnings } where matrix is a
 // 2-D array shaped [rowLabels.length][colLabels.length].
 function parseWideMatrix(text, sepOv = "") {
-  const { headers, rows } = parseRaw(text, sepOv);
+  const parsed = parseRaw(text, sepOv);
+  const { headers, rows, injectionWarnings } = parsed;
   if (headers.length < 2 || rows.length < 1) {
     return {
       rowLabels: [],
       colLabels: [],
       matrix: [],
       warnings: { nonNumeric: 0, emptyRows: 0, emptyCols: 0 },
+      injectionWarnings: null,
     };
   }
   const colLabels = headers.slice(1);
@@ -636,7 +651,7 @@ function parseWideMatrix(text, sepOv = "") {
     rowLabels.push(label);
     matrix.push(values);
   });
-  return { rowLabels, colLabels, matrix, warnings: { nonNumeric } };
+  return { rowLabels, colLabels, matrix, warnings: { nonNumeric }, injectionWarnings };
 }
 
 // ── Unified data parsing ─────────────────────────────────────────────────────
@@ -644,7 +659,7 @@ function parseWideMatrix(text, sepOv = "") {
 function parseData(text, sepOv = "") {
   const sep = autoDetectSep(text, sepOv);
   const all = tokenizeDelimited(text, sep);
-  if (all.length < 2) return { headers: [], data: [], rawData: [] };
+  if (all.length < 2) return { headers: [], data: [], rawData: [], injectionWarnings: null };
   const headers = all[0];
   const nCols = headers.length;
   const data = [],
@@ -656,7 +671,8 @@ function parseData(text, sepOv = "") {
     data.push(rawVals.map((s) => (isNumericValue(s) ? toNumericValue(s) : null)));
     rawData.push(rawVals);
   }
-  return { headers, data, rawData };
+  const scan = scanForFormulaInjection(headers, rawData);
+  return { headers, data, rawData, injectionWarnings: scan.count > 0 ? scan : null };
 }
 
 function dataToColumns(data, nCols) {
@@ -958,14 +974,85 @@ function downloadText(text, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Cells whose first character is one of these get a leading single-quote
+// before the CSV escape. Excel / LibreOffice / Google Sheets all treat `=`,
+// `+`, `-`, `@` (and a leading tab / CR before any of those) as a formula
+// trigger; the prepended `'` tells the spreadsheet engine to treat the cell
+// as text. This is the standard OWASP CSV-injection mitigation. Plöttr never
+// evaluates the formula itself, so the laundering happens in the *consumer*
+// of the exported file — see docs/security_audit_02-05-2026.md item #1.
+//
+// `_isFormulaInjection` adds the obvious carve-out the raw OWASP rule
+// misses for scientific data: a cell that *parses cleanly as a number*
+// (per `isNumericValue`) is just a negative or signed value like `-0.5`
+// or `-1.5e3` — Excel reads that as a number, not a formula, so we leave
+// it alone (no banner noise, no apostrophe drift on round-trip). Hostile
+// strings like `-cmd|'/c calc'!A0`, `-2-3+10`, `+evil`, `=5`, `@SUM(...)`,
+// or a leading TAB / CR are all rejected by `isNumericValue` and so still
+// get the prefix.
+const _CSV_FORMULA_LEAD = /^[=+\-@\t\r]/;
+
+function _isFormulaInjection(s) {
+  return _CSV_FORMULA_LEAD.test(s) && !isNumericValue(s);
+}
+
+function _escapeCsvCell(v) {
+  let s = String(v);
+  if (_isFormulaInjection(s)) s = "'" + s;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
 // RFC 4180 CSV string builder. Pure (no DOM / Blob) so it round-trips through
 // `parseRaw` in tests without needing a browser context. Headers go through
 // the same escape as data cells — a header containing a comma
 // ("Sample, Note") used to write a malformed first line that Plöttr's own
-// parseRaw split into N+1 columns on re-import.
+// parseRaw split into N+1 columns on re-import. Cells starting with a
+// formula-trigger character are prefixed with `'` (see _escapeCsvCell).
 function buildCsvString(headers, rows) {
-  const escape = (v) => `"${String(v).replace(/"/g, '""')}"`;
-  return [headers.map(escape).join(","), ...rows.map((r) => r.map(escape).join(","))].join("\n");
+  return [
+    headers.map(_escapeCsvCell).join(","),
+    ...rows.map((r) => r.map(_escapeCsvCell).join(",")),
+  ].join("\n");
+}
+
+// Scan parsed headers + rows for cells that would trigger formula evaluation
+// when re-opened in Excel / LibreOffice / Sheets — same character set as
+// _CSV_FORMULA_LEAD. Used at ingest time to surface a warning banner so the
+// user knows their pasted dataset is laundering hostile content even if
+// they never download it. Returns { count, headers: [{idx, value}], cells:
+// [{row, col, header, value}] } where the example arrays are capped (cap
+// defaults to 8 for each) so the banner stays compact on huge sheets.
+function scanForFormulaInjection(headers, rows, opts) {
+  const cap = (opts && opts.cap) || 8;
+  const out = { count: 0, headers: [], cells: [] };
+  if (Array.isArray(headers)) {
+    for (let i = 0; i < headers.length; i++) {
+      const v = headers[i];
+      if (typeof v !== "string" || !_isFormulaInjection(v)) continue;
+      out.count++;
+      if (out.headers.length < cap) out.headers.push({ idx: i, value: v });
+    }
+  }
+  if (Array.isArray(rows)) {
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r];
+      if (!Array.isArray(row)) continue;
+      for (let c = 0; c < row.length; c++) {
+        const v = row[c];
+        if (typeof v !== "string" || !_isFormulaInjection(v)) continue;
+        out.count++;
+        if (out.cells.length < cap) {
+          out.cells.push({
+            row: r,
+            col: c,
+            header: headers && headers[c] != null ? String(headers[c]) : null,
+            value: v,
+          });
+        }
+      }
+    }
+  }
+  return out;
 }
 
 function downloadCsv(headers, rows, filename) {
