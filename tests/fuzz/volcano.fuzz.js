@@ -211,26 +211,30 @@ function runOne(seed, iter) {
     return;
   }
 
-  // pickTopLabels: requested n is ≤ total, output ≤ n, unique indices,
-  // never includes ns / discarded points.
-  const requestedN = Math.floor(rng() * 25);
+  // pickTopLabels: independent up / down counts, output ≤ nUp + nDown,
+  // unique indices, never includes ns / discarded points, each entry
+  // carries its class.
+  const nUp = Math.floor(rng() * 15);
+  const nDown = Math.floor(rng() * 15);
   let top;
   try {
-    top = pickTopLabels(points, requestedN, fcCutoff, pCutoff, pFloor);
+    top = pickTopLabels(points, nUp, nDown, fcCutoff, pCutoff, pFloor);
   } catch (err) {
     recordFailure(seed, iter, "pickTopLabels", err);
     return;
   }
-  if (top.length > requestedN) {
+  if (top.length > nUp + nDown) {
     recordFailure(
       seed,
       iter,
       "pickTopLabels",
-      new Error("returned more than n: " + top.length + " > " + requestedN)
+      new Error("returned more than nUp+nDown: " + top.length + " > " + (nUp + nDown))
     );
     return;
   }
   const seenIdx = new Set();
+  let seenUp = 0;
+  let seenDown = 0;
   for (const e of top) {
     if (seenIdx.has(e.idx)) {
       recordFailure(seed, iter, "pickTopLabels", new Error("duplicate idx: " + e.idx));
@@ -247,22 +251,61 @@ function runOne(seed, iter) {
       );
       return;
     }
+    if (e.cls !== cls) {
+      recordFailure(
+        seed,
+        iter,
+        "pickTopLabels",
+        new Error("entry.cls (" + e.cls + ") disagrees with classifier (" + cls + ")")
+      );
+      return;
+    }
+    if (cls === "up") seenUp++;
+    else seenDown++;
+  }
+  if (seenUp > nUp || seenDown > nDown) {
+    recordFailure(
+      seed,
+      iter,
+      "pickTopLabels",
+      new Error(
+        "per-class cap violated: up=" + seenUp + "/" + nUp + " down=" + seenDown + "/" + nDown
+      )
+    );
+    return;
   }
 
-  // layoutLabels: handle degenerate plot dims (zero / negative w / h)
-  // gracefully. Output length must match input length.
+  // layoutLabels: takes obstacles + must produce one PlacedLabel per
+  // input, never throw on degenerate plot dims.
   const charW = approxMonoCharWidth(11);
   const inputs = top.slice(0, 12).map((e, i) => ({
     pointPx: { x: rng() * 800, y: rng() * 500 },
     text: String(points[e.idx].label || "F" + i),
     charWidth: charW,
     lineHeight: 13,
+    pointRadius: 3,
+    ringRadius: 4.5,
   }));
-  const plotW = rng() < 0.05 ? 0 : 200 + rng() * 800;
-  const plotH = rng() < 0.05 ? 0 : 100 + rng() * 500;
+  // Synthesize a few obstacle points so the layout has real data to
+  // route around. Most iterations include the source coords too —
+  // layoutLabels must skip those internally.
+  const obstacles = [];
+  for (const inp of inputs) obstacles.push({ x: inp.pointPx.x, y: inp.pointPx.y, r: 3 });
+  for (let k = 0; k < 5; k++) {
+    obstacles.push({ x: rng() * 800, y: rng() * 500, r: 3 });
+  }
+  // Layout bounds: occasionally tiny / degenerate (zero w/h) to
+  // exercise the forced-fallback path. Origin can be negative — the
+  // chart caller passes negative-origin bounds so labels can spill
+  // into the margin.
+  const boundsX = rng() < 0.5 ? -30 : 0;
+  const boundsY = rng() < 0.5 ? -30 : 0;
+  const boundsW = rng() < 0.05 ? 0 : 200 + rng() * 800;
+  const boundsH = rng() < 0.05 ? 0 : 100 + rng() * 500;
+  const layoutBounds = { x: boundsX, y: boundsY, w: boundsW, h: boundsH };
   let placed;
   try {
-    placed = layoutLabels(inputs, plotW, plotH);
+    placed = layoutLabels(inputs, obstacles, layoutBounds);
   } catch (err) {
     recordFailure(seed, iter, "layoutLabels", err);
     return;
@@ -275,6 +318,18 @@ function runOne(seed, iter) {
       new Error("output length " + placed.length + " != input " + inputs.length)
     );
     return;
+  }
+  // Every PlacedLabel must populate leaderStart / leaderEnd now.
+  for (const p of placed) {
+    if (!p.leaderStart || !p.leaderEnd) {
+      recordFailure(
+        seed,
+        iter,
+        "layoutLabels",
+        new Error("missing leader endpoints on placed label")
+      );
+      return;
+    }
   }
 }
 

@@ -205,21 +205,29 @@ export function autoDetectColumns(headers: string[]): AutoDetectResult {
 // in both axes is more interesting than one extreme on a single axis.
 // Non-significant points are excluded by default; users almost never
 // want to label noise.
+//
+// Up- and down-regulated features are picked independently with their
+// own per-class N counts, so a dataset that's heavily skewed one way
+// (e.g. 200 up-hits and 5 down-hits) doesn't crowd out the few rare
+// hits in the smaller class. The chart caller defaults to nUp = nDown
+// = 10 but exposes the two as separate sliders.
 
 export interface ScoredPoint {
   idx: number; // index into the ORIGINAL points array
   score: number;
+  cls: VolcanoClass; // "up" or "down" (ns is filtered out before scoring)
 }
 
 export function pickTopLabels(
   points: VolcanoPoint[],
-  n: number,
+  nUp: number,
+  nDown: number,
   fcCutoff: number,
   pCutoff: number,
   pFloor: number
 ): ScoredPoint[] {
-  if (n <= 0) return [];
-  const scored: ScoredPoint[] = [];
+  const ups: ScoredPoint[] = [];
+  const downs: ScoredPoint[] = [];
   for (let i = 0; i < points.length; i++) {
     const pt = points[i];
     if (!Number.isFinite(pt.log2fc) || !Number.isFinite(pt.p)) continue;
@@ -227,42 +235,106 @@ export function pickTopLabels(
     const cls = classifyPoint(pt.log2fc, pt.p, fcCutoff, pCutoff);
     if (cls === "ns") continue;
     const score = Math.abs(pt.log2fc) * negLog10P(pt.p, pFloor);
-    scored.push({ idx: i, score });
+    if (cls === "up") ups.push({ idx: i, score, cls });
+    else downs.push({ idx: i, score, cls });
   }
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, n);
+  ups.sort((a, b) => b.score - a.score);
+  downs.sort((a, b) => b.score - a.score);
+  const out: ScoredPoint[] = [];
+  if (nUp > 0) for (const e of ups.slice(0, nUp)) out.push(e);
+  if (nDown > 0) for (const e of downs.slice(0, nDown)) out.push(e);
+  return out;
 }
 
-// ── Greedy collision-avoid label layout ─────────────────────────────────
+// ── Leader-line label layout ────────────────────────────────────────────
 //
-// For each picked point, try four candidate anchors in order:
-//   1. above-right  (point.x + offset, point.y - offset)
-//   2. above-left   (point.x - offset - w, point.y - offset)
-//   3. below-right  (point.x + offset, point.y + offset + h)
-//   4. below-left   (point.x - offset - w, point.y + offset + h)
-// First anchor whose bbox doesn't overlap any already-placed label OR
-// the plot border wins. If none fit, we fall back to anchor 1 anyway and
-// flag `forced: true` so the chart can render a leader line. This is
-// intentionally simpler than ggrepel's force-directed simulation; the
-// kill-chain user wants "top 10 labels readable", not 500.
+// For each picked point, try 12 candidate angles around the source
+// (every 30°, starting from 12-o'clock and fanning outward) at a fixed
+// `LEADER_DISTANCE` from the source centre. The first angle that
+// satisfies ALL of these constraints wins:
+//
+//   1. label bbox stays inside the layout `bounds` (the chart caller
+//      passes a bbox bigger than the inner data plot so labels can
+//      legitimately spill into the chart's chrome margin)
+//   2. label bbox doesn't overlap any already-placed label
+//   3. label bbox doesn't enclose any data point — text never sits on
+//      top of a dot
+//   4. the dashed leader line, drawn from the *outer ring edge* of the
+//      source dot (not the dot itself) to the *nearest edge midpoint*
+//      of the label bbox, doesn't pass within `obs.r` of any other
+//      data point
+//   5. that leader doesn't cross any already-placed leader either —
+//      crossed leaders are visually noisy and ambiguous
+//
+// The leader entering the bbox at its *closest edge midpoint* (rather
+// than the centre) means a gene name placed to the right of its dot
+// has the leader join the left edge of the text, giving a clean "bracket"
+// look instead of a line tunneling under the letters.
+//
+// If no candidate angle satisfies all five constraints, fall back to
+// "12-o'clock" and flag `forced: true` so the chart can render the
+// leader anyway. With a generous `bounds` (margin extension) and 12
+// angles, the forced path is rare — typically only for points piled in
+// a tight cluster against the plot edge.
+
+export interface ObstaclePoint {
+  x: number;
+  y: number;
+  r: number;
+}
+
+// The chart caller passes a `LayoutBounds` rect that is typically
+// slightly larger than the inner data-plot area, so labels can legally
+// land in the chart's outer margin where there are no data points to
+// collide with. Using a rect (not just plotW / plotH) lets the bounds
+// have negative origin — labels sitting *above* the inner plot in
+// inner-coordinate space are kosher when y < 0.
+export interface LayoutBounds {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 
 export interface LayoutInput {
   pointPx: { x: number; y: number };
   text: string;
-  charWidth: number; // pixels per char at the chosen font size (monospace ≈ fontSize × 0.6)
+  charWidth: number; // pixels per char at the chosen font size
   lineHeight: number; // pixels
+  pointRadius: number; // radius of the source dot
+  ringRadius: number; // radius of the black selection ring drawn outside the dot — leader starts here
 }
 
 export interface PlacedLabel {
   pointPx: { x: number; y: number };
-  textPx: { x: number; y: number }; // baseline anchor (SVG text default)
+  textPx: { x: number; y: number }; // baseline anchor for `text-anchor="middle"`
   bbox: { x: number; y: number; w: number; h: number };
   text: string;
-  anchor: "above-right" | "above-left" | "below-right" | "below-left";
-  forced: boolean; // true ⇒ all anchors collided; render a leader line
+  // The dashed leader runs from leaderStart (on the *ring edge* of the
+  // source point, away from the label) to leaderEnd (the closest edge
+  // midpoint of the label bbox). Always populated.
+  leaderStart: { x: number; y: number };
+  leaderEnd: { x: number; y: number };
+  forced: boolean; // true ⇒ all candidate angles collided; placement may overlap
 }
 
-const LABEL_OFFSET = 6;
+// Layout search space. Each candidate is (angle, distance) — the
+// algorithm tries every angle at the nearest distance first, then
+// progressively farther distances. With 24 angles × 4 distances = 96
+// candidates per label, dense plots have *much* more wiggle room than
+// the original 12-angles-at-one-distance design (the user complaint).
+// Angles are listed in preference order: 12 o'clock first (volcano
+// significance points up), fanning outward through the upper hemisphere
+// before reaching the lower hemisphere — labels above the data are the
+// natural reading direction for top-N hits.
+const LEADER_DISTANCES = [38, 56, 80, 108]; // px from source centre to label centre
+const LABEL_BBOX_PAD = 1; // halo around each obstacle keeps text from kissing dot edges
+const LABEL_ANGLES_DEG = [
+  // Upper hemisphere first (12 o'clock outward), 15° apart.
+  -90, -75, -105, -60, -120, -45, -135, -30, -150, -15, -165, 0, 180,
+  // Lower hemisphere, same spacing.
+  15, 165, 30, 150, 45, 135, 60, 120, 75, 105, 90,
+];
 
 function rectsOverlap(
   a: { x: number; y: number; w: number; h: number },
@@ -273,68 +345,243 @@ function rectsOverlap(
 
 function within(
   bbox: { x: number; y: number; w: number; h: number },
-  plotW: number,
-  plotH: number
+  bounds: LayoutBounds
 ): boolean {
-  return bbox.x >= 0 && bbox.y >= 0 && bbox.x + bbox.w <= plotW && bbox.y + bbox.h <= plotH;
+  return (
+    bbox.x >= bounds.x &&
+    bbox.y >= bounds.y &&
+    bbox.x + bbox.w <= bounds.x + bounds.w &&
+    bbox.y + bbox.h <= bounds.y + bounds.h
+  );
 }
 
-export function layoutLabels(inputs: LayoutInput[], plotW: number, plotH: number): PlacedLabel[] {
+// Closest-point distance from segment (x1,y1)→(x2,y2) to a circle's
+// centre, returning true iff the segment passes within `r` of (cx, cy).
+function lineSegmentIntersectsCircle(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  cx: number,
+  cy: number,
+  r: number
+): boolean {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len2 = dx * dx + dy * dy;
+  let t: number;
+  if (len2 < 1e-9) {
+    t = 0;
+  } else {
+    t = ((cx - x1) * dx + (cy - y1) * dy) / len2;
+    if (t < 0) t = 0;
+    else if (t > 1) t = 1;
+  }
+  const px = x1 + t * dx;
+  const py = y1 + t * dy;
+  const ddx = cx - px;
+  const ddy = cy - py;
+  return ddx * ddx + ddy * ddy <= r * r;
+}
+
+// Standard 2D segment-segment intersection: returns true iff the open
+// segments AB and CD share an interior point. Co-linear overlap is
+// reported as non-intersecting (the leader-vs-leader check tolerates
+// touch-only cases for points sharing a source edge).
+function lineSegmentsIntersect(
+  ax1: number,
+  ay1: number,
+  ax2: number,
+  ay2: number,
+  bx1: number,
+  by1: number,
+  bx2: number,
+  by2: number
+): boolean {
+  const d1x = ax2 - ax1;
+  const d1y = ay2 - ay1;
+  const d2x = bx2 - bx1;
+  const d2y = by2 - by1;
+  const denom = d1x * d2y - d1y * d2x;
+  if (Math.abs(denom) < 1e-9) return false; // parallel
+  const dx = bx1 - ax1;
+  const dy = by1 - ay1;
+  const t = (dx * d2y - dy * d2x) / denom;
+  const u = (dx * d1y - dy * d1x) / denom;
+  // Strict inequality at the endpoints so two leaders sharing a source
+  // pixel (e.g. labels for two points right on top of each other) don't
+  // register as crossing each other.
+  return t > 1e-6 && t < 1 - 1e-6 && u > 1e-6 && u < 1 - 1e-6;
+}
+
+// Project (sx, sy) onto the bbox, returning the closest point on the
+// bbox boundary. Used to anchor the leader on the side of the text
+// nearest the source — gives a visual "bracket" when the label sits to
+// one side of the dot.
+function nearestPointOnBbox(
+  bbox: { x: number; y: number; w: number; h: number },
+  sx: number,
+  sy: number
+): { x: number; y: number } {
+  const nx = Math.max(bbox.x, Math.min(sx, bbox.x + bbox.w));
+  const ny = Math.max(bbox.y, Math.min(sy, bbox.y + bbox.h));
+  return { x: nx, y: ny };
+}
+
+function pointInPaddedRect(
+  px: number,
+  py: number,
+  bbox: { x: number; y: number; w: number; h: number },
+  pad: number
+): boolean {
+  return (
+    px >= bbox.x - pad &&
+    px <= bbox.x + bbox.w + pad &&
+    py >= bbox.y - pad &&
+    py <= bbox.y + bbox.h + pad
+  );
+}
+
+export function layoutLabels(
+  inputs: LayoutInput[],
+  obstacles: ObstaclePoint[],
+  bounds: LayoutBounds
+): PlacedLabel[] {
   const placed: PlacedLabel[] = [];
   for (const inp of inputs) {
     const w = inp.charWidth * inp.text.length;
     const h = inp.lineHeight;
-    const candidates: Array<{
-      anchor: PlacedLabel["anchor"];
-      bbox: { x: number; y: number; w: number; h: number };
-      textPx: { x: number; y: number };
-    }> = [
-      {
-        anchor: "above-right",
-        bbox: { x: inp.pointPx.x + LABEL_OFFSET, y: inp.pointPx.y - LABEL_OFFSET - h, w, h },
-        textPx: { x: inp.pointPx.x + LABEL_OFFSET, y: inp.pointPx.y - LABEL_OFFSET - 2 },
-      },
-      {
-        anchor: "above-left",
-        bbox: { x: inp.pointPx.x - LABEL_OFFSET - w, y: inp.pointPx.y - LABEL_OFFSET - h, w, h },
-        textPx: { x: inp.pointPx.x - LABEL_OFFSET - w, y: inp.pointPx.y - LABEL_OFFSET - 2 },
-      },
-      {
-        anchor: "below-right",
-        bbox: { x: inp.pointPx.x + LABEL_OFFSET, y: inp.pointPx.y + LABEL_OFFSET, w, h },
-        textPx: { x: inp.pointPx.x + LABEL_OFFSET, y: inp.pointPx.y + LABEL_OFFSET + h - 2 },
-      },
-      {
-        anchor: "below-left",
-        bbox: { x: inp.pointPx.x - LABEL_OFFSET - w, y: inp.pointPx.y + LABEL_OFFSET, w, h },
-        textPx: { x: inp.pointPx.x - LABEL_OFFSET - w, y: inp.pointPx.y + LABEL_OFFSET + h - 2 },
-      },
-    ];
-    let chosen: (typeof candidates)[number] | null = null;
-    for (const c of candidates) {
-      if (!within(c.bbox, plotW, plotH)) continue;
-      let collides = false;
-      for (const p of placed) {
-        if (rectsOverlap(c.bbox, p.bbox)) {
-          collides = true;
-          break;
+    const sx = inp.pointPx.x;
+    const sy = inp.pointPx.y;
+    let chosen: PlacedLabel | null = null;
+
+    // Outer loop = distance (prefer near placement). Inner loop = angle
+    // (prefer 12 o'clock). Total candidate count = 24 × 4 = 96 — enough
+    // wiggle room for dense plots without becoming a force-directed
+    // simulation. The first candidate that satisfies all five
+    // constraints wins.
+    distanceLoop: for (const dist of LEADER_DISTANCES) {
+      for (const deg of LABEL_ANGLES_DEG) {
+        const rad = (deg * Math.PI) / 180;
+        const cosA = Math.cos(rad);
+        const sinA = Math.sin(rad);
+        const labelCx = sx + dist * cosA;
+        const labelCy = sy + dist * sinA;
+        const bbox = { x: labelCx - w / 2, y: labelCy - h / 2, w, h };
+
+        // Constraint 1: bbox stays inside layout bounds.
+        if (!within(bbox, bounds)) continue;
+
+        // Constraint 2: bbox doesn't overlap any already-placed label.
+        let labelCollides = false;
+        for (const p of placed) {
+          if (rectsOverlap(bbox, p.bbox)) {
+            labelCollides = true;
+            break;
+          }
         }
-      }
-      if (!collides) {
-        chosen = c;
-        break;
+        if (labelCollides) continue;
+
+        // Constraint 3: bbox doesn't enclose any data point. Padding by
+        // (obstacle radius + LABEL_BBOX_PAD) so text doesn't kiss dot edges.
+        let bboxHitsPoint = false;
+        for (const obs of obstacles) {
+          const ox = obs.x - sx;
+          const oy = obs.y - sy;
+          if (ox * ox + oy * oy < 1) continue; // skip the source itself
+          if (pointInPaddedRect(obs.x, obs.y, bbox, obs.r + LABEL_BBOX_PAD)) {
+            bboxHitsPoint = true;
+            break;
+          }
+        }
+        if (bboxHitsPoint) continue;
+
+        // Leader: ring edge → nearest bbox edge point.
+        const startX = sx + inp.ringRadius * cosA;
+        const startY = sy + inp.ringRadius * sinA;
+        const leaderEnd = nearestPointOnBbox(bbox, sx, sy);
+
+        // Constraint 4: leader doesn't cross any other data point.
+        let leaderCollides = false;
+        for (const obs of obstacles) {
+          const ox = obs.x - sx;
+          const oy = obs.y - sy;
+          if (ox * ox + oy * oy < 1) continue; // source
+          if (
+            lineSegmentIntersectsCircle(
+              startX,
+              startY,
+              leaderEnd.x,
+              leaderEnd.y,
+              obs.x,
+              obs.y,
+              obs.r + 0.5
+            )
+          ) {
+            leaderCollides = true;
+            break;
+          }
+        }
+        if (leaderCollides) continue;
+
+        // Constraint 5: leader doesn't cross any already-placed leader.
+        let leadersCross = false;
+        for (const p of placed) {
+          if (
+            lineSegmentsIntersect(
+              startX,
+              startY,
+              leaderEnd.x,
+              leaderEnd.y,
+              p.leaderStart.x,
+              p.leaderStart.y,
+              p.leaderEnd.x,
+              p.leaderEnd.y
+            )
+          ) {
+            leadersCross = true;
+            break;
+          }
+        }
+        if (leadersCross) continue;
+
+        chosen = {
+          pointPx: { x: sx, y: sy },
+          textPx: { x: labelCx, y: labelCy + h / 4 },
+          bbox,
+          text: inp.text,
+          leaderStart: { x: startX, y: startY },
+          leaderEnd,
+          forced: false,
+        };
+        break distanceLoop;
       }
     }
-    const forced = chosen == null;
-    if (forced) chosen = candidates[0];
-    placed.push({
-      pointPx: inp.pointPx,
-      textPx: chosen!.textPx,
-      bbox: chosen!.bbox,
-      text: inp.text,
-      anchor: chosen!.anchor,
-      forced,
-    });
+
+    if (!chosen) {
+      // Fallback: place straight up at the nearest distance regardless
+      // of collisions; flag as forced so the chart renders the leader
+      // visibly anyway.
+      const rad = (-90 * Math.PI) / 180;
+      const cosA = Math.cos(rad);
+      const sinA = Math.sin(rad);
+      const labelCx = sx + LEADER_DISTANCES[0] * cosA;
+      const labelCy = sy + LEADER_DISTANCES[0] * sinA;
+      const bbox = { x: labelCx - w / 2, y: labelCy - h / 2, w, h };
+      const startX = sx + inp.ringRadius * cosA;
+      const startY = sy + inp.ringRadius * sinA;
+      const leaderEnd = nearestPointOnBbox(bbox, sx, sy);
+      chosen = {
+        pointPx: { x: sx, y: sy },
+        textPx: { x: labelCx, y: labelCy + h / 4 },
+        bbox,
+        text: inp.text,
+        leaderStart: { x: startX, y: startY },
+        leaderEnd,
+        forced: true,
+      };
+    }
+    placed.push(chosen);
   }
   return placed;
 }
@@ -345,4 +592,206 @@ export function layoutLabels(inputs: LayoutInput[], plotW: number, plotH: number
 // pixel-align text, just keep boxes from overlapping).
 export function approxMonoCharWidth(fontSize: number): number {
   return fontSize * 0.6;
+}
+
+// ── Aesthetic mapping (optional column → colour or size) ──────────────
+//
+// Volcano's default colouring is class-based (up = red, down = blue,
+// ns = grey). The user can override that with an arbitrary column from
+// the parsed dataset — useful for "colour by chromosome", "colour by
+// pathway", "size by base-mean expression", etc. Detection rule
+// matches scatter's: a column is *continuous* if its values are >80 %
+// numeric AND it has > 12 unique values; otherwise *discrete*.
+
+export type ColorMapType = "discrete" | "continuous";
+
+export interface DiscreteColorMap {
+  type: "discrete";
+  // idx → hex colour. `idx` is the original-row index (matches
+  // VolcanoPoint.idx). Values not in this map fall back to the chart's
+  // default class colour. The legend list is the unique values in
+  // first-seen order so the SVG legend / sidebar legend can use it.
+  colorByIdx: Map<number, string>;
+  legend: Array<{ value: string; color: string }>;
+}
+
+export interface ContinuousColorMap {
+  type: "continuous";
+  colorByIdx: Map<number, string>;
+  // Numeric range used for the scale. UI shows these as the colorbar
+  // endpoints; user can override via vmin/vmax sliders later.
+  vmin: number;
+  vmax: number;
+  // The palette name the chart should expose in the colour-bar (so
+  // the legend and the actual colours stay in sync).
+  paletteName: string;
+}
+
+export type ColorMap = DiscreteColorMap | ContinuousColorMap | null;
+
+// Pull the raw value for a given row's column out of `parseData`-style
+// rawData. Returns the empty string if missing — matches Plöttr's
+// usual "non-numeric / blank cell" convention.
+function rawCell(rawData: string[][], rowIdx: number, col: number): string {
+  if (col < 0) return "";
+  const row = rawData[rowIdx];
+  if (!row) return "";
+  const v = row[col];
+  return v == null ? "" : String(v);
+}
+
+// Plain numeric check — `parseData` upstream has already run
+// `fixDecimalCommas` so we don't need the locale-aware shared helper
+// here. Keeps this module dependency-free for the test loader.
+function isNumericString(s: string): boolean {
+  if (s === "") return false;
+  const n = Number(s);
+  return Number.isFinite(n);
+}
+
+// Detect whether a column should be treated as continuous (numeric
+// with > 12 unique values, > 80 % numeric ratio) or discrete. Mirrors
+// scatter's convention so users get the same auto-mode behaviour
+// across plot tools.
+//
+// `pointIndices` is optional — when provided, only those rows of
+// `rawData` are sampled. Used by buildColorMap to keep the type
+// classification consistent with the (filtered) set of points the
+// caller will actually colour. Default behaviour (no indices) walks
+// every row, matching the v1 contract used by sibling tests.
+export function detectColorMapType(
+  rawData: string[][],
+  col: number,
+  pointIndices?: number[]
+): ColorMapType {
+  if (col < 0) return "discrete";
+  let total = 0;
+  let numeric = 0;
+  const unique = new Set<string>();
+  const inspect = (s: string) => {
+    if (s === "") return;
+    total++;
+    unique.add(s);
+    if (isNumericString(s)) numeric++;
+  };
+  if (pointIndices) {
+    for (const idx of pointIndices) inspect(rawCell(rawData, idx, col));
+  } else {
+    for (const row of rawData) {
+      const v = row[col];
+      inspect(v == null ? "" : String(v));
+    }
+  }
+  if (total === 0) return "discrete";
+  const numericRatio = numeric / total;
+  if (numericRatio > 0.8 && unique.size > 12) return "continuous";
+  return "discrete";
+}
+
+interface BuildColorMapArgs {
+  rawData: string[][];
+  pointIndices: number[]; // VolcanoPoint.idx values (one per drawn point)
+  col: number; // column index into rawData
+  paletteStops: string[]; // pre-resolved palette colour-stop array (continuous mode)
+  paletteName: string; // for the result object — the chart pairs it with the legend colourbar
+  discretePalette: readonly string[]; // for discrete mode (Okabe-Ito by default)
+  interpolate: (stops: string[], t: number) => string; // shared.js `interpolateColor`
+}
+
+export function buildColorMap(args: BuildColorMapArgs): ColorMap {
+  const { rawData, pointIndices, col, paletteStops, paletteName, discretePalette, interpolate } =
+    args;
+  if (col < 0) return null;
+  // Detect type against the same row subset we'll iterate for
+  // colouring — otherwise a column that's continuous overall but
+  // categorical-among-sig-points (or vice versa) would render with
+  // the wrong scale.
+  const type = detectColorMapType(rawData, col, pointIndices);
+  if (type === "continuous") {
+    let vmin = Infinity;
+    let vmax = -Infinity;
+    const numeric: Array<{ idx: number; v: number }> = [];
+    for (const idx of pointIndices) {
+      const raw = rawCell(rawData, idx, col);
+      if (!isNumericString(raw)) continue;
+      const n = Number(raw);
+      numeric.push({ idx, v: n });
+      if (n < vmin) vmin = n;
+      if (n > vmax) vmax = n;
+    }
+    if (!Number.isFinite(vmin) || !Number.isFinite(vmax) || vmin === vmax) {
+      // Degenerate range — every point is the same value. Fall back
+      // to the palette's mid-point so the user still sees a colour.
+      vmin = 0;
+      vmax = 1;
+    }
+    const colorByIdx = new Map<number, string>();
+    for (const { idx, v } of numeric) {
+      const t = vmax > vmin ? (v - vmin) / (vmax - vmin) : 0.5;
+      colorByIdx.set(idx, interpolate(paletteStops, Math.max(0, Math.min(1, t))));
+    }
+    return { type: "continuous", colorByIdx, vmin, vmax, paletteName };
+  }
+  // Discrete: assign palette colours in first-seen order.
+  const seen = new Map<string, string>();
+  const order: string[] = [];
+  for (const idx of pointIndices) {
+    const raw = rawCell(rawData, idx, col);
+    if (raw === "") continue;
+    if (!seen.has(raw)) {
+      const color = discretePalette[seen.size % discretePalette.length];
+      seen.set(raw, color);
+      order.push(raw);
+    }
+  }
+  const colorByIdx = new Map<number, string>();
+  for (const idx of pointIndices) {
+    const raw = rawCell(rawData, idx, col);
+    const c = seen.get(raw);
+    if (c != null) colorByIdx.set(idx, c);
+  }
+  return {
+    type: "discrete",
+    colorByIdx,
+    legend: order.map((value) => ({ value, color: seen.get(value)! })),
+  };
+}
+
+// Build a per-point radius map from a numeric column. Linearly
+// interpolates between `minR` and `maxR`; non-numeric / missing values
+// fall back to a null entry (chart uses default radius). Mirrors the
+// scatter tool's continuous size-mapping behaviour.
+export function buildSizeMap(
+  rawData: string[][],
+  pointIndices: number[],
+  col: number,
+  minR: number,
+  maxR: number
+): Map<number, number> | null {
+  if (col < 0) return null;
+  let vmin = Infinity;
+  let vmax = -Infinity;
+  const numeric: Array<{ idx: number; v: number }> = [];
+  for (const idx of pointIndices) {
+    const raw = rawCell(rawData, idx, col);
+    if (raw === "") continue;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) continue;
+    numeric.push({ idx, v: n });
+    if (n < vmin) vmin = n;
+    if (n > vmax) vmax = n;
+  }
+  if (numeric.length === 0) return null;
+  const out = new Map<number, number>();
+  if (!Number.isFinite(vmin) || !Number.isFinite(vmax) || vmin === vmax) {
+    const mid = (minR + maxR) / 2;
+    for (const { idx } of numeric) out.set(idx, mid);
+    return out;
+  }
+  const span = vmax - vmin;
+  for (const { idx, v } of numeric) {
+    const t = (v - vmin) / span;
+    out.set(idx, minR + t * (maxR - minR));
+  }
+  return out;
 }

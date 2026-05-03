@@ -26,6 +26,9 @@ import {
   countClamped,
   summarize,
   autoDetectColumns,
+  buildColorMap,
+  buildSizeMap,
+  ColorMap,
 } from "./helpers";
 import { VolcanoChart } from "./chart";
 import { buildVolcanoRScript, buildVolcanoCsv } from "./reports";
@@ -36,13 +39,20 @@ const { useState, useEffect, useMemo, useCallback, useRef } = React;
 const VIS_INIT_VOLCANO = {
   fcCutoff: 1,
   pCutoff: 0.05,
-  topN: 10,
+  topNUp: 10,
+  topNDown: 10,
   showLabels: true,
   showRefLines: true,
   showAxes: true,
   pointRadius: 3,
   pointAlpha: 0.7,
   labelFontSize: 11,
+  // Aesthetic mapping defaults (used when the colour-/size-map tiles
+  // are toggled On). Column indices live in local state; these are the
+  // style knobs that survive reloads.
+  colorMapPalette: "viridis",
+  sizeMapMinR: 2,
+  sizeMapMaxR: 9,
   colorUp: VOLCANO_DEFAULT_COLORS.up,
   colorDown: VOLCANO_DEFAULT_COLORS.down,
   colorNs: VOLCANO_DEFAULT_COLORS.ns,
@@ -108,6 +118,33 @@ function App() {
   const [rawText, setRawText] = useState(null);
   const sepRef = useRef("");
 
+  // Manually-selected points (Set of original-row indices). Click on a
+  // point in the chart to add/remove it; when this set is non-empty the
+  // top-N auto-labelling is replaced with exactly these picks (so the
+  // user can call out specific features regardless of class). Cleared
+  // by the "Clear" button in the Labels tile, by re-uploading, or by
+  // changing column roles in the Configure step (since picked indices
+  // would no longer make sense against new data).
+  const [manualSelection, setManualSelection] = useState<Set<number>>(() => new Set());
+
+  // Optional aesthetic mappings — colour-by-column and size-by-column.
+  // No on/off toggle: the "— None —" entry in the tile's column
+  // dropdown is the off state (col === -1 disables the mapping). The
+  // column index is local state (it's dataset-specific), but palette
+  // and radius bounds live in `vis` so the user's style preference
+  // persists across reloads.
+  const [colorMapCol, setColorMapCol] = useState<number>(-1);
+  const [sizeMapCol, setSizeMapCol] = useState<number>(-1);
+  const togglePointSelection = useCallback((idx: number) => {
+    setManualSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  }, []);
+  const clearManualSelection = useCallback(() => setManualSelection(new Set()), []);
+
   // ── Parsing ──────────────────────────────────────────────────────────
 
   const doParse = useCallback(
@@ -134,6 +171,12 @@ function App() {
       setYCol(guess.yCol >= 0 ? guess.yCol : Math.min(1, out.headers.length - 1));
       setLabelCol(guess.labelCol);
       setYIsAdjusted(guess.yIsAdjusted);
+      // Drop any prior manual selection / aesthetic mappings — their
+      // column indices reference the previous dataset and would point
+      // at the wrong column (or no column) on the new shape.
+      setManualSelection(new Set());
+      setColorMapCol(-1);
+      setSizeMapCol(-1);
       setStep("configure");
     },
     [setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep]
@@ -164,6 +207,9 @@ function App() {
     setYIsAdjusted(false);
     setFileName("");
     setInjectionWarning(null);
+    setManualSelection(new Set());
+    setColorMapCol(-1);
+    setSizeMapCol(-1);
     setStep("upload");
   }, [setFileName, setInjectionWarning, setStep]);
 
@@ -183,6 +229,53 @@ function App() {
 
   const xLabel = parsed && xCol >= 0 ? parsed.headers[xCol] : "log2(fold change)";
   const yLabel = parsed && yCol >= 0 ? "−log10(" + parsed.headers[yCol] + ")" : "−log10(p-value)";
+
+  // Derived aesthetic mappings — null when the tile is toggled Off,
+  // populated otherwise. The chart consumes `colorByIdx` / `radiusByIdx`
+  // maps directly: keyed by VolcanoPoint.idx (the original parsed-row
+  // index). Memoised against parsed data + the column / palette knobs
+  // so dragging a slider doesn't rebuild on every render.
+  const colorMap: ColorMap = useMemo(() => {
+    if (!parsed || colorMapCol < 0) return null;
+    // shared.js declares `const COLOR_PALETTES` / `const PALETTE` /
+    // `function interpolateColor` at script-top scope — `function` and
+    // `var` attach to `window` in a classic <script> tag, but `const`
+    // and `let` do not. Reach for the bare ambient globals (typed in
+    // types/globals.d.ts) directly; `window.COLOR_PALETTES` is `undefined`
+    // here and dereferencing it crashed the colour-mapping path.
+    const stops = COLOR_PALETTES[vis.colorMapPalette] || COLOR_PALETTES.viridis;
+    // Restrict the mapping to features that pass the thresholds —
+    // colouring noise dilutes the legend and the visual signal. The
+    // chart enforces the same rule in its `fillFor` resolver, so even
+    // if a stale colorByIdx entry leaked through it would be ignored
+    // for ns points; filtering here keeps the type-detection /
+    // legend / colourbar range consistent with what the user sees.
+    const sigIndices: number[] = [];
+    for (const pt of points) {
+      const cls = classifyPoint(pt.log2fc, pt.p, vis.fcCutoff, vis.pCutoff);
+      if (cls !== "ns") sigIndices.push(pt.idx);
+    }
+    return buildColorMap({
+      rawData: parsed.rawData,
+      pointIndices: sigIndices,
+      col: colorMapCol,
+      paletteStops: stops,
+      paletteName: vis.colorMapPalette,
+      discretePalette: PALETTE,
+      interpolate: interpolateColor,
+    });
+  }, [parsed, colorMapCol, vis.colorMapPalette, vis.fcCutoff, vis.pCutoff, points]);
+
+  const radiusByIdx: Map<number, number> | null = useMemo(() => {
+    if (!parsed || sizeMapCol < 0) return null;
+    return buildSizeMap(
+      parsed.rawData,
+      points.map((p) => p.idx),
+      sizeMapCol,
+      vis.sizeMapMinR,
+      vis.sizeMapMaxR
+    );
+  }, [parsed, sizeMapCol, vis.sizeMapMinR, vis.sizeMapMaxR, points]);
 
   // ── Download handlers ────────────────────────────────────────────────
 
@@ -289,6 +382,7 @@ function App() {
       {step === "configure" && parsed && (
         <ConfigureStep
           parsed={parsed}
+          fileName={fileName}
           xCol={xCol}
           yCol={yCol}
           labelCol={labelCol}
@@ -297,14 +391,16 @@ function App() {
           setYCol={setYCol}
           setLabelCol={setLabelCol}
           setYIsAdjusted={setYIsAdjusted}
-          onPlot={() => setStep("plot")}
-          onBack={() => setStep("upload")}
         />
       )}
 
       {step === "plot" && parsed && (
         <PlotStep
           chartRef={chartRef}
+          parsed={parsed}
+          xCol={xCol}
+          yCol={yCol}
+          labelCol={labelCol}
           points={points}
           pFloor={pFloor}
           clampedCount={clampedCount}
@@ -313,6 +409,15 @@ function App() {
           yLabel={yLabel}
           vis={vis}
           updVis={updVis}
+          manualSelection={manualSelection}
+          togglePointSelection={togglePointSelection}
+          clearManualSelection={clearManualSelection}
+          colorMapCol={colorMapCol}
+          setColorMapCol={setColorMapCol}
+          colorMap={colorMap}
+          sizeMapCol={sizeMapCol}
+          setSizeMapCol={setSizeMapCol}
+          radiusByIdx={radiusByIdx}
           onDownloadSvg={onDownloadSvg}
           onDownloadPng={onDownloadPng}
           onDownloadCsv={onDownloadCsv}
@@ -325,9 +430,97 @@ function App() {
 }
 
 // ── Configure step ─────────────────────────────────────────────────────
+//
+// Same shape as boxplot's ConfigureStep — coloured `AesBox`-style cards
+// for column roles, required ones on top, optional below. Reuses the
+// `--aes-*` CSS vars defined in theme.css so the colour palette is
+// consistent with scatter / boxplot. NO back / plot buttons: the
+// StepNavBar at the top of PlotToolShell IS the navigation. The user
+// clicks "Plot" in the nav to advance, and `canNavigate` gates the
+// transition (it forbids "plot" until xCol and yCol are both valid).
+
+const VOLCANO_AES_THEMES = {
+  // X axis (log2 fold change) — purple "shape" theme. Mirrors boxplot's
+  // group-column tile colour so the "primary positional axis" idea is
+  // visually consistent across tools.
+  x: {
+    bg: "var(--aes-shape-bg)",
+    border: "var(--aes-shape-border)",
+    header: "var(--aes-shape-header)",
+    headerText: "var(--aes-shape-header-text)",
+    label: "X axis · log₂ fold change",
+  },
+  // Y axis (p-value) — green "size" theme, same as boxplot's value-
+  // column tile. The "primary measurement" slot.
+  y: {
+    bg: "var(--aes-size-bg)",
+    border: "var(--aes-size-border)",
+    header: "var(--aes-size-header)",
+    headerText: "var(--aes-size-header-text)",
+    label: "Y axis · p-value (−log₁₀)",
+  },
+  // Label column — slate "color" theme, neutral / auxiliary feel for
+  // an optional role.
+  label: {
+    bg: "var(--aes-color-bg)",
+    border: "var(--aes-color-border)",
+    header: "var(--aes-color-header)",
+    headerText: "var(--aes-color-header-text)",
+    label: "Feature label (optional)",
+  },
+  // Sidebar aesthetic boxes — matches scatter's "Color" and "Size"
+  // aesthetic cards exactly (same `--aes-*` CSS vars, same labels) so
+  // the visual language carries across tools. The configure-step
+  // tiles above re-use the same CSS vars in different semantic roles
+  // — visually identical, but they only ever appear on different
+  // steps so there's no clash.
+  colorMap: {
+    bg: "var(--aes-color-bg)",
+    border: "var(--aes-color-border)",
+    header: "var(--aes-color-header)",
+    headerText: "var(--aes-color-header-text)",
+    label: "Color",
+  },
+  sizeMap: {
+    bg: "var(--aes-size-bg)",
+    border: "var(--aes-size-border)",
+    header: "var(--aes-size-header)",
+    headerText: "var(--aes-size-header-text)",
+    label: "Size",
+  },
+} as const;
+
+function VolcanoAesBox({
+  theme,
+  children,
+}: {
+  theme: keyof typeof VOLCANO_AES_THEMES;
+  children: React.ReactNode;
+}) {
+  const t = VOLCANO_AES_THEMES[theme];
+  return (
+    <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
+      <div style={{ background: t.header, padding: "8px 14px", borderRadius: "8px 8px 0 0" }}>
+        <span
+          style={{
+            color: t.headerText,
+            fontWeight: 700,
+            fontSize: 12,
+            textTransform: "uppercase",
+            letterSpacing: "0.8px",
+          }}
+        >
+          {t.label}
+        </span>
+      </div>
+      <div style={{ padding: "12px 14px", minHeight: 40 }}>{children}</div>
+    </div>
+  );
+}
 
 function ConfigureStep({
   parsed,
+  fileName,
   xCol,
   yCol,
   labelCol,
@@ -336,62 +529,94 @@ function ConfigureStep({
   setYCol,
   setLabelCol,
   setYIsAdjusted,
-  onPlot,
-  onBack,
 }) {
+  const xValid = xCol >= 0;
+  const yValid = yCol >= 0;
   return (
-    <div className="dv-panel" style={{ padding: "20px 24px" }}>
+    <div>
+      {/* Required roles — two coloured tiles on top, side-by-side on
+          wide layouts, stacked on narrow. */}
       <div
         style={{
-          fontSize: 12,
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-          color: "var(--text-muted)",
-          marginBottom: 16,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+          gap: 12,
+          marginBottom: 12,
         }}
       >
-        Column roles
+        <VolcanoAesBox theme="x">
+          <select
+            className="dv-select"
+            style={{ width: "100%" }}
+            value={xValid ? xCol : ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") return;
+              setXCol(Number(raw));
+            }}
+          >
+            {!xValid && <option value="">— choose a log₂FC column —</option>}
+            {parsed.headers.map((h, i) => (
+              <option key={i} value={i}>
+                {h}
+              </option>
+            ))}
+          </select>
+          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
+            Numeric column with the log₂ fold change for each feature. DESeq2:{" "}
+            <code>log2FoldChange</code>; limma / edgeR: <code>logFC</code>.
+          </div>
+        </VolcanoAesBox>
+        <VolcanoAesBox theme="y">
+          <select
+            className="dv-select"
+            style={{ width: "100%" }}
+            value={yValid ? yCol : ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") return;
+              setYCol(Number(raw));
+            }}
+          >
+            {!yValid && <option value="">— choose a p-value column —</option>}
+            {parsed.headers.map((h, i) => (
+              <option key={i} value={i}>
+                {h}
+              </option>
+            ))}
+          </select>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 8,
+              fontSize: 11,
+              color: "var(--text)",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={yIsAdjusted}
+              onChange={(e) => setYIsAdjusted(e.target.checked)}
+            />
+            This column is an <strong>adjusted</strong> p-value (FDR / BH / qvalue)
+          </label>
+          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
+            Plotted as −log₁₀(p). Auto-detect prefers an adjusted column when both raw and adjusted
+            are present.
+          </div>
+        </VolcanoAesBox>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, alignItems: "end" }}>
-        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-            X axis: <strong>log2 fold change</strong>
-          </span>
+
+      {/* Optional role — single tile, full width, after the required pair. */}
+      <div style={{ marginBottom: 12 }}>
+        <VolcanoAesBox theme="label">
           <select
-            value={xCol}
-            onChange={(e) => setXCol(parseInt(e.target.value))}
             className="dv-select"
-          >
-            {parsed.headers.map((h, i) => (
-              <option key={i} value={i}>
-                {h}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-            Y axis: <strong>p-value</strong> (rendered as −log10)
-          </span>
-          <select
-            value={yCol}
-            onChange={(e) => setYCol(parseInt(e.target.value))}
-            className="dv-select"
-          >
-            {parsed.headers.map((h, i) => (
-              <option key={i} value={i}>
-                {h}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Label column (optional)</span>
-          <select
+            style={{ width: "100%" }}
             value={labelCol}
             onChange={(e) => setLabelCol(parseInt(e.target.value))}
-            className="dv-select"
           >
             <option value={-1}>— none —</option>
             {parsed.headers.map((h, i) => (
@@ -400,38 +625,43 @@ function ConfigureStep({
               </option>
             ))}
           </select>
-        </label>
-        <label
+          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
+            Categorical column used to annotate the top-N most-significant features (gene symbol,
+            protein name, accession). Skip if your data has no such column.
+          </div>
+        </VolcanoAesBox>
+      </div>
+
+      {/* Warning banner when required roles aren't assigned. The stepper
+          itself blocks navigation to "plot" via canNavigate, but the
+          banner gives the user a visible reason for it. */}
+      {(!xValid || !yValid) && (
+        <div
+          className="dv-panel"
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontSize: 12,
-            color: "var(--text-muted)",
-            paddingBottom: 8,
+            background: "var(--warning-bg)",
+            borderColor: "var(--warning-border)",
+            marginBottom: 12,
           }}
         >
-          <input
-            type="checkbox"
-            checked={yIsAdjusted}
-            onChange={(e) => setYIsAdjusted(e.target.checked)}
-          />
-          Y-axis column is an <strong>adjusted</strong> p-value (FDR / BH / qvalue)
-        </label>
+          <p style={{ fontSize: 12, color: "var(--warning-text)", margin: 0 }}>
+            Assign both a <strong>log₂FC column</strong> and a <strong>p-value column</strong> to
+            unlock the Plot step in the navigation above.
+          </p>
+        </div>
+      )}
+
+      {/* Data preview at the bottom — same shape as boxplot's. */}
+      <div className="dv-panel">
+        <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-muted)" }}>
+          <strong style={{ color: "var(--text)" }}>{fileName || "(pasted data)"}</strong> —{" "}
+          {parsed.headers.length} cols × {parsed.rawData.length} rows
+        </p>
+        <p style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>
+          Preview (first 8 rows):
+        </p>
+        <DataPreview headers={parsed.headers} rows={parsed.rawData} maxRows={8} />
       </div>
-      <div style={{ marginTop: 22, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-        <button onClick={onBack} className="dv-btn dv-btn-secondary">
-          ← Back
-        </button>
-        <button onClick={onPlot} className="dv-btn dv-btn-primary" disabled={xCol < 0 || yCol < 0}>
-          Plot →
-        </button>
-      </div>
-      <DataPreview
-        headers={parsed.headers}
-        rows={parsed.rawData.slice(0, 8)}
-        title="First 8 rows"
-      />
     </div>
   );
 }
@@ -440,6 +670,10 @@ function ConfigureStep({
 
 function PlotStep({
   chartRef,
+  parsed,
+  xCol,
+  yCol,
+  labelCol,
   points,
   pFloor,
   clampedCount,
@@ -448,6 +682,15 @@ function PlotStep({
   yLabel,
   vis,
   updVis,
+  manualSelection,
+  togglePointSelection,
+  clearManualSelection,
+  colorMapCol,
+  setColorMapCol,
+  colorMap,
+  sizeMapCol,
+  setSizeMapCol,
+  radiusByIdx,
   onDownloadSvg,
   onDownloadPng,
   onDownloadCsv,
@@ -484,7 +727,33 @@ function PlotStep({
         />
         <ThresholdsTile vis={vis} updVis={updVis} />
         <ColorsTile vis={vis} updVis={updVis} />
-        <LabelsTile vis={vis} updVis={updVis} />
+        <ColorMapTile
+          parsed={parsed}
+          xCol={xCol}
+          yCol={yCol}
+          labelCol={labelCol}
+          col={colorMapCol}
+          setCol={setColorMapCol}
+          colorMap={colorMap}
+          vis={vis}
+          updVis={updVis}
+        />
+        <SizeMapTile
+          parsed={parsed}
+          xCol={xCol}
+          yCol={yCol}
+          labelCol={labelCol}
+          col={sizeMapCol}
+          setCol={setSizeMapCol}
+          vis={vis}
+          updVis={updVis}
+        />
+        <LabelsTile
+          vis={vis}
+          updVis={updVis}
+          manualSelection={manualSelection}
+          clearManualSelection={clearManualSelection}
+        />
         <StyleTile vis={vis} updVis={updVis} />
       </PlotSidebar>
 
@@ -534,9 +803,14 @@ function PlotStep({
             pointAlpha={vis.pointAlpha}
             showRefLines={vis.showRefLines}
             showLabels={vis.showLabels}
-            topN={vis.topN}
+            topNUp={vis.topNUp}
+            topNDown={vis.topNDown}
             labelFontSize={vis.labelFontSize}
             showAxes={vis.showAxes}
+            manualSelection={manualSelection}
+            onPointClick={togglePointSelection}
+            colorByIdx={colorMap ? colorMap.colorByIdx : null}
+            radiusByIdx={radiusByIdx}
             plotBg="#ffffff"
           />
         </div>
@@ -547,23 +821,121 @@ function PlotStep({
 }
 
 // ── Sidebar tiles ──────────────────────────────────────────────────────
+//
+// Collapsible disclosure panel — same shape as scatter / lineplot /
+// upset's ControlSection so the visual language stays consistent across
+// every plot tool. Clicking the header toggles the body; the disclosure
+// chevron flips via `dv-disclosure-open` (CSS rotation in
+// components.css). After expand, scrollDisclosureIntoView ensures the
+// newly-opened body lands inside the sticky sidebar's scroll viewport.
 
-function tileTitleStyle(): React.CSSProperties {
-  return {
-    fontSize: 12,
-    fontWeight: 600,
-    color: "var(--text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-    fontFamily: "inherit",
-    marginBottom: 8,
-  };
+function ControlSection({
+  title,
+  defaultOpen = false,
+  headerRight,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  // Optional slot for an inline control rendered to the right of the
+  // section title — typically the on/off pill toggle for the section
+  // (matches aequorin's "Summary barplot" pattern). Survives folds.
+  headerRight?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
+  }, [open]);
+  return (
+    <div ref={rootRef} className="dv-panel" style={{ marginBottom: 0, padding: 0 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          width: "100%",
+          padding: "7px 10px",
+          gap: 8,
+        }}
+      >
+        <button
+          onClick={() => setOpen(!open)}
+          className="dv-tile-title"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            flex: 1,
+            padding: 0,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <span
+            className={"dv-disclosure" + (open ? " dv-disclosure-open" : "")}
+            aria-hidden="true"
+          />
+          {title}
+        </button>
+        {headerRight}
+      </div>
+      {open && (
+        <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Canonical on/off selector — the `dv-seg` segmented pill-bar declared
+// in components.css. Same widget power and molarity use for two-state
+// pickers (mode / alpha / tails / separator). A row of buttons where
+// the active one carries `dv-seg-btn-active`; one source of truth means
+// a future tweak propagates to every tool without per-tile drift. Label
+// sits above the pill-bar in `dv-label` typography for consistency
+// with how power.tsx introduces each segmented control.
+function ToggleRow({
+  checked,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <span className="dv-label">{children}</span>
+      <div className="dv-seg">
+        <button
+          type="button"
+          onClick={() => onChange(true)}
+          className={"dv-seg-btn" + (checked ? " dv-seg-btn-active" : "")}
+          style={{ fontSize: 12 }}
+        >
+          On
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange(false)}
+          className={"dv-seg-btn" + (!checked ? " dv-seg-btn-active" : "")}
+          style={{ fontSize: 12 }}
+        >
+          Off
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function ThresholdsTile({ vis, updVis }) {
   return (
-    <div className="dv-panel" style={{ padding: 12 }}>
-      <div style={tileTitleStyle()}>Thresholds</div>
+    <ControlSection title="Thresholds" defaultOpen>
       <SliderControl
         label="|log2FC| cutoff"
         value={vis.fcCutoff}
@@ -582,89 +954,99 @@ function ThresholdsTile({ vis, updVis }) {
         step={0.0001}
         onChange={(v) => updVis({ pCutoff: Number(v) })}
       />
-      <label
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          fontSize: 11,
-          color: "var(--text-muted)",
-          marginTop: 8,
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={vis.showRefLines}
-          onChange={(e) => updVis({ showRefLines: e.target.checked })}
-        />
+      <ToggleRow checked={vis.showRefLines} onChange={(v) => updVis({ showRefLines: v })}>
         Show reference lines
-      </label>
-    </div>
+      </ToggleRow>
+    </ControlSection>
   );
 }
 
 function ColorsTile({ vis, updVis }) {
   return (
-    <div className="dv-panel" style={{ padding: 12 }}>
-      <div style={tileTitleStyle()}>Colours</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <ColorRow
-          label="Up-regulated"
-          value={vis.colorUp}
-          onChange={(v) => updVis({ colorUp: v })}
-        />
-        <ColorRow
-          label="Down-regulated"
-          value={vis.colorDown}
-          onChange={(v) => updVis({ colorDown: v })}
-        />
-        <ColorRow
-          label="Not significant"
-          value={vis.colorNs}
-          onChange={(v) => updVis({ colorNs: v })}
-        />
-      </div>
-    </div>
+    <ControlSection title="Colours">
+      <ColorRow label="Up-regulated" value={vis.colorUp} onChange={(v) => updVis({ colorUp: v })} />
+      <ColorRow
+        label="Down-regulated"
+        value={vis.colorDown}
+        onChange={(v) => updVis({ colorDown: v })}
+      />
+      <ColorRow
+        label="Not significant"
+        value={vis.colorNs}
+        onChange={(v) => updVis({ colorNs: v })}
+      />
+    </ControlSection>
   );
 }
 
 function ColorRow({ label, value, onChange }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-      <span style={{ fontSize: 11, color: "var(--text)" }}>{label}</span>
+      <span style={{ fontSize: 12, color: "var(--text)" }}>{label}</span>
       <ColorInput value={value} onChange={onChange} size={20} />
     </div>
   );
 }
 
-function LabelsTile({ vis, updVis }) {
+function LabelsTile({ vis, updVis, manualSelection, clearManualSelection }) {
+  const manualCount = manualSelection ? manualSelection.size : 0;
+  const hasManual = manualCount > 0;
   return (
-    <div className="dv-panel" style={{ padding: 12 }}>
-      <div style={tileTitleStyle()}>Labels</div>
-      <label
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          fontSize: 11,
-          color: "var(--text-muted)",
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={vis.showLabels}
-          onChange={(e) => updVis({ showLabels: e.target.checked })}
-        />
+    <ControlSection title="Labels" defaultOpen={hasManual}>
+      <ToggleRow checked={vis.showLabels} onChange={(v) => updVis({ showLabels: v })}>
         Annotate top features
-      </label>
+      </ToggleRow>
+      {/* Manual-selection mode — when the user has clicked one or more
+          points, we hide the auto-pick sliders (they're moot, the user
+          is in charge) and surface a Clear button to drop back to
+          auto. Mirrors heatmap's selection-clear pattern. */}
+      {hasManual ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            padding: "8px 10px",
+            borderRadius: 6,
+            background: "var(--info-bg)",
+            border: "1px solid var(--info-border)",
+          }}
+        >
+          <span style={{ fontSize: 11, color: "var(--info-text)" }}>
+            {manualCount} point{manualCount === 1 ? "" : "s"} clicked
+          </span>
+          <button
+            onClick={clearManualSelection}
+            className="dv-btn dv-btn-secondary"
+            style={{ padding: "4px 10px", fontSize: 11 }}
+            title="Clear the manual selection — labelling falls back to the auto top-N picks"
+          >
+            Clear
+          </button>
+        </div>
+      ) : (
+        <span style={{ fontSize: 10, color: "var(--text-faint)", fontStyle: "italic" }}>
+          ↳ Click any point on the chart to label it directly
+        </span>
+      )}
       <SliderControl
-        label="Top N"
-        value={vis.topN}
-        displayValue={String(vis.topN)}
+        label="Top up-regulated"
+        value={vis.topNUp}
+        displayValue={String(vis.topNUp)}
         min={0}
         max={50}
         step={1}
-        onChange={(v) => updVis({ topN: Number(v) })}
+        onChange={(v) => updVis({ topNUp: Number(v) })}
+      />
+      <SliderControl
+        label="Top down-regulated"
+        value={vis.topNDown}
+        displayValue={String(vis.topNDown)}
+        min={0}
+        max={50}
+        step={1}
+        onChange={(v) => updVis({ topNDown: Number(v) })}
       />
       <SliderControl
         label="Font size"
@@ -675,14 +1057,13 @@ function LabelsTile({ vis, updVis }) {
         step={1}
         onChange={(v) => updVis({ labelFontSize: Number(v) })}
       />
-    </div>
+    </ControlSection>
   );
 }
 
 function StyleTile({ vis, updVis }) {
   return (
-    <div className="dv-panel" style={{ padding: 12 }}>
-      <div style={tileTitleStyle()}>Style</div>
+    <ControlSection title="Style">
       <SliderControl
         label="Point radius"
         value={vis.pointRadius}
@@ -701,31 +1082,16 @@ function StyleTile({ vis, updVis }) {
         step={0.05}
         onChange={(v) => updVis({ pointAlpha: Number(v) })}
       />
-      <label
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          fontSize: 11,
-          color: "var(--text-muted)",
-          marginTop: 6,
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={vis.showAxes}
-          onChange={(e) => updVis({ showAxes: e.target.checked })}
-        />
+      <ToggleRow checked={vis.showAxes} onChange={(v) => updVis({ showAxes: v })}>
         Show grid
-      </label>
+      </ToggleRow>
       <label
         style={{
           display: "flex",
           flexDirection: "column",
           gap: 4,
-          marginTop: 8,
-          fontSize: 11,
-          color: "var(--text-muted)",
+          fontSize: 12,
+          color: "var(--text)",
         }}
       >
         Plot title
@@ -737,7 +1103,174 @@ function StyleTile({ vis, updVis }) {
           placeholder="(optional)"
         />
       </label>
-    </div>
+    </ControlSection>
+  );
+}
+
+// ── Aesthetic-mapping tiles ────────────────────────────────────────────
+//
+// Both tiles ride the aequorin "Summary barplot" pattern: an On / Off
+// pill in the section header gates whether the mapping is live, and
+// the section body only renders when On (so the controls don't clutter
+// the sidebar in the default case).
+
+function eligibleColumns(parsed, xCol, yCol, labelCol) {
+  // Aesthetic mappings can use any column NOT already bound to a
+  // primary role. The label column is allowed (a user might want to
+  // colour by gene name AND show those names — fine, the chart will
+  // just colour each labelled point with its discrete colour).
+  const used = new Set<number>([xCol, yCol]);
+  return (parsed?.headers || []).map((h, i) => ({ h, i })).filter(({ i }) => !used.has(i));
+  void labelCol;
+}
+
+// Aesthetic boxes (Color / Size). Same flat-coloured `AesBox` shape
+// scatter uses for its colour / size / shape pickers — always visible,
+// no on/off toggle. The "— None —" entry in the column dropdown is
+// the off state: when col === -1, the App's useMemo returns a null
+// mapping and the chart falls back to the class palette / uniform
+// radius. Themes (`color` slate, `size` green) match scatter so the
+// visual language carries across tools.
+
+function ColorMapTile({ parsed, xCol, yCol, labelCol, col, setCol, colorMap, vis, updVis }) {
+  const candidates = eligibleColumns(parsed, xCol, yCol, labelCol);
+  // Bare-global access — see the comment in App's colorMap useMemo for
+  // why we don't go through `window`.
+  const paletteNames = Object.keys(COLOR_PALETTES);
+  return (
+    <VolcanoAesBox theme="colorMap">
+      <select
+        className="dv-select"
+        value={col === -1 ? "" : col}
+        onChange={(e) => setCol(e.target.value === "" ? -1 : parseInt(e.target.value))}
+        style={{ width: "100%", marginBottom: colorMap ? 8 : 0 }}
+      >
+        <option value="">— None —</option>
+        {candidates.map(({ h, i }) => (
+          <option key={i} value={i}>
+            {h}
+          </option>
+        ))}
+      </select>
+      {colorMap && (
+        <>
+          <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 6 }}>
+            Detected:{" "}
+            <strong style={{ color: colorMap.type === "continuous" ? "#7c3aed" : "#0369a1" }}>
+              {colorMap.type === "continuous"
+                ? "numeric (continuous)"
+                : `categorical (${colorMap.legend.length} groups)`}
+            </strong>
+          </div>
+          {colorMap.type === "continuous" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <select
+                className="dv-select"
+                value={vis.colorMapPalette}
+                onChange={(e) => updVis({ colorMapPalette: e.target.value })}
+                style={{ width: "100%", fontSize: 11 }}
+              >
+                {paletteNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
+                range: {colorMap.vmin.toPrecision(3)} → {colorMap.vmax.toPrecision(3)}
+              </span>
+            </div>
+          )}
+          {colorMap.type === "discrete" && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                maxHeight: 160,
+                overflowY: "auto",
+              }}
+            >
+              {colorMap.legend.map((entry) => (
+                <div
+                  key={entry.value}
+                  style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}
+                >
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 14,
+                      height: 14,
+                      borderRadius: 3,
+                      background: entry.color,
+                      border: "1px solid var(--border)",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span
+                    style={{
+                      color: "var(--text)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {entry.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </VolcanoAesBox>
+  );
+}
+
+function SizeMapTile({ parsed, xCol, yCol, labelCol, col, setCol, vis, updVis }) {
+  const candidates = eligibleColumns(parsed, xCol, yCol, labelCol);
+  const active = col >= 0;
+  return (
+    <VolcanoAesBox theme="sizeMap">
+      <select
+        className="dv-select"
+        value={col === -1 ? "" : col}
+        onChange={(e) => setCol(e.target.value === "" ? -1 : parseInt(e.target.value))}
+        style={{ width: "100%", marginBottom: active ? 8 : 0 }}
+      >
+        <option value="">— None —</option>
+        {candidates.map(({ h, i }) => (
+          <option key={i} value={i}>
+            {h}
+          </option>
+        ))}
+      </select>
+      {active && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <SliderControl
+            label="Min radius"
+            value={vis.sizeMapMinR}
+            displayValue={vis.sizeMapMinR.toFixed(1)}
+            min={1}
+            max={vis.sizeMapMaxR - 0.5}
+            step={0.5}
+            onChange={(v) => updVis({ sizeMapMinR: Number(v) })}
+          />
+          <SliderControl
+            label="Max radius"
+            value={vis.sizeMapMaxR}
+            displayValue={vis.sizeMapMaxR.toFixed(1)}
+            min={vis.sizeMapMinR + 0.5}
+            max={20}
+            step={0.5}
+            onChange={(v) => updVis({ sizeMapMaxR: Number(v) })}
+          />
+          <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
+            Non-numeric / blank cells fall back to the default radius from the Style tile.
+          </span>
+        </div>
+      )}
+    </VolcanoAesBox>
   );
 }
 

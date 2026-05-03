@@ -41,13 +41,29 @@ const ctx = {
 };
 
 vm.createContext(ctx);
-vm.runInContext(sharedSrc, ctx);
+// vm.runInContext puts top-level `const` / `let` declarations in the
+// script's lexical scope, NOT on the context object. shared.js
+// declares `COLOR_PALETTES` and `PALETTE` as `const`, so without an
+// explicit re-bind they're unreachable from outside the script. The
+// trailing assignments expose them on the context (this === global
+// inside a vm script) so the tests can read them via `ctx.X`.
+vm.runInContext(
+  sharedSrc + "\nthis.COLOR_PALETTES = COLOR_PALETTES;\nthis.PALETTE = PALETTE;\n",
+  ctx
+);
 vm.runInContext(helpersCjs, ctx);
 
 module.exports = {
   // shared.js re-exports kept for parity with sibling loaders
   parseRaw: ctx.parseRaw,
   parseData: ctx.parseData,
+  // For test convenience — buildColorMap takes the interpolator + a
+  // palette-stop array as args, and the chart caller pulls these from
+  // the shared globals. We re-export the same globals here so tests
+  // can pass them through without re-implementing the interpolation.
+  interpolateColor: ctx.interpolateColor,
+  COLOR_PALETTES: ctx.COLOR_PALETTES,
+  PALETTE: ctx.PALETTE,
   // volcano/helpers.ts exports
   VOLCANO_DEFAULT_COLORS: moduleObj.exports.VOLCANO_DEFAULT_COLORS,
   classifyPoint: moduleObj.exports.classifyPoint,
@@ -59,4 +75,7 @@ module.exports = {
   pickTopLabels: moduleObj.exports.pickTopLabels,
   layoutLabels: moduleObj.exports.layoutLabels,
   approxMonoCharWidth: moduleObj.exports.approxMonoCharWidth,
+  detectColorMapType: moduleObj.exports.detectColorMapType,
+  buildColorMap: moduleObj.exports.buildColorMap,
+  buildSizeMap: moduleObj.exports.buildSizeMap,
 };
