@@ -600,7 +600,7 @@
             href="benchmark.html"
             class="trust-badge"
             data-benchmark-link
-            title="962 internal tests, 293 cross-checks vs R 4.5"
+            title="1011 internal tests, 293 cross-checks vs R 4.5"
           >
             <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
               <path
@@ -799,6 +799,42 @@
             <span class="tile-label">Heatmap</span>
             <span class="tile-desc">Matrix view<br />with clustering</span>
           </button>
+          <button class="tile" data-tool="volcano">
+            <span class="tile-icon"
+              ><svg viewBox="0 0 44 44" fill="none">
+                <line
+                  x1="3"
+                  y1="30"
+                  x2="41"
+                  y2="30"
+                  stroke="#999999"
+                  stroke-width="0.6"
+                  stroke-dasharray="2,2"
+                  opacity="0.45"
+                />
+                <!-- ns vertex cluster — bottom-centre of the V -->
+                <circle cx="22" cy="38" r="1.4" fill="#999999" />
+                <circle cx="20" cy="36" r="1.2" fill="#999999" />
+                <circle cx="24" cy="36" r="1.2" fill="#999999" />
+                <circle cx="18" cy="38" r="1" fill="#999999" />
+                <circle cx="26" cy="38" r="1" fill="#999999" />
+                <circle cx="22" cy="34" r="1" fill="#999999" />
+                <!-- left wing (down-regulated) — diagonal up-left -->
+                <circle cx="17" cy="28" r="1.6" fill="#0072B2" />
+                <circle cx="13" cy="22" r="2" fill="#0072B2" />
+                <circle cx="9" cy="16" r="2.4" fill="#0072B2" />
+                <circle cx="5" cy="10" r="2.6" fill="#0072B2" />
+                <!-- right wing (up-regulated) — diagonal up-right -->
+                <circle cx="27" cy="28" r="1.6" fill="#D55E00" />
+                <circle cx="31" cy="22" r="2" fill="#D55E00" />
+                <circle cx="35" cy="16" r="2.4" fill="#D55E00" />
+                <circle cx="39" cy="10" r="2.6" fill="#D55E00" /></svg
+            ></span>
+            <span class="tile-label">Volcano Plot</span>
+            <span class="tile-desc"
+              >log&#8322;FC vs &minus;log&#8321;&#8320;p<br />for &mdash;omics hits</span
+            >
+          </button>
         </div>
         <span class="tile-group-label">Statistics &amp; Calculators</span>
         <div class="tiles">
@@ -861,7 +897,7 @@
         <span id="pf-label">Loading dependencies…</span>
       </div>
       <div class="landing-header">
-        <p>962 internal tests</p>
+        <p>1011 internal tests</p>
         <p>293 cross-checks vs R 4.5</p>
         <p><a href="benchmark.html" data-benchmark-link>view benchmark →</a></p>
       </div>
@@ -902,6 +938,10 @@
     <div class="tool-view" id="view-power">
       <div class="tool-topbar" data-topbar-for="power"></div>
       <iframe id="frame-power" src="tools/power.html"></iframe>
+    </div>
+    <div class="tool-view" id="view-volcano">
+      <div class="tool-topbar" data-topbar-for="volcano"></div>
+      <iframe id="frame-volcano" src="tools/volcano.html"></iframe>
     </div>
 
     <script src="tools/version.js"></script>
@@ -1018,6 +1058,15 @@
             label: "Calculator",
             svg: '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="8" y1="10" x2="18" y2="10"/><line x1="13" y1="5" x2="13" y2="15"/><line x1="26" y1="10" x2="36" y2="10"/><line x1="8" y1="30" x2="18" y2="30"/><circle cx="13" cy="25" r="1.5" fill="currentColor" stroke="none"/><circle cx="13" cy="35" r="1.5" fill="currentColor" stroke="none"/><line x1="28" y1="27" x2="34" y2="33"/><line x1="34" y1="27" x2="28" y2="33"/></svg>',
           },
+          // Volcano: re-skin the landing tile icon to currentColor (the
+          // up / down colour split is dropped in the topbar — every other
+          // tool icon there is monochrome). The V silhouette still reads
+          // because of the diagonal wings; the ns vertex cluster is
+          // dimmed via fill-opacity to preserve the depth cue.
+          volcano: {
+            label: "Volcano Plot",
+            svg: '<svg viewBox="0 0 44 44" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="22" cy="38" r="1.4" fill-opacity="0.4"/><circle cx="20" cy="36" r="1.2" fill-opacity="0.4"/><circle cx="24" cy="36" r="1.2" fill-opacity="0.4"/><circle cx="18" cy="38" r="1" fill-opacity="0.4"/><circle cx="26" cy="38" r="1" fill-opacity="0.4"/><circle cx="22" cy="34" r="1" fill-opacity="0.4"/><circle cx="17" cy="28" r="1.6"/><circle cx="13" cy="22" r="2"/><circle cx="9" cy="16" r="2.4"/><circle cx="5" cy="10" r="2.6"/><circle cx="27" cy="28" r="1.6"/><circle cx="31" cy="22" r="2"/><circle cx="35" cy="16" r="2.4"/><circle cx="39" cy="10" r="2.6"/></svg>',
+          },
         };
         // Display order in the topbar (plots first, then stats/calc).
         var TOOL_ORDER = [
@@ -1028,6 +1077,7 @@
           "lineplot",
           "aequorin",
           "heatmap",
+          "volcano",
           "power",
           "molarity",
         ];
