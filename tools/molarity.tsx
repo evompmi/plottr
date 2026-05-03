@@ -28,23 +28,25 @@ const VOL_UNITS = [
   { label: "µL", factor: 1e-6 },
 ];
 
-const MASS_UNITS = [
+type Unit = { label: string; factor: number };
+
+const MASS_UNITS: Unit[] = [
   { label: "g", factor: 1 },
   { label: "mg", factor: 1e-3 },
   { label: "µg", factor: 1e-6 },
 ];
 
-function toBase(value, unit, units) {
+function toBase(value: number, unit: string, units: Unit[]): number {
   const u = units.find((u) => u.label === unit);
   return value * (u ? u.factor : 1);
 }
 
-function fromBase(value, unit, units) {
+function fromBase(value: number, unit: string, units: Unit[]): number {
   const u = units.find((u) => u.label === unit);
   return value / (u ? u.factor : 1);
 }
 
-function formatResult(val) {
+function formatResult(val: number | null | undefined): string {
   if (val === null || val === undefined || isNaN(val) || !isFinite(val)) return "—";
   if (val === 0) return "0";
   const abs = Math.abs(val);
@@ -66,6 +68,16 @@ function UnitInput({
   disabled,
   placeholder,
   compact,
+}: {
+  label: React.ReactNode;
+  value: string;
+  onValueChange: (v: string) => void;
+  unit: string;
+  onUnitChange: (u: string) => void;
+  units: Unit[];
+  disabled?: boolean;
+  placeholder?: string;
+  compact?: boolean;
 }) {
   return (
     <div
@@ -618,7 +630,11 @@ Sucrose\t342.3\t0.5 M\t1 L
 Kanamycin\t484.5\t50 mg/mL\t100 mL`;
 
 // Parse a value+unit string like "150 mM", "0.5 M", "500 mL", "50 mg/mL"
-function parseValueUnit(str, defaultUnit, unitList) {
+function parseValueUnit(
+  str: string,
+  defaultUnit: string,
+  unitList: Unit[]
+): { value: number; unit: string } | null {
   str = str.trim();
   // Try matching number + optional space + unit
   const m = str.match(/^([\d.eE+-]+)\s*(.+)?$/);
@@ -632,7 +648,9 @@ function parseValueUnit(str, defaultUnit, unitList) {
 }
 
 // Special: also handle mg/mL, µg/µL etc (mass/vol concentration)
-function parseMassVolConc(str) {
+function parseMassVolConc(
+  str: string
+): { gPerL: number; originalUnit: string; originalValue: number } | null {
   str = str.trim();
   const m = str.match(/^([\d.eE+-]+)\s*(mg\/mL|µg\/µL|g\/L|µg\/mL|mg\/L|g\/mL)$/i);
   if (!m) return null;
@@ -640,7 +658,7 @@ function parseMassVolConc(str) {
   if (!isFinite(val)) return null;
   // Convert mass/vol to g/L
   const unit = m[2].toLowerCase();
-  const conversions = {
+  const conversions: Record<string, number> = {
     "g/l": 1,
     "mg/ml": 1,
     "µg/µl": 1,
@@ -655,8 +673,17 @@ function parseMassVolConc(str) {
 function BatchMode() {
   const [raw, setRaw] = useState("");
   const [sepOverride, setSepOverride] = useState("");
-  const [results, setResults] = useState(null);
-  const [error, setError] = useState(null);
+  type MolarityRow = {
+    name: string;
+    error?: string;
+    mw?: number;
+    conc?: string;
+    vol?: string;
+    massG?: number;
+    massDisplay?: string;
+  };
+  const [results, setResults] = useState<MolarityRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const compute = useCallback(() => {
     setError(null);
@@ -676,7 +703,7 @@ function BatchMode() {
       return;
     }
 
-    const output = [];
+    const output: MolarityRow[] = [];
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const name = r[0] || "Row " + (i + 1);
@@ -741,7 +768,7 @@ function BatchMode() {
     const csvRows = results.map((r) =>
       r.error
         ? [r.name, "", "", "", "ERROR: " + r.error]
-        : [r.name, r.mw, r.conc, r.vol, r.massDisplay]
+        : [r.name, r.mw ?? "", r.conc ?? "", r.vol ?? "", r.massDisplay ?? ""]
     );
     downloadCsv(hdrs, csvRows, "prep-sheet.csv");
   }, [results]);
@@ -914,7 +941,7 @@ function BatchMode() {
   );
 }
 
-function formatMass(grams) {
+function formatMass(grams: number): string {
   if (grams >= 1) return grams.toFixed(4) + " g";
   if (grams >= 1e-3) return (grams * 1e3).toFixed(4) + " mg";
   return (grams * 1e6).toFixed(4) + " µg";
@@ -1113,7 +1140,23 @@ function LigationMode({ compact }: { compact?: boolean }) {
 
 // ── App ─────────────────────────────────────────────────────────────────────
 
-function ModeButton({ label, desc, active, accentColor, activeBg, onClick, style: extraStyle }) {
+function ModeButton({
+  label,
+  desc,
+  active,
+  accentColor,
+  activeBg,
+  onClick,
+  style: extraStyle,
+}: {
+  label: React.ReactNode;
+  desc: React.ReactNode;
+  active: boolean;
+  accentColor: string;
+  activeBg: string;
+  onClick: () => void;
+  style?: React.CSSProperties;
+}) {
   const [hovered, setHovered] = useState(false);
   const isActive = active;
   const showAccent = isActive || hovered;
@@ -1245,7 +1288,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <ErrorBoundary toolName="Molarity calculator">
     <App />
   </ErrorBoundary>

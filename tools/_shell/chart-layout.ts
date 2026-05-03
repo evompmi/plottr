@@ -20,7 +20,7 @@ export const CHART_MARGIN = { top: 20, right: 20, bottom: 48, left: 62 };
 // empty string when fewer than 2 valid points remain — the caller should
 // suppress rendering rather than emit an empty path.
 export function buildLineD(pts: { x: number; y: number | null }[]): string {
-  const valid = pts.filter((p) => p.y != null);
+  const valid = pts.filter((p): p is { x: number; y: number } => p.y != null);
   if (valid.length < 2) return "";
   return "M" + valid.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join("L");
 }

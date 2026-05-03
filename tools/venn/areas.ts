@@ -6,12 +6,16 @@
 
 import { circleIntersectionPoints, circleOverlapArea, isInsideCircle } from "./geometry";
 
-export function triangleArea(a, b, c) {
+export type Pt = { x: number; y: number };
+export type Circle = { cx: number; cy: number; r: number };
+export type Intersection = { mask: number; size: number };
+
+export function triangleArea(a: Pt, b: Pt, c: Pt): number {
   return Math.abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) / 2;
 }
 
 // Minor circular segment cut by a chord of length L in a circle of radius r.
-export function chordSegmentArea(r, chordLen) {
+export function chordSegmentArea(r: number, chordLen: number): number {
   const ratio = Math.max(-1, Math.min(1, chordLen / (2 * r)));
   const theta = 2 * Math.asin(ratio);
   return (r * r * (theta - Math.sin(theta))) / 2;
@@ -20,8 +24,8 @@ export function chordSegmentArea(r, chordLen) {
 // Area of the region inside ALL three circles. Returns 0 when no triple
 // intersection exists. Uses the classical triangle-plus-segments decomposition
 // built from the three "inner" pairwise intersection points.
-export function tripleIntersectionArea(circles) {
-  function innerVertex(i, j, k) {
+export function tripleIntersectionArea(circles: Circle[]): number {
+  function innerVertex(i: number, j: number, k: number): Pt | null {
     const pts = circleIntersectionPoints(circles[i], circles[j]);
     if (!pts) return null;
     for (const p of pts) {
@@ -41,8 +45,8 @@ export function tripleIntersectionArea(circles) {
 }
 
 // Returns a Map<mask, area> covering every non-empty Venn region for 2 or 3 circles.
-export function computeAllRegionAreas(circles) {
-  const areas = new Map();
+export function computeAllRegionAreas(circles: Circle[]): Map<number, number> {
+  const areas = new Map<number, number>();
   const n = circles.length;
   if (n === 2) {
     const [c0, c1] = circles;
@@ -78,7 +82,11 @@ export function computeAllRegionAreas(circles) {
 
 // Max/mean region-area error normalised against the total target area.
 // Relative error is scale-invariant, so callers may pass pre- or post-fit layouts.
-export function computeLayoutError(circles, intersections, targetScale) {
+export function computeLayoutError(
+  circles: Circle[],
+  intersections: Intersection[],
+  targetScale: number
+): { maxError: number; meanError: number } {
   if (circles.length < 2 || targetScale <= 0) return { maxError: 0, meanError: 0 };
   const areas = computeAllRegionAreas(circles);
   let totalTarget = 0;

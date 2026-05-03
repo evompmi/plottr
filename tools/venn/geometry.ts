@@ -3,7 +3,10 @@
 // region-path assembler that turns a list of circles into SVG path strings
 // keyed by region bitmask. Consumed by areas.ts, centroids.ts, and layout.ts.
 
-export function circleOverlapArea(r1, r2, d) {
+type Circle = { cx: number; cy: number; r: number };
+type Pt = { x: number; y: number };
+
+export function circleOverlapArea(r1: number, r2: number, d: number): number {
   if (d >= r1 + r2) return 0;
   if (d <= Math.abs(r1 - r2)) return Math.PI * Math.min(r1, r2) ** 2;
   const a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
@@ -15,7 +18,7 @@ export function circleOverlapArea(r1, r2, d) {
   );
 }
 
-export function solveDistance(r1, r2, targetArea) {
+export function solveDistance(r1: number, r2: number, targetArea: number): number {
   const maxArea = Math.PI * Math.min(r1, r2) ** 2;
   if (targetArea <= 0) return r1 + r2 + 1;
   if (targetArea >= maxArea) return Math.abs(r1 - r2);
@@ -29,7 +32,7 @@ export function solveDistance(r1, r2, targetArea) {
   return (lo + hi) / 2;
 }
 
-export function circleIntersectionPoints(c1, c2) {
+export function circleIntersectionPoints(c1: Circle, c2: Circle): [Pt, Pt] | null {
   const dx = c2.cx - c1.cx,
     dy = c2.cy - c1.cy;
   const d = Math.sqrt(dx * dx + dy * dy);
@@ -45,30 +48,37 @@ export function circleIntersectionPoints(c1, c2) {
   ];
 }
 
-export function isInsideCircle(px, py, c) {
+export function isInsideCircle(px: number, py: number, c: Circle): boolean {
   const dx = px - c.cx,
     dy = py - c.cy;
   return dx * dx + dy * dy < c.r * c.r + 1e-6;
 }
 
 // Normalize angle to [0, 2π)
-export function normAngle(a) {
+export function normAngle(a: number): number {
   let v = a % (2 * Math.PI);
   return v < 0 ? v + 2 * Math.PI : v;
 }
 
 // Build region paths for 2 or 3 circles
-export function buildRegionPaths(circles) {
+export function buildRegionPaths(circles: Circle[]): Record<number, string> {
   const n = circles.length;
 
   // 1. Compute all intersection points
-  const allPts = []; // { x, y, ci, cj, angles }
+  type IntersectionPt = {
+    x: number;
+    y: number;
+    ci: number;
+    cj: number;
+    angles: Record<number, number>;
+  };
+  const allPts: IntersectionPt[] = [];
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
       const pts = circleIntersectionPoints(circles[i], circles[j]);
       if (pts) {
         for (const p of pts) {
-          const obj = { x: p.x, y: p.y, ci: i, cj: j, angles: {} };
+          const obj: IntersectionPt = { x: p.x, y: p.y, ci: i, cj: j, angles: {} };
           obj.angles[i] = normAngle(Math.atan2(p.y - circles[i].cy, p.x - circles[i].cx));
           obj.angles[j] = normAngle(Math.atan2(p.y - circles[j].cy, p.x - circles[j].cx));
           allPts.push(obj);
@@ -78,7 +88,17 @@ export function buildRegionPaths(circles) {
   }
 
   // 2. For each circle, sort intersection points by angle and build arcs
-  const arcs = []; // { circleIdx, from, to, angleFrom, angleTo, insideMask }
+  type ArcPt = { x: number; y: number };
+  type Arc = {
+    circleIdx: number;
+    angleFrom: number;
+    angleTo: number;
+    insideMask: number;
+    full?: boolean;
+    fromPt: ArcPt | null;
+    toPt: ArcPt | null;
+  };
+  const arcs: Arc[] = [];
   for (let i = 0; i < n; i++) {
     const pts = allPts
       .filter((p) => p.ci === i || p.cj === i)
@@ -157,14 +177,24 @@ export function buildRegionPaths(circles) {
     if (R <= 0) continue;
 
     // Separate full-circle arcs from partial arcs
-    const fullCircleArcs = [];
-    const partialArcs = [];
+    type FullCircleArc = { circleIdx: number; reversed: boolean };
+    type PartialArc = {
+      circleIdx: number;
+      angleFrom: number;
+      angleTo: number;
+      fromPt: ArcPt | null;
+      toPt: ArcPt | null;
+      full: boolean;
+      reversed: boolean;
+    };
+    const fullCircleArcs: FullCircleArc[] = [];
+    const partialArcs: PartialArc[] = [];
 
     for (const arc of arcs) {
       const outsideMask = arc.insideMask ^ (1 << arc.circleIdx);
       if (arc.insideMask === R) {
         if (arc.full) fullCircleArcs.push({ circleIdx: arc.circleIdx, reversed: false });
-        else partialArcs.push({ ...arc, reversed: false });
+        else partialArcs.push({ ...arc, full: false, reversed: false });
       } else if (outsideMask === R) {
         if (arc.full) fullCircleArcs.push({ circleIdx: arc.circleIdx, reversed: true });
         else
@@ -183,8 +213,8 @@ export function buildRegionPaths(circles) {
     if (fullCircleArcs.length === 0 && partialArcs.length === 0) continue;
 
     // Group partial arcs into closed chains by endpoint matching
-    const chains = [];
-    const used = new Set();
+    const chains: PartialArc[][] = [];
+    const used = new Set<number>();
     for (let start = 0; start < partialArcs.length; start++) {
       if (used.has(start)) continue;
       const chain = [partialArcs[start]];
@@ -212,10 +242,10 @@ export function buildRegionPaths(circles) {
     }
 
     // Build SVG path: one sub-path per chain + one sub-path per full circle
-    const pathParts = [];
+    const pathParts: string[] = [];
 
     // Helper: emit one SVG arc command
-    function emitArc(ba) {
+    function emitArc(ba: PartialArc) {
       const c = circles[ba.circleIdx],
         r = c.r;
       const endX = c.cx + r * Math.cos(ba.angleTo);

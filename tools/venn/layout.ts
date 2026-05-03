@@ -8,13 +8,31 @@
 
 import { solveDistance } from "./geometry";
 import { computeAllRegionAreas, computeLayoutError } from "./areas";
-import { detectDisjoint, detectSubsets } from "./set-math";
+import { detectDisjoint, detectSubsets, SetMap, Region } from "./set-math";
 import { VENN_CONFIG } from "./constants";
+
+type Circle = { cx: number; cy: number; r: number };
+type Subset = { sub: number; sup: number };
+type Disjoint = [number, number];
+
+type LayoutResult = {
+  circles: Circle[];
+  warnings: string[];
+  proportional: boolean;
+  maxError: number;
+  meanError: number;
+};
 
 // Verify that final circle positions respect containment and separation constraints.
 // Returns { circles, warnings } with adjusted circles and any warnings.
-export function validateAndFixLayout(circles, setNames, sets, subsets, disjoint) {
-  const warnings = [];
+export function validateAndFixLayout(
+  circles: Circle[],
+  setNames: string[],
+  sets: SetMap,
+  subsets: Subset[],
+  disjoint: Disjoint[]
+): { circles: Circle[]; warnings: string[] } {
+  const warnings: string[] = [];
   const fixed = circles.map((c) => ({ ...c }));
 
   // 1. Enforce subsets: the sub circle must be clearly INSIDE the sup circle.
@@ -30,8 +48,8 @@ export function validateAndFixLayout(circles, setNames, sets, subsets, disjoint)
       const maxDist = fixed[sup].r - fixed[sub].r - VENN_CONFIG.SUBSET_CLEARANCE;
       if (maxDist <= 0) continue;
       if (dist > maxDist) {
-        const subSize = sets.get(setNames[sub]).size;
-        const supSize = sets.get(setNames[sup]).size;
+        const subSize = sets.get(setNames[sub])!.size;
+        const supSize = sets.get(setNames[sup])!.size;
         const ratio = supSize > 0 ? (supSize - subSize) / supSize : 0.5;
         const proportion = Math.min(0.9, Math.max(0.2, ratio));
         const target = maxDist * proportion;
@@ -80,6 +98,7 @@ export function validateAndFixLayout(circles, setNames, sets, subsets, disjoint)
         continue;
       const si = sets.get(setNames[i]),
         sj = sets.get(setNames[j]);
+      if (!si || !sj) continue;
       let hasOverlap = false;
       for (const item of si) {
         if (sj.has(item)) {
@@ -113,7 +132,12 @@ export function validateAndFixLayout(circles, setNames, sets, subsets, disjoint)
   return { circles: fixed, warnings };
 }
 
-export function fitCirclesToViewport(circles, viewW, viewH, margin = 15) {
+export function fitCirclesToViewport(
+  circles: Circle[],
+  viewW: number,
+  viewH: number,
+  margin = 15
+): Circle[] {
   const minX = Math.min(...circles.map((c) => c.cx - c.r));
   const maxX = Math.max(...circles.map((c) => c.cx + c.r));
   const minY = Math.min(...circles.map((c) => c.cy - c.r));
@@ -136,7 +160,11 @@ export function fitCirclesToViewport(circles, viewW, viewH, margin = 15) {
   }));
 }
 
-export function clampRadii(radii) {
+export function clampRadii(radii: number[]): {
+  radii: number[];
+  adjusted: boolean;
+  actualRatio: number;
+} {
   const maxR = Math.max(...radii);
   const minR = Math.min(...radii);
   const actualRatio = maxR > 0 ? minR / maxR : 1;
@@ -155,12 +183,16 @@ export function clampRadii(radii) {
 // Coordinate descent on the 3 circle centers: shrinks the squared-area
 // residual across all 7 regions. Radii are held fixed (they are already
 // determined by absolute set sizes).
-export function refine3SetLayout(initialCircles, intersections, targetScale) {
+export function refine3SetLayout(
+  initialCircles: Circle[],
+  intersections: Region[],
+  targetScale: number
+): Circle[] {
   let current = initialCircles.map((c) => ({ ...c }));
-  const targets = new Map();
+  const targets = new Map<number, number>();
   for (const g of intersections) targets.set(g.mask, g.size * targetScale);
 
-  function cost(cs) {
+  function cost(cs: Circle[]): number {
     const areas = computeAllRegionAreas(cs);
     let s = 0;
     for (const [mask, target] of targets) {
@@ -206,16 +238,23 @@ export function refine3SetLayout(initialCircles, intersections, targetScale) {
   return current;
 }
 
-export function buildVenn2Layout(setNames, sets, intersections, viewW, viewH, blend) {
-  const s0 = sets.get(setNames[0]).size;
-  const s1 = sets.get(setNames[1]).size;
+export function buildVenn2Layout(
+  setNames: string[],
+  sets: SetMap,
+  intersections: Region[],
+  viewW: number,
+  viewH: number,
+  blend: number
+): LayoutResult {
+  const s0 = sets.get(setNames[0])!.size;
+  const s1 = sets.get(setNames[1])!.size;
   const inter = intersections.find((g) => g.mask === 3);
   const interSize = inter ? inter.size : 0;
 
   const maxR = Math.min(viewW, viewH) * 0.304;
   const scale = maxR / Math.sqrt(Math.max(s0, s1));
   let radii = [scale * Math.sqrt(s0), scale * Math.sqrt(s1)];
-  const warnings = [];
+  const warnings: string[] = [];
 
   const rc = clampRadii(radii);
   if (rc.adjusted) {
@@ -273,12 +312,19 @@ export function buildVenn2Layout(setNames, sets, intersections, viewW, viewH, bl
   };
 }
 
-export function buildVenn3Layout(setNames, sets, intersections, viewW, viewH, blend) {
-  const sizes = setNames.map((n) => sets.get(n).size);
+export function buildVenn3Layout(
+  setNames: string[],
+  sets: SetMap,
+  intersections: Region[],
+  viewW: number,
+  viewH: number,
+  blend: number
+): LayoutResult {
+  const sizes = setNames.map((n) => sets.get(n)!.size);
   const maxR = Math.min(viewW, viewH) * 0.256;
   const scale = maxR / Math.sqrt(Math.max(...sizes));
   let radii = sizes.map((s) => scale * Math.sqrt(s));
-  const warnings = [];
+  const warnings: string[] = [];
 
   const rc = clampRadii(radii);
   if (rc.adjusted) {
@@ -294,7 +340,7 @@ export function buildVenn3Layout(setNames, sets, intersections, viewW, viewH, bl
     [0, 2],
     [1, 2],
   ];
-  const pairDists = [];
+  const pairDists: number[] = [];
   for (const [i, j] of pairMasks) {
     let totalPairwise = 0;
     for (const g of intersections) {
@@ -409,7 +455,13 @@ export function buildVenn3Layout(setNames, sets, intersections, viewW, viewH, bl
 
 // ── Non-proportional fallbacks ──────────────────────────────────────────────
 
-export function buildVenn2LayoutClassic(setNames, sets, intersections, viewW, viewH) {
+export function buildVenn2LayoutClassic(
+  _setNames: string[],
+  _sets: SetMap,
+  _intersections: Region[],
+  viewW: number,
+  viewH: number
+): LayoutResult {
   const R = Math.min(viewW, viewH) * 0.272;
   const cx = viewW / 2,
     cy = viewH / 2;
@@ -428,7 +480,13 @@ export function buildVenn2LayoutClassic(setNames, sets, intersections, viewW, vi
   };
 }
 
-export function buildVenn3LayoutClassic(setNames, sets, intersections, viewW, viewH) {
+export function buildVenn3LayoutClassic(
+  _setNames: string[],
+  _sets: SetMap,
+  _intersections: Region[],
+  viewW: number,
+  viewH: number
+): LayoutResult {
   const R = Math.min(viewW, viewH) * 0.24;
   const cx = viewW / 2,
     cy = viewH / 2;

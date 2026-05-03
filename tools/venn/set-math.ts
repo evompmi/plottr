@@ -3,25 +3,36 @@
 // and detect the two degenerate configurations (subsets, disjoint pairs) that
 // the layout validator has to repair.
 
-export function computeIntersections(setNames, sets) {
+export type SetMap = Map<string, Set<string>>;
+export type Region = {
+  mask: number;
+  setNames: string[];
+  degree: number;
+  items: string[];
+  size: number;
+};
+
+export function computeIntersections(setNames: string[], sets: SetMap): Region[] {
   const n = setNames.length;
-  const membershipMap = new Map(); // item -> bitmask
+  const membershipMap = new Map<string, number>(); // item -> bitmask
   setNames.forEach((name, i) => {
-    for (const item of sets.get(name)) {
+    const s = sets.get(name);
+    if (!s) return;
+    for (const item of s) {
       const prev = membershipMap.get(item) || 0;
       membershipMap.set(item, prev | (1 << i));
     }
   });
-  const groups = new Map(); // bitmask -> items[]
+  const groups = new Map<number, string[]>(); // bitmask -> items[]
   for (const [item, mask] of membershipMap) {
     if (!groups.has(mask)) groups.set(mask, []);
-    groups.get(mask).push(item);
+    groups.get(mask)!.push(item);
   }
-  const result = [];
+  const result: Region[] = [];
   // Include all possible regions (even empty ones) so every zone gets a label
   const totalMasks = (1 << n) - 1;
   for (let mask = 1; mask <= totalMasks; mask++) {
-    const items = groups.has(mask) ? groups.get(mask) : [];
+    const items = groups.has(mask) ? groups.get(mask)! : [];
     items.sort();
     const active = setNames.filter((_, i) => mask & (1 << i));
     result.push({ mask, setNames: active, degree: active.length, items, size: items.length });
@@ -29,7 +40,7 @@ export function computeIntersections(setNames, sets) {
   return result.sort((a, b) => b.size - a.size);
 }
 
-export function regionLabel(setNames, mask, allSetNames) {
+export function regionLabel(_setNames: string[], mask: number, allSetNames: string[]): string {
   const active = allSetNames.filter((_, i) => mask & (1 << i));
   const inactive = allSetNames.filter((_, i) => !(mask & (1 << i)));
   if (inactive.length === 0) return active.join(" ∩ ");
@@ -37,7 +48,7 @@ export function regionLabel(setNames, mask, allSetNames) {
 }
 
 // Filename-safe rendering of a region label. "A ∩ B only" → "A_and_B_only".
-export function regionFilenamePart(label) {
+export function regionFilenamePart(label: string): string {
   return label
     .replace(/∩/g, "and")
     .replace(/\s+/g, "_")
@@ -45,14 +56,18 @@ export function regionFilenamePart(label) {
 }
 
 // Detect all subset relationships between sets.
-export function detectSubsets(setNames, sets) {
+export function detectSubsets(
+  setNames: string[],
+  sets: SetMap
+): Array<{ sub: number; sup: number }> {
   const n = setNames.length;
-  const subsets = []; // { sub: i, sup: j } meaning set i ⊆ set j
+  const subsets: Array<{ sub: number; sup: number }> = []; // { sub: i, sup: j } meaning set i ⊆ set j
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
       if (i === j) continue;
       const si = sets.get(setNames[i]),
         sj = sets.get(setNames[j]);
+      if (!si || !sj) continue;
       let allIn = true;
       for (const item of si) {
         if (!sj.has(item)) {
@@ -67,13 +82,14 @@ export function detectSubsets(setNames, sets) {
 }
 
 // Detect disjoint pairs (no shared items).
-export function detectDisjoint(setNames, sets) {
+export function detectDisjoint(setNames: string[], sets: SetMap): Array<[number, number]> {
   const n = setNames.length;
-  const disjoint = [];
+  const disjoint: Array<[number, number]> = [];
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
       const si = sets.get(setNames[i]),
         sj = sets.get(setNames[j]);
+      if (!si || !sj) continue;
       let hasOverlap = false;
       for (const item of si) {
         if (sj.has(item)) {

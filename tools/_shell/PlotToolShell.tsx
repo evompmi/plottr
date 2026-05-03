@@ -39,7 +39,7 @@ function StepFade({ step, children }: { step: string; children: React.ReactNode 
   useEffect(() => {
     if (prevStep.current === step || reduceMotion) {
       prevStep.current = step;
-      return;
+      return undefined;
     }
     prevStep.current = step;
     setOpacity(0);

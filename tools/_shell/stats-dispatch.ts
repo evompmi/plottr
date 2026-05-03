@@ -14,7 +14,7 @@
 //   - tukeyHSD, gamesHowell, dunnTest
 
 type GroupValues = number[][];
-type TestResult = { p?: number; error?: string; [key: string]: unknown };
+export type TestResult = { p?: number; error?: string; [key: string]: unknown };
 
 export function runTest(name: RecommendedTest | string, values: GroupValues): TestResult {
   try {

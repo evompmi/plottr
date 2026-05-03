@@ -3,10 +3,18 @@
 // this file directly). Keep layout constants and render-layer code out —
 // they belong in tools/upset.tsx.
 
+export type Intersection = {
+  mask: number;
+  setIndices: number[];
+  degree: number;
+  size: number;
+  items: string[];
+};
+
 // Build the item → bitmask map. Each bit i corresponds to setNames[i].
 // Items that appear in none of the provided sets are skipped.
-export function computeMemberships(setNames, sets) {
-  const membershipMap = new Map();
+export function computeMemberships(setNames: string[], sets: Map<string, Set<string>>) {
+  const membershipMap = new Map<string, number>();
   setNames.forEach((name, i) => {
     const s = sets.get(name);
     if (!s) return;
@@ -20,18 +28,21 @@ export function computeMemberships(setNames, sets) {
 
 // Returns exclusive intersections (items in exactly these sets and no others).
 // Excludes mask === 0 and empty intersections by construction.
-export function enumerateIntersections(membershipMap, setNames) {
-  const groups = new Map();
+export function enumerateIntersections(
+  membershipMap: Map<string, number>,
+  setNames: string[]
+): Intersection[] {
+  const groups = new Map<number, string[]>();
   for (const [item, mask] of membershipMap) {
     if (mask === 0) continue;
     if (!groups.has(mask)) groups.set(mask, []);
-    groups.get(mask).push(item);
+    groups.get(mask)!.push(item);
   }
-  const out = [];
+  const out: Intersection[] = [];
   for (const [mask, items] of groups) {
     if (items.length === 0) continue;
     items.sort();
-    const setIndices = [];
+    const setIndices: number[] = [];
     for (let i = 0; i < setNames.length; i++) {
       if (mask & (1 << i)) setIndices.push(i);
     }
@@ -41,8 +52,8 @@ export function enumerateIntersections(membershipMap, setNames) {
 }
 
 // Five sort modes. Ties break on ascending mask for determinism.
-export function sortIntersections(list, mode) {
-  const byMaskAsc = (a, b) => a.mask - b.mask;
+export function sortIntersections(list: Intersection[], mode: string): Intersection[] {
+  const byMaskAsc = (a: Intersection, b: Intersection) => a.mask - b.mask;
   const copy = list.slice();
   switch (mode) {
     case "size-asc":
@@ -72,14 +83,14 @@ export function sortIntersections(list, mode) {
 // maxDegree defaults to Infinity so existing callers that only pass
 // minDegree keep the old "everything at or above minDegree" behaviour.
 export function truncateIntersections(
-  list,
+  list: Intersection[],
   { minSize = 1, minDegree = 1, maxDegree = Infinity } = {}
-) {
+): Intersection[] {
   return list.filter((r) => r.size >= minSize && r.degree >= minDegree && r.degree <= maxDegree);
 }
 
 // Human-readable label: "A ∩ B ∩ C".
-export function intersectionLabel(setIndices, setNames) {
+export function intersectionLabel(setIndices: number[], setNames: string[]): string {
   return setIndices.map((i) => setNames[i]).join(" ∩ ");
 }
 
@@ -88,12 +99,12 @@ export function intersectionLabel(setIndices, setNames) {
 // shown in the dedicated lane between the set-name labels and the matrix on
 // the plot, so the on-screen plot is always the source of truth for which
 // set a number refers to.
-export function intersectionShortLabel(setIndices) {
+export function intersectionShortLabel(setIndices: number[]): string {
   return setIndices.map((i) => `S${i + 1}`).join(" ∩ ");
 }
 
 // Filename-safe rendering — "A ∩ B" → "A_and_B".
-export function intersectionFilenamePart(label) {
+export function intersectionFilenamePart(label: string): string {
   return label
     .replace(/∩/g, "and")
     .replace(/\s+/g, "_")
@@ -101,7 +112,7 @@ export function intersectionFilenamePart(label) {
 }
 
 // Stable id fragment for <g id="col-..."> built from the setIndices.
-export function intersectionIdKey(setIndices, setNames) {
+export function intersectionIdKey(setIndices: number[], setNames: string[]): string {
   return setIndices.map((i) => svgSafeId(setNames[i])).join("-") || "empty";
 }
 
@@ -109,12 +120,12 @@ export function intersectionIdKey(setIndices, setNames) {
 // domain max that is strictly greater than the data max (rounded up to the
 // next niceStep). Callers scale bars against the last tick so every interval
 // is equal and the largest bar stops short of the panel edge.
-export function buildBarTicks(max, count) {
+export function buildBarTicks(max: number, count: number): number[] {
   if (!(max > 0)) return [0, 1];
   const step = niceStep(max, count);
   const domainMax = Math.ceil((max + step * 1e-9) / step) * step;
   const last = domainMax > max ? domainMax : domainMax + step;
-  const ticks = [];
+  const ticks: number[] = [];
   for (let v = 0; v <= last + step * 0.001; v += step) {
     ticks.push(parseFloat(v.toPrecision(10)));
   }
