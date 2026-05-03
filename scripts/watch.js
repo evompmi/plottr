@@ -22,7 +22,7 @@ const ESBUILD_ENTRYPOINTS = [
   "tools/scatter.tsx",
   "tools/aequorin/index.tsx",
   "tools/lineplot.tsx",
-  "tools/venn.tsx",
+  "tools/venn/index.tsx",
   "tools/heatmap/index.tsx",
   "tools/molarity.tsx",
   "tools/power.tsx",

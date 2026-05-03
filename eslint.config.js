@@ -9,12 +9,12 @@ const compiledTools = [
   "tools/aequorin/index.js",
   "tools/boxplot/index.js",
   "tools/heatmap/index.js",
+  "tools/venn/index.js",
   "tools/volcano/index.js",
   "tools/lineplot.js",
   "tools/molarity.js",
   "tools/power.js",
   "tools/scatter.js",
-  "tools/venn.js",
   "tools/upset.js",
   "tools/version.js",
 ];
