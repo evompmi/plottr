@@ -319,6 +319,66 @@ export function UploadStep({
   );
 }
 
+// Themed tile for the Configure step — same AesBox shape boxplot / scatter /
+// lineplot / volcano use, so the visual language stays consistent across
+// tools. The header band carries an uppercase title in `--on-accent`; the
+// body sits on the matching `--aes-*-bg` panel. Two themes:
+//   "calibration" — slate, reusing scatter's "color" palette.
+//   "time"        — emerald, reusing scatter's "size" palette.
+const AQ_AES_THEMES = {
+  calibration: {
+    bg: "var(--aes-color-bg)",
+    border: "var(--aes-color-border)",
+    header: "var(--aes-color-header)",
+    headerText: "var(--aes-color-header-text)",
+    label: "Aequorin calibration",
+  },
+  time: {
+    bg: "var(--aes-size-bg)",
+    border: "var(--aes-size-border)",
+    header: "var(--aes-size-header)",
+    headerText: "var(--aes-size-header-text)",
+    label: "Time axis",
+  },
+};
+
+function AqAesBox({
+  theme,
+  children,
+}: {
+  theme: "calibration" | "time";
+  children?: React.ReactNode;
+}) {
+  const t = AQ_AES_THEMES[theme];
+  return (
+    <div
+      style={{
+        borderRadius: 10,
+        border: `1.5px solid ${t.border}`,
+        background: t.bg,
+        flex: "1 1 0",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <div style={{ background: t.header, padding: "8px 14px", borderRadius: "8px 8px 0 0" }}>
+        <span
+          style={{
+            color: t.headerText,
+            fontWeight: 700,
+            fontSize: 12,
+            textTransform: "uppercase",
+            letterSpacing: "0.8px",
+          }}
+        >
+          {t.label}
+        </span>
+      </div>
+      <div style={{ padding: "12px 14px", flex: 1 }}>{children}</div>
+    </div>
+  );
+}
+
 export function ConfigureStep({
   parsed,
   formula,
@@ -341,12 +401,7 @@ export function ConfigureStep({
   return (
     <div>
       <div style={{ display: "flex", gap: 16, marginBottom: 16, alignItems: "stretch" }}>
-        <div className="dv-panel" style={{ flex: "1 1 0", marginBottom: 0 }}>
-          <p
-            style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}
-          >
-            Aequorin calibration formula
-          </p>
+        <AqAesBox theme="calibration">
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
             <div>
               <div className="dv-label">Formula</div>
@@ -404,13 +459,8 @@ export function ConfigureStep({
               </div>
             )}
           </div>
-        </div>
-        <div className="dv-panel" style={{ flex: "1 1 0", marginBottom: 0 }}>
-          <p
-            style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}
-          >
-            Time axis
-          </p>
+        </AqAesBox>
+        <AqAesBox theme="time">
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
             <div>
               <div className="dv-label">Time step (per row)</div>
@@ -442,7 +492,7 @@ export function ConfigureStep({
               </div>
             )}
           </div>
-        </div>
+        </AqAesBox>
       </div>
       <div className="dv-panel">
         <div
