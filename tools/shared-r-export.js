@@ -34,10 +34,26 @@ const _R_POSTHOC_LABELS = {
 };
 
 function sanitizeRString(s) {
-  // Escape backslashes first, then double-quotes. Newlines are replaced with
-  // a literal space because multi-line factor levels are almost certainly a
-  // paste accident and would break the one-line data.frame layout.
-  return String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, " ");
+  // Escape backslashes first, then double-quotes. All line terminators (LF,
+  // CR, NEL, LS, PS) are flattened to a single space — a multi-line factor
+  // level is almost certainly a paste accident and would break the one-line
+  // data.frame layout. The CR strip is also a security-relevant defence:
+  // R's lexer treats `\r` as a statement terminator inside source files,
+  // and previously a column name like `"foo\rsystem('cmd')"` could escape
+  // the surrounding R string in some contexts. Now everything stays inline.
+  return String(s)
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/[\r\n\u0085\u2028\u2029]/g, " ");
+}
+
+// For any user-supplied string that lands in a `# ...` R comment line.
+// `sanitizeRString` is for *quoted* string literals; comments need a
+// stricter scrub — a CR or LF inside a comment ends the comment, so any
+// embedded line terminator must be flattened. Backslashes / quotes are
+// left alone (they're harmless inside a comment).
+function sanitizeRComment(s) {
+  return String(s).replace(/[\r\n\u0085\u2028\u2029]/g, " ");
 }
 
 function formatRNumber(n) {
@@ -110,8 +126,14 @@ function _headerComment(generated, dataNote) {
   ];
   if (dataNote) {
     lines.push("#");
-    const noteLines = String(dataNote).split("\n");
-    for (let i = 0; i < noteLines.length; i++) lines.push("# " + noteLines[i]);
+    // Split on every line-terminator R recognises (LF, CR, CRLF, NEL, LS, PS)
+    // so a hostile multi-line `dataNote` becomes multiple comment lines —
+    // each one then run through sanitizeRComment so a stray terminator the
+    // split missed still can't escape the comment.
+    const noteLines = String(dataNote).split(/\r\n|[\r\n\u0085\u2028\u2029]/);
+    for (let i = 0; i < noteLines.length; i++) {
+      lines.push("# " + sanitizeRComment(noteLines[i]));
+    }
   }
   lines.push("# -----------------------------------------------------------------------------");
   return lines.join("\n");
@@ -223,8 +245,8 @@ function buildRScript(ctx) {
   if (reason) {
     parts.push("");
     parts.push("# Decision-tree rationale (from the toolbox):");
-    const rLines = String(reason).split("\n");
-    for (let i = 0; i < rLines.length; i++) parts.push("#   " + rLines[i]);
+    const rLines = String(reason).split(/\r\n|[\r\n\u0085\u2028\u2029]/);
+    for (let i = 0; i < rLines.length; i++) parts.push("#   " + sanitizeRComment(rLines[i]));
   }
 
   return parts.join("\n") + "\n";
@@ -395,6 +417,7 @@ if (typeof window !== "undefined") {
   window.buildRScript = buildRScript;
   window.buildRScriptForPower = buildRScriptForPower;
   window.sanitizeRString = sanitizeRString;
+  window.sanitizeRComment = sanitizeRComment;
   window.formatRNumber = formatRNumber;
   window.formatRVector = formatRVector;
 }

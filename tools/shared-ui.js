@@ -473,6 +473,117 @@ function CommaFixBanner(props) {
   );
 }
 
+// Formula-injection warning banner. Surfaces the result of
+// scanForFormulaInjection at ingest time so the user sees that their
+// uploaded file contains cells / headers that would trigger formula
+// evaluation in Excel / LibreOffice / Sheets — even if Plöttr itself
+// just round-trips them as text. We sanitize on export (see
+// _escapeCsvCell), but the user might re-export by other means or
+// share the original file, so flagging the input is the safer signal.
+//
+// `warning` is the FormulaInjectionWarning object from shared.js (or
+// null when the dataset is clean — in which case the banner renders
+// nothing).
+function FormulaInjectionBanner(props) {
+  const w = props.warning;
+  if (!w || !w.count) return null;
+  // Trim long offending values so the banner stays compact even when
+  // the cell is megabytes of pasted formula.
+  const trim = function (v) {
+    const s = String(v);
+    return s.length > 80 ? s.slice(0, 80) + "…" : s;
+  };
+  const fmtCell = function (c) {
+    const where = c.header
+      ? "“" + c.header + "” row " + (c.row + 1)
+      : "row " + (c.row + 1) + " col " + (c.col + 1);
+    return where + ": " + trim(c.value);
+  };
+  const fmtHeader = function (h) {
+    return "column " + (h.idx + 1) + ": " + trim(h.value);
+  };
+  const examples = [];
+  for (let i = 0; i < w.headers.length; i++) examples.push("Header — " + fmtHeader(w.headers[i]));
+  for (let i = 0; i < w.cells.length; i++) examples.push(fmtCell(w.cells[i]));
+  const shown = examples.length;
+  const overflow = w.count - shown;
+  return React.createElement(
+    "div",
+    {
+      role: "alert",
+      style: {
+        marginBottom: 16,
+        padding: "10px 14px",
+        borderRadius: 8,
+        background: "var(--warning-bg)",
+        border: "1px solid var(--warning-border)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+      },
+    },
+    React.createElement(
+      "span",
+      { style: { fontSize: 18, lineHeight: "20px" }, "aria-hidden": "true" },
+      "⚠️"
+    ),
+    React.createElement(
+      "div",
+      { style: { flex: 1, minWidth: 0 } },
+      React.createElement(
+        "p",
+        { style: { margin: 0, fontSize: 12, color: "var(--warning-text)", fontWeight: 700 } },
+        "Suspicious cells in uploaded data (" + w.count + (w.count === 1 ? " cell" : " cells") + ")"
+      ),
+      React.createElement(
+        "p",
+        {
+          style: {
+            margin: "2px 0 6px",
+            fontSize: 11,
+            color: "var(--warning-text)",
+            opacity: 0.9,
+          },
+        },
+        "Cells starting with " +
+          "= + - @ tab CR" +
+          " are treated as formulas by Excel / LibreOffice / Sheets and could exfiltrate or run code if you re-open this data there. Plöttr exports prefix them with a leading apostrophe to neutralise them — but the original file is unchanged, so handle with care."
+      ),
+      React.createElement(
+        "ul",
+        {
+          style: {
+            margin: 0,
+            paddingLeft: 18,
+            fontSize: 11,
+            color: "var(--warning-text)",
+            fontFamily:
+              'ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Mono", "Liberation Mono", monospace',
+            wordBreak: "break-all",
+          },
+        },
+        examples.map(function (e, i) {
+          return React.createElement("li", { key: i }, e);
+        })
+      ),
+      overflow > 0
+        ? React.createElement(
+            "p",
+            {
+              style: {
+                margin: "4px 0 0",
+                fontSize: 11,
+                color: "var(--warning-text)",
+                opacity: 0.85,
+              },
+            },
+            "…and " + overflow + " more."
+          )
+        : null
+    )
+  );
+}
+
 // Parse error banner
 function ParseErrorBanner(props) {
   if (!props.error) return null;

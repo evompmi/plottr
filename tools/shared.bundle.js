@@ -786,15 +786,28 @@ function detectHeader(rows) {
 function parseRaw(text, sepOv = "") {
   const sep = autoDetectSep(text, sepOv);
   const all = tokenizeDelimited(text, sep);
-  if (all.length < 1) return { headers: [], rows: [], hasHeader: false };
+  if (all.length < 1) return { headers: [], rows: [], hasHeader: false, injectionWarnings: null };
   const mx = Math.max(...all.map((r) => r.length));
   const pad = all.map((r) => {
     while (r.length < mx) r.push("");
     return r;
   });
   const hh = detectHeader(pad);
-  if (hh) return { headers: pad[0], rows: pad.slice(1), hasHeader: true };
-  return { headers: pad[0].map((_, i) => `Col_${i + 1}`), rows: pad, hasHeader: false };
+  let headers, rows;
+  if (hh) {
+    headers = pad[0];
+    rows = pad.slice(1);
+  } else {
+    headers = pad[0].map((_, i) => `Col_${i + 1}`);
+    rows = pad;
+  }
+  const scan = scanForFormulaInjection(headers, rows);
+  return {
+    headers,
+    rows,
+    hasHeader: !!hh,
+    injectionWarnings: scan.count > 0 ? scan : null,
+  };
 }
 
 function guessColumnType(vals) {
@@ -842,13 +855,15 @@ function detectWideFormat(headers, rows) {
 // Returns { rowLabels, colLabels, matrix, warnings } where matrix is a
 // 2-D array shaped [rowLabels.length][colLabels.length].
 function parseWideMatrix(text, sepOv = "") {
-  const { headers, rows } = parseRaw(text, sepOv);
+  const parsed = parseRaw(text, sepOv);
+  const { headers, rows, injectionWarnings } = parsed;
   if (headers.length < 2 || rows.length < 1) {
     return {
       rowLabels: [],
       colLabels: [],
       matrix: [],
       warnings: { nonNumeric: 0, emptyRows: 0, emptyCols: 0 },
+      injectionWarnings: null,
     };
   }
   const colLabels = headers.slice(1);
@@ -872,7 +887,7 @@ function parseWideMatrix(text, sepOv = "") {
     rowLabels.push(label);
     matrix.push(values);
   });
-  return { rowLabels, colLabels, matrix, warnings: { nonNumeric } };
+  return { rowLabels, colLabels, matrix, warnings: { nonNumeric }, injectionWarnings };
 }
 
 // ── Unified data parsing ─────────────────────────────────────────────────────
@@ -880,7 +895,7 @@ function parseWideMatrix(text, sepOv = "") {
 function parseData(text, sepOv = "") {
   const sep = autoDetectSep(text, sepOv);
   const all = tokenizeDelimited(text, sep);
-  if (all.length < 2) return { headers: [], data: [], rawData: [] };
+  if (all.length < 2) return { headers: [], data: [], rawData: [], injectionWarnings: null };
   const headers = all[0];
   const nCols = headers.length;
   const data = [],
@@ -892,7 +907,8 @@ function parseData(text, sepOv = "") {
     data.push(rawVals.map((s) => (isNumericValue(s) ? toNumericValue(s) : null)));
     rawData.push(rawVals);
   }
-  return { headers, data, rawData };
+  const scan = scanForFormulaInjection(headers, rawData);
+  return { headers, data, rawData, injectionWarnings: scan.count > 0 ? scan : null };
 }
 
 function dataToColumns(data, nCols) {
@@ -1194,14 +1210,85 @@ function downloadText(text, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Cells whose first character is one of these get a leading single-quote
+// before the CSV escape. Excel / LibreOffice / Google Sheets all treat `=`,
+// `+`, `-`, `@` (and a leading tab / CR before any of those) as a formula
+// trigger; the prepended `'` tells the spreadsheet engine to treat the cell
+// as text. This is the standard OWASP CSV-injection mitigation. Plöttr never
+// evaluates the formula itself, so the laundering happens in the *consumer*
+// of the exported file — see docs/security_audit_02-05-2026.md item #1.
+//
+// `_isFormulaInjection` adds the obvious carve-out the raw OWASP rule
+// misses for scientific data: a cell that *parses cleanly as a number*
+// (per `isNumericValue`) is just a negative or signed value like `-0.5`
+// or `-1.5e3` — Excel reads that as a number, not a formula, so we leave
+// it alone (no banner noise, no apostrophe drift on round-trip). Hostile
+// strings like `-cmd|'/c calc'!A0`, `-2-3+10`, `+evil`, `=5`, `@SUM(...)`,
+// or a leading TAB / CR are all rejected by `isNumericValue` and so still
+// get the prefix.
+const _CSV_FORMULA_LEAD = /^[=+\-@\t\r]/;
+
+function _isFormulaInjection(s) {
+  return _CSV_FORMULA_LEAD.test(s) && !isNumericValue(s);
+}
+
+function _escapeCsvCell(v) {
+  let s = String(v);
+  if (_isFormulaInjection(s)) s = "'" + s;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
 // RFC 4180 CSV string builder. Pure (no DOM / Blob) so it round-trips through
 // `parseRaw` in tests without needing a browser context. Headers go through
 // the same escape as data cells — a header containing a comma
 // ("Sample, Note") used to write a malformed first line that Plöttr's own
-// parseRaw split into N+1 columns on re-import.
+// parseRaw split into N+1 columns on re-import. Cells starting with a
+// formula-trigger character are prefixed with `'` (see _escapeCsvCell).
 function buildCsvString(headers, rows) {
-  const escape = (v) => `"${String(v).replace(/"/g, '""')}"`;
-  return [headers.map(escape).join(","), ...rows.map((r) => r.map(escape).join(","))].join("\n");
+  return [
+    headers.map(_escapeCsvCell).join(","),
+    ...rows.map((r) => r.map(_escapeCsvCell).join(",")),
+  ].join("\n");
+}
+
+// Scan parsed headers + rows for cells that would trigger formula evaluation
+// when re-opened in Excel / LibreOffice / Sheets — same character set as
+// _CSV_FORMULA_LEAD. Used at ingest time to surface a warning banner so the
+// user knows their pasted dataset is laundering hostile content even if
+// they never download it. Returns { count, headers: [{idx, value}], cells:
+// [{row, col, header, value}] } where the example arrays are capped (cap
+// defaults to 8 for each) so the banner stays compact on huge sheets.
+function scanForFormulaInjection(headers, rows, opts) {
+  const cap = (opts && opts.cap) || 8;
+  const out = { count: 0, headers: [], cells: [] };
+  if (Array.isArray(headers)) {
+    for (let i = 0; i < headers.length; i++) {
+      const v = headers[i];
+      if (typeof v !== "string" || !_isFormulaInjection(v)) continue;
+      out.count++;
+      if (out.headers.length < cap) out.headers.push({ idx: i, value: v });
+    }
+  }
+  if (Array.isArray(rows)) {
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r];
+      if (!Array.isArray(row)) continue;
+      for (let c = 0; c < row.length; c++) {
+        const v = row[c];
+        if (typeof v !== "string" || !_isFormulaInjection(v)) continue;
+        out.count++;
+        if (out.cells.length < cap) {
+          out.cells.push({
+            row: r,
+            col: c,
+            header: headers && headers[c] != null ? String(headers[c]) : null,
+            value: v,
+          });
+        }
+      }
+    }
+  }
+  return out;
 }
 
 function downloadCsv(headers, rows, filename) {
@@ -5011,6 +5098,117 @@ function CommaFixBanner(props) {
   );
 }
 
+// Formula-injection warning banner. Surfaces the result of
+// scanForFormulaInjection at ingest time so the user sees that their
+// uploaded file contains cells / headers that would trigger formula
+// evaluation in Excel / LibreOffice / Sheets — even if Plöttr itself
+// just round-trips them as text. We sanitize on export (see
+// _escapeCsvCell), but the user might re-export by other means or
+// share the original file, so flagging the input is the safer signal.
+//
+// `warning` is the FormulaInjectionWarning object from shared.js (or
+// null when the dataset is clean — in which case the banner renders
+// nothing).
+function FormulaInjectionBanner(props) {
+  const w = props.warning;
+  if (!w || !w.count) return null;
+  // Trim long offending values so the banner stays compact even when
+  // the cell is megabytes of pasted formula.
+  const trim = function (v) {
+    const s = String(v);
+    return s.length > 80 ? s.slice(0, 80) + "…" : s;
+  };
+  const fmtCell = function (c) {
+    const where = c.header
+      ? "“" + c.header + "” row " + (c.row + 1)
+      : "row " + (c.row + 1) + " col " + (c.col + 1);
+    return where + ": " + trim(c.value);
+  };
+  const fmtHeader = function (h) {
+    return "column " + (h.idx + 1) + ": " + trim(h.value);
+  };
+  const examples = [];
+  for (let i = 0; i < w.headers.length; i++) examples.push("Header — " + fmtHeader(w.headers[i]));
+  for (let i = 0; i < w.cells.length; i++) examples.push(fmtCell(w.cells[i]));
+  const shown = examples.length;
+  const overflow = w.count - shown;
+  return React.createElement(
+    "div",
+    {
+      role: "alert",
+      style: {
+        marginBottom: 16,
+        padding: "10px 14px",
+        borderRadius: 8,
+        background: "var(--warning-bg)",
+        border: "1px solid var(--warning-border)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+      },
+    },
+    React.createElement(
+      "span",
+      { style: { fontSize: 18, lineHeight: "20px" }, "aria-hidden": "true" },
+      "⚠️"
+    ),
+    React.createElement(
+      "div",
+      { style: { flex: 1, minWidth: 0 } },
+      React.createElement(
+        "p",
+        { style: { margin: 0, fontSize: 12, color: "var(--warning-text)", fontWeight: 700 } },
+        "Suspicious cells in uploaded data (" + w.count + (w.count === 1 ? " cell" : " cells") + ")"
+      ),
+      React.createElement(
+        "p",
+        {
+          style: {
+            margin: "2px 0 6px",
+            fontSize: 11,
+            color: "var(--warning-text)",
+            opacity: 0.9,
+          },
+        },
+        "Cells starting with " +
+          "= + - @ tab CR" +
+          " are treated as formulas by Excel / LibreOffice / Sheets and could exfiltrate or run code if you re-open this data there. Plöttr exports prefix them with a leading apostrophe to neutralise them — but the original file is unchanged, so handle with care."
+      ),
+      React.createElement(
+        "ul",
+        {
+          style: {
+            margin: 0,
+            paddingLeft: 18,
+            fontSize: 11,
+            color: "var(--warning-text)",
+            fontFamily:
+              'ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Mono", "Liberation Mono", monospace',
+            wordBreak: "break-all",
+          },
+        },
+        examples.map(function (e, i) {
+          return React.createElement("li", { key: i }, e);
+        })
+      ),
+      overflow > 0
+        ? React.createElement(
+            "p",
+            {
+              style: {
+                margin: "4px 0 0",
+                fontSize: 11,
+                color: "var(--warning-text)",
+                opacity: 0.85,
+              },
+            },
+            "…and " + overflow + " more."
+          )
+        : null
+    )
+  );
+}
+
 // Parse error banner
 function ParseErrorBanner(props) {
   if (!props.error) return null;
@@ -6795,10 +6993,26 @@ const _R_POSTHOC_LABELS = {
 };
 
 function sanitizeRString(s) {
-  // Escape backslashes first, then double-quotes. Newlines are replaced with
-  // a literal space because multi-line factor levels are almost certainly a
-  // paste accident and would break the one-line data.frame layout.
-  return String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, " ");
+  // Escape backslashes first, then double-quotes. All line terminators (LF,
+  // CR, NEL, LS, PS) are flattened to a single space — a multi-line factor
+  // level is almost certainly a paste accident and would break the one-line
+  // data.frame layout. The CR strip is also a security-relevant defence:
+  // R's lexer treats `\r` as a statement terminator inside source files,
+  // and previously a column name like `"foo\rsystem('cmd')"` could escape
+  // the surrounding R string in some contexts. Now everything stays inline.
+  return String(s)
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/[\r\n\u0085\u2028\u2029]/g, " ");
+}
+
+// For any user-supplied string that lands in a `# ...` R comment line.
+// `sanitizeRString` is for *quoted* string literals; comments need a
+// stricter scrub — a CR or LF inside a comment ends the comment, so any
+// embedded line terminator must be flattened. Backslashes / quotes are
+// left alone (they're harmless inside a comment).
+function sanitizeRComment(s) {
+  return String(s).replace(/[\r\n\u0085\u2028\u2029]/g, " ");
 }
 
 function formatRNumber(n) {
@@ -6871,8 +7085,14 @@ function _headerComment(generated, dataNote) {
   ];
   if (dataNote) {
     lines.push("#");
-    const noteLines = String(dataNote).split("\n");
-    for (let i = 0; i < noteLines.length; i++) lines.push("# " + noteLines[i]);
+    // Split on every line-terminator R recognises (LF, CR, CRLF, NEL, LS, PS)
+    // so a hostile multi-line `dataNote` becomes multiple comment lines —
+    // each one then run through sanitizeRComment so a stray terminator the
+    // split missed still can't escape the comment.
+    const noteLines = String(dataNote).split(/\r\n|[\r\n\u0085\u2028\u2029]/);
+    for (let i = 0; i < noteLines.length; i++) {
+      lines.push("# " + sanitizeRComment(noteLines[i]));
+    }
   }
   lines.push("# -----------------------------------------------------------------------------");
   return lines.join("\n");
@@ -6984,8 +7204,8 @@ function buildRScript(ctx) {
   if (reason) {
     parts.push("");
     parts.push("# Decision-tree rationale (from the toolbox):");
-    const rLines = String(reason).split("\n");
-    for (let i = 0; i < rLines.length; i++) parts.push("#   " + rLines[i]);
+    const rLines = String(reason).split(/\r\n|[\r\n\u0085\u2028\u2029]/);
+    for (let i = 0; i < rLines.length; i++) parts.push("#   " + sanitizeRComment(rLines[i]));
   }
 
   return parts.join("\n") + "\n";
@@ -7156,6 +7376,7 @@ if (typeof window !== "undefined") {
   window.buildRScript = buildRScript;
   window.buildRScriptForPower = buildRScriptForPower;
   window.sanitizeRString = sanitizeRString;
+  window.sanitizeRComment = sanitizeRComment;
   window.formatRNumber = formatRNumber;
   window.formatRVector = formatRVector;
 }

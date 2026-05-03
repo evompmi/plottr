@@ -83,10 +83,25 @@ declare global {
   ): { text: string; commaFixed: boolean; count: number };
 
   // ── CSV / TSV parsing ──────────────────────────────────────────────────────
+  // Reported by `scanForFormulaInjection`, attached to every parse result.
+  // `null` when the dataset is clean. Example arrays are capped at 8 each so
+  // the warning banner stays compact on huge sheets.
+  interface FormulaInjectionWarning {
+    count: number;
+    headers: Array<{ idx: number; value: string }>;
+    cells: Array<{ row: number; col: number; header: string | null; value: string }>;
+  }
+  function scanForFormulaInjection(
+    headers: string[] | null | undefined,
+    rows: string[][] | null | undefined,
+    opts?: { cap?: number }
+  ): FormulaInjectionWarning;
+
   interface ParseRawResult {
     headers: string[];
     rows: string[][];
     hasHeader: boolean;
+    injectionWarnings: FormulaInjectionWarning | null;
   }
   function parseRaw(text: string, sepOv?: string): ParseRawResult;
 
@@ -105,6 +120,7 @@ declare global {
     headers: string[];
     data: Array<Array<number | null>>;
     rawData: string[][];
+    injectionWarnings: FormulaInjectionWarning | null;
   }
   function parseData(text: string, sepOv?: string): ParseDataResult;
 
@@ -115,6 +131,7 @@ declare global {
     colLabels: string[];
     matrix: number[][];
     warnings: { nonNumeric: number };
+    injectionWarnings: FormulaInjectionWarning | null;
   }
   function parseWideMatrix(text: string, sepOv?: string): ParseWideMatrixResult;
 
@@ -198,6 +215,7 @@ declare global {
   function buildRScript(ctx: any): string;
   function buildRScriptForPower(state: any): string;
   function sanitizeRString(s: unknown): string;
+  function sanitizeRComment(s: unknown): string;
   function formatRNumber(n: number | null | undefined): string;
   function formatRVector(arr: Array<number | null | undefined>): string;
 
@@ -214,6 +232,7 @@ declare global {
   const ActionsPanel: FC<any>;
   const CommaFixBanner: FC<any>;
   const ParseErrorBanner: FC<any>;
+  const FormulaInjectionBanner: FC<{ warning: FormulaInjectionWarning | null }>;
   interface FilterEntry {
     unique: string[];
     included: Set<string>;

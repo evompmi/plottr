@@ -84,6 +84,7 @@ export function PlotToolShell<TVis extends object>({
         }
       />
       <CommaFixBanner commaFixed={state.commaFixed} commaFixCount={state.commaFixCount} />
+      <FormulaInjectionBanner warning={state.injectionWarning} />
       <ParseErrorBanner error={state.parseError} />
       <StepFade step={state.step}>{children}</StepFade>
     </div>

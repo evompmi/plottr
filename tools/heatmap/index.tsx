@@ -87,6 +87,7 @@ function App() {
     setSepOverride,
     setCommaFixed,
     setCommaFixCount,
+    setInjectionWarning,
     vis,
     updVis,
   } = shell;
@@ -292,6 +293,7 @@ function App() {
     setCommaFixed(dc.commaFixed);
     setCommaFixCount(dc.count);
     const parsed = parseWideMatrix(dc.text, sep);
+    setInjectionWarning(parsed.injectionWarnings);
     if (!parsed.rowLabels.length || !parsed.colLabels.length) {
       setParseError(
         "The file needs at least one row label column and one data column with a header."
@@ -344,6 +346,7 @@ function App() {
     setDistanceMetric("euclidean");
     setLinkageMethod("average");
     setParseError(null);
+    setInjectionWarning(null);
     updVis({ _reset: true });
     updCellBorder({ _reset: true });
   };

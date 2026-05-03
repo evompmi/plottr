@@ -1122,11 +1122,15 @@ function buildAggregateReport(rows, xLabel) {
 function buildAggregateRScript(rows, xLabel) {
   if (!rows.length || typeof buildRScript !== "function") return "";
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+  // sanitizeRComment strips embedded line terminators so a hostile x-axis
+  // label (or any of its per-x values, if a future caller passes strings)
+  // can't escape the `# ...` comment / banner lines it lands in.
+  const safeXLabel = sanitizeRComment(xLabel || "x");
   const header = [
     "# -----------------------------------------------------------------------------",
     "# Plöttr — Line Plot R script export (combined per-x analysis)",
     "# Generated: " + now,
-    `# X axis: ${xLabel || "x"} — ${rows.length} eligible points.`,
+    `# X axis: ${safeXLabel} — ${rows.length} eligible points.`,
     "# Each section redefines `df` for one x value and runs its assumption checks,",
     "# chosen test, and post-hoc (if applicable).",
     "# -----------------------------------------------------------------------------",
@@ -1135,17 +1139,18 @@ function buildAggregateRScript(rows, xLabel) {
   const parts = [header];
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
+    const xStr = sanitizeRComment(formatX(row.x));
     const block = buildRScript({
       names: row.names,
       values: row.values,
       recommendation: row.rec,
       chosenTest: row.chosenTest,
       postHocName: row.postHocName,
-      dataNote: `${xLabel || "x"} = ${formatX(row.x)}`,
+      dataNote: `${safeXLabel} = ${xStr}`,
     });
     const banner =
       "\n# ==============================================================\n# " +
-      `${xLabel || "x"} = ${formatX(row.x)}` +
+      `${safeXLabel} = ${xStr}` +
       "\n# ==============================================================\n";
     if (i === 0) {
       parts.push(banner + block);
@@ -1862,6 +1867,7 @@ function App() {
     setSepOverride,
     setCommaFixed,
     setCommaFixCount,
+    setInjectionWarning,
     vis,
     updVis,
   } = shell;
@@ -1992,7 +1998,8 @@ function App() {
     setCommaFixed(dc.commaFixed);
     setCommaFixCount(dc.count);
     const fixedText = dc.text;
-    const { headers, data, rawData } = parseData(fixedText, sep);
+    const { headers, data, rawData, injectionWarnings } = parseData(fixedText, sep);
+    setInjectionWarning(injectionWarnings);
     if (headers.length < 2 || data.length === 0) {
       setParseError(
         "The file appears to be empty or has no data rows. Please check your file and try again."
@@ -2034,6 +2041,7 @@ function App() {
   const resetAll = () => {
     setRawText(null);
     setFileName("");
+    setInjectionWarning(null);
     setStep("upload");
   };
 

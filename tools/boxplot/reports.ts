@@ -93,7 +93,9 @@ export function buildBpAggregateReport(rows, setLabel) {
 export function buildBpAggregateRScript(rows, setLabel) {
   if (!rows.length || typeof buildRScript !== "function") return "";
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-  const label = setLabel || "Set";
+  // sanitizeRComment strips embedded line terminators so a hostile set name
+  // can't escape the `# ...` banner / comment lines it lands in.
+  const label = sanitizeRComment(setLabel || "Set");
   const header = [
     "# -----------------------------------------------------------------------------",
     "# Plöttr — Group Plot R script export (combined analysis)",
@@ -105,17 +107,18 @@ export function buildBpAggregateRScript(rows, setLabel) {
   const parts = [header];
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
+    const safeName = sanitizeRComment(row.name || "—");
     const block = buildRScript({
       names: row.names,
       values: row.values,
       recommendation: row.rec,
       chosenTest: row.chosenTest,
       postHocName: row.postHocName,
-      dataNote: `${label}: ${row.name || "—"}`,
+      dataNote: `${label}: ${safeName}`,
     });
     const banner =
       "\n# ==============================================================\n# " +
-      `${label}: ${row.name || "—"}` +
+      `${label}: ${safeName}` +
       "\n# ==============================================================\n";
     if (i === 0) {
       parts.push(banner + block);

@@ -61,6 +61,7 @@ function App() {
     setSepOverride,
     setCommaFixed,
     setCommaFixCount,
+    setInjectionWarning,
     vis,
     updVis,
   } = shell;
@@ -187,7 +188,8 @@ function App() {
     setCommaFixCount(dc.count);
     setRawText(fixedText);
 
-    const { headers, rows, hasHeader: hh } = parseRaw(fixedText, sep);
+    const { headers, rows, hasHeader: hh, injectionWarnings } = parseRaw(fixedText, sep);
+    setInjectionWarning(injectionWarnings);
     if (!headers.length || !rows.length) {
       setParseError(
         "The file appears to be empty or has no data rows. Please check your file and try again."
@@ -311,6 +313,7 @@ function App() {
     setParsedRows([]);
     setParsedHeaders([]);
     setFileName("");
+    setInjectionWarning(null);
     setStep("upload");
   };
 
