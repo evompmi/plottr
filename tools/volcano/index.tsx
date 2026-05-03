@@ -552,8 +552,8 @@ function ConfigureStep({
   const yValid = yCol >= 0;
   return (
     <div>
-      {/* Required roles — two coloured tiles on top, side-by-side on
-          wide layouts, stacked on narrow. */}
+      {/* Three selection tiles on the same row — log₂FC, p-value, and
+          the optional label column. Stack on narrow layouts. */}
       <div
         style={{
           display: "grid",
@@ -617,18 +617,17 @@ function ConfigureStep({
               type="checkbox"
               checked={yIsAdjusted}
               onChange={(e) => setYIsAdjusted(e.target.checked)}
+              style={{ accentColor: "var(--cta-primary-bg)", margin: 0, flexShrink: 0 }}
             />
-            This column is an <strong>adjusted</strong> p-value (FDR / BH / qvalue)
+            <span>
+              This column is an <strong>adjusted</strong> p-value (FDR / BH / qvalue)
+            </span>
           </label>
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
             Plotted as −log₁₀(p). Auto-detect prefers an adjusted column when both raw and adjusted
             are present.
           </div>
         </VolcanoAesBox>
-      </div>
-
-      {/* Optional role — single tile, full width, after the required pair. */}
-      <div style={{ marginBottom: 12 }}>
         <VolcanoAesBox theme="label">
           <select
             className="dv-select"

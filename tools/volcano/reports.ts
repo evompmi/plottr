@@ -225,9 +225,5 @@ export function buildVolcanoCsv(args: {
       cls,
     ]);
   }
-  // Suppress lint warning for unused param — the column header is the
-  // only place yIsAdjusted matters in this function. Discarding the
-  // void is clearer than threading it through.
-  void yIsAdjusted;
   return { headers, rows };
 }
