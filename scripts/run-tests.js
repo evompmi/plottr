@@ -38,6 +38,7 @@ const TESTS = [
   "tests/boxplot-helpers.test.js",
   "tests/handoff.test.js",
   "tests/write-version.test.js",
+  "tests/vendor-sri.test.js",
 ];
 
 const repoRoot = path.join(__dirname, "..");

@@ -28,7 +28,7 @@ set -euo pipefail
 # Files whose edits invalidate compiled outputs.
 affects_build() {
   git diff --cached --name-only --diff-filter=ACMR | \
-    grep -E '^(tools/[^/]+\.(tsx|ts)$|tools/[^/]+/.*\.(ts|tsx)$|tools/(shared[^/]*|stats|theme)\.js$|scripts/(build-shared|write-version)\.js$)' \
+    grep -E '^(tools/[^/]+\.(tsx|ts)$|tools/[^/]+/.*\.(ts|tsx)$|tools/(shared[^/]*|stats|theme)\.js$|scripts/(build-shared|write-version|vendor-sri)\.js$|vendor/.*\.js$)' \
     || true
 }
 
@@ -90,6 +90,7 @@ REBUILT=$(git diff --name-only --diff-filter=ACMR -- \
   'tools/*/index.js' 'tools/*/index.js.map' \
   'tools/shared.bundle.js' 'tools/shared.bundle.js.map' \
   'tools/version.js' \
+  'tools/*.html' \
   2>/dev/null || true)
 
 if [ -n "$REBUILT" ]; then

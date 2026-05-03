@@ -3,7 +3,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "prebuild": "node scripts/write-version.js && node scripts/build-shared.js",
+    "prebuild": "node scripts/write-version.js && node scripts/build-shared.js && node scripts/vendor-sri.js",
     "build": "esbuild tools/boxplot/index.tsx tools/scatter.tsx tools/aequorin/index.tsx tools/lineplot.tsx tools/venn.tsx tools/heatmap/index.tsx tools/molarity.tsx tools/power.tsx tools/upset.tsx --bundle --format=esm --outdir=tools --jsx=transform --minify-syntax --minify-whitespace --sourcemap",
     "build:shared": "node scripts/build-shared.js",
     "prewatch": "node scripts/write-version.js",
@@ -21,6 +21,7 @@
     "benchmark": "Rscript benchmark/run-r.R && node benchmark/run.js && node benchmark/run-r-export.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "lint:sri": "node scripts/vendor-sri.js --check",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
