@@ -1184,11 +1184,11 @@ function eligibleColumns(parsed: any, xCol: any, yCol: any, labelCol: any) {
   // primary role. The label column is allowed (a user might want to
   // colour by gene name AND show those names — fine, the chart will
   // just colour each labelled point with its discrete colour).
+  void labelCol;
   const used = new Set<number>([xCol, yCol]);
   return (parsed?.headers || [])
     .map((h: any, i: number) => ({ h, i }))
     .filter(({ i }: any) => !used.has(i));
-  void labelCol;
 }
 
 // Aesthetic boxes (Color / Size). Same flat-coloured `AesBox` shape

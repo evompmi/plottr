@@ -5,6 +5,14 @@ const tsParser = require("@typescript-eslint/parser");
 const tsPlugin = require("@typescript-eslint/eslint-plugin");
 const prettier = require("eslint-config-prettier");
 
+// Local rules. Register as the "plottr" plugin so they namespace cleanly
+// (avoids colliding with anything from @eslint/js or @typescript-eslint).
+const plottrLocal = {
+  rules: {
+    "no-chrome-hex-literal": require("./scripts/eslint-rules/no-chrome-hex-literal.js"),
+  },
+};
+
 const compiledTools = [
   "tools/aequorin/index.js",
   "tools/boxplot/index.js",
@@ -206,8 +214,8 @@ module.exports = [
   // ESLint can understand type annotations; actual type-checking is handled
   // separately by `tsc --noEmit`.
   {
-    files: ["tools/*.tsx"],
-    plugins: { react, "@typescript-eslint": tsPlugin },
+    files: ["tools/**/*.tsx"],
+    plugins: { react, "@typescript-eslint": tsPlugin, plottr: plottrLocal },
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2022,
@@ -228,6 +236,10 @@ module.exports = [
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "no-empty": ["error", { allowEmptyCatch: true }],
+      // Theme drift guard: chrome style={{...}} must use CSS variables
+      // (var(--name)), not hex literals — see CLAUDE.md "Theming" and the
+      // rule itself in scripts/eslint-rules/no-chrome-hex-literal.js.
+      "plottr/no-chrome-hex-literal": "error",
     },
   },
 
