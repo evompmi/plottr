@@ -45,6 +45,10 @@
   --accent-primary-weak: rgba(147, 158, 174, 0.12);
   --accent-plot: #2ec4b6;
   --accent-dna: #785ef0;
+  /* Deep ocean blue, paired with --accent-dna as the second member of a
+     two-tone "type tag" (e.g. continuous = violet / discrete = blue) used
+     in scatter and volcano column-mapping panels. */
+  --accent-blue: #0369a1;
   --accent-warning: #f59e0b;
   --accent-warning-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
 
@@ -213,6 +217,11 @@
   --accent-primary: #3a4454;
   --accent-primary-weak: rgba(58, 68, 84, 0.28);
   --accent-warning-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+
+  /* Dimmer, less-saturated ocean blue for dark mode (deep #0369a1 reads
+     as a near-black against the dark surface). Less chromatic intensity
+     than the light-mode value, per the dark-accents-softer rule. */
+  --accent-blue: #7da3c4;
 }
 
 /* OS-preference fallback applies only if the user hasn't made an explicit
@@ -287,6 +296,8 @@
     --accent-primary: #3a4454;
     --accent-primary-weak: rgba(58, 68, 84, 0.28);
     --accent-warning-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+
+    --accent-blue: #7da3c4;
   }
 }
 

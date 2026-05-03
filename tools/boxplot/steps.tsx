@@ -443,7 +443,7 @@ export function UploadStep({
             style={{
               fontSize: 10,
               fontWeight: 700,
-              color: "#7c3aed",
+              color: "var(--accent-dna)",
               marginBottom: 10,
               textTransform: "uppercase",
               letterSpacing: "1px",
@@ -479,7 +479,7 @@ export function UploadStep({
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: "#7c3aed",
+                    color: "var(--accent-dna)",
                     flexShrink: 0,
                     width: 62,
                     display: "inline-block",
