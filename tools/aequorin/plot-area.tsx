@@ -448,7 +448,11 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                       window.location.assign("boxplot.html");
                     }}
                     className="dv-btn dv-btn-secondary"
-                    style={{ flexShrink: 0 }}
+                    // Match the sibling ⬇ CSV chip's vertical padding
+                    // (`dv-btn-dl` is `8px 10px`); the default secondary
+                    // padding (`6px 14px`) makes this button visibly
+                    // shorter when they sit next to each other.
+                    style={{ flexShrink: 0, padding: "8px 14px" }}
                     title="Open this per-replicate Σ data directly in the Group Plot tool (boxplot / violin / raincloud / bar)"
                   >
                     ↗ Open in Boxplot

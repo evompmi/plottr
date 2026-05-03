@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Tool-split refactor — every plot tool now lives in its own folder.**
+  `tools/venn.tsx` → `tools/venn/{index,chart,steps,controls,plot-area,helpers,reports,...}.tsx`,
+  same shape for `lineplot/`, `scatter/`, `upset/`. Boxplot, aequorin,
+  heatmap, volcano were already folder-shaped; all eight plot tools now
+  follow one canonical layout. esbuild entrypoints updated to
+  `tools/<tool>/index.tsx`; tsconfig include broadened to `tools/**/*.ts(x)`.
+- **TypeScript strictness — full `strict: true` across the tool surface.**
+  Phased in over six commits: safe flags + R-export surface typed →
+  `strictNullChecks` → `noImplicitAny` for pure helpers → component prop
+  types → `noImplicitAny` globally → `strict: true` (drops the redundant
+  flag list). `noImplicitReturns` and `noFallthroughCasesInSwitch` stay on
+  top. Pure helpers (`_shell/**`, `<tool>/helpers.ts`, `venn/*.ts`, …) get
+  full param + return annotations; sprawling step-component prop bags may
+  use `: any` on the destructure (documented in `CLAUDE.md`).
+- **DownloadTiles abstraction.** New `_shell/DownloadTiles.tsx` wraps
+  `ActionsPanel` so every tool's plot-area renders its export chips
+  through the same component instead of re-deriving the layout.
+- **`exhaustive-deps` promoted from warn to error.** Audited and fixed all
+  57 outstanding warnings across the codebase; the rule now blocks CI.
+  Several latent bugs surfaced and were fixed in passing: `facetRefs.current`
+  cleanup staleness, missing `useCallback` on `resetDerived`, two
+  rules-of-hooks ordering bugs (boxplot/chart, upset/stats-panel had
+  `useRef`/`useMemo` after early-return — moved above the guard).
+- Aequorin **Configure step** — the calibration-formula and time-axis tiles
+  now use the AesBox-style themed cards (slate header / emerald header)
+  introduced in boxplot, volcano, and scatter, so the visual language
+  matches across every plot tool.
+
+### Added
+
+- **Custom ESLint rule `plottr/no-chrome-hex-literal`.** Fires on inline
+  `style={{ key: "#abc..." }}` JSX outside an SVG subtree, enforcing the
+  CLAUDE.md rule that chrome colours must reference CSS variables (`var(--…)`)
+  while SVG colours stay as hex literals so exported charts render the same
+  way in any reader. Defined in `scripts/eslint-rules/no-chrome-hex-literal.js`.
+- **`eslint-plugin-react-hooks`** — both `rules-of-hooks` and
+  `exhaustive-deps` now enforced (the latter at `error`, see above).
+
+### Fixed
+
+- **tsconfig include hole** — `tools/*.tsx` (single-star glob) silently
+  skipped the new `tools/<tool>/index.tsx` files after the split, hiding
+  three runtime crashes (scatter / lineplot / upset) from `tsc --noEmit`.
+  Glob broadened to `tools/**/*.ts(x)`.
+- **`PageHeader` icon prop in `power.tsx`**, **missing
+  `IntersectionStatsPanel` export in `upset/`** — both were latent and
+  surfaced once the typecheck saw every file.
+- **Perl-heredoc shell-escape bug** during the `noImplicitAny` migration
+  silently rewrote ~24 sites with literal `$1: any, $2: any` instead of
+  the captured parameter names; recovered by hand from each tool's
+  pre-migration version.
+- Aequorin **plot page** — the **↗ Open in Boxplot** button now matches the
+  height of the adjacent ⬇ CSV chip (previously sat ~4 px shorter due to
+  `dv-btn-secondary`'s tighter vertical padding).
+
+## [1.1.0] - 2026-05-03
+
 ## [1.1.0] - 2026-05-03
 
 > Long-form release notes — what shipped, why, and how — live in
