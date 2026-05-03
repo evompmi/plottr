@@ -26,7 +26,7 @@ const { useMemo } = React;
  *     but we don't expose it here; at plant-science scale the exact DP is
  *     fast enough and more accurate in the deep tail.
  */
-function IntersectionStatsPanel({
+export function IntersectionStatsPanel({
   intersection,
   displaySetNames,
   sets,
