@@ -226,7 +226,11 @@
             to your browser at page load. From then on, the trust boundary is your own computer: you
             drop a CSV file in, Plöttr runs the analysis locally, and the resulting SVG / PNG / CSV
             / R-script files download to the same machine. No outbound connection ever carries your
-            data.
+            data. Two security guards sit on the data path itself: every uploaded file is scanned
+            for hostile cells (CSV / Excel formula injection, hostile column names targeting the
+            R-script export) and surfaced in a warning banner; every downloaded CSV / R-script is
+            sanitised so that any leftover trigger characters stay inert when re-opened in Excel or
+            RStudio.
           </desc>
 
           <defs>
@@ -474,6 +478,80 @@
               font-family="ui-monospace, Menlo, monospace"
             >
               you download
+            </text>
+          </g>
+
+          <!-- ── Security guards on ingress / egress ─────────────────────────
+               Surface the two-layer formula-injection defence shipped in the
+               02-05-2026 audit: scan-on-import (warns the user when a pasted
+               file contains cells that would trigger formula evaluation in
+               Excel / LibreOffice / Sheets, or hostile column names that
+               target the R-script export) and sanitised-on-export (every
+               CSV / R-script download is escaped so leftover trigger chars
+               stay inert when the file is reopened). Both pills use the
+               theme-aware --success-* palette so they read green in both
+               light and dark modes. -->
+          <!-- Pills are text-anchor="middle" so the label centres
+               regardless of width. The checkmark sits inside the text run
+               (Unicode "heavy check mark") so we don't need a separate
+               icon path competing for horizontal space — that was the
+               source of the overflow with two-word labels. Symmetric
+               short labels keep the pill centred under the arrow without
+               bumping the Plöttr box (ends at x=295) or the outputs
+               back-doc (starts at x=630); the full intent ("scans for
+               formula injection on import" / "sanitises every CSV and
+               R-script download") lives in the aria-label so the pill
+               stays terse for sighted users. -->
+          <g
+            id="ingress-guard"
+            aria-label="Plöttr scans every uploaded file for hostile cells before any chart is rendered"
+          >
+            <rect
+              x="180"
+              y="306"
+              width="100"
+              height="22"
+              rx="11"
+              fill="var(--success-bg)"
+              stroke="var(--success-border)"
+              stroke-width="1.2"
+            />
+            <text
+              x="230"
+              y="321"
+              text-anchor="middle"
+              font-size="11"
+              font-weight="700"
+              fill="var(--success-text)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              ✓ scanned
+            </text>
+          </g>
+          <g
+            id="egress-guard"
+            aria-label="Plöttr sanitises every CSV and R-script download against formula injection"
+          >
+            <rect
+              x="517"
+              y="306"
+              width="100"
+              height="22"
+              rx="11"
+              fill="var(--success-bg)"
+              stroke="var(--success-border)"
+              stroke-width="1.2"
+            />
+            <text
+              x="567"
+              y="321"
+              text-anchor="middle"
+              font-size="11"
+              font-weight="700"
+              fill="var(--success-text)"
+              font-family="ui-monospace, Menlo, monospace"
+            >
+              ✓ sanitised
             </text>
           </g>
 
