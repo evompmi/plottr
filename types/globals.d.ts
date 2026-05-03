@@ -37,18 +37,15 @@ declare global {
   const TOOL_ICONS: Record<string, string>;
   function toolIcon(name: string, size?: number, opts?: { circle?: boolean }): ReactElement | null;
 
-  // ── Style constants ────────────────────────────────────────────────────────
-  const inp: CSSProperties;
-  const inpN: CSSProperties;
-  const sec: CSSProperties;
-  const lbl: CSSProperties;
-  const btnPrimary: CSSProperties;
-  const btnSecondary: CSSProperties;
-  const btnDanger: CSSProperties;
-  const btnDownload: CSSProperties;
-  const btnPlot: CSSProperties;
-  const selStyle: CSSProperties;
-  const sepSelect: CSSProperties;
+  // ── Style constants (RETIRED — see CLAUDE.md Theming) ─────────────────────
+  // The old inline-style constants (inp / inpN / sec / lbl / btnPrimary /
+  // btnSecondary / btnDanger / btnDownload / btnPlot / selStyle / sepSelect)
+  // were removed from tools/shared.js when the dv-* CSS classes landed.
+  // We deliberately do NOT re-declare them here so that any future
+  // contributor reaching for `style={btnPrimary}` gets a TS error
+  // pointing them at the right tool: use the dv-* className idiom
+  // (`className="dv-btn dv-btn-primary"`, `className="dv-select"`,
+  // `className="dv-input"`, etc.) per CLAUDE.md.
   const roleColors: Record<string, string>;
 
   // ── Ingest size policy (shared-file-drop.js) ───────────────────────────────

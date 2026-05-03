@@ -78,7 +78,7 @@ jobs:
           FUZZ_QUIET: "1"
         run: |
           set -e
-          for t in heatmap boxplot scatter aequorin lineplot venn upset; do
+          for t in heatmap boxplot scatter aequorin lineplot venn upset volcano; do
             npm run --silent fuzz:$t
           done
 
