@@ -23,10 +23,10 @@ export const ERROR_KINDS = [
 
 // ── Small helpers ──────────────────────────────────────────────────────────
 
-export const round4 = (v) => Math.round(v * 10000) / 10000;
-export const round2 = (v) => Math.round(v * 100) / 100;
+export const round4 = (v: number) => Math.round(v * 10000) / 10000;
+export const round2 = (v: number) => Math.round(v * 100) / 100;
 
-export function formatX(x) {
+export function formatX(x: number | null | undefined): string {
   if (x == null || !Number.isFinite(x)) return String(x);
   return Number.isInteger(x) ? String(x) : String(round4(x));
 }
@@ -38,7 +38,15 @@ export function formatX(x) {
 // ── Series + per-x stats ───────────────────────────────────────────────────
 
 // Build per-group point summaries keyed on strict numeric x equality.
-export function computeSeries(data, rawData, xCol, yCol, groupCol, groupColors, palette) {
+export function computeSeries(
+  data: Array<Array<number | null>>,
+  rawData: string[][],
+  xCol: number,
+  yCol: number,
+  groupCol: number | null,
+  groupColors: Record<string, string>,
+  palette: readonly string[]
+) {
   // Preserve first-seen group order so legend ordering matches the CSV.
   const groupOrder: string[] = [];
   const perGroup = new Map<string, Map<number, number[]>>();
@@ -88,7 +96,9 @@ type PerXRow = {
   pAdj?: number | null;
 };
 
-export function computePerXStats(series) {
+type Series = ReturnType<typeof computeSeries>[number];
+
+export function computePerXStats(series: Series[]) {
   const xSet = new Set<number>();
   for (const s of series) for (const p of s.points) xSet.add(p.x);
   const xs = [...xSet].sort((a, b) => a - b);

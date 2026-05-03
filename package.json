@@ -20,7 +20,7 @@
     "fuzz:upset": "node tests/fuzz/upset.fuzz.js",
     "fuzz:volcano": "node tests/fuzz/volcano.fuzz.js",
     "benchmark": "Rscript benchmark/run-r.R && node benchmark/run.js && node benchmark/run-r-export.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.strict.json",
     "lint": "eslint .",
     "lint:sri": "node scripts/vendor-sri.js --check",
     "lint:anti-clickjack": "node scripts/anti-clickjack-sync.js --check",

@@ -205,6 +205,7 @@ npm run benchmark   # runs R reference suite then cross-validates against JS
 - Use `const` / `let` — never `var`. The codebase is ES2022 throughout.
 - Arrow functions preferred for callbacks; regular `function` declarations for named top-level functions.
 - `tools/*.tsx` files use TypeScript with strict mode **off** (`noImplicitAny: false`) — light typing only. Add types where they add clarity; don't force them everywhere.
+- The pure helper tier (`tools/_shell/**`, `tools/<tool>/helpers.ts`, `tools/venn/*.ts`, `tools/scatter/*.ts`, `tools/upset/*.ts`, `tools/lineplot/*.ts`) is type-checked under a stricter config (`tsconfig.strict.json`) with `noImplicitAny: true`. `npm run typecheck` runs both passes. When you add a new pure helper file, add it to the `include` list in `tsconfig.strict.json` and annotate every parameter type — that's where the math lives, so missing types there are real bug surface area.
 - Shared files (`shared.js`, `stats.js`, and all `shared-*.js`) are plain ES2022 script-scope JS. No `import`/`export` — names are globals by design.
 
 ### Formatting (Prettier, enforced in CI)

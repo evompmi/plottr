@@ -2261,7 +2261,11 @@ function App() {
   }, [setNames, sets]);
 
   const { allIntersections, membershipMap } = useMemo(() => {
-    if (displaySetNames.length < 2) return { allIntersections: [], membershipMap: new Map() };
+    if (displaySetNames.length < 2)
+      return {
+        allIntersections: [] as ReturnType<typeof enumerateIntersections>,
+        membershipMap: new Map<string, number>(),
+      };
     const { membershipMap } = computeMemberships(displaySetNames, sets);
     return {
       allIntersections: enumerateIntersections(membershipMap, displaySetNames),

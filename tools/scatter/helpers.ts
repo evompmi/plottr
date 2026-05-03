@@ -5,7 +5,7 @@
 
 // ── Tick formatting ────────────────────────────────────────────────────────
 
-export function fmtTick(t) {
+export function fmtTick(t: number): string {
   if (t === 0) return "0";
   const abs = Math.abs(t);
   if (abs >= 10000 || (abs < 0.01 && abs > 0)) return t.toExponential(1);
@@ -29,7 +29,11 @@ export const VBH = 500;
 // NaN. Returns `{valid: false}` for fewer than 2 usable points or when either
 // axis is degenerate (zero variance). Otherwise `{valid, slope, intercept,
 // r2, n}` with `r2` possibly `NaN` if y is degenerate but x is not.
-export function computeLinearRegression(rows, xCol, yCol) {
+export function computeLinearRegression(
+  rows: Array<Array<number | null>>,
+  xCol: number,
+  yCol: number
+): { valid: boolean; slope?: number; intercept?: number; r2?: number; n?: number } {
   if (!rows || rows.length < 2) return { valid: false };
   let n = 0,
     sx = 0,

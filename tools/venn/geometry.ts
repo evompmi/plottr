@@ -3,7 +3,10 @@
 // region-path assembler that turns a list of circles into SVG path strings
 // keyed by region bitmask. Consumed by areas.ts, centroids.ts, and layout.ts.
 
-export function circleOverlapArea(r1, r2, d) {
+type Circle = { cx: number; cy: number; r: number };
+type Pt = { x: number; y: number };
+
+export function circleOverlapArea(r1: number, r2: number, d: number): number {
   if (d >= r1 + r2) return 0;
   if (d <= Math.abs(r1 - r2)) return Math.PI * Math.min(r1, r2) ** 2;
   const a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
@@ -15,7 +18,7 @@ export function circleOverlapArea(r1, r2, d) {
   );
 }
 
-export function solveDistance(r1, r2, targetArea) {
+export function solveDistance(r1: number, r2: number, targetArea: number): number {
   const maxArea = Math.PI * Math.min(r1, r2) ** 2;
   if (targetArea <= 0) return r1 + r2 + 1;
   if (targetArea >= maxArea) return Math.abs(r1 - r2);
@@ -29,7 +32,7 @@ export function solveDistance(r1, r2, targetArea) {
   return (lo + hi) / 2;
 }
 
-export function circleIntersectionPoints(c1, c2) {
+export function circleIntersectionPoints(c1: Circle, c2: Circle): [Pt, Pt] | null {
   const dx = c2.cx - c1.cx,
     dy = c2.cy - c1.cy;
   const d = Math.sqrt(dx * dx + dy * dy);
@@ -45,20 +48,20 @@ export function circleIntersectionPoints(c1, c2) {
   ];
 }
 
-export function isInsideCircle(px, py, c) {
+export function isInsideCircle(px: number, py: number, c: Circle): boolean {
   const dx = px - c.cx,
     dy = py - c.cy;
   return dx * dx + dy * dy < c.r * c.r + 1e-6;
 }
 
 // Normalize angle to [0, 2π)
-export function normAngle(a) {
+export function normAngle(a: number): number {
   let v = a % (2 * Math.PI);
   return v < 0 ? v + 2 * Math.PI : v;
 }
 
 // Build region paths for 2 or 3 circles
-export function buildRegionPaths(circles) {
+export function buildRegionPaths(circles: Circle[]): Record<number, string> {
   const n = circles.length;
 
   // 1. Compute all intersection points
@@ -242,7 +245,7 @@ export function buildRegionPaths(circles) {
     const pathParts: string[] = [];
 
     // Helper: emit one SVG arc command
-    function emitArc(ba) {
+    function emitArc(ba: PartialArc) {
       const c = circles[ba.circleIdx],
         r = c.r;
       const endX = c.cx + r * Math.cos(ba.angleTo);

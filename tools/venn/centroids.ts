@@ -6,8 +6,15 @@
 
 import { isInsideCircle } from "./geometry";
 
-export function computeRegionCentroids(circles, regionPaths, intersections) {
-  const centroids = {};
+type Circle = { cx: number; cy: number; r: number };
+type Intersection = { mask: number };
+
+export function computeRegionCentroids(
+  circles: Circle[],
+  _regionPaths: unknown,
+  intersections: Intersection[]
+): Record<number, { x: number; y: number }> {
+  const centroids: Record<number, { x: number; y: number }> = {};
   const bbox = {
     x1: Math.min(...circles.map((c) => c.cx - c.r)) - 5,
     y1: Math.min(...circles.map((c) => c.cy - c.r)) - 5,
