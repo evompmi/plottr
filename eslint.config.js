@@ -246,15 +246,16 @@ module.exports = [
       // (var(--name)), not hex literals — see CLAUDE.md "Theming" and the
       // rule itself in scripts/eslint-rules/no-chrome-hex-literal.js.
       "plottr/no-chrome-hex-literal": "error",
-      // React Hooks safety. rules-of-hooks is non-negotiable (a real
-      // runtime bug if violated — call order has to be stable). Keeping
-      // exhaustive-deps as `warn` rather than `error`: it surfaces real
-      // stale-closure bugs but also fires on intentional omissions
-      // (mount-only effects, deliberately-shallow deps), and silencing
-      // each one with `// eslint-disable-next-line` clutters the source.
-      // Promote to `error` after the warnings have been reviewed.
+      // React Hooks safety. Both at error level after a one-time audit:
+      // rules-of-hooks is non-negotiable (call order has to be stable);
+      // exhaustive-deps caught real stale-closure / facetRefs.current
+      // capture bugs across the audit and now sits at zero warnings.
+      // Intentional omissions (numeric-signature memo keys, mount-only
+      // effects, closures over already-listed primitives) carry an
+      // explicit `// eslint-disable-next-line` with a short rationale at
+      // each site, so the rule's noise floor is real bugs only.
       "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/exhaustive-deps": "error",
     },
   },
 

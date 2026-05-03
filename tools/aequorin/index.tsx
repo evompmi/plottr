@@ -157,6 +157,7 @@ function App() {
     return out;
     // `conditions` is intentionally read via the numeric-signature key so
     // label/color edits don't invalidate this cache.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calData, parsed, conditionsNumericKey]);
 
   // Cheap pass: merge the per-condition metadata (label, color, enabled, …)
@@ -195,6 +196,10 @@ function App() {
       out[cond.prefix] = repSums;
     }
     return out;
+    // Same numeric-signature trick as numericStatsByPrefix above —
+    // `conditions` is read via conditionsNumericKey to avoid recomputing on
+    // label/color edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calData, conditionsNumericKey, vis.xStart, vis.xEnd]);
 
   const replicateSums = useMemo(
@@ -220,7 +225,7 @@ function App() {
     if (!vis.autoYRange) return;
     const range = computeAutoYRange(calData, vis.xStart, vis.xEnd);
     if (range) updVis(range);
-  }, [formula, calData, vis.xStart, vis.xEnd, vis.autoYRange]);
+  }, [formula, calData, vis.xStart, vis.xEnd, vis.autoYRange, updVis]);
 
   const csvText = useMemo(() => {
     if (!calData || !parsed) return "";
@@ -301,83 +306,86 @@ function App() {
 
   const plotPanelRef = useRef<any>(null);
 
-  const doParse = useCallback((text: any, sep: any) => {
-    const dc = fixDecimalCommas(text, sep);
-    setCommaFixed(dc.commaFixed);
-    setCommaFixCount(dc.count);
-    setRawText(dc.text);
-    const { headers, data, injectionWarnings } = parseData(dc.text, sep);
-    setInjectionWarning(injectionWarnings);
-    if (!headers.length || !data.length) {
-      setParseMessage(
-        "The file appears to be empty or has no data rows. Please check your file and try again."
+  const doParse = useCallback(
+    (text: any, sep: any) => {
+      const dc = fixDecimalCommas(text, sep);
+      setCommaFixed(dc.commaFixed);
+      setCommaFixCount(dc.count);
+      setRawText(dc.text);
+      const { headers, data, injectionWarnings } = parseData(dc.text, sep);
+      setInjectionWarning(injectionWarnings);
+      if (!headers.length || !data.length) {
+        setParseMessage(
+          "The file appears to be empty or has no data rows. Please check your file and try again."
+        );
+        return;
+      }
+      // Check for single-column files
+      if (headers.length === 1) {
+        setParseMessage(
+          "Only one column detected — this tool expects wide-format data with one column per sample. Check your separator setting or file format."
+        );
+        return;
+      }
+      // Check how much of the data is numeric
+      const totalCells = data.length * headers.length;
+      const numericCells = data.reduce(
+        (n: any, row: any) => n + row.filter((v: any) => v != null).length,
+        0
       );
-      return;
-    }
-    // Check for single-column files
-    if (headers.length === 1) {
-      setParseMessage(
-        "Only one column detected — this tool expects wide-format data with one column per sample. Check your separator setting or file format."
+      const numericRatio = totalCells > 0 ? numericCells / totalCells : 0;
+      if (numericRatio < 0.3) {
+        setParseMessage(
+          "Less than 30% of values are numeric. This tool expects a numeric matrix (one column per sample, one row per time-point). Your file may be in long format or contain mostly text."
+        );
+        return;
+      }
+      // Warn if the file looks like long format (few columns, one text + one numeric pattern)
+      const colTypes = headers.map((_: any, ci: number) => {
+        const nums = data.filter((r: any) => r[ci] != null).length;
+        return nums / data.length > 0.8 ? "num" : "text";
+      });
+      const numCols = colTypes.filter((t: any) => t === "num").length;
+      const textCols = colTypes.filter((t: any) => t === "text").length;
+      const warnings: any[] = [];
+      if (headers.length <= 3 && textCols >= 1 && numCols >= 1)
+        warnings.push(
+          "⚠️ This looks like it could be long-format data (few columns, mix of text and numbers). This tool expects wide format — one column per sample, one row per time-point."
+        );
+      // Detect ragged columns (different number of valid values per column)
+      const colLengths = headers.map(
+        (_: any, ci: number) => data.filter((r: any) => r[ci] != null).length
       );
-      return;
-    }
-    // Check how much of the data is numeric
-    const totalCells = data.length * headers.length;
-    const numericCells = data.reduce(
-      (n: any, row: any) => n + row.filter((v: any) => v != null).length,
-      0
-    );
-    const numericRatio = totalCells > 0 ? numericCells / totalCells : 0;
-    if (numericRatio < 0.3) {
-      setParseMessage(
-        "Less than 30% of values are numeric. This tool expects a numeric matrix (one column per sample, one row per time-point). Your file may be in long format or contain mostly text."
-      );
-      return;
-    }
-    // Warn if the file looks like long format (few columns, one text + one numeric pattern)
-    const colTypes = headers.map((_: any, ci: number) => {
-      const nums = data.filter((r: any) => r[ci] != null).length;
-      return nums / data.length > 0.8 ? "num" : "text";
-    });
-    const numCols = colTypes.filter((t: any) => t === "num").length;
-    const textCols = colTypes.filter((t: any) => t === "text").length;
-    const warnings: any[] = [];
-    if (headers.length <= 3 && textCols >= 1 && numCols >= 1)
-      warnings.push(
-        "⚠️ This looks like it could be long-format data (few columns, mix of text and numbers). This tool expects wide format — one column per sample, one row per time-point."
-      );
-    // Detect ragged columns (different number of valid values per column)
-    const colLengths = headers.map(
-      (_: any, ci: number) => data.filter((r: any) => r[ci] != null).length
-    );
-    const maxLen = Math.max(...colLengths);
-    const minLen = Math.min(...colLengths);
-    if (maxLen > 0 && minLen < maxLen) {
-      warnings.push(
-        `⚠️ Columns have different lengths (${minLen}–${maxLen} numeric values). Some samples may have missing time-points, which can affect mean/SD calculations.`
-      );
-    }
-    setParseMessage(warnings.length > 0 ? warnings.join("\n") : null);
-    const ce: Record<string, any> = {};
-    headers.forEach((_: any, i: number) => {
-      ce[i] = true;
-    });
-    setColumnEnabled(ce);
-    setPoolReplicates(true);
-    const detectedConds = detectConditions(headers, true, ce).map((c: any) => ({
-      ...c,
-      enabled: true,
-    }));
-    setConditions(detectedConds);
-    updVis({ xStart: 0, xEnd: data.length, faceted: false });
-    setStep("configure");
-  }, []);
+      const maxLen = Math.max(...colLengths);
+      const minLen = Math.min(...colLengths);
+      if (maxLen > 0 && minLen < maxLen) {
+        warnings.push(
+          `⚠️ Columns have different lengths (${minLen}–${maxLen} numeric values). Some samples may have missing time-points, which can affect mean/SD calculations.`
+        );
+      }
+      setParseMessage(warnings.length > 0 ? warnings.join("\n") : null);
+      const ce: Record<string, any> = {};
+      headers.forEach((_: any, i: number) => {
+        ce[i] = true;
+      });
+      setColumnEnabled(ce);
+      setPoolReplicates(true);
+      const detectedConds = detectConditions(headers, true, ce).map((c: any) => ({
+        ...c,
+        enabled: true,
+      }));
+      setConditions(detectedConds);
+      updVis({ xStart: 0, xEnd: data.length, faceted: false });
+      setStep("configure");
+    },
+    [setCommaFixed, setCommaFixCount, setInjectionWarning, setStep, updVis]
+  );
   const handleFileLoad = useCallback(
     (text: any, name: any) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
-    [sepOverride, doParse]
+    [sepOverride, doParse, setFileName]
   );
   const loadExample = useCallback(() => {
     const text = (window as any).__AEQUORIN_EXAMPLE__;
@@ -388,7 +396,7 @@ function App() {
     setSepOverride("\t");
     setFileName("rlu_timecourse_example.tsv");
     doParse(text, "\t");
-  }, [doParse]);
+  }, [doParse, setFileName, setSepOverride]);
   const resetAll = () => {
     setRawText(null);
     setFileName("");

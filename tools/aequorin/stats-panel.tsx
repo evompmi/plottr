@@ -377,6 +377,9 @@ export function AequorinStatsPanel({
   onAnnotRef.current = onAnnotationChange;
   useEffect(() => {
     if (typeof onAnnotRef.current === "function") onAnnotRef.current(annotSpec);
+    // annotSpec is canonicalised through `annotKey` (a JSON stringify) so
+    // structurally-equal specs across renders don't re-fire the effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annotKey]);
 
   const summaryText = useMemo(

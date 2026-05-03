@@ -90,7 +90,15 @@ function App() {
   // cover them. Exposed as read-through variables with function-capable
   // setters so existing call sites (including functional updaters) work
   // unchanged.
-  const boxplotColors: Record<string, string> = vis.boxplotColors || {};
+  // Wrap the `|| {}` fallback in useMemo so the empty-object reference is
+  // stable across renders. Otherwise downstream useMemo / useCallback that
+  // depend on `boxplotColors` would re-fire every render even when the
+  // underlying vis state didn't change. Same pattern for categoryColors
+  // below and the scatter mapping dicts.
+  const boxplotColors: Record<string, string> = useMemo(
+    () => vis.boxplotColors || {},
+    [vis.boxplotColors]
+  );
   const setBoxplotColors = useCallback(
     (updater: any) =>
       updVis({
@@ -109,7 +117,7 @@ function App() {
   const setOrderForCol = (i: any, newOrder: any) =>
     setColumnOrders((prev: any) => ({ ...prev, [i]: newOrder }));
   const [colorByCol, setColorByCol] = useState(-1);
-  const categoryColors = vis.categoryColors || {};
+  const categoryColors = useMemo(() => vis.categoryColors || {}, [vis.categoryColors]);
   const setCategoryColors = useCallback(
     (updater: any) =>
       updVis({
@@ -161,7 +169,7 @@ function App() {
   const facetRefs = useRef<Record<string, any>>({});
   const chartRef = useRef<any>(null);
 
-  const resetDerived = () => {
+  const resetDerived = useCallback(() => {
     setValueRenames({});
     setBoxplotColors({});
     setPlotGroupRenames({});
@@ -173,7 +181,7 @@ function App() {
     _setSubgroupByCol(-1);
     dispatchStats({ type: "reset" });
     updVis({ yMinCustom: "", yMaxCustom: "" });
-  };
+  }, [setBoxplotColors, setCategoryColors, updVis]);
 
   const buildFilters = (hdrs: any, rws: any) => {
     const f: Record<string, any> = {};
@@ -184,88 +192,91 @@ function App() {
     return f;
   };
 
-  const doParse = useCallback((text: any, sep: any) => {
-    const dc = fixDecimalCommas(text, sep);
-    const fixedText = dc.text;
-    setCommaFixed(dc.commaFixed);
-    setCommaFixCount(dc.count);
-    setRawText(fixedText);
+  const doParse = useCallback(
+    (text: any, sep: any) => {
+      const dc = fixDecimalCommas(text, sep);
+      const fixedText = dc.text;
+      setCommaFixed(dc.commaFixed);
+      setCommaFixCount(dc.count);
+      setRawText(fixedText);
 
-    const { headers, rows, hasHeader: hh, injectionWarnings } = parseRaw(fixedText, sep);
-    setInjectionWarning(injectionWarnings);
-    if (!headers.length || !rows.length) {
-      setParseError(
-        "The file appears to be empty or has no data rows. Please check your file and try again."
-      );
-      return;
-    }
-    setParseError(null);
-
-    const isWide = detectWideFormat(headers, rows);
-    if (isWide) {
-      const { headers: lh, rows: lr, skipped } = wideToLong(headers, rows);
-      setParsedHeaders(lh);
-      setParsedRows(lr);
-      setHasHeader(true);
-      setColRoles(["group", "value"]);
-      setColNames([...lh]);
-      setFilters(buildFilters(lh, lr));
-      resetDerived();
-      setDataFormat("wide");
-      setWideSkipped(skipped || 0);
-      setStep("plot");
-    } else {
-      setWideSkipped(0);
-      setParsedHeaders(headers);
-      setParsedRows(rows);
-      setHasHeader(hh);
-      // guessColumnType is per-column, so it can hand back multiple "group"
-      // or "value" roles (e.g. two low-cardinality categorical columns or two
-      // numeric columns). Group Plot only uses one x-axis grouping column and
-      // one numeric value column — keep the first guess of each and demote
-      // any later ones to "filter" so the configure step never starts in a
-      // state the user can't reach via the UI.
-      {
-        let seenGroup = false;
-        let seenValue = false;
-        setColRoles(
-          headers.map((_: any, i: number) => {
-            const r = guessColumnType(rows.map((row: any) => row[i] ?? ""));
-            if (r === "group") {
-              if (seenGroup) return "filter";
-              seenGroup = true;
-              return r;
-            }
-            if (r === "value") {
-              if (seenValue) return "filter";
-              seenValue = true;
-              return r;
-            }
-            return r;
-          })
+      const { headers, rows, hasHeader: hh, injectionWarnings } = parseRaw(fixedText, sep);
+      setInjectionWarning(injectionWarnings);
+      if (!headers.length || !rows.length) {
+        setParseError(
+          "The file appears to be empty or has no data rows. Please check your file and try again."
         );
+        return;
       }
-      setColNames([...headers]);
-      setFilters(buildFilters(headers, rows));
-      resetDerived();
-      setDataFormat("long");
-      setStep("configure");
-    }
-  }, []);
+      setParseError(null);
+
+      const isWide = detectWideFormat(headers, rows);
+      if (isWide) {
+        const { headers: lh, rows: lr, skipped } = wideToLong(headers, rows);
+        setParsedHeaders(lh);
+        setParsedRows(lr);
+        setHasHeader(true);
+        setColRoles(["group", "value"]);
+        setColNames([...lh]);
+        setFilters(buildFilters(lh, lr));
+        resetDerived();
+        setDataFormat("wide");
+        setWideSkipped(skipped || 0);
+        setStep("plot");
+      } else {
+        setWideSkipped(0);
+        setParsedHeaders(headers);
+        setParsedRows(rows);
+        setHasHeader(hh);
+        // guessColumnType is per-column, so it can hand back multiple "group"
+        // or "value" roles (e.g. two low-cardinality categorical columns or two
+        // numeric columns). Group Plot only uses one x-axis grouping column and
+        // one numeric value column — keep the first guess of each and demote
+        // any later ones to "filter" so the configure step never starts in a
+        // state the user can't reach via the UI.
+        {
+          let seenGroup = false;
+          let seenValue = false;
+          setColRoles(
+            headers.map((_: any, i: number) => {
+              const r = guessColumnType(rows.map((row: any) => row[i] ?? ""));
+              if (r === "group") {
+                if (seenGroup) return "filter";
+                seenGroup = true;
+                return r;
+              }
+              if (r === "value") {
+                if (seenValue) return "filter";
+                seenValue = true;
+                return r;
+              }
+              return r;
+            })
+          );
+        }
+        setColNames([...headers]);
+        setFilters(buildFilters(headers, rows));
+        resetDerived();
+        setDataFormat("long");
+        setStep("configure");
+      }
+    },
+    [resetDerived, setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep]
+  );
 
   const handleFileLoad = useCallback(
     (text: any, name: any) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
-    [sepOverride, doParse]
+    [sepOverride, doParse, setFileName]
   );
   const loadExample = useCallback(() => {
     const csv = makeExamplePlantCSV();
     setSepOverride(",");
     setFileName("example_plant_growth.csv");
     doParse(csv, ",");
-  }, [doParse]);
+  }, [doParse, setFileName, setSepOverride]);
 
   // Inter-tool hand-off consumer. When the user clicks "↗ Open in Boxplot"
   // in another tool (e.g. RLU timecourse's Σ barplot tile), that tool
@@ -308,6 +319,11 @@ function App() {
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
+    // Mount-only effect: the inner `apply` references `doParse` and the
+    // setters, but re-running this effect every time those change would
+    // re-fire the storage listener registration and risk double-applying
+    // a hand-off. Stable on mount is what we want.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resetAll = () => {
@@ -332,6 +348,11 @@ function App() {
 
   const renamedRows = useMemo(
     () => filteredRows.map((r: any) => r.map((v: any, ci: number) => applyRename(ci, v))),
+    // applyRename is a closure over valueRenames; depending on valueRenames
+    // is sufficient to invalidate this memo when renames change. Including
+    // applyRename itself would re-fire on every render since the closure
+    // is re-created each time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [filteredRows, valueRenames]
   );
 

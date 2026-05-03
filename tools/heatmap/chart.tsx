@@ -933,6 +933,12 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
           );
         })
       ),
+    // The cellX / cellY / cellWPx / cellHPx / valueToColor closures all
+    // close over the primitives already listed (cellW, cellH, cellOffset*,
+    // *GapOffsets, vmin, vmax, palette, invertPalette). Listing the
+    // closures themselves would re-fire the memo on every render since
+    // they're recreated each time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       rowOrder,
       colOrder,

@@ -15,9 +15,13 @@ const FacetBoxplotItem = memo(function FacetBoxplotItem({
 }: any) {
   const localRef = useRef<any>(null);
   useEffect(() => {
-    facetRefs.current[fd.category] = localRef.current;
+    // Capture facetRefs.current to a local so the cleanup closes over the
+    // map that was current when the effect ran, not whatever the ref
+    // points at when the cleanup eventually fires.
+    const refs = facetRefs.current;
+    refs[fd.category] = localRef.current;
     return () => {
-      delete facetRefs.current[fd.category];
+      delete refs[fd.category];
     };
   }, [fd.category, facetRefs]);
   return (

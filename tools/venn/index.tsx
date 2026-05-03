@@ -181,7 +181,7 @@ function App() {
         setStep("configure");
       }
     },
-    [commitSelection]
+    [commitSelection, setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep]
   );
 
   const handleFileLoad = useCallback(
@@ -189,7 +189,7 @@ function App() {
       setFileName(name);
       doParse(text, sepOverride);
     },
-    [sepOverride, doParse]
+    [sepOverride, doParse, setFileName]
   );
 
   const loadExample = useCallback(() => {
@@ -198,7 +198,7 @@ function App() {
     setSepOverride(",");
     setFileName("arabidopsis_stress.csv");
     doParse(text, ",");
-  }, [doParse]);
+  }, [doParse, setFileName, setSepOverride]);
 
   const handleColorChange = (name: string, color: string) => {
     setSetColors((prev) => ({ ...prev, [name]: color }));

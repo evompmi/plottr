@@ -280,7 +280,7 @@ function App() {
     const diverging = DIVERGING_PALETTES.has(vis.palette) || normalization.startsWith("z");
     const [lo, hi] = autoRange(normalized, diverging);
     updVis({ vmin: Number(lo.toFixed(3)), vmax: Number(hi.toFixed(3)) });
-  }, [normalized, vis.palette, normalization]);
+  }, [normalized, vis.palette, normalization, updVis]);
 
   const canNavigate = useCallback(
     (target: any) => {
@@ -292,49 +292,52 @@ function App() {
     [rawMatrix]
   );
 
-  const doParse = useCallback((text: any, sep: any) => {
-    const dc = fixDecimalCommas(text, sep);
-    setCommaFixed(dc.commaFixed);
-    setCommaFixCount(dc.count);
-    const parsed = parseWideMatrix(dc.text, sep);
-    setInjectionWarning(parsed.injectionWarnings);
-    if (!parsed.rowLabels.length || !parsed.colLabels.length) {
-      setParseError(
-        "The file needs at least one row label column and one data column with a header."
-      );
-      return;
-    }
-    setParseError(null);
-    setRawMatrix({
-      rowLabels: parsed.rowLabels,
-      colLabels: parsed.colLabels,
-      matrix: parsed.matrix,
-    });
-    setWarnings(parsed.warnings);
+  const doParse = useCallback(
+    (text: any, sep: any) => {
+      const dc = fixDecimalCommas(text, sep);
+      setCommaFixed(dc.commaFixed);
+      setCommaFixCount(dc.count);
+      const parsed = parseWideMatrix(dc.text, sep);
+      setInjectionWarning(parsed.injectionWarnings);
+      if (!parsed.rowLabels.length || !parsed.colLabels.length) {
+        setParseError(
+          "The file needs at least one row label column and one data column with a header."
+        );
+        return;
+      }
+      setParseError(null);
+      setRawMatrix({
+        rowLabels: parsed.rowLabels,
+        colLabels: parsed.colLabels,
+        matrix: parsed.matrix,
+      });
+      setWarnings(parsed.warnings);
 
-    // Auto-range the colour scale from the raw data on first load.
-    const diverging = DIVERGING_PALETTES.has("viridis"); // false; just for signature parity
-    const [lo, hi] = autoRange(parsed.matrix, diverging);
-    updVis({
-      vmin: Number(lo.toFixed(3)),
-      vmax: Number(hi.toFixed(3)),
-    });
-    setStep("configure");
-  }, []);
+      // Auto-range the colour scale from the raw data on first load.
+      const diverging = DIVERGING_PALETTES.has("viridis"); // false; just for signature parity
+      const [lo, hi] = autoRange(parsed.matrix, diverging);
+      updVis({
+        vmin: Number(lo.toFixed(3)),
+        vmax: Number(hi.toFixed(3)),
+      });
+      setStep("configure");
+    },
+    [setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep, updVis]
+  );
 
   const handleFileLoad = useCallback(
     (text: any, name: any) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
-    [sepOverride, doParse]
+    [sepOverride, doParse, setFileName]
   );
 
   const loadExample = useCallback(() => {
     setSepOverride(",");
     setFileName("stress_response_genes.csv");
     doParse(EXAMPLE_CSV, ",");
-  }, [doParse]);
+  }, [doParse, setFileName, setSepOverride]);
 
   const resetAll = () => {
     setStep("upload");

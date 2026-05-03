@@ -166,11 +166,13 @@ function App() {
   // clamp it down so the filter doesn't silently hide every bar after a
   // dataset swap (prefs persist per-tool, not per-dataset).
   // Intentionally depends only on maxAllIntersectionSize: we want to clamp
-  // when the dataset changes, not on every minSize slider tick.
+  // when the dataset changes, not on every minSize slider tick (which would
+  // pull `vis.minSize` into the deps and re-fire mid-drag).
   React.useEffect(() => {
     if (maxAllIntersectionSize > 0 && vis.minSize > maxAllIntersectionSize) {
       updVis({ minSize: maxAllIntersectionSize });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maxAllIntersectionSize]);
 
   const truncatedIntersections = useMemo(
@@ -296,15 +298,7 @@ function App() {
     setIntersectionTests(pending);
     setComputingStats(false);
     setComputeProgress({ done: 0, total: 0 });
-  }, [
-    computingStats,
-    universeSize,
-    allIntersections,
-    intersectionTests,
-    sets,
-    displaySetNames,
-    membershipMap,
-  ]);
+  }, [computingStats, universeSize, allIntersections, intersectionTests, sets, displaySetNames]);
 
   // Clear all cached stats — useful after a universe change if the user
   // wants to wipe stale entries before recomputing.
@@ -404,7 +398,7 @@ function App() {
       commitSelection(sn, ss);
       setStep("configure");
     },
-    [commitSelection]
+    [commitSelection, setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep]
   );
 
   const handleFileLoad = useCallback(
@@ -412,7 +406,7 @@ function App() {
       setFileName(name);
       doParse(text, sepOverride, format);
     },
-    [sepOverride, format, doParse]
+    [sepOverride, format, doParse, setFileName]
   );
 
   const loadExample = useCallback(() => {
@@ -422,7 +416,7 @@ function App() {
     setFormat("wide");
     setFileName("arabidopsis_stress_5set.csv");
     doParse(text, ",", "wide");
-  }, [doParse]);
+  }, [doParse, setFileName, setSepOverride]);
 
   // Hand-off from the Venn tool's "Open in UpSet" nudge: replaces whatever
   // file the user had previously loaded so the UpSet view shows the same
@@ -457,7 +451,7 @@ function App() {
       setSelectedMask(null);
       doParse(payload.text, sep, fmt);
     },
-    [doParse]
+    [doParse, setFileName, setSepOverride]
   );
 
   useEffect(() => {

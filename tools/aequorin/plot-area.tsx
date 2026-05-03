@@ -88,6 +88,25 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
     }));
   }, [showInset, replicateSums, activeStats, statsDataMode]);
 
+  // Hash signature of activeStats keyed on prefix/label/color/enabled +
+  // active column indices. Lifted out of the deps array so eslint can
+  // statically check it (the inline expression form fails the
+  // "complex expression in dependency array" check).
+  const activeStatsKey = activeStats
+    .map(
+      (s: any) =>
+        s.prefix +
+        "|" +
+        s.label +
+        "|" +
+        s.color +
+        "|" +
+        s.enabled +
+        ":" +
+        (s.activeColIndices || s.colIndices).join(":")
+    )
+    .join(",");
+
   const series = useMemo(() => {
     if (activeStats.length === 0) return [];
     return activeStats.map((cond: any) => {
@@ -105,26 +124,11 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
         rows,
       };
     });
-  }, [
-    activeStats.length,
-    activeStats
-      .map(
-        (s: any) =>
-          s.prefix +
-          "|" +
-          s.label +
-          "|" +
-          s.color +
-          "|" +
-          s.enabled +
-          ":" +
-          (s.activeColIndices || s.colIndices).join(":")
-      )
-      .join(","),
-    xStart,
-    xEnd,
-    smoothWidth,
-  ]);
+    // `activeStats` is read via `activeStatsKey` (an opaque hash of
+    // prefix/label/color/enabled/colIndices) so cosmetic-only edits to
+    // the conditions don't invalidate this memo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStats.length, activeStatsKey, xStart, xEnd, smoothWidth]);
 
   const ts = timeStep || 1;
   const bUnit = baseUnit || "s";

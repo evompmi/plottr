@@ -239,7 +239,10 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(functio
     // each point's pixel coords); when the legend column reserves
     // space and shrinks `w`, the rendered points must reflow with it
     // — without these deps the memo would cache stale coords and
-    // points would overflow into the legend area.
+    // points would overflow into the legend area. `sx`/`sy` themselves
+    // close over the same inputs we already list, so depending on those
+    // primitives is what actually invalidates the memo correctly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [points, pFloor, fcCutoff, pCutoff, xMin, xMax, yMin, yMax, w, h]);
 
   // Labels: two modes —
@@ -317,6 +320,11 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(functio
     const placed = layoutLabels(inputs, obstacles, labelBounds);
     const radii = pickedRenders.map((r: any) => radiusFor(r.pt.idx));
     return { labels: placed, radii };
+    // `radiusFor` is a fresh closure each render but only reads sizeMap +
+    // pointRadius, both of which are already listed — so the memo
+    // correctly invalidates when the radius mapping changes, without
+    // re-firing every render the way listing `radiusFor` itself would.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     showLabels,
     topNUp,

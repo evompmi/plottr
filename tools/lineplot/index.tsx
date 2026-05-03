@@ -62,7 +62,7 @@ function App() {
   const setErrorType = useCallback((v: string) => updVis({ errorType: v }), [updVis]);
   const showStars = vis.showStars ?? true;
   const setShowStars = useCallback((v: boolean) => updVis({ showStars: v }), [updVis]);
-  const groupColors = vis.groupColors || {};
+  const groupColors = useMemo(() => vis.groupColors || {}, [vis.groupColors]);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const sepRef = useRef("");
@@ -176,52 +176,55 @@ function App() {
       xLabel: parsed.headers[xCol],
       yLabel: parsed.headers[yCol],
     });
-  }, [xCol, yCol, parsed]);
+  }, [xCol, yCol, parsed, updVis]);
 
-  const doParse = useCallback((text: string, sep: string) => {
-    sepRef.current = sep;
-    const dc = fixDecimalCommas(text, sep);
-    setCommaFixed(dc.commaFixed);
-    setCommaFixCount(dc.count);
-    const fixedText = dc.text;
-    const { headers, data, rawData, injectionWarnings } = parseData(fixedText, sep);
-    setInjectionWarning(injectionWarnings);
-    if (headers.length < 2 || data.length === 0) {
-      setParseError(
-        "The file appears to be empty or has no data rows. Please check your file and try again."
-      );
-      return;
-    }
-    setParseError(null);
-    setRawText(fixedText);
+  const doParse = useCallback(
+    (text: string, sep: string) => {
+      sepRef.current = sep;
+      const dc = fixDecimalCommas(text, sep);
+      setCommaFixed(dc.commaFixed);
+      setCommaFixCount(dc.count);
+      const fixedText = dc.text;
+      const { headers, data, rawData, injectionWarnings } = parseData(fixedText, sep);
+      setInjectionWarning(injectionWarnings);
+      if (headers.length < 2 || data.length === 0) {
+        setParseError(
+          "The file appears to be empty or has no data rows. Please check your file and try again."
+        );
+        return;
+      }
+      setParseError(null);
+      setRawText(fixedText);
 
-    const isNum = (idx: number) => {
-      const vals = rawData.map((r: any) => r[idx]).filter((v: any) => v !== "" && v != null);
-      return (
-        vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5
+      const isNum = (idx: number) => {
+        const vals = rawData.map((r: any) => r[idx]).filter((v: any) => v !== "" && v != null);
+        return (
+          vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5
+        );
+      };
+      const nums = headers.reduce(
+        (acc: any, _: unknown, i: number) => (isNum(i) ? [...acc, i] : acc),
+        []
       );
-    };
-    const nums = headers.reduce(
-      (acc: any, _: unknown, i: number) => (isNum(i) ? [...acc, i] : acc),
-      []
-    );
-    const cats = headers.reduce(
-      (acc: any, _: unknown, i: number) => (isNum(i) ? acc : [...acc, i]),
-      []
-    );
-    setXCol(nums[0] !== undefined ? nums[0] : 0);
-    setYCol(nums[1] !== undefined ? nums[1] : nums[0] !== undefined ? nums[0] : 1);
-    setGroupCol(cats[0] !== undefined ? cats[0] : null);
-    updVis({ groupColors: {} });
-    setStep("configure");
-  }, []);
+      const cats = headers.reduce(
+        (acc: any, _: unknown, i: number) => (isNum(i) ? acc : [...acc, i]),
+        []
+      );
+      setXCol(nums[0] !== undefined ? nums[0] : 0);
+      setYCol(nums[1] !== undefined ? nums[1] : nums[0] !== undefined ? nums[0] : 1);
+      setGroupCol(cats[0] !== undefined ? cats[0] : null);
+      updVis({ groupColors: {} });
+      setStep("configure");
+    },
+    [setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep, updVis]
+  );
 
   const handleFileLoad = useCallback(
     (text: string, name: string) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
-    [sepOverride, doParse]
+    [sepOverride, doParse, setFileName]
   );
 
   const loadExample = useCallback(() => {
@@ -230,7 +233,7 @@ function App() {
     setSepOverride(",");
     setFileName("bacterial_growth.csv");
     doParse(text, ",");
-  }, [doParse]);
+  }, [doParse, setFileName, setSepOverride]);
 
   const resetAll = () => {
     setRawText(null);

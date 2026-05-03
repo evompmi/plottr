@@ -337,11 +337,11 @@ export function ConfigureStep({
     setMaxDegree((d: number) =>
       Number.isFinite(d) ? Math.max(1, Math.min(selectedCount, d)) : selectedCount
     );
-  }, [needsCutoff, selectedCount]);
+  }, [needsCutoff, selectedCount, setMaxDegree, setMinDegree]);
   // Keep min ≤ max whenever either edge changes.
   useEffect(() => {
     if (Number.isFinite(maxDegree) && minDegree > maxDegree) setMinDegree(maxDegree);
-  }, [minDegree, maxDegree]);
+  }, [minDegree, maxDegree, setMinDegree]);
 
   const allPossible = selectedCount >= 2 ? Math.pow(2, selectedCount) - 1 : 0;
   const effectiveMaxDegree = Number.isFinite(maxDegree) ? maxDegree : selectedCount;

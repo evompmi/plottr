@@ -97,7 +97,10 @@ function App() {
   const [colorMapCol, setColorMapCol] = useState<number | null>(null);
   const colorMapPalette = vis.colorMapPalette ?? "viridis";
   const setColorMapPalette = useCallback((v: any) => updVis({ colorMapPalette: v }), [updVis]);
-  const colorMapDiscrete: Record<string, string> = vis.colorMapDiscrete || {};
+  const colorMapDiscrete: Record<string, string> = useMemo(
+    () => vis.colorMapDiscrete || {},
+    [vis.colorMapDiscrete]
+  );
   const setColorMapDiscrete = useCallback(
     (updater: any) =>
       updVis({
@@ -112,7 +115,10 @@ function App() {
   const setSizeMapMin = useCallback((v: any) => updVis({ sizeMapMin: v }), [updVis]);
   const sizeMapMax = vis.sizeMapMax ?? 15;
   const setSizeMapMax = useCallback((v: any) => updVis({ sizeMapMax: v }), [updVis]);
-  const sizeMapDiscrete: Record<string, number> = vis.sizeMapDiscrete || {};
+  const sizeMapDiscrete: Record<string, number> = useMemo(
+    () => vis.sizeMapDiscrete || {},
+    [vis.sizeMapDiscrete]
+  );
   const setSizeMapDiscrete = useCallback(
     (updater: any) =>
       updVis({
@@ -123,7 +129,10 @@ function App() {
   );
 
   const [shapeMapCol, setShapeMapCol] = useState<number | null>(null);
-  const shapeMapDiscrete: Record<string, string> = vis.shapeMapDiscrete || {};
+  const shapeMapDiscrete: Record<string, string> = useMemo(
+    () => vis.shapeMapDiscrete || {},
+    [vis.shapeMapDiscrete]
+  );
   const setShapeMapDiscrete = useCallback(
     (updater: any) =>
       updVis({
@@ -307,7 +316,7 @@ function App() {
       });
       return next;
     });
-  }, [colorMapCategories]);
+  }, [colorMapCategories, setColorMapDiscrete]);
 
   // Auto-assign discrete sizes
   useEffect(() => {
@@ -322,7 +331,7 @@ function App() {
       });
       return next;
     });
-  }, [sizeMapCategories]);
+  }, [sizeMapCategories, setSizeMapDiscrete]);
 
   // Auto-assign discrete shapes
   useEffect(() => {
@@ -337,7 +346,7 @@ function App() {
       });
       return next;
     });
-  }, [shapeMapCategories]);
+  }, [shapeMapCategories, setShapeMapDiscrete]);
 
   // Reset axis overrides and labels when X/Y columns change
   useEffect(() => {
@@ -350,7 +359,7 @@ function App() {
       xLabel: parsed.headers[xCol],
       yLabel: parsed.headers[yCol],
     });
-  }, [xCol, yCol, parsed]);
+  }, [xCol, yCol, parsed, updVis]);
 
   // Auto-compute axis ranges from data (used as fallback when vis values are null)
   const autoAxis = useMemo(() => {
@@ -382,11 +391,15 @@ function App() {
     yMax: vis.yMax != null ? vis.yMax : autoAxis.yMax,
   };
 
-  // Clear aesthetic that refers to X or Y column
+  // Clear aesthetic that refers to X or Y column. We deliberately depend
+  // ONLY on xCol / yCol — the effect's purpose is "react to a column
+  // change", and adding the *MapCol values would re-fire it every time
+  // the user picks a new mapping (which shouldn't reset itself).
   useEffect(() => {
     if (colorMapCol === xCol || colorMapCol === yCol) setColorMapCol(null);
     if (sizeMapCol === xCol || sizeMapCol === yCol) setSizeMapCol(null);
     if (shapeMapCol === xCol || shapeMapCol === yCol) setShapeMapCol(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xCol, yCol]);
 
   // Build SVG legend
@@ -469,58 +482,61 @@ function App() {
     shapeMapDiscrete,
   ]);
 
-  const doParse = useCallback((text: string, sep: string) => {
-    sepRef.current = sep;
-    const dc = fixDecimalCommas(text, sep);
-    setCommaFixed(dc.commaFixed);
-    setCommaFixCount(dc.count);
-    const fixedText = dc.text;
-    const { headers, data, rawData, injectionWarnings } = parseData(fixedText, sep);
-    setInjectionWarning(injectionWarnings);
-    if (headers.length < 2 || data.length === 0) {
-      setParseError(
-        "The file appears to be empty or has no data rows. Please check your file and try again."
-      );
-      return;
-    }
-    setParseError(null);
-    setRawText(fixedText);
+  const doParse = useCallback(
+    (text: string, sep: string) => {
+      sepRef.current = sep;
+      const dc = fixDecimalCommas(text, sep);
+      setCommaFixed(dc.commaFixed);
+      setCommaFixCount(dc.count);
+      const fixedText = dc.text;
+      const { headers, data, rawData, injectionWarnings } = parseData(fixedText, sep);
+      setInjectionWarning(injectionWarnings);
+      if (headers.length < 2 || data.length === 0) {
+        setParseError(
+          "The file appears to be empty or has no data rows. Please check your file and try again."
+        );
+        return;
+      }
+      setParseError(null);
+      setRawText(fixedText);
 
-    // Auto-assign X and Y to first two numeric columns
-    const isNum = (idx: number) => {
-      const vals = rawData.map((r: any) => r[idx]).filter((v: any) => v !== "" && v != null);
-      return (
-        vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5
-      );
-    };
-    const nums = headers.reduce<number[]>((acc, _, i) => (isNum(i) ? [...acc, i] : acc), []);
-    setXCol(nums[0] !== undefined ? nums[0] : 0);
-    setYCol(nums[1] !== undefined ? nums[1] : nums[0] !== undefined ? nums[0] : 1);
+      // Auto-assign X and Y to first two numeric columns
+      const isNum = (idx: number) => {
+        const vals = rawData.map((r: any) => r[idx]).filter((v: any) => v !== "" && v != null);
+        return (
+          vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5
+        );
+      };
+      const nums = headers.reduce<number[]>((acc, _, i) => (isNum(i) ? [...acc, i] : acc), []);
+      setXCol(nums[0] !== undefined ? nums[0] : 0);
+      setYCol(nums[1] !== undefined ? nums[1] : nums[0] !== undefined ? nums[0] : 1);
 
-    // Reset only dataset-tied state. Visual prefs (pointColor / pointSize /
-    // strokeColor / strokeWidth / pointOpacity / colorMapPalette / refLines /
-    // regression sub-object) persist across parses now that they live in
-    // `vis` — wiping them on every upload would defeat the audit-23 #1
-    // persistence fix. Per-category mapping dicts (colorMapDiscrete /
-    // sizeMapDiscrete / shapeMapDiscrete) ALSO persist by design: they're
-    // keyed by category NAME, so on a new dataset the orphaned keys are
-    // harmless and any matching category names retain the user's colour.
-    // Column indices reset because they refer to the previous dataset's
-    // column layout.
-    setColorMapCol(null);
-    setSizeMapCol(null);
-    setShapeMapCol(null);
-    setFilterState({});
+      // Reset only dataset-tied state. Visual prefs (pointColor / pointSize /
+      // strokeColor / strokeWidth / pointOpacity / colorMapPalette / refLines /
+      // regression sub-object) persist across parses now that they live in
+      // `vis` — wiping them on every upload would defeat the audit-23 #1
+      // persistence fix. Per-category mapping dicts (colorMapDiscrete /
+      // sizeMapDiscrete / shapeMapDiscrete) ALSO persist by design: they're
+      // keyed by category NAME, so on a new dataset the orphaned keys are
+      // harmless and any matching category names retain the user's colour.
+      // Column indices reset because they refer to the previous dataset's
+      // column layout.
+      setColorMapCol(null);
+      setSizeMapCol(null);
+      setShapeMapCol(null);
+      setFilterState({});
 
-    setStep("plot");
-  }, []);
+      setStep("plot");
+    },
+    [setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep]
+  );
 
   const handleFileLoad = useCallback(
     (text: string, name: string) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
-    [sepOverride, doParse]
+    [sepOverride, doParse, setFileName]
   );
 
   const loadExample = useCallback(() => {
@@ -529,7 +545,7 @@ function App() {
     setSepOverride(",");
     setFileName("iris.csv");
     doParse(text, ",");
-  }, [doParse]);
+  }, [doParse, setFileName, setSepOverride]);
 
   const resetAll = () => {
     setRawText(null);

@@ -674,9 +674,12 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
 export const FacetChartItem = memo(function FacetChartItem({ s, facetRefs, chartProps }: any) {
   const localRef = useRef<any>(null);
   useEffect(() => {
-    facetRefs.current[s.prefix] = localRef.current;
+    // See boxplot/plot-area.tsx — capture facetRefs.current locally so the
+    // cleanup closes over the same map the effect mutated.
+    const refs = facetRefs.current;
+    refs[s.prefix] = localRef.current;
     return () => {
-      delete facetRefs.current[s.prefix];
+      delete refs[s.prefix];
     };
   }, [s.prefix, facetRefs]);
   return (

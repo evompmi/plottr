@@ -409,6 +409,11 @@ export function BoxplotStatsPanel({
     for (const r of sets) {
       onAnnotationForKeyRef.current(r.key, annotByKey[r.key] || null);
     }
+    // annotByKey is canonicalised through `annotKey` (JSON-stringify) so
+    // structurally-equal specs across renders don't re-fire. `sets`
+    // changes only when `enriched` does, which `annotKey` already
+    // covers transitively.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annotKey]);
 
   const summaryByKey = useMemo(() => {
@@ -426,6 +431,8 @@ export function BoxplotStatsPanel({
     for (const r of sets) {
       onSummaryForKeyRef.current(r.key, summaryByKey[r.key] || null);
     }
+    // Same canonicalisation pattern as the annotKey effect above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [summaryKey]);
 
   const setOverride = (key: string, test: string | null) =>

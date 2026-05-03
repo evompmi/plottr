@@ -60,7 +60,7 @@ export const VennChart = forwardRef<SVGSVGElement, any>(function VennChart(
         maxError: layout.maxError || 0,
         meanError: layout.meanError || 0,
       });
-  }, [layout.warnings, layout.proportional, layout.maxError, layout.meanError]);
+  }, [layout.warnings, layout.proportional, layout.maxError, layout.meanError, onLayoutInfo]);
 
   const regionPaths = useMemo(() => buildRegionPaths(circles), [circles]);
   const centroids = useMemo(
