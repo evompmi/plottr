@@ -32,6 +32,15 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # Vendored React / ReactDOM are SRI-pinned in every tools/*.html via
+      # scripts/vendor-sri.js (security audit 02-05-2026, Tier B #4). This
+      # step fails CI if a vendor/* update landed without re-running the
+      # script — the alternative would be a silent supply-chain regression
+      # where a backdoored React ships and the integrity attribute goes
+      # stale, which the browser would then refuse to execute.
+      - name: Verify vendor SRI hashes
+        run: npm run lint:sri
+
       - name: Run tests
         run: npm test 2>&1 | tee test-output.log && exit ${PIPESTATUS[0]}
 
