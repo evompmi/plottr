@@ -3,7 +3,7 @@
 // lineplot-loader.js loads this file directly). Keep render-layer code and
 // UI-specific components out — they belong in tools/lineplot.tsx.
 
-import { runTest } from "../_shell/stats-dispatch";
+import { runTest, TestResult } from "../_shell/stats-dispatch";
 import { CHART_MARGIN, buildLineD } from "../_shell/chart-layout";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ export function formatX(x) {
 // Build per-group point summaries keyed on strict numeric x equality.
 export function computeSeries(data, rawData, xCol, yCol, groupCol, groupColors, palette) {
   // Preserve first-seen group order so legend ordering matches the CSV.
-  const groupOrder = [];
+  const groupOrder: string[] = [];
   const perGroup = new Map<string, Map<number, number[]>>();
 
   for (let ri = 0; ri < data.length; ri++) {
@@ -52,16 +52,16 @@ export function computeSeries(data, rawData, xCol, yCol, groupCol, groupColors, 
       perGroup.set(gName, new Map());
       groupOrder.push(gName);
     }
-    const xMap = perGroup.get(gName);
+    const xMap = perGroup.get(gName)!;
     if (!xMap.has(x)) xMap.set(x, []);
-    xMap.get(x).push(y);
+    xMap.get(x)!.push(y);
   }
 
   return groupOrder.map((name, idx) => {
-    const xMap = perGroup.get(name);
+    const xMap = perGroup.get(name)!;
     const xs = [...xMap.keys()].sort((a, b) => a - b);
     const points = xs.map((x) => {
-      const values = xMap.get(x);
+      const values = xMap.get(x)!;
       const n = values.length;
       const mean = sampleMean(values);
       const sd = n > 1 ? sampleSD(values) : 0;
@@ -79,14 +79,23 @@ export function computeSeries(data, rawData, xCol, yCol, groupCol, groupColors, 
 
 // For each x shared by ≥2 groups (with n≥2 per group), run the routed test and
 // BH-adjust across x. Returns one row per eligible x.
+type PerXRow = {
+  x: number;
+  names: string[];
+  values: number[][];
+  chosenTest: RecommendedTest | null;
+  result: TestResult | null;
+  pAdj?: number | null;
+};
+
 export function computePerXStats(series) {
   const xSet = new Set<number>();
   for (const s of series) for (const p of s.points) xSet.add(p.x);
   const xs = [...xSet].sort((a, b) => a - b);
 
-  const rows = [];
+  const rows: PerXRow[] = [];
   for (const x of xs) {
-    const groups = [];
+    const groups: { name: string; values: number[] }[] = [];
     for (const s of series) {
       const p = s.points.find((q) => q.x === x);
       if (p && p.n >= 2) groups.push({ name: s.name, values: p.values });
@@ -105,7 +114,7 @@ export function computePerXStats(series) {
   const validIdx: number[] = [];
   const validPs: number[] = [];
   rows.forEach((r, i) => {
-    if (r.result && !r.result.error && Number.isFinite(r.result.p)) {
+    if (r.result && !r.result.error && r.result.p != null && Number.isFinite(r.result.p)) {
       validIdx.push(i);
       validPs.push(r.result.p);
     }

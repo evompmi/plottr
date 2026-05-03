@@ -14,7 +14,7 @@ import { VENN_CONFIG } from "./constants";
 // Verify that final circle positions respect containment and separation constraints.
 // Returns { circles, warnings } with adjusted circles and any warnings.
 export function validateAndFixLayout(circles, setNames, sets, subsets, disjoint) {
-  const warnings = [];
+  const warnings: string[] = [];
   const fixed = circles.map((c) => ({ ...c }));
 
   // 1. Enforce subsets: the sub circle must be clearly INSIDE the sup circle.
@@ -215,7 +215,7 @@ export function buildVenn2Layout(setNames, sets, intersections, viewW, viewH, bl
   const maxR = Math.min(viewW, viewH) * 0.304;
   const scale = maxR / Math.sqrt(Math.max(s0, s1));
   let radii = [scale * Math.sqrt(s0), scale * Math.sqrt(s1)];
-  const warnings = [];
+  const warnings: string[] = [];
 
   const rc = clampRadii(radii);
   if (rc.adjusted) {
@@ -278,7 +278,7 @@ export function buildVenn3Layout(setNames, sets, intersections, viewW, viewH, bl
   const maxR = Math.min(viewW, viewH) * 0.256;
   const scale = maxR / Math.sqrt(Math.max(...sizes));
   let radii = sizes.map((s) => scale * Math.sqrt(s));
-  const warnings = [];
+  const warnings: string[] = [];
 
   const rc = clampRadii(radii);
   if (rc.adjusted) {
@@ -294,7 +294,7 @@ export function buildVenn3Layout(setNames, sets, intersections, viewW, viewH, bl
     [0, 2],
     [1, 2],
   ];
-  const pairDists = [];
+  const pairDists: number[] = [];
   for (const [i, j] of pairMasks) {
     let totalPairwise = 0;
     for (const g of intersections) {

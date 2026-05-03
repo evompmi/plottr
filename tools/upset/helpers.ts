@@ -27,11 +27,17 @@ export function enumerateIntersections(membershipMap, setNames) {
     if (!groups.has(mask)) groups.set(mask, []);
     groups.get(mask).push(item);
   }
-  const out = [];
+  const out: Array<{
+    mask: number;
+    setIndices: number[];
+    degree: number;
+    size: number;
+    items: string[];
+  }> = [];
   for (const [mask, items] of groups) {
     if (items.length === 0) continue;
     items.sort();
-    const setIndices = [];
+    const setIndices: number[] = [];
     for (let i = 0; i < setNames.length; i++) {
       if (mask & (1 << i)) setIndices.push(i);
     }
@@ -114,7 +120,7 @@ export function buildBarTicks(max, count) {
   const step = niceStep(max, count);
   const domainMax = Math.ceil((max + step * 1e-9) / step) * step;
   const last = domainMax > max ? domainMax : domainMax + step;
-  const ticks = [];
+  const ticks: number[] = [];
   for (let v = 0; v <= last + step * 0.001; v += step) {
     ticks.push(parseFloat(v.toPrecision(10)));
   }

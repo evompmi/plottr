@@ -499,7 +499,7 @@ const PowerCurve = forwardRef<SVGSVGElement, any>(function PowerCurve(
   // Always plot power vs n
   const maxN = Math.max(200, result && solveFor === "n" ? result * 2.5 : 200);
   const xRange = [minN, Math.ceil(maxN)];
-  const curvePoints = [];
+  const curvePoints: { x: number; y: number }[] = [];
   for (let i = 0; i <= 100; i++) {
     const xn = xRange[0] + ((xRange[1] - xRange[0]) * i) / 100;
     const ni = Math.max(minN, Math.round(xn));
@@ -517,7 +517,7 @@ const PowerCurve = forwardRef<SVGSVGElement, any>(function PowerCurve(
   const yTicks = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
   const xTicks = makeTicks(xRange[0], xRange[1], 6);
 
-  let marker = null;
+  let marker: { x: number; y: number } | null = null;
   if (result != null && isFinite(result) && solveFor === "n") {
     const my = powerFn(es, Math.round(result), alpha, tails, k, df);
     marker = { x: sx(result), y: sy(Math.min(1, Math.max(0, my))) };
@@ -1164,6 +1164,6 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   React.createElement(ErrorBoundary, { toolName: "Power calculator" }, React.createElement(App))
 );

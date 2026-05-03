@@ -1072,21 +1072,21 @@ function App() {
     updVis,
   } = shell;
 
-  const [setNames, setSetNames] = useState([]);
-  const [sets, setSets] = useState(new Map());
-  const [setColors, setSetColors] = useState({});
-  const [parsedHeaders, setParsedHeaders] = useState([]);
-  const [parsedRows, setParsedRows] = useState([]);
-  const [selectedMask, setSelectedMask] = useState(null);
-  const [activeSets, setActiveSets] = useState(new Set());
-  const [allColumnNames, setAllColumnNames] = useState([]);
-  const [allColumnSets, setAllColumnSets] = useState(new Map());
-  const [pendingSelection, setPendingSelection] = useState([]);
+  const [setNames, setSetNames] = useState<string[]>([]);
+  const [sets, setSets] = useState<Map<string, Set<string>>>(new Map());
+  const [setColors, setSetColors] = useState<Record<string, string>>({});
+  const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);
+  const [parsedRows, setParsedRows] = useState<string[][]>([]);
+  const [selectedMask, setSelectedMask] = useState<number | null>(null);
+  const [activeSets, setActiveSets] = useState<Set<string>>(new Set());
+  const [allColumnNames, setAllColumnNames] = useState<string[]>([]);
+  const [allColumnSets, setAllColumnSets] = useState<Map<string, Set<string>>>(new Map());
+  const [pendingSelection, setPendingSelection] = useState<string[]>([]);
   const [isLongFormat, setIsLongFormat] = useState(false);
 
   const [proportional, setProportional] = useState(false);
 
-  const chartRef = useRef();
+  const chartRef = useRef<SVGSVGElement | null>(null);
   const [layoutInfo, setLayoutInfo] = useState({
     warnings: [],
     proportional: true,
@@ -1476,7 +1476,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <ErrorBoundary toolName="Venn diagram">
     <App />
   </ErrorBoundary>

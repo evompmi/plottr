@@ -18,7 +18,8 @@
     "noFallthroughCasesInSwitch": true,
     "useUnknownInCatchVariables": true,
     "noImplicitThis": true,
-    "types": ["react", "react-dom"]
+    "types": ["react", "react-dom"],
+    "strictNullChecks": true
   },
   "include": ["tools/*.tsx", "tools/_shell/**/*.ts", "tools/_shell/**/*.tsx", "types/**/*.d.ts"],
   "exclude": ["node_modules", "vendor", "tests", "tools/*.js", "tools/shared*.js"]

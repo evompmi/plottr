@@ -655,8 +655,17 @@ function parseMassVolConc(str) {
 function BatchMode() {
   const [raw, setRaw] = useState("");
   const [sepOverride, setSepOverride] = useState("");
-  const [results, setResults] = useState(null);
-  const [error, setError] = useState(null);
+  type MolarityRow = {
+    name: string;
+    error?: string;
+    mw?: number;
+    conc?: string;
+    vol?: string;
+    massG?: number;
+    massDisplay?: string;
+  };
+  const [results, setResults] = useState<MolarityRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const compute = useCallback(() => {
     setError(null);
@@ -676,7 +685,7 @@ function BatchMode() {
       return;
     }
 
-    const output = [];
+    const output: MolarityRow[] = [];
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const name = r[0] || "Row " + (i + 1);
@@ -741,7 +750,7 @@ function BatchMode() {
     const csvRows = results.map((r) =>
       r.error
         ? [r.name, "", "", "", "ERROR: " + r.error]
-        : [r.name, r.mw, r.conc, r.vol, r.massDisplay]
+        : [r.name, r.mw ?? "", r.conc ?? "", r.vol ?? "", r.massDisplay ?? ""]
     );
     downloadCsv(hdrs, csvRows, "prep-sheet.csv");
   }, [results]);
@@ -1245,7 +1254,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <ErrorBoundary toolName="Molarity calculator">
     <App />
   </ErrorBoundary>

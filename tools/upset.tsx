@@ -1931,7 +1931,7 @@ const VIS_INIT_UPSET = {
   // `maxDegree: null` means "no upper bound" (keep every degree). Persists
   // through loadAutoPrefs as null; the chart renders against setNames.length
   // when null.
-  maxDegree: null,
+  maxDegree: null as number | null,
   showIntersectionLabels: true,
   showSetSizeLabels: true,
   // "off" | "stars" | "p-value". Controls what (if anything) is drawn
@@ -2224,14 +2224,14 @@ function App() {
   } = shell;
 
   const [format, setFormat] = useState("wide");
-  const [setNames, setSetNames] = useState([]);
-  const [sets, setSets] = useState(new Map());
-  const [parsedHeaders, setParsedHeaders] = useState([]);
-  const [parsedRows, setParsedRows] = useState([]);
-  const [selectedMask, setSelectedMask] = useState(null);
-  const [allColumnNames, setAllColumnNames] = useState([]);
-  const [allColumnSets, setAllColumnSets] = useState(new Map());
-  const [pendingSelection, setPendingSelection] = useState([]);
+  const [setNames, setSetNames] = useState<string[]>([]);
+  const [sets, setSets] = useState<Map<string, Set<string>>>(new Map());
+  const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);
+  const [parsedRows, setParsedRows] = useState<string[][]>([]);
+  const [selectedMask, setSelectedMask] = useState<number | null>(null);
+  const [allColumnNames, setAllColumnNames] = useState<string[]>([]);
+  const [allColumnSets, setAllColumnSets] = useState<Map<string, Set<string>>>(new Map());
+  const [pendingSelection, setPendingSelection] = useState<string[]>([]);
   const [pendingMinDegree, setPendingMinDegree] = useState(1);
   const [pendingMaxDegree, setPendingMaxDegree] = useState<number>(Infinity);
 
@@ -2250,7 +2250,7 @@ function App() {
   const [computingStats, setComputingStats] = useState(false);
   const [computeProgress, setComputeProgress] = useState({ done: 0, total: 0 });
 
-  const chartRef = useRef();
+  const chartRef = useRef<SVGSVGElement | null>(null);
 
   // Sets render size-descending; rename/reorder isn't supported since the
   // uploaded file is the source of truth.
@@ -2827,7 +2827,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <ErrorBoundary toolName="UpSet plot">
     <App />
   </ErrorBoundary>

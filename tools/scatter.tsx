@@ -1991,7 +1991,7 @@ function App() {
     updVis,
   } = shell;
 
-  const [rawText, setRawText] = useState(null);
+  const [rawText, setRawText] = useState<string | null>(null);
 
   // Column selection
   const [xCol, setXCol] = useState(0);
@@ -2015,7 +2015,7 @@ function App() {
 
   // Column-index mappings stay local — they're tied to the current dataset's
   // columns, not a visual pref the user wants restored across reloads.
-  const [colorMapCol, setColorMapCol] = useState(null);
+  const [colorMapCol, setColorMapCol] = useState<number | null>(null);
   const colorMapPalette = vis.colorMapPalette ?? "viridis";
   const setColorMapPalette = useCallback((v) => updVis({ colorMapPalette: v }), [updVis]);
   const colorMapDiscrete = vis.colorMapDiscrete || {};
@@ -2028,7 +2028,7 @@ function App() {
     [updVis, vis.colorMapDiscrete]
   );
 
-  const [sizeMapCol, setSizeMapCol] = useState(null);
+  const [sizeMapCol, setSizeMapCol] = useState<number | null>(null);
   const sizeMapMin = vis.sizeMapMin ?? 3;
   const setSizeMapMin = useCallback((v) => updVis({ sizeMapMin: v }), [updVis]);
   const sizeMapMax = vis.sizeMapMax ?? 15;
@@ -2043,7 +2043,7 @@ function App() {
     [updVis, vis.sizeMapDiscrete]
   );
 
-  const [shapeMapCol, setShapeMapCol] = useState(null);
+  const [shapeMapCol, setShapeMapCol] = useState<number | null>(null);
   const shapeMapDiscrete = vis.shapeMapDiscrete || {};
   const setShapeMapDiscrete = useCallback(
     (updater) =>
@@ -2077,7 +2077,7 @@ function App() {
     position: "tl",
   };
   const updRegression = (patch) => updVis({ regression: { ...regression, ...patch } });
-  const svgRef = useRef();
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const sepRef = useRef("");
 
   const parsed = useMemo(() => (rawText ? parseData(rawText, sepRef.current) : null), [rawText]);
@@ -2130,11 +2130,11 @@ function App() {
   }, [parsed, filterState]);
 
   const filteredData = useMemo(
-    () => filteredIndices.map((i) => parsed.data[i]),
+    () => (parsed ? filteredIndices.map((i) => parsed.data[i]) : []),
     [parsed, filteredIndices]
   );
   const filteredRawRows = useMemo(
-    () => filteredIndices.map((i) => parsed.rawData[i]),
+    () => (parsed ? filteredIndices.map((i) => parsed.rawData[i]) : []),
     [parsed, filteredIndices]
   );
 
@@ -2298,7 +2298,8 @@ function App() {
 
   // Build SVG legend
   const svgLegend = useMemo(() => {
-    const items = [];
+    const items: Array<Record<string, unknown>> = [];
+    if (!parsed) return null;
     const hasColorMap = colorMapCol != null;
     const hasSizeMap = sizeMapCol != null;
     const hasShapeMap = shapeMapCol != null;
@@ -2560,7 +2561,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <ErrorBoundary toolName="Scatter plot">
     <App />
   </ErrorBoundary>

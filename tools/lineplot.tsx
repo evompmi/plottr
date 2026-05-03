@@ -1028,7 +1028,7 @@ function formatStat(testName, res) {
 }
 
 function buildPerXTextBlock(row, xLabel) {
-  const lines = [];
+  const lines: string[] = [];
   const names = row.names;
   const values = row.values;
   const res = row.result || {};
@@ -1872,7 +1872,7 @@ function App() {
     updVis,
   } = shell;
 
-  const [rawText, setRawText] = useState(null);
+  const [rawText, setRawText] = useState<string | null>(null);
 
   const [xCol, setXCol] = useState(0);
   const [yCol, setYCol] = useState(1);
@@ -2119,7 +2119,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <ErrorBoundary toolName="Line plot">
     <App />
   </ErrorBoundary>

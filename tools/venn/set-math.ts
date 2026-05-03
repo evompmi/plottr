@@ -17,7 +17,13 @@ export function computeIntersections(setNames, sets) {
     if (!groups.has(mask)) groups.set(mask, []);
     groups.get(mask).push(item);
   }
-  const result = [];
+  const result: Array<{
+    mask: number;
+    setNames: string[];
+    degree: number;
+    items: string[];
+    size: number;
+  }> = [];
   // Include all possible regions (even empty ones) so every zone gets a label
   const totalMasks = (1 << n) - 1;
   for (let mask = 1; mask <= totalMasks; mask++) {
@@ -47,7 +53,7 @@ export function regionFilenamePart(label) {
 // Detect all subset relationships between sets.
 export function detectSubsets(setNames, sets) {
   const n = setNames.length;
-  const subsets = []; // { sub: i, sup: j } meaning set i ⊆ set j
+  const subsets: Array<{ sub: number; sup: number }> = []; // { sub: i, sup: j } meaning set i ⊆ set j
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
       if (i === j) continue;
@@ -69,7 +75,7 @@ export function detectSubsets(setNames, sets) {
 // Detect disjoint pairs (no shared items).
 export function detectDisjoint(setNames, sets) {
   const n = setNames.length;
-  const disjoint = [];
+  const disjoint: Array<[number, number]> = [];
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
       const si = sets.get(setNames[i]),
