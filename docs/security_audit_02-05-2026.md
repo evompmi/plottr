@@ -97,23 +97,59 @@ asserts a CR-injected `dataNote` payload stays inside the `# ...`
 comment, plus dedicated tests for the CR strip and the comment-scrub
 helper.
 
-### 3. Hostile-embedder clickjacking
+### 3. Hostile-embedder clickjacking — ✅ FIXED
 
 GitHub Pages doesn't let us set HTTP headers, so no `X-Frame-Options` /
-`frame-ancestors` CSP. A malicious site can iframe `plottr.bio` (or
+`frame-ancestors` CSP. A malicious site could iframe `plottr.bio` (or
 `evompmi.github.io/plottr/`) and overlay decoy UI to trick a user into
 clicking the wrong button — most plausibly the `↗ Open in Boxplot` or a
 download trigger that round-trips attacker-supplied data. Damage ceiling
-is "user downloads / re-uploads their own clipboard contents into a
+was "user downloads / re-uploads their own clipboard contents into a
 context that lets the attacker observe", since the app holds no remote
 secrets.
 
-Fix shape: an inline `<script>` in every HTML head that does
-`if (top !== self && new URL(document.referrer).origin !== location.origin) document.body.innerHTML = '<a href="…">Open in a top-level tab</a>'`.
-Breaks legitimate iframe embeds (academic notebook, demo blog post). The
-`frame-ancestors` CSP in a `<meta http-equiv>` tag is **deliberately
-ignored by browsers** — only the HTTP header version works — so the
-script-based bust-out is the only option on GitHub Pages.
+**Resolution.** An inline frame-buster lives at the top of every HTML
+`<head>` (above the theme preloader, well before any React or shared
+script loads). Maintained byte-identical across all 10 files
+(`index.html` + 9 `tools/*.html`) by `scripts/anti-clickjack-sync.js`,
+which is the same shape as `vendor-sri.js`: idempotent, `--check`
+mode for CI, prettier-compatible canonical form between BEGIN / END
+marker comments. Wired into `prebuild`, exposed as `npm run
+lint:anti-clickjack`, and gated by a "Verify anti-clickjack snippet
+sync" CI step that fails on drift.
+
+The snippet's logic mirrors the audit's prescription with one
+intentional refinement — it's "fail-closed" rather than "fail-open":
+
+1. The page is hidden by default via an inline
+   `<style id="dv-anti-clickjack">html { visibility: hidden }</style>`.
+2. If `window.top === window.self` (standalone tab) → remove the
+   style → page renders normally.
+3. If framed AND `document.referrer` parses to the same origin
+   (landing page hosting a tool, or any sibling embed under the same
+   GitHub Pages origin) → reveal.
+4. Otherwise (cross-origin frame, OR empty referrer from a strict
+   referrer-policy parent, OR malformed referrer URL) →
+   `window.stop()` + replace `document.documentElement.innerHTML`
+   with a static "Plöttr is being framed by an unrelated site —
+   Open in a top-level tab" page. No React, no other scripts run; the
+   user gets a single click that lands them on the same URL in a new
+   tab. Failing closed on missing referrer is the deliberate choice:
+   it costs a legit no-referrer embed (the link page still works) but
+   denies the strict-referrer-policy clickjacking variant.
+
+Trade-off the audit accepted: legitimate cross-origin embeds (academic
+notebook, demo blog post) lose the live UI and get the static link.
+The kill chain in #1 / #2 / #3 ends with a click on a cross-frame
+button, so closing the click surface was the right call.
+
+Coverage: 10 cases in `tests/anti-clickjack.test.js` pin both layers —
+the sync helper (insertion at the viewport anchor, no-op on
+already-synced files, replacement of a drifted block, clear error when
+no anchor exists, live-repo invariant) and the runtime snippet (all
+four reachable paths exercised under a vm-mocked browser surface:
+standalone, same-origin frame, cross-origin frame busts, empty
+referrer busts, malformed-URL referrer busts).
 
 ---
 
@@ -220,20 +256,28 @@ wants Plöttr users **as the audit found it**:
    to make the wrong "open in" button get clicked, automating the
    round-trip.
 
-**Status after `0ca44c6`.** Steps 3a (Excel formula fire) and 3b
-(`system()` fire from a hostile column / set name) are no longer
-reachable. CSV laundering is neutralised at the export layer (every
-trigger cell is prefixed with `'`) and surfaced to the user at the
-import layer (warning banner names the offending cells / headers).
-R-script comment escape is closed by `sanitizeRComment` everywhere
-user labels land in `# ...` lines, plus the CR strip in
-`sanitizeRString`. Step 4 (clickjacking, Tier A #3) is still
-open — the remaining Tier A item.
+**Current status.** Every step of this kill chain is now closed.
+Step 3a (Excel formula fire) and 3b (`system()` fire from a hostile
+column / set name) were closed in `0ca44c6` — CSV laundering is
+neutralised at the export layer (every trigger cell is prefixed with
+`'`) and surfaced to the user at the import layer (warning banner
+names the offending cells / headers); R-script comment escape is
+closed by `sanitizeRComment` everywhere user labels land in `# ...`
+lines, plus the CR strip in `sanitizeRString`. Step 4 (clickjacking)
+is closed by the inline frame-buster maintained across all 10 HTML
+files by `scripts/anti-clickjack-sync.js` — cross-origin embeds get
+replaced with a static "Open in a top-level tab" page before any
+React script runs, so there's nothing for the attacker to overlay
+clicks onto. Tier B #4 (vendored React without SRI) is also closed:
+SHA-384 hashes pin the bytes of every vendored asset, with a CI gate
+that fails any vendor bump that lands without a fresh hash.
 
-The supply-chain bite (#4 in Tier B, repo / Pages compromise) is a
-different kind of attacker and remains the largest residual risk.
-
-If I were prioritising the next fix: **Tier A #3 (clickjacking
-bust-out)** is now the only Tier A item left. Roughly ten lines of
-inline `<script>` per HTML head, breaks legitimate iframe embeds
-(academic notebook / blog demo) — that trade-off is the call to make.
+What remains: Tier B #5 (inline-script CSP) and #6 (localStorage
+cross-tab on shared GitHub Pages domain) are accepted trade-offs — a
+move to a custom `plottr.bio` domain would close #6, and the inline-
+script architecture is incompatible with a useful CSP on this
+deployment shape. Tier B #7 (sourcemap exposure) is intentional. The
+supply-chain bite via repo / Pages compromise is a different kind of
+attacker and remains the largest residual risk; the SRI pin makes
+silent vendor-byte tampering loud (CI breaks), but a privileged
+contributor with merge rights can still ship anything.
