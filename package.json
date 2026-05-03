@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {
     "prebuild": "node scripts/write-version.js && node scripts/build-shared.js && node scripts/vendor-sri.js && node scripts/anti-clickjack-sync.js",
-    "build": "esbuild tools/boxplot/index.tsx tools/scatter.tsx tools/aequorin/index.tsx tools/lineplot.tsx tools/venn/index.tsx tools/heatmap/index.tsx tools/molarity.tsx tools/power.tsx tools/upset.tsx tools/volcano/index.tsx --bundle --format=esm --outdir=tools --jsx=transform --minify-syntax --minify-whitespace --sourcemap",
+    "build": "esbuild tools/boxplot/index.tsx tools/scatter.tsx tools/aequorin/index.tsx tools/lineplot/index.tsx tools/venn/index.tsx tools/heatmap/index.tsx tools/molarity.tsx tools/power.tsx tools/upset.tsx tools/volcano/index.tsx --bundle --format=esm --outdir=tools --jsx=transform --minify-syntax --minify-whitespace --sourcemap",
     "build:shared": "node scripts/build-shared.js",
     "prewatch": "node scripts/write-version.js",
     "watch": "node scripts/watch.js",
