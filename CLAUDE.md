@@ -256,4 +256,18 @@ The hook installs automatically via `npm install` (`prepare` script runs `script
 
 ## CHANGELOG.md
 
-**Any user-visible change must be logged in `CHANGELOG.md` under `## [Unreleased]`** before the commit that ships it, using the Keep a Changelog sections (`Added` / `Changed` / `Fixed` / `Removed`). This applies to bug fixes, new features, UI tweaks, and behavior changes — not to internal refactors or test-only edits. Entries should be one paragraph, lead with a bold title, and explain both *what* changed and *why* / *how* so a future reader can reconstruct the fix without reading the diff. Don't wait to be asked — update the changelog in the same commit as the code change.
+**Any user-visible change must be logged in `CHANGELOG.md` under `## [Unreleased]`** before the commit that ships it, using the Keep a Changelog sections (`Added` / `Changed` / `Fixed` / `Removed`). This applies to bug fixes, new features, UI tweaks, and behavior changes — not to internal refactors or test-only edits. Don't wait to be asked — update the changelog in the same commit as the code change.
+
+**Length convention (introduced in 1.1.0).** A changelog entry is one or two short sentences:
+the *what*, optionally a tiny piece of *why* if it isn't obvious from the title, and (where it
+helps) a "regression: N tests" tag. Keep it under ~80 words. The full long-form context — root
+cause, alternatives considered, file-by-file inventory, trade-offs — goes into a per-release
+note under `docs/release-notes/<version>.md` linked from the version heading. The CHANGELOG is
+the index, not the encyclopedia. Older entries (v1.0.x and earlier) intentionally retain their
+long-form prose as historical record; the new convention applies prospectively.
+
+When you cut a release, *before* renaming `## [Unreleased]` to the version heading, lift any
+long-form prose that grew during the cycle into `docs/release-notes/v<version>.md` and shorten
+the CHANGELOG bullets to point there. The release note is a normal markdown file with `##`
+section headings (Added / Changed / Fixed map to `## ✨` / `## 🔧` / `## 🐛` or whatever fits
+the contents) and is linked from each CHANGELOG bullet via `[`docs/release-notes/v1.x.y.md`](docs/release-notes/v1.x.y.md#anchor)`.
