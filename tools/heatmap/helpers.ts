@@ -6,7 +6,7 @@
 
 // ── Normalisation helpers ────────────────────────────────────────────────────
 
-export function finiteMean(arr) {
+export function finiteMean(arr: any) {
   let s = 0,
     n = 0;
   for (let i = 0; i < arr.length; i++) {
@@ -18,7 +18,7 @@ export function finiteMean(arr) {
   return n ? s / n : NaN;
 }
 
-export function finiteSD(arr, mean) {
+export function finiteSD(arr: any, mean: any) {
   let s = 0,
     n = 0;
   for (let i = 0; i < arr.length; i++) {
@@ -31,21 +31,21 @@ export function finiteSD(arr, mean) {
   return n > 1 ? Math.sqrt(s / (n - 1)) : 0;
 }
 
-export function normalizeMatrix(matrix, mode) {
+export function normalizeMatrix(matrix: any, mode: any) {
   const nRows = matrix.length;
   if (nRows === 0) return matrix;
   const nCols = matrix[0].length;
 
   if (mode === "zrow") {
-    return matrix.map((row) => {
+    return matrix.map((row: any) => {
       const m = finiteMean(row);
       const sd = finiteSD(row, m);
       if (!Number.isFinite(m) || sd === 0) return row.slice();
-      return row.map((v) => (Number.isFinite(v) ? (v - m) / sd : NaN));
+      return row.map((v: any) => (Number.isFinite(v) ? (v - m) / sd : NaN));
     });
   }
   if (mode === "zcol") {
-    const out = matrix.map((r) => r.slice());
+    const out = matrix.map((r: any) => r.slice());
     for (let ci = 0; ci < nCols; ci++) {
       const col = new Array(nRows);
       for (let ri = 0; ri < nRows; ri++) col[ri] = matrix[ri][ci];
@@ -59,14 +59,14 @@ export function normalizeMatrix(matrix, mode) {
     return out;
   }
   if (mode === "log2") {
-    return matrix.map((row) =>
-      row.map((v) => (Number.isFinite(v) && v > -1 ? Math.log2(v + 1) : NaN))
+    return matrix.map((row: any) =>
+      row.map((v: any) => (Number.isFinite(v) && v > -1 ? Math.log2(v + 1) : NaN))
     );
   }
   return matrix;
 }
 
-export function autoRange(matrix, diverging) {
+export function autoRange(matrix: any, diverging: any) {
   let lo = Infinity,
     hi = -Infinity;
   for (let i = 0; i < matrix.length; i++) {
@@ -101,19 +101,19 @@ export const HIGHLIGHT_STROKE = "#111111";
 // cheaply decide later whether it belongs to a hovered subtree: segment.xMin ≥
 // hoverNode.xMin && segment.xMax ≤ hoverNode.xMax. Kept local (not in stats.js)
 // because only the heatmap view needs the hover metadata.
-export function buildDendroLayout(tree) {
+export function buildDendroLayout(tree: any) {
   if (!tree) return { segments: [], nodes: [], maxHeight: 0 };
-  const segments = [];
-  const nodes = [];
+  const segments: any[] = [];
+  const nodes: any[] = [];
   let leafIdx = 0;
   let maxHeight = 0;
-  function walk(node) {
+  function walk(node: any): any {
     if (node.left === null && node.right === null) {
       const pos = leafIdx++;
       return { x: pos, h: 0, leaves: [node.index], xMin: pos, xMax: pos };
     }
-    const L = walk(node.left);
-    const R = walk(node.right);
+    const L: any = walk(node.left);
+    const R: any = walk(node.right);
     const h = node.height;
     if (h > maxHeight) maxHeight = h;
     const leaves = L.leaves.concat(R.leaves);
@@ -137,14 +137,14 @@ export function buildDendroLayout(tree) {
 // original merge heights are preserved, giving a true subtree dendrogram
 // of the selection — edges skip over elided sibling clades but the
 // heights still reflect the original clustering distances.
-export function pruneDendroTree(tree, keepSet) {
-  function rec(node) {
+export function pruneDendroTree(tree: any, keepSet: any) {
+  function rec(node: any): any {
     if (!node) return null;
     if (node.left === null && node.right === null) {
       return keepSet.has(node.index) ? node : null;
     }
-    const L = rec(node.left);
-    const R = rec(node.right);
+    const L: any = rec(node.left);
+    const R: any = rec(node.right);
     if (!L && !R) return null;
     if (!L) return R;
     if (!R) return L;
@@ -177,7 +177,7 @@ export const CLUSTER_PALETTE = [
 
 // ── Colorbar tick formatting ─────────────────────────────────────────────────
 
-export function fmtColorbarTick(v) {
+export function fmtColorbarTick(v: any) {
   if (!Number.isFinite(v)) return "—";
   if (v === 0) return "0";
   const abs = Math.abs(v);

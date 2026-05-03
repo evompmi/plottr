@@ -54,7 +54,7 @@ export const TIME_UNITS = [
   { key: "yr", label: "years" },
 ];
 
-export const TO_SECONDS = {
+export const TO_SECONDS: Record<string, number> = {
   ms: 0.001,
   s: 1,
   min: 60,
@@ -65,7 +65,7 @@ export const TO_SECONDS = {
   yr: 31557600,
 };
 
-export function convertTime(value, fromUnit, toUnit) {
+export function convertTime(value: any, fromUnit: any, toUnit: any) {
   if (fromUnit === toUnit) return value;
   return (value * TO_SECONDS[fromUnit]) / TO_SECONDS[toUnit];
 }
@@ -104,15 +104,15 @@ export const FORMULA_DEFS = {
 //     injected frog cardiac muscle." Nature 273(5663): 509-513.
 //
 // Defaults: Kr = 7, Ktr = 118 (DEFAULT_KR / DEFAULT_KTR above).
-export function calibrate(headers, data, Kr, Ktr) {
+export function calibrate(headers: any, data: any, Kr: any, Ktr: any) {
   const nCols = headers.length,
     nRows = data.length;
   const totals = new Array(nCols).fill(0);
   for (let r = 0; r < nRows; r++)
     for (let c = 0; c < nCols; c++) if (data[r][c] != null) totals[c] += data[r][c];
-  const cal = [];
+  const cal: any[] = [];
   for (let r = 0; r < nRows; r++) {
-    const row = [];
+    const row: any[] = [];
     for (let c = 0; c < nCols; c++) {
       const v = data[r][c];
       if (v == null || v === 0 || totals[c] === 0) {
@@ -145,15 +145,15 @@ export function calibrate(headers, data, Kr, Ktr) {
 // Default: Kd = 7 (DEFAULT_KD above). Note: published Kd values for plant
 // aequorin vary between groups; this default is what plant-science papers
 // most commonly report — change it if your reference uses a different value.
-export function calibrateHill(headers, data, Kd) {
+export function calibrateHill(headers: any, data: any, Kd: any) {
   const nCols = headers.length,
     nRows = data.length;
   const totals = new Array(nCols).fill(0);
   for (let r = 0; r < nRows; r++)
     for (let c = 0; c < nCols; c++) if (data[r][c] != null) totals[c] += data[r][c];
-  const cal = [];
+  const cal: any[] = [];
   for (let r = 0; r < nRows; r++) {
-    const row = [];
+    const row: any[] = [];
     for (let c = 0; c < nCols; c++) {
       const v = data[r][c];
       if (v == null || v === 0 || totals[c] === 0) {
@@ -184,15 +184,15 @@ export function calibrateHill(headers, data, Kd) {
 //     Biology 323: 307-327.
 //
 // Defaults: Kr = 7, Ktr = 118, n = 3 (DEFAULT_KR / DEFAULT_KTR / DEFAULT_HILL_N).
-export function calibrateGeneralized(headers, data, Kr, Ktr, n) {
+export function calibrateGeneralized(headers: any, data: any, Kr: any, Ktr: any, n: any) {
   const nCols = headers.length,
     nRows = data.length;
   const totals = new Array(nCols).fill(0);
   for (let r = 0; r < nRows; r++)
     for (let c = 0; c < nCols; c++) if (data[r][c] != null) totals[c] += data[r][c];
-  const cal = [];
+  const cal: any[] = [];
   for (let r = 0; r < nRows; r++) {
-    const row = [];
+    const row: any[] = [];
     for (let c = 0; c < nCols; c++) {
       const v = data[r][c];
       if (v == null || v === 0 || totals[c] === 0) {
@@ -208,15 +208,15 @@ export function calibrateGeneralized(headers, data, Kr, Ktr, n) {
   return cal;
 }
 
-export function detectConditions(headers, poolReplicates = true, columnEnabled = null) {
-  const nameOcc = {};
-  const repNums = headers.map((h) => {
+export function detectConditions(headers: any, poolReplicates = true, columnEnabled: any = null) {
+  const nameOcc: Record<string, number> = {};
+  const repNums = headers.map((h: any) => {
     nameOcc[h] = (nameOcc[h] || 0) + 1;
     return nameOcc[h];
   });
   if (poolReplicates) {
-    const pm = {};
-    headers.forEach((h, i) => {
+    const pm: Record<string, number[]> = {};
+    headers.forEach((h: any, i: number) => {
       if (columnEnabled && columnEnabled[i] === false) return;
       if (!pm[h]) pm[h] = [];
       pm[h].push(i);
@@ -229,9 +229,9 @@ export function detectConditions(headers, poolReplicates = true, columnEnabled =
     }));
   } else {
     return headers
-      .map((h, i) => ({ h, i, rep: repNums[i] }))
-      .filter(({ i }) => !columnEnabled || columnEnabled[i] !== false)
-      .map(({ h, i, rep }, ci) => ({
+      .map((h: any, i: number) => ({ h, i, rep: repNums[i] }))
+      .filter(({ i }: any) => !columnEnabled || columnEnabled[i] !== false)
+      .map(({ h, i, rep }: any, ci: number) => ({
         prefix: `${h}__col${i}`,
         label: `${h}_rep${rep}`,
         color: PALETTE[ci % PALETTE.length],
@@ -240,9 +240,9 @@ export function detectConditions(headers, poolReplicates = true, columnEnabled =
   }
 }
 
-export function smooth(arr, w) {
+export function smooth(arr: any, w: any) {
   if (w <= 0) return arr;
-  return arr.map((_, i) => {
+  return arr.map((_: any, i: number) => {
     let sum = 0,
       n = 0;
     for (let j = Math.max(0, i - w); j <= Math.min(arr.length - 1, i + w); j++) {
@@ -257,14 +257,14 @@ export function smooth(arr, w) {
 
 // ── SVG path builders ────────────────────────────────────────────────────────
 
-export function buildAreaD(pts) {
-  const valid = pts.filter((p) => p.yHi != null && p.yLo != null);
+export function buildAreaD(pts: any) {
+  const valid = pts.filter((p: any) => p.yHi != null && p.yLo != null);
   if (valid.length < 2) return "";
-  const fwd = valid.map((p) => `${p.x.toFixed(2)},${p.yHi.toFixed(2)}`);
+  const fwd = valid.map((p: any) => `${p.x.toFixed(2)},${p.yHi.toFixed(2)}`);
   const rev = valid
     .slice()
     .reverse()
-    .map((p) => `${p.x.toFixed(2)},${p.yLo.toFixed(2)}`);
+    .map((p: any) => `${p.x.toFixed(2)},${p.yLo.toFixed(2)}`);
   return "M" + fwd.join("L") + "L" + rev.join("L") + "Z";
 }
 
@@ -284,7 +284,7 @@ export const MARGIN = CHART_MARGIN;
 // vis.* (e.g. rehydrated from auto-prefs of a previous session) are
 // irrelevant — this function is keyed only on the actual data, so the
 // chart never paints with a stale persisted range.
-export function computeAutoYRange(calData, xStart, xEnd) {
+export function computeAutoYRange(calData: any, xStart: any, xEnd: any) {
   if (!calData || calData.length === 0) return null;
   const r0 = Math.max(0, Math.floor(xStart));
   const r1 = Math.min(calData.length - 1, Math.ceil(xEnd));
@@ -302,6 +302,6 @@ export function computeAutoYRange(calData, xStart, xEnd) {
     }
   }
   if (!isFinite(lo) || !isFinite(hi)) return null;
-  const round2 = (v) => Math.round(v * 100) / 100;
+  const round2 = (v: any) => Math.round(v * 100) / 100;
   return { yMin: round2(Math.max(0, lo * 0.9)), yMax: round2(hi * 1.1) };
 }

@@ -26,7 +26,7 @@ import { runTest, runPostHoc, postHocForTest } from "../_shell/stats-dispatch";
 
 const { useState, useMemo, useEffect, useRef } = React;
 
-export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }) {
+export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) {
   const names = row.names;
   const values = row.values;
   const k = names.length;
@@ -99,7 +99,7 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }) {
           </tr>
         </thead>
         <tbody>
-          {names.map((name, i) => {
+          {names.map((name: any, i: number) => {
             const vs = values[i];
             const n = vs.length;
             const m = sampleMean(vs);
@@ -129,7 +129,7 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }) {
             Shapiro-Wilk (normality)
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {norm.map((r, i) => {
+            {norm.map((r: any, i: number) => {
               const label = names[r.group] || `g${r.group}`;
               const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
               const verdict =
@@ -172,7 +172,7 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }) {
           style={{ fontSize: 11, padding: "2px 6px", minWidth: 180 }}
           onClick={(e) => e.stopPropagation()}
         >
-          {testOptions.map((t) => (
+          {testOptions.map((t: any) => (
             <option key={t} value={t}>
               {TEST_LABELS_AQ[t]}
               {t === recTest ? "  (recommended)" : ""}
@@ -233,7 +233,7 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }) {
               </tr>
             </thead>
             <tbody>
-              {row.postHocResult.pairs.map((pr, i) => {
+              {row.postHocResult.pairs.map((pr: any, i: number) => {
                 const p = pr.pAdj != null ? pr.pAdj : pr.p;
                 const diff =
                   pr.diff != null
@@ -277,7 +277,7 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }) {
               </tr>
             </thead>
             <tbody>
-              {row.powerResult.rows.map((pr, i) => (
+              {row.powerResult.rows.map((pr: any, i: number) => (
                 <tr key={i}>
                   {i === 0 ? (
                     <td style={tdS} rowSpan={row.powerResult.rows.length}>
@@ -351,7 +351,7 @@ export function AequorinStatsPanel({
     const testResult = chosenTest ? runTest(chosenTest, values) : null;
     const postHocName = postHocForTest(chosenTest);
     const postHocResult = k > 2 && postHocName ? runPostHoc(postHocName, values) : null;
-    const powerResult = computePowerFromData(chosenTest, values);
+    const powerResult = chosenTest ? computePowerFromData(chosenTest, values) : null;
     return {
       key: singleKey,
       name: "",
@@ -377,6 +377,9 @@ export function AequorinStatsPanel({
   onAnnotRef.current = onAnnotationChange;
   useEffect(() => {
     if (typeof onAnnotRef.current === "function") onAnnotRef.current(annotSpec);
+    // annotSpec is canonicalised through `annotKey` (a JSON stringify) so
+    // structurally-equal specs across renders don't re-fire the effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annotKey]);
 
   const summaryText = useMemo(
@@ -584,9 +587,9 @@ export function AequorinStatsPanel({
         </thead>
         <tbody>
           <tr
-            onClick={() => setExpanded((prev) => ({ ...prev, [singleKey]: !isOpen }))}
+            onClick={() => setExpanded((prev: any) => ({ ...prev, [singleKey]: !isOpen }))}
             onMouseEnter={() => setHovered(singleKey)}
-            onMouseLeave={() => setHovered((h) => (h === singleKey ? null : h))}
+            onMouseLeave={() => setHovered((h: any) => (h === singleKey ? null : h))}
             style={{
               cursor: "pointer",
               background: isOpen
@@ -598,7 +601,11 @@ export function AequorinStatsPanel({
             }}
           >
             <td style={tdS}>{enriched.k}</td>
-            <td style={tdS}>{TEST_LABELS_AQ[enriched.chosenTest] || enriched.chosenTest || "—"}</td>
+            <td style={tdS}>
+              {(enriched.chosenTest && TEST_LABELS_AQ[enriched.chosenTest]) ||
+                enriched.chosenTest ||
+                "—"}
+            </td>
             <td style={{ ...tdS, ...mono }}>
               {formatAqStatShort(enriched.chosenTest, enriched.testResult)}
             </td>

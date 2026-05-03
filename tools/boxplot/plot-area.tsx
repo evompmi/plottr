@@ -13,11 +13,15 @@ const FacetBoxplotItem = memo(function FacetBoxplotItem({
   categoryColors,
   fillHeight,
 }: any) {
-  const localRef = useRef();
+  const localRef = useRef<any>(null);
   useEffect(() => {
-    facetRefs.current[fd.category] = localRef.current;
+    // Capture facetRefs.current to a local so the cleanup closes over the
+    // map that was current when the effect ran, not whatever the ref
+    // points at when the cleanup eventually fires.
+    const refs = facetRefs.current;
+    refs[fd.category] = localRef.current;
     return () => {
-      delete facetRefs.current[fd.category];
+      delete refs[fd.category];
     };
   }, [fd.category, facetRefs]);
   return (
@@ -49,7 +53,7 @@ const FacetBoxplotItem = memo(function FacetBoxplotItem({
           {fd.category}
         </p>
         <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
-          ({fd.groups.reduce((a, g) => a + g.allValues.length, 0)} pts)
+          ({fd.groups.reduce((a: any, g: any) => a + g.allValues.length, 0)} pts)
         </span>
       </div>
       <BoxplotChart ref={localRef} {...chartProps} />
@@ -73,7 +77,7 @@ export function PlotArea({
   chartSummary,
   subgroups,
   subgroupSummaries,
-}) {
+}: any) {
   if (displayBoxplotGroups.length === 0 && (facetByCol < 0 || facetedData.length === 0)) {
     return (
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -118,7 +122,7 @@ export function PlotArea({
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
             Points colored by: {colNames[colorByCol]}
           </span>
-          {colorByCategories.map((cat) => (
+          {colorByCategories.map((cat: any) => (
             <div key={cat} style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <div
                 style={{
@@ -183,7 +187,7 @@ export function PlotArea({
                     {
                       id: "legend-color",
                       title: `Points colored by: ${colNames[colorByCol]}`,
-                      items: colorByCategories.map((c) => ({
+                      items: colorByCategories.map((c: any) => ({
                         label: c,
                         color: categoryColors[c] || "#999",
                         shape: "dot",
@@ -223,7 +227,7 @@ const FacetTrio = memo(function FacetTrio({
 }: any) {
   const chartProps = useMemo(
     () => ({
-      groups: fd.groups.map((g) => ({
+      groups: fd.groups.map((g: any) => ({
         ...g,
         name: plotGroupRenames[g.name] ?? g.name,
         color: boxplotColors[g.name] ?? g.color,
@@ -317,7 +321,7 @@ export function FacetPlotList({
             {
               id: "legend-color",
               title: `Points colored by: ${colNames[colorByCol]}`,
-              items: colorByCategories.map((c) => ({
+              items: colorByCategories.map((c: any) => ({
                 label: c,
                 color: categoryColors[c] || "#999",
                 shape: "dot",
@@ -346,7 +350,7 @@ export function FacetPlotList({
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
             Points colored by: {colNames[colorByCol]}
           </span>
-          {colorByCategories.map((cat) => (
+          {colorByCategories.map((cat: any) => (
             <div key={cat} style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <div
                 style={{
@@ -361,7 +365,7 @@ export function FacetPlotList({
           ))}
         </div>
       )}
-      {facetedData.map((fd) => (
+      {facetedData.map((fd: any) => (
         <FacetTrio
           key={fd.category}
           fd={fd}

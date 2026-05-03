@@ -18,6 +18,7 @@
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
 import { PlotSidebar } from "../_shell/PlotSidebar";
+import { DownloadTiles } from "../_shell/DownloadTiles";
 import {
   VolcanoPoint,
   VOLCANO_DEFAULT_COLORS,
@@ -112,12 +113,12 @@ function App() {
   } = shell;
 
   // Tool-local state — column picks, parsed data, derived points.
-  const [parsed, setParsed] = useState(null);
+  const [parsed, setParsed] = useState<any>(null);
   const [xCol, setXCol] = useState(-1);
   const [yCol, setYCol] = useState(-1);
   const [labelCol, setLabelCol] = useState(-1);
   const [yIsAdjusted, setYIsAdjusted] = useState(false);
-  const [rawText, setRawText] = useState(null);
+  const [rawText, setRawText] = useState<any>(null);
   const sepRef = useRef("");
 
   // Manually-selected points (Set of original-row indices). Click on a
@@ -138,8 +139,8 @@ function App() {
   const [colorMapCol, setColorMapCol] = useState<number>(-1);
   const [sizeMapCol, setSizeMapCol] = useState<number>(-1);
   const togglePointSelection = useCallback((idx: number) => {
-    setManualSelection((prev) => {
-      const next = new Set(prev);
+    setManualSelection((prev: Set<number>) => {
+      const next = new Set<number>(prev);
       if (next.has(idx)) next.delete(idx);
       else next.add(idx);
       return next;
@@ -150,7 +151,7 @@ function App() {
   // ── Parsing ──────────────────────────────────────────────────────────
 
   const doParse = useCallback(
-    (text, sep) => {
+    (text: any, sep: any) => {
       sepRef.current = sep;
       const dc = fixDecimalCommas(text, sep);
       setCommaFixed(dc.commaFixed);
@@ -185,7 +186,7 @@ function App() {
   );
 
   const handleFileLoad = useCallback(
-    (text, name) => {
+    (text: any, name: any) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
@@ -281,7 +282,7 @@ function App() {
     if (!parsed || sizeMapCol < 0) return null;
     return buildSizeMap(
       parsed.rawData,
-      points.map((p) => p.idx),
+      points.map((p: any) => p.idx),
       sizeMapCol,
       vis.sizeMapMinR,
       vis.sizeMapMaxR
@@ -295,16 +296,8 @@ function App() {
 
   // ── Download handlers ────────────────────────────────────────────────
 
-  const chartRef = useRef(null);
+  const chartRef = useRef<any>(null);
 
-  const onDownloadSvg = () => {
-    if (!chartRef.current) return;
-    downloadSvg(chartRef.current, fileBaseName(fileName, "volcano") + ".svg");
-  };
-  const onDownloadPng = () => {
-    if (!chartRef.current) return;
-    downloadPng(chartRef.current, fileBaseName(fileName, "volcano") + ".png", 2);
-  };
   const onDownloadCsv = () => {
     const { headers, rows } = buildVolcanoCsv({
       points,
@@ -436,8 +429,7 @@ function App() {
           setSizeMapCol={setSizeMapCol}
           sizeMap={sizeMap}
           sizeMapLabel={sizeMapLabel}
-          onDownloadSvg={onDownloadSvg}
-          onDownloadPng={onDownloadPng}
+          fileName={fileName}
           onDownloadCsv={onDownloadCsv}
           onDownloadR={onDownloadR}
           onReset={resetAll}
@@ -547,7 +539,7 @@ function ConfigureStep({
   setYCol,
   setLabelCol,
   setYIsAdjusted,
-}) {
+}: any) {
   const xValid = xCol >= 0;
   const yValid = yCol >= 0;
   return (
@@ -574,7 +566,7 @@ function ConfigureStep({
             }}
           >
             {!xValid && <option value="">— choose a log₂FC column —</option>}
-            {parsed.headers.map((h, i) => (
+            {parsed.headers.map((h: any, i: number) => (
               <option key={i} value={i}>
                 {h}
               </option>
@@ -597,7 +589,7 @@ function ConfigureStep({
             }}
           >
             {!yValid && <option value="">— choose a p-value column —</option>}
-            {parsed.headers.map((h, i) => (
+            {parsed.headers.map((h: any, i: number) => (
               <option key={i} value={i}>
                 {h}
               </option>
@@ -636,7 +628,7 @@ function ConfigureStep({
             onChange={(e) => setLabelCol(parseInt(e.target.value))}
           >
             <option value={-1}>— none —</option>
-            {parsed.headers.map((h, i) => (
+            {parsed.headers.map((h: any, i: number) => (
               <option key={i} value={i}>
                 {h}
               </option>
@@ -710,12 +702,11 @@ function PlotStep({
   setSizeMapCol,
   sizeMap,
   sizeMapLabel,
-  onDownloadSvg,
-  onDownloadPng,
+  fileName,
   onDownloadCsv,
   onDownloadR,
   onReset,
-}) {
+}: any) {
   // Canonical plot-step layout (matches scatter / lineplot):
   //   1. Outer flex row, sidebar on the LEFT, chart pane on the right.
   //   2. PlotSidebar contains ActionsPanel ON TOP, then collapsible/control
@@ -725,9 +716,9 @@ function PlotStep({
   return (
     <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
       <PlotSidebar>
-        <ActionsPanel
-          onDownloadSvg={onDownloadSvg}
-          onDownloadPng={onDownloadPng}
+        <DownloadTiles
+          chartRef={chartRef}
+          fileStem={fileBaseName(fileName, "volcano")}
           onReset={onReset}
           extraDownloads={[
             {
@@ -955,7 +946,7 @@ function ToggleRow({
   );
 }
 
-function ThresholdsTile({ vis, updVis }) {
+function ThresholdsTile({ vis, updVis }: any) {
   // |log2FC| cutoff: numeric stepper (−/+ buttons + free-form entry).
   // p-value cutoff: discrete select with the conventional values
   // researchers actually use ({0.05, 0.01, 0.001}) plus "None" — the
@@ -963,7 +954,7 @@ function ThresholdsTile({ vis, updVis }) {
   // strictly greater than any real p-value, so `classifyPoint`'s
   // `p < pCutoff` test admits every point on the p axis. 1 also
   // round-trips through localStorage cleanly (Infinity / NaN don't).
-  const onFcChange = (e) => {
+  const onFcChange = (e: any) => {
     const v = parseFloat(e.target.value);
     if (!Number.isFinite(v)) return;
     updVis({ fcCutoff: Math.max(0, Math.min(10, v)) });
@@ -976,7 +967,8 @@ function ThresholdsTile({ vis, updVis }) {
   ];
   // Snap the persisted vis value to the closest option in the picker
   // (handles legacy values from before this control existed).
-  const pPickValue = P_OPTIONS.find((o) => Math.abs(o.value - vis.pCutoff) < 1e-12)?.value ?? 0.05;
+  const pPickValue =
+    P_OPTIONS.find((o: any) => Math.abs(o.value - vis.pCutoff) < 1e-12)?.value ?? 0.05;
   return (
     <ControlSection title="Thresholds" defaultOpen>
       <label style={{ display: "block" }}>
@@ -998,7 +990,7 @@ function ThresholdsTile({ vis, updVis }) {
             is a real value (1 = "no p threshold"); the active one
             carries `.dv-seg-btn-active`. */}
         <div className="dv-seg">
-          {P_OPTIONS.map((o) => {
+          {P_OPTIONS.map((o: any) => {
             const active = pPickValue === o.value;
             return (
               <button
@@ -1021,25 +1013,29 @@ function ThresholdsTile({ vis, updVis }) {
   );
 }
 
-function ColorsTile({ vis, updVis }) {
+function ColorsTile({ vis, updVis }: any) {
   return (
     <ControlSection title="Colors">
-      <ColorRow label="Up-regulated" value={vis.colorUp} onChange={(v) => updVis({ colorUp: v })} />
+      <ColorRow
+        label="Up-regulated"
+        value={vis.colorUp}
+        onChange={(v: any) => updVis({ colorUp: v })}
+      />
       <ColorRow
         label="Down-regulated"
         value={vis.colorDown}
-        onChange={(v) => updVis({ colorDown: v })}
+        onChange={(v: any) => updVis({ colorDown: v })}
       />
       <ColorRow
         label="Not significant"
         value={vis.colorNs}
-        onChange={(v) => updVis({ colorNs: v })}
+        onChange={(v: any) => updVis({ colorNs: v })}
       />
     </ControlSection>
   );
 }
 
-function ColorRow({ label, value, onChange }) {
+function ColorRow({ label, value, onChange }: any) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
       <span style={{ fontSize: 12, color: "var(--text)" }}>{label}</span>
@@ -1048,7 +1044,7 @@ function ColorRow({ label, value, onChange }) {
   );
 }
 
-function LabelsTile({ vis, updVis, manualSelection, clearManualSelection }) {
+function LabelsTile({ vis, updVis, manualSelection, clearManualSelection }: any) {
   const manualCount = manualSelection ? manualSelection.size : 0;
   const hasManual = manualCount > 0;
   return (
@@ -1121,7 +1117,7 @@ function LabelsTile({ vis, updVis, manualSelection, clearManualSelection }) {
   );
 }
 
-function StyleTile({ vis, updVis }) {
+function StyleTile({ vis, updVis }: any) {
   return (
     <ControlSection title="Style">
       <SliderControl
@@ -1183,14 +1179,16 @@ function StyleTile({ vis, updVis }) {
 // the section body only renders when On (so the controls don't clutter
 // the sidebar in the default case).
 
-function eligibleColumns(parsed, xCol, yCol, labelCol) {
+function eligibleColumns(parsed: any, xCol: any, yCol: any, labelCol: any) {
   // Aesthetic mappings can use any column NOT already bound to a
   // primary role. The label column is allowed (a user might want to
   // colour by gene name AND show those names — fine, the chart will
   // just colour each labelled point with its discrete colour).
-  const used = new Set<number>([xCol, yCol]);
-  return (parsed?.headers || []).map((h, i) => ({ h, i })).filter(({ i }) => !used.has(i));
   void labelCol;
+  const used = new Set<number>([xCol, yCol]);
+  return (parsed?.headers || [])
+    .map((h: any, i: number) => ({ h, i }))
+    .filter(({ i }: any) => !used.has(i));
 }
 
 // Aesthetic boxes (Color / Size). Same flat-coloured `AesBox` shape
@@ -1236,7 +1234,7 @@ function PaletteStrip({
   );
 }
 
-function ColorMapTile({ parsed, xCol, yCol, labelCol, col, setCol, colorMap, vis, updVis }) {
+function ColorMapTile({ parsed, xCol, yCol, labelCol, col, setCol, colorMap, vis, updVis }: any) {
   const candidates = eligibleColumns(parsed, xCol, yCol, labelCol);
   // Bare-global access — see the comment in App's colorMap useMemo for
   // why we don't go through `window`.
@@ -1250,7 +1248,7 @@ function ColorMapTile({ parsed, xCol, yCol, labelCol, col, setCol, colorMap, vis
         style={{ width: "100%", marginBottom: colorMap ? 8 : 0 }}
       >
         <option value="">— None —</option>
-        {candidates.map(({ h, i }) => (
+        {candidates.map(({ h, i }: any) => (
           <option key={i} value={i}>
             {h}
           </option>
@@ -1278,7 +1276,7 @@ function ColorMapTile({ parsed, xCol, yCol, labelCol, col, setCol, colorMap, vis
                 onChange={(e) => updVis({ colorMapPalette: e.target.value })}
                 style={{ width: "100%", fontSize: 11 }}
               >
-                {paletteNames.map((name) => (
+                {paletteNames.map((name: any) => (
                   <option key={name} value={name}>
                     {name}
                     {DIVERGING_PALETTES.has(name) ? "  (diverging)" : ""}
@@ -1330,7 +1328,7 @@ function ColorMapTile({ parsed, xCol, yCol, labelCol, col, setCol, colorMap, vis
                 overflowY: "auto",
               }}
             >
-              {colorMap.legend.map((entry) => (
+              {colorMap.legend.map((entry: any) => (
                 <div
                   key={entry.value}
                   style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}
@@ -1366,7 +1364,7 @@ function ColorMapTile({ parsed, xCol, yCol, labelCol, col, setCol, colorMap, vis
   );
 }
 
-function SizeMapTile({ parsed, xCol, yCol, labelCol, col, setCol, vis, updVis }) {
+function SizeMapTile({ parsed, xCol, yCol, labelCol, col, setCol, vis, updVis }: any) {
   const candidates = eligibleColumns(parsed, xCol, yCol, labelCol);
   const active = col >= 0;
   return (
@@ -1378,7 +1376,7 @@ function SizeMapTile({ parsed, xCol, yCol, labelCol, col, setCol, vis, updVis })
         style={{ width: "100%", marginBottom: active ? 8 : 0 }}
       >
         <option value="">— None —</option>
-        {candidates.map(({ h, i }) => (
+        {candidates.map(({ h, i }: any) => (
           <option key={i} value={i}>
             {h}
           </option>
@@ -1413,7 +1411,7 @@ function SizeMapTile({ parsed, xCol, yCol, labelCol, col, setCol, vis, updVis })
   );
 }
 
-function SummaryTile({ summary, fcCutoff, pCutoff }) {
+function SummaryTile({ summary, fcCutoff, pCutoff }: any) {
   return (
     <div
       className="dv-panel"

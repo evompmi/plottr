@@ -8,7 +8,7 @@
 // that the TXT / R download buttons hand raw `enriched` rows to.
 // Mirrors tools/boxplot/reports.ts.
 
-export const TEST_LABELS_AQ = {
+export const TEST_LABELS_AQ: Record<string, string> = {
   studentT: "Student's t-test",
   welchT: "Welch's t-test",
   mannWhitney: "Mann-Whitney U",
@@ -17,7 +17,7 @@ export const TEST_LABELS_AQ = {
   kruskalWallis: "Kruskal-Wallis",
 };
 
-export const POSTHOC_LABELS_AQ = {
+export const POSTHOC_LABELS_AQ: Record<string, string> = {
   tukeyHSD: "Tukey HSD",
   gamesHowell: "Games-Howell",
   dunn: "Dunn (BH-adjusted)",
@@ -26,9 +26,14 @@ export const POSTHOC_LABELS_AQ = {
 export const TEST_OPTIONS_AQ_2 = ["studentT", "welchT", "mannWhitney"];
 export const TEST_OPTIONS_AQ_K = ["oneWayANOVA", "welchANOVA", "kruskalWallis"];
 
-export const AQ_ERROR_BAR_LABELS = { none: "None", sd: "SD", sem: "SEM", ci95: "95% CI" };
+export const AQ_ERROR_BAR_LABELS: Record<string, string> = {
+  none: "None",
+  sd: "SD",
+  sem: "SEM",
+  ci95: "95% CI",
+};
 
-export function formatAqStatShort(testName, res) {
+export function formatAqStatShort(testName: any, res: any) {
   if (!res || res.error) return "—";
   if (testName === "studentT" || testName === "welchT")
     return `t(${res.df.toFixed(2)}) = ${res.t.toFixed(3)}`;
@@ -39,7 +44,7 @@ export function formatAqStatShort(testName, res) {
   return "—";
 }
 
-export function formatAqResultLine(testName, res) {
+export function formatAqResultLine(testName: any, res: any) {
   if (!res || res.error) return res && res.error ? "⚠ " + res.error : "—";
   if (testName === "studentT" || testName === "welchT")
     return `t(${res.df.toFixed(2)}) = ${res.t.toFixed(3)},  p = ${formatP(res.p)}`;
@@ -52,7 +57,7 @@ export function formatAqResultLine(testName, res) {
   return "—";
 }
 
-export function computeAqAnnotationSpec(row, displayMode, showNs) {
+export function computeAqAnnotationSpec(row: any, displayMode: any, showNs: any) {
   if (displayMode === "none" || !row || row.skip) return null;
   const { k, names, testResult, postHocResult } = row;
   if (k < 2) return null;
@@ -72,14 +77,14 @@ export function computeAqAnnotationSpec(row, displayMode, showNs) {
     return { kind: "cld", labels, groupNames: names };
   }
   const pairs = postHocResult.pairs
-    .map((pr) => ({ i: pr.i, j: pr.j, p: pr.pAdj != null ? pr.pAdj : pr.p }))
-    .map((pr) => ({ ...pr, label: pStars(pr.p) }))
-    .filter((pr) => showNs || pr.p < 0.05);
+    .map((pr: any) => ({ i: pr.i, j: pr.j, p: pr.pAdj != null ? pr.pAdj : pr.p }))
+    .map((pr: any) => ({ ...pr, label: pStars(pr.p) }))
+    .filter((pr: any) => showNs || pr.p < 0.05);
   if (pairs.length === 0) return null;
   return { kind: "brackets", pairs, groupNames: names };
 }
 
-export function summariseAqNormality(norm) {
+export function summariseAqNormality(norm: any) {
   if (!Array.isArray(norm) || norm.length === 0) return "—";
   let hasTrue = false;
   let hasFalse = false;
@@ -92,12 +97,12 @@ export function summariseAqNormality(norm) {
   return "—";
 }
 
-export function summariseAqEqualVariance(lev) {
+export function summariseAqEqualVariance(lev: any) {
   if (!lev || lev.F == null) return "—";
   return lev.equalVar ? "yes" : "no";
 }
 
-export function computeAqSummaryText(row, showSummary, errorBarLabel) {
+export function computeAqSummaryText(row: any, showSummary: any, errorBarLabel: any) {
   if (!showSummary || !row || row.skip) return null;
   const { chosenTest, testResult, k, postHocName, rec } = row;
   if (!chosenTest || !testResult || testResult.error) return null;
@@ -113,8 +118,8 @@ export function computeAqSummaryText(row, showSummary, errorBarLabel) {
   return lines.join("\n");
 }
 
-export function buildAqSetTextBlock(row) {
-  const lines = [];
+export function buildAqSetTextBlock(row: any) {
+  const lines: any[] = [];
   const names = row.names;
   const values = row.values;
   const res = row.testResult || {};
@@ -145,7 +150,7 @@ export function buildAqSetTextBlock(row) {
   lines.push("");
   const norm = (rec && rec.normality) || [];
   if (norm.length > 0) {
-    const parts = norm.map((r) => {
+    const parts = norm.map((r: any) => {
       const label = names[r.group] || `g${r.group}`;
       const verdict = r.normal === true ? "normal" : r.normal === false ? "not normal" : "—";
       return `${label}: ${verdict}`;
@@ -183,13 +188,13 @@ export function buildAqSetTextBlock(row) {
   return lines.join("\n");
 }
 
-export function buildAqAggregateReport(rows) {
+export function buildAqAggregateReport(rows: any) {
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const head = ["RLU timecourse — statistical analysis", "Generated: " + now, ""];
-  return head.join("\n") + rows.map((r) => buildAqSetTextBlock(r)).join("");
+  return head.join("\n") + rows.map((r: any) => buildAqSetTextBlock(r)).join("");
 }
 
-export function buildAqAggregateRScript(rows) {
+export function buildAqAggregateRScript(rows: any) {
   if (!rows.length || typeof buildRScript !== "function") return "";
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const header = [

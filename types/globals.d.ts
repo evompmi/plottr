@@ -54,6 +54,11 @@ declare global {
 
   // ── Numeric detection & seeded RNG ─────────────────────────────────────────
   function isNumericValue(v: unknown): boolean;
+  // Locale-aware numeric parser that paired with `isNumericValue`. Strips
+  // NBSP / thin-space thousands separators and normalises Unicode-minus
+  // before Number() — use this rather than parseFloat for cell values.
+  function toNumericValue(v: unknown): number;
+  function normalizeNumericString(v: unknown): string;
   function seededRandom(seed: number): () => number;
   function makeExamplePlantCSV(): string;
   function downloadText(text: string, filename: string): void;
@@ -140,7 +145,7 @@ declare global {
   function wideToLong(
     headers: string[],
     rows: string[][]
-  ): { headers: [string, string]; rows: string[][] };
+  ): { headers: [string, string]; rows: string[][]; skipped: number };
   function reshapeWide(
     rows: string[][],
     gi: number,
@@ -471,7 +476,11 @@ declare global {
     tool: string;
     vis: Record<string, any>;
     visInit: Record<string, any>;
-    updVis: (patch: Record<string, any>) => void;
+    // Accept the same patch shape `usePlotToolState`'s reducer produces:
+    // a partial-vis patch or the `{ _reset: true }` sentinel. `any` keeps
+    // the call sites assignable from typed `updVis<TVis>` returns under
+    // strict function types.
+    updVis: (patch: any) => void;
   }>;
   interface SubgroupMeta {
     name: string;

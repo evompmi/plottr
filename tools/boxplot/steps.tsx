@@ -25,8 +25,8 @@ const BP_AES_THEMES = {
   },
 };
 
-function BpAesBox({ theme, children }) {
-  const t = BP_AES_THEMES[theme];
+function BpAesBox({ theme, children }: any) {
+  const t = (BP_AES_THEMES as Record<string, any>)[theme];
   return (
     <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
       <div style={{ background: t.header, padding: "8px 14px", borderRadius: "8px 8px 0 0" }}>
@@ -53,10 +53,12 @@ function BpAesBox({ theme, children }) {
 // decision: "use as filter" (on = role `filter`; off = role `ignore`).
 // Users can still rename; the per-column value preview stays. If nothing
 // remains after Group + Value (2-column file), the panel hides itself.
-function OtherColumnsPanel({ headers, rows, colRoles, colNames, onRoleChange, onNameChange }) {
+function OtherColumnsPanel({ headers, rows, colRoles, colNames, onRoleChange, onNameChange }: any) {
   const groupColIdx = colRoles.indexOf("group");
   const valueColIdx = colRoles.indexOf("value");
-  const otherIdxs = headers.map((_, i) => i).filter((i) => i !== groupColIdx && i !== valueColIdx);
+  const otherIdxs = headers
+    .map((_: any, i: number) => i)
+    .filter((i: any) => i !== groupColIdx && i !== valueColIdx);
   if (otherIdxs.length === 0) return null;
 
   return (
@@ -70,10 +72,10 @@ function OtherColumnsPanel({ headers, rows, colRoles, colNames, onRoleChange, on
         Otherwise the column is ignored.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {otherIdxs.map((i) => {
+        {otherIdxs.map((i: any) => {
           const seen = new Set();
-          const u = [];
-          rows.forEach((r) => {
+          const u: any[] = [];
+          rows.forEach((r: any) => {
             const v = r[i];
             if (!seen.has(v)) {
               seen.add(v);
@@ -154,7 +156,7 @@ export function UploadStep({
   handleFileLoad,
   setStep,
   onLoadExample,
-}) {
+}: any) {
   return (
     <div>
       <UploadPanel
@@ -236,12 +238,12 @@ export function UploadStep({
                 ["WT", "0.204", "M", "6wpi"],
                 ["lyka-1", "0", "NM", "6wpi"],
                 ["lykb-1", "0.285", "M", "6wpi"],
-              ].map((r, i) => (
+              ].map((r: any, i: number) => (
                 <tr
                   key={i}
                   style={{ background: i % 2 === 0 ? "var(--surface-subtle)" : "var(--surface)" }}
                 >
-                  {r.map((v, j) => (
+                  {r.map((v: any, j: number) => (
                     <td
                       key={j}
                       style={{
@@ -285,7 +287,7 @@ export function UploadStep({
           <table style={{ borderCollapse: "collapse", fontSize: 11, width: "100%" }}>
             <thead>
               <tr style={{ background: "var(--success-bg)" }}>
-                {["WT", "WT", "mutA", "mutB"].map((h, i) => (
+                {["WT", "WT", "mutA", "mutB"].map((h: any, i: number) => (
                   <th
                     key={i}
                     style={{
@@ -305,12 +307,12 @@ export function UploadStep({
                 [0.45, 0.52, 0.12, 0.31],
                 [0.48, 0.51, 0.08, 0.28],
                 [0.41, 0.49, 0.15, 0.35],
-              ].map((r, i) => (
+              ].map((r: any, i: number) => (
                 <tr
                   key={i}
                   style={{ background: i % 2 === 0 ? "var(--success-bg)" : "var(--surface)" }}
                 >
-                  {r.map((v, j) => (
+                  {r.map((v: any, j: number) => (
                     <td
                       key={j}
                       style={{
@@ -369,7 +371,7 @@ export function UploadStep({
               icon: "🧪",
               text: "Stats panel below the chart: auto-routed test selection (t / Welch / Mann–Whitney / ANOVA / Welch-ANOVA / Kruskal–Wallis), post-hocs (Tukey / Games–Howell / Dunn + BH), CLD letters and significance brackets overlaid on the plot, plus TXT and runnable R-script reports.",
             },
-          ].map(({ icon, text }) => (
+          ].map(({ icon, text }: any) => (
             <div
               key={icon}
               style={{ display: "flex", gap: 10, marginBottom: 7, alignItems: "flex-start" }}
@@ -411,7 +413,7 @@ export function UploadStep({
               { step: "1.", text: "Enable Points (the jitter overlay) in the plot controls." },
               { step: "2.", text: "Select a column in the Color by dropdown." },
               { step: "3.", text: "Tick the Composition pies checkbox that appears next to it." },
-            ].map(({ step, text }) => (
+            ].map(({ step, text }: any) => (
               <div key={step} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                 <span
                   style={{
@@ -473,7 +475,7 @@ export function UploadStep({
                 step: "Bar",
                 text: "Mean ± SEM/SD error bars. Choose SEM or SD in the plot controls. Supports jittered points overlay.",
               },
-            ].map(({ step, text }) => (
+            ].map(({ step, text }: any) => (
               <div key={step} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                 <span
                   style={{
@@ -529,7 +531,7 @@ export function UploadStep({
             "Separator explicitly selected (comma, semicolon, tab, space)",
             "Quoted values stripped automatically",
             "100% browser-side — nothing uploaded",
-          ].map((t) => (
+          ].map((t: any) => (
             <span
               key={t}
               style={{
@@ -561,7 +563,7 @@ export function ConfigureStep({
   valueColIsNumeric,
   onRoleChange,
   onNameChange,
-}) {
+}: any) {
   const groupColIdx = colRoles.indexOf("group");
   return (
     <div>
@@ -592,7 +594,7 @@ export function ConfigureStep({
             style={{ width: "100%" }}
           >
             {groupColIdx < 0 && <option value="">— choose a group column —</option>}
-            {parsedHeaders.map((_, i) => (
+            {parsedHeaders.map((_: any, i: number) => (
               <option key={i} value={i}>
                 {colNames[i]}
               </option>
@@ -630,7 +632,7 @@ export function ConfigureStep({
             style={{ width: "100%" }}
           >
             {valueColIdx < 0 && <option value="">— choose a value column —</option>}
-            {parsedHeaders.map((_, i) => (
+            {parsedHeaders.map((_: any, i: number) => (
               <option key={i} value={i}>
                 {colNames[i]}
               </option>
@@ -727,7 +729,7 @@ export function FilterStep({
   setRenameVal,
   dragState,
   setDragState,
-}) {
+}: any) {
   // Feedback for filters whose effect falls past the first preview rows:
   // (1) live delta in the title ("N of M rows · K filtered out"), (2) a
   // brief 300 ms background flash on the preview card whenever the kept-
@@ -739,7 +741,7 @@ export function FilterStep({
   React.useEffect(() => {
     if (prevKeptRef.current !== filteredRows.length) {
       prevKeptRef.current = filteredRows.length;
-      setFlashKey((k) => k + 1);
+      setFlashKey((k: any) => k + 1);
     }
   }, [filteredRows.length]);
 
@@ -798,8 +800,8 @@ export function FilterStep({
           )}
         </p>
         <DataPreview
-          headers={activeColIdxs.map((i) => colNames[i])}
-          rows={renamedRows.map((r) => activeColIdxs.map((i) => r[i]))}
+          headers={activeColIdxs.map((i: any) => colNames[i])}
+          rows={renamedRows.map((r: any) => activeColIdxs.map((i: any) => r[i]))}
           maxRows={10}
         />
       </div>
@@ -823,7 +825,7 @@ export function OutputStep({
   activeColIdxs,
   wideData,
   fileName,
-}) {
+}: any) {
   return (
     <div>
       {groupColIdx >= 0 && valueColIdx >= 0 && stats.length > 0 && (
@@ -846,8 +848,8 @@ export function OutputStep({
             style={{ marginLeft: "auto", flexShrink: 0 }}
             onClick={(e) => {
               downloadCsv(
-                activeColIdxs.map((i) => colNames[i]),
-                renamedRows.map((r) => activeColIdxs.map((i) => r[i])),
+                activeColIdxs.map((i: any) => colNames[i]),
+                renamedRows.map((r: any) => activeColIdxs.map((i: any) => r[i])),
                 `${fileBaseName(fileName, "data")}_sanitized_long.csv`
               );
               flashSaved(e.currentTarget);
@@ -857,8 +859,8 @@ export function OutputStep({
           </button>
         </div>
         <DataPreview
-          headers={activeColIdxs.map((i) => colNames[i])}
-          rows={renamedRows.map((r) => activeColIdxs.map((i) => r[i]))}
+          headers={activeColIdxs.map((i: any) => colNames[i])}
+          rows={renamedRows.map((r: any) => activeColIdxs.map((i: any) => r[i]))}
           maxRows={6}
         />
       </div>

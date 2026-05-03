@@ -750,7 +750,7 @@ function App() {
       return null;
     }
     return null;
-  }, [testKey, solveFor, es, n, alpha, power, tails, k, df]);
+  }, [test, solveFor, es, n, alpha, power, tails, k, df]);
 
   const resultText = useMemo(() => {
     if (result == null) return "—";
@@ -778,6 +778,10 @@ function App() {
 
   useEffect(() => {
     if (resultFlash) prevResultRef.current = result;
+    // We deliberately track only `resultFlash` — when the flash starts we
+    // capture the result that triggered it; subsequent result changes
+    // restart the flash via the previous effect, which re-fires this one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultFlash]);
 
   const handleTestChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {

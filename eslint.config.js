@@ -1,21 +1,30 @@
 const js = require("@eslint/js");
 const globals = require("globals");
 const react = require("eslint-plugin-react");
+const reactHooks = require("eslint-plugin-react-hooks");
 const tsParser = require("@typescript-eslint/parser");
 const tsPlugin = require("@typescript-eslint/eslint-plugin");
 const prettier = require("eslint-config-prettier");
+
+// Local rules. Register as the "plottr" plugin so they namespace cleanly
+// (avoids colliding with anything from @eslint/js or @typescript-eslint).
+const plottrLocal = {
+  rules: {
+    "no-chrome-hex-literal": require("./scripts/eslint-rules/no-chrome-hex-literal.js"),
+  },
+};
 
 const compiledTools = [
   "tools/aequorin/index.js",
   "tools/boxplot/index.js",
   "tools/heatmap/index.js",
+  "tools/lineplot/index.js",
+  "tools/scatter/index.js",
+  "tools/upset/index.js",
+  "tools/venn/index.js",
   "tools/volcano/index.js",
-  "tools/lineplot.js",
   "tools/molarity.js",
   "tools/power.js",
-  "tools/scatter.js",
-  "tools/venn.js",
-  "tools/upset.js",
   "tools/version.js",
 ];
 
@@ -206,8 +215,13 @@ module.exports = [
   // ESLint can understand type annotations; actual type-checking is handled
   // separately by `tsc --noEmit`.
   {
-    files: ["tools/*.tsx"],
-    plugins: { react, "@typescript-eslint": tsPlugin },
+    files: ["tools/**/*.tsx"],
+    plugins: {
+      react,
+      "react-hooks": reactHooks,
+      "@typescript-eslint": tsPlugin,
+      plottr: plottrLocal,
+    },
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2022,
@@ -228,6 +242,20 @@ module.exports = [
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "no-empty": ["error", { allowEmptyCatch: true }],
+      // Theme drift guard: chrome style={{...}} must use CSS variables
+      // (var(--name)), not hex literals — see CLAUDE.md "Theming" and the
+      // rule itself in scripts/eslint-rules/no-chrome-hex-literal.js.
+      "plottr/no-chrome-hex-literal": "error",
+      // React Hooks safety. Both at error level after a one-time audit:
+      // rules-of-hooks is non-negotiable (call order has to be stable);
+      // exhaustive-deps caught real stale-closure / facetRefs.current
+      // capture bugs across the audit and now sits at zero warnings.
+      // Intentional omissions (numeric-signature memo keys, mount-only
+      // effects, closures over already-listed primitives) carry an
+      // explicit `// eslint-disable-next-line` with a short rationale at
+      // each site, so the rule's noise floor is real bugs only.
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "error",
     },
   },
 

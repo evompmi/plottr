@@ -69,7 +69,7 @@ export function HowToSection() {
         <table style={{ borderCollapse: "collapse", fontSize: 11, width: "100%" }}>
           <thead>
             <tr style={{ background: "var(--info-bg)" }}>
-              {["WT", "WT", "WT", "KO", "KO", "KO"].map((h, i) => (
+              {["WT", "WT", "WT", "KO", "KO", "KO"].map((h: any, i: number) => (
                 <th
                   key={i}
                   style={{
@@ -89,12 +89,12 @@ export function HowToSection() {
               [1200, 1180, 1250, 800, 790, 810],
               [1350, 1400, 1310, 850, 870, 840],
               [980, 1010, 990, 620, 600, 640],
-            ].map((r, i) => (
+            ].map((r: any, i: number) => (
               <tr
                 key={i}
                 style={{ background: i % 2 === 0 ? "var(--surface-subtle)" : "var(--surface)" }}
               >
-                {r.map((v, j) => (
+                {r.map((v: any, j: number) => (
                   <td
                     key={j}
                     style={{
@@ -144,7 +144,7 @@ export function HowToSection() {
             icon: "⬇️",
             text: "Calibrated values can be downloaded as CSV directly from the Configure step.",
           },
-        ].map(({ icon, text }) => (
+        ].map(({ icon, text }: any) => (
           <div
             key={icon}
             style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "flex-start" }}
@@ -189,7 +189,7 @@ export function HowToSection() {
             icon: "⬇️",
             text: "Export the time-course and barplots as SVG or PNG; each barplot tile has a matching CSV download for per-replicate sums.",
           },
-        ].map(({ icon, text }) => (
+        ].map(({ icon, text }: any) => (
           <div
             key={icon}
             style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "flex-start" }}
@@ -238,7 +238,7 @@ export function HowToSection() {
             icon: "⚡",
             text: "All changes apply instantly — no need to go back to the configure step.",
           },
-        ].map(({ icon, text }) => (
+        ].map(({ icon, text }: any) => (
           <div
             key={icon}
             style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "flex-start" }}
@@ -274,7 +274,7 @@ export function HowToSection() {
           "Quoted values stripped automatically",
           "Excluded columns omitted from all exports",
           "100% browser-side — nothing uploaded",
-        ].map((t) => (
+        ].map((t: any) => (
           <span
             key={t}
             style={{
@@ -301,7 +301,7 @@ export function UploadStep({
   doParse,
   handleFileLoad,
   onLoadExample,
-}) {
+}: any) {
   return (
     <div>
       <UploadPanel
@@ -337,7 +337,7 @@ export function ConfigureStep({
   calData,
   columnEnabled,
   downloadCalibrated,
-}) {
+}: any) {
   return (
     <div>
       <div style={{ display: "flex", gap: 16, marginBottom: 16, alignItems: "stretch" }}>
@@ -429,7 +429,7 @@ export function ConfigureStep({
                 onChange={(e) => updVis({ baseUnit: e.target.value })}
                 className="dv-select"
               >
-                {TIME_UNITS.map((u) => (
+                {TIME_UNITS.map((u: any) => (
                   <option key={u.key} value={u.key}>
                     {u.label}
                   </option>
@@ -471,7 +471,9 @@ export function ConfigureStep({
         {calData &&
           parsed &&
           (() => {
-            const ei = parsed.headers.map((_, i) => i).filter((i) => columnEnabled[i] !== false);
+            const ei = parsed.headers
+              .map((_: any, i: number) => i)
+              .filter((i: any) => columnEnabled[i] !== false);
             return (
               <div style={{ marginTop: 8 }}>
                 <p
@@ -486,8 +488,10 @@ export function ConfigureStep({
                   {parsed.headers.length} columns (first 15 rows):
                 </p>
                 <DataPreview
-                  headers={ei.map((i) => parsed.headers[i])}
-                  rows={calData.slice(0, 15).map((r) => ei.map((i) => (r[i] != null ? r[i] : "")))}
+                  headers={ei.map((i: any) => parsed.headers[i])}
+                  rows={calData
+                    .slice(0, 15)
+                    .map((r: any) => ei.map((i: any) => (r[i] != null ? r[i] : "")))}
                   maxRows={15}
                 />
               </div>

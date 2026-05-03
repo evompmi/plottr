@@ -19,14 +19,14 @@ const path = require("path");
 
 const ESBUILD_ENTRYPOINTS = [
   "tools/boxplot/index.tsx",
-  "tools/scatter.tsx",
+  "tools/scatter/index.tsx",
   "tools/aequorin/index.tsx",
-  "tools/lineplot.tsx",
-  "tools/venn.tsx",
+  "tools/lineplot/index.tsx",
+  "tools/venn/index.tsx",
   "tools/heatmap/index.tsx",
   "tools/molarity.tsx",
   "tools/power.tsx",
-  "tools/upset.tsx",
+  "tools/upset/index.tsx",
 ];
 
 const ESBUILD_FLAGS = [

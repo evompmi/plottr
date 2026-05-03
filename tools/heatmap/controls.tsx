@@ -11,7 +11,7 @@ import { buildHeatmapRScript, buildCsvExport } from "./reports";
 
 const { useState, useRef, useEffect } = React;
 
-export function ClusterModeControl({ label, mode, setMode, k, setK }) {
+export function ClusterModeControl({ label, mode, setMode, k, setK }: any) {
   const OPTIONS = [
     { k: "none", label: "None" },
     { k: "hierarchical", label: "Hier." },
@@ -21,7 +21,7 @@ export function ClusterModeControl({ label, mode, setMode, k, setK }) {
     <div style={{ marginBottom: 8 }}>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
       <div className="dv-seg" role="group" aria-label={`${label} clustering mode`}>
-        {OPTIONS.map((o) => (
+        {OPTIONS.map((o: any) => (
           <button
             key={o.k}
             type="button"
@@ -57,9 +57,9 @@ export function ClusterModeControl({ label, mode, setMode, k, setK }) {
 // (via scrollDisclosureIntoView) to reveal the content plus the next
 // section's header. Heatmap's sidebar is NOT its own scroll container — the
 // page scrolls — so the helper's window-scroll fallback does the work here.
-export function ControlSection({ title, defaultOpen = false, children }) {
+export function ControlSection({ title, defaultOpen = false, children }: any) {
   const [open, setOpen] = useState(defaultOpen);
-  const rootRef = useRef(null);
+  const rootRef = useRef<any>(null);
   useEffect(() => {
     if (!open) return;
     requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
@@ -122,7 +122,7 @@ export function PlotControls({
   linkageMethod,
   setLinkageMethod,
   autoVRange,
-}) {
+}: any) {
   const paletteKeys = Object.keys(COLOR_PALETTES);
   const anyHier = rowMode === "hierarchical" || colMode === "hierarchical";
   const anyKmeans = rowMode === "kmeans" || colMode === "kmeans";
@@ -189,7 +189,7 @@ export function PlotControls({
 
       <ControlSection title="Normalisation">
         <div className="dv-seg" role="group" aria-label="Normalisation">
-          {NORM_OPTIONS.map((o) => (
+          {NORM_OPTIONS.map((o: any) => (
             <button
               key={o.k}
               type="button"
@@ -223,7 +223,7 @@ export function PlotControls({
               Hierarchical · Distance
             </div>
             <div className="dv-seg" role="group" aria-label="Distance metric">
-              {DIST_OPTIONS.map((o) => (
+              {DIST_OPTIONS.map((o: any) => (
                 <button
                   key={o.k}
                   type="button"
@@ -238,7 +238,7 @@ export function PlotControls({
               Hierarchical · Linkage
             </div>
             <div className="dv-seg" role="group" aria-label="Linkage method">
-              {LINK_OPTIONS.map((o) => (
+              {LINK_OPTIONS.map((o: any) => (
                 <button
                   key={o.k}
                   type="button"
@@ -335,7 +335,7 @@ export function PlotControls({
             onChange={(e) => updVis({ palette: e.target.value })}
             style={{ width: "100%", fontSize: 11, margin: "2px 0 6px" }}
           >
-            {paletteKeys.map((p) => (
+            {paletteKeys.map((p: any) => (
               <option key={p} value={p}>
                 {p}
                 {DIVERGING_PALETTES.has(p) ? "  (diverging)" : ""}

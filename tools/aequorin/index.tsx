@@ -11,7 +11,6 @@ import {
   DEFAULT_KTR,
   DEFAULT_KD,
   DEFAULT_HILL_N,
-  FORMULA_DEFS,
   calibrate,
   calibrateHill,
   calibrateGeneralized,
@@ -99,15 +98,15 @@ function App() {
   // linter "unused import" rather than silently double-rendering.
   const [parseMessage, setParseMessage] = useState<string | null>(null);
 
-  const [rawText, setRawText] = useState(null);
+  const [rawText, setRawText] = useState<any>(null);
   const [formula, setFormula] = useState("none");
   const [Kr, setKr] = useState(DEFAULT_KR);
   const [Ktr, setKtr] = useState(DEFAULT_KTR);
   const [Kd, setKd] = useState(DEFAULT_KD);
   const [hillN, setHillN] = useState(DEFAULT_HILL_N);
-  const [conditions, setConditions] = useState([]);
+  const [conditions, setConditions] = useState<any[]>([]);
   const [poolReplicates, setPoolReplicates] = useState(true);
-  const [columnEnabled, setColumnEnabled] = useState({});
+  const [columnEnabled, setColumnEnabled] = useState<any>({});
 
   const parsed = useMemo(() => (rawText ? parseData(rawText) : null), [rawText]);
   const calData = useMemo(() => {
@@ -125,32 +124,32 @@ function App() {
   // edits. Renames in particular become cheap: each keystroke on the label
   // input only re-runs the light metadata merge, not the numerics.
   const conditionsNumericKey = conditions
-    .map((c) => `${c.prefix}:${(c.activeColIndices || c.colIndices).join(",")}`)
+    .map((c: any) => `${c.prefix}:${(c.activeColIndices || c.colIndices).join(",")}`)
     .join("|");
 
   // Heavy pass: per-timepoint mean + sd per condition. Keyed on the numeric
   // signature so label/color edits skip it entirely.
   const numericStatsByPrefix = useMemo(() => {
-    if (!calData || !parsed || conditions.length === 0) return {};
+    if (!calData || !parsed || conditions.length === 0) return {} as Record<string, any>;
     const nRows = calData.length;
-    const out = {};
+    const out: Record<string, any> = {};
     for (const cond of conditions) {
       const idxs = cond.activeColIndices || cond.colIndices;
-      const means = [];
-      const sds = [];
+      const means: any[] = [];
+      const sds: any[] = [];
       for (let r = 0; r < nRows; r++) {
-        const vals = idxs.map((i) => calData[r][i]).filter((v) => v != null);
+        const vals = idxs.map((i: any) => calData[r][i]).filter((v: any) => v != null);
         if (vals.length === 0) {
           means.push(null);
           sds.push(null);
           continue;
         }
-        const m = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const m = vals.reduce((a: any, b: any) => a + b, 0) / vals.length;
         means.push(m);
         sds.push(
           vals.length < 2
             ? 0
-            : Math.sqrt(vals.reduce((a, v) => a + (v - m) ** 2, 0) / (vals.length - 1))
+            : Math.sqrt(vals.reduce((a: any, v: any) => a + (v - m) ** 2, 0) / (vals.length - 1))
         );
       }
       out[cond.prefix] = { means, sds };
@@ -158,6 +157,7 @@ function App() {
     return out;
     // `conditions` is intentionally read via the numeric-signature key so
     // label/color edits don't invalidate this cache.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calData, parsed, conditionsNumericKey]);
 
   // Cheap pass: merge the per-condition metadata (label, color, enabled, …)
@@ -165,7 +165,7 @@ function App() {
   // not touch `calData` rows.
   const stats = useMemo(
     () =>
-      conditions.map((cond) => ({
+      conditions.map((cond: any) => ({
         ...cond,
         ...(numericStatsByPrefix[cond.prefix] || { means: [], sds: [] }),
       })),
@@ -180,15 +180,15 @@ function App() {
     if (!calData || conditions.length === 0) return {};
     const r0 = Math.max(0, Math.floor(vis.xStart));
     const r1 = Math.min(calData.length - 1, Math.ceil(vis.xEnd));
-    const out = {};
+    const out: Record<string, any> = {};
     for (const cond of conditions) {
-      const repSums = (cond.activeColIndices || cond.colIndices).map((ci) => {
-        const vals = [];
+      const repSums = (cond.activeColIndices || cond.colIndices).map((ci: any) => {
+        const vals: any[] = [];
         for (let r = r0; r <= r1; r++) {
           const v = calData[r] ? calData[r][ci] : null;
           if (v != null) vals.push(v);
         }
-        const rawSum = vals.reduce((a, b) => a + b, 0);
+        const rawSum = vals.reduce((a: any, b: any) => a + b, 0);
         const minVal = vals.length > 0 ? Math.min(...vals) : 0;
         const corrSum = rawSum - vals.length * minVal;
         return { rawSum, corrSum };
@@ -196,11 +196,15 @@ function App() {
       out[cond.prefix] = repSums;
     }
     return out;
+    // Same numeric-signature trick as numericStatsByPrefix above —
+    // `conditions` is read via conditionsNumericKey to avoid recomputing on
+    // label/color edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calData, conditionsNumericKey, vis.xStart, vis.xEnd]);
 
   const replicateSums = useMemo(
     () =>
-      stats.map((s) => ({
+      stats.map((s: any) => ({
         prefix: s.prefix,
         label: s.label,
         repSums: replicateSumsByPrefix[s.prefix] || [],
@@ -221,35 +225,41 @@ function App() {
     if (!vis.autoYRange) return;
     const range = computeAutoYRange(calData, vis.xStart, vis.xEnd);
     if (range) updVis(range);
-  }, [formula, calData, vis.xStart, vis.xEnd, vis.autoYRange]);
+  }, [formula, calData, vis.xStart, vis.xEnd, vis.autoYRange, updVis]);
 
   const csvText = useMemo(() => {
     if (!calData || !parsed) return "";
-    const enabledIdx = parsed.headers.map((_, i) => i).filter((i) => columnEnabled[i] !== false);
-    const rows = [enabledIdx.map((i) => parsed.headers[i]).join(",")];
-    calData.forEach((r) => rows.push(enabledIdx.map((i) => (r[i] != null ? r[i] : "")).join(",")));
+    const enabledIdx = parsed.headers
+      .map((_: any, i: number) => i)
+      .filter((i: any) => columnEnabled[i] !== false);
+    const rows = [enabledIdx.map((i: any) => parsed.headers[i]).join(",")];
+    calData.forEach((r: any) =>
+      rows.push(enabledIdx.map((i: any) => (r[i] != null ? r[i] : "")).join(","))
+    );
     return rows.join("\n");
   }, [calData, parsed, columnEnabled]);
 
   // Per-column rep numbers and name counts (for the column grouping UI)
   const colInfo = useMemo(() => {
     if (!parsed) return [];
-    const nameOcc = {},
-      nameCount = {};
-    parsed.headers.forEach((h) => {
+    const nameOcc: Record<string, number> = {};
+    const nameCount: Record<string, number> = {};
+    parsed.headers.forEach((h: any) => {
       nameCount[h] = (nameCount[h] || 0) + 1;
     });
-    return parsed.headers.map((h, i) => {
+    return parsed.headers.map((h: any, i: number) => {
       nameOcc[h] = (nameOcc[h] || 0) + 1;
       return { h, i, rep: nameOcc[h], isDup: nameCount[h] > 1 };
     });
   }, [parsed]);
 
-  const applyGrouping = (pool, ce, prevConds) => {
-    const prevMap = Object.fromEntries(prevConds.map((c) => [c.prefix, c]));
+  const applyGrouping = (pool: any, ce: any, prevConds: any) => {
+    const prevMap: Record<string, any> = Object.fromEntries(
+      prevConds.map((c: any) => [c.prefix, c])
+    );
     // Build conditions from ALL columns, then mark enabled based on columnEnabled
-    const allConds = detectConditions(parsed.headers, pool, null).map((c) => {
-      const activeCols = c.colIndices.filter((ci) => ce[ci] !== false);
+    const allConds = detectConditions(parsed!.headers, pool, null).map((c: any) => {
+      const activeCols = c.colIndices.filter((ci: any) => ce[ci] !== false);
       const prev = prevMap[c.prefix];
       // If the previous condition had no active columns, its `enabled=false` was
       // forced by the sample selector rather than a user toggle on the control
@@ -268,22 +278,22 @@ function App() {
     setConditions(allConds);
   };
 
-  const handlePoolChange = (pool) => {
+  const handlePoolChange = (pool: any) => {
     setPoolReplicates(pool);
     applyGrouping(pool, columnEnabled, conditions);
   };
-  const handleColumnToggle = (i, val) => {
+  const handleColumnToggle = (i: any, val: any) => {
     const ce = { ...columnEnabled, [i]: val };
     setColumnEnabled(ce);
     applyGrouping(poolReplicates, ce, conditions);
   };
-  const handleConditionsChange = (newConds) => {
+  const handleConditionsChange = (newConds: any) => {
     const ce = { ...columnEnabled };
-    const updated = newConds.map((c, idx) => {
+    const updated = newConds.map((c: any, idx: number) => {
       const prev = conditions[idx];
       // Only sync columnEnabled for conditions whose enabled state actually changed
       if (prev && c.enabled !== prev.enabled) {
-        c.colIndices.forEach((ci) => {
+        c.colIndices.forEach((ci: any) => {
           ce[ci] = c.enabled;
         });
         return { ...c, activeColIndices: c.enabled ? c.colIndices : [] };
@@ -294,77 +304,88 @@ function App() {
     setColumnEnabled(ce);
   };
 
-  const plotPanelRef = useRef();
+  const plotPanelRef = useRef<any>(null);
 
-  const doParse = useCallback((text, sep) => {
-    const dc = fixDecimalCommas(text, sep);
-    setCommaFixed(dc.commaFixed);
-    setCommaFixCount(dc.count);
-    setRawText(dc.text);
-    const { headers, data, injectionWarnings } = parseData(dc.text, sep);
-    setInjectionWarning(injectionWarnings);
-    if (!headers.length || !data.length) {
-      setParseMessage(
-        "The file appears to be empty or has no data rows. Please check your file and try again."
+  const doParse = useCallback(
+    (text: any, sep: any) => {
+      const dc = fixDecimalCommas(text, sep);
+      setCommaFixed(dc.commaFixed);
+      setCommaFixCount(dc.count);
+      setRawText(dc.text);
+      const { headers, data, injectionWarnings } = parseData(dc.text, sep);
+      setInjectionWarning(injectionWarnings);
+      if (!headers.length || !data.length) {
+        setParseMessage(
+          "The file appears to be empty or has no data rows. Please check your file and try again."
+        );
+        return;
+      }
+      // Check for single-column files
+      if (headers.length === 1) {
+        setParseMessage(
+          "Only one column detected — this tool expects wide-format data with one column per sample. Check your separator setting or file format."
+        );
+        return;
+      }
+      // Check how much of the data is numeric
+      const totalCells = data.length * headers.length;
+      const numericCells = data.reduce(
+        (n: any, row: any) => n + row.filter((v: any) => v != null).length,
+        0
       );
-      return;
-    }
-    // Check for single-column files
-    if (headers.length === 1) {
-      setParseMessage(
-        "Only one column detected — this tool expects wide-format data with one column per sample. Check your separator setting or file format."
+      const numericRatio = totalCells > 0 ? numericCells / totalCells : 0;
+      if (numericRatio < 0.3) {
+        setParseMessage(
+          "Less than 30% of values are numeric. This tool expects a numeric matrix (one column per sample, one row per time-point). Your file may be in long format or contain mostly text."
+        );
+        return;
+      }
+      // Warn if the file looks like long format (few columns, one text + one numeric pattern)
+      const colTypes = headers.map((_: any, ci: number) => {
+        const nums = data.filter((r: any) => r[ci] != null).length;
+        return nums / data.length > 0.8 ? "num" : "text";
+      });
+      const numCols = colTypes.filter((t: any) => t === "num").length;
+      const textCols = colTypes.filter((t: any) => t === "text").length;
+      const warnings: any[] = [];
+      if (headers.length <= 3 && textCols >= 1 && numCols >= 1)
+        warnings.push(
+          "⚠️ This looks like it could be long-format data (few columns, mix of text and numbers). This tool expects wide format — one column per sample, one row per time-point."
+        );
+      // Detect ragged columns (different number of valid values per column)
+      const colLengths = headers.map(
+        (_: any, ci: number) => data.filter((r: any) => r[ci] != null).length
       );
-      return;
-    }
-    // Check how much of the data is numeric
-    const totalCells = data.length * headers.length;
-    const numericCells = data.reduce((n, row) => n + row.filter((v) => v != null).length, 0);
-    const numericRatio = totalCells > 0 ? numericCells / totalCells : 0;
-    if (numericRatio < 0.3) {
-      setParseMessage(
-        "Less than 30% of values are numeric. This tool expects a numeric matrix (one column per sample, one row per time-point). Your file may be in long format or contain mostly text."
-      );
-      return;
-    }
-    // Warn if the file looks like long format (few columns, one text + one numeric pattern)
-    const colTypes = headers.map((_, ci) => {
-      const nums = data.filter((r) => r[ci] != null).length;
-      return nums / data.length > 0.8 ? "num" : "text";
-    });
-    const numCols = colTypes.filter((t) => t === "num").length;
-    const textCols = colTypes.filter((t) => t === "text").length;
-    const warnings = [];
-    if (headers.length <= 3 && textCols >= 1 && numCols >= 1)
-      warnings.push(
-        "⚠️ This looks like it could be long-format data (few columns, mix of text and numbers). This tool expects wide format — one column per sample, one row per time-point."
-      );
-    // Detect ragged columns (different number of valid values per column)
-    const colLengths = headers.map((_, ci) => data.filter((r) => r[ci] != null).length);
-    const maxLen = Math.max(...colLengths);
-    const minLen = Math.min(...colLengths);
-    if (maxLen > 0 && minLen < maxLen) {
-      warnings.push(
-        `⚠️ Columns have different lengths (${minLen}–${maxLen} numeric values). Some samples may have missing time-points, which can affect mean/SD calculations.`
-      );
-    }
-    setParseMessage(warnings.length > 0 ? warnings.join("\n") : null);
-    const ce = {};
-    headers.forEach((_, i) => {
-      ce[i] = true;
-    });
-    setColumnEnabled(ce);
-    setPoolReplicates(true);
-    const detectedConds = detectConditions(headers, true, ce).map((c) => ({ ...c, enabled: true }));
-    setConditions(detectedConds);
-    updVis({ xStart: 0, xEnd: data.length, faceted: false });
-    setStep("configure");
-  }, []);
+      const maxLen = Math.max(...colLengths);
+      const minLen = Math.min(...colLengths);
+      if (maxLen > 0 && minLen < maxLen) {
+        warnings.push(
+          `⚠️ Columns have different lengths (${minLen}–${maxLen} numeric values). Some samples may have missing time-points, which can affect mean/SD calculations.`
+        );
+      }
+      setParseMessage(warnings.length > 0 ? warnings.join("\n") : null);
+      const ce: Record<string, any> = {};
+      headers.forEach((_: any, i: number) => {
+        ce[i] = true;
+      });
+      setColumnEnabled(ce);
+      setPoolReplicates(true);
+      const detectedConds = detectConditions(headers, true, ce).map((c: any) => ({
+        ...c,
+        enabled: true,
+      }));
+      setConditions(detectedConds);
+      updVis({ xStart: 0, xEnd: data.length, faceted: false });
+      setStep("configure");
+    },
+    [setCommaFixed, setCommaFixCount, setInjectionWarning, setStep, updVis]
+  );
   const handleFileLoad = useCallback(
-    (text, name) => {
+    (text: any, name: any) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
-    [sepOverride, doParse]
+    [sepOverride, doParse, setFileName]
   );
   const loadExample = useCallback(() => {
     const text = (window as any).__AEQUORIN_EXAMPLE__;
@@ -375,7 +396,7 @@ function App() {
     setSepOverride("\t");
     setFileName("rlu_timecourse_example.tsv");
     doParse(text, "\t");
-  }, [doParse]);
+  }, [doParse, setFileName, setSepOverride]);
   const resetAll = () => {
     setRawText(null);
     setFileName("");
@@ -397,7 +418,7 @@ function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const canNavigate = (s) => s === "upload" || (parsed && s !== "upload");
+  const canNavigate = (s: any) => s === "upload" || (!!parsed && s !== "upload");
 
   return (
     <PlotToolShell
@@ -645,7 +666,7 @@ function App() {
               >
                 <SampleSelectionOverlay
                   showColumnOverlay={vis.showColumnOverlay}
-                  setShowColumnOverlay={(v) => updVis({ showColumnOverlay: v })}
+                  setShowColumnOverlay={(v: any) => updVis({ showColumnOverlay: v })}
                   poolReplicates={poolReplicates}
                   colInfo={colInfo}
                   columnEnabled={columnEnabled}
@@ -705,7 +726,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <ErrorBoundary toolName="RLU timecourse">
     <App />
   </ErrorBoundary>

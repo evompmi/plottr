@@ -39,7 +39,7 @@ import { buildBpAggregateReport, buildBpAggregateRScript } from "./reports";
 
 const { useState, useMemo, useRef, useEffect } = React;
 
-function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }) {
+function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: any) {
   const names = row.names;
   const values = row.values;
   const k = names.length;
@@ -112,7 +112,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }) {
           </tr>
         </thead>
         <tbody>
-          {names.map((name, i) => {
+          {names.map((name: any, i: number) => {
             const vs = values[i];
             const n = vs.length;
             const m = sampleMean(vs);
@@ -142,7 +142,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }) {
             Shapiro-Wilk (normality)
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {norm.map((r, i) => {
+            {norm.map((r: any, i: number) => {
               const label = names[r.group] || `g${r.group}`;
               const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
               const verdict =
@@ -185,7 +185,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }) {
           style={{ fontSize: 11, padding: "2px 6px", minWidth: 180 }}
           onClick={(e) => e.stopPropagation()}
         >
-          {testOptions.map((t) => (
+          {testOptions.map((t: any) => (
             <option key={t} value={t}>
               {TEST_LABELS_BP[t]}
               {t === recTest ? "  (recommended)" : ""}
@@ -246,7 +246,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }) {
               </tr>
             </thead>
             <tbody>
-              {row.postHocResult.pairs.map((pr, i) => {
+              {row.postHocResult.pairs.map((pr: any, i: number) => {
                 const p = pr.pAdj != null ? pr.pAdj : pr.p;
                 const diff =
                   pr.diff != null
@@ -291,7 +291,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }) {
               </tr>
             </thead>
             <tbody>
-              {row.powerResult.rows.map((pr, i) => (
+              {row.powerResult.rows.map((pr: any, i: number) => (
                 <tr key={i}>
                   {i === 0 ? (
                     <td style={tdS} rowSpan={row.powerResult.rows.length}>
@@ -376,7 +376,7 @@ export function BoxplotStatsPanel({
         const testResult = chosenTest ? runTest(chosenTest, values) : null;
         const postHocName = postHocForTest(chosenTest);
         const postHocResult = k > 2 && postHocName ? runPostHoc(postHocName, values) : null;
-        const powerResult = computePowerFromData(chosenTest, values);
+        const powerResult = chosenTest ? computePowerFromData(chosenTest, values) : null;
         return {
           ...s,
           names,
@@ -409,6 +409,11 @@ export function BoxplotStatsPanel({
     for (const r of sets) {
       onAnnotationForKeyRef.current(r.key, annotByKey[r.key] || null);
     }
+    // annotByKey is canonicalised through `annotKey` (JSON-stringify) so
+    // structurally-equal specs across renders don't re-fire. `sets`
+    // changes only when `enriched` does, which `annotKey` already
+    // covers transitively.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annotKey]);
 
   const summaryByKey = useMemo(() => {
@@ -426,10 +431,12 @@ export function BoxplotStatsPanel({
     for (const r of sets) {
       onSummaryForKeyRef.current(r.key, summaryByKey[r.key] || null);
     }
+    // Same canonicalisation pattern as the annotKey effect above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [summaryKey]);
 
   const setOverride = (key: string, test: string | null) =>
-    setOverrides((prev) => {
+    setOverrides((prev: any) => {
       const next = { ...prev };
       if (test == null) delete next[key];
       else next[key] = test;
@@ -688,9 +695,9 @@ export function BoxplotStatsPanel({
             return (
               <React.Fragment key={key}>
                 <tr
-                  onClick={() => setExpanded((prev) => ({ ...prev, [key]: !isOpen }))}
+                  onClick={() => setExpanded((prev: any) => ({ ...prev, [key]: !isOpen }))}
                   onMouseEnter={() => setHovered(key)}
-                  onMouseLeave={() => setHovered((h) => (h === key ? null : h))}
+                  onMouseLeave={() => setHovered((h: any) => (h === key ? null : h))}
                   style={{
                     cursor: "pointer",
                     background: isOpen

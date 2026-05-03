@@ -16,7 +16,7 @@ function statsTextLines(
   anchor: "start" | "middle" | "end" = "start",
   baseline?: "middle" | "central" | "hanging"
 ) {
-  return lines.map((line, i) => (
+  return lines.map((line: any, i: number) => (
     <text
       key={i}
       x={x}
@@ -118,23 +118,20 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   const hasPie = cbc >= 0 && showCompPie;
   const pieSpace = hasPie ? 60 : 0;
   const botM = hz ? 50 : 60 + (absA > 0 ? absA * (isBar ? 0.9 : 0.8) : 0) + (hz ? 0 : pieSpace);
-  const maxLabelLen = hz ? Math.max(...groups.map((g) => g.name.length), 4) : 0;
+  const maxLabelLen = hz ? Math.max(...groups.map((g: any) => g.name.length), 4) : 0;
   const labelZone = maxLabelLen * 7 + 20;
   const leftM = hz ? Math.max(62, labelZone + (hasPie ? pieSpace : 0)) : 62;
 
   const _hasLabels = annotations && (annotations.kind === "cld" || annotations.kind === "both");
   const _hasPairs = annotations && (annotations.kind === "brackets" || annotations.kind === "both");
   const annotPairs = _hasPairs ? assignBracketLevels(annotations.pairs || []) : [];
-  const annotMaxLevel = annotPairs.reduce((m, pr) => Math.max(m, pr._level || 0), 0);
+  const annotMaxLevel = annotPairs.reduce((m: any, pr: any) => Math.max(m, pr._level || 0), 0);
   const subgroupLabelPad = subgroups && subgroups.length > 0 ? 18 : 0;
   const cldPad = _hasLabels ? 22 : 0;
   const bracketPad = annotPairs.length > 0 ? (annotMaxLevel + 1) * 20 + 6 : 0;
   const annotTopPadBase = Math.max(cldPad, bracketPad);
   const annotTopPad = annotTopPadBase + subgroupLabelPad;
   const M = { top: 24, right: 24, bottom: botM, left: leftM };
-
-  const allV = groups.flatMap((g) => g.allValues);
-  if (allV.length === 0) return null;
 
   // Cache kde() across renders, keyed on the underlying allValues array. The
   // chart wrapper rebuilds `groups` on every aesthetic tweak (sliders, colors)
@@ -144,7 +141,13 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   // violin/raincloud plots (O(nPoints × n) Gaussian evaluations per group),
   // and it is invoked twice per group per render — once for axis bounds, once
   // for the path geometry — so this also dedupes within a single render.
+  //
+  // Hook MUST come before any early-return so React's call order stays stable
+  // across renders (rules-of-hooks).
   const kdeCacheRef = useRef<WeakMap<number[], Array<{ x: number; d: number }>>>(new WeakMap());
+
+  const allV = groups.flatMap((g: any) => g.allValues);
+  if (allV.length === 0) return null;
   const getKde = (allValues: number[]) => {
     let pts = kdeCacheRef.current.get(allValues);
     if (!pts) {
@@ -200,10 +203,10 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
           ? Math.log
           : null;
   const logBase = yScale === "log2" ? 2 : yScale === "log10" ? 10 : yScale === "ln" ? Math.E : 0;
-  const safeLog = (v) => (logFn && v > 0 ? logFn(v) : logFn ? logFn(1e-10) : v);
+  const safeLog = (v: any) => (logFn && v > 0 ? logFn(v) : logFn ? logFn(1e-10) : v);
 
   if (isLog) {
-    const posVals = allV.filter((v) => v > 0);
+    const posVals = allV.filter((v: any) => v > 0);
     if (posVals.length > 0) {
       const smallestPos = Math.min(...posVals);
       if (yMin <= 0) yMin = smallestPos / 2;
@@ -220,13 +223,13 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   const catSize = Math.max(200, n * 100 * compact) + totalGap;
   const valSize = (isBar ? 420 : 504) + (hz ? 0 : absA > 0 ? absA * (isBar ? 0.9 : 0.8) : 0);
   const _hasSgSummaries =
-    subgroupSummaries && subgroups && Object.values(subgroupSummaries).some((v) => v);
+    subgroupSummaries && subgroups && Object.values(subgroupSummaries).some((v: any) => v);
   const _hzSgSummaryW =
     hz && _hasSgSummaries
       ? Math.max(
-          ...Object.values(subgroupSummaries as Record<string, string | null>).map((txt) => {
+          ...Object.values(subgroupSummaries as Record<string, string | null>).map((txt: any) => {
             if (!txt) return 0;
-            const maxLen = Math.max(...txt.split("\n").map((l) => l.length), 0);
+            const maxLen = Math.max(...txt.split("\n").map((l: any) => l.length), 0);
             return maxLen * (STATS_FONT * 0.62) + 16;
           }),
           0
@@ -235,7 +238,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   const _statsH =
     _hasSgSummaries && !hz
       ? Math.max(
-          ...subgroups.map((sg) => statsSummaryHeight(subgroupSummaries[sg.name] || null)),
+          ...subgroups.map((sg: any) => statsSummaryHeight(subgroupSummaries[sg.name] || null)),
           0
         )
       : statsSummaryHeight(statsSummary);
@@ -263,7 +266,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   const bandW = ((hz ? h : w) - totalGap) / n;
   const _cumulGap = (() => {
     if (!subgroups || subgroups.length < 2) return null;
-    const boundaries = new Set(subgroups.slice(1).map((sg) => sg.startIndex));
+    const boundaries = new Set(subgroups.slice(1).map((sg: any) => sg.startIndex));
     const arr = new Array(n);
     let gap = 0;
     for (let i = 0; i < n; i++) {
@@ -272,25 +275,25 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
     }
     return arr;
   })();
-  const bx = (i) => {
+  const bx = (i: any) => {
     const base = (hz ? M.top : M.left) + i * bandW + bandW / 2;
     return _cumulGap ? base + _cumulGap[i] : base;
   };
   const sy = isLog
-    ? (v) => {
+    ? (v: number) => {
         const lv = safeLog(Math.max(v, yMin));
         const lMin = safeLog(yMin);
         const lMax = safeLog(yMax);
         const frac = (lv - lMin) / (lMax - lMin || 1);
         return hz ? M.left + frac * w : M.top + (1 - frac) * h;
       }
-    : (v) => {
+    : (v: number) => {
         const frac = (v - yMin) / (yMax - yMin || 1);
         return hz ? M.left + frac * w : M.top + (1 - frac) * h;
       };
   const yTicks: Array<{ value: number; major: boolean }> = isLog
     ? makeLogTicks(yMin, yMax, logBase)
-    : makeTicks(yMin, yMax, 8).map((v) => ({ value: v, major: true }));
+    : makeTicks(yMin, yMax, 8).map((v: any) => ({ value: v, major: true }));
   const fmtTick = (t: number) => {
     if (!isLog)
       return Math.abs(t) < 0.01 && t !== 0
@@ -302,14 +305,14 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
     if (t >= 0.01) return t.toPrecision(2);
     return t.toExponential(1);
   };
-  const _sgForIdx = (i) => {
+  const _sgForIdx = (i: any) => {
     if (!subgroups) return null;
     for (const sg of subgroups) {
       if (i >= sg.startIndex && i < sg.startIndex + sg.count) return sg;
     }
     return null;
   };
-  const _grpId = (prefix, gi, name) => {
+  const _grpId = (prefix: any, gi: any, name: any) => {
     const sg = _sgForIdx(gi);
     return sg
       ? `${prefix}-${svgSafeId(sg.name)}-${svgSafeId(name)}`
@@ -317,20 +320,20 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   };
   const halfBox = (boxWidth / 100) * bandW * 0.4;
 
-  const pointColor = (g, src, si) => {
+  const pointColor = (g: any, src: any, si: any) => {
     if (cbc >= 0 && catCols && src.category)
       return catCols[src.category] || getPointColors(g.color, g.sources.length)[si] || g.color;
     return getPointColors(g.color, g.sources.length)[si] || g.color;
   };
 
-  const renderCompPie = (g, px, py, gi = 0) => {
+  const renderCompPie = (g: any, px: any, py: any, gi = 0) => {
     if (cbc < 0 || !g.sources || !showCompPie) return null;
     const total = g.allValues.length;
     if (!total) return null;
     const r = 20;
     let cum = 0;
 
-    const slices = g.sources.map((src, si) => {
+    const slices = g.sources.map((src: any, si: number) => {
       const pct = src.values.length / total;
       const a0 = cum * Math.PI * 2;
       const a1 = (cum + pct) * Math.PI * 2;
@@ -354,10 +357,12 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
       );
     });
 
-    const labels = g.sources.map((src, si) => {
+    const labels = g.sources.map((src: any, si: number) => {
       const pct = src.values.length / total;
       if (pct < 0.08) return null;
-      const cumPct = g.sources.slice(0, si).reduce((s, ss) => s + ss.values.length / total, 0);
+      const cumPct = g.sources
+        .slice(0, si)
+        .reduce((s: any, ss: any) => s + ss.values.length / total, 0);
       const midA = (cumPct + pct / 2) * Math.PI * 2;
       const lr = r + 8;
       return (
@@ -401,8 +406,8 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
       {showGrid && (
         <g id="grid">
           {yTicks
-            .filter((tk) => tk.major)
-            .map((tk) =>
+            .filter((tk: any) => tk.major)
+            .map((tk: any) =>
               hz ? (
                 <line
                   key={tk.value}
@@ -429,7 +434,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
       )}
 
       <g id={hz ? "axis-x" : "axis-y"}>
-        {yTicks.map((tk) => {
+        {yTicks.map((tk: any) => {
           const v = tk.value;
           const tickLen = tk.major ? 5 : 3;
           return (
@@ -487,7 +492,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
       </g>
 
       <g id={isBar ? "bars" : "groups"}>
-        {groups.map((g, gi) => {
+        {groups.map((g: any, gi: number) => {
           if (!g.stats) return null;
           const cx = bx(gi);
 
@@ -575,10 +580,10 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
                   </>
                 )}
                 {showPoints &&
-                  g.sources.map((src, si) => {
+                  g.sources.map((src: any, si: number) => {
                     const rng = seededRandom(gi * 1000 + si * 100 + 42);
                     const ptColor = pointColor(g, src, si);
-                    return src.values.map((v, vi) => {
+                    return src.values.map((v: any, vi: number) => {
                       const jitter = (rng() - 0.5) * jitterWidth * halfBox * 2;
                       return (
                         <circle
@@ -607,9 +612,9 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
           let violinPath = null;
           if (isViolin && g.allValues.length >= 2) {
             const pts = getKde(g.allValues);
-            const maxD = Math.max(...pts.map((p) => p.d));
+            const maxD = Math.max(...pts.map((p: any) => p.d));
             if (maxD > 0) {
-              const sc = (d) => (d / maxD) * halfBox;
+              const sc = (d: any) => (d / maxD) * halfBox;
               if (isRain) {
                 let d = hz ? `M ${sy(pts[0].x)},${cx}` : `M ${cx},${sy(pts[0].x)}`;
                 for (const p of pts)
@@ -742,10 +747,10 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
           const ptOffset = isRain ? halfBox * 0.55 : 0;
           const jitterEls =
             showPoints &&
-            g.sources.map((src, si) => {
+            g.sources.map((src: any, si: number) => {
               const rng = seededRandom(gi * 1000 + si * 100 + 42);
               const ptColor = pointColor(g, src, si);
-              return src.values.map((v, vi) => {
+              return src.values.map((v: any, vi: number) => {
                 const j = isRain
                   ? ptOffset + Math.abs(rng() - 0.5) * jitterWidth * halfBox
                   : (rng() - 0.5) * jitterWidth * halfBox * 2;
@@ -767,10 +772,10 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
 
           /* ── Outlier dots (always visible) ── */
           const outlierCx = isRain ? cx + ptOffset : cx;
-          const outlierEls = g.sources.flatMap((src, si) =>
+          const outlierEls = g.sources.flatMap((src: any, si: number) =>
             src.values
-              .filter((v) => v < wLo || v > wHi)
-              .map((v, oi) => (
+              .filter((v: any) => v < wLo || v > wHi)
+              .map((v: any, oi: number) => (
                 <circle
                   key={`out-${gi}-${si}-${oi}`}
                   cx={hz ? sy(v) : outlierCx}
@@ -808,7 +813,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
 
       {subgroups && subgroups.length > 1 && (
         <g id="subgroup-separators">
-          {subgroups.slice(1).map((sg, idx) => {
+          {subgroups.slice(1).map((sg: any, idx: number) => {
             const sepPos = bx(sg.startIndex) - bandW / 2 - separatorGap / 2;
             return hz ? (
               <line
@@ -839,7 +844,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
 
       {subgroups && subgroups.length > 0 && (
         <g id="subgroup-labels">
-          {subgroups.map((sg) => {
+          {subgroups.map((sg: any) => {
             const firstX = bx(sg.startIndex);
             const lastX = bx(sg.startIndex + sg.count - 1);
             const midPos = (firstX + lastX) / 2;
@@ -884,7 +889,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
       )}
 
       <g id={hz ? "axis-y" : "axis-x"}>
-        {groups.map((g, gi) => {
+        {groups.map((g: any, gi: number) => {
           const gp = bx(gi);
           if (hz) {
             const labelX = M.left - 8;
