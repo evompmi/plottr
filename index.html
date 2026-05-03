@@ -243,9 +243,17 @@
       }
       .tiles {
         display: grid;
-        grid-template-columns: repeat(2, 150px);
+        grid-template-columns: repeat(4, 150px);
         gap: 14px;
         justify-content: center;
+      }
+      .tiles.tiles-narrow {
+        grid-template-columns: repeat(2, 150px);
+      }
+      @media (max-width: 700px) {
+        .tiles {
+          grid-template-columns: repeat(2, 150px);
+        }
       }
       .tile {
         width: 150px;
@@ -837,7 +845,7 @@
           </button>
         </div>
         <span class="tile-group-label">Statistics &amp; Calculators</span>
-        <div class="tiles">
+        <div class="tiles tiles-narrow">
           <button class="tile" data-tool="power">
             <span class="tile-icon"
               ><svg
