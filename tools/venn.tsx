@@ -142,12 +142,13 @@ const VennChart = forwardRef<SVGSVGElement, any>(function VennChart(
       )}
 
       <g id="region-counts">
-        {intersections.map((inter) => {
+        {intersections.map((inter: any) => {
           const c = centroids[inter.mask];
           if (!c) return null;
           const isSelected = selectedMask === inter.mask;
           const regionPath = regionPaths[inter.mask];
-          const labelId = inter.setNames.map((n) => svgSafeId(n)).join("-") || `mask-${inter.mask}`;
+          const labelId =
+            inter.setNames.map((n: string) => svgSafeId(n)).join("-") || `mask-${inter.mask}`;
           return (
             <g
               key={`label-${inter.mask}`}
@@ -217,7 +218,7 @@ const VennChart = forwardRef<SVGSVGElement, any>(function VennChart(
 
 // ── UI Components ────────────────────────────────────────────────────────────
 
-function UploadStep({ sepOverride, setSepOverride, handleFileLoad, onLoadExample }) {
+function UploadStep({ sepOverride, setSepOverride, handleFileLoad, onLoadExample }: any) {
   return (
     <div>
       <UploadPanel
@@ -406,11 +407,11 @@ function ConfigureStep({
   pendingSelection,
   setPendingSelection,
   isLongFormat,
-}) {
+}: any) {
   const needsPicker = allColumnNames.length > 3;
   const selectedCount = pendingSelection.length;
 
-  const openUpset = (e) => {
+  const openUpset = (e: React.MouseEvent) => {
     e.preventDefault();
     // Hand the currently-loaded dataset off to the UpSet tool so it doesn't
     // open showing whatever stale file the user had loaded there before.
@@ -419,10 +420,10 @@ function ConfigureStep({
     // Tabs/newlines inside cells are flattened to spaces — set-membership
     // values are typically alphanumeric IDs so this is effectively a no-op
     // for real data and just hardens against the rare odd cell.
-    const escape = (c) => String(c == null ? "" : c).replace(/[\t\n\r]/g, " ");
+    const escape = (c: unknown) => String(c == null ? "" : c).replace(/[\t\n\r]/g, " ");
     const tsv = [
       parsedHeaders.map(escape).join("\t"),
-      ...parsedRows.map((r) => r.map(escape).join("\t")),
+      ...parsedRows.map((r: string[]) => r.map(escape).join("\t")),
     ].join("\n");
     const payload = {
       type: "dataviz-handoff",
@@ -462,9 +463,9 @@ function ConfigureStep({
   };
   const showNudge = allColumnNames.length >= 4;
 
-  const toggle = (name) => {
-    setPendingSelection((prev) => {
-      if (prev.includes(name)) return prev.filter((n) => n !== name);
+  const toggle = (name: string) => {
+    setPendingSelection((prev: string[]) => {
+      if (prev.includes(name)) return prev.filter((n: string) => n !== name);
       if (prev.length >= 3) return prev;
       return [...prev, name];
     });
@@ -539,7 +540,7 @@ function ConfigureStep({
               gap: 6,
             }}
           >
-            {allColumnNames.map((name) => {
+            {allColumnNames.map((name: string) => {
               const checked = pendingSelection.includes(name);
               const atCap = !checked && pendingSelection.length >= 3;
               const size = allColumnSets.get(name)?.size ?? 0;
@@ -604,8 +605,8 @@ function ConfigureStep({
   );
 }
 
-function IntersectionTable({ intersections, allSetNames, selectedMask, onSelect }) {
-  const [hoveredMask, setHoveredMask] = useState(null);
+function IntersectionTable({ intersections, allSetNames, selectedMask, onSelect }: any) {
+  const [hoveredMask, setHoveredMask] = useState<number | null>(null);
   return (
     <div style={{ overflowX: "auto" }}>
       <table style={{ borderCollapse: "collapse", fontSize: 12, width: "100%" }}>
@@ -644,7 +645,7 @@ function IntersectionTable({ intersections, allSetNames, selectedMask, onSelect 
           </tr>
         </thead>
         <tbody>
-          {intersections.map((inter) => (
+          {intersections.map((inter: any) => (
             <tr
               key={inter.mask}
               onClick={() => onSelect(inter.mask)}
@@ -687,7 +688,7 @@ function IntersectionTable({ intersections, allSetNames, selectedMask, onSelect 
   );
 }
 
-function ItemListPanel({ intersection, allSetNames, fileName }) {
+function ItemListPanel({ intersection, allSetNames, fileName }: any) {
   const baseName = fileBaseName(fileName, "venn");
   if (!intersection)
     return (
@@ -723,7 +724,7 @@ function ItemListPanel({ intersection, allSetNames, fileName }) {
           onClick={() => {
             downloadCsv(
               ["Item"],
-              intersection.items.map((i) => [i]),
+              intersection.items.map((i: string) => [i]),
               `${baseName}_venn_${regionFilenamePart(label)}.csv`
             );
           }}
@@ -750,7 +751,7 @@ function ItemListPanel({ intersection, allSetNames, fileName }) {
           background: "var(--surface-subtle)",
         }}
       >
-        {intersection.items.map((item, i) => (
+        {intersection.items.map((item: string, i: number) => (
           <div
             key={i}
             style={{
@@ -786,9 +787,9 @@ function PlotControls({
   proportional,
   onProportionalChange,
   fileName,
-}) {
+}: any) {
   const baseName = fileBaseName(fileName, "venn");
-  const sv = (k) => (v) => updVis({ [k]: v });
+  const sv = (k: string) => (v: unknown) => updVis({ [k]: v });
   return (
     <PlotSidebar>
       <ActionsPanel
@@ -808,7 +809,7 @@ function PlotControls({
                 .sort()
                 .map((item) => [
                   item,
-                  ...activeSetNames.map((n) => (allSets.get(n).has(item) ? "1" : "0")),
+                  ...activeSetNames.map((n: string) => (allSets.get(n).has(item) ? "1" : "0")),
                 ]);
               downloadCsv(headers, rows, `${baseName}_venn_membership.csv`);
             },
@@ -822,8 +823,8 @@ function PlotControls({
             title:
               "Download one CSV per non-empty region (fires multiple saves — your browser may ask once to allow them)",
             onClick: () => {
-              const nonEmpty = intersections.filter((r) => r.size > 0);
-              nonEmpty.forEach((r, i) => {
+              const nonEmpty = intersections.filter((r: any) => r.size > 0);
+              nonEmpty.forEach((r: any, i: number) => {
                 const label = regionLabel(r.setNames, r.mask, activeSetNames);
                 const name = `${baseName}_venn_${regionFilenamePart(label)}.csv`;
                 // Stagger slightly so the browser reliably handles each as
@@ -833,7 +834,7 @@ function PlotControls({
                   () =>
                     downloadCsv(
                       ["Item"],
-                      r.items.map((it) => [it]),
+                      r.items.map((it: string) => [it]),
                       name
                     ),
                   i * 40
@@ -849,7 +850,7 @@ function PlotControls({
           Sets
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          {allSetNames.map((name, i) => {
+          {allSetNames.map((name: string, i: number) => {
             const active = activeSets.has(name);
             const canUncheck = activeSets.size > 2;
             return (
@@ -1110,7 +1111,7 @@ function App() {
   }, [activeSetNames, activeSetsMap]);
 
   const canNavigate = useCallback(
-    (target) => {
+    (target: string) => {
       if (target === "upload") return true;
       if (target === "configure") return allColumnNames.length >= 2;
       if (target === "plot") {
@@ -1125,13 +1126,13 @@ function App() {
     [allColumnNames, setNames, step, pendingSelection]
   );
 
-  const commitSelection = useCallback((names, allSets) => {
-    const chosen = new Map();
-    names.forEach((n) => chosen.set(n, allSets.get(n)));
+  const commitSelection = useCallback((names: string[], allSets: Map<string, Set<string>>) => {
+    const chosen = new Map<string, Set<string>>();
+    names.forEach((n) => chosen.set(n, allSets.get(n)!));
     setSetNames(names);
     setSets(chosen);
     setActiveSets(new Set(names));
-    const cols = {};
+    const cols: Record<string, string> = {};
     names.forEach((n, i) => {
       cols[n] = PALETTE[i % PALETTE.length];
     });
@@ -1144,7 +1145,7 @@ function App() {
   // (only the bottom "Plot →" button ran commitSelection). Commit the
   // pending selection if it differs from the current one before navigating.
   const navigateStep = useCallback(
-    (target) => {
+    (target: string) => {
       if (
         target === "plot" &&
         step === "configure" &&
@@ -1153,7 +1154,7 @@ function App() {
       ) {
         const changed =
           pendingSelection.length !== setNames.length ||
-          pendingSelection.some((n) => !setNames.includes(n));
+          pendingSelection.some((n: string) => !setNames.includes(n));
         if (changed) commitSelection(pendingSelection, allColumnSets);
       }
       setStep(target);
@@ -1162,7 +1163,7 @@ function App() {
   );
 
   const doParse = useCallback(
-    (text, sep) => {
+    (text: string, sep: string) => {
       const dc = fixDecimalCommas(text, sep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
@@ -1176,7 +1177,8 @@ function App() {
       // Decide long-format vs wide. Logic extracted into `detectLongFormat`
       // (tools/venn/long-format-detect.ts) so it's unit-testable; see that
       // file for the decision rules and the audit-M2 history.
-      let sn, ss;
+      let sn: string[] = [];
+      let ss: Map<string, Set<string>> = new Map();
       let usedLongFormat = false;
       if (headers.length === 2 && detectLongFormat(headers, rows).isLong) {
         try {
@@ -1224,7 +1226,7 @@ function App() {
   );
 
   const handleFileLoad = useCallback(
-    (text, name) => {
+    (text: string, name: string) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
@@ -1239,20 +1241,20 @@ function App() {
     doParse(text, ",");
   }, [doParse]);
 
-  const handleColorChange = (name, color) => {
+  const handleColorChange = (name: string, color: string) => {
     setSetColors((prev) => ({ ...prev, [name]: color }));
   };
 
-  const handleRename = (oldName, newName) => {
+  const handleRename = (oldName: string, newName: string) => {
     if (oldName === newName || setNames.includes(newName)) return false;
     setSetNames((prev) => prev.map((n) => (n === oldName ? newName : n)));
     setSets((prev) => {
-      const m = new Map();
+      const m = new Map<string, Set<string>>();
       for (const [k, v] of prev) m.set(k === oldName ? newName : k, v);
       return m;
     });
     setSetColors((prev) => {
-      const c = {};
+      const c: Record<string, string> = {};
       for (const [k, v] of Object.entries(prev)) c[k === oldName ? newName : k] = v;
       return c;
     });
@@ -1267,7 +1269,7 @@ function App() {
     return true;
   };
 
-  const handleToggleSet = (name) => {
+  const handleToggleSet = (name: string) => {
     setActiveSets((prev) => {
       const s = new Set(prev);
       if (s.has(name)) s.delete(name);

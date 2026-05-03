@@ -86,7 +86,19 @@ function PaletteStrip({
 
 // ── Shapes ──────────────────────────────────────────────────────────────────
 
-function renderPoint(shape, cx, cy, r, props) {
+function renderPoint(
+  shape: string,
+  cx: number,
+  cy: number,
+  r: number,
+  props: {
+    fill?: string;
+    fillOpacity?: number;
+    stroke?: string;
+    strokeWidth?: number;
+    key?: string | number;
+  }
+) {
   const { fill, fillOpacity, stroke, strokeWidth, key } = props;
   switch (shape) {
     case "triangle": {
@@ -149,7 +161,15 @@ function renderPoint(shape, cx, cy, r, props) {
 }
 
 // Shape preview for HTML UI
-function ShapePreview({ shape, size = 16, color = "#666" }) {
+function ShapePreview({
+  shape,
+  size = 16,
+  color = "#666",
+}: {
+  shape: string;
+  size?: number;
+  color?: string;
+}) {
   return (
     <svg
       width={size}
@@ -206,20 +226,25 @@ const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart(
 ) {
   const w = VBW - MARGIN.left - MARGIN.right;
   const h = VBH - MARGIN.top - MARGIN.bottom;
-  const legendItemWidth = (block) => {
+  const legendItemWidth = (block: any) => {
     if (!block.items) return 88;
-    const maxLen = block.items.reduce((m, it) => Math.max(m, (it.label || "").length), 0);
+    const maxLen = block.items.reduce(
+      (m: number, it: any) => Math.max(m, (it.label || "").length),
+      0
+    );
     return Math.max(88, Math.min(260, maxLen * 6.2 + 22));
   };
   const legendH = computeLegendHeight(svgLegend, VBW - MARGIN.left - MARGIN.right, legendItemWidth);
   const xRange = xMax - xMin || 1;
   const yRange = yMax - yMin || 1;
-  const sx = (v) => MARGIN.left + ((v - xMin) / xRange) * w;
-  const sy = (v) => MARGIN.top + (1 - (v - yMin) / yRange) * h;
+  const sx = (v: number) => MARGIN.left + ((v - xMin) / xRange) * w;
+  const sy = (v: number) => MARGIN.top + (1 - (v - yMin) / yRange) * h;
   const xTicks = makeTicks(xMin, xMax, 8);
   const yTicks = makeTicks(yMin, yMax, 6);
 
-  const getColor = (xVal, yVal, rowIdx) => {
+  const getColor = (xVal: number, yVal: number, rowIdx: number): string => {
+    void xVal;
+    void yVal;
     if (colorMapCol != null && rawData) {
       const raw = rawData[rowIdx] ? rawData[rowIdx][colorMapCol] : null;
       if (raw != null && raw !== "") {
@@ -238,7 +263,7 @@ const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart(
     return pointColor;
   };
 
-  const getSize = (rowIdx) => {
+  const getSize = (rowIdx: number): number => {
     if (sizeMapCol != null && rawData) {
       const raw = rawData[rowIdx] ? rawData[rowIdx][sizeMapCol] : null;
       if (raw != null && raw !== "") {
@@ -257,7 +282,7 @@ const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart(
     return pointSize;
   };
 
-  const getShape = (rowIdx) => {
+  const getShape = (rowIdx: number): string => {
     if (shapeMapCol != null && rawData) {
       const raw = rawData[rowIdx] ? rawData[rowIdx][shapeMapCol] : null;
       if (raw != null && raw !== "" && shapeMapDiscrete[raw] !== undefined) {
@@ -319,7 +344,7 @@ const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart(
       )}
 
       <g id="reference-lines" clipPath="url(#sc-clip)">
-        {refLines.map((rl) => {
+        {refLines.map((rl: any) => {
           const isH = rl.dir === "h";
           const x1 = isH ? MARGIN.left : sx(rl.value);
           const x2 = isH ? MARGIN.left + w : sx(rl.value);
@@ -346,7 +371,7 @@ const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart(
       </g>
 
       <g id="reference-line-labels">
-        {refLines.map((rl) => {
+        {refLines.map((rl: any) => {
           if (!rl.label) return null;
           const isH = rl.dir === "h";
           if (isH) {
@@ -393,7 +418,7 @@ const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart(
         role="group"
         aria-label={`${data.length} data points`}
       >
-        {data.map((row, ri) => {
+        {data.map((row: any, ri: number) => {
           const xVal = row[xCol],
             yVal = row[yCol];
           if (xVal == null || yVal == null) return null;
@@ -666,7 +691,13 @@ function ControlSection({
   );
 }
 
-function AesBox({ theme, children }) {
+function AesBox({
+  theme,
+  children,
+}: {
+  theme: "color" | "size" | "shape";
+  children?: React.ReactNode;
+}) {
   const t = aesTheme[theme];
   return (
     <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
@@ -697,7 +728,7 @@ function UploadStep({
   doParse,
   handleFileLoad,
   onLoadExample,
-}) {
+}: any) {
   return (
     <div>
       <UploadPanel
@@ -923,7 +954,7 @@ function PlotStep({
   resetAll,
   svgRef,
   svgLegend,
-}) {
+}: any) {
   const hasColorMap = colorMapCol != null;
   const hasSizeMap = sizeMapCol != null;
   const hasShapeMap = shapeMapCol != null;
@@ -933,8 +964,8 @@ function PlotStep({
     if (!filtersOpen) return;
     requestAnimationFrame(() => scrollDisclosureIntoView(filtersPanelRef.current));
   }, [filtersOpen]);
-  const handleFilterToggle = (ci, v, vals, checked) => {
-    setFilterState((prev) => {
+  const handleFilterToggle = (ci: number, v: string, vals: string[], checked: boolean) => {
+    setFilterState((prev: Record<number, string[]>) => {
       const curr = prev[ci] || [];
       if (curr.length === 0) {
         return { ...prev, [ci]: vals.filter((x) => x !== v) };
@@ -967,8 +998,8 @@ function PlotStep({
                 "Download the filtered data table — only the columns and rows currently drawn on the plot",
               onClick: () =>
                 downloadCsv(
-                  activeColIdxs.map((i) => parsed.headers[i]),
-                  filteredRawRows.map((r) => activeColIdxs.map((i) => r[i])),
+                  activeColIdxs.map((i: number) => parsed.headers[i]),
+                  filteredRawRows.map((r: any) => activeColIdxs.map((i: number) => r[i])),
                   `${fileBaseName(fileName, "scatter")}_scatter.csv`
                 ),
             },
@@ -989,7 +1020,7 @@ function PlotStep({
                 className="dv-select"
                 style={{ width: "100%" }}
               >
-                {numericCols.map((i) => (
+                {numericCols.map((i: number) => (
                   <option key={i} value={i}>
                     {parsed.headers[i]}
                   </option>
@@ -1004,7 +1035,7 @@ function PlotStep({
                 className="dv-select"
                 style={{ width: "100%" }}
               >
-                {numericCols.map((i) => (
+                {numericCols.map((i: number) => (
                   <option key={i} value={i}>
                     {parsed.headers[i]}
                   </option>
@@ -1323,7 +1354,7 @@ function PlotStep({
             </p>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {refLines.map((rl) => (
+            {refLines.map((rl: any) => (
               <div
                 key={rl.id}
                 style={{
@@ -1478,8 +1509,8 @@ function PlotStep({
           >
             <option value="">— None —</option>
             {mappableCols
-              .filter((i) => i !== sizeMapCol && i !== shapeMapCol)
-              .map((i) => (
+              .filter((i: number) => i !== sizeMapCol && i !== shapeMapCol)
+              .map((i: number) => (
                 <option key={i} value={i}>
                   {parsed.headers[i]}
                 </option>
@@ -1510,7 +1541,7 @@ function PlotStep({
                     className="dv-select"
                     style={{ width: "100%", fontSize: 11 }}
                   >
-                    {Object.keys(COLOR_PALETTES).map((p) => (
+                    {Object.keys(COLOR_PALETTES).map((p: any) => (
                       <option key={p} value={p}>
                         {p}
                       </option>
@@ -1533,11 +1564,13 @@ function PlotStep({
                     overflowY: "auto",
                   }}
                 >
-                  {colorMapCategories.map((cat, ci) => (
+                  {colorMapCategories.map((cat: string, ci: number) => (
                     <div key={cat} style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <ColorInput
                         value={colorMapDiscrete[cat] || PALETTE[ci % PALETTE.length]}
-                        onChange={(v) => setColorMapDiscrete((prev) => ({ ...prev, [cat]: v }))}
+                        onChange={(v) =>
+                          setColorMapDiscrete((prev: any) => ({ ...prev, [cat]: v }))
+                        }
                         size={18}
                       />
                       <span style={{ fontSize: 12, color: "var(--text)" }}>{cat}</span>
@@ -1559,8 +1592,8 @@ function PlotStep({
           >
             <option value="">— None —</option>
             {mappableCols
-              .filter((i) => i !== colorMapCol && i !== shapeMapCol)
-              .map((i) => (
+              .filter((i: number) => i !== colorMapCol && i !== shapeMapCol)
+              .map((i: number) => (
                 <option key={i} value={i}>
                   {parsed.headers[i]}
                 </option>
@@ -1617,7 +1650,7 @@ function PlotStep({
                     overflowY: "auto",
                   }}
                 >
-                  {sizeMapCategories.map((cat) => {
+                  {sizeMapCategories.map((cat: string) => {
                     const val = sizeMapDiscrete[cat] !== undefined ? sizeMapDiscrete[cat] : 5;
                     return (
                       <SliderControl
@@ -1627,7 +1660,7 @@ function PlotStep({
                         min={1}
                         max={20}
                         step={0.5}
-                        onChange={(v) => setSizeMapDiscrete((prev) => ({ ...prev, [cat]: v }))}
+                        onChange={(v) => setSizeMapDiscrete((prev: any) => ({ ...prev, [cat]: v }))}
                       />
                     );
                   })}
@@ -1649,8 +1682,8 @@ function PlotStep({
           >
             <option value="">— None —</option>
             {mappableCols
-              .filter((i) => i !== colorMapCol && i !== sizeMapCol)
-              .map((i) => (
+              .filter((i: number) => i !== colorMapCol && i !== sizeMapCol)
+              .map((i: number) => (
                 <option key={i} value={i}>
                   {parsed.headers[i]}
                 </option>
@@ -1681,17 +1714,17 @@ function PlotStep({
                   overflowY: "auto",
                 }}
               >
-                {shapeMapCategories.map((cat, ci) => (
+                {shapeMapCategories.map((cat: string, ci: number) => (
                   <div key={cat} style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <select
                       value={shapeMapDiscrete[cat] || SHAPES[ci % SHAPES.length]}
                       onChange={(e) =>
-                        setShapeMapDiscrete((prev) => ({ ...prev, [cat]: e.target.value }))
+                        setShapeMapDiscrete((prev: any) => ({ ...prev, [cat]: e.target.value }))
                       }
                       className="dv-select"
                       style={{ fontSize: 11, width: 90 }}
                     >
-                      {SHAPES.map((s) => (
+                      {SHAPES.map((s: any) => (
                         <option key={s} value={s}>
                           {s}
                         </option>
@@ -1847,7 +1880,7 @@ function PlotStep({
                   overflowY: "auto",
                 }}
               >
-                {filterableCols.map((ci) => {
+                {filterableCols.map((ci: number) => {
                   const vals = uniqueVals(ci);
                   if (vals.length === 0 || vals.length > 30) return null;
                   const allowed = filterState[ci] || [];
@@ -1861,7 +1894,7 @@ function PlotStep({
                           {parsed.headers[ci]}
                         </span>
                         <button
-                          onClick={() => setFilterState((prev) => ({ ...prev, [ci]: [] }))}
+                          onClick={() => setFilterState((prev: any) => ({ ...prev, [ci]: [] }))}
                           style={{
                             fontSize: 10,
                             padding: "1px 6px",
@@ -1877,7 +1910,7 @@ function PlotStep({
                         </button>
                       </div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                        {vals.map((v) => {
+                        {vals.map((v: any) => {
                           const checked = allChecked || allowed.includes(v);
                           return (
                             <label
@@ -2003,24 +2036,24 @@ function App() {
   // direct values AND functional updaters so existing call sites (including
   // setShape((prev) => ({...prev, [k]: v})) patterns) keep working unchanged.
   const pointColor = vis.pointColor ?? "#648FFF";
-  const setPointColor = useCallback((v) => updVis({ pointColor: v }), [updVis]);
+  const setPointColor = useCallback((v: any) => updVis({ pointColor: v }), [updVis]);
   const pointSize = vis.pointSize ?? 5;
-  const setPointSize = useCallback((v) => updVis({ pointSize: v }), [updVis]);
+  const setPointSize = useCallback((v: any) => updVis({ pointSize: v }), [updVis]);
   const pointOpacity = vis.pointOpacity ?? 0.8;
-  const setPointOpacity = useCallback((v) => updVis({ pointOpacity: v }), [updVis]);
+  const setPointOpacity = useCallback((v: any) => updVis({ pointOpacity: v }), [updVis]);
   const strokeColor = vis.strokeColor ?? "#000000";
-  const setStrokeColor = useCallback((v) => updVis({ strokeColor: v }), [updVis]);
+  const setStrokeColor = useCallback((v: any) => updVis({ strokeColor: v }), [updVis]);
   const strokeWidth = vis.strokeWidth ?? 1;
-  const setStrokeWidth = useCallback((v) => updVis({ strokeWidth: v }), [updVis]);
+  const setStrokeWidth = useCallback((v: any) => updVis({ strokeWidth: v }), [updVis]);
 
   // Column-index mappings stay local — they're tied to the current dataset's
   // columns, not a visual pref the user wants restored across reloads.
   const [colorMapCol, setColorMapCol] = useState<number | null>(null);
   const colorMapPalette = vis.colorMapPalette ?? "viridis";
-  const setColorMapPalette = useCallback((v) => updVis({ colorMapPalette: v }), [updVis]);
-  const colorMapDiscrete = vis.colorMapDiscrete || {};
+  const setColorMapPalette = useCallback((v: any) => updVis({ colorMapPalette: v }), [updVis]);
+  const colorMapDiscrete: Record<string, string> = vis.colorMapDiscrete || {};
   const setColorMapDiscrete = useCallback(
-    (updater) =>
+    (updater: any) =>
       updVis({
         colorMapDiscrete:
           typeof updater === "function" ? updater(vis.colorMapDiscrete || {}) : updater || {},
@@ -2030,12 +2063,12 @@ function App() {
 
   const [sizeMapCol, setSizeMapCol] = useState<number | null>(null);
   const sizeMapMin = vis.sizeMapMin ?? 3;
-  const setSizeMapMin = useCallback((v) => updVis({ sizeMapMin: v }), [updVis]);
+  const setSizeMapMin = useCallback((v: any) => updVis({ sizeMapMin: v }), [updVis]);
   const sizeMapMax = vis.sizeMapMax ?? 15;
-  const setSizeMapMax = useCallback((v) => updVis({ sizeMapMax: v }), [updVis]);
-  const sizeMapDiscrete = vis.sizeMapDiscrete || {};
+  const setSizeMapMax = useCallback((v: any) => updVis({ sizeMapMax: v }), [updVis]);
+  const sizeMapDiscrete: Record<string, number> = vis.sizeMapDiscrete || {};
   const setSizeMapDiscrete = useCallback(
-    (updater) =>
+    (updater: any) =>
       updVis({
         sizeMapDiscrete:
           typeof updater === "function" ? updater(vis.sizeMapDiscrete || {}) : updater || {},
@@ -2044,9 +2077,9 @@ function App() {
   );
 
   const [shapeMapCol, setShapeMapCol] = useState<number | null>(null);
-  const shapeMapDiscrete = vis.shapeMapDiscrete || {};
+  const shapeMapDiscrete: Record<string, string> = vis.shapeMapDiscrete || {};
   const setShapeMapDiscrete = useCallback(
-    (updater) =>
+    (updater: any) =>
       updVis({
         shapeMapDiscrete:
           typeof updater === "function" ? updater(vis.shapeMapDiscrete || {}) : updater || {},
@@ -2059,7 +2092,7 @@ function App() {
 
   const refLines = vis.refLines || [];
   const setRefLines = useCallback(
-    (updater) =>
+    (updater: any) =>
       updVis({
         refLines: typeof updater === "function" ? updater(vis.refLines || []) : updater || [],
       }),
@@ -2076,40 +2109,50 @@ function App() {
     showStats: true,
     position: "tl",
   };
-  const updRegression = (patch) => updVis({ regression: { ...regression, ...patch } });
+  const updRegression = (patch: any) => updVis({ regression: { ...regression, ...patch } });
   const svgRef = useRef<SVGSVGElement | null>(null);
   const sepRef = useRef("");
 
   const parsed = useMemo(() => (rawText ? parseData(rawText, sepRef.current) : null), [rawText]);
 
   // Numeric column detection
-  const colIsNumeric = useMemo(() => {
+  const colIsNumeric = useMemo<Record<number, boolean>>(() => {
     if (!parsed) return {};
-    return parsed.headers.reduce((acc, _, i) => {
-      const vals = parsed.rawData.map((r) => r[i]).filter((v) => v !== "" && v != null);
-      acc[i] = vals.length > 0 && vals.filter((v) => isNumericValue(v)).length / vals.length > 0.5;
+    return parsed.headers.reduce<Record<number, boolean>>((acc, _, i) => {
+      const vals = parsed.rawData.map((r: any) => r[i]).filter((v: any) => v !== "" && v != null);
+      acc[i] =
+        vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5;
       return acc;
     }, {});
   }, [parsed]);
 
-  const numericCols = useMemo(() => {
+  const numericCols = useMemo<number[]>(() => {
     if (!parsed) return [];
-    return parsed.headers.reduce((acc, _, i) => (colIsNumeric[i] ? [...acc, i] : acc), []);
+    return parsed.headers.reduce<number[]>(
+      (acc, _, i) => (colIsNumeric[i] ? [...acc, i] : acc),
+      []
+    );
   }, [parsed, colIsNumeric]);
 
   // All column indices (active = not X or Y)
-  const activeColIdxs = useMemo(() => (parsed ? parsed.headers.map((_, i) => i) : []), [parsed]);
+  const activeColIdxs = useMemo(
+    () => (parsed ? parsed.headers.map((_: unknown, i: number) => i) : []),
+    [parsed]
+  );
 
   // Columns available for aesthetic mapping (everything except X and Y)
-  const mappableCols = useMemo(() => {
+  const mappableCols = useMemo<number[]>(() => {
     if (!parsed) return [];
-    return parsed.headers.reduce((acc, _, i) => (i !== xCol && i !== yCol ? [...acc, i] : acc), []);
+    return parsed.headers.reduce<number[]>(
+      (acc, _, i) => (i !== xCol && i !== yCol ? [...acc, i] : acc),
+      []
+    );
   }, [parsed, xCol, yCol]);
 
   // Columns available for filtering (non-X, non-Y, non-aesthetic, categorical with ≤30 values)
   const filterableCols = useMemo(() => {
     if (!parsed) return [];
-    return mappableCols.filter((i) => {
+    return mappableCols.filter((i: number) => {
       const vals = [
         ...new Set(parsed.rawData.map((r) => r[i]).filter((v) => v != null && v !== "")),
       ];
@@ -2130,20 +2173,22 @@ function App() {
   }, [parsed, filterState]);
 
   const filteredData = useMemo(
-    () => (parsed ? filteredIndices.map((i) => parsed.data[i]) : []),
+    () => (parsed ? filteredIndices.map((i: number) => parsed.data[i]) : []),
     [parsed, filteredIndices]
   );
   const filteredRawRows = useMemo(
-    () => (parsed ? filteredIndices.map((i) => parsed.rawData[i]) : []),
+    () => (parsed ? filteredIndices.map((i: number) => parsed.rawData[i]) : []),
     [parsed, filteredIndices]
   );
 
   // Detect column type (numeric vs discrete)
   const detectColType = useCallback(
-    (colIdx) => {
+    (colIdx: number | null) => {
       if (colIdx == null || !parsed) return null;
-      const vals = parsed.rawData.map((r) => r[colIdx]).filter((v) => v != null && v !== "");
-      return vals.every((v) => isNumericValue(v)) ? "continuous" : "discrete";
+      const vals = parsed.rawData
+        .map((r: any) => r[colIdx])
+        .filter((v: any) => v != null && v !== "");
+      return vals.every((v: any) => isNumericValue(v)) ? "continuous" : "discrete";
     },
     [parsed]
   );
@@ -2153,11 +2198,13 @@ function App() {
 
   // Unique values (sorted)
   const uniqueVals = useCallback(
-    (colIdx) => {
+    (colIdx: number | null): string[] => {
       if (colIdx == null || !parsed) return [];
       const vals = [
-        ...new Set(parsed.rawData.map((r) => r[colIdx]).filter((v) => v != null && v !== "")),
-      ];
+        ...new Set(
+          parsed.rawData.map((r: any) => r[colIdx]).filter((v: any) => v != null && v !== "")
+        ),
+      ] as string[];
       const allNum = vals.every((v) => isNumericValue(v));
       return allNum
         ? vals.sort((a, b) => parseFloat(a.replace(",", ".")) - parseFloat(b.replace(",", ".")))
@@ -2188,11 +2235,11 @@ function App() {
 
   // Numeric ranges for continuous mappings
   const numericRange = useCallback(
-    (colIdx) => {
+    (colIdx: number | null): [number, number] => {
       if (colIdx == null || !parsed) return [0, 1];
       const vals = parsed.rawData
-        .map((r) => parseFloat((r[colIdx] || "").replace(",", ".")))
-        .filter((v) => !isNaN(v));
+        .map((r: any) => parseFloat((r[colIdx] || "").replace(",", ".")))
+        .filter((v: number) => !isNaN(v));
       return vals.length ? [Math.min(...vals), Math.max(...vals)] : [0, 1];
     },
     [parsed]
@@ -2207,9 +2254,9 @@ function App() {
       setColorMapDiscrete({});
       return;
     }
-    setColorMapDiscrete((prev) => {
-      const next = {};
-      colorMapCategories.forEach((cat, i) => {
+    setColorMapDiscrete((prev: any) => {
+      const next: Record<string, string> = {};
+      colorMapCategories.forEach((cat: string, i: number) => {
         next[cat] = prev[cat] || PALETTE[i % PALETTE.length];
       });
       return next;
@@ -2222,9 +2269,9 @@ function App() {
       setSizeMapDiscrete({});
       return;
     }
-    setSizeMapDiscrete((prev) => {
-      const next = {};
-      sizeMapCategories.forEach((cat, i) => {
+    setSizeMapDiscrete((prev: any) => {
+      const next: Record<string, number> = {};
+      sizeMapCategories.forEach((cat: string, i: number) => {
         next[cat] = prev[cat] !== undefined ? prev[cat] : 3 + i * 3;
       });
       return next;
@@ -2237,9 +2284,9 @@ function App() {
       setShapeMapDiscrete({});
       return;
     }
-    setShapeMapDiscrete((prev) => {
-      const next = {};
-      shapeMapCategories.forEach((cat, i) => {
+    setShapeMapDiscrete((prev: any) => {
+      const next: Record<string, string> = {};
+      shapeMapCategories.forEach((cat: string, i: number) => {
         next[cat] = prev[cat] || SHAPES[i % SHAPES.length];
       });
       return next;
@@ -2315,7 +2362,7 @@ function App() {
       items.push({
         id: "legend-color",
         title: parsed.headers[colorMapCol],
-        items: colorMapCategories.map((c) => ({
+        items: colorMapCategories.map((c: any) => ({
           label: c,
           color: colorMapDiscrete[c] || "#999",
           shape: "dot",
@@ -2327,7 +2374,7 @@ function App() {
       items.push({
         id: "legend-size",
         title: parsed.headers[sizeMapCol],
-        sizeItems: sizeMapCategories.map((c) => ({
+        sizeItems: sizeMapCategories.map((c: any) => ({
           label: c,
           r: sizeMapDiscrete[c] || sizeMapMin,
         })),
@@ -2347,7 +2394,7 @@ function App() {
       items.push({
         id: "legend-shape",
         title: parsed.headers[shapeMapCol],
-        items: shapeMapCategories.map((c) => ({
+        items: shapeMapCategories.map((c: any) => ({
           label: c,
           color: "var(--text-muted)",
           shape: shapeMapDiscrete[c] || "circle",
@@ -2376,7 +2423,7 @@ function App() {
     shapeMapDiscrete,
   ]);
 
-  const doParse = useCallback((text, sep) => {
+  const doParse = useCallback((text: string, sep: string) => {
     sepRef.current = sep;
     const dc = fixDecimalCommas(text, sep);
     setCommaFixed(dc.commaFixed);
@@ -2394,11 +2441,13 @@ function App() {
     setRawText(fixedText);
 
     // Auto-assign X and Y to first two numeric columns
-    const isNum = (idx) => {
-      const vals = rawData.map((r) => r[idx]).filter((v) => v !== "" && v != null);
-      return vals.length > 0 && vals.filter((v) => isNumericValue(v)).length / vals.length > 0.5;
+    const isNum = (idx: number) => {
+      const vals = rawData.map((r: any) => r[idx]).filter((v: any) => v !== "" && v != null);
+      return (
+        vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5
+      );
     };
-    const nums = headers.reduce((acc, _, i) => (isNum(i) ? [...acc, i] : acc), []);
+    const nums = headers.reduce<number[]>((acc, _, i) => (isNum(i) ? [...acc, i] : acc), []);
     setXCol(nums[0] !== undefined ? nums[0] : 0);
     setYCol(nums[1] !== undefined ? nums[1] : nums[0] !== undefined ? nums[0] : 1);
 
@@ -2421,7 +2470,7 @@ function App() {
   }, []);
 
   const handleFileLoad = useCallback(
-    (text, name) => {
+    (text: string, name: string) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
@@ -2443,8 +2492,8 @@ function App() {
     setStep("upload");
   };
 
-  const addRefLine = (dir) =>
-    setRefLines((prev) => [
+  const addRefLine = (dir: "h" | "v") =>
+    setRefLines((prev: any[]) => [
       ...prev,
       {
         id: ++refLineCounter,
@@ -2458,11 +2507,14 @@ function App() {
         labelSide: dir === "h" ? "right" : "top",
       },
     ]);
-  const updateRefLine = (id, key, val) =>
-    setRefLines((prev) => prev.map((rl) => (rl.id === id ? { ...rl, [key]: val } : rl)));
-  const removeRefLine = (id) => setRefLines((prev) => prev.filter((rl) => rl.id !== id));
+  const updateRefLine = (id: number, key: string, val: unknown) =>
+    setRefLines((prev: any[]) =>
+      prev.map((rl: any) => (rl.id === id ? { ...rl, [key]: val } : rl))
+    );
+  const removeRefLine = (id: number) =>
+    setRefLines((prev: any[]) => prev.filter((rl: any) => rl.id !== id));
 
-  const canNavigate = (s) => {
+  const canNavigate = (s: string) => {
     if (s === "upload") return true;
     if (s === "plot") return !!parsed;
     return false;

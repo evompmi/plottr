@@ -12,12 +12,12 @@ const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
 // ── Effect size helpers (power-tool-specific) ──────────────────────────────
 
 // Two-sample t: d from means + SD
-function dFromMeans(m1, m2, sd) {
+function dFromMeans(m1: number, m2: number, sd: number): number {
   return sd > 0 ? Math.abs(m1 - m2) / sd : 0;
 }
 
 // Chi-square w from expected proportions vs hypothesized
-function wFromProportions(observed, expected) {
+function wFromProportions(observed: number[], expected: number[]): number {
   if (!observed.length || observed.length !== expected.length) return 0;
   let sum = 0;
   for (let i = 0; i < expected.length; i++) {
@@ -29,7 +29,29 @@ function wFromProportions(observed, expected) {
 
 // ── Test definitions ────────────────────────────────────────────────────────
 
-const TESTS = {
+type PowerFn = (
+  es: number,
+  n: number,
+  alpha: number,
+  tails: number,
+  k?: number,
+  df?: number
+) => number;
+type TestKey = "t-ind" | "t-paired" | "t-one" | "anova" | "correlation" | "chi2";
+type TestDef = {
+  label: string;
+  question: string;
+  nLabel: string;
+  power: PowerFn;
+  effectMax: number;
+  hasGroups?: boolean;
+  hasDf?: boolean;
+  minN?: number;
+  totalN?: (n: number, k: number) => number;
+  totalLabel?: (n: number, k: number) => string;
+};
+
+const TESTS: Record<TestKey, TestDef> = {
   "t-ind": {
     label: "Two-sample t-test",
     question: "How many subjects per group to detect a difference between two independent groups?",
@@ -58,7 +80,7 @@ const TESTS = {
     question: "How many subjects per group to detect differences among k group means?",
     nLabel: "n per group",
     hasGroups: true,
-    power: (es, n, alpha, _tails, k) => powerAnova(es, n, alpha, k),
+    power: (es, n, alpha, _tails, k) => powerAnova(es, n, alpha, k ?? 2),
     effectMax: 2,
     totalN: (n, k) => n * k,
     totalLabel: (n, k) => `Total N = ${n * k} (${n} per group \u00d7 ${k} groups)`,
@@ -76,14 +98,24 @@ const TESTS = {
     question: "How many observations for a goodness-of-fit or independence test?",
     nLabel: "n (total)",
     hasDf: true,
-    power: (es, n, alpha, _tails, _k, df) => powerChi2(es, n, alpha, df),
+    power: (es, n, alpha, _tails, _k, df) => powerChi2(es, n, alpha, df ?? 1),
     effectMax: 1,
   },
 };
 
 // ── Effect size input component (the key UX piece) ──────────────────────────
 
-function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
+function EffectSizePanel({
+  testKey,
+  effectSize,
+  onEffectChange,
+  disabled,
+}: {
+  testKey: TestKey;
+  effectSize: number | string;
+  onEffectChange: (v: string) => void;
+  disabled?: boolean;
+}) {
   const [mode, setMode] = useState("helper"); // "helper" or "direct"
   // t-test helper state
   const [mean1, setMean1] = useState("");
@@ -105,7 +137,7 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
   const note = { fontSize: 10, color: "var(--text-faint)", marginTop: 2 };
 
   // Parse ratio string like "3:1" or "0.75,0.25" into normalized proportions
-  function parseProportions(str) {
+  function parseProportions(str: string): number[] {
     if (!str.trim()) return [];
     let parts;
     if (str.includes(":")) {
@@ -168,7 +200,7 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
     onEffectChange,
   ]);
 
-  const computedD = parseFloat(effectSize);
+  const computedD = parseFloat(String(effectSize));
   const sizeLabel =
     testKey === "correlation"
       ? computedD < 0.1
@@ -453,7 +485,7 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
       )}
 
       {/* Computed effect size display */}
-      {effectSize && parseFloat(effectSize) > 0 && (
+      {effectSize && parseFloat(String(effectSize)) > 0 && (
         <div
           style={{
             marginTop: 6,
@@ -467,7 +499,7 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
           }}
         >
           <span style={{ fontSize: 12, color: "var(--text)" }}>
-            Effect size = <b>{parseFloat(effectSize).toFixed(3)}</b>
+            Effect size = <b>{parseFloat(String(effectSize)).toFixed(3)}</b>
           </span>
           {sizeLabel && (
             <span style={{ fontSize: 11, fontWeight: 600, color: sizeColor }}>{sizeLabel}</span>
@@ -480,10 +512,24 @@ function EffectSizePanel({ testKey, effectSize, onEffectChange, disabled }) {
 
 // ── Power curve SVG ─────────────────────────────────────────────────────────
 
-const PowerCurve = forwardRef<SVGSVGElement, any>(function PowerCurve(
-  { testKey, powerFn, params, solveFor, result },
-  ref
-) {
+type PowerCurveParams = {
+  es: number;
+  n: number;
+  alpha: number;
+  tails: number;
+  k: number;
+  df: number;
+};
+const PowerCurve = forwardRef<
+  SVGSVGElement,
+  {
+    testKey: TestKey;
+    powerFn: PowerFn;
+    params: PowerCurveParams;
+    solveFor: string;
+    result: number | null;
+  }
+>(function PowerCurve({ testKey, powerFn, params, solveFor, result }, ref) {
   const test = TESTS[testKey];
   if (!test) return null;
 
@@ -507,8 +553,8 @@ const PowerCurve = forwardRef<SVGSVGElement, any>(function PowerCurve(
     curvePoints.push({ x: ni, y: Math.min(1, Math.max(0, pw)) });
   }
 
-  const sx = (v) => M.left + ((v - xRange[0]) / (xRange[1] - xRange[0])) * w;
-  const sy = (v) => M.top + (1 - v) * h;
+  const sx = (v: number) => M.left + ((v - xRange[0]) / (xRange[1] - xRange[0])) * w;
+  const sy = (v: number) => M.top + (1 - v) * h;
 
   const pathD = curvePoints
     .map((p, i) => `${i === 0 ? "M" : "L"}${sx(p.x).toFixed(2)},${sy(p.y).toFixed(2)}`)
@@ -665,7 +711,7 @@ const PowerCurve = forwardRef<SVGSVGElement, any>(function PowerCurve(
 // ── Main App ────────────────────────────────────────────────────────────────
 
 function App() {
-  const [testKey, setTestKey] = useState("t-ind");
+  const [testKey, setTestKey] = useState<TestKey>("t-ind");
   const [solveFor, setSolveFor] = useState("n");
   const [effectSize, setEffectSize] = useState("0.5");
   const [nInput, setNInput] = useState("30");
@@ -674,7 +720,7 @@ function App() {
   const [tails, setTails] = useState(2);
   const [kInput, setKInput] = useState("3");
   const [dfInput, setDfInput] = useState("1");
-  const prevResultRef = useRef();
+  const prevResultRef = useRef<number | null | undefined>(undefined);
   const [resultFlash, setResultFlash] = useState(false);
 
   const test = TESTS[testKey];
@@ -689,7 +735,7 @@ function App() {
   const result = useMemo(() => {
     try {
       const minN = test.minN || 2;
-      const pw = (e, ni) => test.power(e, ni, alpha, tails, k, df);
+      const pw = (e: number, ni: number) => test.power(e, ni, alpha, tails, k, df);
       if (solveFor === "n") {
         if (es <= 0 || alpha <= 0 || alpha >= 1 || power <= 0 || power >= 1) return null;
         return Math.ceil(
@@ -713,10 +759,12 @@ function App() {
     return "—";
   }, [result, solveFor]);
 
-  const resultLabel = {
-    n: `Required ${test.nLabel}`,
-    power: "Statistical power",
-  }[solveFor];
+  const resultLabel = (
+    {
+      n: `Required ${test.nLabel}`,
+      power: "Statistical power",
+    } as Record<string, string>
+  )[solveFor];
 
   useEffect(() => {
     if (prevResultRef.current !== undefined && result !== prevResultRef.current && result != null) {
@@ -732,8 +780,8 @@ function App() {
     if (resultFlash) prevResultRef.current = result;
   }, [resultFlash]);
 
-  const handleTestChange = useCallback((e) => {
-    const key = e.target.value;
+  const handleTestChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const key = e.target.value as TestKey;
     setTestKey(key);
     setSolveFor("n");
     if (key === "anova" || key === "chi2") setTails(2);

@@ -52,14 +52,14 @@ const BAR_FILL_ENRICHED = "#2ca25f";
 const BAR_FILL_DEPLETED = "#a50f15";
 
 // Row height is tuned so tall set lists stay legible without dominating the view.
-function computeRowHeight(nSets) {
+function computeRowHeight(nSets: number): number {
   return Math.max(22, Math.min(40, Math.round(140 / Math.max(1, nSets) + 14)));
 }
 
 // Column width fits the preferred width when the column count allows it,
 // otherwise clamps to MIN_COL_W so the SVG grows wider instead of shrinking
 // columns below legibility. Callers use the returned colW to derive SVG_W.
-function computeColWidth(nCols, matrixLeftX) {
+function computeColWidth(nCols: number, matrixLeftX: number): number {
   if (nCols <= 0) return 24;
   const avail = PREFERRED_SVG_W - matrixLeftX - RIGHT_MARGIN;
   return Math.max(MIN_COL_W, Math.min(MAX_COL_W, avail / nCols));
@@ -98,7 +98,10 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
   // collide with their labels at large font sizes. The 0.58 factor is a
   // conservative average-width estimate for sans-serif glyphs.
   const labelFontSize = Math.max(10, fSize - 1);
-  const estLabelW = Math.max(0, ...setNames.map((n) => String(n).length * labelFontSize * 0.58));
+  const estLabelW = Math.max(
+    0,
+    ...setNames.map((n: string) => String(n).length * labelFontSize * 0.58)
+  );
   const leftLabelArea = Math.max(LEFT_LABEL_AREA_MIN, Math.ceil(estLabelW) + 6);
   // Set-id lane: a dedicated column between the set-name labels and the
   // matrix, rendering "S1", "S2", … in display order. Mirrors the column-id
@@ -138,7 +141,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
   // the domain max (last tick) is strictly above the data max so the largest
   // bar stops just below the panel edge rather than touching it.
   const topPanelBottom = topPanelY + TOP_PANEL_H;
-  const topAxisMax = Math.max(1, ...intersections.map((r) => r.size));
+  const topAxisMax = Math.max(1, ...intersections.map((r: any) => r.size));
   const topTicks = buildBarTicks(topAxisMax, 4);
   const topDomainMax = topTicks[topTicks.length - 1];
   // Both the intersection-size labels and the significance markers render
@@ -167,17 +170,17 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
   const labelHeadroom =
     maxSizeLabelHeight + maxSigLabelHeight + gapBetweenLabels + (hasAnyLabel ? 6 : 0);
   const barAreaHeight = Math.max(40, TOP_PANEL_H - labelHeadroom);
-  const topBarScale = (v) => (v / topDomainMax) * barAreaHeight;
+  const topBarScale = (v: number) => (v / topDomainMax) * barAreaHeight;
   const barAreaTop = topPanelBottom - barAreaHeight;
 
   // Left (set-size) bar area — same scaling strategy as the top panel.
-  const setSizeMax = Math.max(1, ...setNames.map((n) => setSizes.get(n) || 0));
+  const setSizeMax = Math.max(1, ...setNames.map((n: string) => setSizes.get(n) || 0));
   const leftTicks = buildBarTicks(setSizeMax, 3);
   const leftDomainMax = leftTicks[leftTicks.length - 1];
-  const leftBarScale = (v) => (v / leftDomainMax) * LEFT_BAR_MAX;
+  const leftBarScale = (v: number) => (v / leftDomainMax) * LEFT_BAR_MAX;
 
-  const colX = (i) => matrixLeftX + colW * (i + 0.5);
-  const rowY = (i) => matrixY + rowH * (i + 0.5);
+  const colX = (i: number) => matrixLeftX + colW * (i + 0.5);
+  const rowY = (i: number) => matrixY + rowH * (i + 0.5);
 
   // Axis tick geometry for the top (intersection size) axis — rendered on the
   // *left* edge of the top panel so the numbers are readable even if there are
@@ -304,7 +307,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           significant. Bars with no cached test, or tests that don't cross
           p < 0.05, fall back to the default black fill. */}
       <g id="intersection-bars">
-        {intersections.map((inter, i) => {
+        {intersections.map((inter: any, i: number) => {
           const cx = colX(i);
           const barW = Math.max(6, colW * 0.7);
           const barX = cx - barW / 2;
@@ -343,7 +346,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
 
       {sizeLabelShown && (
         <g id="intersection-bar-labels">
-          {intersections.map((inter, i) => {
+          {intersections.map((inter: any, i: number) => {
             const cx = colX(i);
             const h = topBarScale(inter.size);
             const anchorY = topPanelBottom - h - 3;
@@ -374,7 +377,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           in `significanceByMask`. */}
       {significanceDisplay && significanceDisplay !== "off" && significanceByMask && (
         <g id="significance-markers">
-          {intersections.map((inter, i) => {
+          {intersections.map((inter: any, i: number) => {
             const sig = significanceByMask.get(inter.mask);
             if (!sig || !Number.isFinite(sig.pAdj)) return null;
             const cx = colX(i);
@@ -427,7 +430,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           spans only the populated column range so the bands shrink in step
           with the minimum-size / minimum-degree filters. */}
       <g id="matrix-background">
-        {setNames.map((_, i) =>
+        {setNames.map((_: unknown, i: number) =>
           i % 2 === 0 ? (
             <rect
               key={`zb-${i}`}
@@ -445,7 +448,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
       {/* Set labels inside the left panel, right-aligned against the S# id
           lane (the id lane sits between the names and the matrix). */}
       <g id="set-labels">
-        {setNames.map((name, i) => (
+        {setNames.map((name: string, i: number) => (
           <text
             key={`sl-${i}`}
             x={setIdLaneX - 2}
@@ -469,7 +472,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           alongside the exported intersection CSV. Re-numbering when the
           user shows/hides sets is intentional (same contract as I#). */}
       <g id="set-ids">
-        {setNames.map((_, i) => (
+        {setNames.map((_: unknown, i: number) => (
           <text
             key={`sid-${i}`}
             id={`set-id-${i + 1}`}
@@ -488,7 +491,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
 
       {/* Set-size horizontal bars. */}
       <g id="set-size-bars">
-        {setNames.map((name, i) => {
+        {setNames.map((name: string, i: number) => {
           const size = setSizes.get(name) || 0;
           const w = leftBarScale(size);
           const barRightX = setIdLaneX - LEFT_GAP - leftLabelArea;
@@ -509,7 +512,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
 
       {showSetSizeLabels !== false && (
         <g id="set-size-bar-labels">
-          {setNames.map((name, i) => {
+          {setNames.map((name: string, i: number) => {
             const size = setSizes.get(name) || 0;
             const w = leftBarScale(size);
             const barRightX = setIdLaneX - LEFT_GAP - leftLabelArea;
@@ -595,7 +598,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
       <g id="column-ids">
         {(() => {
           const idLaneY = matrixY + matrixH + idLaneOffset;
-          return intersections.map((inter, i) => {
+          return intersections.map((inter: any, i: number) => {
             const cx = colX(i);
             return (
               <text
@@ -643,7 +646,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
       {/* Matrix: per-column group with line + dots. */}
       <g id="matrix">
         <g id="matrix-columns">
-          {intersections.map((inter, i) => {
+          {intersections.map((inter: any, i: number) => {
             const cx = colX(i);
             const inSet = new Set(inter.setIndices);
             const isSelected = selectedMask === inter.mask;
@@ -678,7 +681,7 @@ const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
                     strokeWidth={Math.max(1.5, dotR / 3)}
                   />
                 )}
-                {setNames.map((name, j) => (
+                {setNames.map((name: string, j: number) => (
                   <circle
                     key={`d-${j}`}
                     id={`dot-${idKey}-${svgSafeId(name)}`}
@@ -706,7 +709,7 @@ function UploadStep({
   setFormat,
   handleFileLoad,
   onLoadExample,
-}) {
+}: any) {
   return (
     <div>
       <div className="dv-panel" style={{ marginBottom: 12 }}>
@@ -1007,7 +1010,7 @@ function ConfigureStep({
   setMinDegree,
   maxDegree,
   setMaxDegree,
-}) {
+}: any) {
   const selectedCount = pendingSelection.length;
   const needsCutoff = selectedCount > 8;
   // Reset the cutoff window back to "all degrees" whenever the gate disappears
@@ -1019,8 +1022,8 @@ function ConfigureStep({
       setMaxDegree(Infinity);
       return;
     }
-    setMinDegree((d) => Math.max(1, Math.min(selectedCount, d)));
-    setMaxDegree((d) =>
+    setMinDegree((d: number) => Math.max(1, Math.min(selectedCount, d)));
+    setMaxDegree((d: number) =>
       Number.isFinite(d) ? Math.max(1, Math.min(selectedCount, d)) : selectedCount
     );
   }, [needsCutoff, selectedCount]);
@@ -1034,16 +1037,18 @@ function ConfigureStep({
   const cutoffPreview = useMemo(() => {
     if (!needsCutoff) return null;
     const pendingSets = new Map();
-    pendingSelection.forEach((n) => pendingSets.set(n, allColumnSets.get(n)));
+    pendingSelection.forEach((n: string) => pendingSets.set(n, allColumnSets.get(n)));
     const { membershipMap } = computeMemberships(pendingSelection, pendingSets);
     const all = enumerateIntersections(membershipMap, pendingSelection);
-    const kept = all.filter((r) => r.degree >= minDegree && r.degree <= effectiveMaxDegree).length;
+    const kept = all.filter(
+      (r: any) => r.degree >= minDegree && r.degree <= effectiveMaxDegree
+    ).length;
     return { nonEmpty: all.length, kept };
   }, [needsCutoff, pendingSelection, allColumnSets, minDegree, effectiveMaxDegree]);
 
-  const toggle = (name) => {
-    setPendingSelection((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+  const toggle = (name: string) => {
+    setPendingSelection((prev: string[]) =>
+      prev.includes(name) ? prev.filter((n: string) => n !== name) : [...prev, name]
     );
   };
   let pickerStatusText = "Pick at least 2 sets to plot.";
@@ -1071,7 +1076,7 @@ function ConfigureStep({
             gap: 6,
           }}
         >
-          {allColumnNames.map((name) => {
+          {allColumnNames.map((name: string) => {
             const checked = pendingSelection.includes(name);
             const size = allColumnSets.get(name)?.size ?? 0;
             return (
@@ -1186,7 +1191,7 @@ function ConfigureStep({
 
 // ── Intersection table + item list (below the chart) ────────────────────────
 
-function ItemListPanel({ intersection, setNames, fileName, columnId }) {
+function ItemListPanel({ intersection, setNames, fileName, columnId }: any) {
   const baseName = fileBaseName(fileName, "upset");
   if (!intersection)
     return (
@@ -1233,7 +1238,7 @@ function ItemListPanel({ intersection, setNames, fileName, columnId }) {
           onClick={() =>
             downloadCsv(
               ["Item"],
-              intersection.items.map((i) => [i]),
+              intersection.items.map((i: string) => [i]),
               columnId != null
                 ? `${baseName}_upset_I${columnId}.csv`
                 : `${baseName}_upset_${intersectionFilenamePart(label)}.csv`
@@ -1262,7 +1267,7 @@ function ItemListPanel({ intersection, setNames, fileName, columnId }) {
           background: "var(--surface-subtle)",
         }}
       >
-        {intersection.items.map((item, i) => (
+        {intersection.items.map((item: string, i: number) => (
           <div
             key={i}
             style={{
@@ -1285,9 +1290,17 @@ function ItemListPanel({ intersection, setNames, fileName, columnId }) {
 
 // Matches the collapsible sidebar tiles used by scatter / boxplot: header
 // row with a disclosure arrow, and the content block only mounts when open.
-function ControlSection({ title, defaultOpen = false, children }) {
+function ControlSection({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: React.ReactNode;
+  defaultOpen?: boolean;
+  children?: React.ReactNode;
+}) {
   const [open, setOpen] = useState(defaultOpen);
-  const rootRef = useRef(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!open) return;
     requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
@@ -1345,9 +1358,9 @@ function PlotControls({
   defaultUniverseSize,
   maxAllIntersectionSize,
   allIntersectionsCount,
-}) {
+}: any) {
   const baseName = fileBaseName(fileName, "upset");
-  const sv = (k) => (v) => updVis({ [k]: v });
+  const sv = (k: string) => (v: unknown) => updVis({ [k]: v });
   const universeValid =
     universeSize !== "" && Number.isFinite(Number(universeSize)) && Number(universeSize) > 0;
   return (
@@ -1363,9 +1376,11 @@ function PlotControls({
               "Download the currently-plotted intersection table (Intersection, Degree, Size, + per-set flags). Matches the plot exactly — reflects sort, Top N, Minimum/Maximum degree, and Minimum size filters.",
             onClick: () => {
               const headers = ["Intersection", "Degree", "Size", ...activeSetNames];
-              const rows = intersections.map((r) => {
+              const rows = intersections.map((r: any) => {
                 const label = intersectionLabel(r.setIndices, activeSetNames);
-                const flags = activeSetNames.map((_, i) => (r.setIndices.includes(i) ? "1" : "0"));
+                const flags = activeSetNames.map((_: unknown, i: number) =>
+                  r.setIndices.includes(i) ? "1" : "0"
+                );
                 return [label, String(r.degree), String(r.size), ...flags];
               });
               downloadCsv(headers, rows, `${baseName}_upset_intersections.csv`);
@@ -1376,14 +1391,14 @@ function PlotControls({
             title:
               "Download the membership matrix — one row per item, a 0/1 column for each active set",
             onClick: () => {
-              const allItems = new Set();
+              const allItems = new Set<string>();
               for (const n of activeSetNames) for (const item of allSets.get(n)) allItems.add(item);
               const headers = ["Item", ...activeSetNames];
               const rows = [...allItems]
                 .sort()
                 .map((item) => [
                   item,
-                  ...activeSetNames.map((n) => (allSets.get(n).has(item) ? "1" : "0")),
+                  ...activeSetNames.map((n: string) => (allSets.get(n).has(item) ? "1" : "0")),
                 ]);
               downloadCsv(headers, rows, `${baseName}_upset_membership.csv`);
             },
@@ -1395,7 +1410,7 @@ function PlotControls({
             onClick: () => {
               if (!intersections.length) return;
               const indexHeaders = ["Id", "Intersection", "Degree", "Size"];
-              const indexRows = intersections.map((inter, i) => [
+              const indexRows = intersections.map((inter: any, i: number) => [
                 `I${i + 1}`,
                 intersectionLabel(inter.setIndices, activeSetNames),
                 String(inter.degree),
@@ -1405,12 +1420,12 @@ function PlotControls({
               // drop everything after the first file when a synchronous loop
               // fires multiple <a>.click() events in the same tick.
               downloadCsv(indexHeaders, indexRows, `${baseName}_upset_index.csv`);
-              intersections.forEach((inter, i) => {
+              intersections.forEach((inter: any, i: number) => {
                 setTimeout(
                   () => {
                     downloadCsv(
                       ["Item"],
-                      inter.items.map((item) => [item]),
+                      inter.items.map((item: string) => [item]),
                       `${baseName}_upset_I${i + 1}.csv`
                     );
                   },
@@ -1976,7 +1991,7 @@ function IntersectionStatsPanel({
   membershipMap,
   universeSize,
   intersectionTests,
-}) {
+}: any) {
   if (!intersection) return null;
 
   // Inclusive count: items whose bitmask covers every selected set.
@@ -1990,23 +2005,27 @@ function IntersectionStatsPanel({
   }, [intersection, membershipMap]);
 
   const selectedSetSizes = intersection.setIndices.map(
-    (i) => (sets.get(displaySetNames[i]) || new Set()).size
+    (i: number) => (sets.get(displaySetNames[i]) || new Set()).size
   );
-  const selectedSetNames = intersection.setIndices.map((i) => displaySetNames[i]);
+  const selectedSetNames = intersection.setIndices.map((i: number) => displaySetNames[i]);
 
   const universeN = typeof universeSize === "number" ? universeSize : Number(universeSize);
 
   const cacheKey = `${intersection.mask}:${universeN}`;
   const cachedResult = intersectionTests.get(cacheKey);
 
-  const fmtP = (p) => {
+  const fmtP = (p: number | null | undefined) => {
     if (p == null || !Number.isFinite(p)) return "—";
     if (p === 0) return "0";
     if (p >= 1e-4) return p.toPrecision(4);
     return p.toExponential(3);
   };
 
-  const sidebarSection = (label, value, tooltip = null) =>
+  const sidebarSection = (
+    label: React.ReactNode,
+    value: React.ReactNode,
+    tooltip: string | null = null
+  ) =>
     React.createElement(
       "div",
       { style: { display: "flex", justifyContent: "space-between", gap: 16 } },
@@ -2081,7 +2100,7 @@ function IntersectionStatsPanel({
             : direction === "depleted"
               ? "var(--warning-text, #b45309)"
               : "var(--text-muted)";
-        const fmtExpected = (v) => {
+        const fmtExpected = (v: number) => {
           if (!Number.isFinite(v)) return "—";
           if (v === 0) return "0";
           if (v >= 0.01 && v < 1000) return v.toPrecision(4).replace(/\.?0+$/, "");
@@ -2152,7 +2171,12 @@ function IntersectionStatsPanel({
               flexWrap: "wrap" as const,
               fontSize: 12,
             };
-            const renderRow = (label, hint, p, pAdj) => (
+            const renderRow = (
+              label: string,
+              hint: string,
+              p: number | null | undefined,
+              pAdj: number | null | undefined
+            ) => (
               <div style={rowStyle}>
                 <span
                   style={{
@@ -2468,7 +2492,7 @@ function App() {
   }, []);
 
   const canNavigate = useCallback(
-    (target) => {
+    (target: string) => {
       if (target === "upload") return true;
       if (target === "configure") return allColumnNames.length >= 2;
       if (target === "plot") {
@@ -2482,9 +2506,9 @@ function App() {
     [allColumnNames, displaySetNames, step, pendingSelection]
   );
 
-  const commitSelection = useCallback((names, allSets) => {
-    const chosen = new Map();
-    names.forEach((n) => chosen.set(n, allSets.get(n)));
+  const commitSelection = useCallback((names: string[], allSets: Map<string, Set<string>>) => {
+    const chosen = new Map<string, Set<string>>();
+    names.forEach((n) => chosen.set(n, allSets.get(n)!));
     setSetNames(names);
     setSets(chosen);
     setSelectedMask(null);
@@ -2496,11 +2520,11 @@ function App() {
   // the current one and patch vis with the pending min/max degree before
   // navigating, matching what the old bottom "Plot →" button used to do.
   const navigateStep = useCallback(
-    (target) => {
+    (target: string) => {
       if (target === "plot" && step === "configure" && pendingSelection.length >= 2) {
         const changed =
           pendingSelection.length !== setNames.length ||
-          pendingSelection.some((n) => !setNames.includes(n));
+          pendingSelection.some((n: string) => !setNames.includes(n));
         if (changed) commitSelection(pendingSelection, allColumnSets);
         updVis({
           minDegree: Math.max(1, pendingMinDegree || 1),
@@ -2523,7 +2547,7 @@ function App() {
   );
 
   const doParse = useCallback(
-    (text, sep, fmt) => {
+    (text: string, sep: string, fmt: string) => {
       const dc = fixDecimalCommas(text, sep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
@@ -2563,7 +2587,7 @@ function App() {
   );
 
   const handleFileLoad = useCallback(
-    (text, name) => {
+    (text: string, name: string) => {
       setFileName(name);
       doParse(text, sepOverride, format);
     },
@@ -2590,7 +2614,7 @@ function App() {
   // way; the sessionStorage entry is removed immediately so a future page
   // load with no fresh hand-off doesn't re-load stale data.
   const handleHandoff = useCallback(
-    (payload) => {
+    (payload: any) => {
       if (!payload || typeof payload.text !== "string") return;
       // Audit policy: any ingest surface must gate on FILE_LIMIT_BYTES (see
       // doc-comment in tools/shared-file-drop.js). Same-origin only after
@@ -2625,7 +2649,7 @@ function App() {
     } catch {
       /* storage disabled — handoff just won't fire */
     }
-    const onMessage = (e) => {
+    const onMessage = (e: MessageEvent) => {
       if (!e || e.origin !== window.location.origin) return;
       const d = e.data;
       if (!d || d.type !== "dataviz-handoff") return;

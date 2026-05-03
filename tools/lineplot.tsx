@@ -87,13 +87,13 @@ const Chart = forwardRef<SVGSVGElement, any>(function Chart(
   },
   ref
 ) {
-  const itemW = (b) => {
-    const maxLen = Math.max(0, ...(b.items || []).map((i) => (i.label || "").length));
+  const itemW = (b: any) => {
+    const maxLen = Math.max(0, ...(b.items || []).map((i: any) => (i.label || "").length));
     return Math.max(110, maxLen * 6 + 28);
   };
   const legendH = computeLegendHeight(svgLegend, vbW - MARGIN.left - MARGIN.right, itemW);
   const topPad = (plotTitle ? 20 : 0) + (plotSubtitle ? 16 : 0);
-  const starRowH = showStars && perXStats.some((r) => r.pAdj != null) ? STAR_ROW_H : 0;
+  const starRowH = showStars && perXStats.some((r: any) => r.pAdj != null) ? STAR_ROW_H : 0;
 
   const w = vbW - MARGIN.left - MARGIN.right;
   const h = vbH - MARGIN.top - MARGIN.bottom;
@@ -101,16 +101,16 @@ const Chart = forwardRef<SVGSVGElement, any>(function Chart(
   const innerH = h - starRowH;
   const xRange = xMax - xMin || 1;
   const yRange = yMax - yMin || 1;
-  const sx = (v) => MARGIN.left + ((v - xMin) / xRange) * w;
-  const sy = (v) => innerTop + (1 - (v - yMin) / yRange) * innerH;
-  const clampY = (v) => Math.max(yMin, Math.min(yMax, v));
+  const sx = (v: number) => MARGIN.left + ((v - xMin) / xRange) * w;
+  const sy = (v: number) => innerTop + (1 - (v - yMin) / yRange) * innerH;
+  const clampY = (v: number) => Math.max(yMin, Math.min(yMax, v));
 
   const xTicks = makeTicks(xMin, xMax, 8);
   const yTicks = makeTicks(yMin, yMax, 6);
 
   // errorType === "none" returns null so the render loop's
   // `!e || !Number.isFinite(e)` guard skips the bar entirely.
-  const errOf = (p) =>
+  const errOf = (p: any) =>
     errorType === "none" ? null : errorType === "sd" ? p.sd : errorType === "ci95" ? p.ci95 : p.sem;
 
   return (
@@ -189,8 +189,8 @@ const Chart = forwardRef<SVGSVGElement, any>(function Chart(
           </g>
         )}
         <g id="traces">
-          {series.map((s) => {
-            const linePts = s.points.map((p) => ({
+          {series.map((s: any) => {
+            const linePts = s.points.map((p: any) => ({
               x: sx(p.x),
               y: p.mean != null ? sy(p.mean) : null,
             }));
@@ -209,9 +209,9 @@ const Chart = forwardRef<SVGSVGElement, any>(function Chart(
           })}
         </g>
         <g id="error-bars">
-          {series.map((s) => (
+          {series.map((s: any) => (
             <g key={`errs-${s.name}`} id={`errbars-${svgSafeId(s.name)}`}>
-              {s.points.map((p, pi) => {
+              {s.points.map((p: any, pi: number) => {
                 if (p.n < 2 || p.mean == null) return null;
                 const e = errOf(p);
                 if (!e || !Number.isFinite(e)) return null;
@@ -252,9 +252,9 @@ const Chart = forwardRef<SVGSVGElement, any>(function Chart(
           ))}
         </g>
         <g id="data-points">
-          {series.map((s) => (
+          {series.map((s: any) => (
             <g key={`pts-${s.name}`} id={`points-${svgSafeId(s.name)}`}>
-              {s.points.map((p, pi) =>
+              {s.points.map((p: any, pi: number) =>
                 p.mean == null ? null : (
                   <circle
                     key={`pt-${pi}`}
@@ -272,7 +272,7 @@ const Chart = forwardRef<SVGSVGElement, any>(function Chart(
         </g>
         {showStars && starRowH > 0 && (
           <g id="significance-stars">
-            {perXStats.map((r, i) => {
+            {perXStats.map((r: any, i: number) => {
               if (r.pAdj == null) return null;
               const s = pStars(r.pAdj);
               if (!s || s === "ns") return null;
@@ -387,7 +387,15 @@ const Chart = forwardRef<SVGSVGElement, any>(function Chart(
 
 // ── ControlSection (disclosure panel) ──────────────────────────────────────
 
-function ControlSection({ title, defaultOpen = false, children }) {
+function ControlSection({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: React.ReactNode;
+  defaultOpen?: boolean;
+  children?: React.ReactNode;
+}) {
   const [open, setOpen] = useState(defaultOpen);
   const rootRef = useRef(null);
   useEffect(() => {
@@ -435,7 +443,7 @@ function UploadStep({
   doParse,
   handleFileLoad,
   onLoadExample,
-}) {
+}: any) {
   return (
     <div>
       <UploadPanel
@@ -597,7 +605,7 @@ const LP_AES_THEMES = {
   },
 };
 
-function LpAesBox({ theme, children }) {
+function LpAesBox({ theme, children }: { theme: "x" | "y" | "group"; children?: React.ReactNode }) {
   const t = LP_AES_THEMES[theme];
   return (
     <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
@@ -630,7 +638,7 @@ function ConfigureStep({
   setGroupCol,
   numericCols,
   categoricalCols,
-}) {
+}: any) {
   const canPlot = xCol != null && yCol != null && numericCols.length >= 2;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -648,7 +656,7 @@ function ConfigureStep({
             className="dv-select"
             style={{ width: "100%" }}
           >
-            {numericCols.map((i) => (
+            {numericCols.map((i: number) => (
               <option key={i} value={i}>
                 {parsed.headers[i]}
               </option>
@@ -665,7 +673,7 @@ function ConfigureStep({
             className="dv-select"
             style={{ width: "100%" }}
           >
-            {numericCols.map((i) => (
+            {numericCols.map((i: number) => (
               <option key={i} value={i}>
                 {parsed.headers[i]}
               </option>
@@ -683,7 +691,7 @@ function ConfigureStep({
             style={{ width: "100%" }}
           >
             <option value="">— None (single line) —</option>
-            {categoricalCols.map((i) => (
+            {categoricalCols.map((i: number) => (
               <option key={i} value={i}>
                 {parsed.headers[i]}
               </option>
@@ -734,12 +742,12 @@ function PlotControls({
   statsRows,
   svgRef,
   resetAll,
-}) {
-  const sv = (k) => (v) => updVis({ [k]: v });
+}: any) {
+  const sv = (k: string) => (v: unknown) => updVis({ [k]: v });
 
   const downloadStatsCsv = () => {
     const headers = ["x", "test", "statistic", "p", "p_adj", "stars"];
-    const rows = statsRows.map((r) => {
+    const rows = statsRows.map((r: any) => {
       const stat =
         r.result && !r.result.error
           ? r.result.t != null
@@ -801,7 +809,7 @@ function PlotControls({
               className="dv-select"
               style={{ width: "100%" }}
             >
-              {numericCols.map((i) => (
+              {numericCols.map((i: number) => (
                 <option key={i} value={i}>
                   {parsed.headers[i]}
                 </option>
@@ -816,7 +824,7 @@ function PlotControls({
               className="dv-select"
               style={{ width: "100%" }}
             >
-              {numericCols.map((i) => (
+              {numericCols.map((i: number) => (
                 <option key={i} value={i}>
                   {parsed.headers[i]}
                 </option>
@@ -832,7 +840,7 @@ function PlotControls({
               style={{ width: "100%" }}
             >
               <option value="">(single line)</option>
-              {categoricalCols.map((i) => (
+              {categoricalCols.map((i: number) => (
                 <option key={i} value={i}>
                   {parsed.headers[i]}
                 </option>
@@ -849,7 +857,7 @@ function PlotControls({
           </p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {series.map((s) => (
+            {series.map((s: any) => (
               <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <ColorInput value={s.color} onChange={(c) => setGroupColor(s.name, c)} />
                 <span style={{ fontSize: 12, color: "var(--text)" }}>{s.name}</span>
@@ -1000,7 +1008,7 @@ function PlotControls({
 // the decision trace + post-hoc inline. Aggregate TXT / R downloads at the
 // top reproduce every per-x test in a single file.
 
-const TEST_LABELS_LP = {
+const TEST_LABELS_LP: Record<string, string> = {
   studentT: "Student's t",
   welchT: "Welch's t",
   mannWhitney: "Mann-Whitney U",
@@ -1008,13 +1016,13 @@ const TEST_LABELS_LP = {
   welchANOVA: "Welch's ANOVA",
   kruskalWallis: "Kruskal-Wallis",
 };
-const POSTHOC_LABELS_LP = {
+const POSTHOC_LABELS_LP: Record<string, string> = {
   tukeyHSD: "Tukey HSD",
   gamesHowell: "Games-Howell",
   dunn: "Dunn (BH-adjusted)",
 };
 
-function formatStat(testName, res) {
+function formatStat(testName: string, res: any): string {
   if (!res || res.error) return "—";
   if (testName === "studentT" || testName === "welchT")
     return `t(${res.df.toFixed(2)}) = ${res.t.toFixed(3)}`;
@@ -1027,7 +1035,7 @@ function formatStat(testName, res) {
   return "—";
 }
 
-function buildPerXTextBlock(row, xLabel) {
+function buildPerXTextBlock(row: any, xLabel: string): string {
   const lines: string[] = [];
   const names = row.names;
   const values = row.values;
@@ -1067,7 +1075,7 @@ function buildPerXTextBlock(row, xLabel) {
   lines.push("");
   const norm = (rec && rec.normality) || [];
   if (norm.length > 0) {
-    const parts = norm.map((r) => {
+    const parts = norm.map((r: any) => {
       const label = names[r.group] || `g${r.group}`;
       const verdict = r.normal === true ? "normal" : r.normal === false ? "not normal" : "—";
       return `${label}: ${verdict}`;
@@ -1105,7 +1113,7 @@ function buildPerXTextBlock(row, xLabel) {
   return lines.join("\n");
 }
 
-function buildAggregateReport(rows, xLabel) {
+function buildAggregateReport(rows: any[], xLabel: string): string {
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const head = [
     "Line Plot — per-x statistical analysis",
@@ -1116,10 +1124,10 @@ function buildAggregateReport(rows, xLabel) {
     "P-values are BH-adjusted across the x-axis. Stars use the adjusted p.",
     "",
   ];
-  return head.join("\n") + rows.map((r) => buildPerXTextBlock(r, xLabel)).join("");
+  return head.join("\n") + rows.map((r: any) => buildPerXTextBlock(r, xLabel)).join("");
 }
 
-function buildAggregateRScript(rows, xLabel) {
+function buildAggregateRScript(rows: any[], xLabel: string): string {
   if (!rows.length || typeof buildRScript !== "function") return "";
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   // sanitizeRComment strips embedded line terminators so a hostile x-axis
@@ -1163,7 +1171,7 @@ function buildAggregateRScript(rows, xLabel) {
   return parts.join("\n");
 }
 
-function PerXDetail({ row, onOverrideTest, isOverridden }) {
+function PerXDetail({ row, onOverrideTest, isOverridden }: any) {
   const names = row.names;
   const values = row.values;
   const k = names.length;
@@ -1239,7 +1247,7 @@ function PerXDetail({ row, onOverrideTest, isOverridden }) {
           </tr>
         </thead>
         <tbody>
-          {names.map((name, i) => {
+          {names.map((name: string, i: number) => {
             const vs = values[i];
             const n = vs.length;
             const m = sampleMean(vs);
@@ -1269,7 +1277,7 @@ function PerXDetail({ row, onOverrideTest, isOverridden }) {
             Shapiro-Wilk (normality)
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {norm.map((r, i) => {
+            {norm.map((r: any, i: number) => {
               const label = names[r.group] || `g${r.group}`;
               const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
               const verdict =
@@ -1373,7 +1381,7 @@ function PerXDetail({ row, onOverrideTest, isOverridden }) {
               </tr>
             </thead>
             <tbody>
-              {row.postHocResult.pairs.map((pr, i) => {
+              {row.postHocResult.pairs.map((pr: any, i: number) => {
                 const p = pr.pAdj != null ? pr.pAdj : pr.p;
                 const diff =
                   pr.diff != null
@@ -1418,7 +1426,7 @@ function PerXDetail({ row, onOverrideTest, isOverridden }) {
               </tr>
             </thead>
             <tbody>
-              {row.powerResult.rows.map((pr, i) => (
+              {row.powerResult.rows.map((pr: any, i: number) => (
                 <tr key={i}>
                   {i === 0 ? (
                     <td style={tdS} rowSpan={row.powerResult.rows.length}>
@@ -1462,7 +1470,7 @@ function PerXDetail({ row, onOverrideTest, isOverridden }) {
   );
 }
 
-function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars }) {
+function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars }: any) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [hovered, setHovered] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
@@ -1470,7 +1478,7 @@ function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars }) {
   const hasR = typeof buildRScript === "function";
 
   const enriched = useMemo(() => {
-    const withChosen = rows.map((r) => {
+    const withChosen = rows.map((r: any) => {
       const key = formatX(r.x);
       const rec = selectTest(r.values);
       const recTest =
@@ -1487,27 +1495,27 @@ function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars }) {
     // user-overridden) per-x test results.
     const validIdx: number[] = [];
     const validPs: number[] = [];
-    withChosen.forEach((r, i) => {
+    withChosen.forEach((r: any, i: number) => {
       if (r.result && !r.result.error && Number.isFinite(r.result.p)) {
         validIdx.push(i);
         validPs.push(r.result.p);
       }
     });
     const adjPs = validPs.length > 0 ? bhAdjust(validPs) : [];
-    withChosen.forEach((r) => (r.pAdj = null));
+    withChosen.forEach((r: any) => (r.pAdj = null));
     validIdx.forEach((origIdx, j) => (withChosen[origIdx].pAdj = adjPs[j]));
     return withChosen;
   }, [rows, overrides]);
 
-  const setOverride = (key, test) =>
-    setOverrides((prev) => {
+  const setOverride = (key: string, test: string | null) =>
+    setOverrides((prev: Record<string, string>) => {
       const next = { ...prev };
       if (test == null) delete next[key];
       else next[key] = test;
       return next;
     });
 
-  const xSlug = (row, i) => {
+  const xSlug = (row: any, i: number) => {
     const raw = formatX(row.x);
     const clean =
       typeof svgSafeId === "function"
@@ -1522,7 +1530,7 @@ function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars }) {
       downloadText(buildAggregateReport(enriched, xLabel), `${stem}_stats.txt`);
       return;
     }
-    enriched.forEach((row, i) => {
+    enriched.forEach((row: any, i: number) => {
       const content = buildAggregateReport([row], xLabel);
       const name = `${stem}_${xSlug(row, i)}_stats.txt`;
       setTimeout(() => downloadText(content, name), i * 120);
@@ -1533,7 +1541,7 @@ function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars }) {
       downloadText(buildAggregateRScript(enriched, xLabel), `${stem}_stats.R`);
       return;
     }
-    enriched.forEach((row, i) => {
+    enriched.forEach((row: any, i: number) => {
       const content = buildAggregateRScript([row], xLabel);
       const name = `${stem}_${xSlug(row, i)}_stats.R`;
       setTimeout(() => downloadText(content, name), i * 120);
@@ -1685,7 +1693,7 @@ function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars }) {
           </tr>
         </thead>
         <tbody>
-          {enriched.map((r) => {
+          {enriched.map((r: any) => {
             const key = formatX(r.x);
             const isOpen = !!expanded[key];
             const p = r.result && !r.result.error ? r.result.p : null;
@@ -1744,7 +1752,7 @@ function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars }) {
                       <PerXDetail
                         row={r}
                         isOverridden={!!overrides[key]}
-                        onOverrideTest={(t) => setOverride(key, t)}
+                        onOverrideTest={(t: string | null) => setOverride(key, t)}
                       />
                     </td>
                   </tr>
@@ -1760,7 +1768,7 @@ function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars }) {
 
 // ── PlotStep ───────────────────────────────────────────────────────────────
 
-function PlotStep(props) {
+function PlotStep(props: any) {
   const {
     parsed,
     fileName,
@@ -1881,9 +1889,9 @@ function App() {
   // errorType + showStars + groupColors now live in `vis` so the PrefsPanel
   // Save / Load file and the auto-persist localStorage slot cover them.
   const errorType = vis.errorType ?? "sem";
-  const setErrorType = useCallback((v) => updVis({ errorType: v }), [updVis]);
+  const setErrorType = useCallback((v: string) => updVis({ errorType: v }), [updVis]);
   const showStars = vis.showStars ?? true;
-  const setShowStars = useCallback((v) => updVis({ showStars: v }), [updVis]);
+  const setShowStars = useCallback((v: boolean) => updVis({ showStars: v }), [updVis]);
   const groupColors = vis.groupColors || {};
 
   const svgRef = useRef<SVGSVGElement>(null);
@@ -1893,21 +1901,28 @@ function App() {
 
   const colIsNumeric = useMemo(() => {
     if (!parsed) return {};
-    return parsed.headers.reduce((acc, _, i) => {
-      const vals = parsed.rawData.map((r) => r[i]).filter((v) => v !== "" && v != null);
-      acc[i] = vals.length > 0 && vals.filter((v) => isNumericValue(v)).length / vals.length > 0.5;
+    return parsed.headers.reduce((acc: any, _: unknown, i: number) => {
+      const vals = parsed.rawData.map((r: any) => r[i]).filter((v: any) => v !== "" && v != null);
+      acc[i] =
+        vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5;
       return acc;
     }, {});
   }, [parsed]);
 
   const numericCols = useMemo(() => {
     if (!parsed) return [];
-    return parsed.headers.reduce((acc, _, i) => (colIsNumeric[i] ? [...acc, i] : acc), []);
+    return parsed.headers.reduce(
+      (acc: any, _: unknown, i: number) => (colIsNumeric[i] ? [...acc, i] : acc),
+      []
+    );
   }, [parsed, colIsNumeric]);
 
   const categoricalCols = useMemo(() => {
     if (!parsed) return [];
-    return parsed.headers.reduce((acc, _, i) => (colIsNumeric[i] ? acc : [...acc, i]), []);
+    return parsed.headers.reduce(
+      (acc: any, _: unknown, i: number) => (colIsNumeric[i] ? acc : [...acc, i]),
+      []
+    );
   }, [parsed, colIsNumeric]);
 
   const series = useMemo(() => {
@@ -1916,7 +1931,8 @@ function App() {
   }, [parsed, xCol, yCol, groupCol, groupColors]);
 
   const setGroupColor = useCallback(
-    (name, color) => updVis({ groupColors: { ...(vis.groupColors || {}), [name]: color } }),
+    (name: string, color: string) =>
+      updVis({ groupColors: { ...(vis.groupColors || {}), [name]: color } }),
     [updVis, vis.groupColors]
   );
 
@@ -1974,7 +1990,7 @@ function App() {
       {
         id: "legend-group",
         title: groupCol != null && parsed ? parsed.headers[groupCol] : "",
-        items: series.map((s) => ({ label: s.name, color: s.color, shape: "dot" })),
+        items: series.map((s: any) => ({ label: s.name, color: s.color, shape: "dot" })),
       },
     ];
   }, [series, groupCol, parsed]);
@@ -1992,7 +2008,7 @@ function App() {
     });
   }, [xCol, yCol, parsed]);
 
-  const doParse = useCallback((text, sep) => {
+  const doParse = useCallback((text: string, sep: string) => {
     sepRef.current = sep;
     const dc = fixDecimalCommas(text, sep);
     setCommaFixed(dc.commaFixed);
@@ -2009,12 +2025,20 @@ function App() {
     setParseError(null);
     setRawText(fixedText);
 
-    const isNum = (idx) => {
-      const vals = rawData.map((r) => r[idx]).filter((v) => v !== "" && v != null);
-      return vals.length > 0 && vals.filter((v) => isNumericValue(v)).length / vals.length > 0.5;
+    const isNum = (idx: number) => {
+      const vals = rawData.map((r: any) => r[idx]).filter((v: any) => v !== "" && v != null);
+      return (
+        vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5
+      );
     };
-    const nums = headers.reduce((acc, _, i) => (isNum(i) ? [...acc, i] : acc), []);
-    const cats = headers.reduce((acc, _, i) => (isNum(i) ? acc : [...acc, i]), []);
+    const nums = headers.reduce(
+      (acc: any, _: unknown, i: number) => (isNum(i) ? [...acc, i] : acc),
+      []
+    );
+    const cats = headers.reduce(
+      (acc: any, _: unknown, i: number) => (isNum(i) ? acc : [...acc, i]),
+      []
+    );
     setXCol(nums[0] !== undefined ? nums[0] : 0);
     setYCol(nums[1] !== undefined ? nums[1] : nums[0] !== undefined ? nums[0] : 1);
     setGroupCol(cats[0] !== undefined ? cats[0] : null);
@@ -2023,7 +2047,7 @@ function App() {
   }, []);
 
   const handleFileLoad = useCallback(
-    (text, name) => {
+    (text: string, name: string) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
@@ -2045,7 +2069,7 @@ function App() {
     setStep("upload");
   };
 
-  const canNavigate = (s) => {
+  const canNavigate = (s: string) => {
     if (s === "upload") return true;
     if (s === "configure") return !!parsed;
     if (s === "plot") return !!parsed && xCol != null && yCol != null;
