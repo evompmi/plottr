@@ -556,6 +556,10 @@ const html = `<!doctype html>
   } catch (e) {}
 </script>
 <title>Plöttr · statistical benchmark vs R</title>
+<link
+  rel="icon"
+  href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='none' stroke='%23648FFF' stroke-width='2'/><g fill='none' stroke='%23648FFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M 13 6.5 L 13 25.5'/><path d='M 13 6.5 L 22 11.5'/><path d='M 13 13 L 22 18'/></g></svg>"
+/>
 <link rel="stylesheet" href="tools/theme.css" />
 <link rel="stylesheet" href="tools/components.css" />
 <script src="tools/shared.bundle.js"></script>
