@@ -209,8 +209,46 @@ declare global {
   ): void;
 
   // ── R-script export (shared-r-export.js) ──────────────────────────────────
-  function buildRScript(ctx: any): string;
-  function buildRScriptForPower(state: any): string;
+  // Per-group context fed into the R reproducibility script. `recommendation` is
+  // the full selectTest() return — we accept it loosely because callers
+  // sometimes pass the raw selectTest result and sometimes a slimmed copy.
+  interface BuildRScriptContext {
+    names: string[];
+    values: number[][];
+    recommendation?: {
+      recommendation?: {
+        test?: RecommendedTest;
+        postHoc?: RecommendedPostHoc;
+        reason?: string;
+      };
+    } | null;
+    chosenTest?: RecommendedTest | null;
+    postHocName?: string | null;
+    dataNote?: string;
+    generatedAt?: string;
+  }
+  function buildRScript(ctx: BuildRScriptContext): string;
+
+  // Power-tool context. Numeric fields may be null when the tool is mid-edit;
+  // the script generator emits a placeholder comment in that case rather than
+  // rejecting the input.
+  interface BuildRScriptForPowerState {
+    testKey: string;
+    // Loose `string` / `number` rather than narrow unions because the calling
+    // tool stores these in `useState` without a type parameter; tightening here
+    // would force casts at every call site without catching real bugs.
+    solveFor: string;
+    es?: number | null;
+    n?: number | null;
+    alpha?: number | null;
+    power?: number | null;
+    tails?: number | null;
+    k?: number | null;
+    df?: number | null;
+    result?: number | null;
+    generatedAt?: string;
+  }
+  function buildRScriptForPower(state: BuildRScriptForPowerState): string;
   function sanitizeRString(s: unknown): string;
   function sanitizeRComment(s: unknown): string;
   function formatRNumber(n: number | null | undefined): string;

@@ -2533,7 +2533,8 @@ function App() {
       try {
         parsed = fmt === "long" ? parseLongFormatSets(headers, rows) : parseSetData(headers, rows);
       } catch (e) {
-        setParseError(e.message || "Unable to parse set membership.");
+        const msg = e instanceof Error ? e.message : "";
+        setParseError(msg || "Unable to parse set membership.");
         return;
       }
       const { setNames: sn, sets: ss } = parsed;

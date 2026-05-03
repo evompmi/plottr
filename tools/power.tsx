@@ -725,6 +725,7 @@ function App() {
       return () => clearTimeout(id);
     }
     prevResultRef.current = result;
+    return undefined;
   }, [result]);
 
   useEffect(() => {

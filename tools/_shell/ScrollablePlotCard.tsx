@@ -35,7 +35,7 @@ export function ScrollablePlotCard({ children }: ScrollablePlotCardProps) {
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el) return undefined;
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);

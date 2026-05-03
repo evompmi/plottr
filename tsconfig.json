@@ -14,6 +14,10 @@
     "forceConsistentCasingInFileNames": true,
     "strict": false,
     "noImplicitAny": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "useUnknownInCatchVariables": true,
+    "noImplicitThis": true,
     "types": ["react", "react-dom"]
   },
   "include": ["tools/*.tsx", "tools/_shell/**/*.ts", "tools/_shell/**/*.tsx", "types/**/*.d.ts"],
