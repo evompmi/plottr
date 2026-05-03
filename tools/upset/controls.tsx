@@ -4,6 +4,7 @@
 // tiles for sort/filter/style/significance/labels.
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
+import { DownloadTiles } from "../_shell/DownloadTiles";
 import { intersectionLabel, intersectionShortLabel, intersectionFilenamePart } from "./helpers";
 import { BAR_FILL_ENRICHED, BAR_FILL_DEPLETED } from "./chart";
 
@@ -86,9 +87,9 @@ export function PlotControls({
     universeSize !== "" && Number.isFinite(Number(universeSize)) && Number(universeSize) > 0;
   return (
     <PlotSidebar>
-      <ActionsPanel
-        onDownloadSvg={() => downloadSvg(chartRef.current, `${baseName}_upset.svg`)}
-        onDownloadPng={() => downloadPng(chartRef.current, `${baseName}_upset.png`, 2)}
+      <DownloadTiles
+        chartRef={chartRef}
+        fileStem={`${baseName}_upset`}
         onReset={resetAll}
         extraDownloads={[
           {

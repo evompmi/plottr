@@ -3,6 +3,7 @@
 // labels, axis bounds, error-bar style, and per-group colour overrides.
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
+import { DownloadTiles } from "../_shell/DownloadTiles";
 import { ERROR_KINDS, formatX, round2 } from "./helpers";
 import { ControlSection } from "./steps";
 
@@ -55,13 +56,9 @@ export function PlotControls({
 
   return (
     <PlotSidebar>
-      <ActionsPanel
-        onDownloadSvg={() =>
-          downloadSvg(svgRef.current, `${fileBaseName(fileName, "lineplot")}_lineplot.svg`)
-        }
-        onDownloadPng={() =>
-          downloadPng(svgRef.current, `${fileBaseName(fileName, "lineplot")}_lineplot.png`)
-        }
+      <DownloadTiles
+        chartRef={svgRef}
+        fileStem={`${fileBaseName(fileName, "lineplot")}_lineplot`}
         onReset={resetAll}
         extraDownloads={
           statsRows.length > 0

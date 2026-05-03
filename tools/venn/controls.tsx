@@ -4,6 +4,7 @@
 // slider, opacity / outline / font / background).
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
+import { DownloadTiles } from "../_shell/DownloadTiles";
 import { regionLabel, regionFilenamePart } from "./helpers";
 
 export function PlotControls({
@@ -28,9 +29,9 @@ export function PlotControls({
   const sv = (k: string) => (v: unknown) => updVis({ [k]: v });
   return (
     <PlotSidebar>
-      <ActionsPanel
-        onDownloadSvg={() => downloadSvg(chartRef.current, `${baseName}_venn.svg`)}
-        onDownloadPng={() => downloadPng(chartRef.current, `${baseName}_venn.png`, 2)}
+      <DownloadTiles
+        chartRef={chartRef}
+        fileStem={`${baseName}_venn`}
         onReset={resetAll}
         extraDownloads={[
           {

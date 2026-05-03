@@ -18,6 +18,7 @@
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
 import { PlotSidebar } from "../_shell/PlotSidebar";
+import { DownloadTiles } from "../_shell/DownloadTiles";
 import {
   VolcanoPoint,
   VOLCANO_DEFAULT_COLORS,
@@ -297,14 +298,6 @@ function App() {
 
   const chartRef = useRef<any>(null);
 
-  const onDownloadSvg = () => {
-    if (!chartRef.current) return;
-    downloadSvg(chartRef.current, fileBaseName(fileName, "volcano") + ".svg");
-  };
-  const onDownloadPng = () => {
-    if (!chartRef.current) return;
-    downloadPng(chartRef.current, fileBaseName(fileName, "volcano") + ".png", 2);
-  };
   const onDownloadCsv = () => {
     const { headers, rows } = buildVolcanoCsv({
       points,
@@ -436,8 +429,7 @@ function App() {
           setSizeMapCol={setSizeMapCol}
           sizeMap={sizeMap}
           sizeMapLabel={sizeMapLabel}
-          onDownloadSvg={onDownloadSvg}
-          onDownloadPng={onDownloadPng}
+          fileName={fileName}
           onDownloadCsv={onDownloadCsv}
           onDownloadR={onDownloadR}
           onReset={resetAll}
@@ -710,8 +702,7 @@ function PlotStep({
   setSizeMapCol,
   sizeMap,
   sizeMapLabel,
-  onDownloadSvg,
-  onDownloadPng,
+  fileName,
   onDownloadCsv,
   onDownloadR,
   onReset,
@@ -725,9 +716,9 @@ function PlotStep({
   return (
     <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
       <PlotSidebar>
-        <ActionsPanel
-          onDownloadSvg={onDownloadSvg}
-          onDownloadPng={onDownloadPng}
+        <DownloadTiles
+          chartRef={chartRef}
+          fileStem={fileBaseName(fileName, "volcano")}
           onReset={onReset}
           extraDownloads={[
             {

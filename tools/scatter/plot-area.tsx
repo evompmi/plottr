@@ -6,6 +6,7 @@ import { PaletteStrip, ShapePreview } from "./shapes";
 import { aesTheme, AesBox, ControlSection } from "./steps";
 import { fmtTick, SHAPES, computeLinearRegression } from "./helpers";
 import { PlotSidebar } from "../_shell/PlotSidebar";
+import { DownloadTiles } from "../_shell/DownloadTiles";
 
 const { useState, useRef, useEffect } = React;
 
@@ -104,13 +105,9 @@ export function PlotStep({
       {/* LEFT: controls panel */}
       <PlotSidebar>
         {/* Actions */}
-        <ActionsPanel
-          onDownloadSvg={() =>
-            downloadSvg(svgRef.current, `${fileBaseName(fileName, "scatter")}_scatter.svg`)
-          }
-          onDownloadPng={() =>
-            downloadPng(svgRef.current, `${fileBaseName(fileName, "scatter")}_scatter.png`)
-          }
+        <DownloadTiles
+          chartRef={svgRef}
+          fileStem={`${fileBaseName(fileName, "scatter")}_scatter`}
           onReset={resetAll}
           extraDownloads={[
             {
