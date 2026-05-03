@@ -1,6 +1,7 @@
 const js = require("@eslint/js");
 const globals = require("globals");
 const react = require("eslint-plugin-react");
+const reactHooks = require("eslint-plugin-react-hooks");
 const tsParser = require("@typescript-eslint/parser");
 const tsPlugin = require("@typescript-eslint/eslint-plugin");
 const prettier = require("eslint-config-prettier");
@@ -215,7 +216,12 @@ module.exports = [
   // separately by `tsc --noEmit`.
   {
     files: ["tools/**/*.tsx"],
-    plugins: { react, "@typescript-eslint": tsPlugin, plottr: plottrLocal },
+    plugins: {
+      react,
+      "react-hooks": reactHooks,
+      "@typescript-eslint": tsPlugin,
+      plottr: plottrLocal,
+    },
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2022,
@@ -240,6 +246,15 @@ module.exports = [
       // (var(--name)), not hex literals — see CLAUDE.md "Theming" and the
       // rule itself in scripts/eslint-rules/no-chrome-hex-literal.js.
       "plottr/no-chrome-hex-literal": "error",
+      // React Hooks safety. rules-of-hooks is non-negotiable (a real
+      // runtime bug if violated — call order has to be stable). Keeping
+      // exhaustive-deps as `warn` rather than `error`: it surfaces real
+      // stale-closure bugs but also fires on intentional omissions
+      // (mount-only effects, deliberately-shallow deps), and silencing
+      // each one with `// eslint-disable-next-line` clutters the source.
+      // Promote to `error` after the warnings have been reviewed.
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
     },
   },
 

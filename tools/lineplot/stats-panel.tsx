@@ -4,7 +4,7 @@
 // stats-dispatch helpers for runtime overrides.
 
 import { runTest, runPostHoc, postHocForTest } from "../_shell/stats-dispatch";
-import { round2, formatX } from "./helpers";
+import { formatX } from "./helpers";
 import {
   TEST_LABELS_LP,
   POSTHOC_LABELS_LP,

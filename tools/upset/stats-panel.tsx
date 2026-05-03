@@ -5,8 +5,6 @@
 
 import { intersectionShortLabel } from "./helpers";
 
-const { useMemo } = React;
-
 /* ── Intersection significance panel ────────────────────────────────────────
  *
  * Click-to-compute SuperExactTest-style multi-set intersection p-value for
@@ -36,10 +34,11 @@ export function IntersectionStatsPanel({
   universeSize,
   intersectionTests,
 }: any) {
-  if (!intersection) return null;
-
   // Inclusive count: items whose bitmask covers every selected set.
+  // Hook MUST run before any early-return so call order stays stable
+  // across renders (rules-of-hooks).
   const inclusiveSize = React.useMemo(() => {
+    if (!intersection) return 0;
     const mask = intersection.mask;
     let count = 0;
     for (const m of membershipMap.values()) {
@@ -47,6 +46,8 @@ export function IntersectionStatsPanel({
     }
     return count;
   }, [intersection, membershipMap]);
+
+  if (!intersection) return null;
 
   const selectedSetSizes = intersection.setIndices.map(
     (i: number) => (sets.get(displaySetNames[i]) || new Set()).size

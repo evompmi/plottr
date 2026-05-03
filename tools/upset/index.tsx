@@ -11,8 +11,6 @@ import {
   enumerateIntersections,
   sortIntersections,
   truncateIntersections,
-  intersectionLabel,
-  intersectionFilenamePart,
 } from "./helpers";
 import { UpsetChart } from "./chart";
 import { UploadStep, ConfigureStep, ItemListPanel } from "./steps";

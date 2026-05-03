@@ -3,8 +3,8 @@
 
 import { ScatterChart } from "./chart";
 import { PaletteStrip, ShapePreview } from "./shapes";
-import { aesTheme, AesBox, ControlSection } from "./steps";
-import { fmtTick, SHAPES, computeLinearRegression } from "./helpers";
+import { AesBox, ControlSection } from "./steps";
+import { fmtTick, SHAPES } from "./helpers";
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DownloadTiles } from "../_shell/DownloadTiles";
 

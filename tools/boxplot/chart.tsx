@@ -133,9 +133,6 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   const annotTopPad = annotTopPadBase + subgroupLabelPad;
   const M = { top: 24, right: 24, bottom: botM, left: leftM };
 
-  const allV = groups.flatMap((g: any) => g.allValues);
-  if (allV.length === 0) return null;
-
   // Cache kde() across renders, keyed on the underlying allValues array. The
   // chart wrapper rebuilds `groups` on every aesthetic tweak (sliders, colors)
   // but each group's `allValues` reference is preserved from the upstream
@@ -144,7 +141,13 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   // violin/raincloud plots (O(nPoints × n) Gaussian evaluations per group),
   // and it is invoked twice per group per render — once for axis bounds, once
   // for the path geometry — so this also dedupes within a single render.
+  //
+  // Hook MUST come before any early-return so React's call order stays stable
+  // across renders (rules-of-hooks).
   const kdeCacheRef = useRef<WeakMap<number[], Array<{ x: number; d: number }>>>(new WeakMap());
+
+  const allV = groups.flatMap((g: any) => g.allValues);
+  if (allV.length === 0) return null;
   const getKde = (allValues: number[]) => {
     let pts = kdeCacheRef.current.get(allValues);
     if (!pts) {

@@ -11,7 +11,6 @@ import {
   DEFAULT_KTR,
   DEFAULT_KD,
   DEFAULT_HILL_N,
-  FORMULA_DEFS,
   calibrate,
   calibrateHill,
   calibrateGeneralized,

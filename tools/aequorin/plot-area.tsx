@@ -437,7 +437,7 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                             window.location.origin
                           );
                           return;
-                        } catch (err) {
+                        } catch {
                           /* fall through to top-level nav */
                         }
                       }

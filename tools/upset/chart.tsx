@@ -4,7 +4,7 @@
 // intersections, set sizes, and the optional intersection-test cache
 // from the parent App.
 
-import { intersectionLabel, intersectionIdKey, buildBarTicks } from "./helpers";
+import { intersectionIdKey, buildBarTicks } from "./helpers";
 
 const { forwardRef } = React;
 

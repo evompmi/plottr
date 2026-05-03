@@ -2,8 +2,6 @@
 // small ControlSection disclosure helper. AesBox + the aesTheme palette
 // are re-exported because the Plot step and its sidebar both want them.
 
-const { useState, useRef, useEffect } = React;
-
 export const aesTheme = {
   color: {
     bg: "var(--aes-color-bg)",

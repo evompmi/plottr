@@ -6,7 +6,7 @@
 import { fmtTick, MARGIN, VBW, VBH } from "./helpers";
 import { renderPoint } from "./shapes";
 
-const { useMemo, forwardRef } = React;
+const { forwardRef } = React;
 
 export const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart(
   {

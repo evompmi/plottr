@@ -7,7 +7,6 @@ import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
 import { computeSeries, computePerXStats, round2 } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
-import { PlotControls } from "./controls";
 import { PlotStep } from "./plot-area";
 
 const { useState, useEffect, useRef, useMemo, useCallback } = React;

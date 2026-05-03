@@ -10,7 +10,6 @@
 // tools/shared.bundle.js — same pattern as every other plot tool.
 
 import {
-  VOLCANO_DEFAULT_COLORS,
   VolcanoPoint,
   VolcanoClass,
   classifyPoint,
