@@ -206,7 +206,7 @@ npm run benchmark   # runs R reference suite then cross-validates against JS
 ### JavaScript / TypeScript
 - Use `const` / `let` — never `var`. The codebase is ES2022 throughout.
 - Arrow functions preferred for callbacks; regular `function` declarations for named top-level functions.
-- All `.tsx` and `.ts` files under `tools/` are type-checked with `noImplicitAny: true`, `strictNullChecks: true`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `useUnknownInCatchVariables`, and `noImplicitThis`. The remaining `strict` flags (`strictFunctionTypes`, `strictBindCallApply`, `strictPropertyInitialization`, `alwaysStrict`) are off — `strict: false` in `tsconfig.json` keeps them off for now. Add types where they add clarity; for sprawling step-component prop bags that just pass reducer-state slots through, an explicit `: any` annotation on the destructure is acceptable (matches what the tool .tsx files use today). For pure helpers (`_shell/**`, `<tool>/helpers.ts`, `venn/*.ts`, etc.), annotate every parameter and return type — that's where the math lives.
+- All `.tsx` and `.ts` files under `tools/` are type-checked with `strict: true` plus `noImplicitReturns` and `noFallthroughCasesInSwitch`. Add types where they add clarity; for sprawling step-component prop bags that just pass reducer-state slots through, an explicit `: any` annotation on the destructure is acceptable (matches what the tool .tsx files use today). For pure helpers (`_shell/**`, `<tool>/helpers.ts`, `venn/*.ts`, etc.), annotate every parameter and return type — that's where the math lives.
 - Shared files (`shared.js`, `stats.js`, and all `shared-*.js`) are plain ES2022 script-scope JS. No `import`/`export` — names are globals by design.
 
 ### Formatting (Prettier, enforced in CI)

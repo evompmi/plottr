@@ -12,14 +12,10 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": false,
-    "noImplicitAny": true,
+    "strict": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "useUnknownInCatchVariables": true,
-    "noImplicitThis": true,
-    "types": ["react", "react-dom"],
-    "strictNullChecks": true
+    "types": ["react", "react-dom"]
   },
   "include": ["tools/**/*.ts", "tools/**/*.tsx", "types/**/*.d.ts"],
   "exclude": ["node_modules", "vendor", "tests", "tools/**/*.js", "tools/shared*.js"]

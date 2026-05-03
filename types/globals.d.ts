@@ -476,7 +476,11 @@ declare global {
     tool: string;
     vis: Record<string, any>;
     visInit: Record<string, any>;
-    updVis: (patch: Record<string, any>) => void;
+    // Accept the same patch shape `usePlotToolState`'s reducer produces:
+    // a partial-vis patch or the `{ _reset: true }` sentinel. `any` keeps
+    // the call sites assignable from typed `updVis<TVis>` returns under
+    // strict function types.
+    updVis: (patch: any) => void;
   }>;
   interface SubgroupMeta {
     name: string;
