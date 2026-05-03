@@ -9,6 +9,7 @@ const compiledTools = [
   "tools/aequorin/index.js",
   "tools/boxplot/index.js",
   "tools/heatmap/index.js",
+  "tools/volcano/index.js",
   "tools/lineplot.js",
   "tools/molarity.js",
   "tools/power.js",
