@@ -1023,7 +1023,7 @@ function ThresholdsTile({ vis, updVis }) {
 
 function ColorsTile({ vis, updVis }) {
   return (
-    <ControlSection title="Colours">
+    <ControlSection title="Colors">
       <ColorRow label="Up-regulated" value={vis.colorUp} onChange={(v) => updVis({ colorUp: v })} />
       <ColorRow
         label="Down-regulated"
