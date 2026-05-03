@@ -11,7 +11,11 @@ import { buildCsvExport } from "./reports";
 
 const { useMemo, useRef } = React;
 
-export const DETAIL_DENDRO_STROKE_WIDTHS = { thin: 0.75, medium: 1.5, bold: 2.5 };
+export const DETAIL_DENDRO_STROKE_WIDTHS: Record<string, number> = {
+  thin: 0.75,
+  medium: 1.5,
+  bold: 2.5,
+};
 
 export function DetailView({
   rawMatrix,
@@ -27,7 +31,7 @@ export function DetailView({
   detailDendroStroke,
   setDetailDendroStroke,
   clusterId,
-}) {
+}: any) {
   // Detail tile is now an independent sibling next to the main plot rather
   // than stacked beneath it, so it no longer mirrors the main's width,
   // column offsets, dendrogram band, or legend length. Row height is still
@@ -80,7 +84,7 @@ export function DetailView({
   // cluster-1 and cluster-3 exports apart on disk without re-opening them.
   const clusterSuffix = clusterId != null ? `_cluster${clusterId + 1}` : "";
 
-  const downloadButton = (label, onClick) => (
+  const downloadButton = (label: any, onClick: any) => (
     <button
       onClick={(e) => {
         onClick(e);
@@ -121,7 +125,7 @@ export function DetailView({
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Dendrogram</span>
               <div className="dv-seg" role="group" aria-label="Dendrogram stroke width">
-                {["thin", "medium", "bold"].map((k) => (
+                {["thin", "medium", "bold"].map((k: any) => (
                   <button
                     key={k}
                     type="button"
@@ -199,20 +203,20 @@ export function DetailPreviewCard({
   detailColOrder,
   fileName,
   clusterId,
-}) {
+}: any) {
   const base = fileBaseName(fileName || "heatmap") || "heatmap";
   const clusterSuffix = clusterId != null ? `_cluster${clusterId + 1}` : "";
   const nR = detailRowOrder.length;
   const nC = detailColOrder.length;
-  const tableHeaders = [""].concat(detailColOrder.map((ci) => rawMatrix.colLabels[ci]));
-  const tableRows = detailRowOrder.map((ri) => {
-    const cells = detailColOrder.map((ci) => {
+  const tableHeaders = [""].concat(detailColOrder.map((ci: any) => rawMatrix.colLabels[ci]));
+  const tableRows = detailRowOrder.map((ri: any) => {
+    const cells = detailColOrder.map((ci: any) => {
       const v = rawMatrix.matrix[ri][ci];
       return Number.isFinite(v) ? String(v) : "";
     });
     return [rawMatrix.rowLabels[ri]].concat(cells);
   });
-  const detailMatrixRef = useRef(null);
+  const detailMatrixRef = useRef<any>(null);
   detailMatrixRef.current = {
     rowLabels: rawMatrix.rowLabels,
     colLabels: rawMatrix.colLabels,

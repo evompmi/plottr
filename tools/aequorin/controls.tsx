@@ -24,7 +24,7 @@ export function ControlSection({
   children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
-  const rootRef = useRef(null);
+  const rootRef = useRef<any>(null);
   useEffect(() => {
     if (!open) return;
     requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
@@ -97,7 +97,7 @@ export function PlotControls({
   plotPanelRef,
   downloadCalibrated,
   resetAll,
-}) {
+}: any) {
   // X start / X end are stored in `vis` as row indices (integers — used to
   // slice calData rows downstream). The chart converts them to display-unit
   // time via `displayX = xRow * timeStep * convFactor`. The input fields
@@ -113,7 +113,7 @@ export function PlotControls({
   const tsConvSafe = tsConv || 1;
   const displayXStart = vis.xStart * tsConv;
   const displayXEnd = vis.xEnd * tsConv;
-  const unitLabel = (TIME_UNITS.find((u) => u.key === dUnit) || { key: dUnit }).key;
+  const unitLabel = (TIME_UNITS.find((u: any) => u.key === dUnit) || { key: dUnit }).key;
 
   return (
     <PlotSidebar>
@@ -214,7 +214,7 @@ export function PlotControls({
             className="dv-select"
             style={{ width: "100%" }}
           >
-            {TIME_UNITS.map((u) => (
+            {TIME_UNITS.map((u: any) => (
               <option key={u.key} value={u.key}>
                 {u.label}
               </option>
@@ -287,7 +287,7 @@ export function PlotControls({
             }}
             title="Barplot of the sum (Σ) of plotted values per condition"
           >
-            {(["off", "on"] as const).map((mode) => {
+            {(["off", "on"] as const).map((mode: any) => {
               const active = mode === "on" ? vis.showInset : !vis.showInset;
               return (
                 <button
@@ -347,7 +347,7 @@ export function PlotControls({
                     border: "1px solid var(--border-strong)",
                   }}
                 >
-                  {(["off", "on"] as const).map((mode) => {
+                  {(["off", "on"] as const).map((mode: any) => {
                     const active = mode === "on" ? vis.insetShowGrid : !vis.insetShowGrid;
                     return (
                       <button
@@ -431,7 +431,7 @@ export function PlotControls({
                   border: "1px solid var(--border-strong)",
                 }}
               >
-                {(["off", "on"] as const).map((mode) => {
+                {(["off", "on"] as const).map((mode: any) => {
                   const active = mode === "on" ? vis.insetShowBarOutline : !vis.insetShowBarOutline;
                   return (
                     <button
@@ -484,7 +484,7 @@ export function PlotControls({
               <div>
                 <span className="dv-label">Type</span>
                 <div className="dv-seg" role="group" aria-label="Error bars">
-                  {(["none", "sem", "sd", "ci95"] as const).map((mode) => {
+                  {(["none", "sem", "sd", "ci95"] as const).map((mode: any) => {
                     const active = vis.insetErrorType === mode;
                     const label =
                       mode === "none"
@@ -531,7 +531,7 @@ export function PlotControls({
                     border: "1px solid var(--border-strong)",
                   }}
                 >
-                  {(["off", "on"] as const).map((mode) => {
+                  {(["off", "on"] as const).map((mode: any) => {
                     const active = mode === "on" ? vis.insetShowPoints : !vis.insetShowPoints;
                     return (
                       <button

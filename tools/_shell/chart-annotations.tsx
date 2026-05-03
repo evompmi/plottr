@@ -36,15 +36,19 @@ const CLD_DEFAULTS = {
   textColor: "#222",
 };
 
-interface BracketPair {
+// Same shape as the ambient BracketPair declared in types/globals.d.ts —
+// label may be omitted (the renderer falls back to a default string), so
+// the local prop interface must accept `string | undefined` to be
+// assignable from the global type that StatsTile produces.
+interface ChartAnnotationBracketPair {
   i: number;
   j: number;
-  label: string;
+  label?: string;
   _level?: number;
 }
 
 interface SignificanceBracketsProps {
-  pairs: BracketPair[];
+  pairs: ChartAnnotationBracketPair[];
   // Group-center coord along the categorical axis.
   axisCoord: (i: number) => number;
   // Anchor for level=0 along the perpendicular axis. Vertical-top: top edge

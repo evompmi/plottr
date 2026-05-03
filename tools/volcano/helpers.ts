@@ -238,8 +238,8 @@ export function pickTopLabels(
     if (cls === "up") ups.push({ idx: i, score, cls });
     else downs.push({ idx: i, score, cls });
   }
-  ups.sort((a, b) => b.score - a.score);
-  downs.sort((a, b) => b.score - a.score);
+  ups.sort((a: any, b: any) => b.score - a.score);
+  downs.sort((a: any, b: any) => b.score - a.score);
   const out: ScoredPoint[] = [];
   if (nUp > 0) for (const e of ups.slice(0, nUp)) out.push(e);
   if (nDown > 0) for (const e of downs.slice(0, nDown)) out.push(e);
@@ -765,7 +765,7 @@ export function buildColorMap(args: BuildColorMapArgs): ColorMap {
   return {
     type: "discrete",
     colorByIdx,
-    legend: order.map((value) => ({ value, color: seen.get(value)! })),
+    legend: order.map((value: any) => ({ value, color: seen.get(value)! })),
   };
 }
 

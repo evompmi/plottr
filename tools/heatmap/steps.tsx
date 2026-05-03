@@ -3,7 +3,7 @@
 // wrapper fed by App. Relies on shared globals (UploadPanel, toolIcon)
 // resolved through shared.bundle.js.
 
-export function UploadStep({ sepOverride, setSepOverride, handleFileLoad, onLoadExample }) {
+export function UploadStep({ sepOverride, setSepOverride, handleFileLoad, onLoadExample }: any) {
   return (
     <div>
       <UploadPanel

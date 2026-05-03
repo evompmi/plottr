@@ -17,7 +17,7 @@ export function statsSummaryHeight(summary: string | null): number {
 
 // ── Test / post-hoc metadata ────────────────────────────────────────────────
 
-export const TEST_LABELS_BP = {
+export const TEST_LABELS_BP: Record<string, string> = {
   studentT: "Student's t-test",
   welchT: "Welch's t-test",
   mannWhitney: "Mann-Whitney U",
@@ -26,7 +26,7 @@ export const TEST_LABELS_BP = {
   kruskalWallis: "Kruskal-Wallis",
 };
 
-export const POSTHOC_LABELS_BP = {
+export const POSTHOC_LABELS_BP: Record<string, string> = {
   tukeyHSD: "Tukey HSD",
   gamesHowell: "Games-Howell",
   dunn: "Dunn (BH-adjusted)",
@@ -35,7 +35,12 @@ export const POSTHOC_LABELS_BP = {
 export const TEST_OPTIONS_BP_2 = ["studentT", "welchT", "mannWhitney"];
 export const TEST_OPTIONS_BP_K = ["oneWayANOVA", "welchANOVA", "kruskalWallis"];
 
-export const ERROR_BAR_LABELS = { none: "None", sd: "SD", sem: "SEM", ci95: "95% CI" };
+export const ERROR_BAR_LABELS: Record<string, string> = {
+  none: "None",
+  sd: "SD",
+  sem: "SEM",
+  ci95: "95% CI",
+};
 
 // Test / post-hoc dispatchers live in tools/_shell/stats-dispatch.ts
 // (runTest, runPostHoc, postHocForTest) — shared across boxplot, lineplot,
@@ -43,7 +48,7 @@ export const ERROR_BAR_LABELS = { none: "None", sd: "SD", sem: "SEM", ci95: "95%
 
 // ── Result formatting ───────────────────────────────────────────────────────
 
-export function formatBpStatShort(testName, res) {
+export function formatBpStatShort(testName: any, res: any) {
   if (!res || res.error) return "—";
   if (testName === "studentT" || testName === "welchT")
     return `t(${res.df.toFixed(2)}) = ${res.t.toFixed(3)}`;
@@ -54,7 +59,7 @@ export function formatBpStatShort(testName, res) {
   return "—";
 }
 
-export function formatBpResultLine(testName, res) {
+export function formatBpResultLine(testName: any, res: any) {
   if (!res || res.error) return res && res.error ? "⚠ " + res.error : "—";
   if (testName === "studentT" || testName === "welchT")
     return `t(${res.df.toFixed(2)}) = ${res.t.toFixed(3)},  p = ${formatP(res.p)}`;
@@ -72,7 +77,7 @@ export function formatBpResultLine(testName, res) {
 // Build the annotation spec the chart consumes, from a row's test / post-hoc
 // result. Mirrors StatsTile's logic but driven by panel-level display
 // controls rather than per-row toggles.
-export function computeBpAnnotationSpec(row, displayMode, showNs) {
+export function computeBpAnnotationSpec(row: any, displayMode: any, showNs: any) {
   if (displayMode === "none" || !row || row.skip) return null;
   const { k, names, testResult, postHocResult } = row;
   if (k < 2) return null;
@@ -92,9 +97,9 @@ export function computeBpAnnotationSpec(row, displayMode, showNs) {
     return { kind: "cld", labels, groupNames: names };
   }
   const pairs = postHocResult.pairs
-    .map((pr) => ({ i: pr.i, j: pr.j, p: pr.pAdj != null ? pr.pAdj : pr.p }))
-    .map((pr) => ({ ...pr, label: pStars(pr.p) }))
-    .filter((pr) => showNs || pr.p < 0.05);
+    .map((pr: any) => ({ i: pr.i, j: pr.j, p: pr.pAdj != null ? pr.pAdj : pr.p }))
+    .map((pr: any) => ({ ...pr, label: pStars(pr.p) }))
+    .filter((pr: any) => showNs || pr.p < 0.05);
   if (pairs.length === 0) return null;
   return { kind: "brackets", pairs, groupNames: names };
 }
@@ -104,7 +109,7 @@ export function computeBpAnnotationSpec(row, displayMode, showNs) {
 // Plain-text "print summary below plot" string — a lean four-line recap
 // (normality / equal variance / test / post-hoc). Detailed per-pair stats
 // live in the TXT / R downloads.
-export function summariseNormality(norm) {
+export function summariseNormality(norm: any) {
   if (!Array.isArray(norm) || norm.length === 0) return "—";
   let hasTrue = false;
   let hasFalse = false;
@@ -117,12 +122,12 @@ export function summariseNormality(norm) {
   return "—";
 }
 
-export function summariseEqualVariance(lev) {
+export function summariseEqualVariance(lev: any) {
   if (!lev || lev.F == null) return "—";
   return lev.equalVar ? "yes" : "no";
 }
 
-export function computeBpSummaryText(row, showSummary, errorBarLabel) {
+export function computeBpSummaryText(row: any, showSummary: any, errorBarLabel: any) {
   if (!showSummary || !row || row.skip) return null;
   const { chosenTest, testResult, k, postHocName, rec } = row;
   if (!chosenTest || !testResult || testResult.error) return null;
@@ -140,9 +145,9 @@ export function computeBpSummaryText(row, showSummary, errorBarLabel) {
 
 // ── Sub-group annotation merge ──────────────────────────────────────────────
 
-export function mergeSubgroupAnnotations(subgroups, flatGroups, perKeySpecs) {
+export function mergeSubgroupAnnotations(subgroups: any, flatGroups: any, perKeySpecs: any) {
   const total = flatGroups.length;
-  const names = flatGroups.map((g) => g.name);
+  const names = flatGroups.map((g: any) => g.name);
   const cldLabels: Array<string | null> = new Array(total).fill(null);
   const allPairs: any[] = [];
   let hasCld = false;

@@ -67,7 +67,7 @@ function App() {
   } = shell;
 
   // Upload & navigation
-  const [rawText, setRawText] = useState(null);
+  const [rawText, setRawText] = useState<any>(null);
   const [dataFormat, setDataFormat] = useState("long");
   // Count of cells dropped by wideToLong on the last parse (audit-23 #10).
   // 0 means clean reshape; >0 means the user should know about silent
@@ -75,49 +75,50 @@ function App() {
   const [wideSkipped, setWideSkipped] = useState(0);
 
   // Parsing
-  const [parsedHeaders, setParsedHeaders] = useState([]);
-  const [parsedRows, setParsedRows] = useState([]);
+  const [parsedHeaders, setParsedHeaders] = useState<any[]>([]);
+  const [parsedRows, setParsedRows] = useState<any[]>([]);
   const [hasHeader, setHasHeader] = useState(true);
 
   // Column config & filtering
   const [colRoles, setColRoles] = useState<ColumnRole[]>([]);
-  const [colNames, setColNames] = useState([]);
-  const [filters, setFilters] = useState({});
-  const [valueRenames, setValueRenames] = useState({});
+  const [colNames, setColNames] = useState<any[]>([]);
+  const [filters, setFilters] = useState<any>({});
+  const [valueRenames, setValueRenames] = useState<any>({});
 
   // Plot state. boxplotColors + categoryColors now live in `vis` so the
   // PrefsPanel's Save / Load file and the auto-persist localStorage slot
   // cover them. Exposed as read-through variables with function-capable
   // setters so existing call sites (including functional updaters) work
   // unchanged.
-  const boxplotColors = vis.boxplotColors || {};
+  const boxplotColors: Record<string, string> = vis.boxplotColors || {};
   const setBoxplotColors = useCallback(
-    (updater) =>
+    (updater: any) =>
       updVis({
         boxplotColors:
           typeof updater === "function" ? updater(vis.boxplotColors || {}) : updater || {},
       }),
     [updVis, vis.boxplotColors]
   );
-  const [plotGroupRenames, setPlotGroupRenames] = useState({});
-  const [disabledGroups, setDisabledGroups] = useState({});
+  const [plotGroupRenames, setPlotGroupRenames] = useState<any>({});
+  const [disabledGroups, setDisabledGroups] = useState<any>({});
   // Per-column ordering keyed by column index. Any column that can appear in
   // the rename panel (group/filter role) gets its own order array here, so the
   // user can reorder values during the filter step before ever picking a
   // "Facet by" or "Color by" column in the plot step.
-  const [columnOrders, setColumnOrders] = useState({});
-  const setOrderForCol = (i, newOrder) => setColumnOrders((prev) => ({ ...prev, [i]: newOrder }));
+  const [columnOrders, setColumnOrders] = useState<any>({});
+  const setOrderForCol = (i: any, newOrder: any) =>
+    setColumnOrders((prev: any) => ({ ...prev, [i]: newOrder }));
   const [colorByCol, setColorByCol] = useState(-1);
   const categoryColors = vis.categoryColors || {};
   const setCategoryColors = useCallback(
-    (updater) =>
+    (updater: any) =>
       updVis({
         categoryColors:
           typeof updater === "function" ? updater(vis.categoryColors || {}) : updater || {},
       }),
     [updVis, vis.categoryColors]
   );
-  const [dragState, setDragState] = useState(null);
+  const [dragState, setDragState] = useState<any>(null);
   const [facetByCol, _setFacetByCol] = useState(-1);
   const [subgroupByCol, _setSubgroupByCol] = useState(-1);
   // Facet and subgroup are independent. The only cross-guard is that they
@@ -126,12 +127,12 @@ function App() {
   // collision. Each column change clears the keyed cell-annotation /
   // summary dicts so stale entries from previous categories don't
   // accumulate across long sessions.
-  const handleSetFacetByCol = (v) => {
+  const handleSetFacetByCol = (v: any) => {
     if (facetByCol !== v) dispatchStats({ type: "clearCells" });
     _setFacetByCol(v);
     if (v >= 0 && v === subgroupByCol) _setSubgroupByCol(-1);
   };
-  const handleSetSubgroupByCol = (v) => {
+  const handleSetSubgroupByCol = (v: any) => {
     if (subgroupByCol !== v) dispatchStats({ type: "clearCells" });
     _setSubgroupByCol(v);
     if (v >= 0 && v === facetByCol) _setFacetByCol(-1);
@@ -141,22 +142,24 @@ function App() {
   // missing dimensions) and the panel below stamps annotations / summaries
   // back into the dict via setCell*.
   const [statsUi, dispatchStats] = useReducer(statsReducer, statsInit);
-  const handleStatsShowSummaryChange = (v) => dispatchStats({ type: "setShowSummary", value: v });
-  const handleStatsDisplayModeChange = (v) => dispatchStats({ type: "setDisplayMode", value: v });
-  const setStatsShowNs = (v) => dispatchStats({ type: "setShowNs", value: v });
+  const handleStatsShowSummaryChange = (v: any) =>
+    dispatchStats({ type: "setShowSummary", value: v });
+  const handleStatsDisplayModeChange = (v: any) =>
+    dispatchStats({ type: "setDisplayMode", value: v });
+  const setStatsShowNs = (v: any) => dispatchStats({ type: "setShowNs", value: v });
   // Stable references so `FacetTrio`'s shallow-compare memo can skip
   // re-rendering unaffected facets when one map entry updates.
   const setCellAnnotation = useCallback(
-    (key, spec) => dispatchStats({ type: "setCellAnnotation", key, value: spec }),
+    (key: any, spec: any) => dispatchStats({ type: "setCellAnnotation", key, value: spec }),
     []
   );
   const setCellSummary = useCallback(
-    (key, txt) => dispatchStats({ type: "setCellSummary", key, value: txt }),
+    (key: any, txt: any) => dispatchStats({ type: "setCellSummary", key, value: txt }),
     []
   );
 
-  const facetRefs = useRef({});
-  const chartRef = useRef();
+  const facetRefs = useRef<Record<string, any>>({});
+  const chartRef = useRef<any>(null);
 
   const resetDerived = () => {
     setValueRenames({});
@@ -172,16 +175,16 @@ function App() {
     updVis({ yMinCustom: "", yMaxCustom: "" });
   };
 
-  const buildFilters = (hdrs, rws) => {
-    const f = {};
-    hdrs.forEach((_, i) => {
-      const u = [...new Set(rws.map((r) => r[i]))].sort();
+  const buildFilters = (hdrs: any, rws: any) => {
+    const f: Record<string, any> = {};
+    hdrs.forEach((_: any, i: number) => {
+      const u = [...new Set(rws.map((r: any) => r[i]))].sort();
       f[i] = { unique: u, included: new Set(u) };
     });
     return f;
   };
 
-  const doParse = useCallback((text, sep) => {
+  const doParse = useCallback((text: any, sep: any) => {
     const dc = fixDecimalCommas(text, sep);
     const fixedText = dc.text;
     setCommaFixed(dc.commaFixed);
@@ -226,8 +229,8 @@ function App() {
         let seenGroup = false;
         let seenValue = false;
         setColRoles(
-          headers.map((_, i) => {
-            const r = guessColumnType(rows.map((row) => row[i] ?? ""));
+          headers.map((_: any, i: number) => {
+            const r = guessColumnType(rows.map((row: any) => row[i] ?? ""));
             if (r === "group") {
               if (seenGroup) return "filter";
               seenGroup = true;
@@ -251,7 +254,7 @@ function App() {
   }, []);
 
   const handleFileLoad = useCallback(
-    (text, name) => {
+    (text: any, name: any) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
@@ -288,7 +291,7 @@ function App() {
   // destination, so both paths skip the configure step.
   React.useEffect(() => {
     if (typeof consumeHandoff !== "function") return;
-    const apply = (payload) => {
+    const apply = (payload: any) => {
       if (!payload || !payload.csv) return;
       setSepOverride(",");
       setFileName(payload.fileName || "from_handoff.csv");
@@ -296,7 +299,7 @@ function App() {
       setStep("plot");
     };
     apply(consumeHandoff("boxplot"));
-    const onStorage = (e) => {
+    const onStorage = (e: any) => {
       // Only react to a fresh write of the hand-off key; deletions
       // (newValue == null) come from our own consumeHandoff in another
       // tab and shouldn't trigger anything here.
@@ -317,22 +320,25 @@ function App() {
     setStep("upload");
   };
 
-  const applyRename = (ci, v) =>
+  const applyRename = (ci: any, v: any) =>
     valueRenames[ci] && valueRenames[ci][v] != null ? valueRenames[ci][v] : v;
 
   const filteredRows = useMemo(
-    () => parsedRows.filter((r) => r.every((v, ci) => !filters[ci] || filters[ci].included.has(v))),
+    () =>
+      parsedRows.filter((r: any) =>
+        r.every((v: any, ci: number) => !filters[ci] || filters[ci].included.has(v))
+      ),
     [parsedRows, filters]
   );
 
   const renamedRows = useMemo(
-    () => filteredRows.map((r) => r.map((v, ci) => applyRename(ci, v))),
+    () => filteredRows.map((r: any) => r.map((v: any, ci: number) => applyRename(ci, v))),
     [filteredRows, valueRenames]
   );
 
   const activeColIdxs = useMemo(
     () =>
-      colRoles.reduce((acc, r, i) => {
+      colRoles.reduce<number[]>((acc, r, i) => {
         if (r !== "ignore") acc.push(i);
         return acc;
       }, []),
@@ -344,8 +350,8 @@ function App() {
 
   const groupedData = useMemo(() => {
     if (groupColIdx < 0 || valueColIdx < 0) return {};
-    const g = {};
-    renamedRows.forEach((r) => {
+    const g: Record<string, any> = {};
+    renamedRows.forEach((r: any) => {
       const k = r[groupColIdx];
       if (!g[k]) g[k] = [];
       g[k].push(r[valueColIdx]);
@@ -365,9 +371,9 @@ function App() {
 
   const naturalGroupOrder = useMemo(() => {
     if (groupColIdx < 0 || valueColIdx < 0) return [];
-    const seen = new Set(),
-      order = [];
-    renamedRows.forEach((r) => {
+    const seen = new Set();
+    const order: any[] = [];
+    renamedRows.forEach((r: any) => {
       const g = r[groupColIdx];
       if (!seen.has(g)) {
         seen.add(g);
@@ -380,8 +386,8 @@ function App() {
   const effectiveOrder = useMemo(() => {
     const stored = columnOrders[groupColIdx];
     if (stored && stored.length > 0) {
-      const valid = stored.filter((g) => naturalGroupOrder.includes(g));
-      const missing = naturalGroupOrder.filter((g) => !stored.includes(g));
+      const valid = stored.filter((g: any) => naturalGroupOrder.includes(g));
+      const missing = naturalGroupOrder.filter((g: any) => !stored.includes(g));
       return [...valid, ...missing];
     }
     return naturalGroupOrder;
@@ -390,7 +396,7 @@ function App() {
   const colorByCandidates = useMemo(
     () =>
       parsedHeaders
-        .map((_, i) => i)
+        .map((_: any, i: number) => i)
         .filter(
           (i) =>
             i !== groupColIdx &&
@@ -402,13 +408,13 @@ function App() {
 
   const colorByCategories = useMemo(() => {
     if (colorByCol < 0) return [];
-    return [...new Set(renamedRows.map((r) => r[colorByCol]))].sort();
+    return [...new Set(renamedRows.map((r: any) => r[colorByCol]))].sort();
   }, [colorByCol, renamedRows]);
 
   const boxplotGroups = useMemo(() => {
     if (groupColIdx < 0 || valueColIdx < 0) return [];
-    const gm = {};
-    renamedRows.forEach((r) => {
+    const gm: Record<string, any> = {};
+    renamedRows.forEach((r: any) => {
       if (groupColIdx >= r.length || valueColIdx >= r.length) return;
       const g = r[groupColIdx],
         v = Number(r[valueColIdx]);
@@ -425,17 +431,17 @@ function App() {
     });
     const cats = colorByCol >= 0 ? colorByCategories : ["_all"];
     return effectiveOrder
-      .filter((name) => gm[name])
-      .map((name, gi) => {
+      .filter((name: any) => gm[name])
+      .map((name: any, gi: number) => {
         const catMap = gm[name];
         const sources = cats
-          .filter((c) => catMap[c])
-          .map((cat, si) => ({
+          .filter((c: any) => catMap[c])
+          .map((cat: any, si: number) => ({
             colIndex: si,
             values: catMap[cat],
             category: cat,
           }));
-        const allValues = sources.flatMap((s) => s.values);
+        const allValues = sources.flatMap((s: any) => s.values);
         return {
           name,
           sources,
@@ -456,7 +462,7 @@ function App() {
 
   const allDisplayGroups = useMemo(
     () =>
-      boxplotGroups.map((g) => ({
+      boxplotGroups.map((g: any) => ({
         ...g,
         displayName: plotGroupRenames[g.name] ?? g.name,
         enabled: !disabledGroups[g.name],
@@ -465,7 +471,10 @@ function App() {
   );
 
   const displayBoxplotGroups = useMemo(
-    () => allDisplayGroups.filter((g) => g.enabled).map((g) => ({ ...g, name: g.displayName })),
+    () =>
+      allDisplayGroups
+        .filter((g: any) => g.enabled)
+        .map((g: any) => ({ ...g, name: g.displayName })),
     [allDisplayGroups]
   );
 
@@ -475,8 +484,8 @@ function App() {
   const naturalFacetOrder = useMemo(() => {
     if (facetByCol < 0) return [];
     const seen = new Set();
-    const order = [];
-    renamedRows.forEach((r) => {
+    const order: any[] = [];
+    renamedRows.forEach((r: any) => {
       const v = r[facetByCol];
       if (!seen.has(v)) {
         seen.add(v);
@@ -489,8 +498,8 @@ function App() {
   const effectiveFacetOrder = useMemo(() => {
     const stored = columnOrders[facetByCol];
     if (stored && stored.length > 0) {
-      const valid = stored.filter((g) => naturalFacetOrder.includes(g));
-      const missing = naturalFacetOrder.filter((g) => !stored.includes(g));
+      const valid = stored.filter((g: any) => naturalFacetOrder.includes(g));
+      const missing = naturalFacetOrder.filter((g: any) => !stored.includes(g));
       return [...valid, ...missing];
     }
     return naturalFacetOrder;
@@ -504,13 +513,13 @@ function App() {
   // works at the filter step — before the user has even chosen which column
   // feeds "Facet by" or "Color by" in the plot step.
   const orderableCols = useMemo(() => {
-    const m = {};
-    parsedHeaders.forEach((_, i) => {
+    const m: Record<string, any> = {};
+    parsedHeaders.forEach((_: any, i: number) => {
       if (i === valueColIdx) return;
       if (colRoles[i] !== "group" && colRoles[i] !== "filter") return;
       const seen = new Set();
-      const natural = [];
-      renamedRows.forEach((r) => {
+      const natural: any[] = [];
+      renamedRows.forEach((r: any) => {
         const v = r[i];
         if (!seen.has(v)) {
           seen.add(v);
@@ -520,11 +529,11 @@ function App() {
       const stored = columnOrders[i];
       let order = natural;
       if (stored && stored.length > 0) {
-        const valid = stored.filter((g) => natural.includes(g));
-        const missing = natural.filter((g) => !stored.includes(g));
+        const valid = stored.filter((g: any) => natural.includes(g));
+        const missing = natural.filter((g: any) => !stored.includes(g));
         order = [...valid, ...missing];
       }
-      m[i] = { order, onReorder: (newOrder) => setOrderForCol(i, newOrder) };
+      m[i] = { order, onReorder: (newOrder: any) => setOrderForCol(i, newOrder) };
     });
     return m;
   }, [parsedHeaders, colRoles, valueColIdx, renamedRows, columnOrders]);
@@ -536,7 +545,7 @@ function App() {
   const buildCellGroups = useCallback(
     (cellRows: any[], globalColorMap: Record<string, string>) => {
       const gm: Record<string, Record<string, number[]>> = {};
-      cellRows.forEach((r) => {
+      cellRows.forEach((r: any) => {
         if (groupColIdx >= r.length || valueColIdx >= r.length) return;
         const g = r[groupColIdx],
           v = Number(r[valueColIdx]);
@@ -553,17 +562,17 @@ function App() {
       });
       const cats = colorByCol >= 0 ? colorByCategories : ["_all"];
       return effectiveOrder
-        .filter((name) => gm[name] && !disabledGroups[name])
-        .map((name, gi) => {
+        .filter((name: any) => gm[name] && !disabledGroups[name])
+        .map((name: any, gi: number) => {
           const catMap = gm[name];
           const sources = cats
-            .filter((c) => catMap[c])
-            .map((c, si) => ({
+            .filter((c: any) => catMap[c])
+            .map((c: any, si: number) => ({
               colIndex: si,
               values: catMap[c],
               category: c,
             }));
-          const allValues = sources.flatMap((s) => s.values);
+          const allValues = sources.flatMap((s: any) => s.values);
           return {
             name,
             sources,
@@ -593,18 +602,18 @@ function App() {
   const facetedData = useMemo(() => {
     if (facetByCol < 0) return [];
     const globalColorMap: Record<string, string> = {};
-    boxplotGroups.forEach((g) => {
+    boxplotGroups.forEach((g: any) => {
       globalColorMap[g.name] = g.color;
     });
     const sgOrder = subgroupByCol >= 0 ? orderableCols[subgroupByCol]?.order || [] : null;
-    return facetByCategories.map((cat) => {
-      const catRows = renamedRows.filter((r) => r[facetByCol] === cat);
+    return facetByCategories.map((cat: any) => {
+      const catRows = renamedRows.filter((r: any) => r[facetByCol] === cat);
       if (sgOrder && sgOrder.length > 0) {
         const subgroups: Array<{ name: string; startIndex: number; count: number }> = [];
         const flatGroups: any[] = [];
         let startIndex = 0;
         for (const sgCat of sgOrder) {
-          const sgRows = catRows.filter((r) => r[subgroupByCol] === sgCat);
+          const sgRows = catRows.filter((r: any) => r[subgroupByCol] === sgCat);
           const groups = buildCellGroups(sgRows, globalColorMap);
           if (groups.length > 0) {
             subgroups.push({ name: sgCat, startIndex, count: groups.length });
@@ -634,14 +643,14 @@ function App() {
     const sgOrder = orderableCols[subgroupByCol]?.order || [];
     if (sgOrder.length === 0) return null;
     const globalColorMap: Record<string, string> = {};
-    boxplotGroups.forEach((g) => {
+    boxplotGroups.forEach((g: any) => {
       globalColorMap[g.name] = g.color;
     });
     const subgroups: Array<{ name: string; startIndex: number; count: number }> = [];
     const flatGroups: any[] = [];
     let startIndex = 0;
     for (const sgCat of sgOrder) {
-      const sgRows = renamedRows.filter((r) => r[subgroupByCol] === sgCat);
+      const sgRows = renamedRows.filter((r: any) => r[subgroupByCol] === sgCat);
       const groups = buildCellGroups(sgRows, globalColorMap);
       if (groups.length > 0) {
         subgroups.push({ name: sgCat, startIndex, count: groups.length });
@@ -678,7 +687,7 @@ function App() {
   // mode to project per-cell brackets / CLD letters onto the flat axis.
   const mergeAnnotForSubgroups = useCallback(
     (subgroups: any[], flatGroups: any[], facetCat: string) => {
-      const renamedFlat = flatGroups.map((g) => ({
+      const renamedFlat = flatGroups.map((g: any) => ({
         ...g,
         name: plotGroupRenames[g.name] ?? g.name,
       }));
@@ -766,21 +775,21 @@ function App() {
   }, [statsPanelMode]);
   const statsPanelSets = useMemo(() => {
     const renamedValues = (gs: any[]) =>
-      gs.map((g) => ({ name: plotGroupRenames[g.name] ?? g.name, values: g.allValues }));
+      gs.map((g: any) => ({ name: plotGroupRenames[g.name] ?? g.name, values: g.allValues }));
     if (statsPanelMode === "flat") {
       if (displayBoxplotGroups.length < 2) return [];
       return [
         {
           key: FLAT_KEY,
           name: "",
-          groups: displayBoxplotGroups.map((g) => ({ name: g.name, values: g.allValues })),
+          groups: displayBoxplotGroups.map((g: any) => ({ name: g.name, values: g.allValues })),
         },
       ];
     }
     if (statsPanelMode === "facet") {
       return facetedData
-        .filter((fd) => fd.groups.length >= 2)
-        .map((fd) => ({
+        .filter((fd: any) => fd.groups.length >= 2)
+        .map((fd: any) => ({
           key: cellKey(fd.category, ""),
           name: fd.category,
           groups: renamedValues(fd.groups),
@@ -789,7 +798,7 @@ function App() {
     if (statsPanelMode === "subgroup") {
       if (!subgroupedData) return [];
       return subgroupedData.subgroups
-        .map((sg) => {
+        .map((sg: any) => {
           const sgGroups = subgroupedData.flatGroups.slice(sg.startIndex, sg.startIndex + sg.count);
           return {
             key: cellKey("", sg.name),
@@ -797,7 +806,7 @@ function App() {
             groups: renamedValues(sgGroups),
           };
         })
-        .filter((s) => s.groups.length >= 2);
+        .filter((s: any) => s.groups.length >= 2);
     }
     // facet × subgroup
     const out: any[] = [];
@@ -816,8 +825,8 @@ function App() {
     return out;
   }, [statsPanelMode, displayBoxplotGroups, facetedData, subgroupedData, plotGroupRenames]);
 
-  const toggleFilter = (ci, v) =>
-    setFilters((p) => {
+  const toggleFilter = (ci: any, v: any) =>
+    setFilters((p: any) => {
       const f = { ...p },
         s = new Set(f[ci].included);
       if (s.has(v)) s.delete(v);
@@ -826,14 +835,14 @@ function App() {
       return f;
     });
 
-  const toggleAllFilter = (ci, all) =>
-    setFilters((p) => {
+  const toggleAllFilter = (ci: any, all: any) =>
+    setFilters((p: any) => {
       const f = { ...p };
       f[ci] = { ...f[ci], included: all ? new Set(f[ci].unique) : new Set() };
       return f;
     });
 
-  const setRenameVal = (ci, ov, nv) => {
+  const setRenameVal = (ci: any, ov: any, nv: any) => {
     // If the rename touches the active facet or subgroup column, drop every
     // cellAnnotation / cellSummary entry — the cellKey is built from the
     // (renamed) category name, so stale entries would orphan under the old
@@ -841,7 +850,7 @@ function App() {
     if (ci === facetByCol || ci === subgroupByCol) {
       dispatchStats({ type: "clearCells" });
     }
-    setValueRenames((p) => {
+    setValueRenames((p: any) => {
       const r = { ...p };
       if (!r[ci]) r[ci] = {};
       r[ci] = { ...r[ci], [ov]: nv };
@@ -863,36 +872,37 @@ function App() {
     if (i === facetByCol || i === subgroupByCol) {
       dispatchStats({ type: "clearCells" });
     }
-    setColRoles((p) =>
-      p.map((r, j) => {
+    setColRoles((p: any) =>
+      p.map((r: any, j: number) => {
         if (j === i) return role;
         if ((role === "group" || role === "value") && r === role) return "filter";
         return r;
       })
     );
   };
-  const updateColName = (i, nm) => setColNames((p) => p.map((n, j) => (j === i ? nm : n)));
+  const updateColName = (i: any, nm: any) =>
+    setColNames((p: any) => p.map((n: any, j: number) => (j === i ? nm : n)));
 
   const yMinVal = vis.yMinCustom !== "" ? Number(vis.yMinCustom) : null;
   const yMaxVal = vis.yMaxCustom !== "" ? Number(vis.yMaxCustom) : null;
 
   const valueColIsNumeric = useMemo(() => {
     if (valueColIdx < 0 || !parsedRows.length) return false;
-    const vals = parsedRows.map((r) => r[valueColIdx] ?? "").filter((v) => v !== "");
-    return vals.length > 0 && vals.filter((v) => isNumericValue(v)).length / vals.length > 0.5;
+    const vals = parsedRows.map((r: any) => r[valueColIdx] ?? "").filter((v: any) => v !== "");
+    return vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5;
   }, [parsedRows, valueColIdx]);
 
   const canPlot =
     groupColIdx >= 0 && valueColIdx >= 0 && valueColIsNumeric && boxplotGroups.length > 0;
-  const handleToggleGroup = (i) => {
+  const handleToggleGroup = (i: any) => {
     const name = boxplotGroups[i].name;
-    setDisabledGroups((p) => ({ ...p, [name]: !p[name] }));
+    setDisabledGroups((p: any) => ({ ...p, [name]: !p[name] }));
   };
 
   const fileStem = `${fileBaseName(fileName, "groupplot")}_groupplot`;
   const handleDownloadSvg = useCallback(() => {
     if (facetByCol >= 0 && facetedData.length > 0) {
-      facetedData.forEach((fd) =>
+      facetedData.forEach((fd: any) =>
         downloadSvg(facetRefs.current[fd.category], `${fileStem}_${fd.category}.svg`)
       );
     } else {
@@ -902,7 +912,7 @@ function App() {
 
   const handleDownloadPng = useCallback(() => {
     if (facetByCol >= 0 && facetedData.length > 0) {
-      facetedData.forEach((fd) =>
+      facetedData.forEach((fd: any) =>
         downloadPng(facetRefs.current[fd.category], `${fileStem}_${fd.category}.png`)
       );
     } else {
@@ -1030,7 +1040,7 @@ function App() {
           />
           <div style={{ flex: 1, minWidth: 0 }}>
             {vis.yScale !== "linear" &&
-              boxplotGroups.some((g) => g.allValues.some((v) => v <= 0)) && (
+              boxplotGroups.some((g: any) => g.allValues.some((v: any) => v <= 0)) && (
                 <div
                   style={{
                     background: "var(--warning-bg)",
@@ -1062,7 +1072,7 @@ function App() {
                 chartRef={chartRef}
                 displayBoxplotGroups={
                   subgroupByCol >= 0 && subgroupedData
-                    ? subgroupedData.flatGroups.map((g) => ({
+                    ? subgroupedData.flatGroups.map((g: any) => ({
                         ...g,
                         name: plotGroupRenames[g.name] ?? g.name,
                         color: boxplotColors[g.name] ?? g.color,
@@ -1078,7 +1088,7 @@ function App() {
                 subgroupSummaries={
                   subgroupByCol >= 0 && subgroupedData
                     ? Object.fromEntries(
-                        subgroupedData.subgroups.map((sg) => [
+                        subgroupedData.subgroups.map((sg: any) => [
                           sg.name,
                           statsUi.cellSummaries[cellKey("", sg.name)] || null,
                         ])
@@ -1147,7 +1157,7 @@ function App() {
     </PlotToolShell>
   );
 }
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <ErrorBoundary toolName="Boxplot">
     <App />
   </ErrorBoundary>

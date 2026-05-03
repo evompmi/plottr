@@ -64,7 +64,7 @@ const EXAMPLE_CSV = (() => {
       const geneName = `gene${String(geneIdx).padStart(3, "0")}`;
       const ctrlBase = p.ctrl[0] + rand() * (p.ctrl[1] - p.ctrl[0]);
       const stressBase = p.stress[0] + rand() * (p.stress[1] - p.stress[0]);
-      const cols = [];
+      const cols: any[] = [];
       for (let j = 0; j < 3; j++) cols.push((ctrlBase + (rand() - 0.5) * 2 * p.noise).toFixed(2));
       for (let j = 0; j < 3; j++) cols.push((stressBase + (rand() - 0.5) * 2 * p.noise).toFixed(2));
       lines.push([geneName, ...cols].join(","));
@@ -92,7 +92,11 @@ function App() {
     updVis,
   } = shell;
 
-  const [rawMatrix, setRawMatrix] = useState({ rowLabels: [], colLabels: [], matrix: [] });
+  const [rawMatrix, setRawMatrix] = useState<{
+    rowLabels: string[];
+    colLabels: string[];
+    matrix: number[][];
+  }>({ rowLabels: [], colLabels: [], matrix: [] });
   const [warnings, setWarnings] = useState({ nonNumeric: 0 });
 
   const [normalization, setNormalization] = useState("none");
@@ -106,7 +110,7 @@ function App() {
 
   const cellBorderInit = { on: false, color: "#ffffff", width: 0.5 };
   const [cellBorder, updCellBorder] = useReducer(
-    (s, a) => (a._reset ? { ...cellBorderInit } : { ...s, ...a }),
+    (s: any, a: any) => (a._reset ? { ...cellBorderInit } : { ...s, ...a }),
     cellBorderInit
   );
 
@@ -116,9 +120,9 @@ function App() {
   // session-local.
   const [detailDendroStroke, setDetailDendroStroke] = useState("medium");
 
-  const chartRef = useRef();
-  const detailChartRef = useRef();
-  const matrixRef = useRef(null);
+  const chartRef = useRef<any>(null);
+  const detailChartRef = useRef<any>(null);
+  const matrixRef = useRef<any>(null);
 
   // Selection state: which rows / columns are highlighted for the detail view.
   // `null` on an axis means "all rows/cols". Indices are into the ORIGINAL
@@ -131,7 +135,7 @@ function App() {
     clusterAxis: null,
   });
 
-  const selectBox = useCallback((rows, cols) => {
+  const selectBox = useCallback((rows: any, cols: any) => {
     setSelection({
       rows: rows && rows.length ? rows : null,
       cols: cols && cols.length ? cols : null,
@@ -143,7 +147,7 @@ function App() {
   // any prior selection rather than layering onto it — otherwise clicking a
   // column subtree after a row brush would intersect the two, which doesn't
   // match the user's mental model of "show me this subtree".
-  const selectAxis = useCallback((axis, indices, meta) => {
+  const selectAxis = useCallback((axis: any, indices: any, meta: any) => {
     const valid = indices && indices.length ? indices : null;
     setSelection({
       rows: axis === "row" ? valid : null,
@@ -205,12 +209,12 @@ function App() {
 
   const rowOrder = useMemo(() => {
     if (rowCluster) return rowCluster.order;
-    return rawMatrix.rowLabels.map((_, i) => i);
+    return rawMatrix.rowLabels.map((_: any, i: number) => i);
   }, [rowCluster, rawMatrix.rowLabels]);
 
   const colOrder = useMemo(() => {
     if (colCluster) return colCluster.order;
-    return rawMatrix.colLabels.map((_, i) => i);
+    return rawMatrix.colLabels.map((_: any, i: number) => i);
   }, [colCluster, rawMatrix.colLabels]);
 
   // Detail slice — honours current rowOrder/colOrder for visual continuity
@@ -218,22 +222,22 @@ function App() {
   const detailRowOrder = useMemo(() => {
     if (!selection.rows) return rowOrder;
     const keep = new Set(selection.rows);
-    return rowOrder.filter((i) => keep.has(i));
+    return rowOrder.filter((i: any) => keep.has(i));
   }, [rowOrder, selection.rows]);
   const detailColOrder = useMemo(() => {
     if (!selection.cols) return colOrder;
     const keep = new Set(selection.cols);
-    return colOrder.filter((i) => keep.has(i));
+    return colOrder.filter((i: any) => keep.has(i));
   }, [colOrder, selection.cols]);
   const hasSelection = selection.rows !== null || selection.cols !== null;
 
   // A brush on the MAIN chart sends display-space (ri, ci) ranges; convert to
   // original indices via rowOrder/colOrder before storing in selection.
   const onBrushEnd = useCallback(
-    ({ riMin, riMax, ciMin, ciMax }) => {
-      const rows = [];
+    ({ riMin, riMax, ciMin, ciMax }: any) => {
+      const rows: any[] = [];
       for (let ri = riMin; ri <= riMax; ri++) if (rowOrder[ri] != null) rows.push(rowOrder[ri]);
-      const cols = [];
+      const cols: any[] = [];
       for (let ci = ciMin; ci <= ciMax; ci++) if (colOrder[ci] != null) cols.push(colOrder[ci]);
       selectBox(rows, cols);
     },
@@ -279,7 +283,7 @@ function App() {
   }, [normalized, vis.palette, normalization]);
 
   const canNavigate = useCallback(
-    (target) => {
+    (target: any) => {
       if (target === "upload") return true;
       if (target === "configure") return rawMatrix.rowLabels.length > 0;
       if (target === "plot") return rawMatrix.rowLabels.length > 0;
@@ -288,7 +292,7 @@ function App() {
     [rawMatrix]
   );
 
-  const doParse = useCallback((text, sep) => {
+  const doParse = useCallback((text: any, sep: any) => {
     const dc = fixDecimalCommas(text, sep);
     setCommaFixed(dc.commaFixed);
     setCommaFixCount(dc.count);
@@ -319,7 +323,7 @@ function App() {
   }, []);
 
   const handleFileLoad = useCallback(
-    (text, name) => {
+    (text: any, name: any) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
@@ -406,9 +410,9 @@ function App() {
           </p>
           <DataPreview
             headers={[""].concat(rawMatrix.colLabels)}
-            rows={rawMatrix.matrix.map((row, ri) =>
+            rows={rawMatrix.matrix.map((row: any, ri: number) =>
               [rawMatrix.rowLabels[ri]].concat(
-                row.map((v) => (Number.isFinite(v) ? String(v) : ""))
+                row.map((v: any) => (Number.isFinite(v) ? String(v) : ""))
               )
             )}
           />
@@ -605,7 +609,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <ErrorBoundary toolName="Heatmap">
     <App />
   </ErrorBoundary>

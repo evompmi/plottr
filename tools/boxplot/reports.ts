@@ -4,8 +4,8 @@
 
 import { TEST_LABELS_BP, POSTHOC_LABELS_BP, formatBpResultLine } from "./helpers";
 
-export function buildBpSetTextBlock(row, setLabel) {
-  const lines = [];
+export function buildBpSetTextBlock(row: any, setLabel: any) {
+  const lines: any[] = [];
   const names = row.names;
   const values = row.values;
   const res = row.testResult || {};
@@ -40,7 +40,7 @@ export function buildBpSetTextBlock(row, setLabel) {
   lines.push("");
   const norm = (rec && rec.normality) || [];
   if (norm.length > 0) {
-    const parts = norm.map((r) => {
+    const parts = norm.map((r: any) => {
       const label = names[r.group] || `g${r.group}`;
       const verdict = r.normal === true ? "normal" : r.normal === false ? "not normal" : "—";
       return `${label}: ${verdict}`;
@@ -78,7 +78,7 @@ export function buildBpSetTextBlock(row, setLabel) {
   return lines.join("\n");
 }
 
-export function buildBpAggregateReport(rows, setLabel) {
+export function buildBpAggregateReport(rows: any, setLabel: any) {
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const label = setLabel || "Set";
   const head = [
@@ -87,10 +87,10 @@ export function buildBpAggregateReport(rows, setLabel) {
     `${label}${rows.length === 1 ? "" : "s"}: ${rows.length}`,
     "",
   ];
-  return head.join("\n") + rows.map((r) => buildBpSetTextBlock(r, label)).join("");
+  return head.join("\n") + rows.map((r: any) => buildBpSetTextBlock(r, label)).join("");
 }
 
-export function buildBpAggregateRScript(rows, setLabel) {
+export function buildBpAggregateRScript(rows: any, setLabel: any) {
   if (!rows.length || typeof buildRScript !== "function") return "";
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   // sanitizeRComment strips embedded line terminators so a hostile set name
