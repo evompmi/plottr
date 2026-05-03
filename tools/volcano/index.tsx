@@ -934,26 +934,64 @@ function ToggleRow({
 }
 
 function ThresholdsTile({ vis, updVis }) {
+  // |log2FC| cutoff: numeric stepper (−/+ buttons + free-form entry).
+  // p-value cutoff: discrete select with the conventional values
+  // researchers actually use ({0.05, 0.01, 0.001}) plus "None" — the
+  // sentinel for "no p threshold" is a stored cutoff of 1, which is
+  // strictly greater than any real p-value, so `classifyPoint`'s
+  // `p < pCutoff` test admits every point on the p axis. 1 also
+  // round-trips through localStorage cleanly (Infinity / NaN don't).
+  const onFcChange = (e) => {
+    const v = parseFloat(e.target.value);
+    if (!Number.isFinite(v)) return;
+    updVis({ fcCutoff: Math.max(0, Math.min(10, v)) });
+  };
+  const P_OPTIONS = [
+    { value: 1, label: "None" },
+    { value: 0.05, label: "0.05" },
+    { value: 0.01, label: "0.01" },
+    { value: 0.001, label: "0.001" },
+  ];
+  // Snap the persisted vis value to the closest option in the picker
+  // (handles legacy values from before this control existed).
+  const pPickValue = P_OPTIONS.find((o) => Math.abs(o.value - vis.pCutoff) < 1e-12)?.value ?? 0.05;
   return (
     <ControlSection title="Thresholds" defaultOpen>
-      <SliderControl
-        label="|log2FC| cutoff"
-        value={vis.fcCutoff}
-        displayValue={vis.fcCutoff.toFixed(2)}
-        min={0}
-        max={5}
-        step={0.1}
-        onChange={(v) => updVis({ fcCutoff: Number(v) })}
-      />
-      <SliderControl
-        label="p-value cutoff"
-        value={vis.pCutoff}
-        displayValue={vis.pCutoff < 0.001 ? vis.pCutoff.toExponential(1) : vis.pCutoff.toFixed(3)}
-        min={0.0001}
-        max={0.5}
-        step={0.0001}
-        onChange={(v) => updVis({ pCutoff: Number(v) })}
-      />
+      <label style={{ display: "block" }}>
+        <span className="dv-label">|log2FC| cutoff</span>
+        <NumberInput
+          value={vis.fcCutoff}
+          min={0}
+          max={10}
+          step={0.1}
+          onChange={onFcChange}
+          style={{ width: "100%" }}
+        />
+      </label>
+      <label style={{ display: "block" }}>
+        <span className="dv-label">p-value cutoff</span>
+        {/* Same `dv-seg` segmented pill-bar power and molarity use for
+            their alpha / tails / mode pickers — one canonical
+            exclusive-selector look across the whole tool. Every option
+            is a real value (1 = "no p threshold"); the active one
+            carries `.dv-seg-btn-active`. */}
+        <div className="dv-seg">
+          {P_OPTIONS.map((o) => {
+            const active = pPickValue === o.value;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
+                style={{ fontSize: 12 }}
+                onClick={() => updVis({ pCutoff: o.value })}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+      </label>
       <ToggleRow checked={vis.showRefLines} onChange={(v) => updVis({ showRefLines: v })}>
         Show reference lines
       </ToggleRow>
