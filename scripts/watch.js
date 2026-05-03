@@ -26,7 +26,7 @@ const ESBUILD_ENTRYPOINTS = [
   "tools/heatmap/index.tsx",
   "tools/molarity.tsx",
   "tools/power.tsx",
-  "tools/upset.tsx",
+  "tools/upset/index.tsx",
 ];
 
 const ESBUILD_FLAGS = [

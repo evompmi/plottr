@@ -11,11 +11,11 @@ const compiledTools = [
   "tools/heatmap/index.js",
   "tools/lineplot/index.js",
   "tools/scatter/index.js",
+  "tools/upset/index.js",
   "tools/venn/index.js",
   "tools/volcano/index.js",
   "tools/molarity.js",
   "tools/power.js",
-  "tools/upset.js",
   "tools/version.js",
 ];
 
