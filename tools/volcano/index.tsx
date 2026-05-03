@@ -51,8 +51,10 @@ const VIS_INIT_VOLCANO = {
   // are toggled On). Column indices live in local state; these are the
   // style knobs that survive reloads.
   colorMapPalette: "viridis",
+  colorMapInvert: false,
   sizeMapMinR: 2,
   sizeMapMaxR: 9,
+  plotWidth: 800,
   colorUp: VOLCANO_DEFAULT_COLORS.up,
   colorDown: VOLCANO_DEFAULT_COLORS.down,
   colorNs: VOLCANO_DEFAULT_COLORS.ns,
@@ -243,7 +245,8 @@ function App() {
     // and `let` do not. Reach for the bare ambient globals (typed in
     // types/globals.d.ts) directly; `window.COLOR_PALETTES` is `undefined`
     // here and dereferencing it crashed the colour-mapping path.
-    const stops = COLOR_PALETTES[vis.colorMapPalette] || COLOR_PALETTES.viridis;
+    const baseStops = COLOR_PALETTES[vis.colorMapPalette] || COLOR_PALETTES.viridis;
+    const stops = vis.colorMapInvert ? [...baseStops].reverse() : baseStops;
     // Restrict the mapping to features that pass the thresholds —
     // colouring noise dilutes the legend and the visual signal. The
     // chart enforces the same rule in its `fillFor` resolver, so even
@@ -264,9 +267,17 @@ function App() {
       discretePalette: PALETTE,
       interpolate: interpolateColor,
     });
-  }, [parsed, colorMapCol, vis.colorMapPalette, vis.fcCutoff, vis.pCutoff, points]);
+  }, [
+    parsed,
+    colorMapCol,
+    vis.colorMapPalette,
+    vis.colorMapInvert,
+    vis.fcCutoff,
+    vis.pCutoff,
+    points,
+  ]);
 
-  const radiusByIdx: Map<number, number> | null = useMemo(() => {
+  const sizeMap = useMemo(() => {
     if (!parsed || sizeMapCol < 0) return null;
     return buildSizeMap(
       parsed.rawData,
@@ -276,6 +287,11 @@ function App() {
       vis.sizeMapMaxR
     );
   }, [parsed, sizeMapCol, vis.sizeMapMinR, vis.sizeMapMaxR, points]);
+
+  // Column header names for the SVG legend titles. Empty when the
+  // mapping is off (no legend rendered).
+  const colorMapLabel = parsed && colorMapCol >= 0 ? parsed.headers[colorMapCol] : "";
+  const sizeMapLabel = parsed && sizeMapCol >= 0 ? parsed.headers[sizeMapCol] : "";
 
   // ── Download handlers ────────────────────────────────────────────────
 
@@ -415,9 +431,11 @@ function App() {
           colorMapCol={colorMapCol}
           setColorMapCol={setColorMapCol}
           colorMap={colorMap}
+          colorMapLabel={colorMapLabel}
           sizeMapCol={sizeMapCol}
           setSizeMapCol={setSizeMapCol}
-          radiusByIdx={radiusByIdx}
+          sizeMap={sizeMap}
+          sizeMapLabel={sizeMapLabel}
           onDownloadSvg={onDownloadSvg}
           onDownloadPng={onDownloadPng}
           onDownloadCsv={onDownloadCsv}
@@ -688,9 +706,11 @@ function PlotStep({
   colorMapCol,
   setColorMapCol,
   colorMap,
+  colorMapLabel,
   sizeMapCol,
   setSizeMapCol,
-  radiusByIdx,
+  sizeMap,
+  sizeMapLabel,
   onDownloadSvg,
   onDownloadPng,
   onDownloadCsv,
@@ -809,8 +829,11 @@ function PlotStep({
             showAxes={vis.showAxes}
             manualSelection={manualSelection}
             onPointClick={togglePointSelection}
-            colorByIdx={colorMap ? colorMap.colorByIdx : null}
-            radiusByIdx={radiusByIdx}
+            colorMap={colorMap}
+            colorMapLabel={colorMapLabel}
+            sizeMap={sizeMap}
+            sizeMapLabel={sizeMapLabel}
+            plotWidth={vis.plotWidth}
             plotBg="#ffffff"
           />
         </div>
@@ -1103,6 +1126,15 @@ function StyleTile({ vis, updVis }) {
   return (
     <ControlSection title="Style">
       <SliderControl
+        label="Plot width"
+        value={vis.plotWidth}
+        displayValue={String(Math.round(vis.plotWidth)) + " px"}
+        min={600}
+        max={1600}
+        step={20}
+        onChange={(v) => updVis({ plotWidth: Number(v) })}
+      />
+      <SliderControl
         label="Point radius"
         value={vis.pointRadius}
         displayValue={vis.pointRadius.toFixed(1)}
@@ -1170,6 +1202,41 @@ function eligibleColumns(parsed, xCol, yCol, labelCol) {
 // radius. Themes (`color` slate, `size` green) match scatter so the
 // visual language carries across tools.
 
+// Inline palette-strip preview — same shape as heatmap's `PaletteStrip`
+// helper (48-segment flex bar). Inlined here rather than imported from
+// `tools/heatmap/chart` because esbuild bundles each tool independently
+// and cross-tool imports would drag the heatmap's chart into the volcano
+// bundle. The body is tiny (~12 lines) so duplication is fine.
+function PaletteStrip({
+  palette,
+  invert = false,
+  height = 12,
+}: {
+  palette: string;
+  invert?: boolean;
+  height?: number;
+}) {
+  const base = COLOR_PALETTES[palette] || COLOR_PALETTES.viridis;
+  const stops = invert ? [...base].reverse() : base;
+  const n = 48;
+  return (
+    <div
+      style={{
+        display: "flex",
+        width: "100%",
+        height,
+        borderRadius: 3,
+        overflow: "hidden",
+        border: "1px solid var(--border)",
+      }}
+    >
+      {Array.from({ length: n }, (_, i) => (
+        <div key={i} style={{ flex: 1, background: interpolateColor(stops, i / (n - 1)) }} />
+      ))}
+    </div>
+  );
+}
+
 function ColorMapTile({ parsed, xCol, yCol, labelCol, col, setCol, colorMap, vis, updVis }) {
   const candidates = eligibleColumns(parsed, xCol, yCol, labelCol);
   // Bare-global access — see the comment in App's colorMap useMemo for
@@ -1211,9 +1278,40 @@ function ColorMapTile({ parsed, xCol, yCol, labelCol, col, setCol, colorMap, vis
                 {paletteNames.map((name) => (
                   <option key={name} value={name}>
                     {name}
+                    {DIVERGING_PALETTES.has(name) ? "  (diverging)" : ""}
                   </option>
                 ))}
               </select>
+              {/* Live palette preview — picks up the inversion flag so
+                  the user sees the actual gradient direction the chart
+                  will use. Same widget heatmap renders below its
+                  palette dropdown. */}
+              <PaletteStrip palette={vis.colorMapPalette} invert={vis.colorMapInvert} />
+              {/* Normal / Inverted segmented picker — matches heatmap's
+                  "Direction" dv-seg row exactly. */}
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span className="dv-label" style={{ fontSize: 11, flexShrink: 0 }}>
+                  Direction
+                </span>
+                <div className="dv-seg" role="group" aria-label="Palette direction">
+                  <button
+                    type="button"
+                    className={"dv-seg-btn" + (!vis.colorMapInvert ? " dv-seg-btn-active" : "")}
+                    onClick={() => updVis({ colorMapInvert: false })}
+                    style={{ fontSize: 11, padding: "3px 8px" }}
+                  >
+                    Normal
+                  </button>
+                  <button
+                    type="button"
+                    className={"dv-seg-btn" + (vis.colorMapInvert ? " dv-seg-btn-active" : "")}
+                    onClick={() => updVis({ colorMapInvert: true })}
+                    style={{ fontSize: 11, padding: "3px 8px" }}
+                  >
+                    Inverted
+                  </button>
+                </div>
+              </div>
               <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
                 range: {colorMap.vmin.toPrecision(3)} → {colorMap.vmax.toPrecision(3)}
               </span>

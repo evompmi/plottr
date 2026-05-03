@@ -19,13 +19,19 @@ import {
   layoutLabels,
   approxMonoCharWidth,
   PlacedLabel,
+  ColorMap,
+  SizeMap,
 } from "./helpers";
 
 const { forwardRef, useMemo } = React;
 
-// Same canvas dimensions as scatter — keeps the export-default 800×500
-// expectation consistent across XY tools.
-export const VBW = 800;
+// Default canvas dimensions — match scatter's 800×500 export shape.
+// VBW is now overridable via the `plotWidth` prop: the user has a
+// slider in the Style tile that resizes the SVG viewBox horizontally
+// (so the inner data area widens / narrows independent of the
+// downstream image scale). Height is fixed for now — most volcano
+// plots want a wider-than-tall canvas.
+export const DEFAULT_VBW = 800;
 export const VBH = 500;
 // Margins are deliberately generous (vs scatter's tight 28/28/56/70) so
 // the label-layout pass has somewhere to spill labels when the inner
@@ -73,15 +79,21 @@ interface VolcanoChartProps {
   manualSelection?: Set<number>;
   onPointClick?: (idx: number) => void;
   // Optional aesthetic mappings derived in the App orchestrator. Both
-  // are keyed by VolcanoPoint.idx (the original parsed-row index). When
-  // colorByIdx is set, it overrides the class-based fill on each point
-  // it has an entry for; class-coloured fallback applies elsewhere.
-  // When radiusByIdx is set, it overrides the uniform `pointRadius`
-  // on each point it has an entry for. Both selection-ring radii and
-  // the label-layout obstacles inherit the per-point radius so the
-  // collision math stays accurate for variably-sized clouds.
-  colorByIdx?: Map<number, string> | null;
-  radiusByIdx?: Map<number, number> | null;
+  // carry their own metadata so the chart can render an in-SVG legend
+  // (which then rides along on every PNG / SVG export — the whole
+  // point of putting it in the SVG rather than in the React sidebar).
+  // ColorMap carries vmin / vmax (continuous) or a legend list
+  // (discrete); SizeMap carries vmin / vmax / minR / maxR for the
+  // sample-circle legend.
+  colorMap?: ColorMap;
+  colorMapLabel?: string; // header name of the column being mapped
+  sizeMap?: SizeMap | null;
+  sizeMapLabel?: string;
+  // Override the SVG viewBox width. Falls back to DEFAULT_VBW (800)
+  // when undefined. Sliding this in the Style tile widens the inner
+  // data area, which is especially useful when an aesthetic legend is
+  // active and the user wants the data plot to keep its breathing room.
+  plotWidth?: number;
   plotBg: string;
 }
 
@@ -121,10 +133,16 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
       showAxes,
       manualSelection,
       onPointClick,
-      colorByIdx,
-      radiusByIdx,
+      colorMap,
+      colorMapLabel,
+      sizeMap,
+      sizeMapLabel,
+      plotWidth,
       plotBg,
     } = props;
+    const VBW = plotWidth && plotWidth > 0 ? plotWidth : DEFAULT_VBW;
+    const colorByIdx = colorMap ? colorMap.colorByIdx : null;
+    const radiusByIdx = sizeMap ? sizeMap.byIdx : null;
     // Per-point resolvers: pick the data-driven mapping when an entry
     // exists, otherwise fall back to the class colour / uniform radius.
     // Colour-by-column is *only* applied to features that pass the
@@ -142,7 +160,13 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
       return pointRadius;
     };
 
-    const w = VBW - MARGIN.left - MARGIN.right;
+    // Reserve right-side space for the in-SVG legend column when any
+    // aesthetic mapping is active. Inner plot width shrinks to fit.
+    const hasLegend = !!colorMap || !!sizeMap;
+    const LEGEND_W = 130;
+    const LEGEND_GAP = 14;
+    const legendW = hasLegend ? LEGEND_W : 0;
+    const w = VBW - MARGIN.left - MARGIN.right - legendW;
     const h = VBH - MARGIN.top - MARGIN.bottom;
 
     // Derive auto-ranges from the data. Symmetric around 0 on the x-axis
@@ -210,7 +234,12 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
         return order[a.cls] - order[b.cls];
       });
       return out;
-    }, [points, pFloor, fcCutoff, pCutoff, xMin, xMax, yMin, yMax]);
+      // `w` / `h` are inputs to `sx` / `sy` (the closure that produces
+      // each point's pixel coords); when the legend column reserves
+      // space and shrinks `w`, the rendered points must reflow with it
+      // — without these deps the memo would cache stale coords and
+      // points would overflow into the legend area.
+    }, [points, pFloor, fcCutoff, pCutoff, xMin, xMax, yMin, yMax, w, h]);
 
     // Labels: two modes —
     //   manual:   use exactly the user-clicked indices, regardless of
@@ -299,8 +328,8 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
       labelFontSize,
       pointRadius,
       manualSelection,
-      colorByIdx,
-      radiusByIdx,
+      colorMap,
+      sizeMap,
       w,
       h,
     ]);
@@ -629,7 +658,274 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
             strokeWidth="1"
           />
         </g>
+
+        {/* ── Aesthetic legends ──────────────────────────────────────────
+             Rendered inside the SVG (not in the React sidebar) so they
+             ride along on every PNG / SVG export. Stacked vertically in
+             the right-margin column reserved by `legendW`: Color first
+             (continuous: gradient strip + endpoint labels; discrete:
+             swatch / label rows, capped at 14 visible), Size below
+             (three sample circles at min / mid / max with their data
+             values). Both sections only render when the matching
+             mapping is active. */}
+        {hasLegend && (
+          <g
+            id="aesthetic-legends"
+            transform={`translate(${MARGIN.left + w + LEGEND_GAP}, ${MARGIN.top})`}
+          >
+            {colorMap && (
+              <ColorLegend
+                colorMap={colorMap}
+                title={colorMapLabel || "color"}
+                width={LEGEND_W - LEGEND_GAP}
+                yOffset={0}
+              />
+            )}
+            {sizeMap && (
+              <SizeLegend
+                sizeMap={sizeMap}
+                title={sizeMapLabel || "size"}
+                width={LEGEND_W - LEGEND_GAP}
+                yOffset={
+                  colorMap
+                    ? colorMap.type === "continuous"
+                      ? 78
+                      : Math.min(14, colorMap.legend.length) * 14 + 28
+                    : 0
+                }
+              />
+            )}
+          </g>
+        )}
       </svg>
     );
   }
 );
+
+// ── Legend renderers ──────────────────────────────────────────────────────
+//
+// Both legends draw inside SVG so they survive PNG / SVG export. The
+// React sidebar tile keeps its own preview (palette strip + chip list /
+// min-max sliders) for editing convenience, but the chart legend is the
+// authoritative one for downstream consumers.
+
+function ColorLegend({
+  colorMap,
+  title,
+  width,
+  yOffset,
+}: {
+  colorMap: ColorMap;
+  title: string;
+  width: number;
+  yOffset: number;
+}) {
+  const titleY = yOffset;
+  return (
+    <g id="color-legend" transform={`translate(0, ${titleY})`}>
+      <text
+        x={0}
+        y={10}
+        fontSize="11"
+        fontWeight="700"
+        fill="#222"
+        fontFamily="ui-monospace, Menlo, monospace"
+      >
+        {title}
+      </text>
+      {colorMap!.type === "continuous" ? (
+        <ContinuousColorLegend
+          stops={colorMap as Extract<ColorMap, { type: "continuous" }>}
+          width={width}
+        />
+      ) : (
+        <DiscreteColorLegend
+          legend={(colorMap as Extract<ColorMap, { type: "discrete" }>).legend}
+        />
+      )}
+    </g>
+  );
+}
+
+function ContinuousColorLegend({
+  stops,
+  width,
+}: {
+  stops: Extract<ColorMap, { type: "continuous" }>;
+  width: number;
+}) {
+  // Resample the actual palette gradient (post-inversion — the
+  // ColorMap result carries the final `paletteStops`). 32 segments is
+  // smooth enough at 130 px and keeps the SVG export compact.
+  const N = 32;
+  const stripWidth = width;
+  const stripH = 10;
+  const stripY = 18;
+  return (
+    <>
+      {Array.from({ length: N }, (_, i) => {
+        const t = i / (N - 1);
+        return (
+          <rect
+            key={i}
+            x={(i * stripWidth) / N}
+            y={stripY}
+            width={stripWidth / N + 0.5}
+            height={stripH}
+            fill={interpolateColor(stops.paletteStops, t)}
+          />
+        );
+      })}
+      <rect
+        x={0}
+        y={stripY}
+        width={stripWidth}
+        height={stripH}
+        fill="none"
+        stroke="#888"
+        strokeWidth="0.6"
+      />
+      <text x={0} y={stripY + stripH + 12} fontSize="10" fill="#555" fontFamily="sans-serif">
+        {fmtLegend(stops.vmin)}
+      </text>
+      <text
+        x={stripWidth}
+        y={stripY + stripH + 12}
+        textAnchor="end"
+        fontSize="10"
+        fill="#555"
+        fontFamily="sans-serif"
+      >
+        {fmtLegend(stops.vmax)}
+      </text>
+    </>
+  );
+}
+
+function DiscreteColorLegend({ legend }: { legend: Array<{ value: string; color: string }> }) {
+  // Cap the visible rows so the legend doesn't run off the bottom of
+  // the SVG. Caller passes the full list; we render up to 14 + a "+N
+  // more" footer.
+  const MAX_ROWS = 14;
+  const rows = legend.slice(0, MAX_ROWS);
+  const overflow = legend.length - rows.length;
+  const ROW_H = 14;
+  const startY = 18;
+  return (
+    <>
+      {rows.map((entry, i) => (
+        <g key={entry.value} transform={`translate(0, ${startY + i * ROW_H})`}>
+          <rect
+            x={0}
+            y={0}
+            width={10}
+            height={10}
+            fill={entry.color}
+            stroke="#888"
+            strokeWidth="0.5"
+          />
+          <text x={16} y={9} fontSize="10" fill="#222" fontFamily="ui-monospace, Menlo, monospace">
+            {entry.value.length > 16 ? entry.value.slice(0, 16) + "…" : entry.value}
+          </text>
+        </g>
+      ))}
+      {overflow > 0 && (
+        <text
+          x={0}
+          y={startY + rows.length * ROW_H + 8}
+          fontSize="9"
+          fill="#888"
+          fontStyle="italic"
+          fontFamily="ui-monospace, Menlo, monospace"
+        >
+          + {overflow} more
+        </text>
+      )}
+    </>
+  );
+}
+
+function SizeLegend({
+  sizeMap,
+  title,
+  width,
+  yOffset,
+}: {
+  sizeMap: SizeMap;
+  title: string;
+  width: number;
+  yOffset: number;
+}) {
+  // Round-number sample circles produced by `makeTicks` — same helper
+  // the X / Y axes use, so the legend stops land on the same nice
+  // values an axis would (10, 20, 50, 100, …) instead of literal
+  // arithmetic min / mid / max. Ticks outside the actual data range
+  // are dropped so legend circles never claim radii beyond [minR,
+  // maxR]. Falls back to a single mid-point sample when the data is
+  // degenerate (vmin === vmax) or `makeTicks` returns no in-range
+  // values.
+  const span = sizeMap.vmax - sizeMap.vmin;
+  const ticks =
+    span > 0
+      ? makeTicks(sizeMap.vmin, sizeMap.vmax, 4).filter(
+          (t) => t >= sizeMap.vmin && t <= sizeMap.vmax
+        )
+      : [];
+  const samples =
+    ticks.length > 0
+      ? ticks.map((v) => ({
+          v,
+          r: sizeMap.minR + ((v - sizeMap.vmin) / span) * (sizeMap.maxR - sizeMap.minR),
+        }))
+      : [
+          {
+            v: sizeMap.vmin,
+            r: span > 0 ? sizeMap.minR : (sizeMap.minR + sizeMap.maxR) / 2,
+          },
+        ];
+  const ROW_H = Math.max(20, sizeMap.maxR * 2 + 6);
+  const cx = sizeMap.maxR + 2;
+  return (
+    <g id="size-legend" transform={`translate(0, ${yOffset})`}>
+      <text
+        x={0}
+        y={10}
+        fontSize="11"
+        fontWeight="700"
+        fill="#222"
+        fontFamily="ui-monospace, Menlo, monospace"
+      >
+        {title}
+      </text>
+      {samples.map((s, i) => (
+        <g key={i} transform={`translate(0, ${20 + i * ROW_H})`}>
+          <circle cx={cx} cy={ROW_H / 2} r={s.r} fill="#bbb" stroke="#444" strokeWidth="0.6" />
+          <text
+            x={sizeMap.maxR * 2 + 10}
+            y={ROW_H / 2 + 3}
+            fontSize="10"
+            fill="#555"
+            fontFamily="sans-serif"
+          >
+            {fmtLegend(s.v)}
+          </text>
+        </g>
+      ))}
+      {/* swallow the unused width so the type-checker doesn't complain */}
+      {width < 0 && <text>{title}</text>}
+    </g>
+  );
+}
+
+// Compact numeric formatter for legend endpoints — short for huge
+// values (10k → "10000"), exponent for very small (< 0.01).
+function fmtLegend(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  const abs = Math.abs(n);
+  if (abs === 0) return "0";
+  if (abs >= 1e6) return n.toExponential(1);
+  if (abs >= 1000) return Math.round(n).toString();
+  if (abs >= 1) return n.toFixed(2);
+  if (abs >= 0.01) return n.toFixed(3);
+  return n.toExponential(1);
+}

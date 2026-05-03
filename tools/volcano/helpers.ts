@@ -625,6 +625,11 @@ export interface ContinuousColorMap {
   // The palette name the chart should expose in the colour-bar (so
   // the legend and the actual colours stay in sync).
   paletteName: string;
+  // The actual gradient stops the mapping was built with — *post*-
+  // inversion, so the in-SVG legend can re-render the bar directly
+  // without reaching for the global palette table or knowing about
+  // the user's invert flag.
+  paletteStops: string[];
 }
 
 export type ColorMap = DiscreteColorMap | ContinuousColorMap | null;
@@ -730,7 +735,14 @@ export function buildColorMap(args: BuildColorMapArgs): ColorMap {
       const t = vmax > vmin ? (v - vmin) / (vmax - vmin) : 0.5;
       colorByIdx.set(idx, interpolate(paletteStops, Math.max(0, Math.min(1, t))));
     }
-    return { type: "continuous", colorByIdx, vmin, vmax, paletteName };
+    return {
+      type: "continuous",
+      colorByIdx,
+      vmin,
+      vmax,
+      paletteName,
+      paletteStops: paletteStops.slice(),
+    };
   }
   // Discrete: assign palette colours in first-seen order.
   const seen = new Map<string, string>();
@@ -757,17 +769,31 @@ export function buildColorMap(args: BuildColorMapArgs): ColorMap {
   };
 }
 
+// Result of building a size mapping: the per-point radius map plus the
+// numeric range it was derived from. The chart uses `byIdx` for actual
+// point sizing and `vmin` / `vmax` / `minR` / `maxR` to draw the
+// matching SVG legend (sample circles at min, mid, max with their
+// data-value labels).
+export interface SizeMap {
+  byIdx: Map<number, number>;
+  vmin: number;
+  vmax: number;
+  minR: number;
+  maxR: number;
+}
+
 // Build a per-point radius map from a numeric column. Linearly
 // interpolates between `minR` and `maxR`; non-numeric / missing values
-// fall back to a null entry (chart uses default radius). Mirrors the
-// scatter tool's continuous size-mapping behaviour.
+// get no entry (chart uses default radius). Mirrors scatter's
+// continuous size-mapping behaviour. Returns null when no rows have a
+// finite numeric value in the chosen column.
 export function buildSizeMap(
   rawData: string[][],
   pointIndices: number[],
   col: number,
   minR: number,
   maxR: number
-): Map<number, number> | null {
+): SizeMap | null {
   if (col < 0) return null;
   let vmin = Infinity;
   let vmax = -Infinity;
@@ -782,16 +808,22 @@ export function buildSizeMap(
     if (n > vmax) vmax = n;
   }
   if (numeric.length === 0) return null;
-  const out = new Map<number, number>();
+  const byIdx = new Map<number, number>();
   if (!Number.isFinite(vmin) || !Number.isFinite(vmax) || vmin === vmax) {
     const mid = (minR + maxR) / 2;
-    for (const { idx } of numeric) out.set(idx, mid);
-    return out;
+    for (const { idx } of numeric) byIdx.set(idx, mid);
+    return {
+      byIdx,
+      vmin: Number.isFinite(vmin) ? vmin : 0,
+      vmax: Number.isFinite(vmax) ? vmax : 0,
+      minR,
+      maxR,
+    };
   }
   const span = vmax - vmin;
   for (const { idx, v } of numeric) {
     const t = (v - vmin) / span;
-    out.set(idx, minR + t * (maxR - minR));
+    byIdx.set(idx, minR + t * (maxR - minR));
   }
-  return out;
+  return { byIdx, vmin, vmax, minR, maxR };
 }

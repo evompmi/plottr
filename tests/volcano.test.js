@@ -595,6 +595,10 @@ test("continuous mapping spans vmin..vmax across the palette", () => {
     // lives between them.
     assert(cm.colorByIdx.get(0) !== cm.colorByIdx.get(19), "endpoints should differ");
     eq(cm.paletteName, "viridis");
+    // The post-inversion palette stops travel back with the result so
+    // the chart's SVG legend can re-render the gradient without
+    // reaching for the global palette table.
+    assert(Array.isArray(cm.paletteStops) && cm.paletteStops.length > 0, "paletteStops populated");
   }
 });
 
@@ -659,16 +663,20 @@ test("scales values linearly between minR and maxR", () => {
   const rawData = [["1"], ["5"], ["9"]]; // min=1, max=9 → t = 0, 0.5, 1
   const m = buildSizeMap(rawData, [0, 1, 2], 0, /* minR */ 2, /* maxR */ 8);
   assert(m != null);
-  eq(m.get(0), 2);
-  eq(m.get(1), 5);
-  eq(m.get(2), 8);
+  eq(m.byIdx.get(0), 2);
+  eq(m.byIdx.get(1), 5);
+  eq(m.byIdx.get(2), 8);
+  eq(m.vmin, 1);
+  eq(m.vmax, 9);
+  eq(m.minR, 2);
+  eq(m.maxR, 8);
 });
 
 test("non-numeric values are skipped (no entry in the result map)", () => {
   const rawData = [["1"], ["nope"], ["9"]];
   const m = buildSizeMap(rawData, [0, 1, 2], 0, 2, 8);
   assert(m != null);
-  eq(m.has(1), false, "non-numeric row should have no radius entry");
+  eq(m.byIdx.has(1), false, "non-numeric row should have no radius entry");
 });
 
 test("col=-1 or all-non-numeric returns null", () => {
@@ -680,7 +688,9 @@ test("degenerate range (vmin === vmax) maps every row to (minR + maxR)/2", () =>
   const rawData = [["3"], ["3"], ["3"]];
   const m = buildSizeMap(rawData, [0, 1, 2], 0, 2, 8);
   assert(m != null);
-  for (const v of m.values()) eq(v, 5);
+  for (const v of m.byIdx.values()) eq(v, 5);
+  eq(m.vmin, 3);
+  eq(m.vmax, 3);
 });
 
 summary();
