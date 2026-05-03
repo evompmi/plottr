@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-03
+
 ### Added
 
 - **Volcano Plot — eighth plot tool, ships under `tools/volcano/`.** Closes the long-standing -omics gap: every differential-expression / proteomics / metabolomics paper ships a volcano, and Plöttr's existing scatter tool _almost_ covered it but lacked the conventions (three-class significance colouring, ±|log2FC| / −log10(p) reference lines, top-N feature labels with collision-avoid layout, p = 0 clamping, ggplot2-style R export). Folder split: `helpers.ts` (pure logic — `classifyPoint`, `computePFloor`, `negLog10P`, `summarize`, `autoDetectColumns`, `pickTopLabels`, `layoutLabels`), `chart.tsx` (`VolcanoChart` forwardRef SVG renderer with named groups for Inkscape — `points-up` / `points-down` / `points-ns` / `reference-lines` / `top-n-labels`), `reports.ts` (ggplot2-flavoured R script + classified CSV — both go through the audit-hardened `sanitizeRString` / `_escapeCsvCell` so a hostile feature name can't escape into live R or formula-evaluate in Excel), `index.tsx` (App + steps + sidebar tiles). Defaults: log2FC cutoff = 1, p cutoff = 0.05, palette pulled from Okabe-Ito (`#D55E00` for up / `#0072B2` for down / `#999999` for ns — colourblind-safe and matches the warm-up / cool-down convention every -omics paper uses). Auto-detects DESeq2 (`log2FoldChange` / `padj`), limma (`logFC` / `adj.P.Val`), edgeR (`logFC` / `FDR`) column conventions on first parse, prefers adjusted p-value when both raw and adjusted exist. p = 0 is clamped to `(min non-zero p) / 10` so the y-axis stays bounded; the user gets a yellow notice surfacing how many features were clamped. Top-N labelling uses a greedy collision-avoid pass over four candidate anchors (above-right / above-left / below-right / below-left) — intentionally simpler than `ggrepel`'s force-directed simulation; falls back to a leader line when no anchor fits. Wired into the landing page (8th tile, slotted between Heatmap and Power Analysis), the topbar tool registry (10th `TOOL_ORDER` entry), and the prefetch progress bar — no shape change to those, just additions. Coverage: 28 unit tests in `tests/volcano.test.js` (every `classifyPoint` boundary, p-floor clamping, summarize invariants, three -omics tool conventions on `autoDetectColumns`, top-N exclusion of ns / discarded points, layout collision-avoid + forced-anchor fallback) + a fuzz harness `tests/fuzz/volcano.fuzz.js` (1k iterations × 3 seeds clean — exercises classify / summarize / pickTopLabels / layoutLabels under hostile inputs: NaN log2FC, p = 0, p > 1, label strings with control chars / newlines / multi-byte unicode). Bundled demo dataset (`tools/volcano_example.js`) is a synthetic plant-transcriptomics output with 200 features (CCA1 / TOC1 / DREB / ABA / etc. circadian + stress hits) so the example button shows a visually informative volcano on first click. Total deterministic tests 962 → 990; landing-page badge bumped.
@@ -843,7 +845,8 @@ First tracked release. Baseline of features shipped to GitHub Pages prior to the
 - Minified esbuild output for production bundles.
 - Custom test harness with tests across shared utilities, parsing, components, and power calculators.
 
-[Unreleased]: https://github.com/evompmi/plottr/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/evompmi/plottr/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/evompmi/plottr/compare/v1.0.5...v1.1.0
 [1.0.0]: https://github.com/evompmi/plottr/compare/v0.10.0...v1.0.0
 [0.7.1]: https://github.com/evompmi/dataviz/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/evompmi/dataviz/compare/v0.6.0...v0.7.0
