@@ -3,6 +3,55 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- BEGIN dv-anti-clickjack -->
+    <!--
+      Frame-busting against hostile embedders. GitHub Pages can't set
+      X-Frame-Options / frame-ancestors, so this inline snippet is the
+      only option. Same-origin iframes (landing → tool, embedded demos
+      from sibling projects on this Pages origin) render normally;
+      cross-origin frames (or no referrer) get replaced with a
+      "Open in a top-level tab" link. Closes Tier A #3 from the
+      02-05-2026 security audit. Managed by scripts/anti-clickjack-sync.js
+      — do not edit by hand; re-run that script after changes.
+    -->
+    <style id="dv-anti-clickjack">
+      html {
+        visibility: hidden;
+      }
+    </style>
+    <script>
+      (function () {
+        function reveal() {
+          var s = document.getElementById("dv-anti-clickjack");
+          if (s) s.remove();
+        }
+        try {
+          if (window.top === window.self) {
+            reveal();
+            return;
+          }
+          var ref = document.referrer;
+          if (ref) {
+            try {
+              if (new URL(ref).origin === window.location.origin) {
+                reveal();
+                return;
+              }
+            } catch (e) {}
+          }
+          if (typeof window.stop === "function") window.stop();
+          var loc = window.location.href;
+          document.documentElement.innerHTML =
+            '<head><meta charset="UTF-8"><title>Open in a top-level tab</title>' +
+            "<style>body{font-family:system-ui,sans-serif;padding:32px;margin:0;background:#fff;color:#222;line-height:1.5}a{color:#0066cc}</style>" +
+            "</head><body><p>Pl\u00f6ttr is being framed by an unrelated site. " +
+            '<a href="' +
+            loc +
+            '" target="_blank" rel="noopener">Open in a top-level tab</a> instead.</p></body>';
+        } catch (e) {}
+      })();
+    </script>
+    <!-- END dv-anti-clickjack -->
     <script>
       // Same no-FOUC pattern as the tool HTMLs: only pin [data-theme] when the
       // user has explicitly picked a theme. When nothing is stored, leave the
@@ -551,7 +600,7 @@
             href="benchmark.html"
             class="trust-badge"
             data-benchmark-link
-            title="952 internal tests, 293 cross-checks vs R 4.5"
+            title="962 internal tests, 293 cross-checks vs R 4.5"
           >
             <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
               <path
@@ -812,7 +861,7 @@
         <span id="pf-label">Loading dependencies…</span>
       </div>
       <div class="landing-header">
-        <p>952 internal tests</p>
+        <p>962 internal tests</p>
         <p>293 cross-checks vs R 4.5</p>
         <p><a href="benchmark.html" data-benchmark-link>view benchmark →</a></p>
       </div>

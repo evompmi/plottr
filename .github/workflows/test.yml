@@ -41,6 +41,14 @@ jobs:
       - name: Verify vendor SRI hashes
         run: npm run lint:sri
 
+      # Anti-clickjacking snippet (security audit 02-05-2026, Tier A #3)
+      # is maintained byte-identical across every HTML by
+      # scripts/anti-clickjack-sync.js. This step fails CI if any HTML
+      # drifted — the cost of a stale snippet would be a hostile
+      # embedder bypassing the frame-buster on whichever HTML drifted.
+      - name: Verify anti-clickjack snippet sync
+        run: npm run lint:anti-clickjack
+
       - name: Run tests
         run: npm test 2>&1 | tee test-output.log && exit ${PIPESTATUS[0]}
 
