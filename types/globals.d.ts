@@ -1,9 +1,9 @@
-// Ambient globals for tools/shared.js and tools/shared-components.js.
+// Ambient globals for tools/shared.js and tools/shared-*.js.
 // Those files are loaded as plain <script> tags in each tool HTML and expose
 // their top-level names globally. Tool .tsx files consume them without imports.
 //
-// Types here are the public surface only. For Phase 1, component props are
-// deliberately loose (`any`) — tighten per component as needed.
+// Types here are the public surface only. Component prop interfaces match
+// the runtime contract documented in each shared-*.js source.
 
 import type { CSSProperties, FC, ReactElement, ReactNode } from "react";
 import * as ReactNs from "react";
@@ -254,19 +254,85 @@ declare global {
   function formatRNumber(n: number | null | undefined): string;
   function formatRVector(arr: Array<number | null | undefined>): string;
 
-  // ── Shared components (Phase 1: loose props; tighten per component later) ──
-  const ColorInput: FC<any>;
-  const FileDropZone: FC<any>;
-  const DataPreview: FC<any>;
-  const NumberInput: FC<any>;
-  const SliderControl: FC<any>;
-  const StepNavBar: FC<any>;
-  const PageHeader: FC<any>;
-  const UploadPanel: FC<any>;
-  const HowToCard: FC<any>;
-  const ActionsPanel: FC<any>;
-  const CommaFixBanner: FC<any>;
-  const ParseErrorBanner: FC<any>;
+  // ── Shared components ──────────────────────────────────────────────────────
+  // Implementations live in `tools/shared-*.js` (plain JS, concatenated into
+  // shared.bundle.js — see CLAUDE.md). Prop types are tightened here for
+  // .tsx call sites; runtime is unaffected.
+  const ColorInput: FC<{ value: string; onChange: (hex: string) => void; size?: number }>;
+  const FileDropZone: FC<{
+    onFileLoad: (text: string, fileName: string) => void;
+    accept?: string;
+    hint?: string;
+  }>;
+  const DataPreview: FC<{
+    headers: string[];
+    rows: Array<Array<string | number | null>>;
+    maxRows?: number;
+  }>;
+  // NumberInput mirrors `<input type="number">`: onChange fires with
+  // `{ target: { value: string } }` so `(e) => setX(e.target.value)`
+  // handlers keep working unchanged.
+  const NumberInput: FC<{
+    value: number | string | null | undefined;
+    onChange: (e: { target: { value: string } }) => void;
+    min?: number | string;
+    max?: number | string;
+    step?: number | string;
+    disabled?: boolean;
+    placeholder?: string;
+    className?: string;
+    style?: CSSProperties;
+    inputStyle?: CSSProperties;
+  }>;
+  const SliderControl: FC<{
+    label: ReactNode;
+    value: number;
+    displayValue?: ReactNode;
+    min: number;
+    max: number;
+    step?: number;
+    onChange: (v: number) => void;
+  }>;
+  const StepNavBar: FC<{
+    steps: string[];
+    currentStep: string;
+    onStepChange: (s: string) => void;
+    canNavigate?: (s: string) => boolean;
+    stepLabels?: Record<string, string>;
+  }>;
+  const PageHeader: FC<{
+    toolName: string;
+    title: ReactNode;
+    middle?: ReactNode;
+    right?: ReactNode;
+  }>;
+  const UploadPanel: FC<{
+    sepOverride: string;
+    onSepChange: (s: string) => void;
+    onFileLoad: (text: string, fileName: string) => void;
+    onLoadExample?: () => void;
+    exampleLabel?: ReactNode;
+    hint?: string;
+  }>;
+  const HowToCard: FC<{
+    toolName: string;
+    title: ReactNode;
+    subtitle?: ReactNode;
+    children?: ReactNode;
+  }>;
+  interface ActionsPanelDownload {
+    label: string;
+    title?: string;
+    onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  }
+  const ActionsPanel: FC<{
+    onDownloadSvg?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+    onDownloadPng?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+    extraDownloads?: ActionsPanelDownload[];
+    onReset: () => void;
+  }>;
+  const CommaFixBanner: FC<{ commaFixed: boolean; commaFixCount: number }>;
+  const ParseErrorBanner: FC<{ error: string | null | undefined }>;
   const FormulaInjectionBanner: FC<{ warning: FormulaInjectionWarning | null }>;
   interface FilterEntry {
     unique: string[];
@@ -308,11 +374,61 @@ declare global {
     onDragEnd: () => void;
   }
   const RenameReorderPanel: FC<RenameReorderPanelProps>;
-  const StatsTable: FC<any>;
-  const GroupColorEditor: FC<any>;
-  const BaseStyleControls: FC<any>;
+  const StatsTable: FC<{
+    stats: GroupStats[] | null | undefined;
+    groupLabel: string;
+  }>;
+  // Group color editor — one row per group with a colour swatch, a name input
+  // (commits via `onNameChange`), and an optional toggle checkbox. `g.stats`
+  // is shown as `n=…` when present.
+  interface GroupColorEditorGroup {
+    name: string;
+    color: string;
+    displayName?: string;
+    enabled?: boolean;
+    stats?: { n: number } | null;
+  }
+  const GroupColorEditor: FC<{
+    groups: GroupColorEditorGroup[];
+    onColorChange: (i: number, color: string) => void;
+    onNameChange?: (i: number, name: string) => void;
+    onToggle?: (i: number) => void;
+  }>;
+  const BaseStyleControls: FC<{
+    plotBg: string;
+    onPlotBgChange: (hex: string) => void;
+    showGrid: boolean;
+    onShowGridChange: (v: boolean) => void;
+    gridColor: string;
+    onGridColorChange: (hex: string) => void;
+  }>;
   const ErrorBoundary: FC<{ toolName?: string; children?: ReactNode }>;
-  const StatsTile: FC<any>;
+  // StatsTile — assumption checks + test selection + post-hocs + annotation
+  // emission. `groups` is the list of {name, values}; `onAnnotationsChange`
+  // receives a brackets/CLD spec the parent chart renders. `compact` shrinks
+  // text by ~15%; `renderLayout` is an optional escape hatch for tools that
+  // need to swap the default vertical stack for a custom container.
+  interface StatsTileAnnotationBracket {
+    kind: "brackets";
+    pairs: Array<{ i: number; j: number; label: string; p: number }>;
+    groupNames: string[];
+  }
+  interface StatsTileAnnotationCLD {
+    kind: "cld";
+    labels: string[];
+    groupNames: string[];
+  }
+  type StatsTileAnnotation = StatsTileAnnotationBracket | StatsTileAnnotationCLD;
+  const StatsTile: FC<{
+    groups: Array<{ name: string; values: number[] }> | null | undefined;
+    onAnnotationsChange?: (spec: StatsTileAnnotation | null) => void;
+    onStatsSummaryChange?: (summary: unknown) => void;
+    defaultOpen?: boolean;
+    title?: ReactNode;
+    compact?: boolean;
+    renderLayout?: (children: ReactNode) => ReactNode;
+    fileStem?: string;
+  }>;
   function scrollIntoViewWithinAncestor(
     el: Element | null,
     pad?: number,

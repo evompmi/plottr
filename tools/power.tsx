@@ -743,7 +743,7 @@ function App() {
 
   return (
     <div style={{ maxWidth: 960, padding: "24px 32px" }}>
-      <PageHeader title="Power Analysis" icon={toolIcon("power")} />
+      <PageHeader toolName="power" title="Power Analysis" />
 
       {/* ── Top group: test + solve + question banner. CSS order + flex-wrap
           rules in power.html position them differently per viewport:
