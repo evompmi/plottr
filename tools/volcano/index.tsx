@@ -1260,7 +1260,11 @@ function ColorMapTile({ parsed, xCol, yCol, labelCol, col, setCol, colorMap, vis
         <>
           <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 6 }}>
             Detected:{" "}
-            <strong style={{ color: colorMap.type === "continuous" ? "#7c3aed" : "#0369a1" }}>
+            <strong
+              style={{
+                color: colorMap.type === "continuous" ? "var(--accent-dna)" : "var(--accent-blue)",
+              }}
+            >
               {colorMap.type === "continuous"
                 ? "numeric (continuous)"
                 : `categorical (${colorMap.legend.length} groups)`}

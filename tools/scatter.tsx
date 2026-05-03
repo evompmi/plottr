@@ -1490,7 +1490,12 @@ function PlotStep({
             <>
               <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 6 }}>
                 Detected:{" "}
-                <strong style={{ color: colorMapType === "continuous" ? "#7c3aed" : "#0369a1" }}>
+                <strong
+                  style={{
+                    color:
+                      colorMapType === "continuous" ? "var(--accent-dna)" : "var(--accent-blue)",
+                  }}
+                >
                   {colorMapType === "continuous"
                     ? "numeric (continuous)"
                     : `categorical (${colorMapCategories.length} groups)`}
@@ -1566,7 +1571,12 @@ function PlotStep({
             <>
               <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 6 }}>
                 Detected:{" "}
-                <strong style={{ color: sizeMapType === "continuous" ? "#7c3aed" : "#0369a1" }}>
+                <strong
+                  style={{
+                    color:
+                      sizeMapType === "continuous" ? "var(--accent-dna)" : "var(--accent-blue)",
+                  }}
+                >
                   {sizeMapType === "continuous"
                     ? "numeric (continuous)"
                     : `categorical (${sizeMapCategories.length} groups)`}
