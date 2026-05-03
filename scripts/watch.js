@@ -19,7 +19,7 @@ const path = require("path");
 
 const ESBUILD_ENTRYPOINTS = [
   "tools/boxplot/index.tsx",
-  "tools/scatter.tsx",
+  "tools/scatter/index.tsx",
   "tools/aequorin/index.tsx",
   "tools/lineplot/index.tsx",
   "tools/venn/index.tsx",
