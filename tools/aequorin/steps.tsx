@@ -6,6 +6,7 @@
 // shared.bundle.js and ./helpers respectively.
 
 import { TIME_UNITS } from "./helpers";
+import type { ConfigureStepProps, UploadStepProps } from "./helpers";
 
 export function HowToSection() {
   return (
@@ -301,7 +302,7 @@ export function UploadStep({
   doParse,
   handleFileLoad,
   onLoadExample,
-}: any) {
+}: UploadStepProps) {
   return (
     <div>
       <UploadPanel
@@ -397,7 +398,7 @@ export function ConfigureStep({
   calData,
   columnEnabled,
   downloadCalibrated,
-}: any) {
+}: ConfigureStepProps) {
   return (
     <div>
       <div style={{ display: "flex", gap: 16, marginBottom: 16, alignItems: "stretch" }}>
@@ -407,7 +408,7 @@ export function ConfigureStep({
               <div className="dv-label">Formula</div>
               <select
                 value={formula}
-                onChange={(e) => setFormula(e.target.value)}
+                onChange={(e) => setFormula(e.target.value as typeof formula)}
                 className="dv-select"
               >
                 <option value="none">None (raw data)</option>
@@ -479,7 +480,7 @@ export function ConfigureStep({
                 onChange={(e) => updVis({ baseUnit: e.target.value })}
                 className="dv-select"
               >
-                {TIME_UNITS.map((u: any) => (
+                {TIME_UNITS.map((u) => (
                   <option key={u.key} value={u.key}>
                     {u.label}
                   </option>
@@ -522,8 +523,8 @@ export function ConfigureStep({
           parsed &&
           (() => {
             const ei = parsed.headers
-              .map((_: any, i: number) => i)
-              .filter((i: any) => columnEnabled[i] !== false);
+              .map((_: unknown, i: number) => i)
+              .filter((i: number) => columnEnabled[i] !== false);
             return (
               <div style={{ marginTop: 8 }}>
                 <p
@@ -538,10 +539,12 @@ export function ConfigureStep({
                   {parsed.headers.length} columns (first 15 rows):
                 </p>
                 <DataPreview
-                  headers={ei.map((i: any) => parsed.headers[i])}
+                  headers={ei.map((i: number) => parsed.headers[i])}
                   rows={calData
                     .slice(0, 15)
-                    .map((r: any) => ei.map((i: any) => (r[i] != null ? r[i] : "")))}
+                    .map((r: Array<number | null>) =>
+                      ei.map((i: number) => (r[i] != null ? r[i] : ""))
+                    )}
                   maxRows={15}
                 />
               </div>

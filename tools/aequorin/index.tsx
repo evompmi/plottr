@@ -17,6 +17,7 @@ import {
   computeAutoYRange,
   detectConditions,
 } from "./helpers";
+import type { CalibrationFormula } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
 import { PlotControls } from "./controls";
 import { PlotPanel, SampleSelectionOverlay } from "./plot-area";
@@ -105,7 +106,7 @@ function App() {
   const [parseMessage, setParseMessage] = useState<string | null>(null);
 
   const [rawText, setRawText] = useState<any>(null);
-  const [formula, setFormula] = useState("none");
+  const [formula, setFormula] = useState<CalibrationFormula>("none");
   const [Kr, setKr] = useState(DEFAULT_KR);
   const [Ktr, setKtr] = useState(DEFAULT_KTR);
   const [Kd, setKd] = useState(DEFAULT_KD);

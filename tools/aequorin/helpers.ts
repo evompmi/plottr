@@ -313,3 +313,112 @@ export function computeAutoYRange(calData: any, xStart: any, xEnd: any) {
   const round2 = (v: any) => Math.round(v * 100) / 100;
   return { yMin: round2(Math.max(0, lo * 0.9)), yMax: round2(hi * 1.1) };
 }
+
+// ── Public types for steps / controls prop interfaces ───────────────────────
+
+export type CalibrationFormula = "none" | "allen-blinks" | "hill" | "generalized";
+
+export interface Condition {
+  prefix: string;
+  label: string;
+  color: string;
+  colIndices: number[];
+  activeColIndices?: number[];
+  enabled?: boolean;
+}
+
+// `vis` shape mirrors VIS_INIT_AEQUORIN in index.tsx — declared here so
+// the prop bags don't need to duplicate it. Keep the two in sync.
+export interface AequorinVis {
+  xStart: number;
+  xEnd: number;
+  yMin: number;
+  yMax: number;
+  autoYRange: boolean;
+  faceted: boolean;
+  plotTitle: string;
+  plotSubtitle: string;
+  smoothWidth: number;
+  plotBg: string;
+  showGrid: boolean;
+  lineWidth: number;
+  ribbonOpacity: number;
+  gridColor: string;
+  timeStep: number;
+  baseUnit: string;
+  displayUnit: string;
+  showInset: boolean;
+  insetFillOpacity: number;
+  insetBarWidth: number;
+  insetBarGap: number;
+  insetYMinCustom: string;
+  insetYMaxCustom: string;
+  insetW: number;
+  insetH: number;
+  insetErrorType: string;
+  insetShowBarOutline: boolean;
+  insetBarOutlineColor: string;
+  insetBarStrokeWidth: number;
+  insetShowGrid: boolean;
+  insetGridColor: string;
+  insetErrorStrokeWidth: number;
+  insetXFontSize: number;
+  insetYFontSize: number;
+  insetXLabelAngle: number;
+  showColumnOverlay: boolean;
+  insetShowPoints: boolean;
+  insetPointSize: number;
+  insetPointColor: string;
+  discretePalette: string;
+}
+
+export type UpdVis = (patch: Partial<AequorinVis> | { _reset: true }) => void;
+
+export interface UploadStepProps {
+  sepOverride: string;
+  setSepOverride: (s: string) => void;
+  rawText: string | null;
+  doParse: (text: string, sep: string) => void;
+  handleFileLoad: (text: string, name: string) => void;
+  onLoadExample: () => void;
+}
+
+// `parsed` is non-null at the call-site (ConfigureStep is only rendered
+// when `parsed` is set); calData mirrors `parsed.data` shape with the
+// calibration applied.
+export interface ConfigureStepProps {
+  parsed: ParseDataResult;
+  formula: CalibrationFormula;
+  setFormula: (f: CalibrationFormula) => void;
+  Kr: number;
+  setKr: (v: number) => void;
+  Ktr: number;
+  setKtr: (v: number) => void;
+  Kd: number;
+  setKd: (v: number) => void;
+  hillN: number;
+  setHillN: (v: number) => void;
+  vis: AequorinVis;
+  updVis: UpdVis;
+  fileName: string;
+  calData: Array<Array<number | null>> | null;
+  columnEnabled: Record<number, boolean>;
+  downloadCalibrated: () => void;
+}
+
+// `plotPanelRef` is the imperative handle exposed by PlotPanel
+// (forwardRef) — it surfaces .downloadMain() / .downloadMainPng().
+export interface PlotPanelHandle {
+  downloadMain: () => void;
+  downloadMainPng: () => void;
+}
+
+export interface PlotControlsProps {
+  conditions: Condition[];
+  setConditions: (next: Condition[] | ((prev: Condition[]) => Condition[])) => void;
+  vis: AequorinVis;
+  updVis: UpdVis;
+  plotPanelRef: React.RefObject<PlotPanelHandle | null>;
+  downloadCalibrated: () => void;
+  resetAll: () => void;
+}
