@@ -797,6 +797,12 @@ function UploadPanel(props) {
               type: "button",
               className: "dv-btn dv-btn-secondary",
               onClick: onLoadExample,
+              // Stable hook for the Playwright e2e suite (every tool has
+              // a different `exampleLabel` string, so a label-based
+              // selector wouldn't work cross-tool). The `data-testid`
+              // never affects user-visible behaviour and is stripped by
+              // a 100-line read of the page; safe to ship.
+              "data-testid": "load-example",
             },
             exampleLabel || "Load example \u2192"
           )

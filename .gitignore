@@ -7,3 +7,9 @@ CLAUDE.md
 .claude/
 think_bout_that.txt
 r-export-plan.txt
+
+# Playwright e2e
+test-results/
+playwright-report/
+.playwright/
+playwright/.cache/
