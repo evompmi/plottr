@@ -39,6 +39,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Volcano — search points by feature name.** New _Search by name_ input
+  inside the Labels tile. Type a gene/feature name (or paste a comma- /
+  newline-separated list) and press Enter / Add → matching points get
+  the same black ring + leader line + label as click-to-label. Live
+  match-count readout (debounced) + an "N unmatched" sub-line lists the
+  tokens that scored zero (paste-list typo finder). Match semantics:
+  case-insensitive substring per token; trims source labels at parse
+  time so `"AT1G01010 "` no longer fails an exact match. Disabled with
+  hint when no label column is picked. Rides entirely on the existing
+  `manualSelection` infra so the existing Clear button covers both
+  click- and search-added points; SVG/PNG export captures the labels
+  for free. +15 unit tests.
 - **Discrete-palette picker — all eight plot tools.** New shared file
   `tools/shared-discrete-palette.js` adds an 11-palette catalogue —
   Okabe-Ito (default), Tableau10, ColorBrewer Set1/Set2/Set3/Dark2/Paired/
