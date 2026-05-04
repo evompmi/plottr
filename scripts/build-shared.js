@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Concatenates the 13 shared browser scripts into a single tools/shared.bundle.js
+// Concatenates the 14 shared browser scripts into a single tools/shared.bundle.js
 // so every HTML file loads one <script> instead of thirteen. The order below is the
 // single source of truth — if you add a new tools/shared-*.js file, add it here,
 // not to each HTML.
@@ -27,6 +27,7 @@ const FILES = [
   "shared.js",
   "stats.js",
   "shared-color-input.js",
+  "shared-discrete-palette.js",
   "shared-file-drop.js",
   "shared-svg-legend.js",
   "shared-core.js",
@@ -113,7 +114,7 @@ if (require.main === module) {
         }, 50);
       });
     }
-    process.stdout.write("[build-shared] watching 12 shared files for changes…\n");
+    process.stdout.write("[build-shared] watching 13 shared files for changes…\n");
   }
 }
 

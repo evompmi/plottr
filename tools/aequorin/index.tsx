@@ -65,6 +65,12 @@ const VIS_INIT_AEQUORIN = {
   insetShowPoints: false,
   insetPointSize: 3,
   insetPointColor: "#333333",
+  // Discrete-palette key driving the per-condition colour seed. Default
+  // "okabe-ito" is byte-identical to PALETTE so existing behaviour is
+  // preserved exactly. Conditions[].color is local state seeded from this
+  // palette via detectConditions; picking a new palette in the sidebar
+  // dropdown overwrites every condition's colour.
+  discretePalette: "okabe-ito",
 };
 
 /* ── Main App (orchestrator) ───────────────────────────────────────────────── */
@@ -258,7 +264,12 @@ function App() {
       prevConds.map((c: any) => [c.prefix, c])
     );
     // Build conditions from ALL columns, then mark enabled based on columnEnabled
-    const allConds = detectConditions(parsed!.headers, pool, null).map((c: any) => {
+    const allConds = detectConditions(
+      parsed!.headers,
+      pool,
+      null,
+      vis.discretePalette || "okabe-ito"
+    ).map((c: any) => {
       const activeCols = c.colIndices.filter((ci: any) => ce[ci] !== false);
       const prev = prevMap[c.prefix];
       // If the previous condition had no active columns, its `enabled=false` was
@@ -370,7 +381,12 @@ function App() {
       });
       setColumnEnabled(ce);
       setPoolReplicates(true);
-      const detectedConds = detectConditions(headers, true, ce).map((c: any) => ({
+      const detectedConds = detectConditions(
+        headers,
+        true,
+        ce,
+        vis.discretePalette || "okabe-ito"
+      ).map((c: any) => ({
         ...c,
         enabled: true,
       }));
@@ -378,7 +394,7 @@ function App() {
       updVis({ xStart: 0, xEnd: data.length, faceted: false });
       setStep("configure");
     },
-    [setCommaFixed, setCommaFixCount, setInjectionWarning, setStep, updVis]
+    [setCommaFixed, setCommaFixCount, setInjectionWarning, setStep, updVis, vis.discretePalette]
   );
   const handleFileLoad = useCallback(
     (text: any, name: any) => {

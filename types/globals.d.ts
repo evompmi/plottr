@@ -142,6 +142,34 @@ declare global {
   const DIVERGING_PALETTES: Set<string>;
   function interpolateColor(stops: string[], t: number): string;
 
+  // Discrete palette catalogue (shared-discrete-palette.js). Keys are palette
+  // names; values are hex arrays. Two keys ("ggplot2-hue", "viridis-d") use a
+  // ["*"] sentinel meaning "generate at runtime sized to names.length" — call
+  // `resolveDiscretePalette(name, n)` to get the concrete colour list.
+  const DISCRETE_PALETTES: Record<string, string[]>;
+  const COLORBLIND_SAFE_PALETTES: Set<string>;
+  function resolveDiscretePalette(name: string, n: number): string[];
+  function applyDiscretePalette(name: string, names: string[]): Record<string, string>;
+  function buildGgplot2Hue(n: number): string[];
+  function buildViridisDiscrete(n: number): string[];
+  const DiscreteSwatchStrip: FC<{
+    palette: string;
+    n?: number;
+    width?: number | string;
+    height?: number;
+  }>;
+  const DiscretePaletteSelect: FC<{
+    value: string;
+    onChange: (next: string) => void;
+    n?: number;
+  }>;
+  const DiscretePaletteRow: FC<{
+    value: string;
+    onChange: (next: string) => void;
+    names: string[];
+    applyColors?: (resolved: string[]) => void;
+  }>;
+
   function wideToLong(
     headers: string[],
     rows: string[][]

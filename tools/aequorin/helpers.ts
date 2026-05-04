@@ -208,7 +208,12 @@ export function calibrateGeneralized(headers: any, data: any, Kr: any, Ktr: any,
   return cal;
 }
 
-export function detectConditions(headers: any, poolReplicates = true, columnEnabled: any = null) {
+export function detectConditions(
+  headers: any,
+  poolReplicates = true,
+  columnEnabled: any = null,
+  paletteName: string = "okabe-ito"
+) {
   const nameOcc: Record<string, number> = {};
   const repNums = headers.map((h: any) => {
     nameOcc[h] = (nameOcc[h] || 0) + 1;
@@ -221,22 +226,25 @@ export function detectConditions(headers: any, poolReplicates = true, columnEnab
       if (!pm[h]) pm[h] = [];
       pm[h].push(i);
     });
-    return Object.entries(pm).map(([name, colIndices], idx) => ({
+    const entries = Object.entries(pm);
+    const seed = resolveDiscretePalette(paletteName, entries.length);
+    return entries.map(([name, colIndices], idx) => ({
       prefix: name,
       label: name,
-      color: PALETTE[idx % PALETTE.length],
+      color: seed[idx % Math.max(1, seed.length)] || PALETTE[idx % PALETTE.length],
       colIndices,
     }));
   } else {
-    return headers
+    const items = headers
       .map((h: any, i: number) => ({ h, i, rep: repNums[i] }))
-      .filter(({ i }: any) => !columnEnabled || columnEnabled[i] !== false)
-      .map(({ h, i, rep }: any, ci: number) => ({
-        prefix: `${h}__col${i}`,
-        label: `${h}_rep${rep}`,
-        color: PALETTE[ci % PALETTE.length],
-        colIndices: [i],
-      }));
+      .filter(({ i }: any) => !columnEnabled || columnEnabled[i] !== false);
+    const seed = resolveDiscretePalette(paletteName, items.length);
+    return items.map(({ h, i, rep }: any, ci: number) => ({
+      prefix: `${h}__col${i}`,
+      label: `${h}_rep${rep}`,
+      color: seed[ci % Math.max(1, seed.length)] || PALETTE[ci % PALETTE.length],
+      colIndices: [i],
+    }));
   }
 }
 
