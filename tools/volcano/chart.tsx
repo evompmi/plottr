@@ -1,51 +1,40 @@
 // VolcanoChart — SVG renderer for volcano plots.
 //
 // Pure render component (forwardRef so the parent can grab the SVG node
-// for download). All layout / classification / labelling has already
-// happened upstream via tools/volcano/helpers.ts; this file just walks
-// the prepared point list and emits the corresponding SVG primitives in
-// named groups (so Inkscape users can hand-edit the export).
+// for download). All layout / classification / labelling is delegated to
+// `./chart-layout.ts` (axis ranges, point classification, label
+// placement, per-point fill / radius resolvers); aesthetic legends live
+// in `./chart-legends.tsx`. This file is the slim orchestrator that
+// composes them and emits SVG primitives in named groups (so Inkscape
+// users can hand-edit the export).
 //
 // The standard ambient globals (React, makeTicks, svgSafeId) come from
 // tools/shared.bundle.js — same pattern as every other plot tool.
 
+import { VolcanoPoint, VolcanoClass, ColorMap, SizeMap } from "./helpers";
 import {
-  VolcanoPoint,
-  VolcanoClass,
-  classifyPoint,
-  negLog10P,
-  pickTopLabels,
-  layoutLabels,
-  approxMonoCharWidth,
-  PlacedLabel,
-  ColorMap,
-  SizeMap,
-} from "./helpers";
+  DEFAULT_VBW,
+  VBH,
+  MARGIN,
+  SELECTION_RING_PAD,
+  LEGEND_W,
+  LEGEND_GAP,
+  fmtTick,
+  computeAxisRanges,
+  buildRenderedPoints,
+  buildLabelLayout,
+  makeFillFor,
+  makeRadiusFor,
+} from "./chart-layout";
+import { ColorLegend, SizeLegend } from "./chart-legends";
+
+// Re-export a few constants the rest of the volcano tool reaches for
+// (reports.ts uses MARGIN; index.tsx uses DEFAULT_VBW for the slider's
+// initial / reset value). Keeps the import surface unchanged after the
+// chart-layout split.
+export { DEFAULT_VBW, VBH, MARGIN } from "./chart-layout";
 
 const { forwardRef, useMemo } = React;
-
-// Default canvas dimensions — match scatter's 800×500 export shape.
-// VBW is now overridable via the `plotWidth` prop: the user has a
-// slider in the Style tile that resizes the SVG viewBox horizontally
-// (so the inner data area widens / narrows independent of the
-// downstream image scale). Height is fixed for now — most volcano
-// plots want a wider-than-tall canvas.
-export const DEFAULT_VBW = 800;
-export const VBH = 500;
-// Margins are deliberately generous (vs scatter's tight 28/28/56/70) so
-// the label-layout pass has somewhere to spill labels when the inner
-// plot is dense. layoutLabels accepts a `bounds` rect that extends
-// `LABEL_OUTSIDE_PAD` px into each margin — labels can legally land in
-// the chart's chrome where there are no data points to collide with.
-export const MARGIN = { top: 56, right: 60, bottom: 78, left: 86 };
-// Labels are allowed to spill up to LABEL_OUTSIDE_PAD pixels into each
-// outer chart margin — the inner data area is 658 × 366 (at VBW=800,
-// VBH=500), and a 56-px halo around it brings the layout's effective
-// bounding box to 770 × 478, giving even dense top-N picks plenty of
-// room to fan their labels into the chrome where there are no points
-// to collide with.
-const LABEL_OUTSIDE_PAD = 56;
-const SELECTION_RING_PAD = 1.5; // outer ring radius = pointRadius + SELECTION_RING_PAD
 
 interface VolcanoChartProps {
   points: VolcanoPoint[];
@@ -79,8 +68,8 @@ interface VolcanoChartProps {
   onPointClick?: (idx: number) => void;
   // Optional aesthetic mappings derived in the App orchestrator. Both
   // carry their own metadata so the chart can render an in-SVG legend
-  // (which then rides along on every PNG / SVG export — the whole
-  // point of putting it in the SVG rather than in the React sidebar).
+  // (which then rides along on every PNG / SVG export — the whole point
+  // of putting it in the SVG rather than in the React sidebar).
   // ColorMap carries vmin / vmax (continuous) or a legend list
   // (discrete); SizeMap carries vmin / vmax / minR / maxR for the
   // sample-circle legend.
@@ -88,22 +77,12 @@ interface VolcanoChartProps {
   colorMapLabel?: string; // header name of the column being mapped
   sizeMap?: SizeMap | null;
   sizeMapLabel?: string;
-  // Override the SVG viewBox width. Falls back to DEFAULT_VBW (800)
-  // when undefined. Sliding this in the Style tile widens the inner
-  // data area, which is especially useful when an aesthetic legend is
-  // active and the user wants the data plot to keep its breathing room.
+  // Override the SVG viewBox width. Falls back to DEFAULT_VBW (800) when
+  // undefined. Sliding this in the Style tile widens the inner data
+  // area, which is especially useful when an aesthetic legend is active
+  // and the user wants the data plot to keep its breathing room.
   plotWidth?: number;
   plotBg: string;
-}
-
-// Conventional fmt: keep the numeric labels readable on both axes. The
-// y-axis is always -log10(p) (so usually 0..50ish, integers); the x-axis
-// is log2FC (usually -10..+10, fractional).
-function fmtTick(t: number): string {
-  if (t === 0) return "0";
-  if (Math.abs(t) >= 100) return t.toFixed(0);
-  if (Math.abs(t) >= 10) return t.toFixed(1);
-  return t.toFixed(2);
 }
 
 export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(function VolcanoChart(
@@ -141,65 +120,23 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(functio
     plotWidth,
     plotBg,
   } = props;
+
   const VBW = plotWidth && plotWidth > 0 ? plotWidth : DEFAULT_VBW;
-  const colorByIdx = colorMap ? colorMap.colorByIdx : null;
-  const radiusByIdx = sizeMap ? sizeMap.byIdx : null;
-  // Per-point resolvers: pick the data-driven mapping when an entry
-  // exists, otherwise fall back to the class colour / uniform radius.
-  // Colour-by-column is *only* applied to features that pass the
-  // thresholds (up / down classes). Non-significant points stay
-  // class-grey regardless of the colorByIdx map — that's the user
-  // expectation for a volcano (highlight what's significant; noise
-  // stays as noise). Size mapping deliberately applies to every
-  // point so cluster-size or expression-level cues aren't lost.
-  const fillFor = (idx: number, cls: VolcanoClass): string => {
-    if (cls !== "ns" && colorByIdx && colorByIdx.has(idx)) return colorByIdx.get(idx)!;
-    return colors[cls];
-  };
-  const radiusFor = (idx: number): number => {
-    if (radiusByIdx && radiusByIdx.has(idx)) return radiusByIdx.get(idx)!;
-    return pointRadius;
-  };
+  const fillFor = makeFillFor(colors, colorMap);
+  const radiusFor = makeRadiusFor(pointRadius, sizeMap);
 
   // Reserve right-side space for the in-SVG legend column when any
   // aesthetic mapping is active. Inner plot width shrinks to fit.
   const hasLegend = !!colorMap || !!sizeMap;
-  const LEGEND_W = 130;
-  const LEGEND_GAP = 14;
   const legendW = hasLegend ? LEGEND_W : 0;
   const w = VBW - MARGIN.left - MARGIN.right - legendW;
   const h = VBH - MARGIN.top - MARGIN.bottom;
 
-  // Derive auto-ranges from the data. Symmetric around 0 on the x-axis
-  // (volcano convention — the centre of the plot is "no fold change") so
-  // up and down points balance visually. Y-axis runs 0..max with a 5%
-  // headroom so the highest -log10(p) point doesn't sit on the top frame.
-  const { xMin, xMax, yMin, yMax } = useMemo(() => {
-    let absMaxFc = 0;
-    let maxNL = 0;
-    for (const pt of points) {
-      if (Number.isFinite(pt.log2fc)) {
-        const a = Math.abs(pt.log2fc);
-        if (a > absMaxFc) absMaxFc = a;
-      }
-      const nl = negLog10P(pt.p, pFloor);
-      if (Number.isFinite(nl) && nl > maxNL) maxNL = nl;
-    }
-    // Pad to at least the cutoff so reference lines are visible even on
-    // a flat dataset.
-    absMaxFc = Math.max(absMaxFc, fcCutoff * 1.5, 1);
-    maxNL = Math.max(maxNL, -Math.log10(pCutoff) * 1.5, 1);
-    const autoXMin = -absMaxFc * 1.05;
-    const autoXMax = absMaxFc * 1.05;
-    const autoYMin = 0;
-    const autoYMax = maxNL * 1.05;
-    return {
-      xMin: userXMin != null ? userXMin : autoXMin,
-      xMax: userXMax != null ? userXMax : autoXMax,
-      yMin: userYMin != null ? userYMin : autoYMin,
-      yMax: userYMax != null ? userYMax : autoYMax,
-    };
-  }, [points, pFloor, fcCutoff, pCutoff, userXMin, userXMax, userYMin, userYMax]);
+  const { xMin, xMax, yMin, yMax } = useMemo(
+    () =>
+      computeAxisRanges(points, pFloor, fcCutoff, pCutoff, userXMin, userXMax, userYMin, userYMax),
+    [points, pFloor, fcCutoff, pCutoff, userXMin, userXMax, userYMin, userYMax]
+  );
 
   const xRange = xMax - xMin || 1;
   const yRange = yMax - yMin || 1;
@@ -208,140 +145,57 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(functio
   const xTicks = makeTicks(xMin, xMax, 8);
   const yTicks = makeTicks(yMin, yMax, 6);
 
-  // Pre-classify and pre-compute pixel coords once so the JSX walk is
-  // purely a render of an already-shaped point list.
-  const rendered = useMemo(() => {
-    const out: Array<{
-      pt: VolcanoPoint;
-      cls: VolcanoClass;
-      px: { x: number; y: number };
-      nl: number;
-    }> = [];
-    for (const pt of points) {
-      if (!Number.isFinite(pt.log2fc)) continue;
-      const nl = negLog10P(pt.p, pFloor);
-      const cls = classifyPoint(pt.log2fc, pt.p, fcCutoff, pCutoff);
-      out.push({
-        pt,
-        cls,
-        nl,
-        px: { x: sx(pt.log2fc), y: sy(nl) },
-      });
-    }
-    // Render order: ns (background) → down → up so the significant
-    // points sit on top and pop visually against the grey carpet.
-    out.sort((a: any, b: any) => {
-      const order: Record<VolcanoClass, number> = { ns: 0, down: 1, up: 2 };
-      return order[a.cls as VolcanoClass] - order[b.cls as VolcanoClass];
-    });
-    return out;
-    // `w` / `h` are inputs to `sx` / `sy` (the closure that produces
-    // each point's pixel coords); when the legend column reserves
-    // space and shrinks `w`, the rendered points must reflow with it
-    // — without these deps the memo would cache stale coords and
-    // points would overflow into the legend area. `sx`/`sy` themselves
-    // close over the same inputs we already list, so depending on those
-    // primitives is what actually invalidates the memo correctly.
+  const rendered = useMemo(
+    () => buildRenderedPoints(points, pFloor, fcCutoff, pCutoff, sx, sy),
+    // `w` / `h` flow into `sx` / `sy` (the closures that produce each
+    // point's pixel coords); when the legend column reserves space and
+    // shrinks `w`, the rendered points must reflow with it. Listing
+    // xMin/xMax/yMin/yMax/w/h captures every input that mutates `sx` /
+    // `sy`; eslint can't see through the closure so silence the rule.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, pFloor, fcCutoff, pCutoff, xMin, xMax, yMin, yMax, w, h]);
+    [points, pFloor, fcCutoff, pCutoff, xMin, xMax, yMin, yMax, w, h]
+  );
 
-  // Labels: two modes —
-  //   manual:   use exactly the user-clicked indices, regardless of
-  //             class (an ns point the user explicitly clicked still
-  //             gets labelled — that's the whole point of a manual
-  //             override).
-  //   auto:    use pickTopLabels(topNUp, topNDown) on significant
-  //            up / down hits.
-  // The manual path also bypasses the "must have a label string"
-  // guard the auto path enforces — if the user clicks a point with
-  // an empty label column, we synthesise "row N" so the click still
-  // produces visible feedback.
-  // Returns BOTH the placed labels and a parallel array of source-
-  // point radii. The selection-ring render needs the per-point
-  // radius (size-mapping makes it variable), and walking `rendered`
-  // again at render time is O(N²); keeping the radii alongside the
-  // layout result is O(N) and keeps the data local.
-  const labelLayout: { labels: PlacedLabel[]; radii: number[] } = useMemo(() => {
-    if (!showLabels) return { labels: [], radii: [] };
-    const renderByIdx = new Map<number, (typeof rendered)[number]>();
-    for (const r of rendered) renderByIdx.set(r.pt.idx, r);
-
-    const charW = approxMonoCharWidth(labelFontSize);
-    const lineH = labelFontSize * 1.15;
-
-    let pickedRenders: Array<(typeof rendered)[number]>;
-    if (manualSelection && manualSelection.size > 0) {
-      pickedRenders = [];
-      for (const idx of manualSelection) {
-        const r = renderByIdx.get(idx);
-        if (r) pickedRenders.push(r);
-      }
-    } else {
-      if (topNUp <= 0 && topNDown <= 0) return { labels: [], radii: [] };
-      const top = pickTopLabels(points, topNUp, topNDown, fcCutoff, pCutoff, pFloor);
-      pickedRenders = top
-        .map(({ idx }: any) => renderByIdx.get(points[idx].idx))
-        .filter((r): r is (typeof rendered)[number] => r != null && r.pt.label != null);
-    }
-
-    // Per-point radius / ring radius — the size-mapping might give
-    // each label a different source-point size, which the leader
-    // layout needs to start the leader at the correct ring edge.
-    const inputs = pickedRenders.map((r: any) => {
-      const pr = radiusFor(r.pt.idx);
-      return {
-        pointPx: { x: r.px.x - MARGIN.left, y: r.px.y - MARGIN.top },
-        text: r.pt.label != null && r.pt.label !== "" ? r.pt.label : "row " + (r.pt.idx + 1),
-        charWidth: charW,
-        lineHeight: lineH,
-        pointRadius: pr,
-        ringRadius: pr + SELECTION_RING_PAD,
-      };
-    });
-    // Obstacles: every rendered point (incl. ns ones — leader lines
-    // shouldn't tunnel through any dot, regardless of class). Uses
-    // each point's actual rendered radius so the collision math
-    // stays accurate when sizes vary.
-    const obstacles = rendered.map((r: any) => ({
-      x: r.px.x - MARGIN.left,
-      y: r.px.y - MARGIN.top,
-      r: radiusFor(r.pt.idx),
-    }));
-    // Allow labels to land up to LABEL_OUTSIDE_PAD pixels into the
-    // outer chart margin where there are no data points to collide
-    // with. Bounds origin can be negative — that's how a label
-    // legitimately sits *above* the inner plot frame.
-    const labelBounds = {
-      x: -LABEL_OUTSIDE_PAD,
-      y: -LABEL_OUTSIDE_PAD,
-      w: w + LABEL_OUTSIDE_PAD * 2,
-      h: h + LABEL_OUTSIDE_PAD * 2,
-    };
-    const placed = layoutLabels(inputs, obstacles, labelBounds);
-    const radii = pickedRenders.map((r: any) => radiusFor(r.pt.idx));
-    return { labels: placed, radii };
-    // `radiusFor` is a fresh closure each render but only reads sizeMap +
-    // pointRadius, both of which are already listed — so the memo
-    // correctly invalidates when the radius mapping changes, without
-    // re-firing every render the way listing `radiusFor` itself would.
+  const labelLayout = useMemo(
+    () =>
+      buildLabelLayout({
+        showLabels,
+        topNUp,
+        topNDown,
+        points,
+        rendered,
+        fcCutoff,
+        pCutoff,
+        pFloor,
+        labelFontSize,
+        pointRadius,
+        manualSelection,
+        radiusFor,
+        w,
+        h,
+      }),
+    // `radiusFor` is a fresh closure each render but only reads sizeMap
+    // + pointRadius — both already listed via colorMap / sizeMap deps —
+    // so the memo invalidates correctly without re-firing every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    showLabels,
-    topNUp,
-    topNDown,
-    points,
-    rendered,
-    fcCutoff,
-    pCutoff,
-    pFloor,
-    labelFontSize,
-    pointRadius,
-    manualSelection,
-    colorMap,
-    sizeMap,
-    w,
-    h,
-  ]);
+    [
+      showLabels,
+      topNUp,
+      topNDown,
+      points,
+      rendered,
+      fcCutoff,
+      pCutoff,
+      pFloor,
+      labelFontSize,
+      pointRadius,
+      manualSelection,
+      colorMap,
+      sizeMap,
+      w,
+      h,
+    ]
+  );
   const labels = labelLayout.labels;
   const labelRadii = labelLayout.radii;
 
@@ -548,12 +402,12 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(functio
       {/* ── Data points (grouped by class for SVG-export clarity) ───
              Each circle is clickable: a click toggles the point's
              original-row index in the parent's manualSelection set.
-             cursor: pointer surfaces the affordance; the title tag
-             gets a "(click to label)" hint so the gesture is
-             discoverable on hover. Per-point fill / radius come from
-             the optional aesthetic-mapping props (colorByIdx /
-             radiusByIdx) — falls back to the class palette + uniform
-             radius when no mapping is active. */}
+             cursor: pointer surfaces the affordance; the title tag gets
+             a "(click to label)" hint so the gesture is discoverable on
+             hover. Per-point fill / radius come from the optional
+             aesthetic-mapping props (colorByIdx / radiusByIdx) — falls
+             back to the class palette + uniform radius when no mapping
+             is active. */}
       <g id="data-points">
         {(["ns", "down", "up"] as VolcanoClass[]).map((cls: any) => (
           <g key={cls} id={`points-${cls}`} fillOpacity={pointAlpha}>
@@ -669,13 +523,11 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(functio
       </g>
 
       {/* ── Aesthetic legends ──────────────────────────────────────────
-             Rendered inside the SVG (not in the React sidebar) so they
-             ride along on every PNG / SVG export. Stacked vertically in
-             the right-margin column reserved by `legendW`: Color first
-             (continuous: gradient strip + endpoint labels; discrete:
-             swatch / label rows, capped at 14 visible), Size below
-             (three sample circles at min / mid / max with their data
-             values). Both sections only render when the matching
+             Stacked vertically in the right-margin column reserved by
+             `legendW`: Color first (continuous: gradient strip + endpoint
+             labels; discrete: swatch / label rows, capped at 14 visible),
+             Size below (sample circles at nice tick values with their
+             data values). Both sections only render when the matching
              mapping is active. */}
       {hasLegend && (
         <g
@@ -709,231 +561,3 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(functio
     </svg>
   );
 });
-
-// ── Legend renderers ──────────────────────────────────────────────────────
-//
-// Both legends draw inside SVG so they survive PNG / SVG export. The
-// React sidebar tile keeps its own preview (palette strip + chip list /
-// min-max sliders) for editing convenience, but the chart legend is the
-// authoritative one for downstream consumers.
-
-function ColorLegend({
-  colorMap,
-  title,
-  width,
-  yOffset,
-}: {
-  colorMap: ColorMap;
-  title: string;
-  width: number;
-  yOffset: number;
-}) {
-  const titleY = yOffset;
-  return (
-    <g id="color-legend" transform={`translate(0, ${titleY})`}>
-      <text
-        x={0}
-        y={10}
-        fontSize="11"
-        fontWeight="700"
-        fill="#222"
-        fontFamily="ui-monospace, Menlo, monospace"
-      >
-        {title}
-      </text>
-      {colorMap!.type === "continuous" ? (
-        <ContinuousColorLegend
-          stops={colorMap as Extract<ColorMap, { type: "continuous" }>}
-          width={width}
-        />
-      ) : (
-        <DiscreteColorLegend
-          legend={(colorMap as Extract<ColorMap, { type: "discrete" }>).legend}
-        />
-      )}
-    </g>
-  );
-}
-
-function ContinuousColorLegend({
-  stops,
-  width,
-}: {
-  stops: Extract<ColorMap, { type: "continuous" }>;
-  width: number;
-}) {
-  // Resample the actual palette gradient (post-inversion — the
-  // ColorMap result carries the final `paletteStops`). 32 segments is
-  // smooth enough at 130 px and keeps the SVG export compact.
-  const N = 32;
-  const stripWidth = width;
-  const stripH = 10;
-  const stripY = 18;
-  return (
-    <>
-      {Array.from({ length: N }, (_, i) => {
-        const t = i / (N - 1);
-        return (
-          <rect
-            key={i}
-            x={(i * stripWidth) / N}
-            y={stripY}
-            width={stripWidth / N + 0.5}
-            height={stripH}
-            fill={interpolateColor(stops.paletteStops, t)}
-          />
-        );
-      })}
-      <rect
-        x={0}
-        y={stripY}
-        width={stripWidth}
-        height={stripH}
-        fill="none"
-        stroke="#888"
-        strokeWidth="0.6"
-      />
-      <text x={0} y={stripY + stripH + 12} fontSize="10" fill="#555" fontFamily="sans-serif">
-        {fmtLegend(stops.vmin)}
-      </text>
-      <text
-        x={stripWidth}
-        y={stripY + stripH + 12}
-        textAnchor="end"
-        fontSize="10"
-        fill="#555"
-        fontFamily="sans-serif"
-      >
-        {fmtLegend(stops.vmax)}
-      </text>
-    </>
-  );
-}
-
-function DiscreteColorLegend({ legend }: { legend: Array<{ value: string; color: string }> }) {
-  // Cap the visible rows so the legend doesn't run off the bottom of
-  // the SVG. Caller passes the full list; we render up to 14 + a "+N
-  // more" footer.
-  const MAX_ROWS = 14;
-  const rows = legend.slice(0, MAX_ROWS);
-  const overflow = legend.length - rows.length;
-  const ROW_H = 14;
-  const startY = 18;
-  return (
-    <>
-      {rows.map((entry: any, i: number) => (
-        <g key={entry.value} transform={`translate(0, ${startY + i * ROW_H})`}>
-          <rect
-            x={0}
-            y={0}
-            width={10}
-            height={10}
-            fill={entry.color}
-            stroke="#888"
-            strokeWidth="0.5"
-          />
-          <text x={16} y={9} fontSize="10" fill="#222" fontFamily="ui-monospace, Menlo, monospace">
-            {entry.value.length > 16 ? entry.value.slice(0, 16) + "…" : entry.value}
-          </text>
-        </g>
-      ))}
-      {overflow > 0 && (
-        <text
-          x={0}
-          y={startY + rows.length * ROW_H + 8}
-          fontSize="9"
-          fill="#888"
-          fontStyle="italic"
-          fontFamily="ui-monospace, Menlo, monospace"
-        >
-          + {overflow} more
-        </text>
-      )}
-    </>
-  );
-}
-
-function SizeLegend({
-  sizeMap,
-  title,
-  width,
-  yOffset,
-}: {
-  sizeMap: SizeMap;
-  title: string;
-  width: number;
-  yOffset: number;
-}) {
-  // Round-number sample circles produced by `makeTicks` — same helper
-  // the X / Y axes use, so the legend stops land on the same nice
-  // values an axis would (10, 20, 50, 100, …) instead of literal
-  // arithmetic min / mid / max. Ticks outside the actual data range
-  // are dropped so legend circles never claim radii beyond [minR,
-  // maxR]. Falls back to a single mid-point sample when the data is
-  // degenerate (vmin === vmax) or `makeTicks` returns no in-range
-  // values.
-  const span = sizeMap.vmax - sizeMap.vmin;
-  const ticks =
-    span > 0
-      ? makeTicks(sizeMap.vmin, sizeMap.vmax, 4).filter(
-          (t) => t >= sizeMap.vmin && t <= sizeMap.vmax
-        )
-      : [];
-  const samples =
-    ticks.length > 0
-      ? ticks.map((v: any) => ({
-          v,
-          r: sizeMap.minR + ((v - sizeMap.vmin) / span) * (sizeMap.maxR - sizeMap.minR),
-        }))
-      : [
-          {
-            v: sizeMap.vmin,
-            r: span > 0 ? sizeMap.minR : (sizeMap.minR + sizeMap.maxR) / 2,
-          },
-        ];
-  const ROW_H = Math.max(20, sizeMap.maxR * 2 + 6);
-  const cx = sizeMap.maxR + 2;
-  return (
-    <g id="size-legend" transform={`translate(0, ${yOffset})`}>
-      <text
-        x={0}
-        y={10}
-        fontSize="11"
-        fontWeight="700"
-        fill="#222"
-        fontFamily="ui-monospace, Menlo, monospace"
-      >
-        {title}
-      </text>
-      {samples.map((s: any, i: number) => (
-        <g key={i} transform={`translate(0, ${20 + i * ROW_H})`}>
-          <circle cx={cx} cy={ROW_H / 2} r={s.r} fill="#bbb" stroke="#444" strokeWidth="0.6" />
-          <text
-            x={sizeMap.maxR * 2 + 10}
-            y={ROW_H / 2 + 3}
-            fontSize="10"
-            fill="#555"
-            fontFamily="sans-serif"
-          >
-            {fmtLegend(s.v)}
-          </text>
-        </g>
-      ))}
-      {/* swallow the unused width so the type-checker doesn't complain */}
-      {width < 0 && <text>{title}</text>}
-    </g>
-  );
-}
-
-// Compact numeric formatter for legend endpoints — short for huge
-// values (10k → "10000"), exponent for very small (< 0.01).
-function fmtLegend(n: number): string {
-  if (!Number.isFinite(n)) return "—";
-  const abs = Math.abs(n);
-  if (abs === 0) return "0";
-  if (abs >= 1e6) return n.toExponential(1);
-  if (abs >= 1000) return Math.round(n).toString();
-  if (abs >= 1) return n.toFixed(2);
-  if (abs >= 0.01) return n.toFixed(3);
-  return n.toExponential(1);
-}
