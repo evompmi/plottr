@@ -127,6 +127,31 @@ function App() {
   const [rawText, setRawText] = useState<any>(null);
   const sepRef = useRef("");
 
+  // Self-healing guard for the non-significant slot. The palette picker
+  // (in ColorsTile below) commits `colorNs = VOLCANO_DEFAULT_COLORS.ns`
+  // every time it fires — but two scenarios leave a stale non-grey
+  // value in `vis.colorNs`:
+  //   1. A brief Phase-2 build mapped the palette's last hex into
+  //      colorNs. Users who picked a palette under that build have a
+  //      non-grey value persisted in localStorage.
+  //   2. Native `<select>` doesn't fire onChange when you re-pick the
+  //      already-selected value, so handlePalette can't run.
+  // This effect re-pins colorNs to the canonical grey on every
+  // discretePalette change AND once on mount, which heals both cases
+  // on the first interaction (and on first load for stale state).
+  // Manual ns edits via the per-row ColorInput stay sticky during the
+  // session — the dep is `vis.discretePalette`, so editing colorNs
+  // alone doesn't fire this — but they are not preserved across a
+  // palette change or a page reload. That matches the spec:
+  // "non-significant should always be a shade of grey by default,
+  // whatever the palette selected".
+  useEffect(() => {
+    if (vis.colorNs !== VOLCANO_DEFAULT_COLORS.ns) {
+      updVis({ colorNs: VOLCANO_DEFAULT_COLORS.ns });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vis.discretePalette]);
+
   // Manually-selected points (Set of original-row indices). Click on a
   // point in the chart to add/remove it; when this set is non-empty the
   // top-N auto-labelling is replaced with exactly these picks (so the
