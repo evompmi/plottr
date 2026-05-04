@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Theme-var coverage retroactively audited.** Replaced the five
+  remaining `rgba()` / `rgb()` literal sites in inline `style={{}}`
+  attributes with new theme vars: heatmap selection-readout panel
+  (`--shadow-md`), `_shell/ScrollablePlotCard` "scroll for more →"
+  pill (`--shadow-sm`), aequorin sample-selection overlay
+  (`--shadow-lg`), venn rename-input focus glow (`--focus-ring`).
+  The two `linear-gradient(..., rgba(255,255,255,0))` fades on the
+  scroll-card edges now use the `transparent` keyword for clarity —
+  same visual result, no theme dependency.
+- **`plottr/no-chrome-hex-literal` ESLint rule scope widened.** Now
+  also catches named CSS colours (`white`, `black`, `slategray`, …;
+  `transparent` and `currentColor` are allowed) and functional-notation
+  literals (`rgba(...)`, `rgb(...)`, `hsl(...)`, `hsla(...)` — including
+  ones buried inside multi-token `boxShadow` or `linear-gradient(...)`
+  strings). Rule name kept stable for config compatibility; only the
+  detection logic widened.
+- **Volcano `chart.tsx` split.** 939 LoC monolith → 563 LoC slim
+  orchestrator, 306 LoC `chart-layout.ts` (axis ranges, point
+  classification, label layout, fill / radius resolvers — all pure,
+  no React), 214 LoC `chart-legends.tsx` (color + size in-SVG
+  legend renderers). Behaviour unchanged: 49 unit tests + 500-iter
+  fuzz clean.
 - **Type the React-tier prop bags across every plot tool.** `: any`
   destructures in each tool's `steps.tsx` / `controls.tsx` /
   `plot-area.tsx` replaced with explicit prop interfaces declared in

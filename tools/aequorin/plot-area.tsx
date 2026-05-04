@@ -814,7 +814,7 @@ export function SampleSelectionOverlay({
               background: "var(--surface)",
               borderRadius: 10,
               border: "1px solid var(--warning-border)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+              boxShadow: "var(--shadow-lg)",
               padding: "12px 14px",
               maxHeight: 360,
               overflowY: "auto",

@@ -1206,7 +1206,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
             fontSize: 11,
             fontFamily: "sans-serif",
             pointerEvents: "none",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+            boxShadow: "var(--shadow-md)",
             zIndex: 10,
             whiteSpace: "nowrap",
           }}
