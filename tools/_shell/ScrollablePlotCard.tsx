@@ -76,7 +76,7 @@ export function ScrollablePlotCard({ children }: ScrollablePlotCardProps) {
             left: 1,
             width: 28,
             pointerEvents: "none",
-            background: "linear-gradient(to right, var(--plot-card-bg), rgba(255,255,255,0))",
+            background: "linear-gradient(to right, var(--plot-card-bg), transparent)",
             borderTopLeftRadius: 8,
             borderBottomLeftRadius: 8,
           }}
@@ -93,7 +93,7 @@ export function ScrollablePlotCard({ children }: ScrollablePlotCardProps) {
             right: 1,
             width: 28,
             pointerEvents: "none",
-            background: "linear-gradient(to left, var(--plot-card-bg), rgba(255,255,255,0))",
+            background: "linear-gradient(to left, var(--plot-card-bg), transparent)",
             borderTopRightRadius: 8,
             borderBottomRightRadius: 8,
           }}
@@ -113,7 +113,7 @@ export function ScrollablePlotCard({ children }: ScrollablePlotCardProps) {
             fontSize: 11,
             fontWeight: 600,
             pointerEvents: "none",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+            boxShadow: "var(--shadow-sm)",
             opacity: 0.92,
           }}
         >
