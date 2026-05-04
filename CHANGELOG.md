@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Downloads now prompt for a save location.** Every export
+  (SVG / PNG / CSV / R script / TXT) tries the File System Access
+  API (`window.showSaveFilePicker`) first so the user can pick a
+  folder + filename. Supported in Chromium-based browsers (Chrome /
+  Edge / Opera) on HTTPS / localhost. Firefox / Safari and any
+  context that strips the API (sandboxed iframes, `file://`) fall
+  back to the classic `<a download>` anchor click that drops the
+  file in the browser's default Downloads folder. Cancelled picker
+  is a silent no-op. New `saveBlob(blob, filename)` helper in
+  `tools/shared.js` centralises the picker / fallback logic; all
+  four download functions (`downloadSvg`, `downloadPng`,
+  `downloadCsv`, `downloadText`) now delegate to it.
+
 ### Added
 
 - **Playwright e2e suite (`e2e/`).** Golden-path flows in real
