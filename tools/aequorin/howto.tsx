@@ -24,9 +24,8 @@ export const AEQUORIN_HOWTO: HowToContent = {
   display: (
     <>
       Each unique header becomes a coloured trace; same-name columns collapse into a mean ± SD
-      ribbon under it. View the combined chart or a faceted small-multiples grid. Optional aequorin
-      calibration (<strong>Allen &amp; Blinks</strong>, <strong>Hill</strong>, generalised) converts
-      raw luminescence to [Ca²⁺]. Optional inset bar plot of integrated Σ-area per condition.
+      ribbon under it. View the combined chart or a faceted small-multiples grid. Optional inset bar
+      plot of integrated Σ-area per condition.
     </>
   ),
 };
