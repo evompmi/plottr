@@ -7,106 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [1.2.0] - 2026-05-04
 
-- **Tool-split refactor — every plot tool now lives in its own folder.**
-  `tools/venn.tsx` → `tools/venn/{index,chart,steps,controls,plot-area,helpers,reports,...}.tsx`,
-  same shape for `lineplot/`, `scatter/`, `upset/`. Boxplot, aequorin,
-  heatmap, volcano were already folder-shaped; all eight plot tools now
-  follow one canonical layout. esbuild entrypoints updated to
-  `tools/<tool>/index.tsx`; tsconfig include broadened to `tools/**/*.ts(x)`.
-- **TypeScript strictness — full `strict: true` across the tool surface.**
-  Phased in over six commits: safe flags + R-export surface typed →
-  `strictNullChecks` → `noImplicitAny` for pure helpers → component prop
-  types → `noImplicitAny` globally → `strict: true` (drops the redundant
-  flag list). `noImplicitReturns` and `noFallthroughCasesInSwitch` stay on
-  top. Pure helpers (`_shell/**`, `<tool>/helpers.ts`, `venn/*.ts`, …) get
-  full param + return annotations; sprawling step-component prop bags may
-  use `: any` on the destructure (documented in `CLAUDE.md`).
-- **DownloadTiles abstraction.** New `_shell/DownloadTiles.tsx` wraps
-  `ActionsPanel` so every tool's plot-area renders its export chips
-  through the same component instead of re-deriving the layout.
-- **`exhaustive-deps` promoted from warn to error.** Audited and fixed all
-  57 outstanding warnings across the codebase; the rule now blocks CI.
-  Several latent bugs surfaced and were fixed in passing: `facetRefs.current`
-  cleanup staleness, missing `useCallback` on `resetDerived`, two
-  rules-of-hooks ordering bugs (boxplot/chart, upset/stats-panel had
-  `useRef`/`useMemo` after early-return — moved above the guard).
-- Aequorin **Configure step** — the calibration-formula and time-axis tiles
-  now use the AesBox-style themed cards (slate header / emerald header)
-  introduced in boxplot, volcano, and scatter, so the visual language
-  matches across every plot tool.
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.2.0.md`](docs/release-notes/v1.2.0.md). The
+> entries below are summary bullets that link there.
 
 ### Added
 
-- **Volcano — search points by feature name.** New _Search by name_ input
-  inside the Labels tile. Type a gene/feature name (or paste a comma- /
-  newline-separated list) and press Enter / Add → matching points get
-  the same black ring + leader line + label as click-to-label. Live
-  match-count readout (debounced) + an "N unmatched" sub-line lists the
-  tokens that scored zero (paste-list typo finder). Match semantics:
-  case-insensitive substring per token; trims source labels at parse
-  time so `"AT1G01010 "` no longer fails an exact match. Disabled with
-  hint when no label column is picked. Rides entirely on the existing
-  `manualSelection` infra so the existing Clear button covers both
-  click- and search-added points; SVG/PNG export captures the labels
-  for free. +15 unit tests.
-- **Discrete-palette picker — all eight plot tools.** New shared file
-  `tools/shared-discrete-palette.js` adds an 11-palette catalogue —
-  Okabe-Ito (default), Tableau10, ColorBrewer Set1/Set2/Set3/Dark2/Paired/
-  Pastel1/Pastel2, ggplot2-default `hue` (HCL-derived at runtime), and
-  viridis-discrete. Every per-group/per-category sidebar now exposes a
-  themed dropdown that, when picked, overwrites every group's colour
-  with the resolved palette. Choice persists per-tool via auto-prefs.
-  - **Boxplot**: two independent dropdowns (per-group + per-Color-by
-    point category).
-  - **Scatter**: drives the discrete colour aesthetic when a categorical
-    colour column is mapped. The continuous `colorMapPalette` and the
-    single `pointColor` (no-mapping case) are unaffected by design — the
-    discrete palette only applies to the categorical-discrete path.
-  - **Lineplot**: drives per-series line colours.
-  - **Venn**: drives per-set fill colours. `setColors` lifted into `vis`
-    so the palette and hand-edits both round-trip through PrefsPanel.
-  - **Aequorin**: drives per-condition colours. `detectConditions` now
-    accepts a palette name and seeds from it.
-  - **Volcano**: maps the resolved palette into the two significant
-    slots only — `[0]` → up, `[1]` → down. The non-significant slot
-    stays at its default neutral grey regardless of palette so the
-    up/down splay reads as the signal; user-edits remain available.
-  - Dropdown chrome uses `className="dv-select"` so it themes correctly
-    in dark mode. 👁 glyph marks colour-blind-safe entries (Okabe-Ito,
-    Dark2, Paired, viridis-d).
-  - Default `okabe-ito` is byte-identical to the prior `PALETTE`, so
-    existing data files reload identically.
-  - +17 unit tests covering catalogue shape, sentinel handling,
-    recycling, ggplot2-hue uniqueness, and the okabe-ito = PALETTE
-    regression guard.
+- **Volcano — search points by feature name.** Paste a comma- / newline-
+  separated list (or type a single name) into the Labels tile to highlight
+  matching points with rings + labels. Case-insensitive substring per
+  token; live match-count + unmatched-token typo finder. Rides on the
+  existing `manualSelection` infra. +15 unit tests. See
+  [`docs/release-notes/v1.2.0.md#-volcano--search-points-by-feature-name`](docs/release-notes/v1.2.0.md#-volcano--search-points-by-feature-name).
+- **Discrete-palette picker on every plot tool.** New shared
+  `tools/shared-discrete-palette.js` ships an 11-palette catalogue
+  (Okabe-Ito default, Tableau10, ColorBrewer Set1/Set2/Set3/Dark2/Paired/
+  Pastel1/Pastel2, ggplot2-default `hue`, viridis-discrete). Every
+  per-group/per-category sidebar gains a themed dropdown that overwrites
+  group colours; default `okabe-ito` is byte-identical to the prior
+  `PALETTE` so existing data reloads unchanged. +17 unit tests. See
+  [`docs/release-notes/v1.2.0.md#-discrete-palette-picker--all-eight-plot-tools`](docs/release-notes/v1.2.0.md#-discrete-palette-picker--all-eight-plot-tools).
 - **Custom ESLint rule `plottr/no-chrome-hex-literal`.** Fires on inline
   `style={{ key: "#abc..." }}` JSX outside an SVG subtree, enforcing the
-  CLAUDE.md rule that chrome colours must reference CSS variables (`var(--…)`)
-  while SVG colours stay as hex literals so exported charts render the same
-  way in any reader. Defined in `scripts/eslint-rules/no-chrome-hex-literal.js`.
+  CSS-variable theme contract while leaving SVG chart hex literals
+  exempt. See
+  [`docs/release-notes/v1.2.0.md#-custom-eslint-rule--plottrno-chrome-hex-literal`](docs/release-notes/v1.2.0.md#-custom-eslint-rule--plottrno-chrome-hex-literal).
 - **`eslint-plugin-react-hooks`** — both `rules-of-hooks` and
-  `exhaustive-deps` now enforced (the latter at `error`, see above).
+  `exhaustive-deps` enforced (the latter at error level after auditing
+  57 outstanding warnings).
+
+### Changed
+
+- **Tool-split refactor — every plot tool in its own folder.** Venn /
+  lineplot / scatter / upset joined the existing folder-shaped boxplot /
+  aequorin / heatmap / volcano. esbuild entrypoints rewired to
+  `tools/<tool>/index.tsx`; tsconfig include broadened. See
+  [`docs/release-notes/v1.2.0.md#-tool-split-refactor--every-plot-tool-in-its-own-folder`](docs/release-notes/v1.2.0.md#-tool-split-refactor--every-plot-tool-in-its-own-folder).
+- **TypeScript strictness — full `strict: true` across the tool
+  surface.** Six-commit phased rollout (safe flags →
+  `strictNullChecks` → pure-helper `noImplicitAny` → component-prop
+  types → global `noImplicitAny` → `strict: true`). See
+  [`docs/release-notes/v1.2.0.md#-typescript-strictness--full-strict-true-across-the-tool-surface`](docs/release-notes/v1.2.0.md#-typescript-strictness--full-strict-true-across-the-tool-surface).
+- **`exhaustive-deps` promoted from warn to error.** Audited and fixed
+  all 57 outstanding warnings; several latent bugs surfaced in passing
+  (facet-ref staleness, two rules-of-hooks ordering bugs).
+- **DownloadTiles abstraction.** Every tool's plot-area renders export
+  chips through the shared `_shell/DownloadTiles.tsx` instead of
+  re-deriving the layout.
+- **Aequorin Configure step** — the calibration-formula and time-axis
+  tiles now use the AesBox-style themed cards introduced in boxplot,
+  volcano, and scatter so the visual language matches across every plot
+  tool.
 
 ### Fixed
 
 - **tsconfig include hole** — `tools/*.tsx` (single-star glob) silently
-  skipped the new `tools/<tool>/index.tsx` files after the split, hiding
-  three runtime crashes (scatter / lineplot / upset) from `tsc --noEmit`.
-  Glob broadened to `tools/**/*.ts(x)`.
-- **`PageHeader` icon prop in `power.tsx`**, **missing
-  `IntersectionStatsPanel` export in `upset/`** — both were latent and
-  surfaced once the typecheck saw every file.
+  skipped the new `tools/<tool>/index.tsx` files after the split,
+  hiding three runtime crashes (scatter / lineplot / upset) from
+  `tsc --noEmit`. Glob broadened to `tools/**/*.ts(x)`.
+- **`PageHeader` icon prop in `power.tsx`**, missing
+  `IntersectionStatsPanel` export in `upset/` — both latent, surfaced
+  once the typecheck saw every file.
 - **Perl-heredoc shell-escape bug** during the `noImplicitAny` migration
   silently rewrote ~24 sites with literal `$1: any, $2: any` instead of
-  the captured parameter names; recovered by hand from each tool's
-  pre-migration version.
-- Aequorin **plot page** — the **↗ Open in Boxplot** button now matches the
-  height of the adjacent ⬇ CSV chip (previously sat ~4 px shorter due to
+  the captured parameter names; recovered by hand.
+- **Aequorin plot page** — the **↗ Open in Boxplot** button now matches
+  the height of the adjacent ⬇ CSV chip (previously ~4 px shorter due to
   `dv-btn-secondary`'s tighter vertical padding).
-
-## [1.1.0] - 2026-05-03
 
 ## [1.1.0] - 2026-05-03
 
