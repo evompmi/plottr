@@ -139,6 +139,15 @@ export function PlotControls({
           </p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <DiscretePaletteRow
+              value={vis.discretePalette || "okabe-ito"}
+              onChange={(next: string) => {
+                updVis({ discretePalette: next });
+                const names = series.map((s: any) => s.name);
+                updVis({ groupColors: applyDiscretePalette(next, names) });
+              }}
+              names={series.map((s: any) => s.name)}
+            />
             {series.map((s: any) => (
               <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <ColorInput value={s.color} onChange={(c) => setGroupColor(s.name, c)} />

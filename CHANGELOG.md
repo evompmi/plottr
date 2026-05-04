@@ -39,18 +39,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Discrete-palette picker (Phase 1: boxplot).** New shared file
+- **Discrete-palette picker — all eight plot tools.** New shared file
   `tools/shared-discrete-palette.js` adds an 11-palette catalogue —
   Okabe-Ito (default), Tableau10, ColorBrewer Set1/Set2/Set3/Dark2/Paired/
   Pastel1/Pastel2, ggplot2-default `hue` (HCL-derived at runtime), and
-  viridis-discrete. Boxplot's _Conditions_ sidebar now exposes a single
-  dropdown that, when picked, overwrites every group's colour with the
-  resolved palette. Choice persists per-tool via auto-prefs. ✓ glyph
-  marks colour-blind-safe entries (Okabe-Ito, Dark2, Paired, viridis-d).
-  Default `okabe-ito` is byte-identical to the prior `PALETTE`, so
-  existing data files reload identically. +17 unit tests. The remaining
-  five tools (scatter, lineplot, venn, aequorin, volcano) ship in a
-  follow-up commit on the same branch.
+  viridis-discrete. Every per-group/per-category sidebar now exposes a
+  themed dropdown that, when picked, overwrites every group's colour
+  with the resolved palette. Choice persists per-tool via auto-prefs.
+  - **Boxplot**: two independent dropdowns (per-group + per-Color-by
+    point category).
+  - **Scatter**: drives the discrete colour aesthetic when a categorical
+    colour column is mapped. The continuous `colorMapPalette` and the
+    single `pointColor` (no-mapping case) are unaffected by design — the
+    discrete palette only applies to the categorical-discrete path.
+  - **Lineplot**: drives per-series line colours.
+  - **Venn**: drives per-set fill colours. `setColors` lifted into `vis`
+    so the palette and hand-edits both round-trip through PrefsPanel.
+  - **Aequorin**: drives per-condition colours. `detectConditions` now
+    accepts a palette name and seeds from it.
+  - **Volcano**: maps the resolved palette into the three fixed slots —
+    `[0]` → up, `[1]` → down, last → ns. User-edits remain available.
+  - Dropdown chrome uses `className="dv-select"` so it themes correctly
+    in dark mode. 👁 glyph marks colour-blind-safe entries (Okabe-Ito,
+    Dark2, Paired, viridis-d).
+  - Default `okabe-ito` is byte-identical to the prior `PALETTE`, so
+    existing data files reload identically.
+  - +17 unit tests covering catalogue shape, sentinel handling,
+    recycling, ggplot2-hue uniqueness, and the okabe-ito = PALETTE
+    regression guard.
 - **Custom ESLint rule `plottr/no-chrome-hex-literal`.** Fires on inline
   `style={{ key: "#abc..." }}` JSX outside an SVG subtree, enforcing the
   CLAUDE.md rule that chrome colours must reference CSS variables (`var(--…)`)

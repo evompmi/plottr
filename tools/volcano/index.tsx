@@ -59,6 +59,12 @@ const VIS_INIT_VOLCANO = {
   colorUp: VOLCANO_DEFAULT_COLORS.up,
   colorDown: VOLCANO_DEFAULT_COLORS.down,
   colorNs: VOLCANO_DEFAULT_COLORS.ns,
+  // Discrete-palette key driving the up/down/ns slot mapping. Default
+  // "okabe-ito" keeps the existing VOLCANO_DEFAULT_COLORS visually
+  // (PALETTE[5] = vermillion = up, PALETTE[4] = blue = down, neutral grey
+  // = ns). Picking a palette maps `[0]` → up, `[1]` → down, last/neutral
+  // → ns. The user can hand-edit any of the 3 slots afterward.
+  discretePalette: "okabe-ito",
   xMin: null as number | null,
   xMax: null as number | null,
   yMin: null as number | null,
@@ -1014,8 +1020,27 @@ function ThresholdsTile({ vis, updVis }: any) {
 }
 
 function ColorsTile({ vis, updVis }: any) {
+  // Volcano has only 3 fixed slots (up / down / ns), not N categories. The
+  // palette picker maps the resolved hex list into those slots:
+  //   [0] → colorUp, [1] → colorDown, last → colorNs.
+  // The user can still hand-edit any slot afterward via the per-row
+  // ColorInput; picking a different palette clobbers all 3 again.
+  const handlePalette = (next: string) => {
+    const seed = resolveDiscretePalette(next, 3);
+    updVis({
+      discretePalette: next,
+      colorUp: seed[0] || vis.colorUp,
+      colorDown: seed[1] || vis.colorDown,
+      colorNs: seed[seed.length - 1] || vis.colorNs,
+    });
+  };
   return (
     <ControlSection title="Colors">
+      <DiscretePaletteRow
+        value={vis.discretePalette || "okabe-ito"}
+        onChange={handlePalette}
+        names={["up", "down", "ns"]}
+      />
       <ColorRow
         label="Up-regulated"
         value={vis.colorUp}
