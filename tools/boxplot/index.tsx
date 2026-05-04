@@ -45,6 +45,16 @@ const VIS_INIT_BOXPLOT = {
   // match a saved entry fall back to the palette default.
   boxplotColors: {},
   categoryColors: {},
+  // Discrete-palette key driving the per-group colour seed. Default
+  // "okabe-ito" is byte-identical to PALETTE so existing behaviour is
+  // preserved exactly. User picks from DISCRETE_PALETTES via the
+  // <DiscretePaletteRow> dropdown in the Conditions section.
+  discretePalette: "okabe-ito",
+  // Independent palette for the per-point Color-by aesthetic — shown only
+  // when the user picks a "Color by" column under Plot style → Color by.
+  // Stored separately so picking a Set1 group palette doesn't surprise the
+  // user by also recolouring point categories (and vice versa).
+  categoryPalette: "okabe-ito",
 };
 
 /* ── Main App (orchestrator) ───────────────────────────────────────────────── */
@@ -450,26 +460,33 @@ function App() {
       }
     });
     const cats = colorByCol >= 0 ? colorByCategories : ["_all"];
-    return effectiveOrder
-      .filter((name: any) => gm[name])
-      .map((name: any, gi: number) => {
-        const catMap = gm[name];
-        const sources = cats
-          .filter((c: any) => catMap[c])
-          .map((cat: any, si: number) => ({
-            colIndex: si,
-            values: catMap[cat],
-            category: cat,
-          }));
-        const allValues = sources.flatMap((s: any) => s.values);
-        return {
-          name,
-          sources,
-          allValues,
-          stats: { ...quartiles(allValues), ...computeStats(allValues) },
-          color: boxplotColors[name] || PALETTE[gi % PALETTE.length],
-        };
-      });
+    const filtered = effectiveOrder.filter((name: any) => gm[name]);
+    // Resolve the per-group default colour list from the picked discrete
+    // palette. Sized to the number of groups so ggplot2-hue / viridis-d
+    // generate the right count; fixed palettes (set1/dark2/…) recycle
+    // modulo. Falls back to PALETTE if a stale palette name slips through.
+    const seedColors = resolveDiscretePalette(vis.discretePalette || "okabe-ito", filtered.length);
+    return filtered.map((name: any, gi: number) => {
+      const catMap = gm[name];
+      const sources = cats
+        .filter((c: any) => catMap[c])
+        .map((cat: any, si: number) => ({
+          colIndex: si,
+          values: catMap[cat],
+          category: cat,
+        }));
+      const allValues = sources.flatMap((s: any) => s.values);
+      return {
+        name,
+        sources,
+        allValues,
+        stats: { ...quartiles(allValues), ...computeStats(allValues) },
+        color:
+          boxplotColors[name] ||
+          seedColors[gi % Math.max(1, seedColors.length)] ||
+          PALETTE[gi % PALETTE.length],
+      };
+    });
   }, [
     renamedRows,
     groupColIdx,
@@ -478,6 +495,7 @@ function App() {
     effectiveOrder,
     colorByCol,
     colorByCategories,
+    vis.discretePalette,
   ]);
 
   const allDisplayGroups = useMemo(
@@ -581,26 +599,33 @@ function App() {
         }
       });
       const cats = colorByCol >= 0 ? colorByCategories : ["_all"];
-      return effectiveOrder
-        .filter((name: any) => gm[name] && !disabledGroups[name])
-        .map((name: any, gi: number) => {
-          const catMap = gm[name];
-          const sources = cats
-            .filter((c: any) => catMap[c])
-            .map((c: any, si: number) => ({
-              colIndex: si,
-              values: catMap[c],
-              category: c,
-            }));
-          const allValues = sources.flatMap((s: any) => s.values);
-          return {
-            name,
-            sources,
-            allValues,
-            stats: { ...quartiles(allValues), ...computeStats(allValues) },
-            color: globalColorMap[name] || boxplotColors[name] || PALETTE[gi % PALETTE.length],
-          };
-        });
+      const filtered = effectiveOrder.filter((name: any) => gm[name] && !disabledGroups[name]);
+      const seedColors = resolveDiscretePalette(
+        vis.discretePalette || "okabe-ito",
+        filtered.length
+      );
+      return filtered.map((name: any, gi: number) => {
+        const catMap = gm[name];
+        const sources = cats
+          .filter((c: any) => catMap[c])
+          .map((c: any, si: number) => ({
+            colIndex: si,
+            values: catMap[c],
+            category: c,
+          }));
+        const allValues = sources.flatMap((s: any) => s.values);
+        return {
+          name,
+          sources,
+          allValues,
+          stats: { ...quartiles(allValues), ...computeStats(allValues) },
+          color:
+            globalColorMap[name] ||
+            boxplotColors[name] ||
+            seedColors[gi % Math.max(1, seedColors.length)] ||
+            PALETTE[gi % PALETTE.length],
+        };
+      });
     },
     [
       groupColIdx,
@@ -610,6 +635,7 @@ function App() {
       effectiveOrder,
       disabledGroups,
       boxplotColors,
+      vis.discretePalette,
     ]
   );
 

@@ -39,6 +39,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Discrete-palette picker (Phase 1: boxplot).** New shared file
+  `tools/shared-discrete-palette.js` adds an 11-palette catalogue —
+  Okabe-Ito (default), Tableau10, ColorBrewer Set1/Set2/Set3/Dark2/Paired/
+  Pastel1/Pastel2, ggplot2-default `hue` (HCL-derived at runtime), and
+  viridis-discrete. Boxplot's _Conditions_ sidebar now exposes a single
+  dropdown that, when picked, overwrites every group's colour with the
+  resolved palette. Choice persists per-tool via auto-prefs. ✓ glyph
+  marks colour-blind-safe entries (Okabe-Ito, Dark2, Paired, viridis-d).
+  Default `okabe-ito` is byte-identical to the prior `PALETTE`, so
+  existing data files reload identically. +17 unit tests. The remaining
+  five tools (scatter, lineplot, venn, aequorin, volcano) ship in a
+  follow-up commit on the same branch.
 - **Custom ESLint rule `plottr/no-chrome-hex-literal`.** Fires on inline
   `style={{ key: "#abc..." }}` JSX outside an SVG subtree, enforcing the
   CLAUDE.md rule that chrome colours must reference CSS variables (`var(--…)`)
