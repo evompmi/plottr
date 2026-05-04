@@ -30,6 +30,8 @@ import {
   buildColorMap,
   buildSizeMap,
   ColorMap,
+  matchPointsByLabel,
+  LabelMatchResult,
 } from "./helpers";
 import { VolcanoChart } from "./chart";
 import { buildVolcanoRScript, buildVolcanoCsv } from "./reports";
@@ -92,8 +94,13 @@ function buildPoints(
     if (xRaw == null || yRaw == null || xRaw === "" || yRaw === "") continue;
     const log2fc = isNumericValue(xRaw) ? toNumericValue(xRaw) : NaN;
     const p = isNumericValue(yRaw) ? toNumericValue(yRaw) : NaN;
-    const label =
+    // Trim trailing whitespace from sloppy CSV exports — otherwise an
+    // entry like `"AT1G01010 "` would silently fail an exact-match search
+    // ("AT1G01010" !== "AT1G01010 "). Substring search would still work,
+    // but we want both to be reliable.
+    const labelRaw =
       labelCol >= 0 && row[labelCol] != null && row[labelCol] !== "" ? String(row[labelCol]) : null;
+    const label = labelRaw == null ? null : labelRaw.trim() || null;
     out.push({ idx: i, log2fc, p, label });
   }
   return out;
@@ -174,6 +181,16 @@ function App() {
       const next = new Set<number>(prev);
       if (next.has(idx)) next.delete(idx);
       else next.add(idx);
+      return next;
+    });
+  }, []);
+  // Search-by-name path: union the matched indices into the same set as
+  // click-to-label. Same Clear button covers both.
+  const addToManualSelection = useCallback((indices: number[]) => {
+    if (!indices || indices.length === 0) return;
+    setManualSelection((prev: Set<number>) => {
+      const next = new Set<number>(prev);
+      for (const i of indices) next.add(i);
       return next;
     });
   }, []);
@@ -452,6 +469,7 @@ function App() {
           manualSelection={manualSelection}
           togglePointSelection={togglePointSelection}
           clearManualSelection={clearManualSelection}
+          addToManualSelection={addToManualSelection}
           colorMapCol={colorMapCol}
           setColorMapCol={setColorMapCol}
           colorMap={colorMap}
@@ -725,6 +743,7 @@ function PlotStep({
   manualSelection,
   togglePointSelection,
   clearManualSelection,
+  addToManualSelection,
   colorMapCol,
   setColorMapCol,
   colorMap,
@@ -794,6 +813,9 @@ function PlotStep({
           updVis={updVis}
           manualSelection={manualSelection}
           clearManualSelection={clearManualSelection}
+          points={points}
+          labelCol={labelCol}
+          addToManualSelection={addToManualSelection}
         />
         <StyleTile vis={vis} updVis={updVis} />
       </PlotSidebar>
@@ -1097,7 +1119,173 @@ function ColorRow({ label, value, onChange }: any) {
   );
 }
 
-function LabelsTile({ vis, updVis, manualSelection, clearManualSelection }: any) {
+// Search-by-label sub-tile for the Labels panel. Local state for the
+// query so typing doesn't bubble re-renders through the chart; only the
+// `Add` action lifts state up via `addToManualSelection(indices)`.
+//
+// Match preview is computed live (debounced 150 ms) against a memoised
+// lower-cased label cache so a 50 k-point dataset stays snappy. The live
+// readout is informational only — nothing commits until the user submits.
+function LabelSearchRow({ points, labelCol, addToManualSelection }: any) {
+  const [query, setQuery] = useState("");
+  const [previewQuery, setPreviewQuery] = useState("");
+  const [showUnmatched, setShowUnmatched] = useState(false);
+
+  // Pre-lowercase every label once per `points` reference. The match
+  // helper accepts this cache via its third argument.
+  const labelLowerCache = useMemo(
+    () =>
+      points.map((pt: VolcanoPoint) => (pt.label == null ? null : pt.label.toLocaleLowerCase())),
+    [points]
+  );
+
+  // 150 ms debounce on the live preview — typing fires `setQuery`, the
+  // effect copies into `previewQuery` after the user pauses. The actual
+  // match runs against `previewQuery`, so the chart never re-renders on
+  // intermediate keystrokes (this component is pure-local state).
+  useEffect(() => {
+    const id = setTimeout(() => setPreviewQuery(query), 150);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  const preview: LabelMatchResult = useMemo(() => {
+    if (!previewQuery.trim()) return { matched: [], unmatchedTokens: [] };
+    return matchPointsByLabel(points, previewQuery, labelLowerCache);
+  }, [previewQuery, points, labelLowerCache]);
+
+  const disabled = labelCol == null || labelCol < 0;
+  const matchCount = preview.matched.length;
+  const unmatchedCount = preview.unmatchedTokens.length;
+  const hasQuery = previewQuery.trim().length > 0;
+  const hasOnlyUnmatched = hasQuery && matchCount === 0;
+  const tooMany = matchCount > 50;
+
+  const submit = () => {
+    if (disabled || matchCount === 0) return;
+    addToManualSelection(preview.matched);
+    setQuery("");
+    setPreviewQuery("");
+    setShowUnmatched(false);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div className="dv-label">Search by name</div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          type="search"
+          className="dv-input"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          placeholder="gene name (or paste a list)"
+          disabled={disabled}
+          style={{ flex: 1, fontSize: 11, padding: "3px 6px" }}
+          title="Comma- or newline-separated. Case-insensitive substring."
+        />
+        <button
+          type="button"
+          onClick={submit}
+          disabled={disabled || matchCount === 0}
+          className="dv-btn dv-btn-secondary"
+          style={{ padding: "4px 10px", fontSize: 11 }}
+          title={
+            disabled
+              ? "Pick a label column in Configure to enable search"
+              : matchCount === 0
+                ? "Type a name to search"
+                : `Add ${matchCount} matched point${matchCount === 1 ? "" : "s"} to the labelled set`
+          }
+        >
+          Add
+        </button>
+      </div>
+      {disabled ? (
+        <span style={{ fontSize: 10, color: "var(--text-faint)", fontStyle: "italic" }}>
+          ↳ Pick a label column in Configure to enable search
+        </span>
+      ) : hasQuery ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <span
+            style={{
+              fontSize: 10,
+              color: hasOnlyUnmatched
+                ? "var(--warning-text)"
+                : tooMany
+                  ? "var(--warning-text)"
+                  : "var(--success-text)",
+            }}
+          >
+            {matchCount === 0
+              ? "no matches"
+              : `${matchCount} match${matchCount === 1 ? "" : "es"}` +
+                (tooMany ? " — labels may overlap" : "") +
+                (unmatchedCount > 0 ? ` · ${unmatchedCount} unmatched` : "")}
+          </span>
+          {unmatchedCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowUnmatched((v) => !v)}
+              style={{
+                alignSelf: "flex-start",
+                background: "none",
+                border: "none",
+                padding: 0,
+                fontSize: 10,
+                color: "var(--text-faint)",
+                fontFamily: "inherit",
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
+              title="Toggle the list of tokens that matched zero points"
+            >
+              {showUnmatched ? "hide unmatched" : "show unmatched"}
+            </button>
+          )}
+          {showUnmatched && unmatchedCount > 0 && (
+            <ul
+              style={{
+                margin: "2px 0 0",
+                padding: "4px 8px 4px 18px",
+                fontSize: 10,
+                fontFamily: "monospace",
+                color: "var(--warning-text)",
+                background: "var(--warning-bg)",
+                border: "1px solid var(--warning-border)",
+                borderRadius: 4,
+                maxHeight: 80,
+                overflowY: "auto",
+              }}
+            >
+              {preview.unmatchedTokens.map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : (
+        <span style={{ fontSize: 10, color: "var(--text-faint)", fontStyle: "italic" }}>
+          ↳ Comma- or newline-separated · case-insensitive substring
+        </span>
+      )}
+    </div>
+  );
+}
+
+function LabelsTile({
+  vis,
+  updVis,
+  manualSelection,
+  clearManualSelection,
+  points,
+  labelCol,
+  addToManualSelection,
+}: any) {
   const manualCount = manualSelection ? manualSelection.size : 0;
   const hasManual = manualCount > 0;
   return (
@@ -1105,6 +1293,11 @@ function LabelsTile({ vis, updVis, manualSelection, clearManualSelection }: any)
       <ToggleRow checked={vis.showLabels} onChange={(v) => updVis({ showLabels: v })}>
         Annotate top features
       </ToggleRow>
+      <LabelSearchRow
+        points={points}
+        labelCol={labelCol}
+        addToManualSelection={addToManualSelection}
+      />
       {/* Manual-selection mode — when the user has clicked one or more
           points, we hide the auto-pick sliders (they're moot, the user
           is in charge) and surface a Clear button to drop back to

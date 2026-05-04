@@ -78,6 +78,90 @@ export function negLog10P(p: number, pFloor: number): number {
   return -Math.log10(p);
 }
 
+// ── Search points by label ──────────────────────────────────────────────
+//
+// User feature: paste a comma- / newline-separated list of feature names
+// (genes, proteins, …) and highlight the matching points. The chart's
+// existing manual-selection infrastructure already renders a black ring +
+// leader line + label for any index in `manualSelection: Set<number>`, so
+// this helper just resolves a query to a list of `VolcanoPoint.idx` values
+// the App can union into that set. Pure (no React, no DOM, no globals)
+// so it loads cleanly under tests/helpers/volcano-loader.js.
+//
+// Match semantics — case-insensitive substring per token:
+//   "AT1G"            → matches every point whose label contains "AT1G"
+//   "AT1G01010,AT2G02020"
+//   "AT1G01010\nAT2G"  (mixed comma + newline)
+//   Tokens are trimmed; empty tokens are skipped; duplicates dedup.
+//   Points with `label == null` are skipped silently.
+//
+// Performance: callers with large datasets should pass `labelLowerCache`
+// — a precomputed `points.map(p => p.label?.toLocaleLowerCase() ?? null)`
+// memo'd on the points reference — to avoid re-lowercasing every label
+// per keystroke. The 2-arg overload computes the cache inline (fine for
+// one-off / non-debounced calls).
+
+export interface LabelMatchResult {
+  matched: number[]; // unique VolcanoPoint.idx values, in points order
+  unmatchedTokens: string[]; // tokens that matched zero points (in input order, deduped)
+}
+
+export function matchPointsByLabel(
+  points: VolcanoPoint[],
+  query: string,
+  labelLowerCache?: Array<string | null>
+): LabelMatchResult {
+  if (typeof query !== "string") return { matched: [], unmatchedTokens: [] };
+  // Split on commas + any newline variant; trim; drop empties; dedup
+  // (case-folded) so the user can paste sloppily without duplicate work.
+  const rawTokens = query.split(/[,\r\n]+/);
+  const seen = new Set<string>();
+  const tokens: string[] = [];
+  const tokensLower: string[] = [];
+  for (const raw of rawTokens) {
+    const t = raw.trim();
+    if (!t) continue;
+    const tl = t.toLocaleLowerCase();
+    if (seen.has(tl)) continue;
+    seen.add(tl);
+    tokens.push(t);
+    tokensLower.push(tl);
+  }
+  if (tokens.length === 0) return { matched: [], unmatchedTokens: [] };
+
+  const cache: Array<string | null> =
+    labelLowerCache && labelLowerCache.length === points.length
+      ? labelLowerCache
+      : points.map((pt) => (pt.label == null ? null : pt.label.trim().toLocaleLowerCase()));
+
+  const matchedIdx = new Set<number>();
+  const tokenHit: boolean[] = new Array(tokens.length).fill(false);
+
+  for (let i = 0; i < points.length; i++) {
+    const lab = cache[i];
+    if (lab == null || lab.length === 0) continue;
+    for (let ti = 0; ti < tokensLower.length; ti++) {
+      if (lab.includes(tokensLower[ti])) {
+        matchedIdx.add(points[i].idx);
+        tokenHit[ti] = true;
+        // Don't break — other tokens for this row may also be the user's
+        // intent; we still need to flag them as "found" so they're not
+        // surfaced as unmatched.
+      }
+    }
+  }
+
+  const matched: number[] = [];
+  for (const pt of points) {
+    if (matchedIdx.has(pt.idx)) matched.push(pt.idx);
+  }
+  const unmatchedTokens: string[] = [];
+  for (let ti = 0; ti < tokens.length; ti++) {
+    if (!tokenHit[ti]) unmatchedTokens.push(tokens[ti]);
+  }
+  return { matched, unmatchedTokens };
+}
+
 export function countClamped(points: VolcanoPoint[]): number {
   let n = 0;
   for (const pt of points) if (pt.p === 0) n++;
