@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **HowTo tile content lifted out of every long file into a uniform
+  shared component.** New `tools/_shell/HowTo.tsx` renders a fixed
+  three-card layout (Purpose / Data layout / Display, plus optional
+  Tips + capability pills) driven by a typed `HowToContent` object;
+  per-tool prose lives in tiny `tools/<tool>/howto.tsx` constants.
+  Each tool's `steps.tsx` (or `index.tsx` for volcano) drops from
+  100–290 LoC of inline JSX to a single `<HowTo {...TOOL_HOWTO} />`
+  call. Same time, eight tools rewritten to a consistent depth —
+  user-language purpose, two sentences on data layout, two-three on
+  display options, with tool-specific specifics (no more wall-of-
+  text in one place + one-liner in another).
 - **Downloads now prompt for a save location.** Every export
   (SVG / PNG / CSV / R script / TXT) tries the File System Access
   API (`window.showSaveFilePicker`) first so the user can pick a
