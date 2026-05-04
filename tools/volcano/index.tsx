@@ -402,37 +402,192 @@ function App() {
             exampleLabel="Synthetic DESeq2 output (200 features, mock plant transcriptomics)"
             hint="CSV · TSV · TXT · one row per feature · expects log2FC + p-value columns · 2 MB max"
           />
-          <div
-            className="dv-panel"
-            style={{
-              marginTop: 16,
-              padding: "16px 20px",
-              background: "var(--info-bg)",
-              border: "1.5px solid var(--info-border)",
-            }}
+          <HowToCard
+            toolName="volcano"
+            title="Volcano Plot — How to use"
+            subtitle="Upload → Pick log2FC + p-value columns → Plot with cutoffs, top-N labels, search, and aesthetic mappings"
           >
             <div
               style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: "var(--accent-primary)",
-                marginBottom: 8,
-                textTransform: "uppercase",
-                letterSpacing: "1px",
+                background: "var(--surface)",
+                borderRadius: 10,
+                padding: "14px 18px",
+                border: "1.5px solid var(--info-border)",
+                gridColumn: "1/-1",
               }}
             >
-              How volcano plots work
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "var(--accent-primary)",
+                  marginBottom: 8,
+                  textTransform: "uppercase",
+                  letterSpacing: "1px",
+                }}
+              >
+                Data layout
+              </div>
+              <p style={{ fontSize: 12, lineHeight: 1.75, color: "var(--text-muted)", margin: 0 }}>
+                One <strong>row</strong> = one feature (gene, protein, metabolite). Plöttr needs two
+                numeric columns: <strong>log₂ fold change</strong> for the X-axis and a{" "}
+                <strong>p-value</strong> (raw or adjusted) for the Y-axis (plotted as −log₁₀). An
+                optional <strong>label</strong> column (gene symbol, feature name) drives the top-N
+                annotations and search. Common conventions are auto-detected on first parse:
+                <br />
+                DESeq2 (<code>log2FoldChange</code> + <code>padj</code> · falls back to{" "}
+                <code>pvalue</code>), limma (<code>logFC</code> + <code>adj.P.Val</code>), edgeR (
+                <code>logFC</code> + <code>FDR</code>), and MaxQuant (<code>Log2 fold change</code>{" "}
+                + <code>q-value</code>). Adjusted p-values are preferred whenever both adjusted and
+                raw columns exist.
+              </p>
             </div>
-            <p style={{ fontSize: 12, lineHeight: 1.75, color: "var(--text-muted)", margin: 0 }}>
-              One <strong>row</strong> = one feature (gene, protein, metabolite). Plöttr expects two
-              numeric columns: <strong>log2 fold change</strong> on the X-axis and a{" "}
-              <strong>p-value</strong> (raw or adjusted) on the Y-axis as −log10. An optional{" "}
-              <strong>label</strong> column (gene symbol, feature name) drives top-N annotations.
-              Common conventions are auto-detected: DESeq2 (<code>log2FoldChange</code>,{" "}
-              <code>padj</code>), limma (<code>logFC</code>, <code>adj.P.Val</code>), edgeR (
-              <code>logFC</code>, <code>FDR</code>).
-            </p>
-          </div>
+
+            <div
+              style={{
+                background: "var(--surface)",
+                borderRadius: 10,
+                padding: "14px 18px",
+                border: "1.5px solid var(--info-border)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "var(--accent-primary)",
+                  marginBottom: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: "1px",
+                }}
+              >
+                Significance classes
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
+                Each feature is classified <strong>up</strong>, <strong>down</strong>, or{" "}
+                <strong>ns</strong> against your <strong>|log₂FC|</strong> and <strong>p</strong>{" "}
+                cutoffs. <em>p = 0</em> rows (rare but real) are clamped to the smallest non-zero p
+                ÷ 10 so they stay on the y-axis instead of flying to ∞ — the plot surfaces a yellow
+                "N points clamped" notice when this happens.
+              </p>
+            </div>
+
+            <div
+              style={{
+                background: "var(--surface)",
+                borderRadius: 10,
+                padding: "14px 18px",
+                border: "1.5px solid var(--info-border)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "var(--accent-primary)",
+                  marginBottom: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: "1px",
+                }}
+              >
+                Labelling features
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
+                Three labelling modes, all live in the Labels tile. <strong>Auto top-N</strong>{" "}
+                ranks by |log₂FC| × −log₁₀(p) and labels the top up- and down-hits independently.{" "}
+                <strong>Click-to-label</strong> on the chart toggles individual points (any class).{" "}
+                <strong>Search by name</strong> takes a comma- / newline-separated list of gene
+                names — one paste highlights every match. Layout runs a greedy collision-avoid pass
+                with leader lines.
+              </p>
+            </div>
+
+            <div
+              style={{
+                background: "var(--surface)",
+                borderRadius: 10,
+                padding: "14px 18px",
+                border: "1.5px solid var(--info-border)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "var(--accent-primary)",
+                  marginBottom: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: "1px",
+                }}
+              >
+                Optional aesthetic mappings
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
+                Map any extra numeric / categorical column to <strong>colour</strong> (continuous
+                gradient or discrete swatches; up / down only — ns stays grey) or{" "}
+                <strong>size</strong> (e.g. <code>baseMean</code>, expression level). Both render
+                in-SVG legends so the export is self-contained.
+              </p>
+            </div>
+
+            <div
+              style={{
+                background: "var(--surface)",
+                borderRadius: 10,
+                padding: "14px 18px",
+                border: "1.5px solid var(--info-border)",
+                gridColumn: "1/-1",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "var(--accent-primary)",
+                  marginBottom: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: "1px",
+                }}
+              >
+                Exports
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
+                <strong>SVG / PNG</strong> for the figure (named groups for Inkscape touch-ups);{" "}
+                <strong>CSV</strong> with each row's classification (up / down / ns) for downstream
+                filtering;
+                <strong> R script</strong> that reproduces the plot with ggplot2. CSV exports go
+                through the formula-injection sanitiser so a hostile gene name can't escape into
+                Excel formula evaluation.
+              </p>
+            </div>
+
+            <div style={{ gridColumn: "1/-1", display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[
+                "DESeq2 / limma / edgeR auto-detect",
+                "p = 0 clamping",
+                "Up / down / ns classification",
+                "Auto top-N + click-to-label + search",
+                "Colour + size aesthetic mappings",
+                "ggplot2 R export",
+                "Classified CSV",
+                "100% browser-side",
+              ].map((t) => (
+                <span
+                  key={t}
+                  style={{
+                    fontSize: 10,
+                    padding: "3px 10px",
+                    borderRadius: 20,
+                    background: "var(--surface)",
+                    border: "1px solid var(--info-border)",
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </HowToCard>
         </div>
       )}
 
