@@ -27,10 +27,15 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "e2e:install": "playwright install --with-deps chromium",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:ui": "playwright test --ui",
     "prepare": "node scripts/hooks/install.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "1.59.1",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^8.58.1",
