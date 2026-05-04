@@ -13,26 +13,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Chromium, run via `npm run e2e`. Closes the "renders the wrong
   chart" gap the vm + functional-React-mock unit tests can't see —
   exactly the class of bug the v1.2.0 volcano colorNs glitch was.
-  Initial coverage:
-  - Landing page renders all 10 tool tiles + theme-toggle flips
-    `data-theme`.
-  - Volcano colorNs regression — load example, pick `set1` /
-    `set3`, assert ns class fill stays `#999999` (the bug's exact
-    reproducer).
-  - Volcano search-by-name — type a prefix, press Add, assert the
-    `<g id="top-n-labels">` group populates.
-  - Aequorin auto-Y first-paint — load example, walk to plot,
-    assert at least one Y-axis tick reads above the
-    `VIS_INIT_AEQUORIN` default upper bound (catches stale
-    persisted `vis.yMin/yMax`).
-  - Discrete-palette wiring smoke for lineplot / venn / volcano.
-    Auto-spins a Python `http.server` on :8765 against the repo
-    root (no Node server needed). New CI step
-    `Run Playwright e2e` gates every PR; failures upload the HTML
-    report + traces as a 7-day artefact for offline triage.
-    `data-testid="load-example"` added to the shared
-    UploadPanel button so e2e specs don't have to know each tool's
-    per-dataset label string.
+  18 tests across 9 spec files covering every tool:
+  - **Landing**: 10 tool tiles + theme-toggle flips `data-theme`.
+  - **Boxplot**: load example → walk to plot → ≥ 2 boxes render.
+  - **Scatter**: load Iris → ≥ 50 points render.
+  - **Lineplot**: load example → ≥ 2 traces render.
+  - **Venn**: load example → set circles render.
+  - **UpSet**: load example → bars + matrix-dot circles render.
+  - **Heatmap**: load example → walk to plot → ≥ 100 cells render.
+  - **Aequorin**: auto-Y first-paint regression — at least one
+    Y-tick reads above `VIS_INIT_AEQUORIN`'s 1.4 default.
+  - **Volcano**: colorNs regression (default + Set1 + Set3 each
+    assert ns fill stays `#999999`); search-by-name populates
+    `<g id="top-n-labels">`.
+  - **Calculators**: molarity + power smoke (page mounts, primary
+    actions reachable).
+  - **Cross-tool discrete-palette** wiring smoke for lineplot,
+    venn, volcano (boxplot / aequorin / scatter palette flows are
+    covered by their dedicated specs).
+    Wall time: ~6 s for all 18 tests locally. Auto-spins a Python
+    `http.server` on :8765 against the repo root (no Node server
+    needed). New CI step `Run Playwright e2e` gates every PR;
+    failures upload the HTML report + traces as a 7-day artefact
+    for offline triage. `data-testid="load-example"` added to the
+    shared UploadPanel button so e2e specs don't have to know each
+    tool's per-dataset label string.
 
 ### Changed
 
