@@ -1021,17 +1021,20 @@ function ThresholdsTile({ vis, updVis }: any) {
 
 function ColorsTile({ vis, updVis }: any) {
   // Volcano has only 3 fixed slots (up / down / ns), not N categories. The
-  // palette picker maps the resolved hex list into those slots:
-  //   [0] → colorUp, [1] → colorDown, last → colorNs.
+  // palette picker maps the resolved hex list into the two SIGNIFICANT
+  // slots only — `[0]` → colorUp, `[1]` → colorDown — and leaves
+  // colorNs at its default neutral grey (`VOLCANO_DEFAULT_COLORS.ns`).
+  // Reason: the non-significant majority should stay visually muted
+  // regardless of palette, so the up/down splay reads as the signal.
   // The user can still hand-edit any slot afterward via the per-row
-  // ColorInput; picking a different palette clobbers all 3 again.
+  // ColorInput; picking a different palette clobbers up/down again.
   const handlePalette = (next: string) => {
-    const seed = resolveDiscretePalette(next, 3);
+    const seed = resolveDiscretePalette(next, 2);
     updVis({
       discretePalette: next,
       colorUp: seed[0] || vis.colorUp,
       colorDown: seed[1] || vis.colorDown,
-      colorNs: seed[seed.length - 1] || vis.colorNs,
+      colorNs: VOLCANO_DEFAULT_COLORS.ns,
     });
   };
   return (

@@ -57,8 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     so the palette and hand-edits both round-trip through PrefsPanel.
   - **Aequorin**: drives per-condition colours. `detectConditions` now
     accepts a palette name and seeds from it.
-  - **Volcano**: maps the resolved palette into the three fixed slots —
-    `[0]` → up, `[1]` → down, last → ns. User-edits remain available.
+  - **Volcano**: maps the resolved palette into the two significant
+    slots only — `[0]` → up, `[1]` → down. The non-significant slot
+    stays at its default neutral grey regardless of palette so the
+    up/down splay reads as the signal; user-edits remain available.
   - Dropdown chrome uses `className="dv-select"` so it themes correctly
     in dark mode. 👁 glyph marks colour-blind-safe entries (Okabe-Ito,
     Dark2, Paired, viridis-d).
