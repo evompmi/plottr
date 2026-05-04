@@ -3,6 +3,8 @@
 // and the LpAesBox themed wrapper used in the configure-step grid.
 
 import type { UploadStepProps, ConfigureStepProps } from "./helpers";
+import { HowTo } from "../_shell/HowTo";
+import { LINEPLOT_HOWTO } from "./howto";
 
 const { useState, useRef, useEffect } = React;
 
@@ -78,119 +80,7 @@ export function UploadStep({
         exampleLabel="Bacterial growth curves (3 strains × 5 timepoints × 3 reps)"
         hint="CSV · TSV · TXT — one row per observation, columns for X, Y, and grouping · 2 MB max"
       />
-      <HowToCard
-        toolName="lineplot"
-        title="Line Plot — How to use"
-        subtitle="Upload → Preview & pick X / Y / Group → Plot with per-x statistics"
-      >
-        <div
-          style={{
-            background: "var(--surface)",
-            borderRadius: 10,
-            padding: "14px 18px",
-            border: "1.5px solid var(--info-border)",
-            gridColumn: "1/-1",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: "var(--accent-primary)",
-              marginBottom: 8,
-              textTransform: "uppercase",
-              letterSpacing: "1px",
-            }}
-          >
-            Data layout
-          </div>
-          <p style={{ fontSize: 12, lineHeight: 1.75, color: "var(--text-muted)", margin: 0 }}>
-            <strong>Long format</strong> — one <strong>row</strong> per observation, with a numeric{" "}
-            <strong>X</strong>, a numeric <strong>Y</strong>, and a categorical{" "}
-            <strong>group</strong> column. Replicates share the same (X, group) pair. Replicates are
-            averaged to build the line; their spread becomes the error bar.
-          </p>
-        </div>
-
-        <div
-          style={{
-            background: "var(--surface)",
-            borderRadius: 10,
-            padding: "14px 18px",
-            border: "1.5px solid var(--info-border)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: "var(--accent-primary)",
-              marginBottom: 10,
-              textTransform: "uppercase",
-              letterSpacing: "1px",
-            }}
-          >
-            Error bars
-          </div>
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
-            Pick <strong>SEM</strong> (default), <strong>SD</strong>, or <strong>95% CI</strong>. CI
-            uses the <em>t</em> quantile at <em>n−1</em> degrees of freedom. Error bars only render
-            when a group has ≥ 2 replicates at that X.
-          </p>
-        </div>
-
-        <div
-          style={{
-            background: "var(--surface)",
-            borderRadius: 10,
-            padding: "14px 18px",
-            border: "1.5px solid var(--info-border)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: "var(--accent-primary)",
-              marginBottom: 10,
-              textTransform: "uppercase",
-              letterSpacing: "1px",
-            }}
-          >
-            Per-x statistics
-          </div>
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
-            At every X shared by ≥ 2 groups, the right test is picked automatically (<em>t</em> /
-            Welch / Mann-Whitney; ANOVA / Welch-ANOVA / Kruskal-Wallis). P-values are{" "}
-            <strong>BH-adjusted</strong> across the X-axis; stars mark significant points.
-          </p>
-        </div>
-
-        <div style={{ gridColumn: "1/-1", display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {[
-            "Long-format (x, y, group)",
-            "SEM / SD / 95% CI",
-            "Per-x test auto-routing",
-            "BH-adjusted significance stars",
-            "Decision trace & R export",
-            "100% browser-side",
-          ].map((t) => (
-            <span
-              key={t}
-              style={{
-                fontSize: 10,
-                padding: "3px 10px",
-                borderRadius: 20,
-                background: "var(--surface)",
-                border: "1px solid var(--info-border)",
-                color: "var(--text-muted)",
-              }}
-            >
-              {t}
-            </span>
-          ))}
-        </div>
-      </HowToCard>
+      <HowTo {...LINEPLOT_HOWTO} />
     </div>
   );
 }

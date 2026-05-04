@@ -19,6 +19,8 @@ import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DownloadTiles } from "../_shell/DownloadTiles";
+import { HowTo } from "../_shell/HowTo";
+import { VOLCANO_HOWTO } from "./howto";
 import {
   VolcanoPoint,
   VOLCANO_DEFAULT_COLORS,
@@ -402,26 +404,7 @@ function App() {
             exampleLabel="Synthetic DESeq2 output (200 features, mock plant transcriptomics)"
             hint="CSV · TSV · TXT · one row per feature · expects log2FC + p-value columns · 2 MB max"
           />
-          <HowToCard
-            toolName="volcano"
-            title="Volcano Plot — How to use"
-            subtitle="One row per feature · log₂FC on X · p-value (−log₁₀) on Y"
-          >
-            <p
-              style={{
-                gridColumn: "1/-1",
-                margin: 0,
-                fontSize: 13,
-                lineHeight: 1.7,
-                color: "var(--text-muted)",
-              }}
-            >
-              Upload a differential-expression table (DESeq2 / limma / edgeR / MaxQuant column names
-              auto-detect). Tweak the <strong>|log₂FC|</strong> and <strong>p</strong> cutoffs in
-              the Thresholds tile, label the genes you care about by clicking points or pasting a
-              list of names in the Labels tile, then export SVG / PNG / classified CSV.
-            </p>
-          </HowToCard>
+          <HowTo {...VOLCANO_HOWTO} />
         </div>
       )}
 
