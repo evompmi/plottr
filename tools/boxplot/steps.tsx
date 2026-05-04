@@ -1,8 +1,16 @@
 // Step components for the boxplot tool (Upload, Configure, Filter, Output).
 // Stateless presentational wrappers — all state lives in App via
-// usePlotToolState or local hooks there. No sibling-module imports; shared UI
-// (UploadPanel, DataPreview, ColumnRoleEditor, FilterCheckboxPanel,
-// RenameReorderPanel, StatsTable, …) resolves through shared.bundle.js.
+// usePlotToolState or local hooks there. Shared UI (UploadPanel,
+// DataPreview, ColumnRoleEditor, FilterCheckboxPanel, RenameReorderPanel,
+// StatsTable, …) resolves through shared.bundle.js. Prop types live in
+// ./helpers.ts (the type-canonical home).
+
+import type {
+  ConfigureStepProps,
+  FilterStepProps,
+  OutputStepProps,
+  UploadStepProps,
+} from "./helpers";
 
 // Role-colour themes for the Configure-step AesBox cards. Reuses scatter's
 // `--aes-*` CSS vars so the visual language is consistent across tools
@@ -156,7 +164,7 @@ export function UploadStep({
   handleFileLoad,
   setStep,
   onLoadExample,
-}: any) {
+}: UploadStepProps) {
   return (
     <div>
       <UploadPanel
@@ -563,7 +571,7 @@ export function ConfigureStep({
   valueColIsNumeric,
   onRoleChange,
   onNameChange,
-}: any) {
+}: ConfigureStepProps) {
   const groupColIdx = colRoles.indexOf("group");
   return (
     <div>
@@ -594,7 +602,7 @@ export function ConfigureStep({
             style={{ width: "100%" }}
           >
             {groupColIdx < 0 && <option value="">— choose a group column —</option>}
-            {parsedHeaders.map((_: any, i: number) => (
+            {parsedHeaders.map((_: unknown, i: number) => (
               <option key={i} value={i}>
                 {colNames[i]}
               </option>
@@ -632,7 +640,7 @@ export function ConfigureStep({
             style={{ width: "100%" }}
           >
             {valueColIdx < 0 && <option value="">— choose a value column —</option>}
-            {parsedHeaders.map((_: any, i: number) => (
+            {parsedHeaders.map((_: unknown, i: number) => (
               <option key={i} value={i}>
                 {colNames[i]}
               </option>
@@ -729,7 +737,7 @@ export function FilterStep({
   setRenameVal,
   dragState,
   setDragState,
-}: any) {
+}: FilterStepProps) {
   // Feedback for filters whose effect falls past the first preview rows:
   // (1) live delta in the title ("N of M rows · K filtered out"), (2) a
   // brief 300 ms background flash on the preview card whenever the kept-
@@ -741,7 +749,7 @@ export function FilterStep({
   React.useEffect(() => {
     if (prevKeptRef.current !== filteredRows.length) {
       prevKeptRef.current = filteredRows.length;
-      setFlashKey((k: any) => k + 1);
+      setFlashKey((k: number) => k + 1);
     }
   }, [filteredRows.length]);
 
@@ -800,8 +808,8 @@ export function FilterStep({
           )}
         </p>
         <DataPreview
-          headers={activeColIdxs.map((i: any) => colNames[i])}
-          rows={renamedRows.map((r: any) => activeColIdxs.map((i: any) => r[i]))}
+          headers={activeColIdxs.map((i: number) => colNames[i])}
+          rows={renamedRows.map((r: string[]) => activeColIdxs.map((i: number) => r[i]))}
           maxRows={10}
         />
       </div>
@@ -825,7 +833,7 @@ export function OutputStep({
   activeColIdxs,
   wideData,
   fileName,
-}: any) {
+}: OutputStepProps) {
   return (
     <div>
       {groupColIdx >= 0 && valueColIdx >= 0 && stats.length > 0 && (
@@ -848,8 +856,8 @@ export function OutputStep({
             style={{ marginLeft: "auto", flexShrink: 0 }}
             onClick={(e) => {
               downloadCsv(
-                activeColIdxs.map((i: any) => colNames[i]),
-                renamedRows.map((r: any) => activeColIdxs.map((i: any) => r[i])),
+                activeColIdxs.map((i: number) => colNames[i]),
+                renamedRows.map((r: string[]) => activeColIdxs.map((i: number) => r[i])),
                 `${fileBaseName(fileName, "data")}_sanitized_long.csv`
               );
               flashSaved(e.currentTarget);
@@ -859,8 +867,8 @@ export function OutputStep({
           </button>
         </div>
         <DataPreview
-          headers={activeColIdxs.map((i: any) => colNames[i])}
-          rows={renamedRows.map((r: any) => activeColIdxs.map((i: any) => r[i]))}
+          headers={activeColIdxs.map((i: number) => colNames[i])}
+          rows={renamedRows.map((r: string[]) => activeColIdxs.map((i: number) => r[i]))}
           maxRows={6}
         />
       </div>
@@ -892,7 +900,7 @@ export function OutputStep({
               ⬇ Wide CSV
             </button>
           </div>
-          {wideData.unlabelled > 0 && (
+          {(wideData.unlabelled ?? 0) > 0 && (
             <p
               style={{
                 margin: "0 0 8px",

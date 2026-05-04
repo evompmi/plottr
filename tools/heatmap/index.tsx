@@ -7,6 +7,7 @@
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
 import { normalizeMatrix, autoRange } from "./helpers";
+import type { ClusterMode, DistanceMetric, LinkageMethod, Normalization } from "./helpers";
 import { HeatmapChart } from "./chart";
 import { UploadStep } from "./steps";
 import { PlotControls } from "./controls";
@@ -99,14 +100,14 @@ function App() {
   }>({ rowLabels: [], colLabels: [], matrix: [] });
   const [warnings, setWarnings] = useState({ nonNumeric: 0 });
 
-  const [normalization, setNormalization] = useState("none");
-  const [rowMode, setRowMode] = useState("hierarchical");
-  const [colMode, setColMode] = useState("hierarchical");
+  const [normalization, setNormalization] = useState<Normalization>("none");
+  const [rowMode, setRowMode] = useState<ClusterMode>("hierarchical");
+  const [colMode, setColMode] = useState<ClusterMode>("hierarchical");
   const [rowK, setRowK] = useState(3);
   const [colK, setColK] = useState(3);
   const [kmeansSeed, setKmeansSeed] = useState(1);
-  const [distanceMetric, setDistanceMetric] = useState("euclidean");
-  const [linkageMethod, setLinkageMethod] = useState("average");
+  const [distanceMetric, setDistanceMetric] = useState<DistanceMetric>("euclidean");
+  const [linkageMethod, setLinkageMethod] = useState<LinkageMethod>("average");
 
   const cellBorderInit = { on: false, color: "#ffffff", width: 0.5 };
   const [cellBorder, updCellBorder] = useReducer(

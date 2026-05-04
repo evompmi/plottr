@@ -4,8 +4,9 @@
 import { Chart } from "./chart";
 import { PerXStatsPanel } from "./stats-panel";
 import { PlotControls } from "./controls";
+import type { PlotStepProps } from "./helpers";
 
-export function PlotStep(props: any) {
+export function PlotStep(props: PlotStepProps) {
   const {
     parsed,
     fileName,

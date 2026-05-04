@@ -68,7 +68,7 @@ function App() {
     updVis,
   } = shell;
 
-  const [format, setFormat] = useState("wide");
+  const [format, setFormat] = useState<"wide" | "long">("wide");
   const [setNames, setSetNames] = useState<string[]>([]);
   const [sets, setSets] = useState<Map<string, Set<string>>>(new Map());
   const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);

@@ -8,11 +8,17 @@
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { PaletteStrip } from "./chart";
 import { buildHeatmapRScript, buildCsvExport } from "./reports";
+import type {
+  ClusterMode,
+  ClusterModeControlProps,
+  ControlSectionProps,
+  PlotControlsProps,
+} from "./helpers";
 
 const { useState, useRef, useEffect } = React;
 
-export function ClusterModeControl({ label, mode, setMode, k, setK }: any) {
-  const OPTIONS = [
+export function ClusterModeControl({ label, mode, setMode, k, setK }: ClusterModeControlProps) {
+  const OPTIONS: Array<{ k: ClusterMode; label: string }> = [
     { k: "none", label: "None" },
     { k: "hierarchical", label: "Hier." },
     { k: "kmeans", label: "K-means" },
@@ -21,7 +27,7 @@ export function ClusterModeControl({ label, mode, setMode, k, setK }: any) {
     <div style={{ marginBottom: 8 }}>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
       <div className="dv-seg" role="group" aria-label={`${label} clustering mode`}>
-        {OPTIONS.map((o: any) => (
+        {OPTIONS.map((o) => (
           <button
             key={o.k}
             type="button"
@@ -57,7 +63,7 @@ export function ClusterModeControl({ label, mode, setMode, k, setK }: any) {
 // (via scrollDisclosureIntoView) to reveal the content plus the next
 // section's header. Heatmap's sidebar is NOT its own scroll container — the
 // page scrolls — so the helper's window-scroll fallback does the work here.
-export function ControlSection({ title, defaultOpen = false, children }: any) {
+export function ControlSection({ title, defaultOpen = false, children }: ControlSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
   const rootRef = useRef<any>(null);
   useEffect(() => {
@@ -122,23 +128,23 @@ export function PlotControls({
   linkageMethod,
   setLinkageMethod,
   autoVRange,
-}: any) {
+}: PlotControlsProps) {
   const paletteKeys = Object.keys(COLOR_PALETTES);
   const anyHier = rowMode === "hierarchical" || colMode === "hierarchical";
   const anyKmeans = rowMode === "kmeans" || colMode === "kmeans";
   const baseName = fileBaseName(fileName, "heatmap");
-  const NORM_OPTIONS = [
+  const NORM_OPTIONS: Array<{ k: "none" | "zrow" | "zcol" | "log2"; label: string }> = [
     { k: "none", label: "None" },
     { k: "zrow", label: "Z row" },
     { k: "zcol", label: "Z col" },
     { k: "log2", label: "log₂" },
   ];
-  const DIST_OPTIONS = [
+  const DIST_OPTIONS: Array<{ k: "euclidean" | "manhattan" | "correlation"; label: string }> = [
     { k: "euclidean", label: "Euclidean" },
     { k: "manhattan", label: "Manhattan" },
     { k: "correlation", label: "1 − r" },
   ];
-  const LINK_OPTIONS = [
+  const LINK_OPTIONS: Array<{ k: "average" | "complete" | "single"; label: string }> = [
     { k: "average", label: "Average" },
     { k: "complete", label: "Complete" },
     { k: "single", label: "Single" },
@@ -189,7 +195,7 @@ export function PlotControls({
 
       <ControlSection title="Normalisation">
         <div className="dv-seg" role="group" aria-label="Normalisation">
-          {NORM_OPTIONS.map((o: any) => (
+          {NORM_OPTIONS.map((o) => (
             <button
               key={o.k}
               type="button"
@@ -223,7 +229,7 @@ export function PlotControls({
               Hierarchical · Distance
             </div>
             <div className="dv-seg" role="group" aria-label="Distance metric">
-              {DIST_OPTIONS.map((o: any) => (
+              {DIST_OPTIONS.map((o) => (
                 <button
                   key={o.k}
                   type="button"
@@ -238,7 +244,7 @@ export function PlotControls({
               Hierarchical · Linkage
             </div>
             <div className="dv-seg" role="group" aria-label="Linkage method">
-              {LINK_OPTIONS.map((o: any) => (
+              {LINK_OPTIONS.map((o) => (
                 <button
                   key={o.k}
                   type="button"
@@ -335,7 +341,7 @@ export function PlotControls({
             onChange={(e) => updVis({ palette: e.target.value })}
             style={{ width: "100%", fontSize: 11, margin: "2px 0 6px" }}
           >
-            {paletteKeys.map((p: any) => (
+            {paletteKeys.map((p) => (
               <option key={p} value={p}>
                 {p}
                 {DIVERGING_PALETTES.has(p) ? "  (diverging)" : ""}

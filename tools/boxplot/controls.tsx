@@ -5,6 +5,7 @@
 // scrollDisclosureIntoView) resolves through shared.bundle.js.
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
+import type { BoxplotGroup, BoxplotVis, PlotControlsProps } from "./helpers";
 
 export function ControlSection({
   title,
@@ -79,15 +80,15 @@ export function PlotControls({
   setSubgroupByCol,
   onDownloadSvg,
   onDownloadPng,
-}: any) {
-  const sv = (k: any) => (v: any) => updVis({ [k]: v });
-  const handleColorChange = (i: any, c: any) => {
+}: PlotControlsProps) {
+  const sv = (k: keyof BoxplotVis) => (v: unknown) => updVis({ [k]: v } as Partial<BoxplotVis>);
+  const handleColorChange = (i: number, c: string) => {
     const name = boxplotGroups[i].name;
-    setBoxplotColors((p: any) => ({ ...p, [name]: c }));
+    setBoxplotColors((p: Record<string, string>) => ({ ...p, [name]: c }));
   };
-  const handleNameChange = (i: any, v: any) => {
+  const handleNameChange = (i: number, v: string) => {
     const name = boxplotGroups[i].name;
-    setPlotGroupRenames((p: any) => ({ ...p, [name]: v }));
+    setPlotGroupRenames((p: Record<string, string>) => ({ ...p, [name]: v }));
   };
   // When the user picks a discrete palette, clobber every group's per-group
   // colour with the resolved hex list. Predictable and undoable: the user
@@ -95,15 +96,15 @@ export function PlotControls({
   // (or "okabe-ito") to revert.
   const handlePaletteChange = (next: string) => {
     updVis({ discretePalette: next });
-    const orderedNames = allDisplayGroups.map((g: any) => g.name);
+    const orderedNames = allDisplayGroups.map((g: BoxplotGroup) => g.name);
     const resolved = applyDiscretePalette(next, orderedNames);
     setBoxplotColors(resolved);
   };
-  const handleColorByChange = (e: any) => {
+  const handleColorByChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const v = Number(e.target.value);
     setColorByCol(v);
     if (v >= 0) {
-      const cats = [...new Set<string>(renamedRows.map((r: any) => r[v]))].sort();
+      const cats = [...new Set<string>(renamedRows.map((r: string[]) => r[v]))].sort();
       const cc = applyDiscretePalette(vis.categoryPalette || "okabe-ito", cats);
       setCategoryColors(cc);
     }
@@ -168,17 +169,17 @@ export function PlotControls({
 
       {/* Conditions / group color editor */}
       <ControlSection
-        title={`Conditions (${allDisplayGroups.filter((g: any) => g.enabled).length}/${allDisplayGroups.length})`}
+        title={`Conditions (${allDisplayGroups.filter((g: BoxplotGroup) => g.enabled).length}/${allDisplayGroups.length})`}
         defaultOpen
       >
         <p style={{ margin: "0 0 6px", fontSize: 11, color: "var(--text-faint)" }}>
-          {allDisplayGroups.filter((g: any) => g.enabled).length} of {allDisplayGroups.length}{" "}
-          selected · {renamedRows.length} obs
+          {allDisplayGroups.filter((g: BoxplotGroup) => g.enabled).length} of{" "}
+          {allDisplayGroups.length} selected · {renamedRows.length} obs
         </p>
         <DiscretePaletteRow
           value={vis.discretePalette || "okabe-ito"}
           onChange={handlePaletteChange}
-          names={allDisplayGroups.map((g: any) => g.name)}
+          names={allDisplayGroups.map((g: BoxplotGroup) => g.name)}
         />
         <GroupColorEditor
           groups={allDisplayGroups}
@@ -319,7 +320,7 @@ export function PlotControls({
                   ),
                 },
               ] as const
-            ).map(({ key, label, icon }: any) => {
+            ).map(({ key, label, icon }) => {
               const active = vis.plotStyle === key;
               return (
                 <button
@@ -362,7 +363,7 @@ export function PlotControls({
               border: "1px solid var(--border-strong)",
             }}
           >
-            {(["vertical", "horizontal"] as const).map((mode: any) => {
+            {(["vertical", "horizontal"] as const).map((mode) => {
               const active = mode === "horizontal" ? vis.horizontal : !vis.horizontal;
               return (
                 <button
@@ -434,7 +435,7 @@ export function PlotControls({
             <div>
               <div className="dv-label">Error bars</div>
               <div className="dv-seg" role="group" aria-label="Error bars">
-                {(["none", "sem", "sd", "ci95"] as const).map((mode: any) => {
+                {(["none", "sem", "sd", "ci95"] as const).map((mode) => {
                   const active = vis.errorType === mode;
                   const label =
                     mode === "none" ? "None" : mode === "ci95" ? "95% CI" : mode.toUpperCase();
@@ -532,7 +533,7 @@ export function PlotControls({
               border: "1px solid var(--border-strong)",
             }}
           >
-            {(["off", "on"] as const).map((mode: any) => {
+            {(["off", "on"] as const).map((mode) => {
               const active = mode === "on" ? vis.showPoints : !vis.showPoints;
               return (
                 <button
@@ -569,7 +570,7 @@ export function PlotControls({
                 style={{ cursor: "pointer", fontSize: 11, width: "100%" }}
               >
                 <option value={-1}>— none —</option>
-                {colorByCandidates.map((ci: any) => (
+                {colorByCandidates.map((ci: number) => (
                   <option key={ci} value={ci}>
                     {colNames[ci]}
                   </option>
@@ -587,7 +588,7 @@ export function PlotControls({
                     border: "1px solid var(--border-strong)",
                   }}
                 >
-                  {(["off", "on"] as const).map((mode: any) => {
+                  {(["off", "on"] as const).map((mode) => {
                     const active = mode === "on" ? vis.showCompPie : !vis.showCompPie;
                     return (
                       <button
@@ -622,14 +623,16 @@ export function PlotControls({
               />
             )}
             {colorByCol >= 0 &&
-              colorByCategories.map((cat: any) => (
+              colorByCategories.map((cat: string) => (
                 <div
                   key={cat}
                   style={{ display: "flex", alignItems: "center", gap: 4, paddingLeft: 8 }}
                 >
                   <ColorInput
                     value={categoryColors[cat] || "#999999"}
-                    onChange={(c) => setCategoryColors((p: any) => ({ ...p, [cat]: c }))}
+                    onChange={(c) =>
+                      setCategoryColors((p: Record<string, string>) => ({ ...p, [cat]: c }))
+                    }
                     size={16}
                   />
                   <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{cat}</span>
@@ -686,8 +689,8 @@ export function PlotControls({
           >
             <option value="">(none)</option>
             {colorByCandidates
-              .filter((ci: any) => ci !== subgroupByCol)
-              .map((ci: any) => (
+              .filter((ci: number) => ci !== subgroupByCol)
+              .map((ci: number) => (
                 <option key={ci} value={ci}>
                   {colNames[ci]}
                 </option>
@@ -707,8 +710,8 @@ export function PlotControls({
           >
             <option value="">(none)</option>
             {colorByCandidates
-              .filter((ci: any) => ci !== facetByCol)
-              .map((ci: any) => (
+              .filter((ci: number) => ci !== facetByCol)
+              .map((ci: number) => (
                 <option key={ci} value={ci}>
                   {colNames[ci]}
                 </option>
