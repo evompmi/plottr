@@ -233,6 +233,12 @@ declare global {
   function svgSafeId(s: unknown): string;
   function fileBaseName(fileName: string | null | undefined, fallback?: string): string;
   function flashSaved(btn: HTMLElement | null): void;
+  // Save a Blob to disk. Tries `window.showSaveFilePicker` first
+  // (Chromium-based browsers, lets the user pick a folder + filename),
+  // falls back to the classic `<a download>` anchor click on Firefox /
+  // Safari (browser default Downloads folder). User-cancelled picker
+  // is a silent no-op. Fire-and-forget — callers don't need to await.
+  function saveBlob(blob: Blob, filename: string): Promise<void>;
   function downloadSvg(svgEl: SVGSVGElement | null, filename: string): void;
   function downloadPng(svgEl: SVGSVGElement | null, filename: string, scale?: number): void;
   function downloadCsv(

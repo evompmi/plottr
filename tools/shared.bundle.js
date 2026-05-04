@@ -1156,10 +1156,58 @@ function serializeSvgForExport(svgEl) {
   return new XMLSerializer().serializeToString(clone);
 }
 
-function downloadSvg(svgEl, filename) {
-  if (!svgEl) return;
-  const svgStr = serializeSvgForExport(svgEl);
-  const blob = new Blob([svgStr], { type: "image/svg+xml" });
+// MIME + accept-extension lookup keyed by filename extension. Drives
+// the native save-picker's `types` filter so users see the right
+// extension highlighted in the dialog.
+const _SAVE_PICKER_TYPES = {
+  ".svg": { mime: "image/svg+xml", description: "SVG image" },
+  ".png": { mime: "image/png", description: "PNG image" },
+  ".csv": { mime: "text/csv", description: "CSV file" },
+  ".tsv": { mime: "text/tab-separated-values", description: "TSV file" },
+  ".txt": { mime: "text/plain", description: "Text file" },
+  ".r": { mime: "text/plain", description: "R script" },
+  ".json": { mime: "application/json", description: "JSON file" },
+};
+
+// Save a Blob to disk. Tries the File System Access API
+// (`window.showSaveFilePicker`) first so the user can pick a target
+// folder + filename — supported in Chromium-based browsers (Chrome,
+// Edge, Opera) on HTTPS / localhost. Falls back to the classic
+// `<a download>` anchor click on Firefox / Safari, which routes the
+// file to the browser's default Downloads folder.
+//
+// The fallback is also taken when the picker call throws anything
+// other than the user-cancelled `AbortError` — for instance if the
+// page is loaded inside a sandboxed iframe that strips the API. User
+// cancel returns silently; we don't downgrade to the fallback in that
+// case because the user explicitly chose "Cancel".
+async function saveBlob(blob, filename) {
+  if (typeof window !== "undefined" && typeof window.showSaveFilePicker === "function") {
+    try {
+      const dot = filename.lastIndexOf(".");
+      const ext = dot >= 0 ? filename.slice(dot).toLowerCase() : "";
+      const meta = _SAVE_PICKER_TYPES[ext] || {
+        mime: blob.type || "application/octet-stream",
+        description: "File",
+      };
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: meta.description, accept: { [meta.mime]: [ext || ""] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (err) {
+      // User cancelled — respect it, do nothing.
+      if (err && err.name === "AbortError") return;
+      // Picker threw for some other reason (sandboxed iframe, http://
+      // local file load, missing OS handler). Fall through to the
+      // legacy anchor fallback so the user still gets the file.
+    }
+  }
+  // Legacy fallback — drops the file in the browser's default Downloads
+  // folder via a hidden <a download> click.
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -1169,6 +1217,16 @@ function downloadSvg(svgEl, filename) {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function downloadSvg(svgEl, filename) {
+  if (!svgEl) return;
+  const svgStr = serializeSvgForExport(svgEl);
+  const blob = new Blob([svgStr], { type: "image/svg+xml" });
+  // Fire-and-forget — the helper's promise resolves once the user
+  // picks a folder (or the fallback anchor click completes); callers
+  // don't need to await.
+  saveBlob(blob, filename);
 }
 function downloadPng(svgEl, filename, scale) {
   if (!svgEl) return;
@@ -1191,32 +1249,18 @@ function downloadPng(svgEl, filename, scale) {
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     URL.revokeObjectURL(url);
     canvas.toBlob(function (pngBlob) {
-      const pngUrl = URL.createObjectURL(pngBlob);
-      const a = document.createElement("a");
-      a.href = pngUrl;
-      a.download = filename;
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(function () {
-        URL.revokeObjectURL(pngUrl);
-      }, 1000);
+      // The user-gesture window for `showSaveFilePicker` is normally
+      // tight, but Chromium grants extra slack to async chains rooted
+      // in a click handler — the canvas → blob round-trip stays
+      // within that allowance for typical chart sizes.
+      saveBlob(pngBlob, filename);
     }, "image/png");
   };
   img.src = url;
 }
 function downloadText(text, filename) {
   const blob = new Blob([text], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  saveBlob(blob, filename);
 }
 
 // Cells whose first character is one of these get a leading single-quote
@@ -1302,15 +1346,7 @@ function scanForFormulaInjection(headers, rows, opts) {
 
 function downloadCsv(headers, rows, filename) {
   const blob = new Blob([buildCsvString(headers, rows)], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  saveBlob(blob, filename);
 }
 
 // ──────────────────────────────────────────────────────────────────
