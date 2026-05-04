@@ -22,6 +22,7 @@ const {
   detectColorMapType,
   buildColorMap,
   buildSizeMap,
+  matchPointsByLabel,
   interpolateColor,
   COLOR_PALETTES,
   PALETTE,
@@ -691,6 +692,126 @@ test("degenerate range (vmin === vmax) maps every row to (minR + maxR)/2", () =>
   for (const v of m.byIdx.values()) eq(v, 5);
   eq(m.vmin, 3);
   eq(m.vmax, 3);
+});
+
+// ── matchPointsByLabel ────────────────────────────────────────────────────
+
+suite("volcano helpers — matchPointsByLabel");
+
+const SEARCH_POINTS = [
+  { idx: 0, log2fc: 2.0, p: 0.001, label: "AT1G01010" },
+  { idx: 1, log2fc: -1.5, p: 0.01, label: "AT1G01020" },
+  { idx: 2, log2fc: 0.2, p: 0.5, label: "AT2G02020" },
+  { idx: 3, log2fc: 3.0, p: 0.001, label: "TP53" },
+  { idx: 4, log2fc: -2.0, p: 0.001, label: "p53bp1" }, // case-insensitive substring includes this
+  { idx: 5, log2fc: 1.0, p: 0.05, label: null }, // null label — should never match
+  { idx: 6, log2fc: 0.5, p: 0.5, label: "AT3G03030" },
+];
+
+test("case-insensitive substring matches both AT1G genes from prefix", () => {
+  const r = matchPointsByLabel(SEARCH_POINTS, "AT1G");
+  eq(r.matched, [0, 1]);
+  eq(r.unmatchedTokens, []);
+});
+
+test("case-insensitive: lower-case query finds upper-case label", () => {
+  const r = matchPointsByLabel(SEARCH_POINTS, "tp53");
+  // "tp53" is a substring of both "TP53" and "p53bp1"? No — "tp53" is not in "p53bp1"
+  eq(r.matched, [3]);
+  eq(r.unmatchedTokens, []);
+});
+
+test("substring widens the net: 'p53' matches both TP53 and p53bp1", () => {
+  const r = matchPointsByLabel(SEARCH_POINTS, "p53");
+  eq(
+    r.matched.sort((a, b) => a - b),
+    [3, 4]
+  );
+});
+
+test("comma-separated multi-token query unions matches", () => {
+  const r = matchPointsByLabel(SEARCH_POINTS, "AT1G01010, AT2G02020");
+  eq(r.matched, [0, 2]);
+  eq(r.unmatchedTokens, []);
+});
+
+test("newline-separated multi-token query unions matches", () => {
+  const r = matchPointsByLabel(SEARCH_POINTS, "AT1G01010\nAT3G03030");
+  eq(r.matched, [0, 6]);
+  eq(r.unmatchedTokens, []);
+});
+
+test("mixed comma + newline separators", () => {
+  const r = matchPointsByLabel(SEARCH_POINTS, "AT1G01010,AT2G02020\nTP53");
+  eq(r.matched, [0, 2, 3]);
+  eq(r.unmatchedTokens, []);
+});
+
+test("duplicate idx in result is deduped (single point hit by multiple tokens)", () => {
+  // 'p53' AND 'TP' both match TP53 — idx 3 should appear exactly once.
+  const r = matchPointsByLabel(SEARCH_POINTS, "p53,TP");
+  eq(r.matched.filter((i) => i === 3).length, 1);
+});
+
+test("points with label == null are skipped silently", () => {
+  // Even if a token would match the null-labelled point's "neighbours",
+  // null labels are never returned.
+  const r = matchPointsByLabel(SEARCH_POINTS, "AT,TP");
+  assert(!r.matched.includes(5), "idx 5 has null label — must not match");
+});
+
+test("empty query returns empty result", () => {
+  eq(matchPointsByLabel(SEARCH_POINTS, ""), { matched: [], unmatchedTokens: [] });
+});
+
+test("whitespace-only query returns empty result", () => {
+  eq(matchPointsByLabel(SEARCH_POINTS, "   \n  ,  \t "), {
+    matched: [],
+    unmatchedTokens: [],
+  });
+});
+
+test("unmatched tokens are reported in input order", () => {
+  const r = matchPointsByLabel(SEARCH_POINTS, "TP53,XXXNOPE,AT1G,YYYNADA");
+  eq(
+    r.matched.sort((a, b) => a - b),
+    [0, 1, 3]
+  );
+  eq(r.unmatchedTokens, ["XXXNOPE", "YYYNADA"]);
+});
+
+test("trailing whitespace in source label still matches (post-trim)", () => {
+  const points = [
+    { idx: 10, log2fc: 1, p: 0.01, label: "GENE1   " },
+    { idx: 11, log2fc: 1, p: 0.01, label: "  GENE2" },
+  ];
+  // matchPointsByLabel trims each label internally for the comparison.
+  const r = matchPointsByLabel(points, "GENE1,GENE2");
+  eq(
+    r.matched.sort((a, b) => a - b),
+    [10, 11]
+  );
+  eq(r.unmatchedTokens, []);
+});
+
+test("duplicate tokens are deduplicated", () => {
+  const r = matchPointsByLabel(SEARCH_POINTS, "TP53,tp53,TP53");
+  eq(r.matched, [3]);
+});
+
+test("non-string query (defensive) returns empty result", () => {
+  eq(matchPointsByLabel(SEARCH_POINTS, null), { matched: [], unmatchedTokens: [] });
+  eq(matchPointsByLabel(SEARCH_POINTS, undefined), { matched: [], unmatchedTokens: [] });
+});
+
+test("labelLowerCache override is respected when correctly sized", () => {
+  // Build a cache that lowercases everything except idx 0 (intentionally
+  // mismatched) so we can prove the cache is consulted.
+  const cache = SEARCH_POINTS.map((pt) => (pt.label == null ? null : pt.label.toLocaleLowerCase()));
+  cache[0] = "ZZZZ"; // forced miss
+  const r = matchPointsByLabel(SEARCH_POINTS, "AT1G", cache);
+  // idx 0 should NOT match because cache[0] doesn't contain "at1g" lowercase
+  eq(r.matched, [1]);
 });
 
 summary();

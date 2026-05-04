@@ -78,4 +78,5 @@ module.exports = {
   detectColorMapType: moduleObj.exports.detectColorMapType,
   buildColorMap: moduleObj.exports.buildColorMap,
   buildSizeMap: moduleObj.exports.buildSizeMap,
+  matchPointsByLabel: moduleObj.exports.matchPointsByLabel,
 };
