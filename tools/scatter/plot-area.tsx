@@ -673,27 +673,37 @@ export function PlotStep({
               )}
 
               {colorMapType === "discrete" && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 4,
-                    maxHeight: 160,
-                    overflowY: "auto",
-                  }}
-                >
-                  {colorMapCategories.map((cat: string, ci: number) => (
-                    <div key={cat} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <ColorInput
-                        value={colorMapDiscrete[cat] || PALETTE[ci % PALETTE.length]}
-                        onChange={(v) =>
-                          setColorMapDiscrete((prev: any) => ({ ...prev, [cat]: v }))
-                        }
-                        size={18}
-                      />
-                      <span style={{ fontSize: 12, color: "var(--text)" }}>{cat}</span>
-                    </div>
-                  ))}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <DiscretePaletteRow
+                    value={vis.discretePalette || "okabe-ito"}
+                    onChange={(next: string) => {
+                      updVis({ discretePalette: next });
+                      setColorMapDiscrete(applyDiscretePalette(next, colorMapCategories));
+                    }}
+                    names={colorMapCategories}
+                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                      maxHeight: 160,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {colorMapCategories.map((cat: string, ci: number) => (
+                      <div key={cat} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <ColorInput
+                          value={colorMapDiscrete[cat] || PALETTE[ci % PALETTE.length]}
+                          onChange={(v) =>
+                            setColorMapDiscrete((prev: any) => ({ ...prev, [cat]: v }))
+                          }
+                          size={18}
+                        />
+                        <span style={{ fontSize: 12, color: "var(--text)" }}>{cat}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </>

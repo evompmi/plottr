@@ -13,6 +13,13 @@ const esbuild = require("esbuild");
 const toolsDir = path.join(__dirname, "../../tools");
 const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
 const statsSrc = fs.readFileSync(path.join(toolsDir, "stats.js"), "utf8");
+// detectConditions reads `resolveDiscretePalette` from globals to seed the
+// per-condition colours. The shared bundle exposes it via tools/shared-
+// discrete-palette.js — load alongside shared.js / stats.js.
+const discretePaletteSrc = fs.readFileSync(
+  path.join(toolsDir, "shared-discrete-palette.js"),
+  "utf8"
+);
 
 // `helpers.ts` imports from `_shell/chart-layout` (audit M7 refactor) so a
 // plain `transformSync` leaves an unresolved `require("../_shell/...")` that
@@ -48,6 +55,7 @@ const ctx = {
 vm.createContext(ctx);
 vm.runInContext(sharedSrc, ctx);
 vm.runInContext(statsSrc, ctx);
+vm.runInContext(discretePaletteSrc, ctx);
 vm.runInContext(helpersCjs, ctx);
 
 module.exports = {

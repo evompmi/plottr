@@ -59,6 +59,12 @@ const VIS_INIT_VOLCANO = {
   colorUp: VOLCANO_DEFAULT_COLORS.up,
   colorDown: VOLCANO_DEFAULT_COLORS.down,
   colorNs: VOLCANO_DEFAULT_COLORS.ns,
+  // Discrete-palette key driving the up/down/ns slot mapping. Default
+  // "okabe-ito" keeps the existing VOLCANO_DEFAULT_COLORS visually
+  // (PALETTE[5] = vermillion = up, PALETTE[4] = blue = down, neutral grey
+  // = ns). Picking a palette maps `[0]` → up, `[1]` → down, last/neutral
+  // → ns. The user can hand-edit any of the 3 slots afterward.
+  discretePalette: "okabe-ito",
   xMin: null as number | null,
   xMax: null as number | null,
   yMin: null as number | null,
@@ -120,6 +126,31 @@ function App() {
   const [yIsAdjusted, setYIsAdjusted] = useState(false);
   const [rawText, setRawText] = useState<any>(null);
   const sepRef = useRef("");
+
+  // Self-healing guard for the non-significant slot. The palette picker
+  // (in ColorsTile below) commits `colorNs = VOLCANO_DEFAULT_COLORS.ns`
+  // every time it fires — but two scenarios leave a stale non-grey
+  // value in `vis.colorNs`:
+  //   1. A brief Phase-2 build mapped the palette's last hex into
+  //      colorNs. Users who picked a palette under that build have a
+  //      non-grey value persisted in localStorage.
+  //   2. Native `<select>` doesn't fire onChange when you re-pick the
+  //      already-selected value, so handlePalette can't run.
+  // This effect re-pins colorNs to the canonical grey on every
+  // discretePalette change AND once on mount, which heals both cases
+  // on the first interaction (and on first load for stale state).
+  // Manual ns edits via the per-row ColorInput stay sticky during the
+  // session — the dep is `vis.discretePalette`, so editing colorNs
+  // alone doesn't fire this — but they are not preserved across a
+  // palette change or a page reload. That matches the spec:
+  // "non-significant should always be a shade of grey by default,
+  // whatever the palette selected".
+  useEffect(() => {
+    if (vis.colorNs !== VOLCANO_DEFAULT_COLORS.ns) {
+      updVis({ colorNs: VOLCANO_DEFAULT_COLORS.ns });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vis.discretePalette]);
 
   // Manually-selected points (Set of original-row indices). Click on a
   // point in the chart to add/remove it; when this set is non-empty the
@@ -1014,8 +1045,30 @@ function ThresholdsTile({ vis, updVis }: any) {
 }
 
 function ColorsTile({ vis, updVis }: any) {
+  // Volcano has only 3 fixed slots (up / down / ns), not N categories. The
+  // palette picker maps the resolved hex list into the two SIGNIFICANT
+  // slots only — `[0]` → colorUp, `[1]` → colorDown — and leaves
+  // colorNs at its default neutral grey (`VOLCANO_DEFAULT_COLORS.ns`).
+  // Reason: the non-significant majority should stay visually muted
+  // regardless of palette, so the up/down splay reads as the signal.
+  // The user can still hand-edit any slot afterward via the per-row
+  // ColorInput; picking a different palette clobbers up/down again.
+  const handlePalette = (next: string) => {
+    const seed = resolveDiscretePalette(next, 2);
+    updVis({
+      discretePalette: next,
+      colorUp: seed[0] || vis.colorUp,
+      colorDown: seed[1] || vis.colorDown,
+      colorNs: VOLCANO_DEFAULT_COLORS.ns,
+    });
+  };
   return (
     <ControlSection title="Colors">
+      <DiscretePaletteRow
+        value={vis.discretePalette || "okabe-ito"}
+        onChange={handlePalette}
+        names={["up", "down", "ns"]}
+      />
       <ColorRow
         label="Up-regulated"
         value={vis.colorUp}

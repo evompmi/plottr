@@ -38,6 +38,13 @@ const VIS_INIT_SCATTER = {
   strokeWidth: 1,
   colorMapPalette: "viridis",
   colorMapDiscrete: {},
+  // Discrete-palette key driving the per-category seed when the user picks
+  // a discrete colour column. The single `pointColor` (above) is what wins
+  // when NO colour aesthetic is mapped, and the continuous `colorMapPalette`
+  // wins when a numeric column is mapped — so this only applies to the
+  // categorical-discrete path. Default "okabe-ito" is byte-identical to
+  // PALETTE so existing behaviour is preserved exactly.
+  discretePalette: "okabe-ito",
   sizeMapMin: 3,
   sizeMapMax: 15,
   sizeMapDiscrete: {},
@@ -303,20 +310,27 @@ function App() {
   const colorMapRange = useMemo(() => numericRange(colorMapCol), [colorMapCol, numericRange]);
   const sizeMapRange = useMemo(() => numericRange(sizeMapCol), [sizeMapCol, numericRange]);
 
-  // Auto-assign discrete colors
+  // Auto-assign discrete colors. Seeds from the picked discrete palette so
+  // that switching to e.g. "set1" propagates to newly-detected categories
+  // without the user needing to re-pick. Falls back to PALETTE if a stale
+  // palette name slips through.
   useEffect(() => {
     if (colorMapCategories.length === 0) {
       setColorMapDiscrete({});
       return;
     }
     setColorMapDiscrete((prev: any) => {
+      const seed = resolveDiscretePalette(
+        vis.discretePalette || "okabe-ito",
+        colorMapCategories.length
+      );
       const next: Record<string, string> = {};
       colorMapCategories.forEach((cat: string, i: number) => {
-        next[cat] = prev[cat] || PALETTE[i % PALETTE.length];
+        next[cat] = prev[cat] || seed[i % Math.max(1, seed.length)] || PALETTE[i % PALETTE.length];
       });
       return next;
     });
-  }, [colorMapCategories, setColorMapDiscrete]);
+  }, [colorMapCategories, setColorMapDiscrete, vis.discretePalette]);
 
   // Auto-assign discrete sizes
   useEffect(() => {

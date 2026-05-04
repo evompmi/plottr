@@ -138,6 +138,23 @@ export function PlotControls({
 
       {/* Conditions */}
       <ControlSection title="Conditions" defaultOpen>
+        <DiscretePaletteRow
+          value={vis.discretePalette || "okabe-ito"}
+          onChange={(next: string) => {
+            updVis({ discretePalette: next });
+            // Clobber every condition's colour with the resolved palette.
+            // Hand-edits via the per-condition ColorInput are intentionally
+            // overwritten — predictable + undoable by re-picking.
+            const seed = resolveDiscretePalette(next, conditions.length);
+            setConditions(
+              conditions.map((c: any, i: number) => ({
+                ...c,
+                color: seed[i % Math.max(1, seed.length)] || c.color,
+              }))
+            );
+          }}
+          names={conditions.map((c: any) => c.prefix)}
+        />
         <ConditionEditor conditions={conditions} onChange={setConditions} />
       </ControlSection>
 

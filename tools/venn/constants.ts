@@ -19,4 +19,12 @@ export const VIS_INIT_VENN = {
   fillOpacity: 0.25,
   readabilityBlend: VENN_CONFIG.DEFAULT_READABILITY_BLEND,
   showOutline: true,
+  // Per-set fill colour, keyed by set name. Lifted into `vis` (was local
+  // useState before the discrete-palette landing) so the palette choice
+  // and hand-edits both round-trip through PrefsPanel + localStorage.
+  setColors: {} as Record<string, string>,
+  // Discrete-palette key driving the per-set colour seed. Default
+  // "okabe-ito" is byte-identical to PALETTE so existing behaviour is
+  // preserved exactly.
+  discretePalette: "okabe-ito",
 };

@@ -86,6 +86,16 @@ export function PlotControls({
         <p className="dv-tile-title" style={{ margin: "0 0 8px" }}>
           Sets
         </p>
+        <DiscretePaletteRow
+          value={vis.discretePalette || "okabe-ito"}
+          onChange={(next: string) => {
+            updVis({
+              discretePalette: next,
+              setColors: applyDiscretePalette(next, allSetNames),
+            });
+          }}
+          names={allSetNames}
+        />
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           {allSetNames.map((name: string, i: number) => {
             const active = activeSets.has(name);

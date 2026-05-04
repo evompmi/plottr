@@ -41,6 +41,7 @@ const TESTS = [
   "tests/vendor-sri.test.js",
   "tests/anti-clickjack.test.js",
   "tests/volcano.test.js",
+  "tests/discrete-palette.test.js",
 ];
 
 const repoRoot = path.join(__dirname, "..");

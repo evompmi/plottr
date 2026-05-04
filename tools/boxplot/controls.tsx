@@ -89,17 +89,33 @@ export function PlotControls({
     const name = boxplotGroups[i].name;
     setPlotGroupRenames((p: any) => ({ ...p, [name]: v }));
   };
+  // When the user picks a discrete palette, clobber every group's per-group
+  // colour with the resolved hex list. Predictable and undoable: the user
+  // can hand-edit individual swatches afterward, or pick a different palette
+  // (or "okabe-ito") to revert.
+  const handlePaletteChange = (next: string) => {
+    updVis({ discretePalette: next });
+    const orderedNames = allDisplayGroups.map((g: any) => g.name);
+    const resolved = applyDiscretePalette(next, orderedNames);
+    setBoxplotColors(resolved);
+  };
   const handleColorByChange = (e: any) => {
     const v = Number(e.target.value);
     setColorByCol(v);
     if (v >= 0) {
       const cats = [...new Set<string>(renamedRows.map((r: any) => r[v]))].sort();
-      const cc: Record<string, string> = {};
-      cats.forEach((c: any, ci: number) => {
-        cc[c] = PALETTE[(ci + 2) % PALETTE.length];
-      });
+      const cc = applyDiscretePalette(vis.categoryPalette || "okabe-ito", cats);
       setCategoryColors(cc);
     }
+  };
+  // Independent of `handlePaletteChange` above: clobbers the per-category
+  // colour record using the picked palette. Keyed off the currently visible
+  // colorByCategories so the user sees the change immediately.
+  const handleCategoryPaletteChange = (next: string) => {
+    updVis({ categoryPalette: next });
+    const cats = Array.isArray(colorByCategories) ? colorByCategories : [];
+    const cc = applyDiscretePalette(next, cats);
+    setCategoryColors(cc);
   };
   return (
     <PlotSidebar>
@@ -159,6 +175,11 @@ export function PlotControls({
           {allDisplayGroups.filter((g: any) => g.enabled).length} of {allDisplayGroups.length}{" "}
           selected · {renamedRows.length} obs
         </p>
+        <DiscretePaletteRow
+          value={vis.discretePalette || "okabe-ito"}
+          onChange={handlePaletteChange}
+          names={allDisplayGroups.map((g: any) => g.name)}
+        />
         <GroupColorEditor
           groups={allDisplayGroups}
           onColorChange={handleColorChange}
@@ -592,6 +613,13 @@ export function PlotControls({
                   })}
                 </div>
               </div>
+            )}
+            {colorByCol >= 0 && (
+              <DiscretePaletteRow
+                value={vis.categoryPalette || "okabe-ito"}
+                onChange={handleCategoryPaletteChange}
+                names={colorByCategories}
+              />
             )}
             {colorByCol >= 0 &&
               colorByCategories.map((cat: any) => (

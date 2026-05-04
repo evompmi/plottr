@@ -34,7 +34,17 @@ function App() {
 
   const [setNames, setSetNames] = useState<string[]>([]);
   const [sets, setSets] = useState<Map<string, Set<string>>>(new Map());
-  const [setColors, setSetColors] = useState<Record<string, string>>({});
+  // setColors lives in `vis` (was local useState before the discrete-palette
+  // landing) so the palette choice and hand-edited colours both auto-persist
+  // and round-trip through PrefsPanel save / load.
+  const setColors: Record<string, string> = useMemo(() => vis.setColors || {}, [vis.setColors]);
+  const setSetColors = useCallback(
+    (updater: any) =>
+      updVis({
+        setColors: typeof updater === "function" ? updater(vis.setColors || {}) : updater || {},
+      }),
+    [updVis, vis.setColors]
+  );
   const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);
   const [parsedRows, setParsedRows] = useState<string[][]>([]);
   const [selectedMask, setSelectedMask] = useState<number | null>(null);
@@ -85,19 +95,21 @@ function App() {
     [allColumnNames, setNames, step, pendingSelection]
   );
 
-  const commitSelection = useCallback((names: string[], allSets: Map<string, Set<string>>) => {
-    const chosen = new Map<string, Set<string>>();
-    names.forEach((n) => chosen.set(n, allSets.get(n)!));
-    setSetNames(names);
-    setSets(chosen);
-    setActiveSets(new Set(names));
-    const cols: Record<string, string> = {};
-    names.forEach((n, i) => {
-      cols[n] = PALETTE[i % PALETTE.length];
-    });
-    setSetColors(cols);
-    setSelectedMask(null);
-  }, []);
+  const commitSelection = useCallback(
+    (names: string[], allSets: Map<string, Set<string>>) => {
+      const chosen = new Map<string, Set<string>>();
+      names.forEach((n) => chosen.set(n, allSets.get(n)!));
+      setSetNames(names);
+      setSets(chosen);
+      setActiveSets(new Set(names));
+      // Seed colours from the picked discrete palette so re-uploads /
+      // selection commits respect the user's choice; falls back to
+      // "okabe-ito" (= PALETTE) for first-time loads.
+      setSetColors(applyDiscretePalette(vis.discretePalette || "okabe-ito", names));
+      setSelectedMask(null);
+    },
+    [setSetColors, vis.discretePalette]
+  );
 
   // StepNavBar's top "Plot" tab routes via shell.setStep directly, so without
   // this intercept the user's configure-step checkbox edits would be lost
@@ -181,7 +193,15 @@ function App() {
         setStep("configure");
       }
     },
-    [commitSelection, setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep]
+    [
+      commitSelection,
+      setCommaFixed,
+      setCommaFixCount,
+      setInjectionWarning,
+      setParseError,
+      setStep,
+      setSetColors,
+    ]
   );
 
   const handleFileLoad = useCallback(
@@ -201,7 +221,7 @@ function App() {
   }, [doParse, setFileName, setSepOverride]);
 
   const handleColorChange = (name: string, color: string) => {
-    setSetColors((prev) => ({ ...prev, [name]: color }));
+    setSetColors((prev: Record<string, string>) => ({ ...prev, [name]: color }));
   };
 
   const handleRename = (oldName: string, newName: string) => {
@@ -212,7 +232,7 @@ function App() {
       for (const [k, v] of prev) m.set(k === oldName ? newName : k, v);
       return m;
     });
-    setSetColors((prev) => {
+    setSetColors((prev: Record<string, string>) => {
       const c: Record<string, string> = {};
       for (const [k, v] of Object.entries(prev)) c[k === oldName ? newName : k] = v;
       return c;

@@ -29,6 +29,10 @@ const VIS_INIT_LINEPLOT = {
   errorCapWidth: 6,
   // Per-group line colours, keyed by group name.
   groupColors: {},
+  // Discrete-palette key driving the per-group colour seed. Default
+  // "okabe-ito" is byte-identical to PALETTE so existing behaviour is
+  // preserved exactly.
+  discretePalette: "okabe-ito",
   errorType: "sem",
   showStars: true,
 };
@@ -97,8 +101,29 @@ function App() {
 
   const series = useMemo(() => {
     if (!parsed || xCol == null || yCol == null) return [];
-    return computeSeries(parsed.data, parsed.rawData, xCol, yCol, groupCol, groupColors, PALETTE);
-  }, [parsed, xCol, yCol, groupCol, groupColors]);
+    // Resolve the picked discrete palette to a hex array sized for whatever
+    // `computeSeries` will eventually emit. We don't know the final group
+    // count up front, so size to a safe upper bound (number of unique
+    // categorical values in groupCol, capped to avoid pathological CSVs).
+    // computeSeries recycles modulo when needed.
+    const groupCount =
+      groupCol == null
+        ? 1
+        : Math.min(
+            128,
+            new Set(parsed.rawData.map((r: any) => String(r[groupCol] ?? ""))).size || 1
+          );
+    const seedColors = resolveDiscretePalette(vis.discretePalette || "okabe-ito", groupCount);
+    return computeSeries(
+      parsed.data,
+      parsed.rawData,
+      xCol,
+      yCol,
+      groupCol,
+      groupColors,
+      seedColors
+    );
+  }, [parsed, xCol, yCol, groupCol, groupColors, vis.discretePalette]);
 
   const setGroupColor = useCallback(
     (name: string, color: string) =>
