@@ -14,17 +14,19 @@ export const AEQUORIN_HOWTO: HowToContent = {
   ),
   dataLayout: (
     <>
-      Wide format — one column per replicate / sample, one row per time-point. Numeric matrix; no
-      time-axis column required (rows are evenly-spaced; you set the per-row time step + base unit).
-      Replicates of the same condition share a column header.
+      Wide format — one column per sample, one row per time-point. Numeric matrix; no time-axis
+      column required (rows are evenly-spaced; you set the per-row time step + base unit).{" "}
+      <strong>Columns sharing the same header are pooled as replicates of one condition</strong> —
+      the chart plots their <strong>mean ± SD</strong> ribbon automatically. Rename headers to
+      change which samples group together.
     </>
   ),
   display: (
     <>
-      Group replicates into named conditions, then view the combined chart or a faceted
-      small-multiples grid. Optional aequorin calibration (<strong>Allen &amp; Blinks</strong>,{" "}
-      <strong>Hill</strong>, generalised) converts raw luminescence to [Ca²⁺]. Optional inset bar
-      plot of integrated Σ-area per condition.
+      Each unique header becomes a coloured trace; same-name columns collapse into a mean ± SD
+      ribbon under it. View the combined chart or a faceted small-multiples grid. Optional aequorin
+      calibration (<strong>Allen &amp; Blinks</strong>, <strong>Hill</strong>, generalised) converts
+      raw luminescence to [Ca²⁺]. Optional inset bar plot of integrated Σ-area per condition.
     </>
   ),
 };
