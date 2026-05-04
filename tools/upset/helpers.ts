@@ -131,3 +131,86 @@ export function buildBarTicks(max: number, count: number): number[] {
   }
   return ticks;
 }
+
+// ── Step / control prop bags ────────────────────────────────────────────────
+//
+// Public types consumed by step / control prop interfaces. UpsetVis is not
+// derived from VIS_INIT_UPSET because that const lives in index.tsx and
+// importing it here would create a circular dep.
+
+export interface UpsetVis {
+  plotTitle: string;
+  plotSubtitle: string;
+  plotBg: string;
+  fontSize: number;
+  barOpacity: number;
+  dotSize: number;
+  sortMode: string;
+  minSize: number;
+  minDegree: number;
+  maxDegree: number | null;
+  showIntersectionLabels: boolean;
+  showSetSizeLabels: boolean;
+  significanceDisplay: string;
+  colorBarsBySignificance: boolean;
+}
+
+export type UpdVis = (patch: Partial<UpsetVis> | { _reset: true }) => void;
+
+export interface UploadStepProps {
+  sepOverride: string;
+  setSepOverride: (s: string) => void;
+  format: "wide" | "long";
+  setFormat: (f: "wide" | "long") => void;
+  handleFileLoad: (text: string, name: string) => void;
+  onLoadExample: () => void;
+}
+
+export interface ConfigureStepProps {
+  fileName: string;
+  parsedHeaders: string[];
+  parsedRows: string[][];
+  allColumnNames: string[];
+  allColumnSets: Map<string, Set<string>>;
+  pendingSelection: string[];
+  setPendingSelection: (sel: string[] | ((prev: string[]) => string[])) => void;
+  minDegree: number;
+  setMinDegree: (d: number | ((prev: number) => number)) => void;
+  maxDegree: number;
+  setMaxDegree: (d: number | ((prev: number) => number)) => void;
+}
+
+export interface ItemListPanelProps {
+  intersection: Intersection | null;
+  setNames: string[];
+  fileName: string;
+  columnId?: string | number | null;
+}
+
+export interface ComputeProgress {
+  done: number;
+  total: number;
+}
+
+export interface PlotControlsProps {
+  activeSetNames: string[];
+  allSets: Map<string, Set<string>>;
+  vis: UpsetVis;
+  updVis: UpdVis;
+  chartRef: React.RefObject<SVGSVGElement | null>;
+  resetAll: () => void;
+  fileName: string;
+  intersections: Intersection[];
+  computeAllIntersectionStats: () => Promise<void> | void;
+  clearIntersectionStats: () => void;
+  computingStats: boolean;
+  computeProgress: ComputeProgress;
+  intersectionTestsCount: number;
+  universeSize: number | "";
+  setUniverseSize: (n: number | "") => void;
+  universeOverridden: boolean;
+  setUniverseOverridden: (b: boolean) => void;
+  defaultUniverseSize: number;
+  maxAllIntersectionSize: number;
+  allIntersectionsCount: number;
+}

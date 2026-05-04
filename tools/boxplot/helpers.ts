@@ -173,3 +173,155 @@ export function mergeSubgroupAnnotations(subgroups: any, flatGroups: any, perKey
   if (hasBrackets) return { kind: "brackets", pairs: allPairs, groupNames: names };
   return { kind: "cld", labels: cldLabels, groupNames: names };
 }
+
+// ── Public types for steps / controls prop interfaces ───────────────────────
+//
+// Mirrors the runtime shape of `VIS_INIT_BOXPLOT` in index.tsx so the prop
+// bags don't need to duplicate the field list. Keep the two in sync.
+
+export interface BoxplotVis {
+  plotTitle: string;
+  yLabel: string;
+  plotBg: string;
+  showGrid: boolean;
+  gridColor: string;
+  boxFillOpacity: number;
+  boxWidth: number;
+  boxGap: number;
+  pointSize: number;
+  showPoints: boolean;
+  jitterWidth: number;
+  pointOpacity: number;
+  xLabelAngle: number;
+  yMinCustom: string;
+  yMaxCustom: string;
+  yScale: string;
+  showCompPie: boolean;
+  plotStyle: string;
+  horizontal: boolean;
+  errorType: string;
+  errStrokeWidth: number;
+  showBarOutline: boolean;
+  barOutlineWidth: number;
+  barOutlineColor: string;
+  barOpacity: number;
+  boxplotColors: Record<string, string>;
+  categoryColors: Record<string, string>;
+  discretePalette: string;
+  categoryPalette: string;
+}
+
+export type UpdVis = (patch: Partial<BoxplotVis> | { _reset: true }) => void;
+
+// `BoxplotGroup` is the per-group object returned by the App's
+// `boxplotGroups` useMemo — sources, allValues, stats, color, plus the
+// optional displayName / enabled flags added when it's mapped through
+// `allDisplayGroups`.
+export interface BoxplotGroup {
+  name: string;
+  sources: Array<{ colIndex: number; values: number[]; category: string }>;
+  allValues: number[];
+  stats: any;
+  color: string;
+  displayName?: string;
+  enabled?: boolean;
+}
+
+export interface WideExport {
+  headers: string[];
+  rows: Array<Array<string | number>>;
+  // Number of rows that had an empty group cell and got merged under the
+  // "?" column during reshape. Optional because `reshapeWide` (the
+  // current builder) doesn't populate it; the OutputStep banner
+  // gracefully handles `undefined`.
+  unlabelled?: number;
+}
+
+export type DragState = { col: number; idx: number } | null;
+
+interface FilterStateCommonProps {
+  parsedHeaders: string[];
+  parsedRows: string[][];
+  colRoles: ColumnRole[];
+  colNames: string[];
+}
+
+export interface UploadStepProps {
+  sepOverride: string;
+  onSepChange: (s: string) => void;
+  rawText: string | null;
+  doParse: (text: string, sep: string) => void;
+  handleFileLoad: (text: string, name: string) => void;
+  setStep: (s: string) => void;
+  onLoadExample: () => void;
+}
+
+export interface ConfigureStepProps extends FilterStateCommonProps {
+  fileName: string;
+  hasHeader: boolean;
+  valueColIdx: number;
+  valueColIsNumeric: boolean;
+  onRoleChange: (i: number, role: ColumnRole) => void;
+  onNameChange: (i: number, name: string) => void;
+}
+
+export interface FilterStepProps extends FilterStateCommonProps {
+  filters: Record<number, FilterEntry>;
+  filteredRows: string[][];
+  renamedRows: string[][];
+  activeColIdxs: number[];
+  valueRenames: Record<number, Record<string, string>>;
+  orderableCols: Record<number, { order: string[]; onReorder: (newOrder: string[]) => void }>;
+  applyRename: (i: number, value: string) => string;
+  toggleFilter: (i: number, value: string) => void;
+  toggleAllFilter: (i: number, allOn: boolean) => void;
+  setRenameVal: (i: number, origValue: string, newValue: string) => void;
+  dragState: DragState;
+  setDragState: (s: DragState) => void;
+}
+
+export interface OutputStepProps {
+  colNames: string[];
+  groupColIdx: number;
+  valueColIdx: number;
+  valueColIsNumeric: boolean;
+  stats: GroupStats[];
+  renamedRows: string[][];
+  activeColIdxs: number[];
+  wideData: WideExport | null;
+  fileName: string;
+}
+
+export interface PlotControlsProps {
+  dataFormat: "long" | "wide";
+  setDataFormat: (f: "long" | "wide") => void;
+  setStep: (s: string) => void;
+  resetAll: () => void;
+  allDisplayGroups: BoxplotGroup[];
+  boxplotGroups: BoxplotGroup[];
+  renamedRows: string[][];
+  setPlotGroupRenames: (
+    updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)
+  ) => void;
+  setBoxplotColors: (
+    updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)
+  ) => void;
+  onToggleGroup: (i: number) => void;
+  vis: BoxplotVis;
+  updVis: UpdVis;
+  colorByCol: number;
+  setColorByCol: (i: number) => void;
+  colorByCandidates: number[];
+  colNames: string[];
+  categoryColors: Record<string, string>;
+  setCategoryColors: (
+    updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)
+  ) => void;
+  colorByCategories: string[];
+  facetByCol: number;
+  setFacetByCol: (i: number) => void;
+  subgroupByCol: number;
+  setSubgroupByCol: (i: number) => void;
+  onDownloadSvg: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onDownloadPng: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}

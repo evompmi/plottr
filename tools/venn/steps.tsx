@@ -2,7 +2,14 @@
 // Plot step's render lives in `plot-area.tsx` (chart + selection panels);
 // only the upload and configure steps live here.
 
-export function UploadStep({ sepOverride, setSepOverride, handleFileLoad, onLoadExample }: any) {
+import type { UploadStepProps, ConfigureStepProps } from "./helpers";
+
+export function UploadStep({
+  sepOverride,
+  setSepOverride,
+  handleFileLoad,
+  onLoadExample,
+}: UploadStepProps) {
   return (
     <div>
       <UploadPanel
@@ -191,7 +198,7 @@ export function ConfigureStep({
   pendingSelection,
   setPendingSelection,
   isLongFormat,
-}: any) {
+}: ConfigureStepProps) {
   const needsPicker = allColumnNames.length > 3;
   const selectedCount = pendingSelection.length;
 

@@ -8,6 +8,7 @@
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { TIME_UNITS, convertTime } from "./helpers";
+import type { Condition, PlotControlsProps } from "./helpers";
 import { ConditionEditor } from "./plot-area";
 
 const { useState, useRef, useEffect } = React;
@@ -97,7 +98,7 @@ export function PlotControls({
   plotPanelRef,
   downloadCalibrated,
   resetAll,
-}: any) {
+}: PlotControlsProps) {
   // X start / X end are stored in `vis` as row indices (integers — used to
   // slice calData rows downstream). The chart converts them to display-unit
   // time via `displayX = xRow * timeStep * convFactor`. The input fields
@@ -113,7 +114,7 @@ export function PlotControls({
   const tsConvSafe = tsConv || 1;
   const displayXStart = vis.xStart * tsConv;
   const displayXEnd = vis.xEnd * tsConv;
-  const unitLabel = (TIME_UNITS.find((u: any) => u.key === dUnit) || { key: dUnit }).key;
+  const unitLabel = (TIME_UNITS.find((u) => u.key === dUnit) || { key: dUnit }).key;
 
   return (
     <PlotSidebar>
@@ -147,13 +148,13 @@ export function PlotControls({
             // overwritten — predictable + undoable by re-picking.
             const seed = resolveDiscretePalette(next, conditions.length);
             setConditions(
-              conditions.map((c: any, i: number) => ({
+              conditions.map((c: Condition, i: number) => ({
                 ...c,
                 color: seed[i % Math.max(1, seed.length)] || c.color,
               }))
             );
           }}
-          names={conditions.map((c: any) => c.prefix)}
+          names={conditions.map((c: Condition) => c.prefix)}
         />
         <ConditionEditor conditions={conditions} onChange={setConditions} />
       </ControlSection>

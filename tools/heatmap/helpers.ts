@@ -185,3 +185,92 @@ export function fmtColorbarTick(v: any) {
   if (abs < 1) return v.toFixed(2);
   return v.toFixed(1);
 }
+
+// ── Vis state + prop interfaces ─────────────────────────────────────────────
+//
+// Mirrors the runtime shape of `VIS_INIT_HEATMAP` in index.tsx — declared
+// here so the prop bags can reference it without a circular import.
+
+export interface HeatmapVis {
+  palette: string;
+  invertPalette: boolean;
+  vmin: number;
+  vmax: number;
+  plotTitle: string;
+  plotSubtitle: string;
+  colAxisLabel: string;
+  rowAxisLabel: string;
+  showRowLabels: boolean;
+  showColLabels: boolean;
+  showRowDendrogram: boolean;
+  showColDendrogram: boolean;
+}
+
+export type UpdVis = (patch: Partial<HeatmapVis> | { _reset: true }) => void;
+
+export interface CellBorderState {
+  on: boolean;
+  color: string;
+  width: number;
+}
+export type UpdCellBorder = (patch: Partial<CellBorderState> | { _reset: true }) => void;
+
+export interface RawMatrix {
+  rowLabels: string[];
+  colLabels: string[];
+  matrix: number[][];
+}
+
+export type ClusterMode = "none" | "hierarchical" | "kmeans";
+export type Normalization = "none" | "zrow" | "zcol" | "log2";
+export type DistanceMetric = "euclidean" | "manhattan" | "correlation";
+export type LinkageMethod = "average" | "complete" | "single" | "ward";
+
+export interface UploadStepProps {
+  sepOverride: string;
+  setSepOverride: (s: string) => void;
+  handleFileLoad: (text: string, name: string) => void;
+  onLoadExample: () => void;
+}
+
+export interface ClusterModeControlProps {
+  label: string;
+  mode: ClusterMode;
+  setMode: (m: ClusterMode) => void;
+  k: number;
+  setK: (k: number) => void;
+}
+
+export interface ControlSectionProps {
+  title: string;
+  defaultOpen?: boolean;
+  children?: React.ReactNode;
+}
+
+export interface PlotControlsProps {
+  vis: HeatmapVis;
+  updVis: UpdVis;
+  cellBorder: CellBorderState;
+  updCellBorder: UpdCellBorder;
+  matrixRef: React.RefObject<SVGSVGElement | null>;
+  rawMatrix: RawMatrix;
+  resetAll: () => void;
+  fileName: string;
+  normalization: Normalization;
+  setNormalization: (n: Normalization) => void;
+  rowMode: ClusterMode;
+  setRowMode: (m: ClusterMode) => void;
+  colMode: ClusterMode;
+  setColMode: (m: ClusterMode) => void;
+  rowK: number;
+  setRowK: (k: number) => void;
+  colK: number;
+  setColK: (k: number) => void;
+  kmeansSeed: number;
+  setKmeansSeed: (s: number) => void;
+  distanceMetric: DistanceMetric;
+  setDistanceMetric: (m: DistanceMetric) => void;
+  linkageMethod: LinkageMethod;
+  setLinkageMethod: (m: LinkageMethod) => void;
+  autoVRange: () => void;
+}

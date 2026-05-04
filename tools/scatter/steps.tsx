@@ -103,6 +103,15 @@ export function AesBox({
 
 // ── UploadStep ─────────────────────────────────────────────────────────────
 
+export interface UploadStepProps {
+  sepOverride: string;
+  setSepOverride: (s: string) => void;
+  rawText: string | null;
+  doParse: (text: string, sep: string) => void;
+  handleFileLoad: (text: string, name: string) => void;
+  onLoadExample: () => void;
+}
+
 export function UploadStep({
   sepOverride,
   setSepOverride,
@@ -110,7 +119,7 @@ export function UploadStep({
   doParse,
   handleFileLoad,
   onLoadExample,
-}: any) {
+}: UploadStepProps) {
   return (
     <div>
       <UploadPanel

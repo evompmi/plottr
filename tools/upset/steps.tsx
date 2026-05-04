@@ -8,6 +8,12 @@ import {
   computeMemberships,
   enumerateIntersections,
 } from "./helpers";
+import type {
+  ConfigureStepProps,
+  Intersection,
+  ItemListPanelProps,
+  UploadStepProps,
+} from "./helpers";
 
 const { useEffect, useMemo } = React;
 
@@ -20,7 +26,7 @@ export function UploadStep({
   setFormat,
   handleFileLoad,
   onLoadExample,
-}: any) {
+}: UploadStepProps) {
   return (
     <div>
       <div className="dv-panel" style={{ marginBottom: 12 }}>
@@ -321,7 +327,7 @@ export function ConfigureStep({
   setMinDegree,
   maxDegree,
   setMaxDegree,
-}: any) {
+}: ConfigureStepProps) {
   const selectedCount = pendingSelection.length;
   const needsCutoff = selectedCount > 8;
   // Reset the cutoff window back to "all degrees" whenever the gate disappears
@@ -352,7 +358,7 @@ export function ConfigureStep({
     const { membershipMap } = computeMemberships(pendingSelection, pendingSets);
     const all = enumerateIntersections(membershipMap, pendingSelection);
     const kept = all.filter(
-      (r: any) => r.degree >= minDegree && r.degree <= effectiveMaxDegree
+      (r: Intersection) => r.degree >= minDegree && r.degree <= effectiveMaxDegree
     ).length;
     return { nonEmpty: all.length, kept };
   }, [needsCutoff, pendingSelection, allColumnSets, minDegree, effectiveMaxDegree]);
@@ -502,7 +508,7 @@ export function ConfigureStep({
 
 // ── ItemListPanel ──────────────────────────────────────────────────────────
 
-export function ItemListPanel({ intersection, setNames, fileName, columnId }: any) {
+export function ItemListPanel({ intersection, setNames, fileName, columnId }: ItemListPanelProps) {
   const baseName = fileBaseName(fileName, "upset");
   if (!intersection)
     return (

@@ -2,6 +2,8 @@
 // ControlSection disclosure helper used inside the Plot step's sidebar
 // and the LpAesBox themed wrapper used in the configure-step grid.
 
+import type { UploadStepProps, ConfigureStepProps } from "./helpers";
+
 const { useState, useRef, useEffect } = React;
 
 // ── ControlSection (disclosure panel) ──────────────────────────────────────
@@ -62,7 +64,7 @@ export function UploadStep({
   doParse,
   handleFileLoad,
   onLoadExample,
-}: any) {
+}: UploadStepProps) {
   return (
     <div>
       <UploadPanel
@@ -257,7 +259,7 @@ export function ConfigureStep({
   setGroupCol,
   numericCols,
   categoricalCols,
-}: any) {
+}: ConfigureStepProps) {
   const canPlot = xCol != null && yCol != null && numericCols.length >= 2;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

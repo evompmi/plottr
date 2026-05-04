@@ -14,7 +14,9 @@ export const MARGIN = CHART_MARGIN;
 export { buildLineD };
 export const STAR_ROW_H = 18;
 
-export const ERROR_KINDS = [
+export type ErrorKind = "none" | "sem" | "sd" | "ci95";
+
+export const ERROR_KINDS: ReadonlyArray<{ value: ErrorKind; label: string }> = [
   { value: "none", label: "None" },
   { value: "sem", label: "SEM" },
   { value: "sd", label: "SD" },
@@ -87,7 +89,7 @@ export function computeSeries(
 
 // For each x shared by ≥2 groups (with n≥2 per group), run the routed test and
 // BH-adjust across x. Returns one row per eligible x.
-type PerXRow = {
+export type PerXRow = {
   x: number;
   names: string[];
   values: number[][];
@@ -96,7 +98,106 @@ type PerXRow = {
   pAdj?: number | null;
 };
 
-type Series = ReturnType<typeof computeSeries>[number];
+export type Series = ReturnType<typeof computeSeries>[number];
+export type SeriesPoint = Series["points"][number];
+
+// ── Vis state + prop interfaces ─────────────────────────────────────────────
+//
+// `LineplotVis` is the runtime shape of `VIS_INIT_LINEPLOT` in index.tsx.
+// We declare it here (helpers.ts is the type-canonical home) rather than
+// `typeof VIS_INIT_LINEPLOT` from index.tsx to avoid a circular import:
+// steps.tsx imports types from helpers; index.tsx imports from steps.tsx.
+//
+// Auto-prefs uses a value-compat whitelist (loadAutoPrefs in shared-prefs.js)
+// so all fields must default to a non-undefined value at the runtime
+// declaration site; this interface mirrors that contract.
+export interface LineplotVis {
+  xMin: number | null;
+  xMax: number | null;
+  yMin: number | null;
+  yMax: number | null;
+  xLabel: string;
+  yLabel: string;
+  plotTitle: string;
+  plotSubtitle: string;
+  plotBg: string;
+  showGrid: boolean;
+  gridColor: string;
+  lineWidth: number;
+  pointRadius: number;
+  errorStrokeWidth: number;
+  errorCapWidth: number;
+  groupColors: Record<string, string>;
+  discretePalette: string;
+  errorType: ErrorKind;
+  showStars: boolean;
+}
+
+// The reducer signature emitted by `usePlotToolState` — accepts a partial
+// patch or the `{ _reset: true }` sentinel.
+export type UpdVis = (patch: Partial<LineplotVis> | { _reset: true }) => void;
+
+export interface AutoAxis {
+  xMin: number;
+  xMax: number;
+  yMin: number;
+  yMax: number;
+}
+
+// ── Step / control prop bags ────────────────────────────────────────────────
+
+export interface UploadStepProps {
+  sepOverride: string;
+  setSepOverride: (s: string) => void;
+  rawText: string | null;
+  doParse: (text: string, sep: string) => void;
+  handleFileLoad: (text: string, name: string) => void;
+  onLoadExample: () => void;
+}
+
+export interface ConfigureStepProps {
+  parsed: ParseDataResult;
+  fileName: string;
+  xCol: number;
+  setXCol: (i: number) => void;
+  yCol: number;
+  setYCol: (i: number) => void;
+  groupCol: number | null;
+  setGroupCol: (i: number | null) => void;
+  numericCols: number[];
+  categoricalCols: number[];
+}
+
+export interface PlotControlsProps {
+  parsed: ParseDataResult;
+  fileName: string;
+  xCol: number;
+  setXCol: (i: number) => void;
+  yCol: number;
+  setYCol: (i: number) => void;
+  groupCol: number | null;
+  setGroupCol: (i: number | null) => void;
+  numericCols: number[];
+  categoricalCols: number[];
+  series: Series[];
+  setGroupColor: (name: string, color: string) => void;
+  vis: LineplotVis;
+  updVis: UpdVis;
+  autoAxis: AutoAxis;
+  effAxis: AutoAxis;
+  errorType: ErrorKind;
+  setErrorType: (k: ErrorKind) => void;
+  showStars: boolean;
+  setShowStars: (b: boolean) => void;
+  statsRows: PerXRow[];
+  svgRef: React.RefObject<SVGSVGElement>;
+  svgLegend: unknown;
+  resetAll: () => void;
+}
+
+// PlotStep just forwards the same prop bag down to PlotControls + the
+// chart, so it accepts the superset.
+export type PlotStepProps = PlotControlsProps;
 
 export function computePerXStats(series: Series[]) {
   const xSet = new Set<number>();

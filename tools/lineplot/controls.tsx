@@ -5,6 +5,7 @@
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DownloadTiles } from "../_shell/DownloadTiles";
 import { ERROR_KINDS, formatX, round2 } from "./helpers";
+import type { PerXRow, PlotControlsProps, Series } from "./helpers";
 import { ControlSection } from "./steps";
 
 export function PlotControls({
@@ -28,25 +29,26 @@ export function PlotControls({
   statsRows,
   svgRef,
   resetAll,
-}: any) {
-  const sv = (k: string) => (v: unknown) => updVis({ [k]: v });
+}: PlotControlsProps) {
+  const sv = (k: keyof typeof vis) => (v: unknown) => updVis({ [k]: v } as any);
 
   const downloadStatsCsv = () => {
     const headers = ["x", "test", "statistic", "p", "p_adj", "stars"];
-    const rows = statsRows.map((r: any) => {
+    const rows = statsRows.map((r: PerXRow) => {
+      const res = r.result;
       const stat =
-        r.result && !r.result.error
-          ? r.result.t != null
-            ? r.result.t
-            : r.result.U != null
-              ? r.result.U
-              : r.result.F != null
-                ? r.result.F
-                : r.result.H != null
-                  ? r.result.H
+        res && !res.error
+          ? (res as any).t != null
+            ? (res as any).t
+            : (res as any).U != null
+              ? (res as any).U
+              : (res as any).F != null
+                ? (res as any).F
+                : (res as any).H != null
+                  ? (res as any).H
                   : ""
           : "";
-      const p = r.result && !r.result.error ? r.result.p : "";
+      const p = res && !res.error ? res.p : "";
       const pAdj = r.pAdj != null ? r.pAdj : "";
       const stars = r.pAdj != null ? pStars(r.pAdj) : "";
       return [formatX(r.x), r.chosenTest || "", stat, p, pAdj, stars];
@@ -143,12 +145,12 @@ export function PlotControls({
               value={vis.discretePalette || "okabe-ito"}
               onChange={(next: string) => {
                 updVis({ discretePalette: next });
-                const names = series.map((s: any) => s.name);
+                const names = series.map((s: Series) => s.name);
                 updVis({ groupColors: applyDiscretePalette(next, names) });
               }}
-              names={series.map((s: any) => s.name)}
+              names={series.map((s: Series) => s.name)}
             />
-            {series.map((s: any) => (
+            {series.map((s: Series) => (
               <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <ColorInput value={s.color} onChange={(c) => setGroupColor(s.name, c)} />
                 <span style={{ fontSize: 12, color: "var(--text)" }}>{s.name}</span>

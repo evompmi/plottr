@@ -17,6 +17,7 @@ import {
   computeAutoYRange,
   detectConditions,
 } from "./helpers";
+import type { CalibrationFormula } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
 import { PlotControls } from "./controls";
 import { PlotPanel, SampleSelectionOverlay } from "./plot-area";
@@ -105,7 +106,7 @@ function App() {
   const [parseMessage, setParseMessage] = useState<string | null>(null);
 
   const [rawText, setRawText] = useState<any>(null);
-  const [formula, setFormula] = useState("none");
+  const [formula, setFormula] = useState<CalibrationFormula>("none");
   const [Kr, setKr] = useState(DEFAULT_KR);
   const [Ktr, setKtr] = useState(DEFAULT_KTR);
   const [Kd, setKd] = useState(DEFAULT_KD);
@@ -218,20 +219,34 @@ function App() {
     [stats, replicateSumsByPrefix]
   );
 
-  // Auto-rescale y-axis whenever formula, data, or visible x window changes —
-  // only while `vis.autoYRange` is on. A manual edit of Y min / Y max in the
-  // controls sets it to false and the user's range sticks.
+  // Effective y-range for the chart. When `autoYRange` is on, recompute
+  // every render directly from calData — that's what the chart consumes,
+  // so it never paints a frame with stale persisted vis.yMin / vis.yMax
+  // (the prior useLayoutEffect-based fix still left a one-frame glitch
+  // on the first paint of the plot step because the chart had already
+  // received the stale vis values via props by the time the effect's
+  // re-render landed).
   //
-  // useLayoutEffect (not useEffect): the rescale must commit before the
-  // browser paints, otherwise the chart paints once with the stale
-  // vis.yMin / vis.yMax (rehydrated from auto-prefs of a previous session
-  // or VIS_INIT_AEQUORIN's 0.1 / 1.4 defaults), then snaps to the correct
-  // range one frame later — the visible "first-render glitch".
-  React.useLayoutEffect(() => {
-    if (!vis.autoYRange) return;
+  // `vis.yMin / vis.yMax` are kept in sync via the effect below, so
+  // PrefsPanel save / load round-trips and the manual-override path
+  // (autoYRange=false) keep working unchanged.
+  const effYRange = useMemo(() => {
+    if (!vis.autoYRange) return { yMin: vis.yMin, yMax: vis.yMax };
     const range = computeAutoYRange(calData, vis.xStart, vis.xEnd);
-    if (range) updVis(range);
-  }, [formula, calData, vis.xStart, vis.xEnd, vis.autoYRange, updVis]);
+    return range ?? { yMin: vis.yMin, yMax: vis.yMax };
+  }, [vis.autoYRange, vis.yMin, vis.yMax, vis.xStart, vis.xEnd, calData]);
+
+  // Mirror the auto-computed range back into `vis` so a later toggle of
+  // autoYRange → false snapshots the current visual range, the
+  // PrefsPanel file save captures it, and the controls' Y-min / Y-max
+  // inputs reflect what's on screen. Plain useEffect (not layout): the
+  // chart already renders from `effYRange` so there's no paint glitch
+  // to race; this is purely a state-mirror.
+  React.useEffect(() => {
+    if (!vis.autoYRange) return;
+    if (effYRange.yMin === vis.yMin && effYRange.yMax === vis.yMax) return;
+    updVis({ yMin: effYRange.yMin, yMax: effYRange.yMax });
+  }, [effYRange, vis.autoYRange, vis.yMin, vis.yMax, updVis]);
 
   const csvText = useMemo(() => {
     if (!calData || !parsed) return "";
@@ -391,7 +406,12 @@ function App() {
         enabled: true,
       }));
       setConditions(detectedConds);
-      updVis({ xStart: 0, xEnd: data.length, faceted: false });
+      // Reset autoYRange on every fresh parse — manual Y bounds (which set
+      // autoYRange=false in the controls) only make sense for the data
+      // they were dialled in on. Without this, persisted autoYRange=false
+      // + persisted yMin/yMax from a previous session crops the next
+      // dataset to the old range on first paint after reload.
+      updVis({ xStart: 0, xEnd: data.length, faceted: false, autoYRange: true });
       setStep("configure");
     },
     [setCommaFixed, setCommaFixCount, setInjectionWarning, setStep, updVis, vis.discretePalette]
@@ -695,8 +715,8 @@ function App() {
                 stats={stats}
                 xStart={vis.xStart}
                 xEnd={vis.xEnd}
-                yMin={vis.yMin}
-                yMax={vis.yMax}
+                yMin={effYRange.yMin}
+                yMax={effYRange.yMax}
                 faceted={vis.faceted}
                 title={vis.plotTitle}
                 subtitle={vis.plotSubtitle}

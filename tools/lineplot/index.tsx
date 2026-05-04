@@ -5,13 +5,17 @@
 
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
-import { computeSeries, computePerXStats, round2 } from "./helpers";
+import { computeSeries, computePerXStats, round2, ErrorKind, LineplotVis } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
 import { PlotStep } from "./plot-area";
 
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
-const VIS_INIT_LINEPLOT = {
+// Annotate the literal so TS widens `xMin: null` to `number | null` etc.,
+// without forcing an `as` on every field. The shape matches the
+// `LineplotVis` interface declared in helpers.ts (the type-canonical home;
+// putting it there avoids a circular `index → steps → index` import).
+const VIS_INIT_LINEPLOT: LineplotVis = {
   xMin: null,
   xMax: null,
   yMin: null,
@@ -62,8 +66,8 @@ function App() {
 
   // errorType + showStars + groupColors now live in `vis` so the PrefsPanel
   // Save / Load file and the auto-persist localStorage slot cover them.
-  const errorType = vis.errorType ?? "sem";
-  const setErrorType = useCallback((v: string) => updVis({ errorType: v }), [updVis]);
+  const errorType: ErrorKind = vis.errorType ?? "sem";
+  const setErrorType = useCallback((v: ErrorKind) => updVis({ errorType: v }), [updVis]);
   const showStars = vis.showStars ?? true;
   const setShowStars = useCallback((v: boolean) => updVis({ showStars: v }), [updVis]);
   const groupColors = useMemo(() => vis.groupColors || {}, [vis.groupColors]);

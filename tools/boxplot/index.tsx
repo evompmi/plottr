@@ -78,7 +78,7 @@ function App() {
 
   // Upload & navigation
   const [rawText, setRawText] = useState<any>(null);
-  const [dataFormat, setDataFormat] = useState("long");
+  const [dataFormat, setDataFormat] = useState<"long" | "wide">("long");
   // Count of cells dropped by wideToLong on the last parse (audit-23 #10).
   // 0 means clean reshape; >0 means the user should know about silent
   // shrinkage from empty / non-numeric cells in their wide-format input.

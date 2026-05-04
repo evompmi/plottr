@@ -6,6 +6,7 @@
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DownloadTiles } from "../_shell/DownloadTiles";
 import { intersectionLabel } from "./helpers";
+import type { Intersection, PlotControlsProps, UpsetVis } from "./helpers";
 import { BAR_FILL_ENRICHED, BAR_FILL_DEPLETED } from "./chart";
 
 const { useState, useRef, useEffect } = React;
@@ -80,9 +81,9 @@ export function PlotControls({
   defaultUniverseSize,
   maxAllIntersectionSize,
   allIntersectionsCount,
-}: any) {
+}: PlotControlsProps) {
   const baseName = fileBaseName(fileName, "upset");
-  const sv = (k: string) => (v: unknown) => updVis({ [k]: v });
+  const sv = (k: keyof UpsetVis) => (v: unknown) => updVis({ [k]: v } as Partial<UpsetVis>);
   const universeValid =
     universeSize !== "" && Number.isFinite(Number(universeSize)) && Number(universeSize) > 0;
   return (
@@ -98,7 +99,7 @@ export function PlotControls({
               "Download the currently-plotted intersection table (Intersection, Degree, Size, + per-set flags). Matches the plot exactly — reflects sort, Top N, Minimum/Maximum degree, and Minimum size filters.",
             onClick: () => {
               const headers = ["Intersection", "Degree", "Size", ...activeSetNames];
-              const rows = intersections.map((r: any) => {
+              const rows = intersections.map((r: Intersection) => {
                 const label = intersectionLabel(r.setIndices, activeSetNames);
                 const flags = activeSetNames.map((_: unknown, i: number) =>
                   r.setIndices.includes(i) ? "1" : "0"
@@ -114,13 +115,17 @@ export function PlotControls({
               "Download the membership matrix — one row per item, a 0/1 column for each active set",
             onClick: () => {
               const allItems = new Set<string>();
-              for (const n of activeSetNames) for (const item of allSets.get(n)) allItems.add(item);
+              for (const n of activeSetNames) {
+                const s = allSets.get(n);
+                if (!s) continue;
+                for (const item of s) allItems.add(item);
+              }
               const headers = ["Item", ...activeSetNames];
               const rows = [...allItems]
                 .sort()
                 .map((item) => [
                   item,
-                  ...activeSetNames.map((n: string) => (allSets.get(n).has(item) ? "1" : "0")),
+                  ...activeSetNames.map((n: string) => (allSets.get(n)?.has(item) ? "1" : "0")),
                 ]);
               downloadCsv(headers, rows, `${baseName}_upset_membership.csv`);
             },
@@ -132,7 +137,7 @@ export function PlotControls({
             onClick: () => {
               if (!intersections.length) return;
               const indexHeaders = ["Id", "Intersection", "Degree", "Size"];
-              const indexRows = intersections.map((inter: any, i: number) => [
+              const indexRows = intersections.map((inter: Intersection, i: number) => [
                 `I${i + 1}`,
                 intersectionLabel(inter.setIndices, activeSetNames),
                 String(inter.degree),
@@ -142,7 +147,7 @@ export function PlotControls({
               // drop everything after the first file when a synchronous loop
               // fires multiple <a>.click() events in the same tick.
               downloadCsv(indexHeaders, indexRows, `${baseName}_upset_index.csv`);
-              intersections.forEach((inter: any, i: number) => {
+              intersections.forEach((inter: Intersection, i: number) => {
                 setTimeout(
                   () => {
                     downloadCsv(

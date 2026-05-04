@@ -6,6 +6,7 @@
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DownloadTiles } from "../_shell/DownloadTiles";
 import { regionLabel, regionFilenamePart } from "./helpers";
+import type { PlotControlsProps, Region, VennVis } from "./helpers";
 
 export function PlotControls({
   allSetNames,
@@ -24,9 +25,9 @@ export function PlotControls({
   proportional,
   onProportionalChange,
   fileName,
-}: any) {
+}: PlotControlsProps) {
   const baseName = fileBaseName(fileName, "venn");
-  const sv = (k: string) => (v: unknown) => updVis({ [k]: v });
+  const sv = (k: keyof VennVis) => (v: unknown) => updVis({ [k]: v } as Partial<VennVis>);
   return (
     <PlotSidebar>
       <DownloadTiles
@@ -39,14 +40,18 @@ export function PlotControls({
             title:
               "Download the membership matrix — one row per item, a 0/1 column for each active set (long/tidy format)",
             onClick: () => {
-              const allItems = new Set();
-              for (const n of activeSetNames) for (const item of allSets.get(n)) allItems.add(item);
+              const allItems = new Set<string>();
+              for (const n of activeSetNames) {
+                const s = allSets.get(n);
+                if (!s) continue;
+                for (const item of s) allItems.add(item);
+              }
               const headers = ["Item", ...activeSetNames];
-              const rows = [...allItems]
+              const rows: Array<Array<string>> = [...allItems]
                 .sort()
                 .map((item) => [
                   item,
-                  ...activeSetNames.map((n: string) => (allSets.get(n).has(item) ? "1" : "0")),
+                  ...activeSetNames.map((n: string) => (allSets.get(n)?.has(item) ? "1" : "0")),
                 ]);
               downloadCsv(headers, rows, `${baseName}_venn_membership.csv`);
             },
@@ -60,8 +65,8 @@ export function PlotControls({
             title:
               "Download one CSV per non-empty region (fires multiple saves — your browser may ask once to allow them)",
             onClick: () => {
-              const nonEmpty = intersections.filter((r: any) => r.size > 0);
-              nonEmpty.forEach((r: any, i: number) => {
+              const nonEmpty = intersections.filter((r: Region) => r.size > 0);
+              nonEmpty.forEach((r: Region, i: number) => {
                 const label = regionLabel(r.setNames, r.mask, activeSetNames);
                 const name = `${baseName}_venn_${regionFilenamePart(label)}.csv`;
                 // Stagger slightly so the browser reliably handles each as
@@ -170,7 +175,7 @@ export function PlotControls({
                     flexShrink: 0,
                   }}
                 >
-                  ({allSets.get(name).size})
+                  ({allSets.get(name)?.size ?? 0})
                 </span>
               </div>
             );

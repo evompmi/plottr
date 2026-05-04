@@ -49,3 +49,57 @@ export {
 export { computeRegionCentroids } from "./centroids";
 export { detectLongFormat } from "./long-format-detect";
 export type { LongFormatDetection } from "./long-format-detect";
+export type { Region, SetMap } from "./set-math";
+
+import type { Region, SetMap } from "./set-math";
+import { VIS_INIT_VENN } from "./constants";
+
+// ── Vis state + prop interfaces ─────────────────────────────────────────────
+//
+// `VennVis` is the runtime shape of `VIS_INIT_VENN` in constants.ts —
+// re-derived here via `typeof` so the prop bags don't need to duplicate
+// the field list. UpdVis matches the reducer signature emitted by
+// `usePlotToolState`.
+export type VennVis = typeof VIS_INIT_VENN;
+export type UpdVis = (patch: Partial<VennVis> | { _reset: true }) => void;
+
+// ── Step / control prop bags ────────────────────────────────────────────────
+
+export interface UploadStepProps {
+  sepOverride: string;
+  setSepOverride: (s: string) => void;
+  handleFileLoad: (text: string, name: string) => void;
+  onLoadExample: () => void;
+}
+
+export interface ConfigureStepProps {
+  fileName: string;
+  parsedHeaders: string[];
+  parsedRows: string[][];
+  allColumnNames: string[];
+  allColumnSets: SetMap;
+  pendingSelection: string[];
+  // Mirrors React's `Dispatch<SetStateAction<string[]>>` — accepts a
+  // direct value OR a functional updater. Step uses both forms.
+  setPendingSelection: (sel: string[] | ((prev: string[]) => string[])) => void;
+  isLongFormat: boolean;
+}
+
+export interface PlotControlsProps {
+  allSetNames: string[];
+  allSets: SetMap;
+  activeSetNames: string[];
+  activeSets: Set<string>;
+  intersections: Region[];
+  onToggleSet: (name: string) => void;
+  setColors: Record<string, string>;
+  onColorChange: (name: string, color: string) => void;
+  onRename: (oldName: string, newName: string) => boolean;
+  vis: VennVis;
+  updVis: UpdVis;
+  chartRef: React.RefObject<SVGSVGElement | null>;
+  resetAll: () => void;
+  proportional: boolean;
+  onProportionalChange: (b: boolean) => void;
+  fileName: string;
+}
