@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Type the React-tier prop bags across every plot tool.** `: any`
+  destructures in each tool's `steps.tsx` / `controls.tsx` /
+  `plot-area.tsx` replaced with explicit prop interfaces declared in
+  the tool's `helpers.ts` (the type-canonical home — sidesteps the
+  `index → steps → index` import cycle). Eight tools touched:
+  lineplot / venn / upset / heatmap / scatter (UploadStep only) /
+  aequorin / boxplot, plus matching `*Vis` and `UpdVis` types per tool.
+  Latent bugs surfaced and fixed in passing: 4 `Map.get(...)` derefs
+  without nullish guard in venn + upset CSV exporters; several
+  `useState` hooks (heatmap clustering / distance / linkage,
+  aequorin's `formula`, boxplot / upset `dataFormat` / `format`)
+  narrowed from `string` to typed unions. The remaining `: any` in
+  these files are inline callbacks over local example / illustration
+  data (HowTo card example tables, anonymous option-array mappers) —
+  not prop bags.
+
+### Fixed
+
+- **Aequorin auto-Y first-paint glitch.** The prior `useLayoutEffect`
+  fix updated `vis.yMin/yMax` after the chart had already received
+  the stale persisted values via props, so the first paint of the
+  plot step still showed the old range and snapped one frame later.
+  Two-part fix:
+  - Compute the effective Y-range during render via an `effYRange`
+    `useMemo` that reads directly from `calData` whenever
+    `autoYRange` is on; `PlotPanel` consumes that, not
+    `vis.yMin/yMax`. Stale frame eliminated.
+  - Reset `autoYRange: true` on every fresh parse — the Y-min /
+    Y-max inputs flip `autoYRange: false` when typed into, and that
+    boolean was persisted to localStorage, so a later reload with a
+    new dataset cropped to the previous session's manual Y bounds.
+
 ## [1.2.0] - 2026-05-04
 
 > Long-form release notes — what shipped, why, and how — live in
