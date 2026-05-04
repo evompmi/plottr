@@ -186,7 +186,13 @@ const browserPlus = {
 
 module.exports = [
   {
-    ignores: ["node_modules/**", "vendor/**", ...compiledTools],
+    ignores: [
+      "node_modules/**",
+      "vendor/**",
+      "test-results/**",
+      "playwright-report/**",
+      ...compiledTools,
+    ],
   },
 
   js.configs.recommended,
@@ -288,6 +294,28 @@ module.exports = [
     },
     rules: {
       "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+    },
+  },
+
+  // Playwright e2e specs — TypeScript run by `npx playwright test`. Uses
+  // `@playwright/test`'s named imports, no globals (test / expect are
+  // imported each spec). The TS parser is required so type annotations
+  // don't trip up the base recommended config.
+  {
+    files: ["e2e/**/*.ts", "e2e/**/*.tsx", "playwright.config.ts"],
+    plugins: { "@typescript-eslint": tsPlugin },
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: { ...globals.node },
+    },
+    rules: {
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
     },
   },
 

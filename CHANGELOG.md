@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Playwright e2e suite (`e2e/`).** Golden-path flows in real
+  Chromium, run via `npm run e2e`. Closes the "renders the wrong
+  chart" gap the vm + functional-React-mock unit tests can't see —
+  exactly the class of bug the v1.2.0 volcano colorNs glitch was.
+  Initial coverage:
+  - Landing page renders all 10 tool tiles + theme-toggle flips
+    `data-theme`.
+  - Volcano colorNs regression — load example, pick `set1` /
+    `set3`, assert ns class fill stays `#999999` (the bug's exact
+    reproducer).
+  - Volcano search-by-name — type a prefix, press Add, assert the
+    `<g id="top-n-labels">` group populates.
+  - Aequorin auto-Y first-paint — load example, walk to plot,
+    assert at least one Y-axis tick reads above the
+    `VIS_INIT_AEQUORIN` default upper bound (catches stale
+    persisted `vis.yMin/yMax`).
+  - Discrete-palette wiring smoke for lineplot / venn / volcano.
+    Auto-spins a Python `http.server` on :8765 against the repo
+    root (no Node server needed). New CI step
+    `Run Playwright e2e` gates every PR; failures upload the HTML
+    report + traces as a 7-day artefact for offline triage.
+    `data-testid="load-example"` added to the shared
+    UploadPanel button so e2e specs don't have to know each tool's
+    per-dataset label string.
+
 ### Changed
 
 - **Theme-var coverage retroactively audited.** Replaced the five
