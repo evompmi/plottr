@@ -153,7 +153,7 @@ export function PlotControls({
                   }}
                   onFocus={(e) => {
                     e.target.style.borderColor = "var(--accent-primary)";
-                    e.target.style.boxShadow = "0 0 0 2px rgba(100,143,255,0.2)";
+                    e.target.style.boxShadow = "var(--focus-ring)";
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = "var(--border-strong)";

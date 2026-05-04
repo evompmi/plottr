@@ -108,6 +108,23 @@
   --howto-header-to: #475569;
   --howto-shadow: 0 4px 20px rgba(71, 85, 105, 0.12);
 
+  /* Generic drop-shadow tiers for floating chrome that doesn't fit the
+     howto / cta / accent-warning slots. `sm` is for inline pills (the
+     scroll-affordance "more →" tag), `md` for hover panels (heatmap
+     selection-highlight readout), `lg` for popovers (aequorin sample-
+     selection overlay). Dark variants below dial them down vs the
+     light-mode rgba(0,0,0) so the shadow isn't obnoxious on dark
+     surfaces. */
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.18);
+
+  /* Focused-input glow — used by hand-built inputs that don't get
+     `dv-input`'s default `:focus-visible` outline (e.g. venn's per-set
+     rename field uses an inline boxShadow on focus). Mirrors the
+     accent-primary tint at low alpha. */
+  --focus-ring: 0 0 0 2px rgba(100, 143, 255, 0.2);
+
   /* Active step-nav pill (Upload / Configure / Filter / Output / Plot).
      Softened ~30% further toward white for a calmer nav chrome. White
      text on this bg is ~2.9:1 — below WCAG AA for body text but acceptable
@@ -192,6 +209,16 @@
   --howto-header-from: #0f172a;
   --howto-header-to: #1e293b;
   --howto-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+  /* Dark-mode shadow tiers — softer than light because dark surfaces
+     swallow saturation, but still visible at the canonical alpha. */
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+  /* Focus-ring glow — same accent tint, slightly higher alpha so it
+     reads against the dark surface. */
+  --focus-ring: 0 0 0 2px rgba(100, 143, 255, 0.35);
 
   --step-active-bg: #1e293b;
   --step-active-border: #334155;
@@ -282,6 +309,11 @@
     --howto-header-from: #0f172a;
     --howto-header-to: #1e293b;
     --howto-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --focus-ring: 0 0 0 2px rgba(100, 143, 255, 0.35);
 
     --step-active-bg: #1e293b;
     --step-active-border: #334155;
