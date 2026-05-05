@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "scipy_version": "1.17.1",
+    "python_version": "3.13.1",
+    "n_tests": 847
+  },
+  "generated": "2026-05-05T17:25:40.754Z",
+  "totals": {
+    "pass": 990,
+    "fail": 0,
+    "underflow": 0,
+    "deepTail": 92,
+    "pathological": 1,
+    "total": 1083
+  },
+  "categories": {
+    "nctcdf": {
+      "total": 344,
+      "pass": 318,
+      "fail": 0,
+      "underflow": 0,
+      "deepTail": 26,
+      "pathological": 0
+    },
+    "ncf_sf": {
+      "total": 256,
+      "pass": 227,
+      "fail": 0,
+      "underflow": 0,
+      "deepTail": 29,
+      "pathological": 0
+    },
+    "ncchi2cdf": {
+      "total": 96,
+      "pass": 80,
+      "fail": 0,
+      "underflow": 0,
+      "deepTail": 16,
+      "pathological": 0
+    },
+    "qtukey": {
+      "total": 150,
+      "pass": 149,
+      "fail": 0,
+      "underflow": 0,
+      "deepTail": 0,
+      "pathological": 1
+    },
+    "norminv": {
+      "total": 13,
+      "pass": 13,
+      "fail": 0,
+      "underflow": 0,
+      "deepTail": 0,
+      "pathological": 0
+    },
+    "tinv": {
+      "total": 36,
+      "pass": 36,
+      "fail": 0,
+      "underflow": 0,
+      "deepTail": 0,
+      "pathological": 0
+    },
+    "fcdf": {
+      "total": 128,
+      "pass": 116,
+      "fail": 0,
+      "underflow": 0,
+      "deepTail": 12,
+      "pathological": 0
+    },
+    "chi2cdf": {
+      "total": 30,
+      "pass": 21,
+      "fail": 0,
+      "underflow": 0,
+      "deepTail": 9,
+      "pathological": 0
+    },
+    "chi2inv": {
+      "total": 30,
+      "pass": 30,
+      "fail": 0,
+      "underflow": 0,
+      "deepTail": 0,
+      "pathological": 0
+    }
+  }
+}
