@@ -30,7 +30,6 @@ const sharedGlobals = {
   roleColors: "readonly",
   isNumericValue: "readonly",
   seededRandom: "readonly",
-  makeExamplePlantCSV: "readonly",
   makeTicks: "readonly",
   makeLogTicks: "readonly",
   autoDetectSep: "readonly",

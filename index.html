@@ -948,25 +948,6 @@
       crossorigin="anonymous"
     ></script>
     <script src="tools/shared.bundle.js"></script>
-
-    <!-- Per-tool sample-data scripts. Each defines a single
-         `window.__<TOOL>_EXAMPLE__` string that the corresponding
-         tool's "Try sample data" button reads on click. Pre-iframe→SPA
-         each `tools/<tool>.html` loaded its own example script; the
-         SPA consolidates them here. Eager-loaded because the bundle
-         is small (~tens of KB total) and the user expects the button
-         to fire instantly on click. Tools without an example
-         (boxplot, heatmap, molarity, power) don't need an entry —
-         boxplot + heatmap use synthesised demo data via
-         `makeExamplePlantCSV()` in shared.js, the calculators have no
-         upload step. -->
-    <script src="tools/iris_example.js"></script>
-    <script src="tools/lineplot_example.js"></script>
-    <script src="tools/aequorin_example.js"></script>
-    <script src="tools/venn_example.js"></script>
-    <script src="tools/upset_example.js"></script>
-    <script src="tools/volcano_example.js"></script>
-
     <script src="tools/_app/index.js"></script>
 
     <script src="tools/version.js"></script>

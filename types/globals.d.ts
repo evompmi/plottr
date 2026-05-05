@@ -61,7 +61,6 @@ declare global {
   function toNumericValue(v: unknown): number;
   function normalizeNumericString(v: unknown): string;
   function seededRandom(seed: number): () => number;
-  function makeExamplePlantCSV(): string;
   function downloadText(text: string, filename: string): void;
   function powerTwoSample(d: number, n: number, alpha: number, tails: number): number;
   function powerPaired(d: number, n: number, alpha: number, tails: number): number;
