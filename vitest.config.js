@@ -36,13 +36,9 @@ module.exports = defineConfig({
     include: ["tests/*.test.js"],
     exclude: ["node_modules/**", "tests/fuzz/**", "tests/helpers/**", "tests/harness.js"],
 
-    // Verbose reporter prints every test name as it runs (matching the
+    // Verbose reporter prints every test name as it runs, matching the
     // pre-Vitest `✓  <name>` cadence the contributor expectation has
-    // built around) and ends with the canonical
-    //   Test Files  N passed (N)
-    //        Tests  M passed (M)
-    // pair that `scripts/bump-test-count.js` parses to update the
-    // landing-page badge.
+    // built around.
     reporters: ["verbose"],
 
     // Per-test timeout. Vitest's default 5s is fine for the vast

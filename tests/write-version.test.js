@@ -1,9 +1,10 @@
 // Unit tests for scripts/write-version.js — the CHANGELOG → version
-// regex that drives the landing-page badge. This file is deploy-pipeline
-// critical: the regex is the single point of failure for every future
-// Pages deploy showing the right number (closed the git-describe race
-// in commit 4863413). A silent regex regression on a CHANGELOG-format
-// drift would re-introduce the race, so pin the contract here.
+// regex that drives the landing-page version label. This file is
+// deploy-pipeline critical: the regex is the single point of failure
+// for every future Pages deploy showing the right number (closed the
+// git-describe race in commit 4863413). A silent regex regression on a
+// CHANGELOG-format drift would re-introduce the race, so pin the
+// contract here.
 
 const { suite, test, eq, summary } = require("./harness");
 const { parseLatestVersion } = require("../scripts/write-version");

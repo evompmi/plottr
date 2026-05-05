@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Landing-page footer ("N internal tests / N R cross-checks /
+  view benchmark →") removed.** The numbers were repository trivia
+  rather than user-facing information; the benchmark count is on
+  `benchmark.html`, and the "view benchmark →" link duplicated the
+  trust-badge pill at the top of the landing. The "N internal tests"
+  badge is gone from the trust-badge `title=` attribute too.
+  `scripts/bump-test-count.js` and `scripts/run-vitest.js` retired
+  (the wrapper only existed to feed the bumper); `npm test` is now
+  just `vitest run`. CI's `Verify landing-page test-count badge`
+  step deleted along with the artefact it gated.
+
 ## [1.3.0] - 2026-05-05
 
 > Long-form release notes — what shipped, why, and how — live in

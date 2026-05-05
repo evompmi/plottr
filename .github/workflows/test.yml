@@ -47,34 +47,7 @@ jobs:
       # frame-buster is the canonical source by construction.
 
       - name: Run tests
-        run: npm test 2>&1 | tee test-output.log && exit ${PIPESTATUS[0]}
-
-      # CLAUDE.md requires the "N internal tests" badge in index.html to stay
-      # in lockstep with the canonical test count that `npm test` prints.
-      # Under Vitest the canonical line is `Tests  N passed (N)` at the end
-      # of the verbose-reporter output. Pre-Vitest format (`X/X passed`
-      # per suite, summed) is matched as a fallback so a stale checkout
-      # mid-upgrade still bumps cleanly. Drift fails CI so the badge and
-      # the suite can't silently desync.
-      - name: Verify landing-page test-count badge
-        run: |
-          # Strip ANSI escape sequences first — Vitest's verbose reporter wraps the
-          # totals line in colour codes that defeat the `^\s*Tests` anchor below.
-          # Then look for the canonical `Tests N passed` line, falling back to the
-          # legacy per-suite "X/X passed" sum if the file pre-dates the Vitest
-          # migration.
-          stripped=$(sed -E 's/\x1b\[[0-9;]*m//g' test-output.log)
-          actual=$(echo "$stripped" | grep -iE "^[[:space:]]*Tests[[:space:]]+[0-9]+[[:space:]]+passed" | head -1 | grep -oE "[0-9]+" | head -1)
-          if [ -z "$actual" ] || [ "$actual" = "0" ]; then
-            actual=$(echo "$stripped" | grep -E "^[[:space:]]*[0-9]+/[0-9]+ passed" | awk '{split($1,a,"/"); t+=a[1]} END{print t}')
-          fi
-          claimed=$(grep -oE "[0-9]+ internal tests" index.html | head -1 | grep -oE "^[0-9]+")
-          echo "Canonical test count  : $actual"
-          echo "index.html badge claim: $claimed"
-          if [ "$actual" != "$claimed" ]; then
-            echo "::error file=index.html::Test-count drift: $actual tests ran but index.html claims $claimed. Update the badge and the CHANGELOG together."
-            exit 1
-          fi
+        run: npm test
 
       # Fuzz harnesses at default cadence (FUZZ_N=1000, 2-loop). Total wall
       # time is ~5 s on GitHub's ubuntu-latest runner, so cheap enough to gate
