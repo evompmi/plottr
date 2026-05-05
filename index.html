@@ -96,6 +96,26 @@
         gap: 30px;
         padding: 32px 16px;
       }
+      /* SPA route toggle: when a tool is active (location.hash starts with
+         "#/"), the inline IIFE near the bottom of this file sets
+         data-spa-route="active" on <html>. The landing tile grid + the
+         landing-only fixed-position theme toggle disappear, the SPA's
+         <div id="root"> takes over the viewport. Reverting the hash
+         (e.g. clicking the SPA's "Home" button) clears the attribute
+         and the landing reappears. */
+      html[data-spa-route="active"] #landing,
+      html[data-spa-route="active"] #landing-theme-toggle {
+        display: none;
+      }
+      html:not([data-spa-route="active"]) #root {
+        display: none;
+      }
+      html[data-spa-route="active"] #root {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
       .landing-header {
         text-align: center;
       }
@@ -900,10 +920,6 @@
           anywhere — handy for sanity-checking stats on the go or verifying a molarity calculation.
         </div>
       </div>
-      <div class="prefetch-bar" id="prefetch-bar">
-        <div class="pf-track"><div class="pf-fill" id="pf-fill" style="width: 0%"></div></div>
-        <span id="pf-label">Loading dependencies…</span>
-      </div>
       <div class="landing-header">
         <p>1056 internal tests</p>
         <p>303 cross-checks vs R 4.5</p>
@@ -911,46 +927,20 @@
       </div>
     </div>
 
-    <div class="tool-view" id="view-boxplot">
-      <div class="tool-topbar" data-topbar-for="boxplot"></div>
-      <iframe id="frame-boxplot" src="tools/boxplot.html"></iframe>
-    </div>
-    <div class="tool-view" id="view-aequorin">
-      <div class="tool-topbar" data-topbar-for="aequorin"></div>
-      <iframe id="frame-aequorin" src="tools/aequorin.html"></iframe>
-    </div>
-    <div class="tool-view" id="view-lineplot">
-      <div class="tool-topbar" data-topbar-for="lineplot"></div>
-      <iframe id="frame-lineplot" src="tools/lineplot.html"></iframe>
-    </div>
-    <div class="tool-view" id="view-scatter">
-      <div class="tool-topbar" data-topbar-for="scatter"></div>
-      <iframe id="frame-scatter" src="tools/scatter.html"></iframe>
-    </div>
-    <div class="tool-view" id="view-venn">
-      <div class="tool-topbar" data-topbar-for="venn"></div>
-      <iframe id="frame-venn" src="tools/venn.html"></iframe>
-    </div>
-    <div class="tool-view" id="view-upset">
-      <div class="tool-topbar" data-topbar-for="upset"></div>
-      <iframe id="frame-upset" src="tools/upset.html"></iframe>
-    </div>
-    <div class="tool-view" id="view-heatmap">
-      <div class="tool-topbar" data-topbar-for="heatmap"></div>
-      <iframe id="frame-heatmap" src="tools/heatmap.html"></iframe>
-    </div>
-    <div class="tool-view" id="view-molarity">
-      <div class="tool-topbar" data-topbar-for="molarity"></div>
-      <iframe id="frame-molarity" src="tools/molarity.html"></iframe>
-    </div>
-    <div class="tool-view" id="view-power">
-      <div class="tool-topbar" data-topbar-for="power"></div>
-      <iframe id="frame-power" src="tools/power.html"></iframe>
-    </div>
-    <div class="tool-view" id="view-volcano">
-      <div class="tool-topbar" data-topbar-for="volcano"></div>
-      <iframe id="frame-volcano" src="tools/volcano.html"></iframe>
-    </div>
+    <!-- SPA mount. The router (tools/_app/Router.tsx) reads
+         location.hash on every change; when a tool route is active the
+         CSS rule below hides the landing div and shows the SPA's
+         rendered tool. When the hash is empty, the SPA renders nothing
+         and the landing is visible. -->
+    <div id="root"></div>
+
+    <!-- Vendored React + ReactDOM + the shared bundle, then the SPA
+         entry. Same load order every per-tool HTML used to do, just
+         consolidated onto a single page. -->
+    <script src="vendor/react.production.min.js"></script>
+    <script src="vendor/react-dom.production.min.js"></script>
+    <script src="tools/shared.bundle.js"></script>
+    <script src="tools/_app/index.js"></script>
 
     <script src="tools/version.js"></script>
     <script>
@@ -962,215 +952,36 @@
         }
       })();
 
-      // ── Prefetch vendor + shared scripts so tool iframes load instantly ──
+      // ── Landing ↔ tool view toggle ──
+      // Pre-SPA, the landing page hid 10 iframes and showed one at a
+      // time. The SPA shell (tools/_app/index.js) reads location.hash
+      // and renders the matching tool into <div id="root">. The
+      // landing tile grid lives in this static HTML; we toggle its
+      // visibility with a `data-spa-route` attribute on <html>, which
+      // the CSS rule near the top of this file consumes.
       (function () {
-        var scripts = [
-          { src: "vendor/react.production.min.js", size: 6 },
-          { src: "vendor/react-dom.production.min.js", size: 130 },
-          { src: "tools/shared.bundle.js", size: 250 },
-        ];
-        var totalWeight = scripts.reduce(function (s, f) {
-          return s + f.size;
-        }, 0);
-        var progress = scripts.map(function () {
-          return 0;
-        });
-        var bar = document.getElementById("prefetch-bar");
-        var fill = document.getElementById("pf-fill");
-        var label = document.getElementById("pf-label");
-        var done = 0;
-
-        function update() {
-          var loaded = progress.reduce(function (s, v) {
-            return s + v;
-          }, 0);
-          var pct = Math.min(100, Math.round((loaded / totalWeight) * 100));
-          fill.style.width = pct + "%";
-          if (done < scripts.length) {
-            label.textContent = "Loading dependencies\u2026 " + pct + "%";
+        function reflect() {
+          var h = window.location.hash;
+          var hasRoute = h && h !== "#" && h !== "#/";
+          if (hasRoute) {
+            document.documentElement.setAttribute("data-spa-route", "active");
           } else {
-            fill.style.width = "100%";
-            label.textContent = "Loading dependencies\u2026";
-            setTimeout(function () {
-              label.textContent = "Ready";
-              bar.classList.add("ready");
-            }, 350);
+            document.documentElement.removeAttribute("data-spa-route");
           }
         }
-
-        scripts.forEach(function (file, i) {
-          var xhr = new XMLHttpRequest();
-          xhr.open("GET", file.src);
-          xhr.onprogress = function (e) {
-            if (e.lengthComputable) {
-              progress[i] = (e.loaded / e.total) * file.size;
-            } else {
-              progress[i] = file.size * 0.5;
-            }
-            update();
-          };
-          xhr.onload = xhr.onerror = function () {
-            progress[i] = file.size;
-            done++;
-            update();
-          };
-          xhr.send();
-        });
+        window.addEventListener("hashchange", reflect);
+        reflect();
       })();
 
-      // ── Tool top-bar builder ──
-      // Each tool view gets a fixed top bar, laid out left-to-right:
-      //   theme-toggle │ home │ <other tool icons…>
-      // The left-most button is positioned so its glyph center aligns with
-      // the tool icon in the PageHeader directly beneath it (see
-      // .tool-topbar padding). The current tool's own icon is omitted so
-      // users always see where they are by the absence of an icon. All
-      // SVGs use currentColor so they inherit the button text color.
-      (function () {
-        var HOME_SVG =
-          '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 L10 3 L17 10"/><path d="M5 9 V17 H15 V9"/></svg>';
-        var TOOL_META = {
-          boxplot: {
-            label: "Group Plot",
-            svg: '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="4" x2="22" y2="12"/><rect x="14" y="12" width="16" height="18" rx="2"/><line x1="14" y1="22" x2="30" y2="22"/><line x1="22" y1="30" x2="22" y2="40"/></svg>',
-          },
-          scatter: {
-            label: "Scatter Plot",
-            svg: '<svg viewBox="0 0 44 44" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="10" cy="30" r="3"/><circle cx="16" cy="22" r="2.5"/><circle cx="24" cy="26" r="3.5"/><circle cx="20" cy="14" r="2"/><circle cx="32" cy="18" r="3"/><circle cx="36" cy="10" r="2.5"/><circle cx="28" cy="32" r="2"/></svg>',
-          },
-          venn: {
-            label: "Venn Diagram",
-            svg: '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="16" cy="20" r="12"/><circle cx="28" cy="20" r="12"/></svg>',
-          },
-          upset: {
-            label: "UpSet Plot",
-            svg: '<svg viewBox="0 0 44 44" fill="none" stroke="none" aria-hidden="true"><rect x="10" y="4" width="4" height="10" fill="currentColor"/><rect x="18" y="7" width="4" height="7" fill="currentColor"/><rect x="26" y="10" width="4" height="4" fill="currentColor"/><rect x="34" y="11" width="4" height="3" fill="currentColor"/><circle cx="12" cy="22" r="2.5" fill="currentColor"/><circle cx="20" cy="22" r="2.5" fill="currentColor"/><circle cx="28" cy="22" r="2.5" fill="currentColor" fill-opacity="0.25"/><circle cx="36" cy="22" r="2.5" fill="currentColor" fill-opacity="0.25"/><circle cx="12" cy="29" r="2.5" fill="currentColor"/><circle cx="20" cy="29" r="2.5" fill="currentColor" fill-opacity="0.25"/><circle cx="28" cy="29" r="2.5" fill="currentColor"/><circle cx="36" cy="29" r="2.5" fill="currentColor" fill-opacity="0.25"/></svg>',
-          },
-          aequorin: {
-            label: "RLU Timecourse",
-            svg: '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 36 C8 36, 10 36, 12 34 C14 30, 15 8, 17 6 C19 4, 20 14, 22 22 C24 28, 25 32, 27 34 C29 36, 32 36, 40 36"/></svg>',
-          },
-          heatmap: {
-            label: "Heatmap",
-            svg: '<svg viewBox="0 0 44 44" fill="none" stroke="none" aria-hidden="true"><rect x="6" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.2"/><rect x="17" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.5"/><rect x="28" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.8"/><rect x="6" y="17" width="10" height="10" fill="#648FFF" fill-opacity="0.5"/><rect x="17" y="17" width="10" height="10" fill="#648FFF" fill-opacity="0.8"/><rect x="28" y="17" width="10" height="10" fill="#785EF0" fill-opacity="0.6"/><rect x="6" y="28" width="10" height="10" fill="#648FFF" fill-opacity="0.8"/><rect x="17" y="28" width="10" height="10" fill="#785EF0" fill-opacity="0.6"/><rect x="28" y="28" width="10" height="10" fill="#785EF0"/></svg>',
-          },
-          lineplot: {
-            label: "Line Plot",
-            svg: '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6,34 16,24 26,28 36,12"/><circle cx="6" cy="34" r="2.5" fill="currentColor"/><circle cx="16" cy="24" r="2.5" fill="currentColor"/><circle cx="26" cy="28" r="2.5" fill="currentColor"/><circle cx="36" cy="12" r="2.5" fill="currentColor"/></svg>',
-          },
-          power: {
-            label: "Power Analysis",
-            svg: '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="38" x2="6" y2="6"/><line x1="6" y1="38" x2="38" y2="38"/><path d="M8 34 C12 33, 16 28, 20 20 C24 12, 28 8, 36 7" stroke-width="2.5"/><line x1="6" y1="14" x2="38" y2="14" stroke-dasharray="3,3" stroke-width="1" opacity="0.6"/></svg>',
-          },
-          molarity: {
-            label: "Calculator",
-            svg: '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="8" y1="10" x2="18" y2="10"/><line x1="13" y1="5" x2="13" y2="15"/><line x1="26" y1="10" x2="36" y2="10"/><line x1="8" y1="30" x2="18" y2="30"/><circle cx="13" cy="25" r="1.5" fill="currentColor" stroke="none"/><circle cx="13" cy="35" r="1.5" fill="currentColor" stroke="none"/><line x1="28" y1="27" x2="34" y2="33"/><line x1="34" y1="27" x2="28" y2="33"/></svg>',
-          },
-          // Volcano: re-skin the landing tile icon to currentColor (the
-          // up / down colour split is dropped in the topbar — every other
-          // tool icon there is monochrome). The V silhouette still reads
-          // because of the diagonal wings; the ns vertex cluster is
-          // dimmed via fill-opacity to preserve the depth cue.
-          volcano: {
-            label: "Volcano Plot",
-            svg: '<svg viewBox="0 0 44 44" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="22" cy="38" r="1.4" fill-opacity="0.4"/><circle cx="20" cy="36" r="1.2" fill-opacity="0.4"/><circle cx="24" cy="36" r="1.2" fill-opacity="0.4"/><circle cx="18" cy="38" r="1" fill-opacity="0.4"/><circle cx="26" cy="38" r="1" fill-opacity="0.4"/><circle cx="22" cy="34" r="1" fill-opacity="0.4"/><circle cx="17" cy="28" r="1.6"/><circle cx="13" cy="22" r="2"/><circle cx="9" cy="16" r="2.4"/><circle cx="5" cy="10" r="2.6"/><circle cx="27" cy="28" r="1.6"/><circle cx="31" cy="22" r="2"/><circle cx="35" cy="16" r="2.4"/><circle cx="39" cy="10" r="2.6"/></svg>',
-          },
-        };
-        // Display order in the topbar (plots first, then stats/calc).
-        var TOOL_ORDER = [
-          "boxplot",
-          "scatter",
-          "venn",
-          "upset",
-          "lineplot",
-          "aequorin",
-          "heatmap",
-          "volcano",
-          "power",
-          "molarity",
-        ];
-
-        function buildTopbar(current) {
-          var parts = [];
-          // Theme toggle — first, so its glyph aligns with the tool icon
-          // underneath. The theme.js wiring targets [data-theme-toggle], not
-          // a class, so reusing .tb-icon-btn here gives it the same square
-          // look as the other buttons without duplicating CSS.
-          parts.push('<button class="tb-icon-btn" data-theme-toggle type="button"></button>');
-          parts.push('<div class="tb-sep"></div>');
-          parts.push(
-            '<button class="tb-icon-btn" data-back type="button" title="Home" aria-label="Home">' +
-              HOME_SVG +
-              "</button>"
-          );
-          parts.push('<div class="tb-sep"></div>');
-          TOOL_ORDER.forEach(function (id) {
-            if (id === current) return;
-            var meta = TOOL_META[id];
-            parts.push(
-              '<button class="tb-icon-btn" data-tool="' +
-                id +
-                '" type="button" title="' +
-                meta.label +
-                '" aria-label="' +
-                meta.label +
-                '">' +
-                meta.svg +
-                "</button>"
-            );
-          });
-          return parts.join("");
-        }
-
-        document.querySelectorAll(".tool-topbar[data-topbar-for]").forEach(function (bar) {
-          bar.innerHTML = buildTopbar(bar.dataset.topbarFor);
-        });
-      })();
-
-      function openTool(name) {
-        document.getElementById("landing").style.display = "none";
-        document.getElementById("landing-theme-toggle").style.display = "none";
-        document.querySelectorAll(".tool-view").forEach(function (v) {
-          v.classList.remove("active");
-        });
-        document.getElementById("view-" + name).classList.add("active");
-      }
-
-      function goBack() {
-        document.querySelectorAll(".tool-view").forEach(function (v) {
-          v.classList.remove("active");
-        });
-        document.getElementById("landing").style.display = "";
-        document.getElementById("landing-theme-toggle").style.display = "";
-      }
-
+      // ── Tile-click → SPA route ──
+      // The pre-SPA `openTool(name)` swapped iframe view containers; the
+      // SPA shell does that work via the hash router. Setting the hash
+      // fires `hashchange`, which the route-toggle IIFE above and
+      // tools/_app/Router.tsx both listen for.
       document.querySelectorAll(".tile[data-tool]").forEach(function (btn) {
         btn.addEventListener("click", function () {
-          openTool(btn.dataset.tool);
+          window.location.hash = "#/" + btn.dataset.tool;
         });
-      });
-      // Tools embedded in iframes can ask the landing page to switch views
-      // by posting { type: "openTool", tool: "<name>" } — used by Venn's
-      // "try UpSet" nudge banner.
-      window.addEventListener("message", function (e) {
-        // Origin pin: this listener accepts cross-frame nav commands and the
-        // openTool channel is the route every "send-to-X" hand-off uses
-        // (Venn → UpSet, RLU timecourse → Boxplot, …). A malicious page
-        // embedding Plöttr in an iframe could otherwise spam openTool to
-        // thrash the visible tool. Same-origin only, mirroring upset.tsx's
-        // hand-off receiver.
-        if (!e || e.origin !== window.location.origin) return;
-        var d = e && e.data;
-        if (!d || d.type !== "openTool" || typeof d.tool !== "string") return;
-        if (document.getElementById("view-" + d.tool)) openTool(d.tool);
-      });
-      document.querySelectorAll(".tool-topbar [data-tool]").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          openTool(btn.dataset.tool);
-        });
-      });
-      document.querySelectorAll("[data-back]").forEach(function (btn) {
-        btn.addEventListener("click", goBack);
       });
 
       // ── Theme toggle wiring ──
@@ -1233,25 +1044,6 @@
           try {
             if (themeChannel) themeChannel.postMessage({ type: "theme", theme: mode });
           } catch (e) {}
-          // Propagate into every tool iframe. We try a direct DOM write first
-          // (works when the iframe is same-origin and already loaded), and
-          // always postMessage as a backstop — the cross-frame `storage` event
-          // does not fire in the window that initiated the write, and file://
-          // origins can block direct contentDocument access.
-          document.querySelectorAll(".tool-view iframe").forEach(function (f) {
-            try {
-              var d = f.contentDocument;
-              if (d && d.documentElement) applyAttr(d.documentElement, mode);
-            } catch (e) {}
-            try {
-              if (f.contentWindow) {
-                f.contentWindow.postMessage(
-                  { type: "dataviz-theme-set", theme: mode },
-                  window.location.origin
-                );
-              }
-            } catch (e) {}
-          });
           render();
         }
         document.querySelectorAll("[data-theme-toggle]").forEach(function (btn) {

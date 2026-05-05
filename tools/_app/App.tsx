@@ -165,10 +165,6 @@ export function App() {
     "div",
     null,
     React.createElement(ToolTopbar, { currentKey: entry.key }),
-    React.createElement(
-      ErrorBoundary,
-      { toolName: entry.label },
-      React.createElement(Tool)
-    )
+    React.createElement(ErrorBoundary, { toolName: entry.label }, React.createElement(Tool))
   );
 }

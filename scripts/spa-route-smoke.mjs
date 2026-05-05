@@ -52,7 +52,7 @@ async function main() {
     const page = await context.newPage();
 
     for (const route of ROUTES) {
-      const url = `${BASE}/spa.html#/${route}`;
+      const url = `${BASE}/index.html#/${route}`;
       const consoleErrors = [];
       page.on("pageerror", (err) => consoleErrors.push(err.message));
       page.on("console", (msg) => {
@@ -64,7 +64,9 @@ async function main() {
       const ok = rootInner.length > 100;
       const status = ok && consoleErrors.length === 0 ? "✓" : "✗";
       const sizeKb = (rootInner.length / 1024).toFixed(1);
-      console.log(`  ${status}  /#/${route.padEnd(10)}  root=${sizeKb} KB  errors=${consoleErrors.length}`);
+      console.log(
+        `  ${status}  /#/${route.padEnd(10)}  root=${sizeKb} KB  errors=${consoleErrors.length}`
+      );
       if (consoleErrors.length > 0) {
         console.log("       first error:", consoleErrors[0].slice(0, 200));
       }
