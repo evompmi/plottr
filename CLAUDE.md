@@ -4,25 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Browser-only data visualization toolbox for plant scientists. No server, no build step, no tracking. Deployed as static files via GitHub Pages. All data stays in the user's browser.
+Browser-only data visualization toolbox for wet-lab scientists. No server, no build step, no tracking. Deployed as static files via GitHub Pages. All data stays in the user's browser.
 
 Tech stack: React 18 (vendored in `/vendor/`) + esbuild (build-time TSX compilation). Tools render SVG charts from pasted CSV/TSV data.
 
 ## Running Tests
 
 ```bash
-npm test
-# Runs every tests/*.test.js file in sequence. Current suite:
-node tests/shared.test.js       # Utility function tests (color, ticks, seeded random)
-node tests/parsing.test.js      # CSV/TSV parsing tests
-node tests/integration.test.js  # Edge cases & integration tests
-node tests/components.test.js   # Shared React component tests (StatsTile, etc.)
-node tests/power.test.js        # Power analysis function tests
-node tests/stats.test.js        # Statistical function tests (t-test, ANOVA, post-hocs, etc.)
-node tests/prefs.test.js        # Auto-prefs load/save round-trip
-node tests/r-export.test.js     # R reproducibility-script builders
-node tests/upset.test.js        # UpSet intersection / sort / truncate helpers
+npm test  # runs every tests/*.test.js in sequence (24 deterministic suites at v1.2.0)
 ```
+
+The suite splits into three rough buckets:
+
+- **Shared/foundation** — `shared`, `parsing`, `integration`, `components`, `prefs`, `r-export`, `stats`, `power`, `stats-dispatch`, `discrete-palette`, `handoff`.
+- **Per-tool** — `aequorin`, `boxplot-helpers`, `boxplot-stats-reducer`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`.
+- **Build / hygiene** — `anti-clickjack`, `vendor-sri`, `write-version`, `formula-injection`.
+
+Each new plot tool adds a `tests/<tool>.test.js` covering its pure helpers, plus a fuzz harness (see below). New shared helpers go into the bucket that matches their domain — don't create a new file unless the domain is genuinely new.
 
 No test framework — custom harness in `tests/harness.js` using `suite()`, `test()`, `assert()`, `eq()`, `approx()`, `throws()`, `summary()`. Exit code 1 on any failure.
 
@@ -42,22 +40,49 @@ New features that add user-visible behaviour or data-pipeline logic must ship wi
 
 ### Landing-page test counter
 
-`index.html` line ~563 renders a `N internal tests` badge. **Whenever you change the total test count, update this number in the same commit.** The total is the sum of the `X/X passed` lines that `npm test` prints at the end of each suite — grep with `npm test 2>&1 | grep -E "^\s*[0-9]+/[0-9]+ passed"` and add them up. Fuzz iterations do not count (they are randomised); only the deterministic `tests/*.test.js` cases do. Log the bump in `CHANGELOG.md` under `### Added` or `### Changed` alongside whatever drove the new tests.
+`index.html` renders an `N internal tests` badge in the trust-badge row and footer. **The badge is the project's single source of truth for the test count — README and other docs should not hard-code a number.** It is auto-bumped by `scripts/bump-test-count.js` (`posttest` hook in `package.json`), which sums the `X/X passed` lines from `.test-output.log` and rewrites the two spots in `index.html`. CI's badge-verify step is the backstop. Fuzz iterations do not count (they are randomised); only the deterministic `tests/*.test.js` cases do. The bump itself doesn't require a CHANGELOG entry — log only the *change that drove the new tests*.
 
 ## Architecture
 
 ### Tool structure
-- `index.html` — landing page with tool grid; loads tools in iframes; prefetches vendor scripts with progress bar
-- `tools/aequorin.html` — Ca2+ luminescence calibration plots with inset barplot
-- `tools/boxplot.html` — group comparison plots (box, violin, raincloud, bar chart) with statistics
-- `tools/lineplot.html` — profile plot: mean ± error (SEM / SD / 95% CI) per group across shared x, with per-x stats
-- `tools/molarity.html` — molarity/dilution calculator
-- `tools/power.html` — statistical power analysis calculator
-- `tools/scatter.html` — XY scatter with color/size mapping
-- `tools/venn.html` — area-proportional Venn diagrams (2–3 sets) with data extraction
-- `benchmark.html` — comparison between R and Toolbox statistical outputs
 
-Each tool HTML loads vendored React/ReactDOM and shared scripts in `<head>`, then loads a compiled `.js` file. The editable source is in `tools/<tool>.tsx` — run `npm run build` to compile.
+The repository ships **eight plot tools** (each in its own folder) and **two single-file calculators**, plus the landing page and the public benchmark report:
+
+- `index.html` — landing page with tool grid; loads tools in iframes; prefetches vendor scripts with progress bar.
+- `benchmark.html` — generated public report comparing R 4.5 reference values vs. `tools/stats.js` (regenerated by `npm run benchmark`).
+- `privacy.html` — data-flow / trust page reachable from the privacy badge.
+
+**Plot tools — folder-per-tool layout** (`tools/<tool>/index.tsx` is the bundled entry):
+
+| Tool         | HTML                  | Source folder            | What it does                                                                                                          |
+| ------------ | --------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| RLU timecourse / aequorin | `tools/aequorin.html` | `tools/aequorin/` | Luminescence time-course (mean ± SD, per-replicate integrals) with optional aequorin Ca²⁺ calibration.                |
+| Group Plot   | `tools/boxplot.html`  | `tools/boxplot/`         | Box / violin / raincloud / bar with auto-selected test + post-hocs.                                                   |
+| Line Plot    | `tools/lineplot.html` | `tools/lineplot/`        | Mean ± SEM / SD / 95 % CI per group across a shared x, with per-x significance markers.                               |
+| Scatter      | `tools/scatter.html`  | `tools/scatter/`         | XY with colour / size / shape mapping, reference lines, optional linear regression.                                   |
+| Heatmap      | `tools/heatmap.html`  | `tools/heatmap/`         | Matrix heatmap with hierarchical / k-means clustering, dendrograms, zoomed detail view.                               |
+| Venn         | `tools/venn.html`     | `tools/venn/`            | 2–3 set area-proportional Venn with click-to-extract region members.                                                  |
+| UpSet        | `tools/upset.html`    | `tools/upset/`           | 4+ set intersection plot with multi-set significance via `SuperExactTest`-style `cpsets`.                             |
+| Volcano      | `tools/volcano.html`  | `tools/volcano/`         | log2FC vs −log10(p) for −omics hits; auto-detects DESeq2 / limma / edgeR column conventions.                          |
+
+Each plot folder owns roughly:
+
+- `index.tsx` — the bundled entry: imports the shell, mounts `App()`. **Should stay slim** — chart, controls, steps belong in their own files.
+- `chart.tsx` — the SVG renderer (kept as `forwardRef`).
+- `controls.tsx` — sidebar / tile components (per-tool).
+- `steps.tsx` — UploadStep / ConfigureStep / FilterStep / OutputStep wrappers.
+- `helpers.ts` — pure helpers (math / layout / label disambiguation). Imported by the tool's test loader (`tests/helpers/<tool>-loader.js`); a tool may also have a `helpers/` folder with multiple files re-exported through `helpers.ts` as a barrel (see `tools/venn/`).
+- `plot-area.tsx` (where applicable) — composes chart + overlays + stats panels.
+- `stats-panel.tsx` (where applicable) — the in-app statistics tile.
+- `reports.ts` (where applicable) — R-script export builder for that tool.
+- `howto.tsx` — the per-tool How-to content rendered through `_shell/HowTo.tsx`.
+
+**Calculators — single-file layout** (no folder, no shell):
+
+- `tools/molarity.tsx` → `tools/molarity.html` — molarity / dilution / ligation prep sheets. Self-contained; does not use the plot-tool scaffold.
+- `tools/power.tsx` → `tools/power.html` — statistical power analysis (t / ANOVA / χ² / correlation). Single-file because it has no upload step / column-role flow.
+
+Each tool HTML loads vendored React/ReactDOM and `shared.bundle.js` in `<head>`, then loads its compiled `.js` file (`tools/<tool>/index.js` for plot tools, `tools/molarity.js` / `tools/power.js` for calculators). Run `npm run build` to compile every entry. The full list of esbuild entry points lives in `package.json`'s `build` script — keep this section in sync with that list when you add a tool.
 
 ### Shared code
 All shared browser globals are concatenated at build time into a single
@@ -116,21 +141,24 @@ File upload/paste -> `autoDetectSep` + `fixDecimalCommas` + `parseRaw` -> `DataP
 `PALETTE` is defined in `shared.js` as the global default. Tools may override if needed.
 
 ### Tool-internal structure
-Each tool's `.tsx` source file follows this pattern:
-1. **Chart component** (e.g. `BoxplotChart`, `BarChart`, `ScatterChart`) — the SVG renderer, kept as `forwardRef`
-2. **Step sub-components** — `UploadStep`, `ConfigureStep`, `FilterStep`, `OutputStep`, `PlotControls`, `PlotArea` (where applicable)
-3. **App()** — orchestrator holding state and routing between steps
+Plot tools live as folders (`tools/<tool>/`); calculators live as single files (`tools/molarity.tsx`, `tools/power.tsx`). Inside a plot-tool folder the convention is:
+
+1. **Chart component** in `chart.tsx` (e.g. `BoxplotChart`, `BarChart`, `ScatterChart`) — the SVG renderer, kept as `forwardRef`.
+2. **Step sub-components** in `steps.tsx` — `UploadStep`, `ConfigureStep`, `FilterStep`, `OutputStep` etc.
+3. **Sidebar / tile components** in `controls.tsx`.
+4. **Pure helpers** (math / layout / label disambiguation) in `helpers.ts`. These are what the test loader picks up; if they get sprawling, split into a `helpers/` folder and re-export from `helpers.ts` as a barrel (see `tools/venn/`).
+5. **App()** in `index.tsx` — orchestrator holding state and routing between steps. **Keep `index.tsx` slim**: `VIS_INIT_<TOOL>` at module scope, `App()`, and the `ReactDOM.createRoot` mount call. Tile / control / chart / step components belong in their own files.
 
 ### Shared plot-tool scaffold (`tools/_shell/`)
-All seven plot tools (UpSet, Venn, Lineplot, Scatter, Heatmap, Aequorin, Boxplot) use the shared scaffold under `tools/_shell/`. Unlike the plain-JS `shared-*.js` globals, these are TypeScript modules imported via `import { … } from "./_shell/…"` and resolved by esbuild when bundling each tool.
+All eight plot tools (Aequorin, Boxplot, Lineplot, Scatter, Heatmap, Venn, UpSet, Volcano) use the shared scaffold under `tools/_shell/`. Unlike the plain-JS `shared-*.js` globals, these are TypeScript modules imported via `import { … } from "./_shell/…"` and resolved by esbuild when bundling each tool. The two calculators (`molarity.tsx`, `power.tsx`) intentionally do **not** use this scaffold — they have no upload step, no column roles, no step navigator, so the shell would be dead weight.
 
 - `tools/_shell/usePlotToolState.ts` — `usePlotToolState<TVis>(toolKey, initialVis)` typed hook. Owns step state, upload fields (`fileName`, `parseError`, `sepOverride`, `commaFixed`, `commaFixCount`), and the `vis` reducer with auto-prefs persistence (`loadAutoPrefs` on init, `saveAutoPrefs` on change, `_reset` sentinel for reset-to-defaults).
 - `tools/_shell/PlotToolShell.tsx` — outer page frame. Renders `PageHeader` (with `PrefsPanel` in the right slot), `StepNavBar`, `CommaFixBanner`, `ParseErrorBanner`, then delegates to `children`. Takes the hook's return as a `state` prop.
-- `tools/_shell/ScrollablePlotCard.tsx` — horizontal-scroll affordances (edge fades + "Scroll for more →" pill driven by `ResizeObserver`). Used only by `upset.tsx`; venn and heatmap intentionally don't wrap their plot cards (their charts auto-fit), so a plain `<div className="dv-panel dv-plot-card">` is correct there. Lift any new horizontally-scrolling tool into this component rather than re-deriving it.
+- `tools/_shell/ScrollablePlotCard.tsx` — horizontal-scroll affordances (edge fades + "Scroll for more →" pill driven by `ResizeObserver`). Used only by UpSet (`tools/upset/`); venn and heatmap intentionally don't wrap their plot cards (their charts auto-fit), so a plain `<div className="dv-panel dv-plot-card">` is correct there. Lift any new horizontally-scrolling tool into this component rather than re-deriving it.
 - `tools/_shell/stats-dispatch.ts` — `runTest` / `runPostHoc` / `postHocForTest` dispatchers shared by boxplot, lineplot, and aequorin.
 - `tools/_shell/chart-layout.ts` — `CHART_MARGIN` and `buildLineD` used by both lineplot and aequorin. Rule of thumb: once a pure typed helper becomes byte-identical across two tools, lift it here and re-export from each tool's `helpers.ts` barrel. `_shell/` is the canonical home for shared *typed* helpers; `shared-*.js` in `tools/` remains the home for shared *plain-JS* globals consumed by every HTML entrypoint.
 
-**Standard wiring pattern** (every migrated tool follows this shape — start from `tools/upset.tsx` as the canonical reference):
+**Standard wiring pattern** (every migrated tool follows this shape — start from `tools/upset/index.tsx` as the canonical reference):
 
 ```tsx
 import { usePlotToolState } from "./_shell/usePlotToolState";
@@ -165,7 +193,7 @@ Key conventions:
 
 **Test-loader pattern.** Per-tool test loaders (`tests/helpers/<tool>-loader.js`) transform `tools/<tool>/helpers.ts` to CommonJS with `esbuild.transformSync` (or `esbuild.buildSync` with `bundle: true` when the tool's `helpers.ts` is a barrel that re-exports from sibling files — see `tests/helpers/venn-loader.js`), then evaluate the result under `vm.runInContext` with the shared globals (`tools/shared.js`, sometimes `tools/stats.js`) pre-loaded into the context. Exports are read off a `module.exports` object threaded into the vm context via `ctx.module`. **If you add a new pure helper to a tool**, put it in `tools/<tool>/helpers.ts`, and add it to the `module.exports` block at the bottom of the matching loader — that's the only step; no slicing, no regex stripping.
 
-**If you add a new plot tool**, start by copying `tools/upset.tsx` and adapting the chart + step content. Do not re-derive the scaffold.
+**If you add a new plot tool**, start by copying the `tools/upset/` folder (or any other migrated plot tool) and adapting `chart.tsx` / `controls.tsx` / `steps.tsx` / `helpers.ts`. Do not re-derive the scaffold and do not stuff the whole tool into `index.tsx` — keep `index.tsx` to the `App()` orchestrator + module-scope `VIS_INIT_<TOOL>`.
 
 ### SVG export: named groups for Inkscape
 Exported SVGs are routinely re-opened in Inkscape for touch-ups, so **every chart must wrap its elements in `<g id="...">` groups with human-readable ids**. When adding a new chart (or a new element to an existing chart), give the wrapping group a descriptive id so Inkscape users can select it by name from the Objects panel / XML editor.
@@ -184,13 +212,12 @@ For per-series / per-group elements, build individual ids with `svgSafeId(name)`
 
 ## Testing helpers
 
-Test helpers in `tests/helpers/` load shared code into Node `vm` contexts with DOM stubs:
-- `shared-loader.js` — loads `shared.js` globals
-- `parsing-fns.js` — exports parsing functions
-- `components-loader.js` — loads all seven `shared-*.js` files and exports component helper functions
-- `render-loader.js` — functional React mock for render-smoke testing; loads all seven `shared-*.js` files
+Test helpers in `tests/helpers/` load shared code into Node `vm` contexts with DOM stubs. Two flavours:
 
-When adding new functions to `shared.js`, `stats.js`, or any `shared-*.js` file, export them in the corresponding loader for testability.
+- **Generic shared loaders** load the `shared-*.js` bundle globals into a vm context: `shared-loader.js`, `parsing-fns.js`, `components-loader.js`, `render-loader.js` (functional React mock for render-smoke), `prefs-loader.js`, `r-export-loader.js`, `stats-dispatch-loader.js`, `discrete-palette-loader.js`, `handoff-loader.js`.
+- **Per-tool loaders** transform `tools/<tool>/helpers.ts` to CommonJS (via `esbuild.transformSync`, or `buildSync` for barrels) and run it under `vm.runInContext` with the shared globals pre-loaded. One per plot tool: `aequorin-loader.js`, `boxplot-loader.js`, `boxplot-stats-reducer-loader.js`, `heatmap-loader.js`, `lineplot-loader.js`, `scatter-loader.js`, `upset-loader.js`, `venn-loader.js`, `volcano-loader.js`.
+
+When adding new functions to `shared.js`, `stats.js`, or any `shared-*.js` file, export them in the corresponding loader so the unit tests can see them. When adding a pure helper to `tools/<tool>/helpers.ts`, add it to the `module.exports` block at the bottom of the matching per-tool loader.
 
 ## Benchmark suite
 
@@ -230,7 +257,7 @@ All of the following must pass before merging:
 1. `npm run lint` — ESLint
 2. `npm run format:check` — Prettier dry-run
 3. `npm run typecheck` — `tsc --noEmit`
-4. `npm test` — all six test files
+4. `npm test` — full deterministic suite (every `tests/*.test.js`)
 5. `npm run build` — esbuild compilation
 
 Run them locally in this order before committing to catch issues early.
@@ -238,9 +265,9 @@ Run them locally in this order before committing to catch issues early.
 ## Development workflow
 
 ```bash
-npm run build          # compile tools/*.tsx → tools/*.js (one-shot)
+npm run build          # compile every entry in package.json → tools/<…>.js (one-shot)
 npm run watch          # recompile on save (~5 ms)
-npm test               # run all six test files
+npm test               # run every tests/*.test.js (24 deterministic suites)
 npm run typecheck      # tsc --noEmit (TypeScript type checking, no emit)
 npm run lint           # ESLint
 npm run format:check   # Prettier dry-run (used in CI)
@@ -252,7 +279,7 @@ Edit `.tsx` source files, run build (or use watch mode), reload in browser. The 
 
 ### Pre-commit hook
 
-A native git hook at `scripts/hooks/pre-commit` rebuilds and re-stages any drifted compiled outputs (`tools/*.js`, `tools/*.js.map`, `tools/shared.bundle.js`, `tools/version.js`) whenever staged changes touch source that affects the build: `tools/*.tsx`, `tools/<tool>/helpers.ts`, `tools/_shell/*`, `tools/shared*.js`, `tools/stats.js`, `tools/theme.js`, or the `scripts/build-*.js` themselves. This catches sourcemap drift at commit time instead of at CI/merge time (a real issue: `_shell/*` content is inlined into every tool's `.js.map` via `sourcesContent`, so a `_shell/*` edit invalidates all seven tool maps).
+A native git hook at `scripts/hooks/pre-commit` rebuilds and re-stages any drifted compiled outputs (`tools/**/index.js`, `tools/*.js`, `tools/*.js.map`, `tools/shared.bundle.js`, `tools/version.js`) whenever staged changes touch source that affects the build: `tools/**/*.tsx`, `tools/<tool>/helpers.ts`, `tools/_shell/*`, `tools/shared*.js`, `tools/stats.js`, `tools/theme.js`, or the `scripts/build-*.js` themselves. This catches sourcemap drift at commit time instead of at CI/merge time (a real issue: `_shell/*` content is inlined into every plot tool's `.js.map` via `sourcesContent`, so a `_shell/*` edit invalidates all eight maps).
 
 The hook installs automatically via `npm install` (`prepare` script runs `scripts/hooks/install.js`, which points `git config core.hooksPath` at `scripts/hooks/`). Bypass with `git commit --no-verify` if you genuinely need to commit without rebuilding.
 

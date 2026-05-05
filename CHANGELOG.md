@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **CLAUDE.md resynced with the v1.2.0 codebase.** The Project
+  Overview, Tool structure, Tool-internal structure, `_shell/` scaffold,
+  Running Tests, Test helpers, Landing-page test counter, CI checks, and
+  Pre-commit hook sections all referenced the pre-split single-file
+  layout (`tools/<tool>.tsx`, "seven plot tools", "all six test files"
+  etc.). Updated to reflect the actual folder-per-plot-tool layout
+  (`tools/<tool>/index.tsx` + sibling `chart.tsx` / `controls.tsx` /
+  `steps.tsx` / `helpers.ts`), the eight plot tools (volcano added in
+  1.1.0), the calculators-stay-single-file carve-out, and the auto-bump
+  semantics for the landing-page test counter. No code change.
+
 - **README no longer hard-codes the test count.** The "Statistical
   validation" paragraph and the `npm test` example in the Development
   block both said "891 tests" — but `scripts/bump-test-count.js`
