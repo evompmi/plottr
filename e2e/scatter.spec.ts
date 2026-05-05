@@ -9,7 +9,7 @@ test("scatter: load Iris example → chart renders points", async ({ page }) => 
   await page.getByTestId("load-example").click();
 
   // Walk to plot step (Step N: Plot).
-  await page.getByRole("button", { name: /Plot$/ }).first().click();
+  await page.getByTestId("step-plot").click();
 
   // Scatter renders one <circle> per row (or whatever shape the user
   // picked) inside `<g id="data-points">`. The Iris dataset has 150

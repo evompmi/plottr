@@ -12,9 +12,11 @@ test("aequorin example loads + paints with non-default Y range", async ({ page }
   await expect(exampleBtn).toBeVisible();
   await exampleBtn.click();
 
-  // StepNavBar buttons read "Step N of M: <name>" — match by trailing
-  // word so we don't have to re-type the M for each tool.
-  await page.getByRole("button", { name: /Plot$/ }).first().click();
+  // StepNavBar pills carry `data-testid="step-<key>"` so we can target
+  // them precisely. Pre-SPA, an aria-label regex worked; post-SPA the
+  // topbar's tool-icon buttons (e.g. "Group Plot", "Volcano Plot")
+  // also matched and stole the click.
+  await page.getByTestId("step-plot").click();
 
   // The chart's main SVG should be visible. Find the y-axis tick text
   // — at least one tick must read a non-default value, confirming the

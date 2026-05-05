@@ -389,6 +389,12 @@ function StepNavBar(props) {
         disabled: !enabled,
         "aria-current": isCurrent ? "step" : undefined,
         "aria-label": "Step " + (i + 1) + " of " + steps.length + ": " + labelFor(s),
+        // Stable test handle. The previous e2e selector
+        // `getByRole("button", { name: /Plot$/ })` matched both this pill
+        // and the SPA topbar's tool-icon buttons (which also end in
+        // "... Plot"), so .first() picked the wrong one. Tests now use
+        // `getByTestId("step-plot")` etc.
+        "data-testid": "step-" + s,
         style: {
           all: "unset",
           display: "flex",

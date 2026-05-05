@@ -10,7 +10,7 @@ test("venn: load example → chart renders set circles", async ({ page }) => {
 
   // Venn auto-routes to plot when the example has ≤ 3 sets. If for
   // some reason it lands on configure, force the nav.
-  const plotStep = page.getByRole("button", { name: /Plot$/ }).first();
+  const plotStep = page.getByTestId("step-plot");
   if (await plotStep.isVisible()) await plotStep.click();
 
   // Set circles are wrapped in `<g id="set-circles">` with one

@@ -10,7 +10,7 @@ test("upset: load example → chart renders bars + matrix dots", async ({ page }
 
   // upset's example may land on "configure" if more than 3 sets are
   // detected; commit to the plot step explicitly.
-  const plotStep = page.getByRole("button", { name: /Plot$/ }).first();
+  const plotStep = page.getByTestId("step-plot");
   if (await plotStep.isVisible()) await plotStep.click();
 
   // Bars + matrix-dot circles are the two distinguishing layers. Both

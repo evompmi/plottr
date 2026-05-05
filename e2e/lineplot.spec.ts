@@ -8,7 +8,7 @@ test("lineplot: load example → chart renders one trace per group", async ({ pa
   await page.goto("/index.html#/lineplot");
   await page.getByTestId("load-example").click();
 
-  await page.getByRole("button", { name: /Plot$/ }).first().click();
+  await page.getByTestId("step-plot").click();
 
   // Each group renders a path inside `<g id="traces">` (a polyline-
   // shaped path connecting the group's mean points across X). The

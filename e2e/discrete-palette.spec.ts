@@ -21,10 +21,10 @@ async function loadExampleAndOpenPlot(page: Page) {
   const exampleBtn = page.getByTestId("load-example");
   await expect(exampleBtn).toBeVisible();
   await exampleBtn.click();
-  // StepNavBar buttons read "Step N of M: <name>" — match by trailing
-  // word so we work across all tools (different M values, different
-  // step counts).
-  const plotStep = page.getByRole("button", { name: /Plot$/ }).first();
+  // StepNavBar pills carry `data-testid="step-<key>"`. Targeting by
+  // testid avoids collisions with the SPA topbar's tool-icon buttons
+  // (e.g. "Volcano Plot") that also end in "... Plot".
+  const plotStep = page.getByTestId("step-plot");
   if (await plotStep.isVisible()) await plotStep.click();
 }
 
