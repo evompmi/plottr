@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Zenodo DOI references dropped from the README + `THIRD_PARTY.md`.**
+  README's `Citing` section no longer says "A Zenodo DOI will be minted
+  on tagged releases" — the deposit isn't on the near-term roadmap, so
+  carrying the promise was a stale commitment readers were entitled to
+  hold the project to. `THIRD_PARTY.md`'s lede drops the "Zenodo or
+  peer reviewer" framing and keeps just "peer reviewer". Licensing
+  paperwork (`LICENSE`, `vendor/LICENSE-react.txt`, `THIRD_PARTY.md`)
+  stays exactly as-is — the prep work remains valid whenever a deposit
+  is wanted later.
+
 ### Changed
 
 - **HowTo tile content lifted out of every long file into a uniform

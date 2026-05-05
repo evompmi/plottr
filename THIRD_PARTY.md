@@ -5,9 +5,9 @@ Plöttr's own code is MIT (see [LICENSE](LICENSE)). This file lists everything
 and the algorithmic references behind the statistical computations. Each
 entry names what's used, where it's used, and the licensing posture.
 
-The intent is one-stop transparency: a Zenodo or peer reviewer should be able
-to read this page and verify that nothing in the repo is an unattributed copy
-of licensed code. Inline citations exist throughout `tools/stats.js` and
+The intent is one-stop transparency: a peer reviewer should be able to read
+this page and verify that nothing in the repo is an unattributed copy of
+licensed code. Inline citations exist throughout `tools/stats.js` and
 `tools/shared.js` — this file consolidates them.
 
 ## Vendored binaries
