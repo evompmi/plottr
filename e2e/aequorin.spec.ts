@@ -6,7 +6,7 @@
 import { test, expect } from "@playwright/test";
 
 test("aequorin example loads + paints with non-default Y range", async ({ page }) => {
-  await page.goto("/tools/aequorin.html");
+  await page.goto("/index.html#/aequorin");
 
   const exampleBtn = page.getByTestId("load-example");
   await expect(exampleBtn).toBeVisible();

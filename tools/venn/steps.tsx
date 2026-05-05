@@ -61,32 +61,37 @@ export function ConfigureStep({
       sep: "\t",
       format: isLongFormat ? "long" : "wide",
     };
-    // In-iframe path: post directly into the sibling UpSet iframe (same
-    // origin, so we can reach it via parent.document) before asking the
-    // landing page to switch views. postMessage delivery is synchronous so
-    // the data arrives before the user sees the UpSet view.
-    if (window.parent && window.parent !== window) {
-      try {
-        const frame = window.parent.document.getElementById("frame-upset") as HTMLIFrameElement;
-        // Origin-pin both targets so a hostile embedder can't sniff the
-        // handoff payload by intercepting wildcard postMessages. Both
-        // hops are same-origin by construction (sibling iframes from the
-        // landing page); pin to `window.location.origin` and let the
-        // browser drop the message if any frame ever lands cross-origin.
-        if (frame && frame.contentWindow)
-          frame.contentWindow.postMessage(payload, window.location.origin);
-      } catch {
-        /* cross-origin or detached — fall through to the openTool ask */
-      }
-      window.parent.postMessage({ type: "openTool", tool: "upset" }, window.location.origin);
+    // SPA + standalone-page path: stash in sessionStorage (UpSet's
+    // mount-time effect consumes the entry and clears it) and ask
+    // `navigateToTool` to switch the view. In SPA mode the helper
+    // calls the registered hash-router navigator and the same
+    // document just rerenders; in legacy / standalone-page mode it
+    // falls back to a top-level navigation to upset.html. The pre-SPA
+    // sibling-iframe postMessage path is gone — it relied on UpSet
+    // already being mounted next door, which only ever held inside
+    // the iframe shell.
+    try {
+      sessionStorage.setItem("dataviz-upset-handoff", JSON.stringify(payload));
+    } catch {
+      /* storage disabled — fall back to opening UpSet without the data */
+    }
+    // Notify same-tab consumers. Under the SPA's keep-alive routing,
+    // UpSet may already be mounted from an earlier visit, in which
+    // case its mount-time sessionStorage read happened long ago and
+    // won't fire again. Dispatching a synchronous CustomEvent gives
+    // the already-mounted UpSet a chance to re-read the sessionStorage
+    // key. If UpSet hasn't been visited yet, no listener is attached
+    // and the mount-time path picks up the payload after navigation.
+    try {
+      window.dispatchEvent(
+        new CustomEvent("plottr-handoff", { detail: { key: "dataviz-upset-handoff" } })
+      );
+    } catch {
+      /* swallow */
+    }
+    if (typeof navigateToTool === "function") {
+      navigateToTool("upset");
     } else {
-      // Standalone path: stash in sessionStorage and full-page navigate.
-      // UpSet's mount-time effect consumes the entry and clears it.
-      try {
-        sessionStorage.setItem("dataviz-upset-handoff", JSON.stringify(payload));
-      } catch {
-        /* storage disabled — fall back to opening UpSet without the data */
-      }
       window.location.href = "upset.html";
     }
   };

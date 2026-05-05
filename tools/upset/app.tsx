@@ -51,7 +51,38 @@ const VIS_INIT_UPSET = {
   colorBarsBySignificance: false,
 };
 
-function App() {
+// ── Bundled example dataset ──
+// Arabidopsis thaliana abiotic-stress DEG lists — 5-set UpSet example.
+// Each column lists genes responsive to one stress condition. Many genes are
+// shared across two or more stresses; a handful are stress-specific. Based on
+// representative Arabidopsis abiotic-stress transcriptomics studies.
+const EXAMPLE_CSV = `Drought,Heat,Salt,Cold,ABA
+RD29A,HSP70,SOS1,COR15A,ABI1
+RD29B,HSP90,SOS2,COR47,ABI2
+NCED3,HSP101,SOS3,COR78,ABI3
+P5CS1,HSP17,HKT1,CBF1,ABI4
+DREB2A,HSFA2,NHX1,CBF2,ABI5
+RD29A,DREB2A,RD29A,CBF3,RD29A
+RD29B,HSFA3,RD29B,RD29A,RD29B
+ABI5,RD29A,DREB2A,RD29B,DREB2A
+KIN1,HSFA1B,ABI5,DREB1A,P5CS1
+LTI30,HSFA9,KIN1,LTI30,NCED3
+COR15A,BAG6,MYB44,KIN1,HSFA2
+COR47,HSP23,P5CS1,MYB44,HSFA3
+ANAC055,HSF3,RD20,HSFA1B,MYB44
+ANAC019,HSFA1B,ANAC019,DREB2A,DREB1A
+RAB18,WRKY40,CBL4,P5CS1,WRKY40
+DREB1A,ANAC019,AVP1,ANAC019,ANAC019
+LEA4,ANAC055,P5CS1,ANAC055,ANAC055
+HSFA9,RD26,DREB1A,RAB18,RAB18
+P5CS1,GolS1,LEA4,LEA4,LEA4
+RD26,HSFA9,RD26,RD26,RD26
+GolS1,,HSFA3,,GolS1
+MYB44,,HSFA1B,,
+DREB2A,,HSF3,,
+WRKY40,,WRKY40,,`;
+
+export function App() {
   const shell = usePlotToolState("upset", VIS_INIT_UPSET);
   const {
     step,
@@ -410,7 +441,7 @@ function App() {
   );
 
   const loadExample = useCallback(() => {
-    const text = (window as any).__UPSET_EXAMPLE__;
+    const text = EXAMPLE_CSV;
     if (!text) return;
     setSepOverride(",");
     setFormat("wide");
@@ -455,23 +486,39 @@ function App() {
   );
 
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("dataviz-upset-handoff");
-      if (raw) {
+    const consume = () => {
+      try {
+        const raw = sessionStorage.getItem("dataviz-upset-handoff");
+        if (!raw) return;
         sessionStorage.removeItem("dataviz-upset-handoff");
         handleHandoff(JSON.parse(raw));
+      } catch {
+        /* storage disabled — handoff just won't fire */
       }
-    } catch {
-      /* storage disabled — handoff just won't fire */
-    }
+    };
+    // Mount-time path: UpSet boots after a top-level navigation /
+    // first SPA visit and finds the payload Venn just wrote.
+    consume();
+    // Same-tab path under keep-alive: UpSet was already mounted from
+    // an earlier visit, so the mount-time read happened with empty
+    // storage. Venn now dispatches `plottr-handoff` right after the
+    // sessionStorage write so we can re-consume.
+    const onSameTabHandoff = () => consume();
+    // Legacy iframe-shell path: kept defensively in case any old
+    // entry-point still postMessages the same payload shape. Inert in
+    // the SPA today.
     const onMessage = (e: MessageEvent) => {
       if (!e || e.origin !== window.location.origin) return;
       const d = e.data;
       if (!d || d.type !== "dataviz-handoff") return;
       handleHandoff(d);
     };
+    window.addEventListener("plottr-handoff", onSameTabHandoff);
     window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
+    return () => {
+      window.removeEventListener("plottr-handoff", onSameTabHandoff);
+      window.removeEventListener("message", onMessage);
+    };
   }, [handleHandoff]);
 
   const resetAll = () => {
@@ -669,9 +716,3 @@ function App() {
     </PlotToolShell>
   );
 }
-
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <ErrorBoundary toolName="UpSet plot">
-    <App />
-  </ErrorBoundary>
-);

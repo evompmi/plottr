@@ -76,7 +76,7 @@ const EXAMPLE_CSV = (() => {
 
 // ── App ──────────────────────────────────────────────────────────────────────
 
-function App() {
+export function App() {
   const shell = usePlotToolState("heatmap", VIS_INIT_HEATMAP);
   const {
     step,
@@ -612,9 +612,3 @@ function App() {
     </PlotToolShell>
   );
 }
-
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <ErrorBoundary toolName="Heatmap">
-    <App />
-  </ErrorBoundary>
-);

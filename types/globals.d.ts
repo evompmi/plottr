@@ -15,6 +15,7 @@ declare global {
   namespace React {
     export type CSSProperties = ReactNs.CSSProperties;
     export type FC<P = object> = ReactNs.FC<P>;
+    export type ComponentType<P = object> = ReactNs.ComponentType<P>;
     export type ReactElement = ReactNs.ReactElement;
     export type ReactNode = ReactNs.ReactNode;
     export type RefObject<T> = ReactNs.RefObject<T>;
@@ -60,7 +61,6 @@ declare global {
   function toNumericValue(v: unknown): number;
   function normalizeNumericString(v: unknown): string;
   function seededRandom(seed: number): () => number;
-  function makeExamplePlantCSV(): string;
   function downloadText(text: string, filename: string): void;
   function powerTwoSample(d: number, n: number, alpha: number, tails: number): number;
   function powerPaired(d: number, n: number, alpha: number, tails: number): number;
@@ -506,6 +506,11 @@ declare global {
   }
   function setHandoff(payload: HandoffPayload): boolean;
   function consumeHandoff(targetTool: string): HandoffPayload | null;
+  // SPA-aware navigation helper. Prefers `window.__plottrSpaNavigate`
+  // when the SPA shell has registered it; falls back to a top-level
+  // `window.location.assign("<key>.html")` for legacy / standalone-page
+  // deploys. Source tools call this immediately after `setHandoff(...)`.
+  function navigateToTool(toolKey: string): void;
   const PrefsPanel: FC<{
     tool: string;
     vis: Record<string, any>;

@@ -9,13 +9,17 @@
 // drifted bytes (silent fail, but the script never runs).
 //
 // The script is intentionally idempotent: it computes the SHA-384 of each
-// canonical vendor file, walks every `tools/*.html`, finds each
-// `<script src="../vendor/<file>">` tag, and ensures it carries
-// `integrity="sha384-…"` and `crossorigin="anonymous"` matching the
-// current bytes. Re-running with no vendor changes is a no-op (no log
-// noise, no diff). Wired into the `prebuild` step so any vendor update
-// regenerates the hashes automatically; a `--check` mode is available
-// for CI to fail when an HTML file is out of sync with disk.
+// canonical vendor file, walks every HTML page that loads vendored
+// React, finds each `<script src="vendor/<file>">` tag, and ensures it
+// carries `integrity="sha384-…"` and `crossorigin="anonymous"` matching
+// the current bytes. Re-running with no vendor changes is a no-op (no
+// log noise, no diff). Wired into the `prebuild` step so any vendor
+// update regenerates the hashes automatically; a `--check` mode is
+// available for CI to fail when an HTML file is out of sync with disk.
+//
+// SPA-era simplification: pre-SPA this script walked all 11 HTMLs
+// (index.html + 10 tools/<tool>.html). After the iframe→SPA migration
+// only index.html loads vendored React, so the file list is one entry.
 //
 // Why a leading anchor? Same-origin SRI does not strictly need
 // `crossorigin="anonymous"`, but the audit explicitly recommends it and
@@ -27,12 +31,16 @@ const crypto = require("crypto");
 
 const repoRoot = path.join(__dirname, "..");
 const VENDOR_DIR = path.join(repoRoot, "vendor");
-const TOOLS_DIR = path.join(repoRoot, "tools");
 
 // Canonical list of vendored JS files that must be SRI-pinned. Keep this
 // in lock-step with `vendor/`; if you add a new vendored asset that's
 // loaded as a `<script>` tag, append it here and re-run.
 const VENDORED = ["react.production.min.js", "react-dom.production.min.js"];
+
+// HTML pages that load vendored React. Only `index.html` does today;
+// if benchmark.html / privacy.html ever start loading React, append
+// them here and re-run.
+const HTML_PAGES = ["index.html"];
 
 function sha384Base64(filePath) {
   const bytes = fs.readFileSync(filePath);
@@ -51,25 +59,28 @@ function hashesForVendor() {
   return out;
 }
 
-// Returns the list of `tools/*.html` files (excluding generated outputs).
-function listToolHtml() {
-  return fs
-    .readdirSync(TOOLS_DIR)
-    .filter((f) => f.endsWith(".html"))
-    .map((f) => path.join(TOOLS_DIR, f));
+// Returns the list of HTML files this script rewrites — repo-root
+// pages declared in `HTML_PAGES`. Pre-SPA this walked `tools/*.html`
+// too; the SPA migration deleted those files.
+function listHtmlPages() {
+  return HTML_PAGES.map((p) => path.join(repoRoot, p)).filter((p) => fs.existsSync(p));
 }
 
-// Build a regex that matches any `<script src="../vendor/<basename>"…></script>`
+// Build a regex that matches any `<script src="vendor/<basename>"…></script>`
 // tag — single-line or multi-line (prettier wraps long attribute lists),
 // with or without existing `integrity` / `crossorigin` attributes, in any
 // attribute order, single or double quotes. `[^>]` matches newlines in
 // JS regex so this naturally crosses line boundaries. The capture groups
 // are: (1) the leading indent (spaces / tabs at column 0 of the script
 // tag), (2) the attribute soup between `<script` and the closing `>`.
+//
+// The vendor path is `vendor/<file>` (relative to the repo root). Pre-
+// SPA the per-tool HTMLs lived under `tools/` and used `../vendor/<file>`;
+// that codepath went away with the iframe shell.
 function tagRegex(basename) {
   const escaped = basename.replace(/[.+?*^$()[\]{}|\\]/g, "\\$&");
   return new RegExp(
-    "(^[ \\t]*)<script\\b([^>]*?\\bsrc\\s*=\\s*[\"']\\.\\./vendor/" +
+    "(^[ \\t]*)<script\\b([^>]*?\\bsrc\\s*=\\s*[\"']vendor/" +
       escaped +
       "[\"'][^>]*?)>\\s*</script>",
     "gm"
@@ -137,7 +148,7 @@ function rewriteFile(htmlPath, hashes) {
 function main() {
   const checkOnly = process.argv.includes("--check");
   const hashes = hashesForVendor();
-  const files = listToolHtml();
+  const files = listHtmlPages();
   const drifted = [];
 
   for (const f of files) {

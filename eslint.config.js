@@ -14,19 +14,7 @@ const plottrLocal = {
   },
 };
 
-const compiledTools = [
-  "tools/aequorin/index.js",
-  "tools/boxplot/index.js",
-  "tools/heatmap/index.js",
-  "tools/lineplot/index.js",
-  "tools/scatter/index.js",
-  "tools/upset/index.js",
-  "tools/venn/index.js",
-  "tools/volcano/index.js",
-  "tools/molarity.js",
-  "tools/power.js",
-  "tools/version.js",
-];
+const compiledTools = ["tools/_app/index.js", "tools/version.js"];
 
 // Names declared at top-level of tools/shared.js, tools/stats.js, and the
 // tools/shared-*.js component files, consumed by tool .tsx files via <script>-tag globals.
@@ -42,7 +30,6 @@ const sharedGlobals = {
   roleColors: "readonly",
   isNumericValue: "readonly",
   seededRandom: "readonly",
-  makeExamplePlantCSV: "readonly",
   makeTicks: "readonly",
   makeLogTicks: "readonly",
   autoDetectSep: "readonly",

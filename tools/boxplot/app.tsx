@@ -57,9 +57,48 @@ const VIS_INIT_BOXPLOT = {
   categoryPalette: "okabe-ito",
 };
 
+// ── Bundled example dataset ──
+// Arabidopsis biomass × 3 genotypes × 3 treatments × 8 replicates = 72
+// rows. Effects are tuned so k=3 ANOVA + Tukey is meaningful, facet-by-
+// Treatment works, and group colours / filters / renames all have
+// something interesting to show. Generated once at module-eval time
+// from a seeded RNG so the example is reproducible across reloads —
+// same convention every other tool's app.tsx uses for its EXAMPLE_*
+// bundled-data const (heatmap's IIFE pattern; the literal CSV / TSV
+// strings in scatter / lineplot / aequorin / venn / upset / volcano).
+const EXAMPLE_CSV = (() => {
+  const rng = seededRandom(42);
+  // Box–Muller standard normal from the seeded uniform RNG.
+  const norm = () => {
+    const u = Math.max(rng(), 1e-9);
+    const v = rng();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  };
+  const genotypes = [
+    { name: "WT", base: 100 },
+    { name: "abi4", base: 96 },
+    { name: "oxSOS1", base: 128 },
+  ];
+  const treatments = [
+    { name: "control", delta: 0, sd: 8 },
+    { name: "drought", delta: -24, sd: 10 },
+    { name: "salt", delta: -5, sd: 9 },
+  ];
+  const lines = ["Genotype,Treatment,Replicate,Biomass_mg"];
+  for (const g of genotypes) {
+    for (const t of treatments) {
+      for (let r = 1; r <= 8; r++) {
+        const v = g.base + t.delta + norm() * t.sd;
+        lines.push(`${g.name},${t.name},${r},${v.toFixed(1)}`);
+      }
+    }
+  }
+  return lines.join("\n");
+})();
+
 /* ── Main App (orchestrator) ───────────────────────────────────────────────── */
 
-function App() {
+export function App() {
   const shell = usePlotToolState("boxplot", VIS_INIT_BOXPLOT);
   const {
     step,
@@ -282,10 +321,9 @@ function App() {
     [sepOverride, doParse, setFileName]
   );
   const loadExample = useCallback(() => {
-    const csv = makeExamplePlantCSV();
     setSepOverride(",");
     setFileName("example_plant_growth.csv");
-    doParse(csv, ",");
+    doParse(EXAMPLE_CSV, ",");
   }, [doParse, setFileName, setSepOverride]);
 
   // Inter-tool hand-off consumer. When the user clicks "↗ Open in Boxplot"
@@ -327,8 +365,20 @@ function App() {
       if (e.key !== "dataviz-handoff" || !e.newValue) return;
       apply(consumeHandoff("boxplot"));
     };
+    // Same-tab path under the SPA's keep-alive router: the `storage`
+    // event never fires for writes from this same tab, so the source
+    // tool dispatches a `plottr-handoff` CustomEvent right after
+    // localStorage.setItem. We listen for both to cover same-tab and
+    // cross-tab handoffs.
+    const onSameTabHandoff = () => {
+      apply(consumeHandoff("boxplot"));
+    };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener("plottr-handoff", onSameTabHandoff);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("plottr-handoff", onSameTabHandoff);
+    };
     // Mount-only effect: the inner `apply` references `doParse` and the
     // setters, but re-running this effect every time those change would
     // re-fire the storage listener registration and risk double-applying
@@ -1203,8 +1253,3 @@ function App() {
     </PlotToolShell>
   );
 }
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <ErrorBoundary toolName="Boxplot">
-    <App />
-  </ErrorBoundary>
-);

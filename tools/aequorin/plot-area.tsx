@@ -420,32 +420,20 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                           fileName: csvFileName.replace(/\.csv$/i, "") + "_boxplot.csv",
                         });
                       }
-                      // Two cases:
-                      // 1. Standalone tool page (user navigated directly
-                      //    to tools/aequorin.html): top-level navigate
-                      //    to the sibling boxplot.html. Browser back
-                      //    returns here.
-                      // 2. Iframe inside the landing page (index.html):
-                      //    postMessage to parent so its iframe-switcher
-                      //    (the same `openTool` channel Venn's UpSet
-                      //    nudge uses) can swap to the boxplot iframe,
-                      //    which is already mounted. Boxplot's mount-
-                      //    time consumer already ran and found nothing,
-                      //    so a storage-event listener over there picks
-                      //    up the write we just did to localStorage and
-                      //    consumes the payload reactively.
-                      if (window.parent !== window.self) {
-                        try {
-                          window.parent.postMessage(
-                            { type: "openTool", tool: "boxplot" },
-                            window.location.origin
-                          );
-                          return;
-                        } catch {
-                          /* fall through to top-level nav */
-                        }
+                      // Single shell-aware path: `navigateToTool` (from
+                      // tools/shared-handoff.js) prefers the SPA router
+                      // when registered (`window.__plottrSpaNavigate`),
+                      // and falls back to a top-level
+                      // `window.location.assign("boxplot.html")` for
+                      // legacy / standalone-page deploys. Either way,
+                      // Group Plot's mount-time `consumeHandoff()`
+                      // finds the localStorage payload we just wrote
+                      // and applies it.
+                      if (typeof navigateToTool === "function") {
+                        navigateToTool("boxplot");
+                      } else {
+                        window.location.assign("boxplot.html");
                       }
-                      window.location.assign("boxplot.html");
                     }}
                     className="dv-btn dv-btn-secondary"
                     // Match the sibling ⬇ CSV chip's vertical padding

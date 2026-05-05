@@ -6,7 +6,7 @@
 import { test, expect } from "@playwright/test";
 
 test("boxplot: load example → walk to plot → chart renders boxes", async ({ page }) => {
-  await page.goto("/tools/boxplot.html");
+  await page.goto("/index.html#/boxplot");
   await page.getByTestId("load-example").click();
 
   // The example uses wide format and the configure step pre-fills
