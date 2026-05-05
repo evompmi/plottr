@@ -229,11 +229,23 @@ When adding new functions to `shared.js`, `stats.js`, or any `shared-*.js` file,
 ## Benchmark suite
 
 ```bash
-npm run benchmark   # runs R reference suite then cross-validates against JS
+npm run benchmark         # full chain: R + JS + R-script-runs-in-Rscript + SciPy
+npm run benchmark:scipy   # SciPy cross-check only (regenerates fixture if python3+scipy on PATH)
 ```
 
-`benchmark/run-r.R` — computes reference values in R 4.5 for distributions, tests, and post-hocs.
-`benchmark/run.js` — Node script that loads `stats.js` and compares against the R output (`benchmark/results-r.json`). Any divergence > tolerance fails with a non-zero exit code.
+**Two complementary benchmarks**, mirroring two different audiences:
+
+- `benchmark/run-r.R` + `benchmark/run.js` — R 4.5 as the reference, on **real R built-in datasets** (iris, PlantGrowth, ToothGrowth, mtcars, ChickWeight, …). Public-facing trust artefact: results render as `benchmark.html` with per-category tables and red-on-fail rows. ~105 cases / ~303 numerical comparisons.
+- `benchmark/run-scipy.py` + `benchmark/run-scipy.js` — SciPy as the reference, on **synthetic targeted grids** specifically aimed at the (df, λ) regimes the R benchmark only touches indirectly: `nctcdf` at deep δ, `ncf_sf` and `ncchi2cdf` at large λ across the 500-threshold normal-approx short-circuit, `qtukey` at extreme (p, k, df) corners including the documented "pathological" df=1 envelope. ~847 cases / ~1080 comparisons. Contributor-facing: a CI-side numerical sanity check whose audience is people changing `tools/stats.js`, not end users.
+
+The SciPy benchmark uses a tighter classification than the R one because it deliberately probes the design envelope:
+- **pass** — within tolerance.
+- **deep-tail** — both values < 1e-13 (informational; below any user-facing precision).
+- **underflow** — SciPy reports < 1e-13, JS underflows to 0. Plöttr's Gauss-Legendre window has a documented precision floor; SciPy uses series / asymptotic forms that survive deeper.
+- **pathological** — `qtukey` at `df ≤ 2` with `p ≥ 0.95` and `k ≥ 10`. Source comment in `stats.js` explicitly calls these out as outside the implementation's design envelope.
+- **fail** — real disagreement. Exits 1.
+
+Both `run-r.R` and `run-scipy.py` pre-flight the relevant interpreter (Rscript / python3+scipy) and skip gracefully when missing. The checked-in `results-r.json` and `results-scipy.json` fixtures let the JS-side comparison run without either interpreter installed.
 
 ## Code style & conventions
 

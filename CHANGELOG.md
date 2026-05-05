@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **SciPy cross-check for the noncentral distributions and
+  `qtukey`.** New `benchmark/run-scipy.py` + `benchmark/run-scipy.js`
+  pair, modelled on the existing `run-r.R` + `run.js` pipeline. The
+  R benchmark probes `tools/stats.js` via real R built-in datasets
+  (iris / PlantGrowth / ToothGrowth / …) at moderate effect sizes,
+  but the Gauss-Legendre / Poisson-mixture engineering in `nctcdf`,
+  `ncf_sf`, `ncchi2cdf`, and `qtukey` is most fragile in regimes
+  the R bank doesn't reach: δ > 50 in nctcdf, λ > 500 in
+  ncf_sf / ncchi2cdf (the normal-approx short-circuit threshold),
+  and the doubling-bracket-expansion corner of qtukey at small df.
+  The SciPy script generates an 847-case grid (~1080 comparisons)
+  spanning those regimes, writes the reference to
+  `benchmark/results-scipy.json`, and the Node comparator runs the
+  same cases through `tools/stats.js` and classifies each into
+  `pass` / `deep-tail` (both < 1e-13, informational) / `underflow`
+  (Plöttr quadrature precision floor) / `pathological` (qtukey at
+  df ≤ 2 with extreme p+k, called out in the source) / `fail`.
+  Result: 0 failures across all 9 categories with 92 deep-tail and
+  1 pathological annotation. Tolerances calibrated to the design
+  envelope: 1e-6 relative for the central distributions
+  (norminv / tinv / fcdf / chi2cdf / chi2inv non-tail), 5 % relative
+  for noncentral routines and qtukey, factor-of-1.5 log-space for
+  noncentral deep tails. Wired as `npm run benchmark:scipy`
+  (standalone) and chained into `npm run benchmark`. Pre-flight
+  skips when python3+scipy aren't available; the checked-in fixture
+  keeps the JS-side comparison runnable on contributor laptops
+  without scipy. SciPy's `ncf.sf(f, d1, d2, 0)` returns -SF at the
+  central limit (a long-standing SciPy quirk), so the generator
+  routes λ=0 cases through `f.sf` directly; documented in the
+  Python script header. `benchmark/run-scipy.py` adds NaN filtering
+  before `json.dumps` because Node's JSON.parse refuses NaN
+  literals. Closes the §1.2 / point 8 gap of
+  `1.2.0_harsh_review.md`.
+
 ### Changed
 
 - **Component render-smoke tests now use real React 18 + happy-dom.**
