@@ -3098,36 +3098,57 @@ function compactLetterDisplay(pairs, k, alpha = 0.05) {
 
 // ── 13. Automatic test selection ────────────────────────────────────────────
 //
-// Runs the assumption checks and walks the decision tree the UI will offer
-// as the default pick (user can still override). Per-group Shapiro-Wilk for
-// normality, Brown-Forsythe Levene for homogeneity of variance, then:
+// Picks a default test for the user (overridable from the stats panel) and
+// returns the full diagnostic trace so they can see *why*.
 //
-//   k = 2:
-//     any group non-normal  → Mann-Whitney U  (no post-hoc)
-//     equal variance        → Student's t     (no post-hoc)
-//     unequal variance      → Welch's t       (no post-hoc)
+// Default policy — Welch by default:
 //
-//   k ≥ 3:
-//     any group non-normal  → Kruskal-Wallis + Dunn (BH)
-//     equal variance        → one-way ANOVA + Tukey HSD
-//     unequal variance      → Welch's ANOVA + Games-Howell
+//   k = 2  → Welch's t                      (no post-hoc)
+//   k ≥ 3  → Welch's ANOVA + Games-Howell
 //
-// Thresholds default to α = 0.05 for both assumption checks; caller can pass
-// `{ alphaNormality, alphaVariance }` to override. When a group has n < 3
-// Shapiro-Wilk can't run — we treat normality as unknown and conservatively
-// recommend the rank-based test.
+// Welch is unconditional. Shapiro-Wilk and Levene are still computed and
+// surfaced in the trace as **diagnostics** — they no longer gate the test
+// choice. When SW flags one or more groups as non-normal we add a
+// `suggestion` ("consider Mann-Whitney / Kruskal-Wallis"), but the
+// recommendation itself stays Welch.
 //
-// **Caveat on per-group Shapiro-Wilk at α = 0.05:** running Shapiro on each
-// of k groups inflates the family-wise false-positive rate to roughly
-// 1 − (1 − α)^k. With k = 5 groups the chance of falsely declaring at least
-// one group "non-normal" is ~23 % even when all five are perfectly normal,
-// which biases this auto-selector toward Kruskal-Wallis. ANOVA is robust to
-// modest non-normality, so this conservative bias is by design — but users
-// who already know their data are normal can loosen `alphaNormality` (e.g.
-// 0.01) to reduce the inflation, or override the test pick directly. R's
-// pooled approach would be to test the residuals of the fitted model rather
-// than each group separately; we don't do that here because the auto-pick
-// is an entry-point heuristic, not a publication-grade decision rule.
+// Why Welch by default (and why we *don't* pre-screen with Shapiro):
+//
+//   1. Pre-testing for normality with SW and routing on the result is a
+//      known anti-pattern. Schucany & Ng (2006), Rasch et al. (2011),
+//      Zimmerman (2004) all show that the conditional procedure
+//      (SW → t / MWU) inflates Type I error and reduces power compared to
+//      using Welch's t unconditionally. The original review of this code
+//      (1.2.0_harsh_review.md §1.1) flagged this exact issue.
+//   2. Welch's t / Welch ANOVA *is* the equal-variance procedure when
+//      variances really are equal — the conservative bias is small. When
+//      variances differ it is strictly better than Student / one-way
+//      ANOVA. Defaulting to it is a free improvement on the equal-variance
+//      case and a real improvement on the unequal-variance case.
+//   3. Per-group Shapiro at α = 0.05 inflates the family-wise FPR to
+//      ~1 − (1 − α)^k (~23 % at k = 5 with everything genuinely normal).
+//      Removing it from the gate eliminates that bias entirely.
+//
+// Why we still compute SW + Levene at all:
+//
+//   • The decision trace shows them so the user can see the data shape.
+//   • For genuinely heavy-tailed data, the user has a real reason to switch
+//     to Mann-Whitney / Kruskal-Wallis. We surface that as a *suggestion*
+//     (`suggestion.test = "mannWhitney" | "kruskalWallis"`) rather than
+//     forcing it — they override from the stats panel's per-test dropdown.
+//   • The α = 0.05 / α = 0.05 thresholds are still tuneable via
+//     `{ alphaNormality, alphaVariance }` for callers who want a stricter
+//     diagnostic flag, but they no longer change the default test.
+//
+// Returns: { k, normality, allNormal, levene, recommendation, suggestion? }
+//
+//   - `recommendation.test`  — the test the auto-pick will run.
+//   - `recommendation.reason` — multi-sentence explanation: what was picked,
+//                              what the diagnostics found, why Welch is
+//                              default, how to override.
+//   - `suggestion`           — present only when SW flags non-normal data;
+//                              names a non-parametric alternative the user
+//                              may want to switch to manually.
 function selectTest(groups, opts = {}) {
   const alphaN = opts.alphaNormality != null ? opts.alphaNormality : 0.05;
   const alphaV = opts.alphaVariance != null ? opts.alphaVariance : 0.05;
@@ -3136,6 +3157,7 @@ function selectTest(groups, opts = {}) {
     return { error: "≥2 groups required", k };
   }
 
+  // ── Diagnostics (no longer gates) ──
   const normality = groups.map((g, i) => {
     if (g.length < 3) {
       return { group: i, n: g.length, W: null, p: null, normal: null, note: "n<3" };
@@ -3147,45 +3169,63 @@ function selectTest(groups, opts = {}) {
     return { group: i, n: g.length, W: sw.W, p: sw.p, normal: sw.p >= alphaN };
   });
   const allKnownNormal = normality.every((r) => r.normal === true);
-  const anyNonNormal = normality.some((r) => r.normal === false || r.normal === null);
+  const flagged = normality.filter((r) => r.normal === false);
+  const anyFlagged = flagged.length > 0;
 
   const lev = leveneTest(groups);
   const equalVar = lev.error ? null : lev.p >= alphaV;
 
-  let test, postHoc, reason;
-  if (anyNonNormal || !allKnownNormal) {
-    if (k === 2) {
-      test = "mannWhitney";
-      postHoc = null;
-      reason = "At least one group is not normally distributed (Shapiro-Wilk p < α).";
-    } else {
-      test = "kruskalWallis";
-      postHoc = "dunn";
-      reason = "At least one group is not normally distributed (Shapiro-Wilk p < α).";
+  // ── Default pick: Welch unconditionally ──
+  const test = k === 2 ? "welchT" : "welchANOVA";
+  const postHoc = k === 2 ? null : "gamesHowell";
+
+  // ── Reason text — explain the policy and the diagnostics ──
+  const baseDefault =
+    k === 2
+      ? "Default pick: Welch's t-test. Welch's t is the recommended default for two independent groups (Rasch, Kubinger & Moder 2011; Zimmerman 2004) — it does not assume equal variances and matches Student's t closely when variances are in fact equal."
+      : "Default pick: Welch's ANOVA with Games-Howell post-hoc. Welch's ANOVA is the recommended default for k ≥ 3 independent groups (Delacre et al. 2019; Rasch et al. 2011) — it does not assume equal variances across groups and matches one-way ANOVA closely when variances are in fact equal.";
+
+  // Brief diagnostic narrative — what SW + Levene actually say on this data.
+  const swNarrative = (() => {
+    if (flagged.length === 0 && allKnownNormal) {
+      return "Shapiro-Wilk did not reject normality in any group at α = " + alphaN + ".";
     }
-  } else if (equalVar === false) {
-    if (k === 2) {
-      test = "welchT";
-      postHoc = null;
-      reason = "Groups are normal but variances differ (Levene p < α).";
-    } else {
-      test = "welchANOVA";
-      postHoc = "gamesHowell";
-      reason = "Groups are normal but variances differ (Levene p < α).";
+    if (flagged.length > 0) {
+      const labels = flagged
+        .map((r) => `group ${r.group + 1} (W=${r.W.toFixed(3)}, p=${formatP(r.p)})`)
+        .join(", ");
+      return `Shapiro-Wilk flagged ${flagged.length} of ${k} group(s) as non-normal at α = ${alphaN}: ${labels}.`;
     }
-  } else {
-    if (k === 2) {
-      test = "studentT";
-      postHoc = null;
-      reason = "Both groups are normal with equal variance.";
-    } else {
-      test = "oneWayANOVA";
-      postHoc = "tukeyHSD";
-      reason = "All groups are normal with equal variance.";
-    }
+    // No flagged normal=false but at least one normal=null (n<3 or SW couldn't run).
+    return "Shapiro-Wilk could not run on every group (n < 3 in at least one).";
+  })();
+
+  const levNarrative = lev.error
+    ? `Levene (Brown-Forsythe) could not run: ${lev.error}.`
+    : equalVar === false
+      ? `Levene (Brown-Forsythe) rejected equal variances (F=${lev.F.toFixed(3)}, p=${formatP(lev.p)}); Welch handles this without further intervention.`
+      : `Levene (Brown-Forsythe) did not reject equal variances (F=${lev.F.toFixed(3)}, p=${formatP(lev.p)}); Welch is still the safe default and matches the equal-variance test closely here.`;
+
+  // Optional non-parametric suggestion when SW flags real non-normality.
+  let suggestion = null;
+  let suggestionNarrative = "";
+  if (anyFlagged) {
+    suggestion = {
+      test: k === 2 ? "mannWhitney" : "kruskalWallis",
+      postHoc: k === 2 ? null : "dunn",
+      reason:
+        "Shapiro-Wilk flagged at least one group as non-normal. Plöttr keeps Welch as the default (pre-screening with SW is a known anti-pattern) but a rank-based test may be more appropriate for genuinely heavy-tailed data.",
+    };
+    suggestionNarrative =
+      ` If the non-normality looks substantive (heavy tails, strong skew, ordinal data), consider switching to ${suggestion.test === "mannWhitney" ? "Mann-Whitney U" : "Kruskal-Wallis + Dunn (BH)"} from the test dropdown.`;
   }
 
-  return {
+  const overrideHint =
+    " You can override this pick from the stats panel's per-test dropdown; the trace below shows the diagnostics the recommendation is based on.";
+
+  const reason = `${baseDefault} ${swNarrative} ${levNarrative}${suggestionNarrative}${overrideHint}`;
+
+  const out = {
     k,
     normality,
     allNormal: allKnownNormal,
@@ -3194,6 +3234,8 @@ function selectTest(groups, opts = {}) {
       : { F: lev.F, df1: lev.df1, df2: lev.df2, p: lev.p, equalVar },
     recommendation: { test, postHoc, reason },
   };
+  if (suggestion) out.suggestion = suggestion;
+  return out;
 }
 
 // Map a p-value to the 4-level significance stars used on plots.
@@ -8695,6 +8737,7 @@ function StatsTile({
     recommendation && recommendation.recommendation && recommendation.recommendation.test;
   const recReason =
     recommendation && recommendation.recommendation && recommendation.recommendation.reason;
+  const suggestion = recommendation && recommendation.suggestion;
   const testPicker = React.createElement(
     "div",
     { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } },
@@ -8737,6 +8780,49 @@ function StatsTile({
         recReason
       )
     : null;
+
+  const suggestionLine =
+    suggestion && chosenTest !== suggestion.test
+      ? React.createElement(
+          "div",
+          {
+            style: {
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+              marginTop: 6,
+              padding: "6px 10px",
+              background: "var(--info-bg)",
+              border: "1px solid var(--info-border)",
+              borderRadius: 6,
+              fontSize: 11,
+              color: "var(--info-text)",
+            },
+          },
+          React.createElement("span", { style: { fontWeight: 700 } }, "Suggested alternative:"),
+          React.createElement(
+            "span",
+            null,
+            "Shapiro-Wilk flagged non-normal data — consider ",
+            React.createElement(
+              "strong",
+              null,
+              STATS_LABELS[suggestion.test] || suggestion.test
+            ),
+            "."
+          ),
+          React.createElement(
+            "button",
+            {
+              onClick: () => setOverrideTest(suggestion.test),
+              className: "dv-btn dv-btn-secondary",
+              style: { padding: "4px 10px", fontSize: 11, marginLeft: "auto" },
+            },
+            "Use suggestion"
+          )
+        )
+      : null;
 
   const resultLine = React.createElement(
     "div",
@@ -8901,6 +8987,7 @@ function StatsTile({
       React.createElement("div", { style: subhead }, "Test"),
       testPicker,
       reasonLine,
+      suggestionLine,
       resultLine,
       postHocBlock,
       powerBlock

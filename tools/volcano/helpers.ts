@@ -1,6 +1,10 @@
 // Pure helpers for the Volcano tool. All exports are deterministic, no
-// React, no DOM, no globals — exactly what tests/helpers/volcano-loader.js
-// needs to load under vm.runInContext for direct unit-testing.
+// React, no DOM, and no shared-bundle globals **except** through the
+// `isNumericValue` / `toNumericValue` pair already declared in
+// types/globals.d.ts (and pre-loaded into the test vm context by
+// tests/helpers/volcano-loader.js). Same boundary every other tool's
+// helpers.ts honours — TypeScript compiles standalone, the loader picks
+// up the shared script-tag globals.
 //
 // The volcano shape is dead simple: each input row is one feature with a
 // log2-fold-change ("log2FC") and a p-value. We classify each row into
@@ -910,4 +914,63 @@ export function buildSizeMap(
     byIdx.set(idx, minR + t * (maxR - minR));
   }
   return { byIdx, vmin, vmax, minR, maxR };
+}
+
+// ── Row → VolcanoPoint pull ────────────────────────────────────────────
+//
+// Boundary between Plöttr's parseData() output (a 2-D string array
+// indexed by column) and the typed `VolcanoPoint[]` shape every
+// downstream consumer (chart, summary, label search, colour/size maps)
+// operates on. Skips rows where x or y is null / "" (NA placeholders);
+// non-numeric x/y falls through as NaN so the chart filters at draw time
+// rather than failing at ingest. Trims trailing whitespace from label
+// cells so a sloppy `"AT1G01010 "` still matches an exact-match search.
+export function buildPoints(
+  rawData: string[][],
+  xCol: number,
+  yCol: number,
+  labelCol: number
+): VolcanoPoint[] {
+  const out: VolcanoPoint[] = [];
+  for (let i = 0; i < rawData.length; i++) {
+    const row = rawData[i];
+    const xRaw = row[xCol];
+    const yRaw = row[yCol];
+    if (xRaw == null || yRaw == null || xRaw === "" || yRaw === "") continue;
+    const log2fc = isNumericValue(xRaw) ? toNumericValue(xRaw) : NaN;
+    const p = isNumericValue(yRaw) ? toNumericValue(yRaw) : NaN;
+    const labelRaw =
+      labelCol >= 0 && row[labelCol] != null && row[labelCol] !== ""
+        ? String(row[labelCol])
+        : null;
+    const label = labelRaw == null ? null : labelRaw.trim() || null;
+    out.push({ idx: i, log2fc, p, label });
+  }
+  return out;
+}
+
+// ── Eligible-columns filter for aesthetic mapping tiles ────────────────
+//
+// Aesthetic mappings (Color / Size) can use any column NOT already bound
+// to a primary role (x or y). The label column is allowed (a user might
+// want to colour by gene name AND show those names — fine, the chart
+// will just colour each labelled point with its discrete colour).
+// `labelCol` stays in the signature so callers can pass it without
+// thinking; it's ignored on purpose.
+//
+// `parsed: any` matches the convention every other tool uses for the
+// parseData() output bag: only `parsed.headers` is read here, and the
+// canonical ParseDataResult typing lives in types/globals.d.ts where
+// React-tier files pick it up.
+export function eligibleColumns(
+  parsed: any,
+  xCol: number,
+  yCol: number,
+  labelCol: number
+): { h: string; i: number }[] {
+  void labelCol;
+  const used = new Set<number>([xCol, yCol]);
+  return (parsed?.headers || [])
+    .map((h: string, i: number) => ({ h, i }))
+    .filter(({ i }: { i: number }) => !used.has(i));
 }

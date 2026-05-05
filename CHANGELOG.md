@@ -9,6 +9,100 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Volcano tool finishes the v1.2.0 folder-split convention.**
+  `tools/volcano/index.tsx` was an outlier at 1,689 lines holding the
+  App orchestrator, two step components (Configure / Plot), seven
+  sidebar tiles (Thresholds / Colors / ColorMap / SizeMap / Labels /
+  Style / Summary), the `VolcanoAesBox` primitive, the `ControlSection`
+  collapsible, the `ToggleRow` segmented picker, the `LabelSearchRow`
+  debounced match preview, the `PaletteStrip` preview, and several
+  helper functions. Split to mirror boxplot / scatter:
+  `controls.tsx` (881 lines) holds every tile + the AesBox / ToggleRow
+  / ControlSection primitives; `steps.tsx` (337 lines) holds
+  `ConfigureStep` + `PlotStep`; `helpers.ts` gains `buildPoints` (the
+  parseData-row-array → `VolcanoPoint[]` boundary) and
+  `eligibleColumns` (Color/Size mapping candidate filter).
+  `index.tsx` lands at 435 lines: imports, `VIS_INIT_VOLCANO`, `App()`,
+  ReactDOM mount — same shape every other plot tool already has. No
+  user-visible behaviour change. Pure helpers exposed through
+  `tests/helpers/volcano-loader.js`; +10 unit tests in
+  `tests/volcano.test.js` pin the new helper exports.
+
+### Added
+
+- **`recommendation.suggestion` rendered in every stats panel.** When
+  Shapiro-Wilk flags non-normality at α = 0.05, `selectTest` returns a
+  sibling `suggestion` field naming Mann-Whitney (k=2) or
+  Kruskal-Wallis + Dunn (k≥3). Boxplot, RLU timecourse (aequorin), Line
+  Plot, and the legacy shared StatsTile now show this as a themed
+  `--info-bg` info banner under the recommendation reason: "Suggested
+  alternative — Shapiro-Wilk flagged non-normal data, consider
+  *Mann-Whitney U*. [Use suggestion]". Clicking **Use suggestion**
+  flips the per-set test override the same way the dropdown would; the
+  banner disappears once selected. No banner is shown when the chosen
+  test already matches the suggestion (so the user isn't nagged after
+  acting). +3 render-smoke tests pinning the k=2 / k=3 / no-banner
+  paths.
+
+### Changed
+
+- **Auto-pick default switched to Welch unconditionally; Shapiro-Wilk
+  and Levene downgraded to diagnostics.** `selectTest` in `tools/stats.js`
+  now recommends Welch's t (`k = 2`) or Welch's ANOVA + Games-Howell
+  (`k ≥ 3`) regardless of the SW / Levene outcomes. The previous gated
+  rule tree (`SW p < α → Mann-Whitney / Kruskal-Wallis; Levene p < α →
+  Welch; else Student / one-way ANOVA`) is replaced because pre-screening
+  for normality with SW and routing on the result is a known
+  Type I-error-inflating anti-pattern (Schucany & Ng 2006; Zimmerman
+  2004; Rasch, Kubinger & Moder 2011; Delacre et al. 2019). SW + Levene
+  are still computed and shown in the decision trace; when SW flags
+  non-normal data the trace adds a `suggestion` pointing at
+  Mann-Whitney / Kruskal-Wallis, but the recommendation itself stays
+  Welch — the user picks any of {Student t, Welch t, Mann-Whitney} or
+  {one-way ANOVA, Welch ANOVA, Kruskal-Wallis} from the stats panel's
+  per-test dropdown if they want a different test. The `reason` text
+  on every recommendation now spells out (a) what was picked, (b) what
+  the diagnostics found, (c) why Welch is the default, and (d) where
+  to override. Equal-variance / normal data still get a Welch result
+  that matches Student / one-way ANOVA closely (Welch is conservative,
+  not different); unequal-variance data are now correct by default
+  instead of routed away from the issue. R-script export tracks whatever
+  test was actually run, so reproducibility is unchanged. Regression:
+  10 selectTest tests rewritten in `tests/stats.test.js`.
+
+- **CLAUDE.md resynced with the v1.2.0 codebase.** The Project
+  Overview, Tool structure, Tool-internal structure, `_shell/` scaffold,
+  Running Tests, Test helpers, Landing-page test counter, CI checks, and
+  Pre-commit hook sections all referenced the pre-split single-file
+  layout (`tools/<tool>.tsx`, "seven plot tools", "all six test files"
+  etc.). Updated to reflect the actual folder-per-plot-tool layout
+  (`tools/<tool>/index.tsx` + sibling `chart.tsx` / `controls.tsx` /
+  `steps.tsx` / `helpers.ts`), the eight plot tools (volcano added in
+  1.1.0), the calculators-stay-single-file carve-out, and the auto-bump
+  semantics for the landing-page test counter. No code change.
+
+- **README no longer hard-codes the test count.** The "Statistical
+  validation" paragraph and the `npm test` example in the Development
+  block both said "891 tests" — but `scripts/bump-test-count.js`
+  (posttest hook) only rewrites the landing-page badge in `index.html`,
+  so the README drifted on every test addition. README now points at
+  the auto-bumped landing-page badge as the source of truth and
+  describes the suite without a number; one less place to drift.
+
+### Removed
+
+- **Zenodo DOI references dropped from the README + `THIRD_PARTY.md`.**
+  README's `Citing` section no longer says "A Zenodo DOI will be minted
+  on tagged releases" — the deposit isn't on the near-term roadmap, so
+  carrying the promise was a stale commitment readers were entitled to
+  hold the project to. `THIRD_PARTY.md`'s lede drops the "Zenodo or
+  peer reviewer" framing and keeps just "peer reviewer". Licensing
+  paperwork (`LICENSE`, `vendor/LICENSE-react.txt`, `THIRD_PARTY.md`)
+  stays exactly as-is — the prep work remains valid whenever a deposit
+  is wanted later.
+
+### Changed
+
 - **HowTo tile content lifted out of every long file into a uniform
   shared component.** New `tools/_shell/HowTo.tsx` renders a fixed
   three-card layout (Purpose / Data layout / Display, plus optional

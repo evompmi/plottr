@@ -79,4 +79,6 @@ module.exports = {
   buildColorMap: moduleObj.exports.buildColorMap,
   buildSizeMap: moduleObj.exports.buildSizeMap,
   matchPointsByLabel: moduleObj.exports.matchPointsByLabel,
+  buildPoints: moduleObj.exports.buildPoints,
+  eligibleColumns: moduleObj.exports.eligibleColumns,
 };

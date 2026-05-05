@@ -23,6 +23,8 @@ const {
   buildColorMap,
   buildSizeMap,
   matchPointsByLabel,
+  buildPoints,
+  eligibleColumns,
   interpolateColor,
   COLOR_PALETTES,
   PALETTE,
@@ -812,6 +814,105 @@ test("labelLowerCache override is respected when correctly sized", () => {
   const r = matchPointsByLabel(SEARCH_POINTS, "AT1G", cache);
   // idx 0 should NOT match because cache[0] doesn't contain "at1g" lowercase
   eq(r.matched, [1]);
+});
+
+// ── buildPoints (row → VolcanoPoint pull) ──────────────────────────────
+
+suite("volcano helpers — buildPoints");
+
+test("converts numeric x/y rows to VolcanoPoint shape", () => {
+  const rawData = [
+    ["geneA", "2.5", "0.001"],
+    ["geneB", "-1.8", "0.04"],
+  ];
+  const out = buildPoints(rawData, /*x*/ 1, /*y*/ 2, /*label*/ 0);
+  eq(out, [
+    { idx: 0, log2fc: 2.5, p: 0.001, label: "geneA" },
+    { idx: 1, log2fc: -1.8, p: 0.04, label: "geneB" },
+  ]);
+});
+
+test("skips rows with null/empty x or y (NA placeholders)", () => {
+  const rawData = [
+    ["geneA", "2.5", "0.001"],
+    ["geneB", "", "0.04"],
+    ["geneC", "1.2", ""],
+    ["geneD", "0.5", "0.5"],
+  ];
+  const out = buildPoints(rawData, 1, 2, 0);
+  eq(out.length, 2);
+  eq(out[0].idx, 0);
+  eq(out[1].idx, 3);
+});
+
+test("non-numeric x/y → NaN (chart filters at draw time, not here)", () => {
+  const rawData = [["geneA", "not-a-number", "abc"]];
+  const out = buildPoints(rawData, 1, 2, 0);
+  eq(out.length, 1);
+  assert(Number.isNaN(out[0].log2fc), "x should be NaN");
+  assert(Number.isNaN(out[0].p), "y should be NaN");
+});
+
+test("trims trailing whitespace from sloppy label cells", () => {
+  const rawData = [["AT1G01010 ", "2", "0.001"]];
+  const out = buildPoints(rawData, 1, 2, 0);
+  eq(out[0].label, "AT1G01010");
+});
+
+test("labelCol = -1 produces null label", () => {
+  const rawData = [["geneA", "2", "0.001"]];
+  const out = buildPoints(rawData, 1, 2, -1);
+  eq(out[0].label, null);
+});
+
+test("preserves the original row index in idx", () => {
+  const rawData = [
+    ["geneA", "", "0.001"],
+    ["geneB", "1.5", "0.04"],
+    ["geneC", "2.0", "0.01"],
+  ];
+  const out = buildPoints(rawData, 1, 2, 0);
+  // geneA dropped; geneB and geneC keep their original indices.
+  eq(
+    out.map((p) => p.idx),
+    [1, 2]
+  );
+});
+
+// ── eligibleColumns (Color/Size mapping candidates) ────────────────────
+
+suite("volcano helpers — eligibleColumns");
+
+test("excludes the x and y columns; includes label and other columns", () => {
+  const parsed = { headers: ["gene", "log2FC", "padj", "baseMean"] };
+  const out = eligibleColumns(parsed, /*x*/ 1, /*y*/ 2, /*label*/ 0);
+  eq(out, [
+    { h: "gene", i: 0 },
+    { h: "baseMean", i: 3 },
+  ]);
+});
+
+test("with no label column, still excludes only x/y", () => {
+  const parsed = { headers: ["A", "B", "C", "D"] };
+  const out = eligibleColumns(parsed, 0, 1, -1);
+  eq(out, [
+    { h: "C", i: 2 },
+    { h: "D", i: 3 },
+  ]);
+});
+
+test("preserves the original index ordering", () => {
+  const parsed = { headers: ["a", "b", "c", "d", "e"] };
+  const out = eligibleColumns(parsed, 2, 4, -1);
+  eq(
+    out.map((c) => c.i),
+    [0, 1, 3]
+  );
+});
+
+test("null/missing parsed → empty list (defensive)", () => {
+  eq(eligibleColumns(null, 0, 1, -1), []);
+  eq(eligibleColumns({}, 0, 1, -1), []);
 });
 
 summary();

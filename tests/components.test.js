@@ -930,6 +930,67 @@ test("open render on k=3 shows post-hoc table", function () {
   assert(str.indexOf("trt1 vs trt2") >= 0, "should list trt1 vs trt2 pair");
 });
 
+test("non-normal data — suggestion pill + Use suggestion button render (k=2)", function () {
+  resetSC();
+  // Heavy-skewed data → selectTest (Welch by default) attaches a
+  // `suggestion` field naming Mann-Whitney. The tile must surface it.
+  var skewedA = [0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 1.5, 3.0, 6.0, 12.0, 25.0];
+  var skewedB = [0.2, 0.3, 0.4, 0.6, 0.9, 1.2, 2.0, 4.0, 8.0, 15.0, 30.0];
+  var el = sc.StatsTile({
+    groups: [
+      { name: "A", values: skewedA },
+      { name: "B", values: skewedB },
+    ],
+    onAnnotationsChange: noop,
+    defaultOpen: true,
+  });
+  var str = JSON.stringify(el);
+  assert(str.indexOf("Suggested alternative") >= 0, "should render the Suggestion banner");
+  assert(str.indexOf("Use suggestion") >= 0, "should render the Use-suggestion button");
+  assert(str.indexOf("Mann-Whitney U") >= 0, "should name Mann-Whitney as the suggested test");
+});
+
+test("non-normal data — suggestion pill names Kruskal-Wallis (k=3)", function () {
+  resetSC();
+  // Three groups with one extreme outlier each → SW flags non-normal in
+  // every group; selectTest still recommends Welch ANOVA but adds a
+  // Kruskal-Wallis suggestion.
+  var skA = [1, 1, 1, 1, 1, 1, 1, 1, 1, 20];
+  var skB = [2, 2, 2, 2, 2, 2, 2, 2, 2, 25];
+  var skC = [3, 3, 3, 3, 3, 3, 3, 3, 3, 30];
+  var el = sc.StatsTile({
+    groups: [
+      { name: "A", values: skA },
+      { name: "B", values: skB },
+      { name: "C", values: skC },
+    ],
+    onAnnotationsChange: noop,
+    defaultOpen: true,
+  });
+  var str = JSON.stringify(el);
+  assert(str.indexOf("Suggested alternative") >= 0, "should render the Suggestion banner");
+  assert(str.indexOf("Kruskal-Wallis") >= 0, "should name Kruskal-Wallis as the suggested test");
+});
+
+test("normal data — no suggestion banner (k=2)", function () {
+  resetSC();
+  var normA = [4.9, 5.1, 5.0, 5.2, 4.8, 5.1, 4.9, 5.0, 5.2, 4.9];
+  var normB = [5.9, 6.1, 6.0, 6.2, 5.8, 6.1, 5.9, 6.0, 6.2, 5.9];
+  var el = sc.StatsTile({
+    groups: [
+      { name: "A", values: normA },
+      { name: "B", values: normB },
+    ],
+    onAnnotationsChange: noop,
+    defaultOpen: true,
+  });
+  var str = JSON.stringify(el);
+  assert(
+    str.indexOf("Suggested alternative") === -1,
+    "should not render the Suggestion banner on normal data"
+  );
+});
+
 // ════════════════════════════════════════════════════════════════════════════
 //  assignBracketLevels — stacking layout for overlapping significance pairs
 // ════════════════════════════════════════════════════════════════════════════

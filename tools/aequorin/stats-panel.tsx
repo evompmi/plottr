@@ -34,6 +34,7 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) 
   const rec = row.rec || {};
   const recReason = rec.recommendation && rec.recommendation.reason;
   const recTest = rec.recommendation && rec.recommendation.test;
+  const suggestion = rec.suggestion || null;
   const testOptions = k === 2 ? TEST_OPTIONS_AQ_2 : TEST_OPTIONS_AQ_K;
 
   const subhead: React.CSSProperties = {
@@ -198,6 +199,40 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) 
           style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", marginBottom: 6 }}
         >
           {recReason}
+        </div>
+      )}
+      {suggestion && row.chosenTest !== suggestion.test && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+            padding: "6px 10px",
+            marginBottom: 6,
+            background: "var(--info-bg)",
+            border: "1px solid var(--info-border)",
+            borderRadius: 6,
+            fontSize: 11,
+            color: "var(--info-text)",
+          }}
+        >
+          <span style={{ fontWeight: 700 }}>Suggested alternative:</span>
+          <span>
+            Shapiro-Wilk flagged non-normal data — consider{" "}
+            <strong>{TEST_LABELS_AQ[suggestion.test] || suggestion.test}</strong>.
+          </span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOverrideTest && onOverrideTest(suggestion.test);
+            }}
+            className="dv-btn dv-btn-secondary"
+            style={{ padding: "2px 8px", fontSize: 10, marginLeft: "auto" }}
+          >
+            Use suggestion
+          </button>
         </div>
       )}
       <div

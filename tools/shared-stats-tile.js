@@ -925,6 +925,7 @@ function StatsTile({
     recommendation && recommendation.recommendation && recommendation.recommendation.test;
   const recReason =
     recommendation && recommendation.recommendation && recommendation.recommendation.reason;
+  const suggestion = recommendation && recommendation.suggestion;
   const testPicker = React.createElement(
     "div",
     { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } },
@@ -967,6 +968,49 @@ function StatsTile({
         recReason
       )
     : null;
+
+  const suggestionLine =
+    suggestion && chosenTest !== suggestion.test
+      ? React.createElement(
+          "div",
+          {
+            style: {
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+              marginTop: 6,
+              padding: "6px 10px",
+              background: "var(--info-bg)",
+              border: "1px solid var(--info-border)",
+              borderRadius: 6,
+              fontSize: 11,
+              color: "var(--info-text)",
+            },
+          },
+          React.createElement("span", { style: { fontWeight: 700 } }, "Suggested alternative:"),
+          React.createElement(
+            "span",
+            null,
+            "Shapiro-Wilk flagged non-normal data — consider ",
+            React.createElement(
+              "strong",
+              null,
+              STATS_LABELS[suggestion.test] || suggestion.test
+            ),
+            "."
+          ),
+          React.createElement(
+            "button",
+            {
+              onClick: () => setOverrideTest(suggestion.test),
+              className: "dv-btn dv-btn-secondary",
+              style: { padding: "4px 10px", fontSize: 11, marginLeft: "auto" },
+            },
+            "Use suggestion"
+          )
+        )
+      : null;
 
   const resultLine = React.createElement(
     "div",
@@ -1131,6 +1175,7 @@ function StatsTile({
       React.createElement("div", { style: subhead }, "Test"),
       testPicker,
       reasonLine,
+      suggestionLine,
       resultLine,
       postHocBlock,
       powerBlock
