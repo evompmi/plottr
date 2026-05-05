@@ -75,6 +75,20 @@ export function ConfigureStep({
     } catch {
       /* storage disabled — fall back to opening UpSet without the data */
     }
+    // Notify same-tab consumers. Under the SPA's keep-alive routing,
+    // UpSet may already be mounted from an earlier visit, in which
+    // case its mount-time sessionStorage read happened long ago and
+    // won't fire again. Dispatching a synchronous CustomEvent gives
+    // the already-mounted UpSet a chance to re-read the sessionStorage
+    // key. If UpSet hasn't been visited yet, no listener is attached
+    // and the mount-time path picks up the payload after navigation.
+    try {
+      window.dispatchEvent(
+        new CustomEvent("plottr-handoff", { detail: { key: "dataviz-upset-handoff" } })
+      );
+    } catch {
+      /* swallow */
+    }
     if (typeof navigateToTool === "function") {
       navigateToTool("upset");
     } else {

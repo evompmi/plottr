@@ -486,23 +486,39 @@ export function App() {
   );
 
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("dataviz-upset-handoff");
-      if (raw) {
+    const consume = () => {
+      try {
+        const raw = sessionStorage.getItem("dataviz-upset-handoff");
+        if (!raw) return;
         sessionStorage.removeItem("dataviz-upset-handoff");
         handleHandoff(JSON.parse(raw));
+      } catch {
+        /* storage disabled — handoff just won't fire */
       }
-    } catch {
-      /* storage disabled — handoff just won't fire */
-    }
+    };
+    // Mount-time path: UpSet boots after a top-level navigation /
+    // first SPA visit and finds the payload Venn just wrote.
+    consume();
+    // Same-tab path under keep-alive: UpSet was already mounted from
+    // an earlier visit, so the mount-time read happened with empty
+    // storage. Venn now dispatches `plottr-handoff` right after the
+    // sessionStorage write so we can re-consume.
+    const onSameTabHandoff = () => consume();
+    // Legacy iframe-shell path: kept defensively in case any old
+    // entry-point still postMessages the same payload shape. Inert in
+    // the SPA today.
     const onMessage = (e: MessageEvent) => {
       if (!e || e.origin !== window.location.origin) return;
       const d = e.data;
       if (!d || d.type !== "dataviz-handoff") return;
       handleHandoff(d);
     };
+    window.addEventListener("plottr-handoff", onSameTabHandoff);
     window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
+    return () => {
+      window.removeEventListener("plottr-handoff", onSameTabHandoff);
+      window.removeEventListener("message", onMessage);
+    };
   }, [handleHandoff]);
 
   const resetAll = () => {

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Venn → UpSet hand-off was silently dropped under keep-alive when
+  UpSet had been visited earlier in the session.** UpSet uses its own
+  `sessionStorage["dataviz-upset-handoff"]` channel (separate from the
+  `localStorage["dataviz-handoff"]` path that powers RLU → Group Plot)
+  and only read it once, on mount. With the SPA's keep-alive routing,
+  a previously-visited UpSet was already mounted with its mount-time
+  read long since done. Venn now also dispatches the same
+  `plottr-handoff` CustomEvent introduced for the boxplot consumer,
+  and UpSet listens for it and re-reads the sessionStorage payload.
+  Mount-time path stays in place for the first-visit case.
+
 ### Changed
 
 - **SPA tab-style state preservation.** Navigating between tools
