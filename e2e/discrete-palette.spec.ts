@@ -30,7 +30,7 @@ async function loadExampleAndOpenPlot(page: Page) {
 
 for (const { tool, section } of TOOLS) {
   test(`${tool}: discrete-palette dropdown is wired up`, async ({ page }) => {
-    await page.goto(`/tools/${tool}.html`);
+    await page.goto(`/index.html#/${tool}`);
     await loadExampleAndOpenPlot(page);
 
     // Open the section that hosts the palette select. Some sections

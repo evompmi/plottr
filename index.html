@@ -628,7 +628,7 @@
             href="benchmark.html"
             class="trust-badge"
             data-benchmark-link
-            title="1056 internal tests, 303 cross-checks vs R 4.5"
+            title="1046 internal tests, 303 cross-checks vs R 4.5"
           >
             <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
               <path
@@ -921,7 +921,7 @@
         </div>
       </div>
       <div class="landing-header">
-        <p>1056 internal tests</p>
+        <p>1046 internal tests</p>
         <p>303 cross-checks vs R 4.5</p>
         <p><a href="benchmark.html" data-benchmark-link>view benchmark →</a></p>
       </div>
@@ -937,8 +937,16 @@
     <!-- Vendored React + ReactDOM + the shared bundle, then the SPA
          entry. Same load order every per-tool HTML used to do, just
          consolidated onto a single page. -->
-    <script src="vendor/react.production.min.js"></script>
-    <script src="vendor/react-dom.production.min.js"></script>
+    <script
+      src="vendor/react.production.min.js"
+      integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="vendor/react-dom.production.min.js"
+      integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1"
+      crossorigin="anonymous"
+    ></script>
     <script src="tools/shared.bundle.js"></script>
     <script src="tools/_app/index.js"></script>
 

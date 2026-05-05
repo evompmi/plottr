@@ -6,7 +6,7 @@
 import { test, expect } from "@playwright/test";
 
 test("heatmap: load example → cells render", async ({ page }) => {
-  await page.goto("/tools/heatmap.html");
+  await page.goto("/index.html#/heatmap");
   await page.getByTestId("load-example").click();
 
   // Heatmap routes to "Step 2 of 3: Import check" by default — walk

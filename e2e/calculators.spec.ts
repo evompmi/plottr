@@ -6,7 +6,7 @@
 import { test, expect } from "@playwright/test";
 
 test("molarity: page mounts and the per-row form is present", async ({ page }) => {
-  await page.goto("/tools/molarity.html");
+  await page.goto("/index.html#/molarity");
 
   // Page header is "Calculator" — molarity is one of several modes
   // (Molarity / Dilution / Batch / Ligation) reachable via the
@@ -25,7 +25,7 @@ test("molarity: page mounts and the per-row form is present", async ({ page }) =
 });
 
 test("power: compute-effect-size button surfaces a result", async ({ page }) => {
-  await page.goto("/tools/power.html");
+  await page.goto("/index.html#/power");
   await expect(page.getByRole("heading", { name: /Power/i }).first()).toBeVisible();
 
   // The "Compute effect size" button only enables once enough inputs

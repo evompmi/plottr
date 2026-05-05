@@ -5,7 +5,7 @@
 import { test, expect } from "@playwright/test";
 
 test("scatter: load Iris example → chart renders points", async ({ page }) => {
-  await page.goto("/tools/scatter.html");
+  await page.goto("/index.html#/scatter");
   await page.getByTestId("load-example").click();
 
   // Walk to plot step (Step N: Plot).

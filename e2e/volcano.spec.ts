@@ -20,7 +20,7 @@ import { test, expect, Page } from "@playwright/test";
 // Load the bundled demo dataset and step through to the plot view.
 // Returns the page positioned at step "plot" with calData rendered.
 async function loadVolcanoExample(page: Page) {
-  await page.goto("/tools/volcano.html");
+  await page.goto("/index.html#/volcano");
   // Every tool's load-example button shares `data-testid="load-example"`
   // (added in shared-ui.js — UploadPanel renders all of them).
   const exampleBtn = page.getByTestId("load-example");

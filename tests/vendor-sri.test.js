@@ -57,7 +57,7 @@ function withTmpHtml(body, fn) {
 
 test("adds integrity + crossorigin to a bare <script> tag", () => {
   const before =
-    '<html><head>\n  <script src="../vendor/react.production.min.js"></script>\n</head></html>';
+    '<html><head>\n  <script src="vendor/react.production.min.js"></script>\n</head></html>';
   withTmpHtml(before, (p) => {
     const r = rewriteFile(p, hashesForVendor());
     assert(r.changed, "should report changed=true on first run");
@@ -73,7 +73,7 @@ test("re-running on already-pinned tags is a no-op (changed=false)", () => {
   const before =
     "<html><head>\n" +
     "    <script\n" +
-    '      src="../vendor/react.production.min.js"\n' +
+    '      src="vendor/react.production.min.js"\n' +
     '      integrity="' +
     hashes["react.production.min.js"] +
     '"\n' +
@@ -90,7 +90,7 @@ test("overwrites a drifted integrity attribute", () => {
   // Stale hash, single-line form — represents the worst-case migration:
   // someone edited vendor/react and forgot to re-run vendor-sri.js.
   const before =
-    '<html><head>\n  <script src="../vendor/react.production.min.js" integrity="sha384-OLDHASH" crossorigin="anonymous"></script>\n</head></html>';
+    '<html><head>\n  <script src="vendor/react.production.min.js" integrity="sha384-OLDHASH" crossorigin="anonymous"></script>\n</head></html>';
   withTmpHtml(before, (p) => {
     const hashes = hashesForVendor();
     const r = rewriteFile(p, hashes);
@@ -102,12 +102,12 @@ test("overwrites a drifted integrity attribute", () => {
 
 test("preserves untouched src attribute and existing other attrs", () => {
   const before =
-    '<html><head>\n  <script defer src="../vendor/react.production.min.js"></script>\n</head></html>';
+    '<html><head>\n  <script defer src="vendor/react.production.min.js"></script>\n</head></html>';
   withTmpHtml(before, (p) => {
     const r = rewriteFile(p, hashesForVendor());
     assert(r.changed, "should add integrity");
     assert(r.after.includes("defer"), "should preserve `defer` attr: " + r.after);
-    assert(r.after.includes("../vendor/react.production.min.js"), "should preserve src");
+    assert(r.after.includes("vendor/react.production.min.js"), "should preserve src");
   });
 });
 
@@ -120,7 +120,7 @@ test("rewriting an already-prettier-wrapped multi-line tag is a no-op", () => {
   const before =
     "<html><head>\n" +
     "    <script\n" +
-    '      src="../vendor/react.production.min.js"\n' +
+    '      src="vendor/react.production.min.js"\n' +
     '      integrity="' +
     hashes["react.production.min.js"] +
     '"\n' +
@@ -138,7 +138,7 @@ test("rewriting an already-prettier-wrapped multi-line tag is a no-op", () => {
 
 test("ignores unrelated <script> tags", () => {
   const before =
-    '<html><head>\n  <script src="../tools/shared.bundle.js"></script>\n  <script src="../vendor/react.production.min.js"></script>\n</head></html>';
+    '<html><head>\n  <script src="tools/shared.bundle.js"></script>\n  <script src="vendor/react.production.min.js"></script>\n</head></html>';
   withTmpHtml(before, (p) => {
     const r = rewriteFile(p, hashesForVendor());
     assert(r.changed, "should pin the react tag");

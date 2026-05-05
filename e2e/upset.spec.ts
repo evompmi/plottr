@@ -5,7 +5,7 @@
 import { test, expect } from "@playwright/test";
 
 test("upset: load example → chart renders bars + matrix dots", async ({ page }) => {
-  await page.goto("/tools/upset.html");
+  await page.goto("/index.html#/upset");
   await page.getByTestId("load-example").click();
 
   // upset's example may land on "configure" if more than 3 sets are

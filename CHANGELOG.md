@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **iframe shell replaced by a single-page app.** Pre-SPA, the
+  landing page (`index.html`, 1303 lines) preloaded 10 hidden
+  iframes — one per tool, each booting its own copy of vendored
+  React + ReactDOM + `tools/shared.bundle.js` + a per-tool
+  bundle. Theme syncs went through three overlapping paths
+  (`storage` event + `BroadcastChannel` + `postMessage`), and a
+  150-line frame-buster snippet was kept byte-identical across 11
+  HTML files by `scripts/anti-clickjack-sync.js`. The whole shell
+  is gone:
+  - 10 `tools/<tool>.html` files **deleted** (URL break for any
+    bookmark to the old paths is the explicit trade-off — the
+    project has 0 stars / 0 issues, so there's no measurable
+    external-bookmark population).
+  - `index.html` shrunk **1303 → 1095 lines**: 10 iframe blocks
+    removed, prefetch IIFE + XHR removed, `openTool` /
+    `goBack` / cross-iframe-postMessage listener / topbar builder
+    - per-iframe theme propagation all removed. New body: one
+      `<div id="root">`, the SPA bundle, and a 12-line
+      "landing ↔ tool view toggle" IIFE that flips
+      `data-spa-route="active"` on `<html>` based on
+      `location.hash`.
+  - `tools/_app/` (new) holds the SPA shell: hand-rolled hash
+    router, top-level `App.tsx` with shared topbar, single
+    ReactDOM mount. Every tool route is `/#/<tool>` (e.g.
+    `/#/boxplot`).
+  - Each tool's old `index.tsx` (App component + standalone
+    mount) was split into `app.tsx` (exports App, imported by the
+    SPA registry) + a tiny `index.tsx` mount entry, then the
+    mount entry was deleted alongside the iframe shell. Now
+    every plot tool ships only its `app.tsx` + chart / controls
+    / steps / helpers / reports / howto / plot-area / stats-panel
+    siblings. Calculators (`tools/molarity.tsx`,
+    `tools/power.tsx`) became `tools/molarity-app.tsx` +
+    `tools/power-app.tsx` for the same reason.
+  - `tools/theme.js` lost the `message` event listener that
+    accepted iframe-parent theme pushes. The cross-tab paths
+    (BroadcastChannel + storage event + matchMedia) stay.
+  - `tools/shared-handoff.js` gains a `navigateToTool(toolKey)`
+    helper. When the SPA shell has registered
+    `window.__plottrSpaNavigate`, it switches in place; otherwise
+    falls back to a top-level reload (kept for resilience). The
+    Aequorin → Boxplot button and the Venn → UpSet "Open in
+    UpSet" nudge both use it now; the pre-existing
+    sibling-iframe postMessage routing is gone.
+  - `scripts/anti-clickjack-sync.js` **deleted** — only one HTML
+    needs the frame-buster now, and that snippet lives inline in
+    `index.html`. `tests/anti-clickjack.test.js` deleted with it.
+  - `scripts/vendor-sri.js` simplified from "walk every
+    `tools/*.html`" to "walk a one-element list of HTML pages
+    that load vendored React" (just `index.html`).
+  - `package.json` esbuild entry list collapsed from 10 entries
+    - `tools/_app/index.tsx` to a single `--outfile`-based entry
+      producing `tools/_app/index.js` (~580 KB minified, includes
+      every tool). `lint:anti-clickjack` script removed.
+  - `scripts/watch.js` updated to single entry.
+  - Test infrastructure: `tests/helpers/render-loader.js`'s
+    `loadTool` no longer reads precompiled per-tool bundles
+    (those don't exist anymore); it bundles each tool's
+    `app.tsx` in-memory via `esbuild.buildSync` with
+    `format=iife` and caches the result. `tests/power.test.js`
+    does the same for `tools/power-app.tsx`.
+    `tests/vendor-sri.test.js` fixtures updated from
+    `../vendor/...` to `vendor/...` to match the new SRI script
+    path scope.
+  - All 10 e2e specs (`e2e/*.spec.ts`) gained a single
+    mechanical edit: `page.goto("/tools/<tool>.html")` →
+    `page.goto("/index.html#/<tool>")`. Selectors unchanged.
+  - CLAUDE.md "Tool structure" + "Theming" sections rewritten
+    to reflect the new shape; ~80 lines simplified or deleted.
+
+  Net effect: ~500-800 lines of architectural plumbing gone
+  (iframe propagation, theme sync glue, anti-clickjack-sync.js
+  in full, prefetch bar, openTool postMessage, per-iframe React
+  copies). React loads once per session instead of up to 11
+  times. Tool switching is instant (route swap, not a fresh
+  React boot inside an iframe). Net test count: 1056 → 1046 —
+  the deleted `tests/anti-clickjack.test.js` had 10 cases for
+  the deleted script. Closes point 11 of
+  `1.2.0_harsh_review.md`.
+
 ### Added
 
 - **Volcano Plot now appears in the README.** The tool table gains a

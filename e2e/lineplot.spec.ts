@@ -5,7 +5,7 @@
 import { test, expect } from "@playwright/test";
 
 test("lineplot: load example → chart renders one trace per group", async ({ page }) => {
-  await page.goto("/tools/lineplot.html");
+  await page.goto("/index.html#/lineplot");
   await page.getByTestId("load-example").click();
 
   await page.getByRole("button", { name: /Plot$/ }).first().click();
