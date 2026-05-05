@@ -290,13 +290,19 @@ module.exports = [
     },
   },
 
-  // Tests run in Node with a custom vm harness.
+  // Tests run under Vitest. Most files are pure-Node CJS, but
+  // `tests/components.test.js` declares `// @vitest-environment happy-dom`
+  // at the top and uses `document` / `window` directly in its
+  // assertion helpers (`rootEl(html)` parses HTML through happy-dom's
+  // DOMParser-style API). Allow the browser globals everywhere under
+  // `tests/` rather than carving out a per-file override; the smaller
+  // test files don't reference them, and the bigger one needs them.
   {
     files: ["tests/**/*.js"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "commonjs",
-      globals: { ...globals.node },
+      globals: { ...globals.node, ...globals.browser },
     },
     rules: {
       "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],

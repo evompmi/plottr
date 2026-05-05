@@ -43,7 +43,15 @@ if (!fs.existsSync(logPath)) {
   process.exit(0);
 }
 
-const log = fs.readFileSync(logPath, "utf8");
+// Strip ANSI escape sequences before regex matching. Vitest's verbose
+// reporter wraps the totals line in colour codes
+// (`<ESC>[2m      Tests <ESC>[22m <ESC>[1m<ESC>[32m1056 passed<ESC>[39m`),
+// which would defeat the `^\s*Tests` anchor in the parser below. The
+// wrapper sets `FORCE_COLOR=0` but several picocolors / chalk variants
+// also honour `NO_COLOR`, `CI`, or TTY detection differently across
+// platforms — stripping ANSI here is the robust fix.
+// eslint-disable-next-line no-control-regex
+const log = fs.readFileSync(logPath, "utf8").replace(/\x1b\[[0-9;]*m/g, "");
 
 let total = 0;
 

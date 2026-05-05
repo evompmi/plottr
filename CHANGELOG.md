@@ -9,10 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Component render-smoke tests now use real React 18 + happy-dom.**
+  The 354-line bespoke functional-React mock under
+  `tests/helpers/render-loader.js` (custom `createElement` returning
+  `{type, props, children}` element-tree objects, hand-rolled
+  `useState` / `useReducer` / `useMemo` / `useEffect` / `useContext`
+  simulators with effect flushing) is retired. The new helper is ~140
+  lines that delegate to the real `react@^18.3.1`,
+  `react-dom/server`, and `react-dom/client` packages. Component
+  testing API: `renderHtml(Component, props)` for synchronous static
+  HTML via `renderToStaticMarkup` (the right tool for 90 % of
+  smoke-render assertions), `renderWithEffects(Component, props)` for
+  the small block of tests that need `useEffect` /
+  `useLayoutEffect` to actually fire (mounts through
+  `react-dom/client.createRoot` + happy-dom + `act`).
+  `tests/components.test.js` rewritten to assert on DOM / HTML
+  directly — no more `el.type === "div"`,
+  `JSON.stringify(el).indexOf("X")`, or `countElements(el) > N`.
+  `react@^18.3.1` (matching the vendored runtime) and
+  `react-dom@^18.3.1` added as devDependencies. Net test count: 1057
+  → 1056 (the migration retired one redundant
+  effect-throws-propagation test that was pinning a quirk specific
+  to the old mock). `bump-test-count.js` and the CI badge-verify
+  step gained ANSI-stripping so they parse Vitest's coloured
+  reporter output reliably. ESLint config widened to expose browser
+  globals (`document`, `window`) under `tests/**/*.js` so the new
+  helper can use them without per-file overrides. The deferred
+  follow-up flagged in the previous Vitest entry is now closed.
+
 - **Test runner migrated to Vitest 3.x.** The 24 `tests/*.test.js`
   files were unchanged — `tests/harness.js` shrunk from 56 lines of
   bespoke `suite() / test() / assert() / eq() / approx() / throws() /
-  summary()` runner into a ~50-line compat shim that delegates each
+summary()` runner into a ~50-line compat shim that delegates each
   `test()` call to `globalThis.test` (Vitest's injected global, made
   available by `globals: true` in the new `vitest.config.js`). The
   project keeps its house vocabulary; Vitest gets to schedule, time,

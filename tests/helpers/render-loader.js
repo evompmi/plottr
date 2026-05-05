@@ -1,276 +1,89 @@
-// Loads shared-components.js and compiled tool JS files into a Node vm context
-// with a functional React mock that returns element trees (not null).
-// This enables render-smoke tests: call a component, assert it returns elements.
+// tests/helpers/render-loader.js — real React 18 + happy-dom rendering
+// helpers for `tests/components.test.js`.
+//
+// Replaces the previous 354-line bespoke functional React mock. The
+// mock was written before Vitest was on the table; under Vitest +
+// happy-dom we can use the real React, the real react-dom/server, and
+// the real react-dom/client and let assertions read DOM / HTML
+// directly instead of reverse-engineering React-element-tree shapes
+// (`el.type === "div"`, `el.children.length === 3`,
+// `JSON.stringify(el).indexOf("X")`, etc.).
+//
+// Required environment: the consuming test file must declare
+//   // @vitest-environment happy-dom
+// at the top. happy-dom installs `document`, `window`, `localStorage`,
+// etc. on the realm globals; this module layers `React` and a stubbed
+// `ReactDOM` on top, then loads `tools/shared.bundle.js` (and
+// optionally a compiled tool .js file) into the current realm so its
+// top-level `function ...` / `var X = ...` declarations become
+// accessible as `globalThis.X`.
+//
+// Public API:
+//   buildContext()                        → { ctx } where ctx is
+//                                            globalThis with the
+//                                            shared bundle loaded.
+//   loadTool(toolName)                    → { ctx, exports } where
+//                                            exports holds the tool's
+//                                            named chart components
+//                                            (BoxplotChart, …) — same
+//                                            shape the old API
+//                                            returned, just sourced
+//                                            from real React.
+//   renderHtml(Component, props)          → static HTML string via
+//                                            renderToStaticMarkup;
+//                                            synchronous, no DOM
+//                                            mounting, no effects.
+//                                            Use this for the vast
+//                                            majority of smoke tests.
+//   renderWithEffects(Component, props)   → mounts via
+//                                            react-dom/client +
+//                                            happy-dom, runs effects
+//                                            inside `act`, returns
+//                                            { container, root, html }.
+//                                            Use for tests that
+//                                            depend on useEffect /
+//                                            useLayoutEffect actually
+//                                            firing.
 
 const fs = require("fs");
-const vm = require("vm");
 const path = require("path");
+const vm = require("vm");
+
+const React = require("react");
+const ReactDOMServer = require("react-dom/server");
+const ReactDOMClient = require("react-dom/client");
+const TestUtils = require("react-dom/test-utils");
 
 const toolsDir = path.join(__dirname, "../../tools");
 
-// ── Functional React mock ───────────────────────────────────────────────────
-// createElement returns {type, props, children} objects just like real React,
-// hooks return usable defaults so component functions can execute to completion.
+// ── Realm globals ──────────────────────────────────────────────────────
+// shared.bundle.js + every compiled tool .js reference `React.…` and
+// `ReactDOM.createRoot(...)` directly via the realm globals (the
+// production HTML files load React via `<script src="../vendor/…">`,
+// which puts it on `window`, then the shared bundle and the tool
+// bundle pick it up from there). We mirror that runtime shape with
+// real React 18 and a stubbed ReactDOM whose `createRoot(...).render(…)`
+// is a no-op — that lets the tool .js modules execute their final
+// `ReactDOM.createRoot(document.getElementById("root")).render(<App/>)`
+// line without erroring on the missing `<div id="root">` and without
+// trying to mount the whole app inside the test environment.
 
-function createReactMock() {
-  let stateIdx = 0;
-  const states = [];
-  // Queue of pending effect callbacks captured during a render. React runs
-  // effects *after* commit; we can't faithfully "commit" without a DOM, but
-  // we can run them synchronously after the render function returns so
-  // listener-attachment bugs, ref-initialisation bugs, and teardown throws
-  // all surface in the smoke test. `render()` calls `flushEffects()` after
-  // the component returns.
-  const pendingEffects = [];
+globalThis.React = React;
+globalThis.ReactDOM = {
+  createRoot: () => ({ render: () => {}, unmount: () => {} }),
+};
 
-  function resetHooks() {
-    stateIdx = 0;
-    states.length = 0;
-    pendingEffects.length = 0;
-  }
+// ── Shared bundle ──────────────────────────────────────────────────────
+// Load once per Node process. `vm.runInThisContext(src)` runs `src` as
+// a script (no module wrapper) in the current realm, so top-level
+// `function …` and `var X = …` declarations attach to globalThis. The
+// bundle is regenerated by `pretest` in package.json so tests always
+// see the canonical artefact the browser loads.
 
-  function flushEffects() {
-    while (pendingEffects.length > 0) {
-      const fn = pendingEffects.shift();
-      // Any throw from the effect propagates out of flushEffects — render-
-      // smoke tests should see effect failures. We deliberately do NOT call
-      // the returned cleanup here: React only runs cleanup on subsequent
-      // renders with changed deps or on unmount, neither of which the
-      // single-pass harness models. What we want to catch is throws *during
-      // attachment*, not teardown semantics.
-      const cleanup = fn();
-      void cleanup;
-    }
-  }
+let _bundleLoaded = false;
 
-  const React = {
-    createElement(type, props) {
-      const children = Array.prototype.slice
-        .call(arguments, 2)
-        .flat(Infinity)
-        .filter(function (c) {
-          return c != null && c !== false;
-        });
-      return { type: type, props: props || {}, children: children };
-    },
-    useState(init) {
-      const idx = stateIdx++;
-      if (states[idx] === undefined) states[idx] = typeof init === "function" ? init() : init;
-      const i = idx;
-      return [
-        states[i],
-        function (v) {
-          states[i] = typeof v === "function" ? v(states[i]) : v;
-        },
-      ];
-    },
-    useReducer(reducer, init, initArg) {
-      const idx = stateIdx++;
-      if (states[idx] === undefined) {
-        // Match React's `init` function signature: `useReducer(r, initArg, init)`.
-        states[idx] = typeof initArg === "function" ? initArg(init) : init;
-      }
-      const i = idx;
-      return [
-        states[i],
-        function (action) {
-          states[i] = reducer(states[i], action);
-        },
-      ];
-    },
-    useMemo(fn) {
-      return fn();
-    },
-    useCallback(fn) {
-      return fn;
-    },
-    useRef(init) {
-      return { current: init !== undefined ? init : null };
-    },
-    useEffect(fn) {
-      pendingEffects.push(fn);
-    },
-    useLayoutEffect(fn) {
-      pendingEffects.push(fn);
-    },
-    useInsertionEffect() {
-      // No-op. Used for CSS-in-JS libraries; none of the tool components use it.
-    },
-    useDebugValue() {
-      // No-op. Dev-tools hint; no behavioural effect.
-    },
-    useId() {
-      const idx = stateIdx++;
-      if (states[idx] === undefined) states[idx] = ":r" + idx + ":";
-      return states[idx];
-    },
-    // Minimal context support. `Provider` and `Consumer` just pass children
-    // through; `useContext` returns the default value. No provider-tree
-    // scoping (no component in plottr currently uses context — this is
-    // scaffolding so a future addition doesn't crash the mock). If a component
-    // ever actually needs per-provider overrides, extend this with a context
-    // stack pushed/popped around createElement of a Provider.
-    createContext(defaultValue) {
-      const context = {
-        _currentValue: defaultValue,
-        _isContext: true,
-      };
-      context.Provider = function Provider(props) {
-        return props && props.children;
-      };
-      context.Consumer = function Consumer(props) {
-        if (props && typeof props.children === "function") {
-          return props.children(context._currentValue);
-        }
-        return props && props.children;
-      };
-      return context;
-    },
-    useContext(context) {
-      return context && context._isContext ? context._currentValue : undefined;
-    },
-    memo(fn) {
-      return fn;
-    },
-    forwardRef(fn) {
-      var comp = function (props) {
-        return fn(props, (props && props.ref) || { current: null });
-      };
-      comp._isForwardRef = true;
-      comp._render = fn;
-      return comp;
-    },
-    Fragment: "Fragment",
-    StrictMode: "StrictMode",
-    Component: class {
-      constructor(props) {
-        this.props = props;
-        this.state = {};
-      }
-      setState(patch) {
-        this.state = Object.assign(
-          {},
-          this.state,
-          typeof patch === "function" ? patch(this.state) : patch
-        );
-      }
-    },
-  };
-
-  return { React: React, resetHooks: resetHooks, flushEffects: flushEffects };
-}
-
-// ── Build a vm context with all the globals tools expect ────────────────────
-
-function buildContext() {
-  const { React, resetHooks, flushEffects } = createReactMock();
-
-  const ctx = {
-    Math,
-    parseInt,
-    parseFloat,
-    isNaN,
-    isFinite,
-    Number,
-    String,
-    Array,
-    Object,
-    JSON,
-    RegExp,
-    Date,
-    Map,
-    Set,
-    Error,
-    console,
-    Infinity,
-    NaN,
-    undefined,
-    Boolean,
-    Symbol,
-    Promise,
-    // DOM stubs
-    setTimeout: function (fn) {
-      if (typeof fn === "function") fn();
-    },
-    clearTimeout: function () {},
-    document: {
-      createElement: function () {
-        return {
-          style: {},
-          setAttribute: function () {},
-          click: function () {},
-          appendChild: function () {},
-          removeChild: function () {},
-        };
-      },
-      getElementById: function () {
-        return { style: {} };
-      },
-      documentElement: {
-        setAttribute: function () {},
-        removeAttribute: function () {},
-        getAttribute: function () {
-          return null;
-        },
-      },
-      body: { appendChild: function () {}, removeChild: function () {} },
-      addEventListener: function () {},
-      removeEventListener: function () {},
-      visibilityState: "visible",
-    },
-    localStorage: {
-      getItem: function () {
-        return null;
-      },
-      setItem: function () {},
-      removeItem: function () {},
-    },
-    CustomEvent: function () {},
-    URL: {
-      createObjectURL: function () {
-        return "";
-      },
-      revokeObjectURL: function () {},
-    },
-    Blob: function () {},
-    XMLSerializer: function () {
-      this.serializeToString = function () {
-        return "";
-      };
-    },
-    FileReader: function () {
-      this.readAsText = function () {};
-      this.onload = null;
-    },
-    window: {
-      addEventListener: function () {},
-      removeEventListener: function () {},
-      dispatchEvent: function () {},
-      matchMedia: function () {
-        return {
-          matches: false,
-          addEventListener: function () {},
-          removeEventListener: function () {},
-          addListener: function () {},
-          removeListener: function () {},
-        };
-      },
-    },
-    React: React,
-    ReactDOM: {
-      createRoot: function () {
-        return { render: function () {} };
-      },
-    },
-  };
-
-  vm.createContext(ctx);
-
-  // Load the concatenated shared-browser bundle — theme.js + shared.js +
-  // stats.js + every shared-*.js in canonical order. Generated by
-  // scripts/build-shared.js; `pretest` in package.json regenerates it before
-  // `npm test` runs, so the test harness reads the same artefact the browser
-  // loads.
+function ensureSharedBundleLoaded() {
+  if (_bundleLoaded) return;
   const bundlePath = path.join(toolsDir, "shared.bundle.js");
   if (!fs.existsSync(bundlePath)) {
     throw new Error(
@@ -278,25 +91,43 @@ function buildContext() {
     );
   }
   const bundleSrc = fs.readFileSync(bundlePath, "utf8");
-  vm.runInContext(bundleSrc, ctx);
-
-  return { ctx: ctx, resetHooks: resetHooks, flushEffects: flushEffects };
+  vm.runInThisContext(bundleSrc, { filename: "tools/shared.bundle.js" });
+  _bundleLoaded = true;
 }
 
-// ── Load a compiled tool .js file into its own context ──────────────────────
-// Each tool gets a fresh context since they define conflicting top-level names.
+function buildContext() {
+  ensureSharedBundleLoaded();
+  return { ctx: globalThis };
+}
+
+// ── Compiled-tool loading ──────────────────────────────────────────────
+// Each tool's chart component is declared as a top-level `var BoxplotChart
+// = …` (esbuild minifies but keeps the name). We wrap the tool source
+// in an IIFE so its top-level `var`s are scoped to that one load — no
+// collisions when multiple tools are loaded sequentially — and the
+// IIFE returns a literal object naming every chart export we care
+// about. `typeof X !== 'undefined'` keeps the wrapper compatible with
+// tools that don't declare a particular name (volcano has no
+// BarChart, scatter has no InsetBarplot, …).
 
 function loadTool(toolName) {
-  const { ctx, resetHooks, flushEffects } = buildContext();
-  // Some tools ship as folder-split entries (e.g. tools/boxplot/index.js);
-  // fall back to the folder layout when the flat .js is missing.
+  ensureSharedBundleLoaded();
+  // Folder-split tools (boxplot, scatter, lineplot, aequorin, heatmap,
+  // venn, upset, volcano) live under tools/<tool>/index.js; the two
+  // calculators (molarity, power) keep the flat tools/<tool>.js shape.
   const flatPath = path.join(toolsDir, toolName + ".js");
   const folderPath = path.join(toolsDir, toolName, "index.js");
-  const toolPath = fs.existsSync(flatPath) ? flatPath : folderPath;
+  const toolPath = fs.existsSync(folderPath)
+    ? folderPath
+    : fs.existsSync(flatPath)
+      ? flatPath
+      : null;
+  if (toolPath == null) {
+    throw new Error(
+      `render-loader: cannot find tool ${toolName}. Tried ${folderPath} and ${flatPath}.`
+    );
+  }
   const toolSrc = fs.readFileSync(toolPath, "utf8");
-  // Wrap in a function so const/let declarations are captured via _exports.
-  // The tool source ends with ReactDOM.createRoot(...).render(...) which we
-  // replace with an export of all const-declared names we care about.
   const wrapped =
     "(function() {\n" +
     toolSrc +
@@ -307,48 +138,54 @@ function loadTool(toolName) {
     "Chart: typeof Chart !== 'undefined' ? Chart : undefined," +
     "InsetBarplot: typeof InsetBarplot !== 'undefined' ? InsetBarplot : undefined," +
     "PlotPanel: typeof PlotPanel !== 'undefined' ? PlotPanel : undefined," +
+    "VolcanoChart: typeof VolcanoChart !== 'undefined' ? VolcanoChart : undefined," +
+    "VennChart: typeof VennChart !== 'undefined' ? VennChart : undefined," +
+    "UpsetChart: typeof UpsetChart !== 'undefined' ? UpsetChart : undefined," +
+    "HeatmapChart: typeof HeatmapChart !== 'undefined' ? HeatmapChart : undefined," +
     "};\n})()";
-  const exports = vm.runInContext(wrapped, ctx);
-  // Merge exported names into context for easy access
-  Object.keys(exports).forEach(function (k) {
-    if (exports[k] !== undefined) ctx[k] = exports[k];
+  const exports = vm.runInThisContext(wrapped, { filename: toolPath });
+  return { ctx: globalThis, exports };
+}
+
+// ── Render helpers ─────────────────────────────────────────────────────
+
+// Synchronous static-HTML render. No DOM, no effects. The right tool
+// for "this component compiles + lays out a sensible tree without
+// throwing" smoke tests, which is 90 % of what tests/components.test.js
+// asserts on. Returns the HTML string the component produces.
+//
+// `Component` may be either a function component or a forwardRef
+// (chart components are forwardRef). Both work with `createElement`.
+function renderHtml(Component, props) {
+  const el = React.createElement(Component, props || {});
+  return ReactDOMServer.renderToStaticMarkup(el);
+}
+
+// Mount a component into a happy-dom container with effects flushed.
+// Use this when the test depends on `useEffect` / `useLayoutEffect`
+// actually firing. Returns the live container (a real Element with
+// querySelector, textContent, etc.) plus the root handle for unmounting.
+//
+// `act` from react-dom/test-utils flushes scheduled effects before
+// returning, so subsequent assertions see the post-effect state. The
+// `act` API logs a deprecation notice on Node 22+ but still works
+// correctly; switching to React 19's `act` is a future cleanup.
+function renderWithEffects(Component, props) {
+  const container = globalThis.document.createElement("div");
+  globalThis.document.body.appendChild(container);
+  const root = ReactDOMClient.createRoot(container);
+  TestUtils.act(() => {
+    root.render(React.createElement(Component, props || {}));
   });
-  return { ctx: ctx, resetHooks: resetHooks, flushEffects: flushEffects };
-}
-
-// ── Helper: render a component (call the function) and return the element ───
-
-function render(component, props, resetHooks, flushEffects) {
-  if (resetHooks) resetHooks();
-  const tree = component(props);
-  // Run any effects queued during this render so listener-attachment
-  // throws surface in the test. Safe to call with no flusher — callers
-  // that only want the element tree can still omit it.
-  if (typeof flushEffects === "function") flushEffects();
-  return tree;
-}
-
-// ── Helper: count elements in a tree recursively ────────────────────────────
-
-function countElements(tree) {
-  if (!tree || typeof tree !== "object") return 0;
-  if (Array.isArray(tree)) {
-    return tree.reduce(function (sum, el) {
-      return sum + countElements(el);
-    }, 0);
-  }
-  var count = 1; // this node
-  if (tree.children) {
-    count += tree.children.reduce(function (sum, el) {
-      return sum + countElements(el);
-    }, 0);
-  }
-  return count;
+  return { container, root, html: container.innerHTML };
 }
 
 module.exports = {
-  buildContext: buildContext,
-  loadTool: loadTool,
-  render: render,
-  countElements: countElements,
+  buildContext,
+  loadTool,
+  renderHtml,
+  renderWithEffects,
+  React,
+  ReactDOMServer,
+  ReactDOMClient,
 };

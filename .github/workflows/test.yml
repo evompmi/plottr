@@ -61,9 +61,15 @@ jobs:
       # the suite can't silently desync.
       - name: Verify landing-page test-count badge
         run: |
-          actual=$(grep -iE "^\s*Tests\s+[0-9]+\s+passed" test-output.log | head -1 | grep -oE "[0-9]+" | head -1)
+          # Strip ANSI escape sequences first — Vitest's verbose reporter wraps the
+          # totals line in colour codes that defeat the `^\s*Tests` anchor below.
+          # Then look for the canonical `Tests N passed` line, falling back to the
+          # legacy per-suite "X/X passed" sum if the file pre-dates the Vitest
+          # migration.
+          stripped=$(sed -E 's/\x1b\[[0-9;]*m//g' test-output.log)
+          actual=$(echo "$stripped" | grep -iE "^[[:space:]]*Tests[[:space:]]+[0-9]+[[:space:]]+passed" | head -1 | grep -oE "[0-9]+" | head -1)
           if [ -z "$actual" ] || [ "$actual" = "0" ]; then
-            actual=$(grep -E "^\s*[0-9]+/[0-9]+ passed" test-output.log | awk '{split($1,a,"/"); t+=a[1]} END{print t}')
+            actual=$(echo "$stripped" | grep -E "^[[:space:]]*[0-9]+/[0-9]+ passed" | awk '{split($1,a,"/"); t+=a[1]} END{print t}')
           fi
           claimed=$(grep -oE "[0-9]+ internal tests" index.html | head -1 | grep -oE "^[0-9]+")
           echo "Canonical test count  : $actual"
