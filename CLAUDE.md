@@ -156,16 +156,24 @@ File upload/paste -> `autoDetectSep` + `fixDecimalCommas` + `parseRaw` -> `DataP
 `PALETTE` is defined in `shared.js` as the global default. Tools may override if needed.
 
 ### Tool-internal structure
-Plot tools live as folders (`tools/<tool>/`); calculators live as single files (`tools/molarity.tsx`, `tools/power.tsx`). Inside a plot-tool folder the convention is:
+Plot tools live as folders (`tools/<tool>/`); calculators live as single files (`tools/molarity-app.tsx`, `tools/power-app.tsx`). Inside a plot-tool folder the convention is:
 
 1. **Chart component** in `chart.tsx` (e.g. `BoxplotChart`, `BarChart`, `ScatterChart`) — the SVG renderer, kept as `forwardRef`.
 2. **Step sub-components** in `steps.tsx` — `UploadStep`, `ConfigureStep`, `FilterStep`, `OutputStep` etc.
 3. **Sidebar / tile components** in `controls.tsx`.
 4. **Pure helpers** (math / layout / label disambiguation) in `helpers.ts`. These are what the test loader picks up; if they get sprawling, split into a `helpers/` folder and re-export from `helpers.ts` as a barrel (see `tools/venn/`).
-5. **App()** in `index.tsx` — orchestrator holding state and routing between steps. **Keep `index.tsx` slim**: `VIS_INIT_<TOOL>` at module scope, `App()`, and the `ReactDOM.createRoot` mount call. Tile / control / chart / step components belong in their own files.
+5. **App()** in `app.tsx` — orchestrator holding state and routing between steps. **`app.tsx` exports `App` and does NOT call `ReactDOM.createRoot`** (the single mount lives in `tools/_app/index.tsx`). Keep `app.tsx` slim: module-scope `VIS_INIT_<TOOL>`, the `EXAMPLE_CSV` / `EXAMPLE_TSV` sample-data const (see below), `function App()`, and `export { App };`. Tile / control / chart / step components belong in their own files.
+
+**Sample-data convention — "all-(C)" / inline at module scope.** Every plot tool's `app.tsx` exposes a "Try sample data" button. The dataset that powers it lives as a `const EXAMPLE_CSV = \`…\`;` (or `EXAMPLE_TSV` for tab-separated, or `(() => { … })()` if procedurally generated) at the **top of `app.tsx`**, immediately after the imports and before `App()`. The button's handler is a `useCallback` named `loadExample` that calls `setSepOverride(",")`, `setFileName("…")`, and `doParse(EXAMPLE_CSV, ",")`. This convention is non-negotiable and applies everywhere — `aequorin`, `boxplot`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`. Why it matters:
+
+- **Grep-discoverable.** A new contributor finds every example dataset in the codebase with `grep -nE "^const EXAMPLE_(CSV|TSV)" tools/*/app.tsx`. Pre-consolidation, sample data lived in three different mechanisms (external `tools/<tool>_example.js` script with a `window` global, `shared.js`-level helper function, in-source IIFE) and the SPA migration silently broke six of them because the per-tool example scripts were no longer loaded.
+- **Single failure mode.** Sample-data buttons either work (const is in scope) or compile-fail (typo in the const name). They cannot silently no-op.
+- **No cross-cutting plumbing.** Sample data is a per-tool concern; it does not belong in `shared.js`, in a separate `_example.js` script tag, or in any `window`-global setup.
+
+If a sample dataset is genuinely large or is shared across two tools, make the duplication explicit (literal copy in each `app.tsx`) rather than introducing a shared helper. The discoverability win beats the DRY win.
 
 ### Shared plot-tool scaffold (`tools/_shell/`)
-All eight plot tools (Aequorin, Boxplot, Lineplot, Scatter, Heatmap, Venn, UpSet, Volcano) use the shared scaffold under `tools/_shell/`. Unlike the plain-JS `shared-*.js` globals, these are TypeScript modules imported via `import { … } from "./_shell/…"` and resolved by esbuild when bundling each tool. The two calculators (`molarity.tsx`, `power.tsx`) intentionally do **not** use this scaffold — they have no upload step, no column roles, no step navigator, so the shell would be dead weight.
+All eight plot tools (Aequorin, Boxplot, Lineplot, Scatter, Heatmap, Venn, UpSet, Volcano) use the shared scaffold under `tools/_shell/`. Unlike the plain-JS `shared-*.js` globals, these are TypeScript modules imported via `import { … } from "./_shell/…"` and resolved by esbuild when bundling each tool. The two calculators (`molarity-app.tsx`, `power-app.tsx`) intentionally do **not** use this scaffold — they have no upload step, no column roles, no step navigator, so the shell would be dead weight.
 
 - `tools/_shell/usePlotToolState.ts` — `usePlotToolState<TVis>(toolKey, initialVis)` typed hook. Owns step state, upload fields (`fileName`, `parseError`, `sepOverride`, `commaFixed`, `commaFixCount`), and the `vis` reducer with auto-prefs persistence (`loadAutoPrefs` on init, `saveAutoPrefs` on change, `_reset` sentinel for reset-to-defaults).
 - `tools/_shell/PlotToolShell.tsx` — outer page frame. Renders `PageHeader` (with `PrefsPanel` in the right slot), `StepNavBar`, `CommaFixBanner`, `ParseErrorBanner`, then delegates to `children`. Takes the hook's return as a `state` prop.
@@ -173,7 +181,7 @@ All eight plot tools (Aequorin, Boxplot, Lineplot, Scatter, Heatmap, Venn, UpSet
 - `tools/_shell/stats-dispatch.ts` — `runTest` / `runPostHoc` / `postHocForTest` dispatchers shared by boxplot, lineplot, and aequorin.
 - `tools/_shell/chart-layout.ts` — `CHART_MARGIN` and `buildLineD` used by both lineplot and aequorin. Rule of thumb: once a pure typed helper becomes byte-identical across two tools, lift it here and re-export from each tool's `helpers.ts` barrel. `_shell/` is the canonical home for shared *typed* helpers; `shared-*.js` in `tools/` remains the home for shared *plain-JS* globals consumed by every HTML entrypoint.
 
-**Standard wiring pattern** (every migrated tool follows this shape — start from `tools/upset/index.tsx` as the canonical reference):
+**Standard wiring pattern** (every migrated tool follows this shape — start from `tools/upset/app.tsx` as the canonical reference):
 
 ```tsx
 import { usePlotToolState } from "./_shell/usePlotToolState";
@@ -208,7 +216,7 @@ Key conventions:
 
 **Test-loader pattern.** Per-tool test loaders (`tests/helpers/<tool>-loader.js`) transform `tools/<tool>/helpers.ts` to CommonJS with `esbuild.transformSync` (or `esbuild.buildSync` with `bundle: true` when the tool's `helpers.ts` is a barrel that re-exports from sibling files — see `tests/helpers/venn-loader.js`), then evaluate the result under `vm.runInContext` with the shared globals (`tools/shared.js`, sometimes `tools/stats.js`) pre-loaded into the context. Exports are read off a `module.exports` object threaded into the vm context via `ctx.module`. **If you add a new pure helper to a tool**, put it in `tools/<tool>/helpers.ts`, and add it to the `module.exports` block at the bottom of the matching loader — that's the only step; no slicing, no regex stripping.
 
-**If you add a new plot tool**, start by copying the `tools/upset/` folder (or any other migrated plot tool) and adapting `chart.tsx` / `controls.tsx` / `steps.tsx` / `helpers.ts`. Do not re-derive the scaffold and do not stuff the whole tool into `index.tsx` — keep `index.tsx` to the `App()` orchestrator + module-scope `VIS_INIT_<TOOL>`.
+**If you add a new plot tool**, start by copying the `tools/upset/` folder (or any other migrated plot tool) and adapting `chart.tsx` / `controls.tsx` / `steps.tsx` / `helpers.ts`. Do not re-derive the scaffold and do not stuff the whole tool into `app.tsx` — keep `app.tsx` to the `App()` orchestrator, the module-scope `VIS_INIT_<TOOL>`, and the inline `EXAMPLE_CSV` / `EXAMPLE_TSV`. Then add the new tool to `tools/_app/tool-registry.ts` so the SPA picks up its `/#/<toolkey>` route.
 
 ### SVG export: named groups for Inkscape
 Exported SVGs are routinely re-opened in Inkscape for touch-ups, so **every chart must wrap its elements in `<g id="...">` groups with human-readable ids**. When adding a new chart (or a new element to an existing chart), give the wrapping group a descriptive id so Inkscape users can select it by name from the Objects panel / XML editor.
@@ -255,6 +263,24 @@ The SciPy benchmark uses a tighter classification than the R one because it deli
 - **fail** — real disagreement. Exits 1.
 
 Both `run-r.R` and `run-scipy.py` pre-flight the relevant interpreter (Rscript / python3+scipy) and skip gracefully when missing. The checked-in `results-r.json` and `results-scipy.json` fixtures let the JS-side comparison run without either interpreter installed.
+
+**Extending the SciPy suite.** New cases land as additional rows in `benchmark/run-scipy.py`'s grids, then `npm run benchmark:scipy` regenerates `benchmark/results-scipy.json` and the sidecar `benchmark/scipy-summary.json` (counts per regime, surfaced on `benchmark.html`). The five regime labels (`pass` / `deep-tail` / `underflow` / `pathological` / `fail`) are the only valid statuses; if a new case lands in `underflow` or `pathological`, prefer documenting it in the source comment of the affected function in `tools/stats.js` over loosening the tolerance. `fail` is exit-1 — it never gets reclassified into a softer bucket without a corresponding code change in `stats.js`.
+
+## Statistical methodology
+
+`tools/stats.js` ships **two** small but consequential default-policy decisions. Both are documented in the source comments of the affected function and both have benchmark coverage; the rule for contributors is "do not silently change them — they are user-facing methodological choices, not implementation details".
+
+**Welch by default — `selectTest()` (`tools/stats.js` ~ line 1750).** Plöttr does not pre-screen with Shapiro-Wilk + Levene before picking between Student's t and Welch's t (or one-way ANOVA and Welch's ANOVA). It picks **Welch unconditionally**:
+
+- `k = 2` independent groups → Welch's t (no post-hoc).
+- `k ≥ 3` independent groups → Welch's ANOVA + Games-Howell post-hoc.
+- Shapiro-Wilk + Levene are still computed and surfaced in the stats panel as **diagnostics**, with a `recommendation.suggestion` payload the user can click through to override (e.g. "your residuals look very non-normal — consider Mann-Whitney U / Kruskal-Wallis"). The default test stays Welch.
+
+Why: the Rasch / Kubinger / Moder (2011) and Zimmerman (2004) results show that screening for equal variance with a pre-test inflates Type I error compared to using Welch's t unconditionally; Welch matches Student closely when variances are in fact equal, and behaves correctly when they are not. The original (pre-`v1.2.0`) policy of "Student's t when Levene passes, Welch's t when it fails" was a methodological bug, not just a stylistic choice.
+
+If you change the default policy, you change the answer Plöttr gives users on the same data — that's a public-facing behavioural change and must land with: (a) a `CHANGELOG.md` entry under `Changed`, (b) a benchmark refresh confirming agreement with R / SciPy under the new defaults, and (c) a corresponding update to the recommendation `reason` text returned from `selectTest()` so the stats panel explains the new policy in plain English.
+
+**`recommendation.suggestion` is a UI contract, not a free-form string.** `selectTest` returns a structured object `{ chosen, reason, suggestion?: { test, why } }`. The boxplot stats panel wires this into a "Switch to suggested test" button — adding new fields requires updating the consumer in `tools/boxplot/stats-panel.tsx`. Don't smuggle UX cues into the `reason` string.
 
 ## Code style & conventions
 
