@@ -33,10 +33,20 @@
   function setHandoff(payload) {
     try {
       localStorage.setItem(KEY, JSON.stringify(payload));
-      return true;
     } catch (e) {
       return false;
     }
+    // Notify same-tab consumers. The browser `storage` event only
+    // fires across tabs / iframes, so under the SPA's keep-alive
+    // routing (target tool already mounted) it never reaches the
+    // consumer. Dispatching a synchronous CustomEvent gives the
+    // already-mounted destination a chance to re-run consumeHandoff.
+    try {
+      window.dispatchEvent(new CustomEvent("plottr-handoff", { detail: { key: KEY } }));
+    } catch (e) {
+      /* swallow */
+    }
+    return true;
   }
 
   function consumeHandoff(targetTool) {

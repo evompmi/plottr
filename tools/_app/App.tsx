@@ -150,21 +150,65 @@ export function App() {
   const route = useRoute();
   const entry = findToolEntry(route);
 
+  // Keep-alive: every tool the user has navigated to stays mounted for
+  // the rest of the session. Inactive tools are hidden via display:none
+  // rather than unmounted, so navigating aequorin → boxplot → aequorin
+  // returns to the original aequorin state (parsed CSV, plot, panels)
+  // instead of a fresh mount. Mount-on-demand still applies — a tool
+  // the user never visits never boots, so the cold-start cost is paid
+  // only when needed.
+  const [visitedKeys, setVisitedKeys] = React.useState<Set<string>>(() =>
+    entry ? new Set([entry.key]) : new Set()
+  );
+  React.useEffect(() => {
+    if (!entry) return;
+    setVisitedKeys((prev) => {
+      if (prev.has(entry.key)) return prev;
+      const next = new Set(prev);
+      next.add(entry.key);
+      return next;
+    });
+    // We only react to the route key flipping. The functional setState
+    // callback above handles dedupe internally so we don't need to
+    // depend on `visitedKeys`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry?.key]);
+
+  // Render every visited tool unconditionally so React keeps their
+  // sub-trees mounted across route changes. Each tool sits inside its
+  // own ErrorBoundary so a crashed tool doesn't take the whole SPA
+  // down. The active route renders normally; everything else hides
+  // under display:none.
+  const mountedTools = TOOL_REGISTRY.filter((t) => visitedKeys.has(t.key)).map((t) =>
+    React.createElement(
+      "div",
+      {
+        key: t.key,
+        style: {
+          display: entry && entry.key === t.key ? "block" : "none",
+        },
+      },
+      React.createElement(ErrorBoundary, { toolName: t.label }, React.createElement(t.Component))
+    )
+  );
+
   if (!entry) {
-    return React.createElement(LandingPlaceholder);
+    // Home view. The static landing markup in index.html owns the user-
+    // visible tile grid; this placeholder only shows if the route-toggle
+    // IIFE in index.html failed to run. Visited tools stay mounted
+    // underneath so a future route restores their state intact.
+    return React.createElement(
+      "div",
+      null,
+      React.createElement(LandingPlaceholder),
+      ...mountedTools
+    );
   }
 
-  // ErrorBoundary is a script-tag global from tools/shared-core.js
-  // (declared in types/globals.d.ts). Wrapping every tool view here
-  // means a runaway throw inside a tool can't crash the whole SPA —
-  // the boundary swaps in a "this tool crashed, here's the stack"
-  // view, and the user can navigate to a different route via the
-  // topbar.
-  const Tool = entry.Component;
   return React.createElement(
     "div",
     null,
     React.createElement(ToolTopbar, { currentKey: entry.key }),
-    React.createElement(ErrorBoundary, { toolName: entry.label }, React.createElement(Tool))
+    ...mountedTools
   );
 }

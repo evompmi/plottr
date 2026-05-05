@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **SPA tab-style state preservation.** Navigating between tools
+  (e.g. RLU timecourse → Group Plot → RLU timecourse) used to drop
+  every piece of in-memory state — parsed CSV, computed charts,
+  configured panels — because the SPA router unmounted the previous
+  tool's React tree on every route change. The shell now keeps
+  every visited tool mounted (hidden via `display:none`), so a
+  round-trip restores exactly what you left. Mount-on-demand still
+  applies — a tool you never visit never boots. Same-tab data
+  hand-off (RLU's Σ → Group Plot) continues to work because
+  `setHandoff()` now dispatches a `plottr-handoff` CustomEvent that
+  the destination tool listens for in addition to the cross-tab
+  `storage` event.
 - **iframe shell replaced by a single-page app.** Pre-SPA, the
   landing page (`index.html`, 1303 lines) preloaded 10 hidden
   iframes — one per tool, each booting its own copy of vendored

@@ -365,8 +365,20 @@ export function App() {
       if (e.key !== "dataviz-handoff" || !e.newValue) return;
       apply(consumeHandoff("boxplot"));
     };
+    // Same-tab path under the SPA's keep-alive router: the `storage`
+    // event never fires for writes from this same tab, so the source
+    // tool dispatches a `plottr-handoff` CustomEvent right after
+    // localStorage.setItem. We listen for both to cover same-tab and
+    // cross-tab handoffs.
+    const onSameTabHandoff = () => {
+      apply(consumeHandoff("boxplot"));
+    };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener("plottr-handoff", onSameTabHandoff);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("plottr-handoff", onSameTabHandoff);
+    };
     // Mount-only effect: the inner `apply` references `doParse` and the
     // setters, but re-running this effect every time those change would
     // re-fire the storage listener registration and risk double-applying
