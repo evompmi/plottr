@@ -372,4 +372,43 @@ if (underflowSamples.length > 0) {
 }
 
 console.log("");
+
+// Emit a sidecar summary file so the R-side HTML generator
+// (`benchmark/run.js`) can render a SciPy panel alongside the existing
+// R summary without re-running the comparison itself. Tracked-by-git
+// via .prettierignore (machine-generated); kept tiny — counts only,
+// no raw cases.
+const summaryPath = path.join(repoRoot, "benchmark", "scipy-summary.json");
+const totals = { pass: 0, fail: 0, underflow: 0, deepTail: 0, pathological: 0, total: 0 };
+const categories = {};
+for (const [cat, slot] of summary.entries()) {
+  totals.pass += slot.pass;
+  totals.fail += slot.fail;
+  totals.underflow += slot.underflow;
+  totals.deepTail += slot.deepTail;
+  totals.pathological += slot.pathological;
+  totals.total += slot.total;
+  categories[cat] = {
+    total: slot.total,
+    pass: slot.pass,
+    fail: slot.fail,
+    underflow: slot.underflow,
+    deepTail: slot.deepTail,
+    pathological: slot.pathological,
+  };
+}
+fs.writeFileSync(
+  summaryPath,
+  JSON.stringify(
+    {
+      meta: data.meta,
+      generated: new Date().toISOString(),
+      totals,
+      categories,
+    },
+    null,
+    2
+  ) + "\n"
+);
+
 process.exit(allPassed ? 0 : 1);

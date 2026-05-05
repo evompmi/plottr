@@ -530,6 +530,27 @@ const tableHtml = cats
 const passPct = (((passed + rSaturatedRows) / total) * 100).toFixed(1);
 const summaryClass = failed === 0 ? "summary-pass" : "summary-mixed";
 
+// ── SciPy summary (optional sidecar) ──────────────────────────────────────
+//
+// `benchmark/run-scipy.js` writes a tiny `scipy-summary.json` whenever
+// it runs successfully. The HTML generator picks it up if present and
+// renders a parallel SciPy panel alongside the R summary so the public
+// trust artefact reflects both cross-validations. When the sidecar is
+// missing (e.g. the user has only run `Rscript benchmark/run-r.R &&
+// node benchmark/run.js` without scipy), the SciPy section is hidden
+// and the page renders R-only as before.
+const scipySummaryPath = path.join(__dirname, "scipy-summary.json");
+let scipy = null;
+if (fs.existsSync(scipySummaryPath)) {
+  try {
+    scipy = JSON.parse(fs.readFileSync(scipySummaryPath, "utf-8"));
+  } catch {
+    // Corrupt sidecar — render R-only rather than block the report.
+    scipy = null;
+  }
+}
+const scipyClass = scipy ? (scipy.totals.fail === 0 ? "summary-pass" : "summary-mixed") : "";
+
 const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -597,6 +618,54 @@ const html = `<!doctype html>
   .v-pass { color: var(--success-text); }
   .v-fail { color: var(--danger-text); }
   .v-rsat { color: var(--warning-text); }
+  /* Section heading separating the R panel from the SciPy panel. */
+  .ref-heading {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin: 0 0 0.5rem;
+    font-weight: 600;
+  }
+  /* Per-category breakdown table for the SciPy panel. */
+  .scipy-breakdown {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .scipy-breakdown > summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .scipy-breakdown > summary::-webkit-details-marker { display: none; }
+  .scipy-breakdown[open] > summary > .dv-disclosure { transform: rotate(90deg); }
+  .scipy-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+  }
+  .scipy-table th, .scipy-table td {
+    padding: 0.3rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .scipy-table th {
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+  }
+  .scipy-table td.num, .scipy-table th + th { text-align: right; }
+  .scipy-table tbody tr:last-child td { border-bottom: none; }
   .category {
     margin-bottom: 1.5rem;
     background: var(--surface);
@@ -719,26 +788,74 @@ const html = `<!doctype html>
 <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle theme"></button>
 <div class="container">
   <header>
-    <h1>statistical cross-validation vs R ${escapeHtml(data.meta.r_version.replace(/^R version /, ""))}</h1>
+    <h1>statistical cross-validation${scipy ? " vs R + SciPy" : ` vs R ${escapeHtml(data.meta.r_version.replace(/^R version /, ""))}`}</h1>
     <ul class="lede">
+      <li><strong>Two independent references.</strong> Plöttr's <code>tools/stats.js</code> is cross-checked against (a) R 4.5.3 on real built-in datasets and${scipy ? ` (b) SciPy ${escapeHtml(scipy.meta.scipy_version)} on synthetic targeted grids over the (df, λ) regimes the R bank only touches indirectly` : " (b) SciPy on synthetic targeted grids (run <code>npm run benchmark:scipy</code> to populate this section)"}.</li>
       <li>Plöttr reruns every function in <code>tools/stats.js</code> against its R ${escapeHtml(data.meta.r_version.replace(/^R version /, "").split(" ")[0])} counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
       <li>Inputs are bit-identical between R and Plöttr.</li>
       <li>Tolerance: |Δ| ≤ ${TOL} on test statistics and on p-values ≥ ${P_ABS_CEILING}. Deep-tail p-values (&lt; ${P_ABS_CEILING}) are compared in log space, so the ratio between R's p and Plöttr's stays within [1/1.1, 1.1].</li>
       <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons.</li>
-      <li><strong>R-floor rows (amber)</strong>: R's <code>ptukey</code> saturates at ~<code>2.2e-15</code> due to a <code>1 − ptukey(q)</code> cancellation. Plöttr's <code>ptukey_upper</code> computes the survival directly and continues the true tail past that floor (cross-checked against scipy and Monte Carlo). These rows are not JS failures — R is simply no longer ground truth there.</li>
+      <li><strong>R-floor rows (amber)</strong>: R's <code>ptukey</code> saturates at ~<code>2.2e-15</code> due to a <code>1 − ptukey(q)</code> cancellation. Plöttr's <code>ptukey_upper</code> computes the survival directly and continues the true tail past that floor (cross-checked against scipy and Monte Carlo). These rows are not JS failures — R is simply no longer ground truth there.</li>${
+        scipy
+          ? `
+      <li><strong>SciPy benchmark.</strong> ${scipy.totals.total.toLocaleString()} comparisons across ${Object.keys(scipy.categories).length} categories specifically targeting the noncentral distributions (<code>nctcdf</code>, <code>ncf_sf</code>, <code>ncchi2cdf</code>) and <code>qtukey</code> at the (df, λ) corners the R bench can't reach. Tolerances calibrated to each routine's design envelope: 1e-6 relative for central distributions, 5 % relative for noncentral / qtukey, factor-of-1.5 log-space in the deep tail. Underflow / deep-tail / pathological rows are bucketed separately (see panel below).</li>`
+          : ""
+      }
       <li>Real failures are flagged in red and counted honestly.</li>
-      <li>Reproduce locally: <code>Rscript benchmark/run-r.R &amp;&amp; node benchmark/run.js</code></li>
+      <li>Reproduce locally: <code>Rscript benchmark/run-r.R &amp;&amp; node benchmark/run.js${scipy ? " &amp;&amp; node benchmark/run-scipy.js" : ""}</code></li>
       <li><a href="./index.html">← back to tools</a></li>
     </ul>
   </header>
 
+  <h2 class="ref-heading">vs R ${escapeHtml(data.meta.r_version.replace(/^R version /, "").split(" ")[0])} on real built-in datasets</h2>
   <div class="summary ${summaryClass}">
     <div><span class="k">comparisons</span><span class="v">${total}</span></div>
     <div><span class="k">passing</span><span class="v v-pass">${passed} (${passPct}%)</span></div>
     <div><span class="k">failing</span><span class="v ${failed === 0 ? "v-pass" : "v-fail"}">${failed}</span></div>
     <div><span class="k">past R's floor</span><span class="v v-rsat">${rSaturatedRows}</span></div>
     <div><span class="k">max |Δ|</span><span class="v">${fmtDelta(maxDelta)}</span></div>
+  </div>${
+    scipy
+      ? `
+
+  <h2 class="ref-heading">vs SciPy ${escapeHtml(scipy.meta.scipy_version)} on targeted (df, λ) grids</h2>
+  <div class="summary ${scipyClass}">
+    <div><span class="k">comparisons</span><span class="v">${scipy.totals.total.toLocaleString()}</span></div>
+    <div><span class="k">passing</span><span class="v v-pass">${scipy.totals.pass.toLocaleString()} (${(
+      (scipy.totals.pass / scipy.totals.total) *
+      100
+    ).toFixed(1)}%)</span></div>
+    <div><span class="k">failing</span><span class="v ${
+      scipy.totals.fail === 0 ? "v-pass" : "v-fail"
+    }">${scipy.totals.fail}</span></div>
+    <div><span class="k">deep-tail / underflow</span><span class="v v-rsat">${
+      scipy.totals.deepTail + scipy.totals.underflow
+    }</span></div>
+    <div><span class="k">pathological</span><span class="v v-rsat">${scipy.totals.pathological}</span></div>
   </div>
+  <details class="scipy-breakdown">
+    <summary><span class="dv-disclosure" aria-hidden="true"></span>SciPy per-category breakdown · ${
+      scipy.meta.python_version ? `Python ${escapeHtml(scipy.meta.python_version)}` : ""
+    }</summary>
+    <table class="scipy-table">
+      <thead>
+        <tr>
+          <th>category</th><th>pass</th><th>fail</th><th>deep-tail</th><th>underflow</th><th>pathological</th><th>total</th>
+        </tr>
+      </thead>
+      <tbody>${Object.entries(scipy.categories)
+        .sort()
+        .map(
+          ([cat, c]) =>
+            `<tr><td><code>${escapeHtml(cat)}</code></td><td class="num v-pass">${c.pass}</td><td class="num ${
+              c.fail === 0 ? "" : "v-fail"
+            }">${c.fail}</td><td class="num">${c.deepTail}</td><td class="num">${c.underflow}</td><td class="num">${c.pathological}</td><td class="num">${c.total}</td></tr>`
+        )
+        .join("")}</tbody>
+    </table>
+  </details>`
+      : ""
+  }
 
   <button type="button" class="toggle-all" data-toggle-all aria-expanded="true">Collapse all</button>
 
