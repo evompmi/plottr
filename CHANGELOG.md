@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **README no longer hard-codes the test count.** The "Statistical
+  validation" paragraph and the `npm test` example in the Development
+  block both said "891 tests" — but `scripts/bump-test-count.js`
+  (posttest hook) only rewrites the landing-page badge in `index.html`,
+  so the README drifted on every test addition. README now points at
+  the auto-bumped landing-page badge as the source of truth and
+  describes the suite without a number; one less place to drift.
+
 ### Removed
 
 - **Zenodo DOI references dropped from the README + `THIRD_PARTY.md`.**

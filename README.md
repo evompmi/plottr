@@ -79,7 +79,7 @@ Each tool has an in-app **How to** panel.
 
 All numerics (`tools/stats.js`) are cross-validated against **R 4.5** on real built-in datasets (`iris`, `PlantGrowth`, `ToothGrowth`, `mtcars`, …). Current run: **303 comparisons, max absolute |R − JS| ≈ 8 × 10⁻⁷** (max over test statistics alone is 4 × 10⁻⁹); zero comparisons exceed 10⁻⁶ in absolute terms. Reproducible via `npm run benchmark`. Results render as a public page at `benchmark.html` — failing rows are shown in red, not hidden.
 
-On top of that, **891 unit + integration tests** (CI-gated on every commit, alongside ESLint, Prettier, and `tsc --noEmit`) plus per-tool fuzz harnesses (`npm run fuzz:<tool>`) that run 2 × 1000 iterations of pathological-input corpus through each tool's pipeline.
+On top of that, a deterministic unit + integration test suite (CI-gated on every commit, alongside ESLint, Prettier, and `tsc --noEmit`) plus per-tool fuzz harnesses (`npm run fuzz:<tool>`) that run 2 × 1000 iterations of pathological-input corpus through each tool's pipeline. The current test count is shown on the [landing page](https://evompmi.github.io/plottr/) and auto-bumped after every `npm test`.
 
 Covers: Shapiro–Wilk, Brown–Forsythe Levene, Student / Welch t, Mann–Whitney U, one-way ANOVA, Welch ANOVA, Kruskal–Wallis, Tukey HSD (studentised range), Games–Howell, Dunn + Benjamini–Hochberg, Cohen's _d_, Hedges' _g_, η², ε², compact letter display.
 
@@ -113,7 +113,7 @@ Node.js ≥ 20 for the tooling (not for running the app):
 npm install
 npm run build       # compile tools/*.tsx → tools/*.js
 npm run watch       # recompile on save
-npm test            # 891 tests across 17 suites
+npm test            # full deterministic suite (count shown on landing page)
 npm run fuzz:<tool> # fuzz one tool (boxplot, scatter, heatmap, …)
 npm run typecheck   # tsc --noEmit
 npm run lint        # ESLint
