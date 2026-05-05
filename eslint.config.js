@@ -199,7 +199,13 @@ module.exports = [
 
   // This config file itself + build scripts + benchmark runner (CommonJS, Node).
   {
-    files: ["eslint.config.js", ".prettierrc.js", "scripts/**/*.js", "benchmark/**/*.js"],
+    files: [
+      "eslint.config.js",
+      ".prettierrc.js",
+      "vitest.config.js",
+      "scripts/**/*.js",
+      "benchmark/**/*.js",
+    ],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "commonjs",

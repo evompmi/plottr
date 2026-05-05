@@ -1,18 +1,30 @@
 #!/usr/bin/env node
 // Auto-bumps the "N internal tests" badge on the landing page from the
-// captured `.test-output.log` produced by `scripts/run-tests.js`. Wired
+// captured `.test-output.log` produced by `scripts/run-vitest.js`. Wired
 // to `posttest` in package.json so it fires automatically after every
 // successful `npm test`. CI's separate badge-verify step in test.yml
 // stays in place as a backstop in case the contributor forgets to
 // commit the auto-bumped index.html.
 //
+// Vitest reporter shape (verbose, default):
+//
+//   ✓ tests/stats.test.js (209 tests) 1234ms
+//   …
+//   Test Files  24 passed (24)
+//        Tests  1057 passed (1057)
+//        ...
+//
+// We parse the `Tests  N passed` line as the canonical deterministic
+// count. The historical pre-Vitest format ("X/X passed" per suite,
+// summed across suites) is also matched as a fallback so checkouts
+// upgraded mid-cycle don't have to flush the log to bump the badge.
+//
 // Side effects:
-//   - Reads .test-output.log (skips silently if missing — first run, or
-//     when `npm test` was driven from CI's tee-to-test-output.log path
-//     which doesn't go through run-tests.js).
-//   - Reads tools/version.js… no, just index.html. Two spots — the
-//     trust-badge `title=` attribute and the footer `<p>N internal
-//     tests</p>`. The CI verification step parses the footer copy.
+//   - Reads .test-output.log (skips silently if missing — fresh
+//     checkout, or `npm test` was invoked outside the wrapper).
+//   - Rewrites index.html in two spots: the trust-badge `title=`
+//     attribute and the footer `<p>N internal tests</p>`. CI's
+//     verification step parses the footer copy.
 //
 // Exits 0 on no-op, on successful rewrite, AND on degraded paths (no
 // log, malformed log) — the `posttest` hook isn't a place to fail builds.
@@ -25,7 +37,7 @@ const logPath = path.join(repoRoot, ".test-output.log");
 const indexPath = path.join(repoRoot, "index.html");
 
 if (!fs.existsSync(logPath)) {
-  // Fresh checkout, or `npm test` was invoked outside run-tests.js. The
+  // Fresh checkout, or `npm test` was invoked outside the wrapper. The
   // CI badge-verify step still catches drift; we just can't auto-bump
   // here without test output to read.
   process.exit(0);
@@ -33,15 +45,29 @@ if (!fs.existsSync(logPath)) {
 
 const log = fs.readFileSync(logPath, "utf8");
 
-// Sum the per-suite "X/X passed" lines exactly the way CI does
-// (test.yml lines 42-50). The harness prints `  X/X passed` after each
-// suite; the sum across all suites is the canonical deterministic count.
 let total = 0;
-const re = /^\s*(\d+)\/\d+ passed\s*$/gm;
-let match;
-while ((match = re.exec(log)) !== null) {
-  total += Number(match[1]);
+
+// Vitest's verbose reporter emits a single canonical
+// `Tests  N passed (N)` summary line at the bottom of the run. Match
+// it case-insensitively (in case future versions tweak the casing) and
+// be lenient about whitespace.
+const vitestRe = /^\s*Tests\s+(\d+)\s+passed/im;
+const vitestMatch = log.match(vitestRe);
+if (vitestMatch) {
+  total = Number(vitestMatch[1]);
 }
+
+// Fallback: pre-Vitest "X/X passed" per-suite footer sum. Lets a
+// developer who upgraded mid-cycle still get a correct badge bump
+// without re-running tests.
+if (total === 0) {
+  const legacyRe = /^\s*(\d+)\/\d+ passed\s*$/gm;
+  let match;
+  while ((match = legacyRe.exec(log)) !== null) {
+    total += Number(match[1]);
+  }
+}
+
 if (total === 0) {
   // Either the suite never ran or the log shape changed. Either way,
   // don't touch index.html — silent no-op.

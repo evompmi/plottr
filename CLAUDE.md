@@ -11,7 +11,9 @@ Tech stack: React 18 (vendored in `/vendor/`) + esbuild (build-time TSX compilat
 ## Running Tests
 
 ```bash
-npm test  # runs every tests/*.test.js in sequence (24 deterministic suites at v1.2.0)
+npm test            # full deterministic suite under Vitest (parallel by file)
+npm run test:watch  # watch mode for local development
+npm run test:coverage
 ```
 
 The suite splits into three rough buckets:
@@ -22,7 +24,9 @@ The suite splits into three rough buckets:
 
 Each new plot tool adds a `tests/<tool>.test.js` covering its pure helpers, plus a fuzz harness (see below). New shared helpers go into the bucket that matches their domain — don't create a new file unless the domain is genuinely new.
 
-No test framework — custom harness in `tests/harness.js` using `suite()`, `test()`, `assert()`, `eq()`, `approx()`, `throws()`, `summary()`. Exit code 1 on any failure.
+**Test runner: Vitest 3.x with a thin compat shim.** The 24 `tests/*.test.js` files keep the project's house vocabulary — `suite() / test() / assert() / eq() / approx() / throws() / summary()` — through `tests/harness.js`, which is now a ~50-line adapter that delegates to Vitest's `globalThis.test` (injected by `globals: true` in `vitest.config.js`). Test files were not rewritten; they still `require("./harness")` and look identical. What Vitest buys: parallel file execution (~12 s wall clock vs. ~3 min sequential), watch mode, IDE integration via Vitest's per-`test` discovery, snapshot testing, and proper diff output on failures. A future contributor who wants Vitest's full DSL can use `describe / it / expect` directly — they're global. Per-test timeout is 30 s in the config to accommodate the slow stats cross-validations (deep-tail `cpsets`, `qtukey` at small df). The bespoke functional-React mock in `tests/helpers/render-loader.js` (354 lines) is unchanged — converting `tests/components.test.js` to real React + happy-dom is a separate refactor not yet done.
+
+`scripts/run-vitest.js` is the wrapper `npm test` invokes; it tees Vitest's stdout/stderr to `.test-output.log` so the `posttest` hook can read the canonical `Tests  N passed (N)` line and update the landing-page test-count badge. Vitest's exit code propagates unchanged.
 
 ### Fuzz harnesses
 
@@ -40,7 +44,7 @@ New features that add user-visible behaviour or data-pipeline logic must ship wi
 
 ### Landing-page test counter
 
-`index.html` renders an `N internal tests` badge in the trust-badge row and footer. **The badge is the project's single source of truth for the test count — README and other docs should not hard-code a number.** It is auto-bumped by `scripts/bump-test-count.js` (`posttest` hook in `package.json`), which sums the `X/X passed` lines from `.test-output.log` and rewrites the two spots in `index.html`. CI's badge-verify step is the backstop. Fuzz iterations do not count (they are randomised); only the deterministic `tests/*.test.js` cases do. The bump itself doesn't require a CHANGELOG entry — log only the *change that drove the new tests*.
+`index.html` renders an `N internal tests` badge in the trust-badge row and footer. **The badge is the project's single source of truth for the test count — README and other docs should not hard-code a number.** It is auto-bumped by `scripts/bump-test-count.js` (`posttest` hook in `package.json`), which reads the canonical `Tests  N passed (N)` line from Vitest's verbose-reporter output (captured in `.test-output.log` by `scripts/run-vitest.js`) and rewrites the two spots in `index.html`. CI's badge-verify step is the backstop and accepts both the Vitest line and the legacy pre-Vitest `X/X passed` per-suite format so a stale checkout mid-upgrade still gates correctly. Fuzz iterations do not count (they are randomised); only the deterministic `tests/*.test.js` cases do. The bump itself doesn't require a CHANGELOG entry — log only the _change that drove the new tests_.
 
 ## Architecture
 

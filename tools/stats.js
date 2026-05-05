@@ -1862,8 +1862,7 @@ function selectTest(groups, opts = {}) {
       reason:
         "Shapiro-Wilk flagged at least one group as non-normal. Plöttr keeps Welch as the default (pre-screening with SW is a known anti-pattern) but a rank-based test may be more appropriate for genuinely heavy-tailed data.",
     };
-    suggestionNarrative =
-      ` If the non-normality looks substantive (heavy tails, strong skew, ordinal data), consider switching to ${suggestion.test === "mannWhitney" ? "Mann-Whitney U" : "Kruskal-Wallis + Dunn (BH)"} from the test dropdown.`;
+    suggestionNarrative = ` If the non-normality looks substantive (heavy tails, strong skew, ordinal data), consider switching to ${suggestion.test === "mannWhitney" ? "Mann-Whitney U" : "Kruskal-Wallis + Dunn (BH)"} from the test dropdown.`;
   }
 
   const overrideHint =

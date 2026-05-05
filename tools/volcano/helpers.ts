@@ -940,9 +940,7 @@ export function buildPoints(
     const log2fc = isNumericValue(xRaw) ? toNumericValue(xRaw) : NaN;
     const p = isNumericValue(yRaw) ? toNumericValue(yRaw) : NaN;
     const labelRaw =
-      labelCol >= 0 && row[labelCol] != null && row[labelCol] !== ""
-        ? String(row[labelCol])
-        : null;
+      labelCol >= 0 && row[labelCol] != null && row[labelCol] !== "" ? String(row[labelCol]) : null;
     const label = labelRaw == null ? null : labelRaw.trim() || null;
     out.push({ idx: i, log2fc, p, label });
   }

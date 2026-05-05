@@ -9,7 +9,9 @@
     "prewatch": "node scripts/write-version.js",
     "watch": "node scripts/watch.js",
     "pretest": "node scripts/build-shared.js",
-    "test": "node scripts/run-tests.js",
+    "test": "node scripts/run-vitest.js",
+    "test:watch": "node scripts/build-shared.js && vitest",
+    "test:coverage": "node scripts/run-vitest.js --coverage",
     "posttest": "node scripts/bump-test-count.js",
     "fuzz:heatmap": "node tests/fuzz/heatmap.fuzz.js",
     "fuzz:boxplot": "node tests/fuzz/boxplot.fuzz.js",
@@ -46,7 +48,9 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.4.0",
+    "happy-dom": "^20.9.0",
     "prettier": "^3.8.2",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vitest": "^3.2.4"
   }
 }

@@ -1501,7 +1501,10 @@ test("k=3 non-normal → welchANOVA (default) + kruskalWallis suggestion", () =>
   const skC = [3, 3, 3, 3, 3, 3, 3, 3, 3, 30];
   const r = selectTest([skA, skB, skC]);
   assert(r.allNormal === false, "expected non-normal");
-  assert(r.recommendation.test === "welchANOVA", `default still Welch ANOVA, got ${r.recommendation.test}`);
+  assert(
+    r.recommendation.test === "welchANOVA",
+    `default still Welch ANOVA, got ${r.recommendation.test}`
+  );
   assert(r.suggestion != null, "expected non-parametric suggestion");
   assert(r.suggestion.test === "kruskalWallis", `suggestion ${r.suggestion.test}`);
   assert(r.suggestion.postHoc === "dunn", `suggestion postHoc ${r.suggestion.postHoc}`);

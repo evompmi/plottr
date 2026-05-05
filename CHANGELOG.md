@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Test runner migrated to Vitest 3.x.** The 24 `tests/*.test.js`
+  files were unchanged — `tests/harness.js` shrunk from 56 lines of
+  bespoke `suite() / test() / assert() / eq() / approx() / throws() /
+  summary()` runner into a ~50-line compat shim that delegates each
+  `test()` call to `globalThis.test` (Vitest's injected global, made
+  available by `globals: true` in the new `vitest.config.js`). The
+  project keeps its house vocabulary; Vitest gets to schedule, time,
+  diff, and report. New scripts: `npm run test:watch` (Vitest watch
+  mode for local development), `npm run test:coverage`. New wrapper
+  `scripts/run-vitest.js` tees stdout/stderr to `.test-output.log` so
+  the `posttest` badge-bumper still picks up the canonical count
+  (parses `Tests  N passed (N)` from Vitest's verbose reporter; legacy
+  per-suite `X/X passed` format kept as a fallback). `scripts/run-tests.js`
+  removed. CI's badge-verify step accepts both formats. Wall-clock
+  runtime: ~13 s under Vitest's parallel-by-file scheduling vs. ~3 min
+  under the prior sequential `node tests/x.test.js` chain. Per-test
+  timeout set to 30 s in the config to accommodate the slow stats
+  cross-validations (deep-tail `cpsets`, `qtukey` at small df). The
+  bespoke functional-React mock in `tests/helpers/render-loader.js`
+  (354 lines) is unchanged — migrating `tests/components.test.js` to
+  real React + happy-dom is a follow-up. `happy-dom@^20.9.0` and
+  `vitest@^3.2.4` added as devDependencies.
+
 - **Volcano tool finishes the v1.2.0 folder-split convention.**
   `tools/volcano/index.tsx` was an outlier at 1,689 lines holding the
   App orchestrator, two step components (Configure / Plot), seven
@@ -37,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Plot, and the legacy shared StatsTile now show this as a themed
   `--info-bg` info banner under the recommendation reason: "Suggested
   alternative — Shapiro-Wilk flagged non-normal data, consider
-  *Mann-Whitney U*. [Use suggestion]". Clicking **Use suggestion**
+  _Mann-Whitney U_. [Use suggestion]". Clicking **Use suggestion**
   flips the per-set test override the same way the dropdown would; the
   banner disappears once selected. No banner is shown when the chosen
   test already matches the suggestion (so the user isn't nagged after
@@ -51,7 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now recommends Welch's t (`k = 2`) or Welch's ANOVA + Games-Howell
   (`k ≥ 3`) regardless of the SW / Levene outcomes. The previous gated
   rule tree (`SW p < α → Mann-Whitney / Kruskal-Wallis; Levene p < α →
-  Welch; else Student / one-way ANOVA`) is replaced because pre-screening
+Welch; else Student / one-way ANOVA`) is replaced because pre-screening
   for normality with SW and routing on the result is a known
   Type I-error-inflating anti-pattern (Schucany & Ng 2006; Zimmerman
   2004; Rasch, Kubinger & Moder 2011; Delacre et al. 2019). SW + Levene

@@ -993,11 +993,7 @@ function StatsTile({
             "span",
             null,
             "Shapiro-Wilk flagged non-normal data — consider ",
-            React.createElement(
-              "strong",
-              null,
-              STATS_LABELS[suggestion.test] || suggestion.test
-            ),
+            React.createElement("strong", null, STATS_LABELS[suggestion.test] || suggestion.test),
             "."
           ),
           React.createElement(
