@@ -316,9 +316,7 @@ export function ColorsTile({ vis, updVis }: any) {
 
 function ColorRow({ label, value, onChange }: any) {
   return (
-    <div
-      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}
-    >
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
       <span style={{ fontSize: 12, color: "var(--text)" }}>{label}</span>
       <ColorInput value={value} onChange={onChange} size={20} />
     </div>

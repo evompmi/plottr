@@ -1,0 +1,64 @@
+// Vitest config — runs the existing tests/*.test.js suite under Vitest
+// without rewriting the 24 test files. The bespoke `tests/harness.js`
+// has been rewritten as a thin shim that delegates `suite() / test() /
+// assert() / eq() / approx() / throws() / summary()` to Vitest's own
+// `test()` global, so the project keeps its testing vocabulary while
+// gaining parallel file execution, watch mode, IDE integration,
+// snapshot support, and proper diff output on failures.
+//
+// Out-of-scope for this config: tests/fuzz/*.fuzz.js (own driver,
+// invoked via `npm run fuzz:<tool>`) and tests/helpers/* (vm-context
+// loaders for shared.js / per-tool helpers.ts — these are imported by
+// the test files but are never themselves tests).
+
+const { defineConfig } = require("vitest/config");
+
+module.exports = defineConfig({
+  test: {
+    // Make `test` / `expect` / `describe` available as globals so the
+    // shim doesn't need to import them at every callsite. Test files
+    // continue to import the harness via `require("./harness")`.
+    globals: true,
+
+    // Default to a Node environment — the project's test bodies operate
+    // on plain JS values (parser output, stats results, helper returns)
+    // and the bespoke `render-loader.js` already manages its own vm
+    // context for component-tree smoke tests. happy-dom is installed
+    // for future migration of `tests/components.test.js` to real React
+    // + DOM, but the current suite doesn't need it.
+    environment: "node",
+
+    // Test discovery: every tests/*.test.js (no nesting). The harness
+    // itself (`tests/harness.js`), the per-tool / per-domain loaders
+    // under `tests/helpers/`, and the fuzz drivers under `tests/fuzz/`
+    // are explicitly not tests; the include pattern + the default
+    // exclude list (node_modules, build/, dist/) keep them out.
+    include: ["tests/*.test.js"],
+    exclude: ["node_modules/**", "tests/fuzz/**", "tests/helpers/**", "tests/harness.js"],
+
+    // Verbose reporter prints every test name as it runs (matching the
+    // pre-Vitest `✓  <name>` cadence the contributor expectation has
+    // built around) and ends with the canonical
+    //   Test Files  N passed (N)
+    //        Tests  M passed (M)
+    // pair that `scripts/bump-test-count.js` parses to update the
+    // landing-page badge.
+    reporters: ["verbose"],
+
+    // Per-test timeout. Vitest's default 5s is fine for the vast
+    // majority of unit tests, but a handful of statistical
+    // cross-validations exercise expensive pure-JS routines that
+    // legitimately take a few seconds: the `multisetIntersectionPExact`
+    // deep-tail check (k=5, p ≈ 1e-15) is ~3 s, and `qtukey` at small
+    // df runs a doubling bracket-expansion plus 200-step bisection
+    // where each iteration is a 48-node Gauss-Legendre integration of
+    // ptukey. 30 s is comfortable headroom for the slow cases without
+    // letting a genuinely-hung test bleed CI time forever.
+    testTimeout: 30_000,
+
+    // Pre-test hook: build-shared still runs via package.json's
+    // `pretest` script (just like before), so by the time vitest
+    // starts evaluating test files the `tools/shared.bundle.js`
+    // they read through `vm.runInContext` is already up to date.
+  },
+});

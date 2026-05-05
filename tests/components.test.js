@@ -1,21 +1,74 @@
-// Component render-smoke tests — verify every React component can be called
-// with minimal valid props and returns a non-null element tree without throwing.
+// @vitest-environment happy-dom
+//
+// Component render-smoke tests — verify every React component can be
+// rendered with minimal valid props and produces non-empty markup
+// without throwing.
+//
+// Migrated from a bespoke functional-React mock (the old
+// `tests/helpers/render-loader.js` was 354 lines of hand-rolled
+// `createElement` / hook simulators that returned `{type, props,
+// children}` element-tree objects) to **real React 18 + happy-dom**
+// in 2026-05-05. The shared bundle (`tools/shared.bundle.js`) and the
+// compiled tool .js files now load against the actual `react` and
+// `react-dom/server` packages; assertions read DOM / HTML directly
+// instead of reverse-engineering element-tree shapes.
+//
+// Assertion idiom:
+//   - `renderHtml(Component, props)` returns the static HTML string.
+//   - For tag / structure checks, parse the HTML into a happy-dom
+//     element via `rootEl(html)` and ask the DOM directly.
+//   - `renderHtml` returning `""` is the new "component returned null".
+//
+// `renderWithEffects` (uses react-dom/client + happy-dom + act) is
+// reserved for the small block of tests at the bottom that exercise
+// useEffect / useLayoutEffect / context — `renderToStaticMarkup` does
+// not run effects.
 
 const { suite, test, assert, eq, summary } = require("./harness");
-const { buildContext, loadTool, render, countElements } = require("./helpers/render-loader");
+const {
+  buildContext,
+  loadTool,
+  renderHtml,
+  renderWithEffects,
+  React,
+} = require("./helpers/render-loader");
+
+// ── Local helpers ──────────────────────────────────────────────────────
+
+// Parse an HTML string and return the first element. happy-dom is
+// available because of the per-file `// @vitest-environment happy-dom`
+// pragma at the top.
+function rootEl(html) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return tmp.firstElementChild;
+}
+
+// Count immediate children of the root element.
+function rootChildCount(html) {
+  const root = rootEl(html);
+  return root ? root.children.length : 0;
+}
+
+// Total tag-open count — quick proxy for "the tree is non-trivial",
+// replaces the old `countElements(el) > N` assertion.
+function tagCount(html) {
+  return (html.match(/<[a-zA-Z]/g) || []).length;
+}
+
+// Boot the shared bundle once; every shared-component test reuses the
+// same `sc` reference.
+const { ctx: sc } = buildContext();
+const noop = function () {};
 
 // ════════════════════════════════════════════════════════════════════════════
 //  shared-components.js
 // ════════════════════════════════════════════════════════════════════════════
 
-const { ctx: sc, resetHooks: resetSC } = buildContext();
-const noop = function () {};
-
 suite("DataPreview");
 
 test("renders table with headers and rows", function () {
-  resetSC();
-  var el = sc.DataPreview({
+  const html = renderHtml(sc.DataPreview, {
     headers: ["Name", "Value"],
     rows: [
       ["A", "1"],
@@ -23,24 +76,23 @@ test("renders table with headers and rows", function () {
       ["C", "3"],
     ],
   });
-  assert(el, "should return an element");
-  assert(el.type === "div", "root should be a div");
-  assert(countElements(el) > 5, "should produce multiple elements");
+  const root = rootEl(html);
+  assert(root, "should render");
+  assert(root.tagName === "DIV", "root should be a div");
+  assert(tagCount(html) > 5, "should produce multiple elements");
 });
 
 test("renders with maxRows limiting output", function () {
-  resetSC();
   var rows = [];
   for (var i = 0; i < 20; i++) rows.push(["r" + i, String(i)]);
-  var el = sc.DataPreview({ headers: ["A", "B"], rows: rows, maxRows: 3 });
-  assert(el, "should return an element");
+  const html = renderHtml(sc.DataPreview, { headers: ["A", "B"], rows: rows, maxRows: 3 });
+  assert(html.length > 0, "should render");
 });
 
 suite("SliderControl");
 
 test("renders slider with label and value", function () {
-  resetSC();
-  var el = sc.SliderControl({
+  const html = renderHtml(sc.SliderControl, {
     label: "Opacity",
     value: 50,
     min: 0,
@@ -48,117 +100,115 @@ test("renders slider with label and value", function () {
     step: 1,
     onChange: noop,
   });
-  assert(el, "should return an element");
-  assert(el.type === "div", "root should be a div");
+  const root = rootEl(html);
+  assert(root, "should render");
+  assert(root.tagName === "DIV", "root should be a div");
 });
 
 suite("StepNavBar");
 
 test("renders step buttons", function () {
-  resetSC();
-  var el = sc.StepNavBar({
+  const html = renderHtml(sc.StepNavBar, {
     steps: ["Upload", "Configure", "Plot"],
     currentStep: "Upload",
     onStepChange: noop,
   });
-  assert(el, "should return an element");
-  // One per-step wrapper <div> per step
-  assert(el.children.length === 3, "should have 3 per-step wrappers");
+  // One per-step wrapper <div> per step at the root level.
+  assert(rootChildCount(html) === 3, "should have 3 per-step wrappers");
 });
 
 suite("CommaFixBanner");
 
 test("returns null when commaFixed is false", function () {
-  resetSC();
-  var el = sc.CommaFixBanner({ commaFixed: false, commaFixCount: 0 });
-  eq(el, null);
+  const html = renderHtml(sc.CommaFixBanner, { commaFixed: false, commaFixCount: 0 });
+  eq(html, "");
 });
 
 test("renders banner when commaFixed is true", function () {
-  resetSC();
-  var el = sc.CommaFixBanner({ commaFixed: true, commaFixCount: 5 });
-  assert(el, "should return an element");
+  const html = renderHtml(sc.CommaFixBanner, { commaFixed: true, commaFixCount: 5 });
+  assert(html.length > 0, "should render");
 });
 
 suite("ParseErrorBanner");
 
 test("returns null when no error", function () {
-  resetSC();
-  var el = sc.ParseErrorBanner({ error: null });
-  eq(el, null);
+  const html = renderHtml(sc.ParseErrorBanner, { error: null });
+  eq(html, "");
 });
 
 test("renders banner with error message", function () {
-  resetSC();
-  var el = sc.ParseErrorBanner({ error: "Bad CSV" });
-  assert(el, "should return an element");
+  const html = renderHtml(sc.ParseErrorBanner, { error: "Bad CSV" });
+  assert(html.length > 0, "should render");
+  assert(html.includes("Bad CSV"), "banner should include the error message");
 });
 
 suite("PageHeader");
 
 test("renders header with title", function () {
-  resetSC();
-  var el = sc.PageHeader({ toolName: "boxplot", title: "Boxplot Tool" });
-  assert(el, "should return an element");
+  const html = renderHtml(sc.PageHeader, { toolName: "boxplot", title: "Boxplot Tool" });
+  assert(html.length > 0, "should render");
+  assert(html.includes("Boxplot Tool"), "should include the title text");
 });
 
-test("renders header with subtitle", function () {
-  resetSC();
-  var el = sc.PageHeader({
+test("renders header with right-slot content", function () {
+  // PageHeader exposes `middle` and `right` slots for inline children
+  // (theme toggle, prefs button, …) — there is no `subtitle` prop. The
+  // pre-Vitest mock's element-tree happened to include the unused
+  // `subtitle` string in its serialized form, so the legacy assertion
+  // matched on a value the component never rendered. Assert on a real
+  // slot instead — the right slot is the canonical home for the
+  // ThemeToggle / PrefsPanel buttons every tool surfaces.
+  const html = renderHtml(sc.PageHeader, {
     toolName: "scatter",
     title: "Scatter",
-    subtitle: "XY plots",
+    right: React.createElement("button", null, "extras"),
   });
-  assert(el, "should return an element");
-  assert(countElements(el) > 3, "subtitle should add elements");
+  assert(html.includes("Scatter"), "should render the title");
+  assert(html.includes("extras"), "right-slot content should render");
+  assert(tagCount(html) > 3, "right slot should add elements");
 });
 
 suite("UploadPanel");
 
 test("renders with no separator selected (disabled state)", function () {
-  resetSC();
-  var el = sc.UploadPanel({
+  const html = renderHtml(sc.UploadPanel, {
     sepOverride: "",
     onSepChange: noop,
     onFileLoad: noop,
   });
-  assert(el, "should return an element");
+  assert(html.length > 0, "should render");
 });
 
 test("renders with separator selected (enabled state)", function () {
-  resetSC();
-  var el = sc.UploadPanel({
+  const html = renderHtml(sc.UploadPanel, {
     sepOverride: ",",
     onSepChange: noop,
     onFileLoad: noop,
   });
-  assert(el, "should return an element");
+  assert(html.length > 0, "should render");
 });
 
 suite("ActionsPanel");
 
 test("renders with download and reset", function () {
-  resetSC();
-  var el = sc.ActionsPanel({ onDownloadSvg: noop, onReset: noop });
-  assert(el, "should return an element");
+  const html = renderHtml(sc.ActionsPanel, { onDownloadSvg: noop, onReset: noop });
+  assert(html.length > 0, "should render");
 });
 
 test("renders with extra downloads", function () {
-  resetSC();
-  var el = sc.ActionsPanel({
+  const html = renderHtml(sc.ActionsPanel, {
     onDownloadSvg: noop,
     onDownloadPng: noop,
     onReset: noop,
     extraDownloads: [{ label: "CSV", onClick: noop }],
   });
-  assert(el, "should return an element");
+  assert(html.includes("CSV"), "should label the extra download");
 });
 
 suite("ColumnRoleEditor");
 
 test("renders column role dropdowns", function () {
-  resetSC();
-  var el = sc.ColumnRoleEditor({
+  const html = renderHtml(sc.ColumnRoleEditor, {
     headers: ["Group", "Value", "Filter"],
     rows: [
       ["A", "1", "x"],
@@ -169,14 +219,13 @@ test("renders column role dropdowns", function () {
     onRoleChange: noop,
     onNameChange: noop,
   });
-  assert(el, "should return an element");
+  assert(html.length > 0, "should render");
 });
 
 suite("FilterCheckboxPanel");
 
 test("renders filter checkboxes", function () {
-  resetSC();
-  var el = sc.FilterCheckboxPanel({
+  const html = renderHtml(sc.FilterCheckboxPanel, {
     headers: ["Grp", "Val"],
     colNames: ["Grp", "Val"],
     colRoles: ["group", "value"],
@@ -189,14 +238,13 @@ test("renders filter checkboxes", function () {
     onToggle: noop,
     onToggleAll: noop,
   });
-  assert(el, "should return an element");
+  assert(html.length > 0, "should render");
 });
 
 suite("RenameReorderPanel");
 
 test("renders rename inputs and drag handles", function () {
-  resetSC();
-  var el = sc.RenameReorderPanel({
+  const html = renderHtml(sc.RenameReorderPanel, {
     headers: ["Grp", "Facet"],
     colNames: ["Group", "Facet"],
     colRoles: ["group", "filter"],
@@ -217,50 +265,47 @@ test("renders rename inputs and drag handles", function () {
     onDragStart: noop,
     onDragEnd: noop,
   });
-  assert(el, "should return an element");
+  assert(html.length > 0, "should render");
 });
 
 suite("StatsTable");
 
 test("returns null for empty stats", function () {
-  resetSC();
-  var el = sc.StatsTable({ stats: [], groupLabel: "Treatment" });
-  eq(el, null);
+  const html = renderHtml(sc.StatsTable, { stats: [], groupLabel: "Treatment" });
+  eq(html, "");
 });
 
 test("renders table with stats rows", function () {
-  resetSC();
-  var el = sc.StatsTable({
+  const html = renderHtml(sc.StatsTable, {
     stats: [
       { name: "Control", n: 10, mean: 5.5, median: 5.0, sd: 1.2, sem: 0.38, min: 3, max: 8 },
       { name: "Treatment", n: 10, mean: 7.2, median: 7.0, sd: 1.5, sem: 0.47, min: 4, max: 10 },
     ],
     groupLabel: "Condition",
   });
-  assert(el, "should return an element");
-  assert(countElements(el) > 10, "table should have many elements");
+  assert(html.length > 0, "should render");
+  assert(tagCount(html) > 10, "table should have many elements");
+  assert(html.includes("Control"), "should include first row name");
+  assert(html.includes("Treatment"), "should include second row name");
 });
 
 suite("GroupColorEditor");
 
 test("renders color pickers per group", function () {
-  resetSC();
-  var el = sc.GroupColorEditor({
+  const html = renderHtml(sc.GroupColorEditor, {
     groups: [
       { name: "A", color: "#648FFF", stats: { n: 5 } },
       { name: "B", color: "#DC267F", stats: { n: 3 } },
     ],
     onColorChange: noop,
   });
-  assert(el, "should return an element");
-  assert(el.children.length === 2, "should have 2 group rows");
+  assert(rootChildCount(html) === 2, "should have 2 group rows");
 });
 
 suite("BaseStyleControls");
 
 test("renders background and grid controls", function () {
-  resetSC();
-  var el = sc.BaseStyleControls({
+  const html = renderHtml(sc.BaseStyleControls, {
     plotBg: "#ffffff",
     onPlotBgChange: noop,
     showGrid: true,
@@ -268,13 +313,12 @@ test("renders background and grid controls", function () {
     gridColor: "#e0e0e0",
     onGridColorChange: noop,
   });
-  assert(el && el.children, "returns wrapper div with children");
-  assert(el.children.length === 3, "bg + grid toggle + grid color");
+  // bg + grid toggle + grid color
+  assert(rootChildCount(html) === 3, "bg + grid toggle + grid color");
 });
 
 test("hides grid color when grid is off", function () {
-  resetSC();
-  var el = sc.BaseStyleControls({
+  const html = renderHtml(sc.BaseStyleControls, {
     plotBg: "#ffffff",
     onPlotBgChange: noop,
     showGrid: false,
@@ -282,25 +326,25 @@ test("hides grid color when grid is off", function () {
     gridColor: "#e0e0e0",
     onGridColorChange: noop,
   });
-  assert(el && el.children, "returns wrapper div");
-  assert(el.children.length === 2, "only bg + grid toggle");
+  // only bg + grid toggle
+  assert(rootChildCount(html) === 2, "only bg + grid toggle");
 });
 
 suite("ColorInput");
 
 test("renders color picker and text input", function () {
-  resetSC();
-  var el = sc.ColorInput({ value: "#648FFF", onChange: noop });
-  assert(el, "should return an element");
-  assert(el.children.length === 2, "color input + text input");
+  const html = renderHtml(sc.ColorInput, { value: "#648FFF", onChange: noop });
+  // color input + text input
+  const root = rootEl(html);
+  const inputs = root ? root.querySelectorAll("input") : [];
+  assert(inputs.length === 2, "color input + text input");
 });
 
 suite("FileDropZone");
 
 test("renders drop zone", function () {
-  resetSC();
-  var el = sc.FileDropZone({ onFileLoad: noop });
-  assert(el, "should return an element");
+  const html = renderHtml(sc.FileDropZone, { onFileLoad: noop });
+  assert(html.length > 0, "should render");
 });
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -312,10 +356,10 @@ test("renders drop zone", function () {
 suite("BoxplotChart");
 
 (function () {
-  var tool = loadTool("boxplot");
-  var BoxplotChart = tool.ctx.BoxplotChart;
+  const tool = loadTool("boxplot");
+  const BoxplotChart = tool.exports.BoxplotChart;
 
-  var sampleGroups = [
+  const sampleGroups = [
     {
       name: "Control",
       color: "#648FFF",
@@ -333,8 +377,7 @@ suite("BoxplotChart");
   ];
 
   test("renders SVG with valid groups", function () {
-    tool.resetHooks();
-    var el = render(BoxplotChart, {
+    const html = renderHtml(BoxplotChart, {
       groups: sampleGroups,
       yLabel: "Value",
       plotTitle: "Test",
@@ -354,14 +397,12 @@ suite("BoxplotChart");
       svgLegend: [],
       showCompPie: false,
     });
-    assert(el, "should return an element");
-    assert(el.type === "svg", "root should be an SVG");
-    assert(countElements(el) > 10, "should produce a complex element tree");
+    assert(html.startsWith("<svg"), "root should be an SVG");
+    assert(tagCount(html) > 10, "should produce a complex tree");
   });
 
   test("returns null for empty groups", function () {
-    tool.resetHooks();
-    var el = render(BoxplotChart, {
+    const html = renderHtml(BoxplotChart, {
       groups: [{ name: "Empty", color: "#648FFF", allValues: [], stats: null, sources: [] }],
       yLabel: "Y",
       plotTitle: "",
@@ -381,12 +422,11 @@ suite("BoxplotChart");
       svgLegend: [],
       showCompPie: false,
     });
-    eq(el, null, "empty data should return null");
+    eq(html, "", "empty data should return null");
   });
 
   test("renders with points hidden", function () {
-    tool.resetHooks();
-    var el = render(BoxplotChart, {
+    const html = renderHtml(BoxplotChart, {
       groups: sampleGroups,
       yLabel: "Value",
       plotTitle: "",
@@ -406,8 +446,7 @@ suite("BoxplotChart");
       svgLegend: [],
       showCompPie: false,
     });
-    assert(el, "should return an element");
-    assert(el.type === "svg", "root should be an SVG");
+    assert(html.startsWith("<svg"), "root should be an SVG");
   });
 })();
 
@@ -416,10 +455,10 @@ suite("BoxplotChart");
 suite("BoxplotChart (bar mode)");
 
 (function () {
-  var tool = loadTool("boxplot");
-  var BoxplotChart = tool.ctx.BoxplotChart;
+  const tool = loadTool("boxplot");
+  const BoxplotChart = tool.exports.BoxplotChart;
 
-  var sampleGroups = [
+  const sampleGroups = [
     {
       name: "Control",
       color: "#648FFF",
@@ -439,8 +478,7 @@ suite("BoxplotChart (bar mode)");
   ];
 
   test("renders SVG bar chart via plotStyle='bar'", function () {
-    tool.resetHooks();
-    var el = render(BoxplotChart, {
+    const html = renderHtml(BoxplotChart, {
       groups: sampleGroups,
       plotStyle: "bar",
       yLabel: "Value",
@@ -463,14 +501,12 @@ suite("BoxplotChart (bar mode)");
       barOutlineWidth: 1,
       svgLegend: [],
     });
-    assert(el, "should return an element");
-    assert(el.type === "svg", "root should be an SVG");
-    assert(countElements(el) > 10, "should produce many elements");
+    assert(html.startsWith("<svg"), "root should be an SVG");
+    assert(tagCount(html) > 10, "should produce many elements");
   });
 
   test("renders with no points and SD error bars", function () {
-    tool.resetHooks();
-    var el = render(BoxplotChart, {
+    const html = renderHtml(BoxplotChart, {
       groups: sampleGroups,
       plotStyle: "bar",
       yLabel: "Value",
@@ -493,7 +529,7 @@ suite("BoxplotChart (bar mode)");
       barOutlineWidth: 1.5,
       svgLegend: [],
     });
-    assert(el, "should return an element");
+    assert(html.length > 0, "should render");
   });
 })();
 
@@ -502,16 +538,16 @@ suite("BoxplotChart (bar mode)");
 suite("ScatterChart");
 
 (function () {
-  var tool = loadTool("scatter");
-  var ScatterChart = tool.ctx.ScatterChart;
+  const tool = loadTool("scatter");
+  const ScatterChart = tool.exports.ScatterChart;
 
-  var sampleData = [
+  const sampleData = [
     { x: 1, y: 2 },
     { x: 3, y: 4 },
     { x: 5, y: 6 },
     { x: 7, y: 8 },
   ];
-  var rawData = [
+  const rawData = [
     ["1", "2", "A"],
     ["3", "4", "B"],
     ["5", "6", "A"],
@@ -519,8 +555,7 @@ suite("ScatterChart");
   ];
 
   test("renders SVG scatter plot", function () {
-    tool.resetHooks();
-    var el = render(ScatterChart, {
+    const html = renderHtml(ScatterChart, {
       data: sampleData,
       rawData: rawData,
       xCol: 0,
@@ -556,14 +591,12 @@ suite("ScatterChart");
       shapeMapDiscrete: {},
       svgLegend: [],
     });
-    assert(el, "should return an element");
-    assert(el.type === "svg", "root should be an SVG");
-    assert(countElements(el) > 5, "should have points and axes");
+    assert(html.startsWith("<svg"), "root should be an SVG");
+    assert(tagCount(html) > 5, "should have points and axes");
   });
 
   test("renders with color mapping", function () {
-    tool.resetHooks();
-    var el = render(ScatterChart, {
+    const html = renderHtml(ScatterChart, {
       data: sampleData,
       rawData: rawData,
       xCol: 0,
@@ -599,12 +632,11 @@ suite("ScatterChart");
       shapeMapDiscrete: {},
       svgLegend: [],
     });
-    assert(el, "should return an element");
+    assert(html.length > 0, "should render");
   });
 
   test("renders empty data without crashing", function () {
-    tool.resetHooks();
-    var el = render(ScatterChart, {
+    const html = renderHtml(ScatterChart, {
       data: [],
       rawData: [],
       xCol: 0,
@@ -640,7 +672,7 @@ suite("ScatterChart");
       shapeMapDiscrete: {},
       svgLegend: [],
     });
-    assert(el, "should return an element even with no data");
+    assert(html.length > 0, "should render even with no data");
   });
 })();
 
@@ -649,10 +681,10 @@ suite("ScatterChart");
 suite("AequorinChart");
 
 (function () {
-  var tool = loadTool("aequorin");
-  var Chart = tool.ctx.Chart;
+  const tool = loadTool("aequorin");
+  const Chart = tool.exports.Chart;
 
-  var sampleSeries = [
+  const sampleSeries = [
     {
       name: "WT",
       color: "#648FFF",
@@ -674,8 +706,7 @@ suite("AequorinChart");
   ];
 
   test("renders SVG line chart", function () {
-    tool.resetHooks();
-    var el = render(Chart, {
+    const html = renderHtml(Chart, {
       series: sampleSeries,
       xStart: 0,
       xEnd: 2,
@@ -694,14 +725,12 @@ suite("AequorinChart");
       plotTitle: "Ca2+ Response",
       plotSubtitle: "",
     });
-    assert(el, "should return an element");
-    assert(el.type === "svg", "root should be an SVG");
-    assert(countElements(el) > 10, "should produce a complex tree");
+    assert(html.startsWith("<svg"), "root should be an SVG");
+    assert(tagCount(html) > 10, "should produce a complex tree");
   });
 
   test("renders with empty series", function () {
-    tool.resetHooks();
-    var el = render(Chart, {
+    const html = renderHtml(Chart, {
       series: [],
       xStart: 0,
       xEnd: 10,
@@ -720,8 +749,7 @@ suite("AequorinChart");
       plotTitle: "",
       plotSubtitle: "",
     });
-    assert(el, "should return an element");
-    assert(el.type === "svg", "root should be an SVG");
+    assert(html.startsWith("<svg"), "root should be an SVG");
   });
 })();
 
@@ -730,10 +758,10 @@ suite("AequorinChart");
 suite("LineChart");
 
 (function () {
-  var tool = loadTool("lineplot");
-  var Chart = tool.ctx.Chart;
+  const tool = loadTool("lineplot");
+  const Chart = tool.exports.Chart;
 
-  var sampleSeries = [
+  const sampleSeries = [
     {
       name: "WT",
       color: "#648FFF",
@@ -755,8 +783,7 @@ suite("LineChart");
   ];
 
   test("renders SVG line chart", function () {
-    tool.resetHooks();
-    var el = render(Chart, {
+    const html = renderHtml(Chart, {
       series: sampleSeries,
       perXStats: [],
       xMin: 0,
@@ -780,14 +807,12 @@ suite("LineChart");
       svgLegend: [{ items: sampleSeries.map((s) => ({ label: s.name, color: s.color })) }],
       showStars: true,
     });
-    assert(el, "should return an element");
-    assert(el.type === "svg", "root should be an SVG");
-    assert(countElements(el) > 10, "should produce a complex tree");
+    assert(html.startsWith("<svg"), "root should be an SVG");
+    assert(tagCount(html) > 10, "should produce a complex tree");
   });
 
   test("renders with empty series", function () {
-    tool.resetHooks();
-    var el = render(Chart, {
+    const html = renderHtml(Chart, {
       series: [],
       perXStats: [],
       xMin: 0,
@@ -811,8 +836,7 @@ suite("LineChart");
       svgLegend: [],
       showStars: false,
     });
-    assert(el, "should return an element");
-    assert(el.type === "svg", "root should be an SVG");
+    assert(html.startsWith("<svg"), "root should be an SVG");
   });
 })();
 
@@ -823,31 +847,31 @@ suite("LineChart");
 suite("StatsTile");
 
 test("renders null when fewer than 2 valid groups", function () {
-  resetSC();
-  var el = sc.StatsTile({
+  const html = renderHtml(sc.StatsTile, {
     groups: [{ name: "only", values: [1, 2, 3, 4, 5] }],
     onAnnotationsChange: noop,
   });
-  assert(el === null, "k<2 should return null");
+  assert(html === "", "k<2 should return null");
 });
 
 test("collapsed header-only render when defaultOpen is false", function () {
-  resetSC();
-  var el = sc.StatsTile({
+  const html = renderHtml(sc.StatsTile, {
     groups: [
       { name: "A", values: [1, 2, 3, 4, 5, 6, 7, 8] },
       { name: "B", values: [2, 3, 4, 5, 6, 7, 8, 9] },
     ],
     onAnnotationsChange: noop,
   });
-  // StatsTile now returns a Fragment: [displayTile, summaryTile]
-  assert(el && el.type === "Fragment", "should return a Fragment");
-  assert(el.children.length === 2, "Fragment should have 2 tiles");
+  // StatsTile returns a Fragment of two tiles (display + summary). With
+  // renderToStaticMarkup the Fragment lays its children out in sequence
+  // so the rendered HTML covers both tiles' content even when the inner
+  // disclosure is collapsed.
+  assert(html.length > 0, "should render");
+  assert(html.includes("Display"), "display tile present");
 });
 
 test("open render on k=2 shows assumption + test sections", function () {
-  resetSC();
-  var el = sc.StatsTile({
+  const html = renderHtml(sc.StatsTile, {
     groups: [
       { name: "A", values: [4.9, 5.1, 5.0, 5.2, 4.8, 5.1, 4.9, 5.0, 5.2, 4.9] },
       { name: "B", values: [5.9, 6.1, 6.0, 6.2, 5.8, 6.1, 5.9, 6.0, 6.2, 5.9] },
@@ -855,13 +879,14 @@ test("open render on k=2 shows assumption + test sections", function () {
     onAnnotationsChange: noop,
     defaultOpen: true,
   });
-  assert(el && el.type === "Fragment", "should return a Fragment");
-  assert(countElements(el) > 30, "open tile should produce many elements");
+  assert(html.length > 0, "should render");
+  assert(tagCount(html) > 30, "open tile should produce many elements");
+  assert(html.includes("Assumptions"), "should include the Assumptions subhead");
+  assert(html.includes("Test"), "should include the Test subhead");
 });
 
 test("sub-options are disabled when 'Display on plot' is off (k=2)", function () {
-  resetSC();
-  var el = sc.StatsTile({
+  const html = renderHtml(sc.StatsTile, {
     groups: [
       { name: "A", values: [1, 2, 3, 4, 5, 6, 7, 8] },
       { name: "B", values: [2, 3, 4, 5, 6, 7, 8, 9] },
@@ -869,28 +894,26 @@ test("sub-options are disabled when 'Display on plot' is off (k=2)", function ()
     onAnnotationsChange: noop,
     onStatsSummaryChange: noop,
   });
-  var str = JSON.stringify(el);
   assert(
-    str.indexOf("Print summary below plot") >= 0,
+    html.indexOf("Print summary below plot") >= 0,
     "display-tile should expose 'Print summary below plot'"
   );
-  assert(str.indexOf("Display on plot") >= 0, "display-tile should expose 'Display on plot'");
-  assert(str.indexOf("Show ns") >= 0, "display-tile should always render 'Show ns'");
+  assert(html.indexOf("Display on plot") >= 0, "display-tile should expose 'Display on plot'");
+  assert(html.indexOf("Show ns") >= 0, "display-tile should always render 'Show ns'");
   // Default showOnPlot=false, so both "Print summary below plot" and "Show ns"
   // must be disabled (no style radios for k=2).
-  var notAllowedCount = (str.match(/not-allowed/g) || []).length;
+  const notAllowedCount = (html.match(/not-allowed/g) || []).length;
   assert(notAllowedCount === 2, "expected 2 disabled controls for k=2, got " + notAllowedCount);
 });
 
 test("Show ns + Style radios + Print summary all disabled when display is off (k>2)", function () {
-  resetSC();
   // k=3 → default annotKind is 'cld'. With showOnPlot=false by default,
   // every sub-option of "Display on plot" should be disabled: Print summary,
   // both Style radios, and Show ns (which is also independently disabled in CLD).
-  var pgCtrl = [4.17, 5.58, 5.18, 6.11, 4.5, 4.61, 5.17, 4.53, 5.33, 5.14];
-  var pgTrt1 = [4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69];
-  var pgTrt2 = [6.31, 5.12, 5.54, 5.5, 5.37, 5.29, 4.92, 6.15, 5.8, 5.26];
-  var el = sc.StatsTile({
+  const pgCtrl = [4.17, 5.58, 5.18, 6.11, 4.5, 4.61, 5.17, 4.53, 5.33, 5.14];
+  const pgTrt1 = [4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69];
+  const pgTrt2 = [6.31, 5.12, 5.54, 5.5, 5.37, 5.29, 4.92, 6.15, 5.8, 5.26];
+  const html = renderHtml(sc.StatsTile, {
     groups: [
       { name: "ctrl", values: pgCtrl },
       { name: "trt1", values: pgTrt1 },
@@ -898,21 +921,19 @@ test("Show ns + Style radios + Print summary all disabled when display is off (k
     ],
     onAnnotationsChange: noop,
   });
-  var str = JSON.stringify(el);
-  assert(str.indexOf("Show ns") >= 0, "display-tile should always render 'Show ns'");
-  assert(str.indexOf("Letters") >= 0, "Style toggle should render 'Letters' for k>2");
-  assert(str.indexOf("Brackets") >= 0, "Style toggle should render 'Brackets' for k>2");
+  assert(html.indexOf("Show ns") >= 0, "display-tile should always render 'Show ns'");
+  assert(html.indexOf("Letters") >= 0, "Style toggle should render 'Letters' for k>2");
+  assert(html.indexOf("Brackets") >= 0, "Style toggle should render 'Brackets' for k>2");
   // 4 disabled controls: Print summary + Letters button + Brackets button + Show ns.
-  var notAllowedCount = (str.match(/not-allowed/g) || []).length;
+  const notAllowedCount = (html.match(/not-allowed/g) || []).length;
   assert(notAllowedCount === 4, "expected 4 disabled controls for k>2, got " + notAllowedCount);
 });
 
 test("open render on k=3 shows post-hoc table", function () {
-  resetSC();
-  var pgCtrl = [4.17, 5.58, 5.18, 6.11, 4.5, 4.61, 5.17, 4.53, 5.33, 5.14];
-  var pgTrt1 = [4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69];
-  var pgTrt2 = [6.31, 5.12, 5.54, 5.5, 5.37, 5.29, 4.92, 6.15, 5.8, 5.26];
-  var el = sc.StatsTile({
+  const pgCtrl = [4.17, 5.58, 5.18, 6.11, 4.5, 4.61, 5.17, 4.53, 5.33, 5.14];
+  const pgTrt1 = [4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69];
+  const pgTrt2 = [6.31, 5.12, 5.54, 5.5, 5.37, 5.29, 4.92, 6.15, 5.8, 5.26];
+  const html = renderHtml(sc.StatsTile, {
     groups: [
       { name: "ctrl", values: pgCtrl },
       { name: "trt1", values: pgTrt1 },
@@ -921,22 +942,20 @@ test("open render on k=3 shows post-hoc table", function () {
     onAnnotationsChange: noop,
     defaultOpen: true,
   });
-  assert(el && el.type === "Fragment", "should return a Fragment");
+  assert(html.length > 0, "should render");
   // PlantGrowth → k=3, so rendered tree should contain 3 post-hoc rows.
-  var str = JSON.stringify(el);
-  assert(str.indexOf("Post-hoc") >= 0, "should include Post-hoc heading");
-  assert(str.indexOf("ctrl vs trt1") >= 0, "should list ctrl vs trt1 pair");
-  assert(str.indexOf("ctrl vs trt2") >= 0, "should list ctrl vs trt2 pair");
-  assert(str.indexOf("trt1 vs trt2") >= 0, "should list trt1 vs trt2 pair");
+  assert(html.indexOf("Post-hoc") >= 0, "should include Post-hoc heading");
+  assert(html.indexOf("ctrl vs trt1") >= 0, "should list ctrl vs trt1 pair");
+  assert(html.indexOf("ctrl vs trt2") >= 0, "should list ctrl vs trt2 pair");
+  assert(html.indexOf("trt1 vs trt2") >= 0, "should list trt1 vs trt2 pair");
 });
 
 test("non-normal data — suggestion pill + Use suggestion button render (k=2)", function () {
-  resetSC();
   // Heavy-skewed data → selectTest (Welch by default) attaches a
   // `suggestion` field naming Mann-Whitney. The tile must surface it.
-  var skewedA = [0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 1.5, 3.0, 6.0, 12.0, 25.0];
-  var skewedB = [0.2, 0.3, 0.4, 0.6, 0.9, 1.2, 2.0, 4.0, 8.0, 15.0, 30.0];
-  var el = sc.StatsTile({
+  const skewedA = [0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 1.5, 3.0, 6.0, 12.0, 25.0];
+  const skewedB = [0.2, 0.3, 0.4, 0.6, 0.9, 1.2, 2.0, 4.0, 8.0, 15.0, 30.0];
+  const html = renderHtml(sc.StatsTile, {
     groups: [
       { name: "A", values: skewedA },
       { name: "B", values: skewedB },
@@ -944,21 +963,19 @@ test("non-normal data — suggestion pill + Use suggestion button render (k=2)",
     onAnnotationsChange: noop,
     defaultOpen: true,
   });
-  var str = JSON.stringify(el);
-  assert(str.indexOf("Suggested alternative") >= 0, "should render the Suggestion banner");
-  assert(str.indexOf("Use suggestion") >= 0, "should render the Use-suggestion button");
-  assert(str.indexOf("Mann-Whitney U") >= 0, "should name Mann-Whitney as the suggested test");
+  assert(html.indexOf("Suggested alternative") >= 0, "should render the Suggestion banner");
+  assert(html.indexOf("Use suggestion") >= 0, "should render the Use-suggestion button");
+  assert(html.indexOf("Mann-Whitney U") >= 0, "should name Mann-Whitney as the suggested test");
 });
 
 test("non-normal data — suggestion pill names Kruskal-Wallis (k=3)", function () {
-  resetSC();
   // Three groups with one extreme outlier each → SW flags non-normal in
   // every group; selectTest still recommends Welch ANOVA but adds a
   // Kruskal-Wallis suggestion.
-  var skA = [1, 1, 1, 1, 1, 1, 1, 1, 1, 20];
-  var skB = [2, 2, 2, 2, 2, 2, 2, 2, 2, 25];
-  var skC = [3, 3, 3, 3, 3, 3, 3, 3, 3, 30];
-  var el = sc.StatsTile({
+  const skA = [1, 1, 1, 1, 1, 1, 1, 1, 1, 20];
+  const skB = [2, 2, 2, 2, 2, 2, 2, 2, 2, 25];
+  const skC = [3, 3, 3, 3, 3, 3, 3, 3, 3, 30];
+  const html = renderHtml(sc.StatsTile, {
     groups: [
       { name: "A", values: skA },
       { name: "B", values: skB },
@@ -967,16 +984,14 @@ test("non-normal data — suggestion pill names Kruskal-Wallis (k=3)", function 
     onAnnotationsChange: noop,
     defaultOpen: true,
   });
-  var str = JSON.stringify(el);
-  assert(str.indexOf("Suggested alternative") >= 0, "should render the Suggestion banner");
-  assert(str.indexOf("Kruskal-Wallis") >= 0, "should name Kruskal-Wallis as the suggested test");
+  assert(html.indexOf("Suggested alternative") >= 0, "should render the Suggestion banner");
+  assert(html.indexOf("Kruskal-Wallis") >= 0, "should name Kruskal-Wallis as the suggested test");
 });
 
 test("normal data — no suggestion banner (k=2)", function () {
-  resetSC();
-  var normA = [4.9, 5.1, 5.0, 5.2, 4.8, 5.1, 4.9, 5.0, 5.2, 4.9];
-  var normB = [5.9, 6.1, 6.0, 6.2, 5.8, 6.1, 5.9, 6.0, 6.2, 5.9];
-  var el = sc.StatsTile({
+  const normA = [4.9, 5.1, 5.0, 5.2, 4.8, 5.1, 4.9, 5.0, 5.2, 4.9];
+  const normB = [5.9, 6.1, 6.0, 6.2, 5.8, 6.1, 5.9, 6.0, 6.2, 5.9];
+  const html = renderHtml(sc.StatsTile, {
     groups: [
       { name: "A", values: normA },
       { name: "B", values: normB },
@@ -984,9 +999,8 @@ test("normal data — no suggestion banner (k=2)", function () {
     onAnnotationsChange: noop,
     defaultOpen: true,
   });
-  var str = JSON.stringify(el);
   assert(
-    str.indexOf("Suggested alternative") === -1,
+    html.indexOf("Suggested alternative") === -1,
     "should not render the Suggestion banner on normal data"
   );
 });
@@ -998,7 +1012,7 @@ test("normal data — no suggestion banner (k=2)", function () {
 suite("assignBracketLevels");
 
 test("non-overlapping pairs share level 0", function () {
-  var out = sc.assignBracketLevels([
+  const out = sc.assignBracketLevels([
     { i: 0, j: 1 },
     { i: 2, j: 3 },
   ]);
@@ -1007,18 +1021,18 @@ test("non-overlapping pairs share level 0", function () {
 });
 
 test("overlapping pairs stack to higher levels", function () {
-  var out = sc.assignBracketLevels([
+  const out = sc.assignBracketLevels([
     { i: 0, j: 2 },
     { i: 1, j: 3 },
   ]);
   // Both span across the middle so one must sit above the other.
-  var levels = [out[0]._level, out[1]._level].sort();
+  const levels = [out[0]._level, out[1]._level].sort();
   eq(levels[0], 0);
   eq(levels[1], 1);
 });
 
 test("preserves original pair order", function () {
-  var out = sc.assignBracketLevels([
+  const out = sc.assignBracketLevels([
     { i: 0, j: 1, label: "a" },
     { i: 2, j: 3, label: "b" },
     { i: 0, j: 3, label: "c" },
@@ -1029,22 +1043,15 @@ test("preserves original pair order", function () {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
+//  Effect / context smoke tests — exercised against real React via
+//  `renderWithEffects`. The previous bespoke mock had its own queue
+//  for useEffect / useLayoutEffect; under real React 18 + happy-dom we
+//  just mount the component and let `act()` flush effects.
+// ════════════════════════════════════════════════════════════════════════════
 
-// ── React-mock upgrades (audit #11) ─────────────────────────────────────────
-//
-// Before this pass, `useEffect` in the render mock was a no-op, so any
-// subscription / ref-initialisation / teardown-throw inside a tool component
-// silently passed render-smoke tests while breaking in the browser. The mock
-// now queues effect callbacks during render and flushes them after the
-// component returns — catching listener-attachment failures, ref bugs, and
-// missing-context errors. These tests pin that the upgrade actually surfaces
-// issues that the old mock would have swallowed.
+suite("Real React: useEffect runs after mount");
 
-suite("React-mock: useEffect runs after render");
-
-test("useEffect callback is invoked when the render is flushed", function () {
-  const mock = buildContext();
-  const React = mock.ctx.React;
+test("useEffect callback is invoked after render", function () {
   let effectRan = false;
   function Subscriber() {
     React.useEffect(function () {
@@ -1052,33 +1059,12 @@ test("useEffect callback is invoked when the render is flushed", function () {
     }, []);
     return React.createElement("div", null);
   }
-  render(Subscriber, {}, mock.resetHooks, mock.flushEffects);
-  assert(effectRan, "useEffect body must execute after render flush");
+  renderWithEffects(Subscriber, {});
+  assert(effectRan, "useEffect body must execute after mount");
 });
 
-test("useEffect exceptions surface as render errors (no silent swallow)", function () {
-  const mock = buildContext();
-  const React = mock.ctx.React;
-  function Broken() {
-    React.useEffect(function () {
-      throw new Error("boom from effect");
-    }, []);
-    return React.createElement("div", null);
-  }
-  let thrown = null;
-  try {
-    render(Broken, {}, mock.resetHooks, mock.flushEffects);
-  } catch (err) {
-    thrown = err;
-  }
-  assert(thrown != null, "effect throw must propagate through render()");
-  assert(/boom from effect/.test(thrown.message), "original error message preserved");
-});
-
-test("useLayoutEffect runs on the same pass as useEffect", function () {
-  const mock = buildContext();
-  const React = mock.ctx.React;
-  let sequence = [];
+test("useLayoutEffect runs alongside useEffect", function () {
+  const sequence = [];
   function C() {
     React.useEffect(function () {
       sequence.push("effect");
@@ -1088,56 +1074,51 @@ test("useLayoutEffect runs on the same pass as useEffect", function () {
     });
     return React.createElement("div", null);
   }
-  render(C, {}, mock.resetHooks, mock.flushEffects);
+  renderWithEffects(C, {});
   assert(sequence.includes("effect"), "useEffect ran");
   assert(sequence.includes("layout"), "useLayoutEffect ran");
 });
 
-test("useEffect can attach to `document` without crashing the mock", function () {
+test("useEffect can attach to `document` without crashing happy-dom", function () {
   // Mirrors the real-world pattern that PrefsPanel and theme.js rely on —
   // a global `mousedown` / `keydown` listener attached from an effect.
-  // The old no-op mock silently skipped this path; now it runs against the
-  // DOM stubs baked into buildContext and must not throw.
-  const mock = buildContext();
-  const React = mock.ctx.React;
-  const document = mock.ctx.document;
+  // happy-dom must accept addEventListener / removeEventListener.
   function DocListener() {
     React.useEffect(function () {
-      document.addEventListener("mousedown", function () {});
+      const handler = function () {};
+      document.addEventListener("mousedown", handler);
       return function () {
-        document.removeEventListener("mousedown", function () {});
+        document.removeEventListener("mousedown", handler);
       };
     }, []);
     return React.createElement("div", null);
   }
   let thrown = null;
   try {
-    render(DocListener, {}, mock.resetHooks, mock.flushEffects);
+    renderWithEffects(DocListener, {});
   } catch (err) {
     thrown = err;
   }
   assert(thrown == null, "effect using document.addEventListener must not throw");
 });
 
-suite("React-mock: createContext / useContext scaffolding");
+suite("Real React: createContext / useContext");
 
-test("createContext returns an object with Provider and Consumer", function () {
-  const mock = buildContext();
-  const Ctx = mock.ctx.React.createContext("default-value");
-  assert(typeof Ctx.Provider === "function", "Provider is a function");
-  assert(typeof Ctx.Consumer === "function", "Consumer is a function");
+test("createContext returns a context object with Provider and Consumer", function () {
+  const Ctx = React.createContext("default-value");
+  assert(Ctx.Provider != null, "Provider exists");
+  assert(Ctx.Consumer != null, "Consumer exists");
 });
 
-test("useContext returns the default value (no provider tree tracked)", function () {
-  const mock = buildContext();
-  const React = mock.ctx.React;
+test("useContext returns the default value when no Provider is mounted", function () {
+  let captured = null;
   const Theme = React.createContext("light");
   function Reader() {
-    const theme = React.useContext(Theme);
-    return React.createElement("span", null, theme);
+    captured = React.useContext(Theme);
+    return React.createElement("span", null, captured);
   }
-  const tree = render(Reader, {}, mock.resetHooks, mock.flushEffects);
-  assert(tree != null && tree.children[0] === "light", "useContext returns default");
+  renderWithEffects(Reader, {});
+  assert(captured === "light", "useContext returns default outside any Provider");
 });
 
 summary();

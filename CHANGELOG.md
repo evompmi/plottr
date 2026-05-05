@@ -9,6 +9,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Component render-smoke tests now use real React 18 + happy-dom.**
+  The 354-line bespoke functional-React mock under
+  `tests/helpers/render-loader.js` (custom `createElement` returning
+  `{type, props, children}` element-tree objects, hand-rolled
+  `useState` / `useReducer` / `useMemo` / `useEffect` / `useContext`
+  simulators with effect flushing) is retired. The new helper is ~140
+  lines that delegate to the real `react@^18.3.1`,
+  `react-dom/server`, and `react-dom/client` packages. Component
+  testing API: `renderHtml(Component, props)` for synchronous static
+  HTML via `renderToStaticMarkup` (the right tool for 90 % of
+  smoke-render assertions), `renderWithEffects(Component, props)` for
+  the small block of tests that need `useEffect` /
+  `useLayoutEffect` to actually fire (mounts through
+  `react-dom/client.createRoot` + happy-dom + `act`).
+  `tests/components.test.js` rewritten to assert on DOM / HTML
+  directly — no more `el.type === "div"`,
+  `JSON.stringify(el).indexOf("X")`, or `countElements(el) > N`.
+  `react@^18.3.1` (matching the vendored runtime) and
+  `react-dom@^18.3.1` added as devDependencies. Net test count: 1057
+  → 1056 (the migration retired one redundant
+  effect-throws-propagation test that was pinning a quirk specific
+  to the old mock). `bump-test-count.js` and the CI badge-verify
+  step gained ANSI-stripping so they parse Vitest's coloured
+  reporter output reliably. ESLint config widened to expose browser
+  globals (`document`, `window`) under `tests/**/*.js` so the new
+  helper can use them without per-file overrides. The deferred
+  follow-up flagged in the previous Vitest entry is now closed.
+
+- **Test runner migrated to Vitest 3.x.** The 24 `tests/*.test.js`
+  files were unchanged — `tests/harness.js` shrunk from 56 lines of
+  bespoke `suite() / test() / assert() / eq() / approx() / throws() /
+summary()` runner into a ~50-line compat shim that delegates each
+  `test()` call to `globalThis.test` (Vitest's injected global, made
+  available by `globals: true` in the new `vitest.config.js`). The
+  project keeps its house vocabulary; Vitest gets to schedule, time,
+  diff, and report. New scripts: `npm run test:watch` (Vitest watch
+  mode for local development), `npm run test:coverage`. New wrapper
+  `scripts/run-vitest.js` tees stdout/stderr to `.test-output.log` so
+  the `posttest` badge-bumper still picks up the canonical count
+  (parses `Tests  N passed (N)` from Vitest's verbose reporter; legacy
+  per-suite `X/X passed` format kept as a fallback). `scripts/run-tests.js`
+  removed. CI's badge-verify step accepts both formats. Wall-clock
+  runtime: ~13 s under Vitest's parallel-by-file scheduling vs. ~3 min
+  under the prior sequential `node tests/x.test.js` chain. Per-test
+  timeout set to 30 s in the config to accommodate the slow stats
+  cross-validations (deep-tail `cpsets`, `qtukey` at small df). The
+  bespoke functional-React mock in `tests/helpers/render-loader.js`
+  (354 lines) is unchanged — migrating `tests/components.test.js` to
+  real React + happy-dom is a follow-up. `happy-dom@^20.9.0` and
+  `vitest@^3.2.4` added as devDependencies.
+
 - **Volcano tool finishes the v1.2.0 folder-split convention.**
   `tools/volcano/index.tsx` was an outlier at 1,689 lines holding the
   App orchestrator, two step components (Configure / Plot), seven
@@ -37,7 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Plot, and the legacy shared StatsTile now show this as a themed
   `--info-bg` info banner under the recommendation reason: "Suggested
   alternative — Shapiro-Wilk flagged non-normal data, consider
-  *Mann-Whitney U*. [Use suggestion]". Clicking **Use suggestion**
+  _Mann-Whitney U_. [Use suggestion]". Clicking **Use suggestion**
   flips the per-set test override the same way the dropdown would; the
   banner disappears once selected. No banner is shown when the chosen
   test already matches the suggestion (so the user isn't nagged after
@@ -51,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now recommends Welch's t (`k = 2`) or Welch's ANOVA + Games-Howell
   (`k ≥ 3`) regardless of the SW / Levene outcomes. The previous gated
   rule tree (`SW p < α → Mann-Whitney / Kruskal-Wallis; Levene p < α →
-  Welch; else Student / one-way ANOVA`) is replaced because pre-screening
+Welch; else Student / one-way ANOVA`) is replaced because pre-screening
   for normality with SW and routing on the result is a known
   Type I-error-inflating anti-pattern (Schucany & Ng 2006; Zimmerman
   2004; Rasch, Kubinger & Moder 2011; Delacre et al. 2019). SW + Levene
