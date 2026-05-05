@@ -507,6 +507,11 @@ declare global {
   }
   function setHandoff(payload: HandoffPayload): boolean;
   function consumeHandoff(targetTool: string): HandoffPayload | null;
+  // SPA-aware navigation helper. Prefers `window.__plottrSpaNavigate`
+  // when the SPA shell has registered it; falls back to a top-level
+  // `window.location.assign("<key>.html")` for legacy / standalone-page
+  // deploys. Source tools call this immediately after `setHandoff(...)`.
+  function navigateToTool(toolKey: string): void;
   const PrefsPanel: FC<{
     tool: string;
     vis: Record<string, any>;

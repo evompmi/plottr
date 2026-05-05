@@ -138,25 +138,13 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
-// Parent-to-iframe sync: the landing page's top-bar toggle posts a message to
-// every tool iframe because the `storage` event doesn't fire in the window
-// that wrote the key, and file:// origins can block direct contentDocument
-// access from the parent. Accept only our own message shape, and only from
-// the same origin — a hostile embedder could otherwise spam theme flips.
-// In `file://` deploys both sides serialise to `"null"`, so the same-origin
-// equality holds and the offline workflow keeps working.
-window.addEventListener("message", (e) => {
-  if (!e || e.origin !== window.location.origin) return;
-  const data = e.data;
-  if (!data || data.type !== "dataviz-theme-set") return;
-  const v = data.theme === "dark" || data.theme === "light" ? data.theme : null;
-  _applyThemeAttr(v);
-  try {
-    window.dispatchEvent(new CustomEvent("dataviz-theme-change", { detail: { theme: v } }));
-  } catch (err) {
-    // ignore
-  }
-});
+// (Pre-SPA, this file also installed a `message` listener that accepted
+// `{ type: "dataviz-theme-set", theme }` postMessages from the landing
+// page's iframe shell so a top-bar toggle could fan out to every tool
+// iframe. The SPA shell renders every tool inside a single document,
+// so cross-frame theme propagation is moot — the listener was deleted
+// in the iframe→SPA migration. BroadcastChannel + the storage-event
+// fallback above still handle the cross-*tab* case.)
 
 // React hook-style helper: components call this to re-render on theme change.
 function useThemeMode() {
