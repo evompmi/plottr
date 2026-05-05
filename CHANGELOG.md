@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`recommendation.suggestion` rendered in every stats panel.** When
+  Shapiro-Wilk flags non-normality at α = 0.05, `selectTest` returns a
+  sibling `suggestion` field naming Mann-Whitney (k=2) or
+  Kruskal-Wallis + Dunn (k≥3). Boxplot, RLU timecourse (aequorin), Line
+  Plot, and the legacy shared StatsTile now show this as a themed
+  `--info-bg` info banner under the recommendation reason: "Suggested
+  alternative — Shapiro-Wilk flagged non-normal data, consider
+  *Mann-Whitney U*. [Use suggestion]". Clicking **Use suggestion**
+  flips the per-set test override the same way the dropdown would; the
+  banner disappears once selected. No banner is shown when the chosen
+  test already matches the suggestion (so the user isn't nagged after
+  acting). +3 render-smoke tests pinning the k=2 / k=3 / no-banner
+  paths.
+
 ### Changed
 
 - **Auto-pick default switched to Welch unconditionally; Shapiro-Wilk
