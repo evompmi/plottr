@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Volcano tool finishes the v1.2.0 folder-split convention.**
+  `tools/volcano/index.tsx` was an outlier at 1,689 lines holding the
+  App orchestrator, two step components (Configure / Plot), seven
+  sidebar tiles (Thresholds / Colors / ColorMap / SizeMap / Labels /
+  Style / Summary), the `VolcanoAesBox` primitive, the `ControlSection`
+  collapsible, the `ToggleRow` segmented picker, the `LabelSearchRow`
+  debounced match preview, the `PaletteStrip` preview, and several
+  helper functions. Split to mirror boxplot / scatter:
+  `controls.tsx` (881 lines) holds every tile + the AesBox / ToggleRow
+  / ControlSection primitives; `steps.tsx` (337 lines) holds
+  `ConfigureStep` + `PlotStep`; `helpers.ts` gains `buildPoints` (the
+  parseData-row-array → `VolcanoPoint[]` boundary) and
+  `eligibleColumns` (Color/Size mapping candidate filter).
+  `index.tsx` lands at 435 lines: imports, `VIS_INIT_VOLCANO`, `App()`,
+  ReactDOM mount — same shape every other plot tool already has. No
+  user-visible behaviour change. Pure helpers exposed through
+  `tests/helpers/volcano-loader.js`; +10 unit tests in
+  `tests/volcano.test.js` pin the new helper exports.
+
 ### Added
 
 - **`recommendation.suggestion` rendered in every stats panel.** When
