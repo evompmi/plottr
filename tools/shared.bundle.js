@@ -145,25 +145,13 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
-// Parent-to-iframe sync: the landing page's top-bar toggle posts a message to
-// every tool iframe because the `storage` event doesn't fire in the window
-// that wrote the key, and file:// origins can block direct contentDocument
-// access from the parent. Accept only our own message shape, and only from
-// the same origin — a hostile embedder could otherwise spam theme flips.
-// In `file://` deploys both sides serialise to `"null"`, so the same-origin
-// equality holds and the offline workflow keeps working.
-window.addEventListener("message", (e) => {
-  if (!e || e.origin !== window.location.origin) return;
-  const data = e.data;
-  if (!data || data.type !== "dataviz-theme-set") return;
-  const v = data.theme === "dark" || data.theme === "light" ? data.theme : null;
-  _applyThemeAttr(v);
-  try {
-    window.dispatchEvent(new CustomEvent("dataviz-theme-change", { detail: { theme: v } }));
-  } catch (err) {
-    // ignore
-  }
-});
+// (Pre-SPA, this file also installed a `message` listener that accepted
+// `{ type: "dataviz-theme-set", theme }` postMessages from the landing
+// page's iframe shell so a top-bar toggle could fan out to every tool
+// iframe. The SPA shell renders every tool inside a single document,
+// so cross-frame theme propagation is moot — the listener was deleted
+// in the iframe→SPA migration. BroadcastChannel + the storage-event
+// fallback above still handle the cross-*tab* case.)
 
 // React hook-style helper: components call this to re-render on theme change.
 function useThemeMode() {
@@ -454,39 +442,15 @@ function seededRandom(seed) {
   };
 }
 
-// ── Example dataset (long format, used by group plot "Load example") ──
-// Arabidopsis biomass × 3 genotypes × 3 treatments × 8 replicates = 72 rows.
-// Effects are tuned so k=3 ANOVA + Tukey is meaningful, facet-by-Treatment works,
-// and group colors / filters / renames all have something interesting to show.
-function makeExamplePlantCSV() {
-  const rng = seededRandom(42);
-  // Box–Muller standard normal from the seeded uniform RNG.
-  const norm = () => {
-    const u = Math.max(rng(), 1e-9);
-    const v = rng();
-    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-  };
-  const genotypes = [
-    { name: "WT", base: 100 },
-    { name: "abi4", base: 96 },
-    { name: "oxSOS1", base: 128 },
-  ];
-  const treatments = [
-    { name: "control", delta: 0, sd: 8 },
-    { name: "drought", delta: -24, sd: 10 },
-    { name: "salt", delta: -5, sd: 9 },
-  ];
-  const lines = ["Genotype,Treatment,Replicate,Biomass_mg"];
-  for (const g of genotypes) {
-    for (const t of treatments) {
-      for (let r = 1; r <= 8; r++) {
-        const v = g.base + t.delta + norm() * t.sd;
-        lines.push(`${g.name},${t.name},${r},${v.toFixed(1)}`);
-      }
-    }
-  }
-  return lines.join("\n");
-}
+// (Pre-iframe→SPA migration this file also held a
+// `makeExamplePlantCSV()` helper that boxplot called for its
+// "Try sample data" button. It moved to `tools/boxplot/app.tsx`
+// during the all-(C) sample-data consolidation — every tool's
+// example data now lives next to its App component, which makes
+// `git grep` for "where does volcano's sample data live?"
+// answerable in one shot. boxplot was the last holdout, since
+// it generated the CSV procedurally rather than embedding a
+// literal payload like every other tool.)
 
 // ── Axis ticks ───────────────────────────────────────────────────────────────
 
@@ -9030,10 +8994,20 @@ function StatsTile({
   function setHandoff(payload) {
     try {
       localStorage.setItem(KEY, JSON.stringify(payload));
-      return true;
     } catch (e) {
       return false;
     }
+    // Notify same-tab consumers. The browser `storage` event only
+    // fires across tabs / iframes, so under the SPA's keep-alive
+    // routing (target tool already mounted) it never reaches the
+    // consumer. Dispatching a synchronous CustomEvent gives the
+    // already-mounted destination a chance to re-run consumeHandoff.
+    try {
+      window.dispatchEvent(new CustomEvent("plottr-handoff", { detail: { key: KEY } }));
+    } catch (e) {
+      /* swallow */
+    }
+    return true;
   }
 
   function consumeHandoff(targetTool) {
@@ -9060,6 +9034,44 @@ function StatsTile({
     }
   }
 
+  // SPA-aware tool navigation. Source tools (e.g. RLU timecourse →
+  // Group Plot) call this after `setHandoff(...)` to switch the
+  // visible view. Two paths:
+  //   1. SPA mode: `window.__plottrSpaNavigate` is registered by
+  //      `tools/_app/index.tsx` on boot. Calling it changes
+  //      `location.hash` and the SPA router re-renders the new tool
+  //      in-place. The destination tool's mount-time
+  //      `consumeHandoff()` finds the localStorage payload we just
+  //      wrote and applies it.
+  //   2. Pre-SPA / iframe shell mode: `window.__plottrSpaNavigate`
+  //      is undefined, so we fall back to a top-level navigation to
+  //      `tools/<key>.html`. The destination tool boots fresh and
+  //      its mount-time `consumeHandoff()` does the same.
+  // This means call sites can be written shell-agnostically — they
+  // just call `setHandoff(payload); navigateToTool(payload.tool);`.
+  function navigateToTool(toolKey) {
+    if (typeof toolKey !== "string" || toolKey === "") return;
+    var spaNav = window.__plottrSpaNavigate;
+    if (typeof spaNav === "function") {
+      try {
+        spaNav(toolKey);
+        return;
+      } catch (e) {
+        // Fall through to legacy navigation if the SPA path errors.
+      }
+    }
+    // Legacy: full top-level navigation. The path stays
+    // `tools/<key>.html` in iframe-shell deploys; in SPA-only deploys
+    // these files no longer exist (phase 6 of the SPA migration), so
+    // navigateToTool is effectively SPA-only there.
+    try {
+      window.location.assign(toolKey + ".html");
+    } catch (e) {
+      /* swallow */
+    }
+  }
+
   window.setHandoff = setHandoff;
   window.consumeHandoff = consumeHandoff;
+  window.navigateToTool = navigateToTool;
 })();

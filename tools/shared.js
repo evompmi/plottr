@@ -218,39 +218,15 @@ function seededRandom(seed) {
   };
 }
 
-// ── Example dataset (long format, used by group plot "Load example") ──
-// Arabidopsis biomass × 3 genotypes × 3 treatments × 8 replicates = 72 rows.
-// Effects are tuned so k=3 ANOVA + Tukey is meaningful, facet-by-Treatment works,
-// and group colors / filters / renames all have something interesting to show.
-function makeExamplePlantCSV() {
-  const rng = seededRandom(42);
-  // Box–Muller standard normal from the seeded uniform RNG.
-  const norm = () => {
-    const u = Math.max(rng(), 1e-9);
-    const v = rng();
-    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-  };
-  const genotypes = [
-    { name: "WT", base: 100 },
-    { name: "abi4", base: 96 },
-    { name: "oxSOS1", base: 128 },
-  ];
-  const treatments = [
-    { name: "control", delta: 0, sd: 8 },
-    { name: "drought", delta: -24, sd: 10 },
-    { name: "salt", delta: -5, sd: 9 },
-  ];
-  const lines = ["Genotype,Treatment,Replicate,Biomass_mg"];
-  for (const g of genotypes) {
-    for (const t of treatments) {
-      for (let r = 1; r <= 8; r++) {
-        const v = g.base + t.delta + norm() * t.sd;
-        lines.push(`${g.name},${t.name},${r},${v.toFixed(1)}`);
-      }
-    }
-  }
-  return lines.join("\n");
-}
+// (Pre-iframe→SPA migration this file also held a
+// `makeExamplePlantCSV()` helper that boxplot called for its
+// "Try sample data" button. It moved to `tools/boxplot/app.tsx`
+// during the all-(C) sample-data consolidation — every tool's
+// example data now lives next to its App component, which makes
+// `git grep` for "where does volcano's sample data live?"
+// answerable in one shot. boxplot was the last holdout, since
+// it generated the CSV procedurally rather than embedding a
+// literal payload like every other tool.)
 
 // ── Axis ticks ───────────────────────────────────────────────────────────────
 

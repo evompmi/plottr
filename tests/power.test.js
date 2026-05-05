@@ -16,12 +16,43 @@
 const { suite, test, assert, approx, summary } = require("./harness");
 const vm = require("vm");
 const fs = require("fs");
+const esbuild = require("esbuild");
 
-// Load stats.js + power.js into a vm context with minimal React stubs.
-// stats.js provides the distribution primitives (normcdf, tcdf, nctcdf,
-// bisect, ...) that power.js used to declare itself.
+// Load stats.js + the power-app source into a vm context with minimal
+// React stubs. stats.js provides the distribution primitives (normcdf,
+// tcdf, nctcdf, bisect, …) that power-app.tsx declares itself against.
+//
+// SPA-era detail: pre-iframe→SPA migration there was a precompiled
+// `tools/power.js` that this test could read verbatim. The migration
+// replaced the per-tool builds with a single SPA bundle, so the test
+// now bundles `tools/power-app.tsx` in-memory via esbuild — same
+// trick `tests/helpers/render-loader.js` uses for the chart loaders.
+// IIFE format keeps `vm.runInContext` happy (ESM `export` would
+// error in script-mode evaluation).
 const statsCode = fs.readFileSync(require("path").join(__dirname, "../tools/stats.js"), "utf-8");
-const powerCode = fs.readFileSync(require("path").join(__dirname, "../tools/power.js"), "utf-8");
+const powerAppPath = require("path").join(__dirname, "../tools/power-app.tsx");
+const powerBuild = esbuild.buildSync({
+  entryPoints: [powerAppPath],
+  bundle: true,
+  write: false,
+  format: "iife",
+  jsx: "transform",
+  minify: false,
+  sourcemap: false,
+  target: "es2022",
+});
+// Splice symbol-export assignments inside the IIFE so `TESTS`,
+// `dFromMeans`, etc. land on the vm context (otherwise they're
+// trapped in the IIFE's closure).
+const powerRaw = powerBuild.outputFiles[0].text;
+const closingIdx = powerRaw.lastIndexOf("})();");
+const exportLine =
+  "this.TESTS = TESTS; this.dFromMeans = dFromMeans; " +
+  "this.fFromGroupMeans = fFromGroupMeans; this.wFromProportions = wFromProportions;";
+const powerCode =
+  closingIdx >= 0
+    ? powerRaw.slice(0, closingIdx) + exportLine + powerRaw.slice(closingIdx)
+    : powerRaw + "\n" + exportLine;
 const code = statsCode + "\n" + powerCode;
 const ctx = {
   React: {
@@ -47,11 +78,7 @@ const ctx = {
   ErrorBoundary: ({ children }) => children,
 };
 vm.createContext(ctx);
-vm.runInContext(
-  code +
-    "\nthis.TESTS = TESTS; this.dFromMeans = dFromMeans; this.fFromGroupMeans = fFromGroupMeans; this.wFromProportions = wFromProportions;",
-  ctx
-);
+vm.runInContext(code, ctx);
 
 const {
   normcdf,

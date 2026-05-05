@@ -33,10 +33,20 @@
   function setHandoff(payload) {
     try {
       localStorage.setItem(KEY, JSON.stringify(payload));
-      return true;
     } catch (e) {
       return false;
     }
+    // Notify same-tab consumers. The browser `storage` event only
+    // fires across tabs / iframes, so under the SPA's keep-alive
+    // routing (target tool already mounted) it never reaches the
+    // consumer. Dispatching a synchronous CustomEvent gives the
+    // already-mounted destination a chance to re-run consumeHandoff.
+    try {
+      window.dispatchEvent(new CustomEvent("plottr-handoff", { detail: { key: KEY } }));
+    } catch (e) {
+      /* swallow */
+    }
+    return true;
   }
 
   function consumeHandoff(targetTool) {
@@ -63,6 +73,44 @@
     }
   }
 
+  // SPA-aware tool navigation. Source tools (e.g. RLU timecourse →
+  // Group Plot) call this after `setHandoff(...)` to switch the
+  // visible view. Two paths:
+  //   1. SPA mode: `window.__plottrSpaNavigate` is registered by
+  //      `tools/_app/index.tsx` on boot. Calling it changes
+  //      `location.hash` and the SPA router re-renders the new tool
+  //      in-place. The destination tool's mount-time
+  //      `consumeHandoff()` finds the localStorage payload we just
+  //      wrote and applies it.
+  //   2. Pre-SPA / iframe shell mode: `window.__plottrSpaNavigate`
+  //      is undefined, so we fall back to a top-level navigation to
+  //      `tools/<key>.html`. The destination tool boots fresh and
+  //      its mount-time `consumeHandoff()` does the same.
+  // This means call sites can be written shell-agnostically — they
+  // just call `setHandoff(payload); navigateToTool(payload.tool);`.
+  function navigateToTool(toolKey) {
+    if (typeof toolKey !== "string" || toolKey === "") return;
+    var spaNav = window.__plottrSpaNavigate;
+    if (typeof spaNav === "function") {
+      try {
+        spaNav(toolKey);
+        return;
+      } catch (e) {
+        // Fall through to legacy navigation if the SPA path errors.
+      }
+    }
+    // Legacy: full top-level navigation. The path stays
+    // `tools/<key>.html` in iframe-shell deploys; in SPA-only deploys
+    // these files no longer exist (phase 6 of the SPA migration), so
+    // navigateToTool is effectively SPA-only there.
+    try {
+      window.location.assign(toolKey + ".html");
+    } catch (e) {
+      /* swallow */
+    }
+  }
+
   window.setHandoff = setHandoff;
   window.consumeHandoff = consumeHandoff;
+  window.navigateToTool = navigateToTool;
 })();

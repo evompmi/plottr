@@ -5,7 +5,7 @@
 import { test, expect } from "@playwright/test";
 
 test("venn: load example → chart renders set circles", async ({ page }) => {
-  await page.goto("/tools/venn.html");
+  await page.goto("/index.html#/venn");
   await page.getByTestId("load-example").click();
 
   // Venn auto-routes to plot when the example has ≤ 3 sets. If for

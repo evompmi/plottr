@@ -7,316 +7,158 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-05-05
+
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.3.0.md`](docs/release-notes/v1.3.0.md). The
+> entries below are summary bullets that link there.
+
+### Fixed
+
+- **Venn → UpSet hand-off was silently dropped under keep-alive when
+  UpSet had been visited earlier in the session.** Same fix shape as
+  the boxplot keep-alive consumer — Venn dispatches the
+  `plottr-handoff` CustomEvent and UpSet re-reads its sessionStorage
+  channel on the event. See
+  [`docs/release-notes/v1.3.0.md`](docs/release-notes/v1.3.0.md#-fixes).
+
+### Changed
+
+- **SPA tab-style state preservation.** The shell now keeps every
+  visited tool mounted (hidden via `display:none`), so navigating
+  A → B → A returns to A's original session state instead of a fresh
+  mount. Same-tab cross-tool hand-off picks up a `plottr-handoff`
+  CustomEvent companion. See
+  [`docs/release-notes/v1.3.0.md`](docs/release-notes/v1.3.0.md#-tab-style-state-preservation-across-tool-switches).
+- **iframe shell replaced by a single-page app.** Ten
+  `tools/<tool>.html` files deleted, `index.html` shrunk 1303 → 1095
+  lines, `tools/_app/` holds the new hash router + single React
+  mount, theme + handoff plumbing simplified, build collapsed to one
+  esbuild entry. Closes point 11 of `1.2.0_harsh_review.md`. See
+  [`docs/release-notes/v1.3.0.md`](docs/release-notes/v1.3.0.md#-iframe-shell-replaced-by-a-single-page-app).
+
 ### Added
 
-- **Volcano Plot now appears in the README.** The tool table gains a
-  Volcano row (between UpSet and Power Analysis) describing the
-  three-class significance colouring, top-N labels with collision
-  avoidance, click-to-label, search-by-name, optional Color / Size
-  aesthetic mappings, classified-CSV + ggplot2-R-script export, and
-  the DESeq2 / limma / edgeR column auto-detection. The screenshot
-  grid gains a `docs/screenshots/volcano.png` (1648×1250, the
-  bundled synthetic plant-transcriptomics demo dataset) as a
-  full-width row at the bottom. New `scripts/gen-volcano-screenshot.mjs`
-  uses Playwright + headless Chromium to capture the screenshot
-  cross-platform — a lighter alternative to `gen-screenshots.mjs`'s
-  Selenium + Inkscape pipeline. Volcano was the headline feature of
-  v1.1.0 (eighth plot tool, 49 unit tests, 1k×3-seed fuzz) but the
-  README never mentioned it; this closes point 3 of
+- **Volcano Plot now appears in the README.** Tool table row + a
+  full-width screenshot grid entry, captured by a new Playwright
+  helper `scripts/gen-volcano-screenshot.mjs`. Closes point 3 of
   `1.2.0_harsh_review.md`.
-
 - **SciPy cross-check for the noncentral distributions and
   `qtukey`.** New `benchmark/run-scipy.py` + `benchmark/run-scipy.js`
-  pair, modelled on the existing `run-r.R` + `run.js` pipeline. The
-  R benchmark probes `tools/stats.js` via real R built-in datasets
-  (iris / PlantGrowth / ToothGrowth / …) at moderate effect sizes,
-  but the Gauss-Legendre / Poisson-mixture engineering in `nctcdf`,
-  `ncf_sf`, `ncchi2cdf`, and `qtukey` is most fragile in regimes
-  the R bank doesn't reach: δ > 50 in nctcdf, λ > 500 in
-  ncf_sf / ncchi2cdf (the normal-approx short-circuit threshold),
-  and the doubling-bracket-expansion corner of qtukey at small df.
-  The SciPy script generates an 847-case grid (~1080 comparisons)
-  spanning those regimes, writes the reference to
-  `benchmark/results-scipy.json`, and the Node comparator runs the
-  same cases through `tools/stats.js` and classifies each into
-  `pass` / `deep-tail` (both < 1e-13, informational) / `underflow`
-  (Plöttr quadrature precision floor) / `pathological` (qtukey at
-  df ≤ 2 with extreme p+k, called out in the source) / `fail`.
-  Result: 0 failures across all 9 categories with 92 deep-tail and
-  1 pathological annotation. Tolerances calibrated to the design
-  envelope: 1e-6 relative for the central distributions
-  (norminv / tinv / fcdf / chi2cdf / chi2inv non-tail), 5 % relative
-  for noncentral routines and qtukey, factor-of-1.5 log-space for
-  noncentral deep tails. Wired as `npm run benchmark:scipy`
-  (standalone) and chained into `npm run benchmark`. Pre-flight
-  skips when python3+scipy aren't available; the checked-in fixture
-  keeps the JS-side comparison runnable on contributor laptops
-  without scipy. SciPy's `ncf.sf(f, d1, d2, 0)` returns -SF at the
-  central limit (a long-standing SciPy quirk), so the generator
-  routes λ=0 cases through `f.sf` directly; documented in the
-  Python script header. `benchmark/run-scipy.py` adds NaN filtering
-  before `json.dumps` because Node's JSON.parse refuses NaN
-  literals. Closes the §1.2 / point 8 gap of
-  `1.2.0_harsh_review.md`.
+  pair (847-case grid, ~1080 comparisons), wired as
+  `npm run benchmark:scipy`. Five-label regime classification
+  (`pass` / `deep-tail` / `underflow` / `pathological` / `fail`).
+  Closes the §1.2 / point 8 gap of `1.2.0_harsh_review.md`. See
+  [`docs/release-notes/v1.3.0.md`](docs/release-notes/v1.3.0.md#-scipy-cross-check-for-noncentral-distributions-and-qtukey).
+- **`recommendation.suggestion` rendered in every stats panel.**
+  When Shapiro-Wilk flags non-normality, `selectTest` returns a
+  sibling `suggestion` pointing at Mann-Whitney / Kruskal-Wallis;
+  every stats panel renders it as a themed info banner with a
+  one-click "Use suggestion" override.
+- **Playwright e2e suite (`e2e/`).** 18 golden-path tests across 9
+  spec files covering every tool, run via `npm run e2e` (auto-spins
+  a Python http.server on :8765). New CI step gates PRs; failures
+  upload the HTML report + traces as a 7-day artefact.
 
 ### Changed
 
+- **Auto-pick default switched to Welch unconditionally;
+  Shapiro-Wilk and Levene downgraded to diagnostics.** `selectTest`
+  in `tools/stats.js` now recommends Welch's t (k=2) or Welch's
+  ANOVA + Games-Howell (k≥3) regardless of the SW / Levene outcomes
+  — pre-screening for normality is a documented Type I-error-
+  inflating anti-pattern (Rasch, Kubinger & Moder 2011; Zimmerman
+  2004). SW + Levene stay in the decision trace; the `reason` text
+  spells out what was picked, what the diagnostics found, why Welch
+  is the default, and where to override. Regression: 10 `selectTest`
+  tests rewritten. See
+  [`docs/release-notes/v1.3.0.md`](docs/release-notes/v1.3.0.md#-statistical-methodology--welch-by-default).
 - **Component render-smoke tests now use real React 18 + happy-dom.**
   The 354-line bespoke functional-React mock under
-  `tests/helpers/render-loader.js` (custom `createElement` returning
-  `{type, props, children}` element-tree objects, hand-rolled
-  `useState` / `useReducer` / `useMemo` / `useEffect` / `useContext`
-  simulators with effect flushing) is retired. The new helper is ~140
-  lines that delegate to the real `react@^18.3.1`,
-  `react-dom/server`, and `react-dom/client` packages. Component
-  testing API: `renderHtml(Component, props)` for synchronous static
-  HTML via `renderToStaticMarkup` (the right tool for 90 % of
-  smoke-render assertions), `renderWithEffects(Component, props)` for
-  the small block of tests that need `useEffect` /
-  `useLayoutEffect` to actually fire (mounts through
+  `tests/helpers/render-loader.js` is retired; the new helper
+  delegates to the real `react@^18.3.1`, `react-dom/server`, and
+  `react-dom/client` packages. Component testing API:
+  `renderHtml(Component, props)` (synchronous static HTML) and
+  `renderWithEffects(Component, props)` (mounts through
   `react-dom/client.createRoot` + happy-dom + `act`).
-  `tests/components.test.js` rewritten to assert on DOM / HTML
-  directly — no more `el.type === "div"`,
-  `JSON.stringify(el).indexOf("X")`, or `countElements(el) > N`.
-  `react@^18.3.1` (matching the vendored runtime) and
-  `react-dom@^18.3.1` added as devDependencies. Net test count: 1057
-  → 1056 (the migration retired one redundant
-  effect-throws-propagation test that was pinning a quirk specific
-  to the old mock). `bump-test-count.js` and the CI badge-verify
-  step gained ANSI-stripping so they parse Vitest's coloured
-  reporter output reliably. ESLint config widened to expose browser
-  globals (`document`, `window`) under `tests/**/*.js` so the new
-  helper can use them without per-file overrides. The deferred
-  follow-up flagged in the previous Vitest entry is now closed.
-
 - **Test runner migrated to Vitest 3.x.** The 24 `tests/*.test.js`
-  files were unchanged — `tests/harness.js` shrunk from 56 lines of
-  bespoke `suite() / test() / assert() / eq() / approx() / throws() /
-summary()` runner into a ~50-line compat shim that delegates each
-  `test()` call to `globalThis.test` (Vitest's injected global, made
-  available by `globals: true` in the new `vitest.config.js`). The
-  project keeps its house vocabulary; Vitest gets to schedule, time,
-  diff, and report. New scripts: `npm run test:watch` (Vitest watch
-  mode for local development), `npm run test:coverage`. New wrapper
-  `scripts/run-vitest.js` tees stdout/stderr to `.test-output.log` so
-  the `posttest` badge-bumper still picks up the canonical count
-  (parses `Tests  N passed (N)` from Vitest's verbose reporter; legacy
-  per-suite `X/X passed` format kept as a fallback). `scripts/run-tests.js`
-  removed. CI's badge-verify step accepts both formats. Wall-clock
-  runtime: ~13 s under Vitest's parallel-by-file scheduling vs. ~3 min
-  under the prior sequential `node tests/x.test.js` chain. Per-test
-  timeout set to 30 s in the config to accommodate the slow stats
-  cross-validations (deep-tail `cpsets`, `qtukey` at small df). The
-  bespoke functional-React mock in `tests/helpers/render-loader.js`
-  (354 lines) is unchanged — migrating `tests/components.test.js` to
-  real React + happy-dom is a follow-up. `happy-dom@^20.9.0` and
-  `vitest@^3.2.4` added as devDependencies.
-
+  files were unchanged — `tests/harness.js` shrank from 56 lines of
+  bespoke runner into a ~50-line compat shim that delegates to
+  `globalThis.test`. Wall-clock runtime: ~13 s under Vitest's
+  parallel-by-file scheduling vs. ~3 min under the prior sequential
+  chain. New scripts: `npm run test:watch`, `npm run test:coverage`.
 - **Volcano tool finishes the v1.2.0 folder-split convention.**
-  `tools/volcano/index.tsx` was an outlier at 1,689 lines holding the
-  App orchestrator, two step components (Configure / Plot), seven
-  sidebar tiles (Thresholds / Colors / ColorMap / SizeMap / Labels /
-  Style / Summary), the `VolcanoAesBox` primitive, the `ControlSection`
-  collapsible, the `ToggleRow` segmented picker, the `LabelSearchRow`
-  debounced match preview, the `PaletteStrip` preview, and several
-  helper functions. Split to mirror boxplot / scatter:
-  `controls.tsx` (881 lines) holds every tile + the AesBox / ToggleRow
-  / ControlSection primitives; `steps.tsx` (337 lines) holds
-  `ConfigureStep` + `PlotStep`; `helpers.ts` gains `buildPoints` (the
-  parseData-row-array → `VolcanoPoint[]` boundary) and
-  `eligibleColumns` (Color/Size mapping candidate filter).
-  `index.tsx` lands at 435 lines: imports, `VIS_INIT_VOLCANO`, `App()`,
-  ReactDOM mount — same shape every other plot tool already has. No
-  user-visible behaviour change. Pure helpers exposed through
-  `tests/helpers/volcano-loader.js`; +10 unit tests in
-  `tests/volcano.test.js` pin the new helper exports.
-
-### Added
-
-- **`recommendation.suggestion` rendered in every stats panel.** When
-  Shapiro-Wilk flags non-normality at α = 0.05, `selectTest` returns a
-  sibling `suggestion` field naming Mann-Whitney (k=2) or
-  Kruskal-Wallis + Dunn (k≥3). Boxplot, RLU timecourse (aequorin), Line
-  Plot, and the legacy shared StatsTile now show this as a themed
-  `--info-bg` info banner under the recommendation reason: "Suggested
-  alternative — Shapiro-Wilk flagged non-normal data, consider
-  _Mann-Whitney U_. [Use suggestion]". Clicking **Use suggestion**
-  flips the per-set test override the same way the dropdown would; the
-  banner disappears once selected. No banner is shown when the chosen
-  test already matches the suggestion (so the user isn't nagged after
-  acting). +3 render-smoke tests pinning the k=2 / k=3 / no-banner
-  paths.
-
-### Changed
-
-- **Auto-pick default switched to Welch unconditionally; Shapiro-Wilk
-  and Levene downgraded to diagnostics.** `selectTest` in `tools/stats.js`
-  now recommends Welch's t (`k = 2`) or Welch's ANOVA + Games-Howell
-  (`k ≥ 3`) regardless of the SW / Levene outcomes. The previous gated
-  rule tree (`SW p < α → Mann-Whitney / Kruskal-Wallis; Levene p < α →
-Welch; else Student / one-way ANOVA`) is replaced because pre-screening
-  for normality with SW and routing on the result is a known
-  Type I-error-inflating anti-pattern (Schucany & Ng 2006; Zimmerman
-  2004; Rasch, Kubinger & Moder 2011; Delacre et al. 2019). SW + Levene
-  are still computed and shown in the decision trace; when SW flags
-  non-normal data the trace adds a `suggestion` pointing at
-  Mann-Whitney / Kruskal-Wallis, but the recommendation itself stays
-  Welch — the user picks any of {Student t, Welch t, Mann-Whitney} or
-  {one-way ANOVA, Welch ANOVA, Kruskal-Wallis} from the stats panel's
-  per-test dropdown if they want a different test. The `reason` text
-  on every recommendation now spells out (a) what was picked, (b) what
-  the diagnostics found, (c) why Welch is the default, and (d) where
-  to override. Equal-variance / normal data still get a Welch result
-  that matches Student / one-way ANOVA closely (Welch is conservative,
-  not different); unequal-variance data are now correct by default
-  instead of routed away from the issue. R-script export tracks whatever
-  test was actually run, so reproducibility is unchanged. Regression:
-  10 selectTest tests rewritten in `tests/stats.test.js`.
-
-- **CLAUDE.md resynced with the v1.2.0 codebase.** The Project
-  Overview, Tool structure, Tool-internal structure, `_shell/` scaffold,
-  Running Tests, Test helpers, Landing-page test counter, CI checks, and
-  Pre-commit hook sections all referenced the pre-split single-file
-  layout (`tools/<tool>.tsx`, "seven plot tools", "all six test files"
-  etc.). Updated to reflect the actual folder-per-plot-tool layout
-  (`tools/<tool>/index.tsx` + sibling `chart.tsx` / `controls.tsx` /
-  `steps.tsx` / `helpers.ts`), the eight plot tools (volcano added in
-  1.1.0), the calculators-stay-single-file carve-out, and the auto-bump
-  semantics for the landing-page test counter. No code change.
-
+  `tools/volcano/index.tsx` was an outlier at 1689 lines; split into
+  `controls.tsx` (881 lines) + `steps.tsx` (337 lines) +
+  `helpers.ts` extensions, leaving the orchestrator at 435 lines —
+  same shape every other plot tool already has. +10 unit tests.
+- **Volcano `chart.tsx` split.** 939 LoC monolith → 563 LoC slim
+  orchestrator, 306 LoC `chart-layout.ts` (pure layout / fill /
+  radius resolvers), 214 LoC `chart-legends.tsx` (in-SVG legend
+  renderers). Behaviour unchanged: 49 unit tests + 500-iter fuzz
+  clean.
+- **HowTo tile content lifted to a uniform shared component.** New
+  `tools/_shell/HowTo.tsx` renders a fixed three-card layout
+  (Purpose / Data layout / Display, plus optional Tips + capability
+  pills) driven by a typed `HowToContent` object; per-tool prose
+  lives in tiny `tools/<tool>/howto.tsx` constants. Each tool's
+  step file drops from 100–290 LoC of inline JSX to a single
+  `<HowTo {...TOOL_HOWTO} />` call.
+- **Downloads now prompt for a save location.** Every export tries
+  the File System Access API (`window.showSaveFilePicker`) first
+  (Chromium browsers on HTTPS / localhost), falling back to the
+  classic `<a download>` anchor click. New `saveBlob(blob, filename)`
+  helper in `tools/shared.js` centralises the picker logic.
+- **Theme-var coverage retroactively audited.** Replaced the five
+  remaining `rgba()` / `rgb()` literal sites in inline `style={{}}`
+  attributes with new theme vars (`--shadow-md`, `--shadow-sm`,
+  `--shadow-lg`, `--focus-ring`).
+- **`plottr/no-chrome-hex-literal` ESLint rule scope widened.** Now
+  also catches named CSS colours and functional-notation literals
+  (`rgba(...)`, `rgb(...)`, `hsl(...)`, `hsla(...)` — including ones
+  buried inside multi-token `boxShadow` or `linear-gradient(...)`
+  strings).
+- **Type the React-tier prop bags across every plot tool.** `: any`
+  destructures in each tool's `steps.tsx` / `controls.tsx` /
+  `plot-area.tsx` replaced with explicit prop interfaces. Latent
+  bugs surfaced and fixed: 4 `Map.get(...)` derefs without nullish
+  guard, several `useState` hooks narrowed from `string` to typed
+  unions.
+- **Sample-data convention consolidated to "all-(C)".** Every plot
+  tool's `app.tsx` now carries a `const EXAMPLE_CSV = \`…\`;`(or`EXAMPLE*TSV`) at module scope with a paired `loadExample`
+`useCallback`. Discoverable with
+`grep -nE "^const EXAMPLE*(CSV|TSV)" tools/\*/app.tsx`. The SPA
+migration silently broke six tools' "Try sample data" buttons
+because per-tool `\_example.js` script tags were no longer loaded;
+  the consolidation closes that whole class of bug.
+- **CLAUDE.md resynced with the v1.2.0 codebase**, then re-updated
+  for the SPA shape and v1.3.0 additions: new
+  `## Statistical methodology` section pinning the Welch-by-default
+  policy with literature citations, new "Extending the SciPy suite"
+  paragraph spelling out the regime-classification contributor
+  guidance, new "Sample-data convention — all-(C) / inline at
+  module scope" paragraph in Tool-internal structure.
 - **README no longer hard-codes the test count.** The "Statistical
-  validation" paragraph and the `npm test` example in the Development
-  block both said "891 tests" — but `scripts/bump-test-count.js`
-  (posttest hook) only rewrites the landing-page badge in `index.html`,
-  so the README drifted on every test addition. README now points at
-  the auto-bumped landing-page badge as the source of truth and
-  describes the suite without a number; one less place to drift.
+  validation" paragraph and the `npm test` example both said "891
+  tests" but `scripts/bump-test-count.js` only rewrites the
+  landing-page badge, so the README drifted on every test addition.
+  Now points at the auto-bumped landing-page badge as the source of
+  truth.
 
 ### Removed
 
 - **Zenodo DOI references dropped from the README + `THIRD_PARTY.md`.**
-  README's `Citing` section no longer says "A Zenodo DOI will be minted
-  on tagged releases" — the deposit isn't on the near-term roadmap, so
-  carrying the promise was a stale commitment readers were entitled to
-  hold the project to. `THIRD_PARTY.md`'s lede drops the "Zenodo or
-  peer reviewer" framing and keeps just "peer reviewer". Licensing
-  paperwork (`LICENSE`, `vendor/LICENSE-react.txt`, `THIRD_PARTY.md`)
-  stays exactly as-is — the prep work remains valid whenever a deposit
-  is wanted later.
-
-### Changed
-
-- **HowTo tile content lifted out of every long file into a uniform
-  shared component.** New `tools/_shell/HowTo.tsx` renders a fixed
-  three-card layout (Purpose / Data layout / Display, plus optional
-  Tips + capability pills) driven by a typed `HowToContent` object;
-  per-tool prose lives in tiny `tools/<tool>/howto.tsx` constants.
-  Each tool's `steps.tsx` (or `index.tsx` for volcano) drops from
-  100–290 LoC of inline JSX to a single `<HowTo {...TOOL_HOWTO} />`
-  call. Same time, eight tools rewritten to a consistent depth —
-  user-language purpose, two sentences on data layout, two-three on
-  display options, with tool-specific specifics (no more wall-of-
-  text in one place + one-liner in another).
-- **Downloads now prompt for a save location.** Every export
-  (SVG / PNG / CSV / R script / TXT) tries the File System Access
-  API (`window.showSaveFilePicker`) first so the user can pick a
-  folder + filename. Supported in Chromium-based browsers (Chrome /
-  Edge / Opera) on HTTPS / localhost. Firefox / Safari and any
-  context that strips the API (sandboxed iframes, `file://`) fall
-  back to the classic `<a download>` anchor click that drops the
-  file in the browser's default Downloads folder. Cancelled picker
-  is a silent no-op. New `saveBlob(blob, filename)` helper in
-  `tools/shared.js` centralises the picker / fallback logic; all
-  four download functions (`downloadSvg`, `downloadPng`,
-  `downloadCsv`, `downloadText`) now delegate to it.
-
-### Added
-
-- **Playwright e2e suite (`e2e/`).** Golden-path flows in real
-  Chromium, run via `npm run e2e`. Closes the "renders the wrong
-  chart" gap the vm + functional-React-mock unit tests can't see —
-  exactly the class of bug the v1.2.0 volcano colorNs glitch was.
-  18 tests across 9 spec files covering every tool:
-  - **Landing**: 10 tool tiles + theme-toggle flips `data-theme`.
-  - **Boxplot**: load example → walk to plot → ≥ 2 boxes render.
-  - **Scatter**: load Iris → ≥ 50 points render.
-  - **Lineplot**: load example → ≥ 2 traces render.
-  - **Venn**: load example → set circles render.
-  - **UpSet**: load example → bars + matrix-dot circles render.
-  - **Heatmap**: load example → walk to plot → ≥ 100 cells render.
-  - **Aequorin**: auto-Y first-paint regression — at least one
-    Y-tick reads above `VIS_INIT_AEQUORIN`'s 1.4 default.
-  - **Volcano**: colorNs regression (default + Set1 + Set3 each
-    assert ns fill stays `#999999`); search-by-name populates
-    `<g id="top-n-labels">`.
-  - **Calculators**: molarity + power smoke (page mounts, primary
-    actions reachable).
-  - **Cross-tool discrete-palette** wiring smoke for lineplot,
-    venn, volcano (boxplot / aequorin / scatter palette flows are
-    covered by their dedicated specs).
-    Wall time: ~6 s for all 18 tests locally. Auto-spins a Python
-    `http.server` on :8765 against the repo root (no Node server
-    needed). New CI step `Run Playwright e2e` gates every PR;
-    failures upload the HTML report + traces as a 7-day artefact
-    for offline triage. `data-testid="load-example"` added to the
-    shared UploadPanel button so e2e specs don't have to know each
-    tool's per-dataset label string.
-
-### Changed
-
-- **Theme-var coverage retroactively audited.** Replaced the five
-  remaining `rgba()` / `rgb()` literal sites in inline `style={{}}`
-  attributes with new theme vars: heatmap selection-readout panel
-  (`--shadow-md`), `_shell/ScrollablePlotCard` "scroll for more →"
-  pill (`--shadow-sm`), aequorin sample-selection overlay
-  (`--shadow-lg`), venn rename-input focus glow (`--focus-ring`).
-  The two `linear-gradient(..., rgba(255,255,255,0))` fades on the
-  scroll-card edges now use the `transparent` keyword for clarity —
-  same visual result, no theme dependency.
-- **`plottr/no-chrome-hex-literal` ESLint rule scope widened.** Now
-  also catches named CSS colours (`white`, `black`, `slategray`, …;
-  `transparent` and `currentColor` are allowed) and functional-notation
-  literals (`rgba(...)`, `rgb(...)`, `hsl(...)`, `hsla(...)` — including
-  ones buried inside multi-token `boxShadow` or `linear-gradient(...)`
-  strings). Rule name kept stable for config compatibility; only the
-  detection logic widened.
-- **Volcano `chart.tsx` split.** 939 LoC monolith → 563 LoC slim
-  orchestrator, 306 LoC `chart-layout.ts` (axis ranges, point
-  classification, label layout, fill / radius resolvers — all pure,
-  no React), 214 LoC `chart-legends.tsx` (color + size in-SVG
-  legend renderers). Behaviour unchanged: 49 unit tests + 500-iter
-  fuzz clean.
-- **Type the React-tier prop bags across every plot tool.** `: any`
-  destructures in each tool's `steps.tsx` / `controls.tsx` /
-  `plot-area.tsx` replaced with explicit prop interfaces declared in
-  the tool's `helpers.ts` (the type-canonical home — sidesteps the
-  `index → steps → index` import cycle). Eight tools touched:
-  lineplot / venn / upset / heatmap / scatter (UploadStep only) /
-  aequorin / boxplot, plus matching `*Vis` and `UpdVis` types per tool.
-  Latent bugs surfaced and fixed in passing: 4 `Map.get(...)` derefs
-  without nullish guard in venn + upset CSV exporters; several
-  `useState` hooks (heatmap clustering / distance / linkage,
-  aequorin's `formula`, boxplot / upset `dataFormat` / `format`)
-  narrowed from `string` to typed unions. The remaining `: any` in
-  these files are inline callbacks over local example / illustration
-  data (HowTo card example tables, anonymous option-array mappers) —
-  not prop bags.
+  Deposit isn't on the near-term roadmap. Licensing paperwork
+  (`LICENSE`, `vendor/LICENSE-react.txt`, `THIRD_PARTY.md`) stays
+  exactly as-is.
 
 ### Fixed
 
-- **Aequorin auto-Y first-paint glitch.** The prior `useLayoutEffect`
-  fix updated `vis.yMin/yMax` after the chart had already received
-  the stale persisted values via props, so the first paint of the
-  plot step still showed the old range and snapped one frame later.
-  Two-part fix:
-  - Compute the effective Y-range during render via an `effYRange`
-    `useMemo` that reads directly from `calData` whenever
-    `autoYRange` is on; `PlotPanel` consumes that, not
-    `vis.yMin/yMax`. Stale frame eliminated.
-  - Reset `autoYRange: true` on every fresh parse — the Y-min /
-    Y-max inputs flip `autoYRange: false` when typed into, and that
-    boolean was persisted to localStorage, so a later reload with a
-    new dataset cropped to the previous session's manual Y bounds.
+- **Aequorin auto-Y first-paint glitch.** Compute the effective
+  Y-range during render via an `effYRange` `useMemo` that reads
+  directly from `calData` whenever `autoYRange` is on; reset
+  `autoYRange: true` on every fresh parse so a reload with a new
+  dataset doesn't crop to the previous session's manual Y bounds.
 
 ## [1.2.0] - 2026-05-04
 

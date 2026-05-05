@@ -710,7 +710,7 @@ const PowerCurve = forwardRef<
 
 // ── Main App ────────────────────────────────────────────────────────────────
 
-function App() {
+export function App() {
   const [testKey, setTestKey] = useState<TestKey>("t-ind");
   const [solveFor, setSolveFor] = useState("n");
   const [effectSize, setEffectSize] = useState("0.5");
@@ -1215,7 +1215,3 @@ function App() {
     </div>
   );
 }
-
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  React.createElement(ErrorBoundary, { toolName: "Power calculator" }, React.createElement(App))
-);

@@ -17,22 +17,14 @@
 const { spawn } = require("child_process");
 const path = require("path");
 
-const ESBUILD_ENTRYPOINTS = [
-  "tools/boxplot/index.tsx",
-  "tools/scatter/index.tsx",
-  "tools/aequorin/index.tsx",
-  "tools/lineplot/index.tsx",
-  "tools/venn/index.tsx",
-  "tools/heatmap/index.tsx",
-  "tools/molarity.tsx",
-  "tools/power.tsx",
-  "tools/upset/index.tsx",
-];
+// Single SPA entry — esbuild's `--bundle` inlines every tool's
+// `app.tsx` (and the rest of `tools/_app/`) into one output.
+const ESBUILD_ENTRYPOINTS = ["tools/_app/index.tsx"];
 
 const ESBUILD_FLAGS = [
   "--bundle",
   "--format=esm",
-  "--outdir=tools",
+  "--outfile=tools/_app/index.js",
   "--jsx=transform",
   "--minify-syntax",
   "--minify-whitespace",

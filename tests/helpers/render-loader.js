@@ -48,6 +48,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const esbuild = require("esbuild");
 
 const React = require("react");
 const ReactDOMServer = require("react-dom/server");
@@ -101,37 +102,74 @@ function buildContext() {
 }
 
 // ── Compiled-tool loading ──────────────────────────────────────────────
-// Each tool's chart component is declared as a top-level `var BoxplotChart
-// = …` (esbuild minifies but keeps the name). We wrap the tool source
-// in an IIFE so its top-level `var`s are scoped to that one load — no
-// collisions when multiple tools are loaded sequentially — and the
-// IIFE returns a literal object naming every chart export we care
-// about. `typeof X !== 'undefined'` keeps the wrapper compatible with
-// tools that don't declare a particular name (volcano has no
-// BarChart, scatter has no InsetBarplot, …).
+// SPA-era version: pre-iframe→SPA migration each tool had a
+// standalone `tools/<tool>/index.js` build (one esbuild entry point
+// per tool) and `loadTool` just read that file. After the migration
+// only the SPA bundle (`tools/_app/index.js`) ships, and it's an ES
+// module that `vm.runInThisContext` can't parse.
+//
+// New approach: bundle each tool's `app.tsx` in-memory via
+// `esbuild.buildSync` with `format=iife`, so the chart components
+// declared at the top level of the tool's source become accessible
+// as IIFE-return values. Same pattern other test helpers use
+// (`tests/helpers/venn-loader.js` does the same for venn's
+// `helpers.ts` barrel). Build cost is ~50 ms per tool; the result is
+// memoised so repeated `loadTool("boxplot")` calls inside one test
+// run only build once.
+//
+// `typeof X !== 'undefined'` in the IIFE return keeps the wrapper
+// compatible with tools that don't declare a particular name (volcano
+// has no BarChart, scatter has no InsetBarplot, …).
+
+const _toolBundleCache = new Map();
 
 function loadTool(toolName) {
   ensureSharedBundleLoaded();
-  // Folder-split tools (boxplot, scatter, lineplot, aequorin, heatmap,
-  // venn, upset, volcano) live under tools/<tool>/index.js; the two
-  // calculators (molarity, power) keep the flat tools/<tool>.js shape.
-  const flatPath = path.join(toolsDir, toolName + ".js");
-  const folderPath = path.join(toolsDir, toolName, "index.js");
-  const toolPath = fs.existsSync(folderPath)
-    ? folderPath
-    : fs.existsSync(flatPath)
-      ? flatPath
-      : null;
-  if (toolPath == null) {
+  if (_toolBundleCache.has(toolName)) {
+    const cached = _toolBundleCache.get(toolName);
+    return { ctx: globalThis, exports: cached };
+  }
+
+  // Plot tools: tools/<tool>/app.tsx; calculators: tools/<tool>-app.tsx.
+  const folderApp = path.join(toolsDir, toolName, "app.tsx");
+  const flatApp = path.join(toolsDir, toolName + "-app.tsx");
+  const appPath = fs.existsSync(folderApp) ? folderApp : fs.existsSync(flatApp) ? flatApp : null;
+  if (appPath == null) {
     throw new Error(
-      `render-loader: cannot find tool ${toolName}. Tried ${folderPath} and ${flatPath}.`
+      `render-loader: cannot find tool ${toolName}. Tried ${folderApp} and ${flatApp}.`
     );
   }
-  const toolSrc = fs.readFileSync(toolPath, "utf8");
-  const wrapped =
-    "(function() {\n" +
-    toolSrc +
-    "\nreturn {" +
+
+  // Bundle in IIFE format so vm.runInThisContext can parse the result
+  // (ESM `export` would error). The wrapping `(function() {…})()`
+  // gives us a clean lexical scope per tool — repeated loads with
+  // different sources don't pollute globalThis with stale `var`s.
+  const result = esbuild.buildSync({
+    entryPoints: [appPath],
+    bundle: true,
+    write: false,
+    format: "iife",
+    jsx: "transform",
+    minify: false,
+    sourcemap: false,
+    // shared.bundle.js already exposes React, ReactDOM, the shared-*.js
+    // globals, and the chart-internal helpers as realm globals; we don't
+    // want esbuild to inline them again. None of the tool sources use
+    // `import React from "react"` so esbuild treats `React` as a free
+    // variable and emits it bare — which is what we want.
+    target: "es2022",
+  });
+  const compiled = result.outputFiles[0].text;
+
+  // Wrap the compiled IIFE so it returns the chart-component handles.
+  // The compiled output already starts with `(() => {` (the IIFE);
+  // we splice in a `return { … }` before the closing `})();`.
+  const closingIdx = compiled.lastIndexOf("})();");
+  if (closingIdx < 0) {
+    throw new Error(`render-loader: unexpected esbuild output for ${toolName}`);
+  }
+  const returnObj =
+    "return {" +
     "BoxplotChart: typeof BoxplotChart !== 'undefined' ? BoxplotChart : undefined," +
     "BarChart: typeof BarChart !== 'undefined' ? BarChart : undefined," +
     "ScatterChart: typeof ScatterChart !== 'undefined' ? ScatterChart : undefined," +
@@ -142,8 +180,11 @@ function loadTool(toolName) {
     "VennChart: typeof VennChart !== 'undefined' ? VennChart : undefined," +
     "UpsetChart: typeof UpsetChart !== 'undefined' ? UpsetChart : undefined," +
     "HeatmapChart: typeof HeatmapChart !== 'undefined' ? HeatmapChart : undefined," +
-    "};\n})()";
-  const exports = vm.runInThisContext(wrapped, { filename: toolPath });
+    "App: typeof App !== 'undefined' ? App : undefined," +
+    "};";
+  const withReturn = compiled.slice(0, closingIdx) + returnObj + compiled.slice(closingIdx);
+  const exports = vm.runInThisContext(withReturn, { filename: appPath });
+  _toolBundleCache.set(toolName, exports);
   return { ctx: globalThis, exports };
 }
 
