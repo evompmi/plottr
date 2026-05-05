@@ -27,9 +27,7 @@
 //   approx(a, b, tol)  → throws if |a - b| > tol.
 //   throws(fn, msg)    → throws if `fn` does not throw.
 //   summary()          → no-op. Vitest produces its own per-file and
-//                        per-run totals; the bump-test-count posttest
-//                        hook reads the `Tests  N passed (N)` line
-//                        from .test-output.log.
+//                        per-run totals.
 //
 // Why the shim instead of converting every test file to
 // describe/it/expect:
@@ -99,8 +97,7 @@ function throws(fn, msg) {
 }
 
 function summary() {
-  // No-op under Vitest. The runner emits its own totals; the
-  // landing-page badge bumper reads them from `.test-output.log`.
+  // No-op under Vitest. The runner emits its own totals.
 }
 
 module.exports = { suite, test, assert, eq, approx, throws, summary };

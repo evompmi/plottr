@@ -12,10 +12,9 @@ test("landing page renders all ten tool tiles", async ({ page }) => {
   // the page loaded but bundle loading failed.
   await expect(page).toHaveTitle(/Pl[oö]ttr/);
 
-  // The "N internal tests" badge — present if the page rendered + the
-  // bundle init ran. The number is auto-bumped by `posttest`; we only
-  // check the badge exists, not its value.
-  await expect(page.locator("text=/\\d+\\s+internal tests/i")).toBeVisible();
+  // The "Validated against R 4.5" trust badge — present if the page
+  // rendered + the bundle init ran.
+  await expect(page.locator("text=/Validated against R 4\\.5/i")).toBeVisible();
 
   // Each tool tile is a <button class="tile" data-tool="<tool>"> with
   // an icon + label inside; opening a tool swaps a hidden iframe in

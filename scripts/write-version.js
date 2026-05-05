@@ -25,7 +25,7 @@ const path = require("path");
 // pattern requires three numeric segments separated by dots; a future
 // pre-release tag like `## [1.1.0-beta]` would NOT match, falling
 // through to the `git describe` fallback. That's deliberate: an
-// in-progress pre-release shouldn't paint the landing-page badge yet.
+// in-progress pre-release shouldn't paint the landing-page version yet.
 function parseLatestVersion(md) {
   const match = String(md).match(/^## \[(\d+\.\d+\.\d+)\]/m);
   return match ? "v" + match[1] : null;
