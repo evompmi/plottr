@@ -26,6 +26,7 @@ const compiledTools = [
   "tools/molarity.js",
   "tools/power.js",
   "tools/version.js",
+  "tools/_app/index.js",
 ];
 
 // Names declared at top-level of tools/shared.js, tools/stats.js, and the
