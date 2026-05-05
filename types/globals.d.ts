@@ -572,6 +572,18 @@ declare global {
     truncateLabel?: number
   ): ReactNode;
 
+  // ── tools/theme.js ─────────────────────────────────────────────────────────
+  // Theme switching primitives, exposed as script-scope globals via the
+  // shared bundle. `useThemeMode` is a React hook that re-renders the
+  // calling component when the theme attribute changes (BroadcastChannel,
+  // storage event, OS-preference change). `toggleTheme` flips between
+  // light and dark and persists to localStorage.
+  function useThemeMode(): "light" | "dark";
+  function toggleTheme(): void;
+  function getTheme(): "light" | "dark";
+  function setTheme(mode: "light" | "dark" | null): void;
+  const ThemeToggle: FC<{ style?: CSSProperties }>;
+
   // ── tools/stats.js ─────────────────────────────────────────────────────────
   function normcdf(x: number): number;
   function norminv(p: number): number;

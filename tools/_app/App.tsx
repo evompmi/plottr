@@ -18,6 +18,10 @@ import { TOOL_REGISTRY, findToolEntry } from "./tool-registry";
 // markup in `index.html` for visual identity.
 const HOME_SVG =
   '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 L10 3 L17 10"/><path d="M5 9 V17 H15 V9"/></svg>';
+const SUN_SVG =
+  '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="3.2"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg>';
+const MOON_SVG =
+  '<svg viewBox="0 0 20 20" fill="currentColor" stroke="none" aria-hidden="true"><path d="M16.5 12.8A6.5 6.5 0 0 1 7.2 3.5a.6.6 0 0 0-.8-.78 8 8 0 1 0 10.86 10.86.6.6 0 0 0-.78-.78z"/></svg>';
 
 // Tiny helper for inline-SVG icon buttons. Same pattern the pre-SPA
 // landing topbar used (`tb-icon-btn` class declared in the existing
@@ -45,10 +49,28 @@ function IconButton({
   });
 }
 
-// Topbar rendered above an active tool. Phase 1 stays minimal:
-// theme toggle (data-theme-toggle attribute is what theme.js's
-// listener picks up — same wiring the iframe shell used) + home
-// button + sibling-tool quick-jump icons.
+// Theme toggle for the SPA topbar. The inline IIFE in `index.html`
+// only walks `[data-theme-toggle]` once at load time, so React-rendered
+// buttons created later are never wired. We render our own button
+// against `useThemeMode()` / `toggleTheme()` from `tools/theme.js`
+// (script-scope globals via the shared bundle), kept visually
+// consistent with the rest of the topbar's `tb-icon-btn` siblings.
+function ThemeButton() {
+  const mode = useThemeMode();
+  const isDark = mode === "dark";
+  const title = isDark ? "Switch to light mode" : "Switch to dark mode";
+  return React.createElement("button", {
+    type: "button",
+    className: "tb-icon-btn",
+    title,
+    "aria-label": title,
+    onClick: () => toggleTheme(),
+    dangerouslySetInnerHTML: { __html: isDark ? SUN_SVG : MOON_SVG },
+  });
+}
+
+// Topbar rendered above an active tool. Theme toggle + home button +
+// sibling-tool quick-jump icons.
 function ToolTopbar({ currentKey }: { currentKey: string }) {
   const others = TOOL_REGISTRY.filter((t) => t.key !== currentKey);
   return React.createElement(
@@ -64,12 +86,7 @@ function ToolTopbar({ currentKey }: { currentKey: string }) {
         background: "var(--surface)",
       },
     },
-    React.createElement("button", {
-      type: "button",
-      className: "tb-icon-btn",
-      "data-theme-toggle": "",
-      "aria-label": "Toggle theme",
-    }),
+    React.createElement(ThemeButton),
     React.createElement("div", { className: "tb-sep" }),
     IconButton({
       title: "Home",
