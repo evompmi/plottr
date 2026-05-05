@@ -11,7 +11,7 @@ test("boxplot: load example → walk to plot → chart renders boxes", async ({ 
 
   // The example uses wide format and the configure step pre-fills
   // group / value column roles. Walk via the StepNavBar's "Plot" pill.
-  await page.getByRole("button", { name: /Plot$/ }).first().click();
+  await page.getByTestId("step-plot").click();
 
   // The chart renders inside a `<g id="groups">` group (one <g> per
   // box). Wait for it to populate, then assert at least 2 group

@@ -11,7 +11,7 @@ test("heatmap: load example → cells render", async ({ page }) => {
 
   // Heatmap routes to "Step 2 of 3: Import check" by default — walk
   // to plot step.
-  await page.getByRole("button", { name: /Plot$/ }).first().click();
+  await page.getByTestId("step-plot").click();
 
   // Cells are rendered inside `<g id="cells">` with one `<rect>` per
   // (row, col) — 500 × 6 = 3000. We assert at least 100 to keep the

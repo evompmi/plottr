@@ -26,10 +26,10 @@ async function loadVolcanoExample(page: Page) {
   const exampleBtn = page.getByTestId("load-example");
   await expect(exampleBtn).toBeVisible();
   await exampleBtn.click();
-  // StepNavBar buttons are labelled "Step N of M: <name>". A regex
-  // ending with the step name matches them all without re-typing each
-  // tool's M (3 here, 4 / 5 elsewhere).
-  await page.getByRole("button", { name: /Plot$/ }).first().click();
+  // StepNavBar pills carry `data-testid="step-<key>"`. The previous
+  // /Plot$/ regex collided with the SPA topbar's tool-icon buttons
+  // (e.g. "Volcano Plot"); the testid is unique to the StepNavBar.
+  await page.getByTestId("step-plot").click();
   // Wait for `g#points-ns` etc. to populate so subsequent colour
   // assertions hit a non-empty chart.
   await expect(page.locator("g#points-ns circle").first()).toBeVisible();
