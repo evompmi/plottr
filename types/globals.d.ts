@@ -15,6 +15,7 @@ declare global {
   namespace React {
     export type CSSProperties = ReactNs.CSSProperties;
     export type FC<P = object> = ReactNs.FC<P>;
+    export type ComponentType<P = object> = ReactNs.ComponentType<P>;
     export type ReactElement = ReactNs.ReactElement;
     export type ReactNode = ReactNs.ReactNode;
     export type RefObject<T> = ReactNs.RefObject<T>;
