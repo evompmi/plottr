@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Volcano Plot now appears in the README.** The tool table gains a
+  Volcano row (between UpSet and Power Analysis) describing the
+  three-class significance colouring, top-N labels with collision
+  avoidance, click-to-label, search-by-name, optional Color / Size
+  aesthetic mappings, classified-CSV + ggplot2-R-script export, and
+  the DESeq2 / limma / edgeR column auto-detection. The screenshot
+  grid gains a `docs/screenshots/volcano.png` (1648×1250, the
+  bundled synthetic plant-transcriptomics demo dataset) as a
+  full-width row at the bottom. New `scripts/gen-volcano-screenshot.mjs`
+  uses Playwright + headless Chromium to capture the screenshot
+  cross-platform — a lighter alternative to `gen-screenshots.mjs`'s
+  Selenium + Inkscape pipeline. Volcano was the headline feature of
+  v1.1.0 (eighth plot tool, 49 unit tests, 1k×3-seed fuzz) but the
+  README never mentioned it; this closes point 3 of
+  `1.2.0_harsh_review.md`.
+
 - **SciPy cross-check for the noncentral distributions and
   `qtukey`.** New `benchmark/run-scipy.py` + `benchmark/run-scipy.js`
   pair, modelled on the existing `run-r.R` + `run.js` pipeline. The

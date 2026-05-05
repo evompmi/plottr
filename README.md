@@ -16,17 +16,18 @@ Originally built for the "Evolution of plant-microbes interactions" team members
 
 ## Tools
 
-| Tool               | Purpose                                                                                                                                                                                  |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **RLU timecourse** | Luminescence time-course with mean ± SD, per-replicate integrals, inline stats, and optional aequorin Ca²⁺ calibration (Allen & Blinks / Hill / Generalised).                            |
-| **Group Plot**     | Box / violin / raincloud / bar with Welch t / Welch ANOVA + Games-Howell as the default pick (override to Student / one-way ANOVA / Mann–Whitney / Kruskal–Wallis from the stats panel). |
-| **Line Plot**      | Mean ± SEM / SD / 95 % CI per group across a shared x, with per-x significance markers.                                                                                                  |
-| **Scatter Plot**   | XY with colour / size / shape mapping, reference lines, and optional linear regression overlay.                                                                                          |
-| **Heatmap**        | Matrix heatmap with row / column clustering (hierarchical, k-means), dendrograms, and zoomed detail view.                                                                                |
-| **Venn Diagram**   | 2–3 set area-proportional Venn with click-to-extract region members.                                                                                                                     |
-| **UpSet Plot**     | 4+ set intersection plot — top bar chart, matrix of participation dots, per-set totals. Click a column to inspect its items.                                                             |
-| **Power Analysis** | A-priori and post-hoc power for t (indep / paired / one-sample), one-way ANOVA, χ², correlation.                                                                                         |
-| **Calculator**     | Molarity, dilution (C₁V₁ = C₂V₂), ligation ratio, batch prep sheets.                                                                                                                     |
+| Tool               | Purpose                                                                                                                                                                                                                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **RLU timecourse** | Luminescence time-course with mean ± SD, per-replicate integrals, inline stats, and optional aequorin Ca²⁺ calibration (Allen & Blinks / Hill / Generalised).                                                                                                                                    |
+| **Group Plot**     | Box / violin / raincloud / bar with Welch t / Welch ANOVA + Games-Howell as the default pick (override to Student / one-way ANOVA / Mann–Whitney / Kruskal–Wallis from the stats panel).                                                                                                         |
+| **Line Plot**      | Mean ± SEM / SD / 95 % CI per group across a shared x, with per-x significance markers.                                                                                                                                                                                                          |
+| **Scatter Plot**   | XY with colour / size / shape mapping, reference lines, and optional linear regression overlay.                                                                                                                                                                                                  |
+| **Heatmap**        | Matrix heatmap with row / column clustering (hierarchical, k-means), dendrograms, and zoomed detail view.                                                                                                                                                                                        |
+| **Venn Diagram**   | 2–3 set area-proportional Venn with click-to-extract region members.                                                                                                                                                                                                                             |
+| **UpSet Plot**     | 4+ set intersection plot — top bar chart, matrix of participation dots, per-set totals. Click a column to inspect its items.                                                                                                                                                                     |
+| **Volcano Plot**   | log₂FC vs −log₁₀(p) for −omics hits with three-class significance colouring, top-N labels with collision avoidance, click-to-label, search-by-name, optional colour / size aesthetic mappings, classified CSV + ggplot2 R-script export. Auto-detects DESeq2 / limma / edgeR column conventions. |
+| **Power Analysis** | A-priori and post-hoc power for t (indep / paired / one-sample), one-way ANOVA, χ², correlation.                                                                                                                                                                                                 |
+| **Calculator**     | Molarity, dilution (C₁V₁ = C₂V₂), ligation ratio, batch prep sheets.                                                                                                                                                                                                                             |
 
 Each tool has an in-app **How to** panel.
 
@@ -71,6 +72,12 @@ Each tool has an in-app **How to** panel.
     <td align="center">
       <img src="docs/screenshots/power.png?v=2" alt="Power analysis">
       <br><sub><b>Power Analysis</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
+      <img src="docs/screenshots/volcano.png?v=2" alt="Volcano plot — log2 fold change vs −log10(p)">
+      <br><sub><b>Volcano Plot</b></sub>
     </td>
   </tr>
 </table>
