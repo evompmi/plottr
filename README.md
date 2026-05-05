@@ -12,14 +12,14 @@ Originally built for the "Evolution of plant-microbes interactions" team members
 - **Privacy by construction.** All parsing and computation happens in-browser. Works offline once loaded.
 - **Paste-and-plot.** Each tool auto-detects separators (`,` / `\t`) and decimal convention (`,` / `.`), then walks through column roles → filter → plot → export.
 - **Publication-ready output.** SVG (named `<g>` groups for Inkscape/Illustrator), PNG (2×), CSV of processed data.
-- **Honest statistics.** Test picks follow a defensible rule tree (normality + variance → parametric vs. non-parametric); the full decision trace is shown, not hidden.
+- **Honest statistics.** Welch's t / Welch ANOVA + Games-Howell are the default picks (Rasch et al. 2011; Zimmerman 2004 — pre-screening with Shapiro-Wilk to choose between parametric and non-parametric is a known anti-pattern). Shapiro-Wilk and Levene are still computed and shown as diagnostics in the decision trace; the trace explains *why* Welch is the default and how to override per-test.
 
 ## Tools
 
 | Tool               | Purpose                                                                                                                                                       |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **RLU timecourse** | Luminescence time-course with mean ± SD, per-replicate integrals, inline stats, and optional aequorin Ca²⁺ calibration (Allen & Blinks / Hill / Generalised). |
-| **Group Plot**     | Box / violin / raincloud / bar with auto-selected test (t / Welch / Mann–Whitney / ANOVA / Welch-ANOVA / Kruskal–Wallis) + post-hocs.                         |
+| **Group Plot**     | Box / violin / raincloud / bar with Welch t / Welch ANOVA + Games-Howell as the default pick (override to Student / one-way ANOVA / Mann–Whitney / Kruskal–Wallis from the stats panel).                         |
 | **Line Plot**      | Mean ± SEM / SD / 95 % CI per group across a shared x, with per-x significance markers.                                                                       |
 | **Scatter Plot**   | XY with colour / size / shape mapping, reference lines, and optional linear regression overlay.                                                               |
 | **Heatmap**        | Matrix heatmap with row / column clustering (hierarchical, k-means), dendrograms, and zoomed detail view.                                                     |
@@ -89,7 +89,7 @@ Numerics are trustworthy, but the design covers a slice of real workflows.
 
 **Fits best:** one-way group comparisons with a defensible test pick; quick exploratory plotting from pasted CSV/TSV; privacy-sensitive data; publication-ready SVG; a-priori power analysis; reproducibility via the one-click **⬇ R** script export (Group Plot / RLU timecourse / Power Analysis emit a runnable R script that embeds the data inline and reproduces the exact tests); niche aequorin Ca²⁺ calibration not first-class anywhere else.
 
-**You will outgrow it for:** repeated-measures / mixed models, factorial designs (no two-way ANOVA, no interactions, no ANCOVA), Dunnett's test, multiple / logistic / non-linear regression, survival / ROC / time-to-event, large datasets (browser-only, millions of rows won't work), headless batch processing. Per-group Shapiro–Wilk at α = 0.05 inflates family-wise FPR at large _k_ and biases the auto-pick toward Kruskal–Wallis — documented in-source, adjustable via `alphaNormality`.
+**You will outgrow it for:** repeated-measures / mixed models, factorial designs (no two-way ANOVA, no interactions, no ANCOVA), Dunnett's test, multiple / logistic / non-linear regression, survival / ROC / time-to-event, large datasets (browser-only, millions of rows won't work), headless batch processing. The auto-pick defaults to Welch's t / Welch ANOVA so it doesn't gate on Shapiro-Wilk; per-group SW at α = 0.05 still inflates the family-wise diagnostic flag rate at large _k_ (~23 % at k = 5 even with everything genuinely normal), but that flag is now a non-parametric *suggestion* in the trace, not a routing decision. Tunable via `alphaNormality`.
 
 Use as a supplement to R / Prism / SPSS, not a replacement.
 

@@ -1425,83 +1425,100 @@ test("CLD: mixed NaN + significant pairs only act on the resolved pairs", () => 
 
 // ── Automatic test selection ───────────────────────────────────────────────
 //
-// Decision tree (default α=0.05 for Shapiro and Levene):
-//   k=2: any non-normal → Mann-Whitney; else equal var → Student, else Welch
-//   k≥3: any non-normal → Kruskal-Wallis+Dunn; else equal var → ANOVA+Tukey,
-//        else Welch ANOVA + Games-Howell
+// Default policy (Welch by default — see stats.js header for the literature
+// citations and rationale):
+//   k = 2  → Welch's t                       (no post-hoc)
+//   k ≥ 3  → Welch's ANOVA + Games-Howell
+// SW + Levene are computed as diagnostics in the trace; they do not gate
+// the test choice. When SW flags non-normal data, `suggestion` names a
+// non-parametric alternative the user can switch to manually.
 
 suite("stats.js — automatic test selection");
 
-// Two normal groups, equal variance → Student's t
+// Two normal groups, equal variance — diagnostics agree, default is Welch.
 const normalA = [4.9, 5.1, 5.0, 5.2, 4.8, 5.1, 4.9, 5.0, 5.2, 4.9];
 const normalB = [5.9, 6.1, 6.0, 6.2, 5.8, 6.1, 5.9, 6.0, 6.2, 5.9];
 
-test("k=2 normal+equalVar → studentT", () => {
+test("k=2 normal+equalVar → welchT (default), no suggestion", () => {
   const r = selectTest([normalA, normalB]);
   assert(r.allNormal === true, "expected allNormal true");
-  assert(r.levene.equalVar === true, "expected equalVar true");
-  assert(r.recommendation.test === "studentT", `got ${r.recommendation.test}`);
+  assert(r.levene.equalVar === true, "expected equalVar true (diagnostic only)");
+  assert(r.recommendation.test === "welchT", `got ${r.recommendation.test}`);
   assert(r.recommendation.postHoc === null, "no post-hoc for k=2");
+  assert(r.suggestion == null, "no suggestion when SW does not flag");
 });
 
-// Two normal groups, very different variances → Welch
+// Two normal groups, very different variances — Welch is the right call.
 const normalSmallVar = [9.9, 10.0, 10.1, 10.0, 9.95, 10.05, 10.02, 9.98, 10.03, 9.97];
 const normalLargeVar = [5, 15, 7, 13, 6, 14, 8, 12, 9, 11];
 
-test("k=2 normal+unequalVar → welchT", () => {
+test("k=2 normal+unequalVar → welchT, levene rejects in trace", () => {
   const r = selectTest([normalSmallVar, normalLargeVar]);
-  assert(r.levene.equalVar === false, `expected equalVar false, got p=${r.levene.p}`);
+  assert(r.levene.equalVar === false, `expected Levene to reject, got p=${r.levene.p}`);
   assert(r.recommendation.test === "welchT", `got ${r.recommendation.test}`);
+  assert(r.suggestion == null, "Levene reject does not produce a suggestion");
 });
 
-// Heavy-skewed (exponential-ish) → Mann-Whitney
+// Heavy-skewed (exponential-ish) — Welch is still default; SW flag adds a
+// suggestion to consider Mann-Whitney.
 const skewed1 = [0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 1.5, 3.0, 6.0, 12.0, 25.0];
 const skewed2 = [0.2, 0.3, 0.4, 0.6, 0.9, 1.2, 2.0, 4.0, 8.0, 15.0, 30.0];
 
-test("k=2 non-normal → mannWhitney", () => {
+test("k=2 non-normal → welchT (default) + mannWhitney suggestion", () => {
   const r = selectTest([skewed1, skewed2]);
-  assert(r.allNormal === false, "expected not all-normal");
-  assert(r.recommendation.test === "mannWhitney", `got ${r.recommendation.test}`);
+  assert(r.allNormal === false, "expected SW to flag non-normal");
+  assert(r.recommendation.test === "welchT", `default still Welch, got ${r.recommendation.test}`);
+  assert(r.suggestion != null, "expected non-parametric suggestion");
+  assert(r.suggestion.test === "mannWhitney", `suggestion ${r.suggestion.test}`);
+  assert(r.suggestion.postHoc === null, "k=2 suggestion has no post-hoc");
 });
 
-// iris Sepal.Length → normal, slightly unequal variances; expect welchANOVA
-// (Levene's test at α=0.05 rejects equal variance on iris SL).
-test("k=3 iris SL → welchANOVA + gamesHowell", () => {
+// iris Sepal.Length — normal, slightly unequal variances; default Welch ANOVA.
+test("k=3 iris SL → welchANOVA + gamesHowell, no suggestion", () => {
   const r = selectTest(irisSL);
   assert(r.allNormal === true, "iris SL groups are normal");
-  assert(r.levene.equalVar === false, `iris SL Levene p=${r.levene.p} should reject`);
   assert(r.recommendation.test === "welchANOVA", `got ${r.recommendation.test}`);
   assert(r.recommendation.postHoc === "gamesHowell", `got ${r.recommendation.postHoc}`);
+  assert(r.suggestion == null, "no suggestion when SW does not flag");
 });
 
-// PlantGrowth → normal, equal variance → oneWayANOVA + Tukey
-test("k=3 PlantGrowth → oneWayANOVA + tukeyHSD", () => {
+// PlantGrowth — normal, equal variance; default still Welch ANOVA (matches
+// one-way ANOVA closely on equal-variance data, so no harm in the default).
+test("k=3 PlantGrowth → welchANOVA + gamesHowell (Welch by default)", () => {
   const r = selectTest(pg);
   assert(r.allNormal === true, "PlantGrowth groups are normal");
-  assert(r.levene.equalVar === true, `PlantGrowth Levene p=${r.levene.p} should not reject`);
-  assert(r.recommendation.test === "oneWayANOVA", `got ${r.recommendation.test}`);
-  assert(r.recommendation.postHoc === "tukeyHSD", `got ${r.recommendation.postHoc}`);
+  assert(r.levene.equalVar === true, `Levene p=${r.levene.p} should not reject`);
+  assert(r.recommendation.test === "welchANOVA", `got ${r.recommendation.test}`);
+  assert(r.recommendation.postHoc === "gamesHowell", `got ${r.recommendation.postHoc}`);
+  assert(r.suggestion == null, "no suggestion on equal-var normal data");
 });
 
-// Clearly non-normal (bimodal + skewed) k=3 → Kruskal-Wallis + Dunn
-test("k=3 non-normal → kruskalWallis + dunn", () => {
+// Clearly non-normal (bimodal + skewed) k=3 — Welch ANOVA stays default;
+// SW flag adds a Kruskal-Wallis suggestion.
+test("k=3 non-normal → welchANOVA (default) + kruskalWallis suggestion", () => {
   const skA = [1, 1, 1, 1, 1, 1, 1, 1, 1, 20];
   const skB = [2, 2, 2, 2, 2, 2, 2, 2, 2, 25];
   const skC = [3, 3, 3, 3, 3, 3, 3, 3, 3, 30];
   const r = selectTest([skA, skB, skC]);
   assert(r.allNormal === false, "expected non-normal");
-  assert(r.recommendation.test === "kruskalWallis", `got ${r.recommendation.test}`);
-  assert(r.recommendation.postHoc === "dunn", `got ${r.recommendation.postHoc}`);
+  assert(r.recommendation.test === "welchANOVA", `default still Welch ANOVA, got ${r.recommendation.test}`);
+  assert(r.suggestion != null, "expected non-parametric suggestion");
+  assert(r.suggestion.test === "kruskalWallis", `suggestion ${r.suggestion.test}`);
+  assert(r.suggestion.postHoc === "dunn", `suggestion postHoc ${r.suggestion.postHoc}`);
 });
 
-// Edge: tiny group (n<3) cannot run Shapiro → fall back to non-parametric
-test("tiny group → non-parametric fallback", () => {
+// Edge: tiny group (n<3) — SW can't run, but Welch still computes from the
+// raw values, so the recommendation stays Welch t. The trace exposes the
+// `n<3` note so the user sees why SW didn't fire.
+test("tiny group (n<3) — SW unavailable, recommendation stays welchT", () => {
   const r = selectTest([
     [1, 2],
     [3, 4, 5, 6],
   ]);
-  assert(r.normality[0].normal === null, "n<3 → unknown");
-  assert(r.recommendation.test === "mannWhitney", `got ${r.recommendation.test}`);
+  assert(r.normality[0].normal === null, "n<3 → SW could not run");
+  assert(r.normality[0].note === "n<3", "expected n<3 note in the trace");
+  assert(r.recommendation.test === "welchT", `got ${r.recommendation.test}`);
+  assert(r.suggestion == null, "no suggestion when SW couldn't run at all");
 });
 
 test("k<2 returns error", () => {
@@ -1509,15 +1526,28 @@ test("k<2 returns error", () => {
   assert(r.error != null, "expected error");
 });
 
-test("alphaNormality override loosens the normality gate", () => {
-  // A borderline-normal sample: pick α so we flip the recommendation.
+test("alphaNormality controls the suggestion threshold (not the recommendation)", () => {
+  // The default recommendation no longer depends on SW. The only thing
+  // alphaNormality controls now is whether SW flags the data as non-normal —
+  // i.e. whether `suggestion` appears at all.
   const a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 50];
   const b = [2, 3, 4, 5, 6, 7, 8, 9, 10, 55];
   const strict = selectTest([a, b]);
   const loose = selectTest([a, b], { alphaNormality: 1e-9 });
-  // strict should flag non-normal, loose should not
-  assert(strict.allNormal === false, "strict rejects normality");
-  assert(loose.allNormal === true, "loose accepts normality");
+  assert(strict.recommendation.test === "welchT", "strict still recommends Welch");
+  assert(loose.recommendation.test === "welchT", "loose still recommends Welch");
+  assert(strict.suggestion != null, "strict α flags SW → suggestion appears");
+  assert(loose.suggestion == null, "loose α swallows the SW flag → no suggestion");
+});
+
+test("reason text cites Welch-by-default rationale", () => {
+  const r = selectTest([normalA, normalB]);
+  const reason = r.recommendation.reason;
+  assert(typeof reason === "string" && reason.length > 0, "expected non-empty reason");
+  assert(/Welch/i.test(reason), "reason should mention Welch");
+  assert(/override/i.test(reason), "reason should mention override path");
+  assert(/Shapiro|SW/i.test(reason), "reason should reference SW diagnostic");
+  assert(/Levene/i.test(reason), "reason should reference Levene diagnostic");
 });
 
 // ── Hierarchical clustering ────────────────────────────────────────────────

@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Auto-pick default switched to Welch unconditionally; Shapiro-Wilk
+  and Levene downgraded to diagnostics.** `selectTest` in `tools/stats.js`
+  now recommends Welch's t (`k = 2`) or Welch's ANOVA + Games-Howell
+  (`k ≥ 3`) regardless of the SW / Levene outcomes. The previous gated
+  rule tree (`SW p < α → Mann-Whitney / Kruskal-Wallis; Levene p < α →
+  Welch; else Student / one-way ANOVA`) is replaced because pre-screening
+  for normality with SW and routing on the result is a known
+  Type I-error-inflating anti-pattern (Schucany & Ng 2006; Zimmerman
+  2004; Rasch, Kubinger & Moder 2011; Delacre et al. 2019). SW + Levene
+  are still computed and shown in the decision trace; when SW flags
+  non-normal data the trace adds a `suggestion` pointing at
+  Mann-Whitney / Kruskal-Wallis, but the recommendation itself stays
+  Welch — the user picks any of {Student t, Welch t, Mann-Whitney} or
+  {one-way ANOVA, Welch ANOVA, Kruskal-Wallis} from the stats panel's
+  per-test dropdown if they want a different test. The `reason` text
+  on every recommendation now spells out (a) what was picked, (b) what
+  the diagnostics found, (c) why Welch is the default, and (d) where
+  to override. Equal-variance / normal data still get a Welch result
+  that matches Student / one-way ANOVA closely (Welch is conservative,
+  not different); unequal-variance data are now correct by default
+  instead of routed away from the issue. R-script export tracks whatever
+  test was actually run, so reproducibility is unchanged. Regression:
+  10 selectTest tests rewritten in `tests/stats.test.js`.
+
 - **CLAUDE.md resynced with the v1.2.0 codebase.** The Project
   Overview, Tool structure, Tool-internal structure, `_shell/` scaffold,
   Running Tests, Test helpers, Landing-page test counter, CI checks, and
