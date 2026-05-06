@@ -19,16 +19,16 @@ The repository ships **eight plot tools** (each in its own folder) and **two sin
 
 **Plot tools — folder-per-tool layout** (`tools/<tool>/app.tsx` is the SPA-importable entry):
 
-| Tool         | Source folder            | What it does                                                                                                          |
-| ------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| RLU timecourse / aequorin | `tools/aequorin/` | Luminescence time-course (mean ± SD, per-replicate integrals) with optional aequorin Ca²⁺ calibration.                |
-| Group Plot   | `tools/boxplot/`         | Box / violin / raincloud / bar with auto-selected test + post-hocs.                                                   |
-| Line Plot    | `tools/lineplot/`        | Mean ± SEM / SD / 95 % CI per group across a shared x, with per-x significance markers.                               |
-| Scatter      | `tools/scatter/`         | XY with colour / size / shape mapping, reference lines, optional linear regression.                                   |
-| Heatmap      | `tools/heatmap/`         | Matrix heatmap with hierarchical / k-means clustering, dendrograms, zoomed detail view.                               |
-| Venn         | `tools/venn/`            | 2–3 set area-proportional Venn with click-to-extract region members.                                                  |
-| UpSet        | `tools/upset/`           | 4+ set intersection plot with multi-set significance via `SuperExactTest`-style `cpsets`.                             |
-| Volcano      | `tools/volcano/`         | log2FC vs −log10(p) for −omics hits; auto-detects DESeq2 / limma / edgeR column conventions.                          |
+| Tool                      | Source folder     | What it does                                                                                           |
+| ------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------ |
+| RLU timecourse / aequorin | `tools/aequorin/` | Luminescence time-course (mean ± SD, per-replicate integrals) with optional aequorin Ca²⁺ calibration. |
+| Group Plot                | `tools/boxplot/`  | Box / violin / raincloud / bar with auto-selected test + post-hocs.                                    |
+| Line Plot                 | `tools/lineplot/` | Mean ± SEM / SD / 95 % CI per group across a shared x, with per-x significance markers.                |
+| Scatter                   | `tools/scatter/`  | XY with colour / size / shape mapping, reference lines, optional linear regression.                    |
+| Heatmap                   | `tools/heatmap/`  | Matrix heatmap with hierarchical / k-means clustering, dendrograms, zoomed detail view.                |
+| Venn                      | `tools/venn/`     | 2–3 set area-proportional Venn with click-to-extract region members.                                   |
+| UpSet                     | `tools/upset/`    | 4+ set intersection plot with multi-set significance via `SuperExactTest`-style `cpsets`.              |
+| Volcano                   | `tools/volcano/`  | log2FC vs −log10(p) for −omics hits; auto-detects DESeq2 / limma / edgeR column conventions.           |
 
 Each plot folder owns roughly:
 
@@ -61,6 +61,7 @@ HTML files never list individual shared files. The canonical load order is the
 file, add it there, nowhere else.
 
 Source files live side-by-side in `tools/` and stay the editable units:
+
 - `tools/shared.js` — plain JS globals: color helpers, numeric detection, seeded random, axis tick generation, separator detection, CSV parsing, statistics, download helpers, `roleColors` (chrome styling lives in `tools/components.css` via `dv-*` classes; see the Theming section)
 - Shared UI split into focused plain-JS files (all `React.createElement`, NOT JSX):
   - `tools/shared-color-input.js` — `normalizeHexColor`, `ColorInput`
@@ -83,6 +84,7 @@ Source files live side-by-side in `tools/` and stay the editable units:
   - **Utilities**: `rankWithTies`, `selectTest`
 
 ### Shared code constraint
+
 **All `tools/shared*.js` files, `theme.js`, and `stats.js` must remain plain JS** (`React.createElement`, not JSX). They are concatenated into `tools/shared.bundle.js` with no transform, so their top-level declarations are available as globals to the compiled tool `.js` files. If they used JSX, they would need their own build step and careful scoping.
 
 **If you add a new shared file:** create it under `tools/`, add its filename to the `FILES` array in `scripts/build-shared.js` (in the correct load order), and run `npm run build:shared` (or any `npm run build` / `npm test` — both regenerate the bundle first). HTML files stay unchanged.
@@ -95,7 +97,7 @@ The bundle is checked into git (same convention as the compiled tool `.js` files
 
 Theme switching is driven by CSS custom properties on `:root`, toggled via a `data-theme="dark"` attribute on `<html>`. The full palette lives in `tools/theme.css` (source of truth for every variable). Theme state is persisted in `localStorage` under `dataviz-theme`; a no-FOUC inline `<script>` in every HTML `<head>` reads it synchronously before first paint. On the very first visit with no stored choice, the `prefers-color-scheme` media query decides. A `ThemeToggle` button lives in `PageHeader` (every tool) and on the landing page; `BroadcastChannel` syncs toggles across all open same-origin tabs (with the `storage` event as a fallback for browsers / contexts that drop BroadcastChannel). Pre-iframe→SPA migration there was also a `postMessage` path that fanned theme changes from the landing page into every tool iframe — that codepath is gone with the iframe shell.
 
-**Rule for contributors: chrome colors use `var(--name)`, SVG colors stay as literals.** Every inline `style={{ … }}` on a React element that is *not* inside a chart component (`<svg>`, `<rect>`, `<path>`, `<text>`, etc.) must reference CSS variables so it themes correctly. Element fills, strokes, and text fills *inside* SVG must stay as hex literals so exported SVG/PNG charts render the same way on any reader — the plot card wrapping each chart is hard-coded to `var(--plot-card-bg)` which resolves to white in both themes, so charts always sit on a white canvas.
+**Rule for contributors: chrome colors use `var(--name)`, SVG colors stay as literals.** Every inline `style={{ … }}` on a React element that is _not_ inside a chart component (`<svg>`, `<rect>`, `<path>`, `<text>`, etc.) must reference CSS variables so it themes correctly. Element fills, strokes, and text fills _inside_ SVG must stay as hex literals so exported SVG/PNG charts render the same way on any reader — the plot card wrapping each chart is hard-coded to `var(--plot-card-bg)` which resolves to white in both themes, so charts always sit on a white canvas.
 
 This rule is enforced by a custom ESLint rule (`plottr/no-chrome-hex-literal`, defined in `scripts/eslint-rules/no-chrome-hex-literal.js`) that fires on any inline `style={{ key: "#abc..." }}` JSX attribute outside an SVG subtree. SVG element ancestors (svg / g / rect / path / line / circle / ellipse / text / polyline / polygon / tspan / defs / linearGradient / radialGradient / stop / clipPath / mask / marker / use / image / foreignObject / pattern) are exempt — chart internals legitimately use hex literals. The rule only inspects inline object expressions; identifier refs (`style={someStyle}`) and spreads pass through unchecked.
 
@@ -121,7 +123,7 @@ Plot tools live as folders (`tools/<tool>/`); calculators live as single files (
 4. **Pure helpers** (math / layout / label disambiguation) in `helpers.ts`. These are what the test loader picks up; if they get sprawling, split into a `helpers/` folder and re-export from `helpers.ts` as a barrel (see `tools/venn/`).
 5. **App()** in `app.tsx` — orchestrator holding state and routing between steps. **`app.tsx` exports `App` and does NOT call `ReactDOM.createRoot`** (the single mount lives in `tools/_app/index.tsx`). Keep `app.tsx` slim: module-scope `VIS_INIT_<TOOL>`, the `EXAMPLE_CSV` / `EXAMPLE_TSV` sample-data const (see below), `function App()`, and `export { App };`. Tile / control / chart / step components belong in their own files.
 
-**Sample-data convention — "all-(C)" / inline at module scope.** Every plot tool's `app.tsx` exposes a "Try sample data" button. The dataset that powers it lives as a `const EXAMPLE_CSV = \`…\`;` (or `EXAMPLE_TSV` for tab-separated, or `(() => { … })()` if procedurally generated) at the **top of `app.tsx`**, immediately after the imports and before `App()`. The button's handler is a `useCallback` named `loadExample` that calls `setSepOverride(",")`, `setFileName("…")`, and `doParse(EXAMPLE_CSV, ",")`. This convention is non-negotiable and applies everywhere — `aequorin`, `boxplot`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`. Why it matters:
+**Sample-data convention — "all-(C)" / inline at module scope.** Every plot tool's `app.tsx` exposes a "Try sample data" button. The dataset that powers it lives as a ``const EXAMPLE_CSV = `…`;`` (or `EXAMPLE_TSV` for tab-separated, or `(() => { … })()` if procedurally generated) at the **top of `app.tsx`**, immediately after the imports and before `App()`. The button's handler is a `useCallback` named `loadExample` that calls `setSepOverride(",")`, `setFileName("…")`, and `doParse(EXAMPLE_CSV, ",")`. This convention is non-negotiable and applies everywhere — `aequorin`, `boxplot`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`. Why it matters:
 
 - **Grep-discoverable.** A new contributor finds every example dataset in the codebase with `grep -nE "^const EXAMPLE_(CSV|TSV)" tools/*/app.tsx`. Pre-consolidation, sample data lived in three different mechanisms (external `tools/<tool>_example.js` script with a `window` global, `shared.js`-level helper function, in-source IIFE) and the SPA migration silently broke six of them because the per-tool example scripts were no longer loaded.
 - **Single failure mode.** Sample-data buttons either work (const is in scope) or compile-fail (typo in the const name). They cannot silently no-op.
@@ -137,7 +139,7 @@ All eight plot tools (Aequorin, Boxplot, Lineplot, Scatter, Heatmap, Venn, UpSet
 - `tools/_shell/PlotToolShell.tsx` — outer page frame. Renders `PageHeader` (with `PrefsPanel` in the right slot), `StepNavBar`, `CommaFixBanner`, `ParseErrorBanner`, then delegates to `children`. Takes the hook's return as a `state` prop.
 - `tools/_shell/ScrollablePlotCard.tsx` — horizontal-scroll affordances (edge fades + "Scroll for more →" pill driven by `ResizeObserver`). Used only by UpSet (`tools/upset/`); venn and heatmap intentionally don't wrap their plot cards (their charts auto-fit), so a plain `<div className="dv-panel dv-plot-card">` is correct there. Lift any new horizontally-scrolling tool into this component rather than re-deriving it.
 - `tools/_shell/stats-dispatch.ts` — `runTest` / `runPostHoc` / `postHocForTest` dispatchers shared by boxplot, lineplot, and aequorin.
-- `tools/_shell/chart-layout.ts` — `CHART_MARGIN` and `buildLineD` used by both lineplot and aequorin. Rule of thumb: once a pure typed helper becomes byte-identical across two tools, lift it here and re-export from each tool's `helpers.ts` barrel. `_shell/` is the canonical home for shared *typed* helpers; `shared-*.js` in `tools/` remains the home for shared *plain-JS* globals consumed by every HTML entrypoint.
+- `tools/_shell/chart-layout.ts` — `CHART_MARGIN` and `buildLineD` used by both lineplot and aequorin. Rule of thumb: once a pure typed helper becomes byte-identical across two tools, lift it here and re-export from each tool's `helpers.ts` barrel. `_shell/` is the canonical home for shared _typed_ helpers; `shared-*.js` in `tools/` remains the home for shared _plain-JS_ globals consumed by every HTML entrypoint.
 
 **Standard wiring pattern** (every migrated tool follows this shape — start from `tools/upset/app.tsx` as the canonical reference):
 

@@ -12,7 +12,7 @@ Tech stack: React 18 (vendored in `/vendor/`) + esbuild (build-time TSX compilat
 
 This file holds repo-wide rules. Folder-scoped details live in nested `CLAUDE.md` files that Claude Code auto-loads when work touches that subtree:
 
-- **`tools/CLAUDE.md`** — Architecture: SPA shell, per-tool folder layout, shared code (`shared*.js` / `stats.js` / `theme.js`), shared plot-tool scaffold (`_shell/`), theming rules (chrome var(--*) vs. SVG hex literals, ESLint enforcement), data flow + ingest size policy, sample-data convention, SVG export named-group conventions, statistical methodology (Welch-by-default in `selectTest`).
+- **`tools/CLAUDE.md`** — Architecture: SPA shell, per-tool folder layout, shared code (`shared*.js` / `stats.js` / `theme.js`), shared plot-tool scaffold (`_shell/`), theming rules (chrome var(--\*) vs. SVG hex literals, ESLint enforcement), data flow + ingest size policy, sample-data convention, SVG export named-group conventions, statistical methodology (Welch-by-default in `selectTest`).
 - **`tests/CLAUDE.md`** — Vitest runner + house-vocabulary harness, real-React-18 + happy-dom render helpers, fuzz harnesses, mandatory test standards for new work, per-tool test loaders.
 - **`benchmark/CLAUDE.md`** — R 4.5 + SciPy cross-validation suites, regime classification (`pass` / `deep-tail` / `underflow` / `pathological` / `fail`), how to extend the grids.
 
@@ -21,12 +21,14 @@ If a rule applies regardless of folder (code style, build commands, the pre-comm
 ## Code style & conventions
 
 ### JavaScript / TypeScript
+
 - Use `const` / `let` — never `var`. The codebase is ES2022 throughout.
 - Arrow functions preferred for callbacks; regular `function` declarations for named top-level functions.
 - All `.tsx` and `.ts` files under `tools/` are type-checked with `strict: true` plus `noImplicitReturns` and `noFallthroughCasesInSwitch`. Add types where they add clarity; for sprawling step-component prop bags that just pass reducer-state slots through, an explicit `: any` annotation on the destructure is acceptable (matches what the tool .tsx files use today). For pure helpers (`_shell/**`, `<tool>/helpers.ts`, `venn/*.ts`, etc.), annotate every parameter and return type — that's where the math lives.
 - Shared files (`shared.js`, `stats.js`, and all `shared-*.js`) are plain ES2022 script-scope JS. No `import`/`export` — names are globals by design.
 
 ### Formatting (Prettier, enforced in CI)
+
 - Print width: 100 columns
 - 2-space indentation
 - Double quotes for strings
@@ -35,6 +37,7 @@ If a rule applies regardless of folder (code style, build commands, the pre-comm
 - Arrow function parentheses always (`(x) => …`)
 
 ### Linting (ESLint flat config, enforced in CI)
+
 - `eslint.config.js` defines three environments:
   - **Node/CommonJS** — `eslint.config.js`, `scripts/**/*.js`, `benchmark/**/*.js`, `tests/**/*.js`
   - **Browser + shared globals** — `tools/*.tsx` (TypeScript parser, React plugin)
@@ -43,7 +46,9 @@ If a rule applies regardless of folder (code style, build commands, the pre-comm
 - `@typescript-eslint/no-unused-vars` warns on unused vars/args in `.tsx` files; prefix with `_` to suppress.
 
 ### CI checks (GitHub Actions — `.github/workflows/test.yml`)
+
 All of the following must pass before merging:
+
 1. `npm run lint` — ESLint
 2. `npm run format:check` — Prettier dry-run
 3. `npm run typecheck` — `tsc --noEmit`
@@ -78,14 +83,14 @@ The hook installs automatically via `npm install` (`prepare` script runs `script
 **Any user-visible change must be logged in `CHANGELOG.md` under `## [Unreleased]`** before the commit that ships it, using the Keep a Changelog sections (`Added` / `Changed` / `Fixed` / `Removed`). This applies to bug fixes, new features, UI tweaks, and behavior changes — not to internal refactors or test-only edits. Don't wait to be asked — update the changelog in the same commit as the code change.
 
 **Length convention (introduced in 1.1.0).** A changelog entry is one or two short sentences:
-the *what*, optionally a tiny piece of *why* if it isn't obvious from the title, and (where it
+the _what_, optionally a tiny piece of _why_ if it isn't obvious from the title, and (where it
 helps) a "regression: N tests" tag. Keep it under ~80 words. The full long-form context — root
 cause, alternatives considered, file-by-file inventory, trade-offs — goes into a per-release
 note under `docs/release-notes/<version>.md` linked from the version heading. The CHANGELOG is
 the index, not the encyclopedia. Older entries (v1.0.x and earlier) intentionally retain their
 long-form prose as historical record; the new convention applies prospectively.
 
-When you cut a release, *before* renaming `## [Unreleased]` to the version heading, lift any
+When you cut a release, _before_ renaming `## [Unreleased]` to the version heading, lift any
 long-form prose that grew during the cycle into `docs/release-notes/v<version>.md` and shorten
 the CHANGELOG bullets to point there. The release note is a normal markdown file with `##`
 section headings (Added / Changed / Fixed map to `## ✨` / `## 🔧` / `## 🐛` or whatever fits
