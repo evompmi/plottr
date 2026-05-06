@@ -99,7 +99,12 @@ Theme switching is driven by CSS custom properties on `:root`, toggled via a `da
 
 **Rule for contributors: chrome colors use `var(--name)`, SVG colors stay as literals.** Every inline `style={{ … }}` on a React element that is _not_ inside a chart component (`<svg>`, `<rect>`, `<path>`, `<text>`, etc.) must reference CSS variables so it themes correctly. Element fills, strokes, and text fills _inside_ SVG must stay as hex literals so exported SVG/PNG charts render the same way on any reader — the plot card wrapping each chart is hard-coded to `var(--plot-card-bg)` which resolves to white in both themes, so charts always sit on a white canvas.
 
-This rule is enforced by a custom ESLint rule (`plottr/no-chrome-hex-literal`, defined in `scripts/eslint-rules/no-chrome-hex-literal.js`) that fires on any inline `style={{ key: "#abc..." }}` JSX attribute outside an SVG subtree. SVG element ancestors (svg / g / rect / path / line / circle / ellipse / text / polyline / polygon / tspan / defs / linearGradient / radialGradient / stop / clipPath / mask / marker / use / image / foreignObject / pattern) are exempt — chart internals legitimately use hex literals. The rule only inspects inline object expressions; identifier refs (`style={someStyle}`) and spreads pass through unchecked.
+Two custom ESLint rules together enforce the chrome / SVG split:
+
+- **`plottr/no-chrome-hex-literal`** (`scripts/eslint-rules/no-chrome-hex-literal.js`) fires on any inline `style={{ key: "#abc..." }}` JSX attribute outside an SVG subtree. SVG element ancestors (svg / g / rect / path / line / circle / ellipse / text / polyline / polygon / tspan / defs / linearGradient / radialGradient / stop / clipPath / mask / marker / use / image / foreignObject / pattern) are exempt — chart internals legitimately use hex literals.
+- **`plottr/no-css-var-in-svg`** (`scripts/eslint-rules/no-css-var-in-svg.js`) fires the inverse direction: a `var(--…)` reference inside an SVG element's `fill` / `stroke` / `color` (or the equivalent `style={{ fill: "var(--…)" }}` style prop) is flagged. The variable resolves correctly on screen but does not survive SVG export to viewers without DOM context (Inkscape, embedded preview, the browser's "open SVG file directly" path with a stripped CSS env), and the element falls back to default fill — silently broken charts with zero feedback at edit time.
+
+Both rules only inspect inline object expressions / literal attribute values; identifier refs (`style={someStyle}`, `fill={someColor}`) and spreads pass through unchecked.
 
 Common variables: `--page-bg`, `--surface`, `--surface-subtle`, `--surface-sunken`, `--text`, `--text-muted`, `--text-faint`, `--border`, `--border-strong`, `--accent-primary`, `--accent-plot`, `--accent-download`, `--accent-dna`, `--on-accent`, `--plot-card-bg`, `--plot-card-border`, `--info-bg`/`--info-text`/`--info-border`, `--success-bg`/`--success-text`/`--success-border`, `--warning-bg`/`--warning-text`/`--warning-border`, `--danger-bg`/`--danger-text`/`--danger-border`, `--neutral-bg`/`--neutral-text`, `--subhead-bg`/`--subhead-text`. See `tools/theme.css` for the full list and the dark overrides.
 
@@ -128,6 +133,8 @@ Plot tools live as folders (`tools/<tool>/`); calculators live as single files (
 - **Grep-discoverable.** A new contributor finds every example dataset in the codebase with `grep -nE "^const EXAMPLE_(CSV|TSV)" tools/*/app.tsx`. Pre-consolidation, sample data lived in three different mechanisms (external `tools/<tool>_example.js` script with a `window` global, `shared.js`-level helper function, in-source IIFE) and the SPA migration silently broke six of them because the per-tool example scripts were no longer loaded.
 - **Single failure mode.** Sample-data buttons either work (const is in scope) or compile-fail (typo in the const name). They cannot silently no-op.
 - **No cross-cutting plumbing.** Sample data is a per-tool concern; it does not belong in `shared.js`, in a separate `_example.js` script tag, or in any `window`-global setup.
+
+The presence of `EXAMPLE_CSV` / `EXAMPLE_TSV` at the top level of every `tools/*/app.tsx` is enforced by the `plottr/require-example-const` ESLint rule (`scripts/eslint-rules/require-example-const.js`). A future plot tool that gets through review without one will fail CI lint.
 
 If a sample dataset is genuinely large or is shared across two tools, make the duplication explicit (literal copy in each `app.tsx`) rather than introducing a shared helper. The discoverability win beats the DRY win.
 
