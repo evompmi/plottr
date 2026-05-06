@@ -17,6 +17,7 @@ Mirroring two different audiences:
 - `benchmark/run-scipy.py` + `benchmark/run-scipy.js` — SciPy as the reference, on **synthetic targeted grids** specifically aimed at the (df, λ) regimes the R benchmark only touches indirectly: `nctcdf` at deep δ, `ncf_sf` and `ncchi2cdf` at large λ across the 500-threshold normal-approx short-circuit, `qtukey` at extreme (p, k, df) corners including the documented "pathological" df=1 envelope. ~847 cases / ~1080 comparisons. Contributor-facing: a CI-side numerical sanity check whose audience is people changing `tools/stats.js`, not end users.
 
 The SciPy benchmark uses a tighter classification than the R one because it deliberately probes the design envelope:
+
 - **pass** — within tolerance.
 - **deep-tail** — both values < 1e-13 (informational; below any user-facing precision).
 - **underflow** — SciPy reports < 1e-13, JS underflows to 0. Plöttr's Gauss-Legendre window has a documented precision floor; SciPy uses series / asymptotic forms that survive deeper.
