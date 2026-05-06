@@ -2,8 +2,8 @@
 // preview tile the sidebar uses to show the active palette. Pure React/SVG
 // — no tool-level state, no side effects beyond ephemeral hover/brush
 // local state. Consumes pure geometry / colour helpers from ./helpers and
-// otherwise relies on shared globals (COLOR_PALETTES, interpolateColor,
-// svgSafeId) resolved through shared.bundle.js.
+// otherwise relies on shared globals (COLOR_PALETTES, interpolateColor)
+// resolved through shared.bundle.js.
 
 import {
   DENDRO_STROKE,
@@ -908,43 +908,65 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
     return <g id="selection-mask">{rects}</g>;
   }
 
-  // Memoize the cell rects — on a 100×100 heatmap that's 10k <rect> elements,
-  // and the chart re-renders on every hover/brush mousemove. Cells depend only
-  // on data + geometry + color scale, none of which change during interaction,
-  // so the memoized JSX is reused until the user actually edits something.
-  const cells = useMemo(
-    () =>
-      rowOrder.map((origRi: any, ri: number) =>
-        colOrder.map((origCi: any, ci: number) => {
-          const v = matrix[origRi][origCi];
-          const fill = valueToColor(v);
-          return (
-            <rect
-              key={`${ri}-${ci}`}
-              id={`cell-${svgSafeId(rowLabels[origRi])}-${svgSafeId(colLabels[origCi])}`}
-              x={cellX(ci)}
-              y={cellY(ri)}
-              width={cellWPx(ci)}
-              height={cellHPx(ri)}
-              fill={fill}
-              stroke={bordersOn ? cellBorder.color : "none"}
-              strokeWidth={bordersOn ? cellBorder.width : 0}
-            />
-          );
-        })
-      ),
+  // Cell grid rasterizes to an off-screen canvas and renders as a single
+  // <image> inside <g id="cells"> instead of N rect elements. At 100k cells
+  // the rect approach pushes 100k+ DOM nodes into the SVG and pays ~700 ms
+  // for the JSX → DOM construction (browsers are slower still — Firefox in
+  // particular degrades sharply past ~20k SVG rects); the canvas path paints
+  // in ~10 ms and ships a single PNG-encoded image. The dataURL is also what
+  // the SVG-export pipeline picks up directly — no separate export-time
+  // injection, the live SVG already contains the encoded cells.
+  const cellCanvasRef = useRef<any>(null);
+  if (cellCanvasRef.current === null && typeof document !== "undefined") {
+    cellCanvasRef.current = document.createElement("canvas");
+  }
+
+  const cellsImageHref = useMemo(
+    () => {
+      const canvas = cellCanvasRef.current;
+      if (!canvas || plotW <= 0 || plotH <= 0) return "";
+      const dpr = (typeof window !== "undefined" && window.devicePixelRatio) || 1;
+      canvas.width = Math.max(1, Math.round(plotW * dpr));
+      canvas.height = Math.max(1, Math.round(plotH * dpr));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return "";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, plotW, plotH);
+      for (let ri = 0; ri < nRows; ri++) {
+        const origRi = rowOrder[ri];
+        const y = cellY(ri);
+        const h = cellHPx(ri);
+        for (let ci = 0; ci < nCols; ci++) {
+          const origCi = colOrder[ci];
+          ctx.fillStyle = valueToColor(matrix[origRi][origCi]);
+          ctx.fillRect(cellX(ci), y, cellWPx(ci), h);
+        }
+      }
+      if (bordersOn) {
+        ctx.strokeStyle = cellBorder.color;
+        ctx.lineWidth = cellBorder.width;
+        for (let ri = 0; ri < nRows; ri++) {
+          const y = cellY(ri);
+          const h = cellHPx(ri);
+          for (let ci = 0; ci < nCols; ci++) {
+            ctx.strokeRect(cellX(ci), y, cellWPx(ci), h);
+          }
+        }
+      }
+      return canvas.toDataURL("image/png");
+    },
     // The cellX / cellY / cellWPx / cellHPx / valueToColor closures all
     // close over the primitives already listed (cellW, cellH, cellOffset*,
     // *GapOffsets, vmin, vmax, palette, invertPalette). Listing the
     // closures themselves would re-fire the memo on every render since
-    // they're recreated each time.
+    // they're recreated each time. Same constraint as the prior rect-
+    // memo path; deps mirror that list minus rowLabels / colLabels (the
+    // image carries no per-cell ids, so label edits no longer invalidate).
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       rowOrder,
       colOrder,
       matrix,
-      rowLabels,
-      colLabels,
       bordersOn,
       cellBorder,
       vmin,
@@ -959,6 +981,10 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
       rowGapStartPx,
       colGapOffsets,
       rowGapOffsets,
+      plotW,
+      plotH,
+      nRows,
+      nCols,
     ]
   );
 
@@ -1046,8 +1072,17 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
           <g id="plot-area-background">
             <rect x={0} y={0} width={plotW} height={plotH} fill="#ffffff" />
           </g>
-          <g id="cells" shapeRendering={bordersOn ? "auto" : "crispEdges"}>
-            {cells}
+          <g id="cells">
+            {cellsImageHref && (
+              <image
+                x={0}
+                y={0}
+                width={plotW}
+                height={plotH}
+                href={cellsImageHref}
+                preserveAspectRatio="none"
+              />
+            )}
           </g>
         </g>
 
