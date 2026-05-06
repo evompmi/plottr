@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Heatmap cell grid rasterizes via canvas.** Cells used to render as
+  N individual SVG `<rect>` elements (≈700 ms React mount + 11 MB SVG
+  for a 100k-cell heatmap, with browsers paying significantly more on
+  top). They now paint to an off-screen canvas and ship as a single
+  PNG-encoded `<image>` inside `<g id="cells">`, dropping the cell-grid
+  cost to ~10 ms paint + ~10–30 ms encode and shrinking exported SVGs
+  by ~50×. Per-cell SVG `id="cell-<row>-<col>"` traceability is gone;
+  every other named group (`#col-dendrogram`, `#row-dendrogram`,
+  `#cells`, `#colorbar`, `#col-labels`, `#row-labels`,
+  `#selection-mask`) is unchanged. Hit-testing, hover tooltip, brush
+  selection, and dendrograms are all unaffected — they were already
+  coordinate-based, not per-rect events.
+
 ### Removed
 
 - **Landing-page footer ("N internal tests / N R cross-checks /
