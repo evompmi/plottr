@@ -13,10 +13,11 @@ test("heatmap: load example → cells render", async ({ page }) => {
   // to plot step.
   await page.getByTestId("step-plot").click();
 
-  // Cells are rendered inside `<g id="cells">` with one `<rect>` per
-  // (row, col) — 500 × 6 = 3000. We assert at least 100 to keep the
-  // test resilient to future tweaks to the example dataset.
-  const cells = page.locator("svg g#cells rect");
-  await expect(cells.first()).toBeVisible();
-  expect(await cells.count()).toBeGreaterThan(100);
+  // Cells rasterize to an off-screen canvas and ship as a single
+  // PNG-encoded <image> inside <g id="cells">. A non-empty data URL
+  // in the image's href is proof the canvas paint actually ran.
+  const cellsImage = page.locator("svg g#cells image");
+  await expect(cellsImage).toBeVisible();
+  const href = await cellsImage.getAttribute("href");
+  expect(href).toMatch(/^data:image\/png;base64,/);
 });
