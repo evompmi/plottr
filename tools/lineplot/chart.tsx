@@ -326,7 +326,14 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
             </text>
           </g>
         )}
-        {renderSvgLegend(svgLegend, vbH + 10, MARGIN.left, vbW - MARGIN.left - MARGIN.right, itemW)}
+        {renderSvgLegend(
+          svgLegend,
+          vbH + 10,
+          MARGIN.left,
+          vbW - MARGIN.left - MARGIN.right,
+          itemW,
+          14
+        )}
       </g>
     </svg>
   );

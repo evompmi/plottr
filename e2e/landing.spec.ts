@@ -12,9 +12,11 @@ test("landing page renders all ten tool tiles", async ({ page }) => {
   // the page loaded but bundle loading failed.
   await expect(page).toHaveTitle(/Pl[oö]ttr/);
 
-  // The "Validated against R 4.5" trust badge — present if the page
-  // rendered + the bundle init ran.
-  await expect(page.locator("text=/Validated against R 4\\.5/i")).toBeVisible();
+  // The "Validated against R + SciPy" trust badge — present if the page
+  // rendered + the bundle init ran. Asserts on the stable phrase prefix
+  // ("Validated against") rather than the trailing reference list, so a
+  // future version bump or reference addition doesn't churn this spec.
+  await expect(page.locator("text=/Validated against /i")).toBeVisible();
 
   // Each tool tile is a <button class="tile" data-tool="<tool>"> with
   // an icon + label inside; opening a tool swaps a hidden iframe in

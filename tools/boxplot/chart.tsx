@@ -117,9 +117,29 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   const absA = Math.abs(angle);
   const hasPie = cbc >= 0 && showCompPie;
   const pieSpace = hasPie ? 60 : 0;
-  const botM = hz ? 50 : 60 + (absA > 0 ? absA * (isBar ? 0.9 : 0.8) : 0) + (hz ? 0 : pieSpace);
-  const maxLabelLen = hz ? Math.max(...groups.map((g: any) => g.name.length), 4) : 0;
+  // maxLabelLen drives BOTH the hz-mode left margin (where labels render
+  // horizontally on the y-axis) AND the non-hz-mode bottom-margin
+  // reservation when labels are rotated. Pre-fix this was only computed
+  // for hz mode, so vertical-mode rotated labels longer than ~12 chars
+  // overran their reservation and clipped into the legend zone below.
+  const maxLabelLen = Math.max(...groups.map((g: any) => g.name.length), 4);
   const labelZone = maxLabelLen * 7 + 20;
+  // Bottom-margin for non-hz mode:
+  //   - 60 px baseline (one row of horizontal text + axis line + gap).
+  //   - When rotated, take the larger of the old angle-only heuristic
+  //     and a sharper label-aware estimate (label length × char width ×
+  //     sin(angle) + small padding for the tick line). The Math.max
+  //     keeps the old heuristic as a floor so short-label charts don't
+  //     suddenly shrink on this fix; long-label charts gain the room
+  //     they were silently missing.
+  const rotationExtra =
+    absA > 0
+      ? Math.max(
+          absA * (isBar ? 0.9 : 0.8),
+          maxLabelLen * 7 * Math.sin((absA * Math.PI) / 180) + 12
+        )
+      : 0;
+  const botM = hz ? 50 : 60 + rotationExtra + pieSpace;
   const leftM = hz ? Math.max(62, labelZone + (hasPie ? pieSpace : 0)) : 62;
 
   const _hasLabels = annotations && (annotations.kind === "cld" || annotations.kind === "both");

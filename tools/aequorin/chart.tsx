@@ -284,7 +284,8 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
           vbH + 10,
           MARGIN.left,
           vbW - MARGIN.left - MARGIN.right,
-          aequorinItemW
+          aequorinItemW,
+          14
         )}
       </g>
     </svg>

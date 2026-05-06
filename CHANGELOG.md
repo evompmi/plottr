@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Boxplot: rotated x-tick labels no longer clip into the legend.** The
+  bottom-margin reservation factored in only the rotation angle, not the
+  label length, so long category names at angles like ±45° / ±60° / ±90°
+  spilled past their reservation and overlapped the legend below. The
+  reservation now takes the larger of the old angle-only heuristic and a
+  sharper `maxLabelLen × charWidth × sin(angle)` estimate, so short
+  rotated labels keep their previous (slightly generous) cushion and
+  long rotated labels get the room they were silently missing.
+
+- **Lineplot / scatter / aequorin: long category names truncate in the
+  legend.** The shared legend's fixed-width column (88 px) had a ~13-char
+  text budget; longer labels overflowed into the next column's icon and
+  read as garbage. Boxplot already passed the `truncateLabel = 14`
+  ellipsis cap; the other three now do the same.
+
 ### Changed
+
+- **Landing-page validation pill now reads "Validated against R + SciPy"**
+  (was "Validated against R 4.5"). The benchmark page already ran a
+  two-reference cross-check vs R 4.5.3 + SciPy 1.17.1; the pill copy was
+  stale. Version numbers moved to the hover tooltip so the visible badge
+  doesn't drift on every reference bump.
 
 - **Boxplot facets stretch to full content-column width.** The non-
   subgrouped facet wrapper used to cap each facet at 720 px, which made
