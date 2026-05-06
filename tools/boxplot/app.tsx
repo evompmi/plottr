@@ -1211,22 +1211,24 @@ export function App() {
               />
             )}
             {statsPanelSets.length > 0 && (
-              <BoxplotStatsPanel
-                key={`stats-panel-${statsPanelMode}`}
-                sets={statsPanelSets}
-                setLabel={statsPanelLabel}
-                fileStem={fileStem}
-                singletonAutoExpand={statsPanelMode === "flat"}
-                onAnnotationForKey={setCellAnnotation}
-                onSummaryForKey={setCellSummary}
-                displayMode={statsUi.displayMode}
-                onDisplayModeChange={handleStatsDisplayModeChange}
-                showNs={statsUi.showNs}
-                onShowNsChange={setStatsShowNs}
-                showSummary={statsUi.showSummary}
-                onShowSummaryChange={handleStatsShowSummaryChange}
-                errorBarLabel={vis.plotStyle === "bar" ? ERROR_BAR_LABELS[vis.errorType] : null}
-              />
+              <div style={{ marginTop: 16 }}>
+                <BoxplotStatsPanel
+                  key={`stats-panel-${statsPanelMode}`}
+                  sets={statsPanelSets}
+                  setLabel={statsPanelLabel}
+                  fileStem={fileStem}
+                  singletonAutoExpand={statsPanelMode === "flat"}
+                  onAnnotationForKey={setCellAnnotation}
+                  onSummaryForKey={setCellSummary}
+                  displayMode={statsUi.displayMode}
+                  onDisplayModeChange={handleStatsDisplayModeChange}
+                  showNs={statsUi.showNs}
+                  onShowNsChange={setStatsShowNs}
+                  showSummary={statsUi.showSummary}
+                  onShowSummaryChange={handleStatsShowSummaryChange}
+                  errorBarLabel={vis.plotStyle === "bar" ? ERROR_BAR_LABELS[vis.errorType] : null}
+                />
+              </div>
             )}
           </div>
         </div>
