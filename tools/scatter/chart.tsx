@@ -435,7 +435,8 @@ export const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart
         VBH + 10,
         MARGIN.left,
         VBW - MARGIN.left - MARGIN.right,
-        legendItemWidth
+        legendItemWidth,
+        14
       )}
     </svg>
   );
