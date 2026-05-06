@@ -24,6 +24,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   read as garbage. Boxplot already passed the `truncateLabel = 14`
   ellipsis cap; the other three now do the same.
 
+### Removed
+
+- **Heatmap detail-view dendrogram thin/medium/bold selector retired.**
+  The toggle had no real workflow value — the detail plot's row pitch is
+  already enlarged for readability, so the stroke-width choice didn't
+  change what users could see. Stroke now hard-codes to the prior
+  "medium" default (1.5 px). The detail-view header simplifies to just
+  the SVG / PNG download buttons.
+
 ### Changed
 
 - **Landing-page validation pill now reads "Validated against R + SciPy"**
