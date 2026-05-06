@@ -11,6 +11,8 @@ const prettier = require("eslint-config-prettier");
 const plottrLocal = {
   rules: {
     "no-chrome-hex-literal": require("./scripts/eslint-rules/no-chrome-hex-literal.js"),
+    "no-css-var-in-svg": require("./scripts/eslint-rules/no-css-var-in-svg.js"),
+    "require-example-const": require("./scripts/eslint-rules/require-example-const.js"),
   },
 };
 
@@ -241,10 +243,12 @@ module.exports = [
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "no-empty": ["error", { allowEmptyCatch: true }],
-      // Theme drift guard: chrome style={{...}} must use CSS variables
-      // (var(--name)), not hex literals — see CLAUDE.md "Theming" and the
-      // rule itself in scripts/eslint-rules/no-chrome-hex-literal.js.
+      // Theme drift guards: chrome style={{...}} must use CSS variables
+      // (var(--name)), not hex literals; SVG element fill/stroke/color must
+      // stay as hex literals (or shared constants), not var(--…) — see
+      // CLAUDE.md "Theming" and the rule files in scripts/eslint-rules/.
       "plottr/no-chrome-hex-literal": "error",
+      "plottr/no-css-var-in-svg": "error",
       // React Hooks safety. Both at error level after a one-time audit:
       // rules-of-hooks is non-negotiable (call order has to be stable);
       // exhaustive-deps caught real stale-closure / facetRefs.current
@@ -255,6 +259,21 @@ module.exports = [
       // each site, so the rule's noise floor is real bugs only.
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "error",
+    },
+  },
+
+  // Plot-tool app.tsx orchestrators (one per folder) must declare a
+  // top-level `const EXAMPLE_CSV` / `EXAMPLE_TSV` for the "Try sample
+  // data" button — see scripts/eslint-rules/require-example-const.js
+  // and tools/CLAUDE.md "Sample-data convention". Glob matches plot
+  // tools (`tools/<tool>/app.tsx`); calculator app files
+  // (`tools/<calc>-app.tsx`) don't have a sample-data button and
+  // are excluded.
+  {
+    files: ["tools/*/app.tsx"],
+    plugins: { plottr: plottrLocal },
+    rules: {
+      "plottr/require-example-const": "error",
     },
   },
 
