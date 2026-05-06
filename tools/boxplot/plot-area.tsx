@@ -280,18 +280,13 @@ const FacetTrio = memo(function FacetTrio({
       svgLegend,
     ]
   );
-  // Subgrouped facets need extra horizontal room (one band per subgroup
-  // plus separator gaps), so widen the cap when subgroups are present.
-  const maxWidth = fd.subgroups && fd.subgroups.length > 1 ? undefined : 720;
   return (
-    <div style={{ maxWidth }}>
-      <FacetBoxplotItem
-        fd={fd}
-        facetRefs={facetRefs}
-        chartProps={chartProps}
-        categoryColors={categoryColors}
-      />
-    </div>
+    <FacetBoxplotItem
+      fd={fd}
+      facetRefs={facetRefs}
+      chartProps={chartProps}
+      categoryColors={categoryColors}
+    />
   );
 });
 

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Boxplot facets stretch to full content-column width.** The non-
+  subgrouped facet wrapper used to cap each facet at 720 px, which made
+  the facet tiles narrower than the stats panel sitting underneath. The
+  cap is gone — facets and the stats panel now both follow viewport
+  resizes together. Subgrouped facets were already uncapped (they need
+  the extra horizontal room for per-subgroup bands), so behavior there
+  is unchanged.
+
+- **Boxplot stats panel gains 16 px breathing room above it**, matching
+  the gap aequorin uses between its main plot card and the integral
+  tile. The panel used to sit flush against the plot area.
+
 - **Heatmap cell grid rasterizes via canvas.** Cells used to render as
   N individual SVG `<rect>` elements (≈700 ms React mount + 11 MB SVG
   for a 100k-cell heatmap, with browsers paying significantly more on
