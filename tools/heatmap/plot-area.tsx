@@ -11,11 +11,12 @@ import { buildCsvExport } from "./reports";
 
 const { useMemo, useRef } = React;
 
-export const DETAIL_DENDRO_STROKE_WIDTHS: Record<string, number> = {
-  thin: 0.75,
-  medium: 1.5,
-  bold: 2.5,
-};
+// Detail-view dendrogram stroke width. Was previously user-selectable via
+// a thin/medium/bold segment control; the control was retired because
+// the choice had no real workflow value (the detail plot's row pitch is
+// already enlarged for readability, so a thicker stroke didn't change
+// what users could see). 1.5 matches the prior "medium" default.
+const DETAIL_DENDRO_STROKE_WIDTH = 1.5;
 
 export function DetailView({
   rawMatrix,
@@ -28,8 +29,6 @@ export function DetailView({
   cellBorder,
   detailChartRef,
   fileName,
-  detailDendroStroke,
-  setDetailDendroStroke,
   clusterId,
 }: any) {
   // Detail tile is now an independent sibling next to the main plot rather
@@ -114,50 +113,17 @@ export function DetailView({
       <div
         style={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
+          gap: 6,
           flexWrap: "wrap",
+          justifyContent: "flex-end",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          {detailShowDendrogram ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Dendrogram</span>
-              <div className="dv-seg" role="group" aria-label="Dendrogram stroke width">
-                {["thin", "medium", "bold"].map((k: any) => (
-                  <button
-                    key={k}
-                    type="button"
-                    className={
-                      "dv-seg-btn" + (detailDendroStroke === k ? " dv-seg-btn-active" : "")
-                    }
-                    onClick={() => setDetailDendroStroke(k)}
-                    style={{ fontSize: 11, padding: "4px 10px" }}
-                  >
-                    {k.charAt(0).toUpperCase() + k.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            flexWrap: "wrap",
-            marginLeft: "auto",
-            flexShrink: 0,
-          }}
-        >
-          {downloadButton("SVG", () =>
-            downloadSvg(detailChartRef.current, `${base}_heatmap${clusterSuffix}_detail.svg`)
-          )}
-          {downloadButton("PNG", () =>
-            downloadPng(detailChartRef.current, `${base}_heatmap${clusterSuffix}_detail.png`, 2)
-          )}
-        </div>
+        {downloadButton("SVG", () =>
+          downloadSvg(detailChartRef.current, `${base}_heatmap${clusterSuffix}_detail.svg`)
+        )}
+        {downloadButton("PNG", () =>
+          downloadPng(detailChartRef.current, `${base}_heatmap${clusterSuffix}_detail.png`, 2)
+        )}
       </div>
       <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
         <HeatmapChart
@@ -174,9 +140,7 @@ export function DetailView({
           showRowDendrogram={vis.showRowDendrogram !== false}
           showColDendrogram={vis.showColDendrogram !== false}
           showKmeansStrip={mainRowIsKmeans || mainColIsKmeans}
-          dendrogramStrokeWidth={
-            DETAIL_DENDRO_STROKE_WIDTHS[detailDendroStroke] || DETAIL_DENDRO_STROKE_WIDTHS.medium
-          }
+          dendrogramStrokeWidth={DETAIL_DENDRO_STROKE_WIDTH}
           vmin={vis.vmin}
           vmax={vis.vmax}
           palette={vis.palette}

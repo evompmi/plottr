@@ -115,12 +115,6 @@ export function App() {
     cellBorderInit
   );
 
-  // Detail-only dendrogram stroke preset. Three fixed sizes so the zoom
-  // tile's pruned dendrogram can be bumped up to read clearly at a smaller
-  // plot size; the main plot keeps its default stroke width. Not persisted —
-  // session-local.
-  const [detailDendroStroke, setDetailDendroStroke] = useState("medium");
-
   const chartRef = useRef<any>(null);
   const detailChartRef = useRef<any>(null);
   const matrixRef = useRef<any>(null);
@@ -589,8 +583,6 @@ export function App() {
                     cellBorder={cellBorder}
                     detailChartRef={detailChartRef}
                     fileName={fileName}
-                    detailDendroStroke={detailDendroStroke}
-                    setDetailDendroStroke={setDetailDendroStroke}
                     clusterId={selection.clusterId}
                   />
                 )}
