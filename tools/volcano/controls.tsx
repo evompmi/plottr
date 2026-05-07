@@ -489,9 +489,31 @@ export function LabelsTile({
   points,
   labelCol,
   addToManualSelection,
+  // {forcedCount, attemptedCount} from the chart's last layout pass.
+  // Drives the density-aware "labels may overlap" warning below the
+  // top-N sliders. Calibrated to the actual layout outcome — not a
+  // heuristic estimate based on point count or plot dimensions.
+  labelDensity,
 }: any) {
   const manualCount = manualSelection ? manualSelection.size : 0;
   const hasManual = manualCount > 0;
+  // The cap warning is hidden in manual mode (the user's explicit
+  // click-to-label choice supersedes the auto top-N picks; warning
+  // would be confusing). Otherwise: forced > 0 means the data
+  // distribution can't fit every requested label cleanly.
+  const forcedCount = (labelDensity && labelDensity.forcedCount) || 0;
+  const attemptedCount = (labelDensity && labelDensity.attemptedCount) || 0;
+  const showDensityWarning = !hasManual && forcedCount > 0 && attemptedCount > 0;
+  // Cleanly-placed budget = attempted minus forced. Suggested top-N
+  // splits the budget across up/down in the same ratio the user
+  // currently asked for (so a 15-up / 5-down request scales down
+  // proportionally rather than going to 50/50).
+  const cleanBudget = Math.max(0, attemptedCount - forcedCount);
+  const totalRequested = (vis.topNUp || 0) + (vis.topNDown || 0);
+  const ratioUp =
+    totalRequested > 0 ? (vis.topNUp || 0) / totalRequested : 0.5;
+  const suggestedUp = Math.max(0, Math.round(cleanBudget * ratioUp));
+  const suggestedDown = Math.max(0, cleanBudget - suggestedUp);
   return (
     <ControlSection title="Labels" defaultOpen={hasManual}>
       <ToggleRow checked={vis.showLabels} onChange={(v) => updVis({ showLabels: v })}>
@@ -563,6 +585,45 @@ export function LabelsTile({
         step={1}
         onChange={(v) => updVis({ labelFontSize: Number(v) })}
       />
+      {showDensityWarning && (
+        <div
+          role="status"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            padding: "8px 10px",
+            borderRadius: 6,
+            background: "var(--warning-bg)",
+            border: "1px solid var(--warning-border)",
+            fontSize: 11,
+            color: "var(--warning-text)",
+            marginTop: 6,
+          }}
+        >
+          <span>
+            ⚠ {forcedCount} of {attemptedCount} labels couldn't place cleanly at this data
+            density.
+          </span>
+          {cleanBudget > 0 && cleanBudget < totalRequested && (
+            <button
+              type="button"
+              onClick={() => updVis({ topNUp: suggestedUp, topNDown: suggestedDown })}
+              className="dv-btn dv-btn-secondary"
+              style={{ alignSelf: "flex-start", padding: "3px 10px", fontSize: 11 }}
+              title={
+                "Drop top-N to (" +
+                suggestedUp +
+                " up / " +
+                suggestedDown +
+                " down) so every label places without overlap."
+              }
+            >
+              Use suggested ({suggestedUp} / {suggestedDown})
+            </button>
+          )}
+        </div>
+      )}
     </ControlSection>
   );
 }

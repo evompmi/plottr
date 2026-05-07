@@ -34,7 +34,7 @@ import { ColorLegend, SizeLegend } from "./chart-legends";
 // chart-layout split.
 export { DEFAULT_VBW, VBH, MARGIN } from "./chart-layout";
 
-const { forwardRef, useMemo } = React;
+const { forwardRef, useMemo, useEffect } = React;
 
 interface VolcanoChartProps {
   points: VolcanoPoint[];
@@ -83,6 +83,14 @@ interface VolcanoChartProps {
   // and the user wants the data plot to keep its breathing room.
   plotWidth?: number;
   plotBg: string;
+  // Optional callback fired after every label-layout computation. The
+  // controls UI consumes the (forcedCount, attemptedCount) pair to
+  // surface a "labels at this density may overlap; try ~K" warning
+  // calibrated to the real placement outcome — not a heuristic
+  // estimate. Fires inside a useEffect so React's no-setState-in-
+  // render rule isn't violated; the warning appears on the next render
+  // after the user adjusts top-N.
+  onLabelLayoutInfo?: (info: { forcedCount: number; attemptedCount: number }) => void;
 }
 
 export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(function VolcanoChart(
@@ -119,6 +127,7 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(functio
     sizeMapLabel,
     plotWidth,
     plotBg,
+    onLabelLayoutInfo,
   } = props;
 
   const VBW = plotWidth && plotWidth > 0 ? plotWidth : DEFAULT_VBW;
@@ -198,6 +207,23 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(functio
   );
   const labels = labelLayout.labels;
   const labelRadii = labelLayout.radii;
+
+  // Surface the layout's forced/attempted counts to the controls UI
+  // (one render lag — fires after the chart commits, controls warning
+  // updates on the next render). The data-density signal is the actual
+  // layout outcome, not a heuristic; if the user lowers top-N enough
+  // that every requested label places cleanly, forcedCount drops to 0
+  // and the warning disappears.
+  useEffect(
+    () => {
+      if (!onLabelLayoutInfo) return;
+      onLabelLayoutInfo({
+        forcedCount: labelLayout.forcedCount,
+        attemptedCount: labelLayout.attemptedCount,
+      });
+    },
+    [onLabelLayoutInfo, labelLayout.forcedCount, labelLayout.attemptedCount]
+  );
 
   // Reference-line coordinates: vertical at ±fcCutoff (in x-axis units),
   // horizontal at -log10(pCutoff) (in y-axis units). Only drawn when

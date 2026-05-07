@@ -212,6 +212,8 @@ export function PlotStep({
   onDownloadCsv,
   onDownloadR,
   onReset,
+  labelDensity,
+  onLabelLayoutInfo,
 }: any) {
   return (
     <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
@@ -266,6 +268,7 @@ export function PlotStep({
           points={points}
           labelCol={labelCol}
           addToManualSelection={addToManualSelection}
+          labelDensity={labelDensity}
         />
         <StyleTile vis={vis} updVis={updVis} />
       </PlotSidebar>
@@ -328,6 +331,7 @@ export function PlotStep({
             sizeMapLabel={sizeMapLabel}
             plotWidth={vis.plotWidth}
             plotBg="#ffffff"
+            onLabelLayoutInfo={onLabelLayoutInfo}
           />
         </div>
         <SummaryTile summary={summary} fcCutoff={vis.fcCutoff} pCutoff={vis.pCutoff} />
