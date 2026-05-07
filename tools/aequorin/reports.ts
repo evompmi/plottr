@@ -8,23 +8,23 @@
 // that the TXT / R download buttons hand raw `enriched` rows to.
 // Mirrors tools/boxplot/reports.ts.
 
-export const TEST_LABELS_AQ: Record<string, string> = {
-  studentT: "Student's t-test",
-  welchT: "Welch's t-test",
-  mannWhitney: "Mann-Whitney U",
-  oneWayANOVA: "One-way ANOVA",
-  welchANOVA: "Welch's ANOVA",
-  kruskalWallis: "Kruskal-Wallis",
-};
+// Test/post-hoc labels + group-arity option lists derived from the
+// shared registry (`tools/shared-stats-registry.js`). Pre-registry these
+// were a verbatim copy of `STATS_LABELS` / `POSTHOC_LABELS` from
+// `shared-stats-tile.js` plus a hand-maintained `["studentT","welchT",
+// "mannWhitney"]` array — three duplicate edit sites for any new test.
+// All consumers in this file (formatters, R-script builder) still
+// reference these names, so the public API is unchanged.
+export const TEST_LABELS_AQ: Record<string, string> = Object.fromEntries(
+  Object.entries(STATS_TEST_REGISTRY).map(([id, entry]) => [id, entry.label])
+);
 
-export const POSTHOC_LABELS_AQ: Record<string, string> = {
-  tukeyHSD: "Tukey HSD",
-  gamesHowell: "Games-Howell",
-  dunn: "Dunn (BH-adjusted)",
-};
+export const POSTHOC_LABELS_AQ: Record<string, string> = Object.fromEntries(
+  Object.entries(STATS_POSTHOC_REGISTRY).map(([id, entry]) => [id, entry.label])
+);
 
-export const TEST_OPTIONS_AQ_2 = ["studentT", "welchT", "mannWhitney"];
-export const TEST_OPTIONS_AQ_K = ["oneWayANOVA", "welchANOVA", "kruskalWallis"];
+export const TEST_OPTIONS_AQ_2 = STATS_TESTS_FOR_K2;
+export const TEST_OPTIONS_AQ_K = STATS_TESTS_FOR_K;
 
 export const AQ_ERROR_BAR_LABELS: Record<string, string> = {
   none: "None",

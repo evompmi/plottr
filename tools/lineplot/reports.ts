@@ -9,19 +9,17 @@ import { formatX } from "./helpers";
 // the decision trace + post-hoc inline. Aggregate TXT / R downloads at the
 // top reproduce every per-x test in a single file.
 
-export const TEST_LABELS_LP: Record<string, string> = {
-  studentT: "Student's t",
-  welchT: "Welch's t",
-  mannWhitney: "Mann-Whitney U",
-  oneWayANOVA: "One-way ANOVA",
-  welchANOVA: "Welch's ANOVA",
-  kruskalWallis: "Kruskal-Wallis",
-};
-export const POSTHOC_LABELS_LP: Record<string, string> = {
-  tukeyHSD: "Tukey HSD",
-  gamesHowell: "Games-Howell",
-  dunn: "Dunn (BH-adjusted)",
-};
+// Sourced from the shared registry (`tools/shared-stats-registry.js`).
+// Lineplot's per-x stats panel uses tight cells so it reads each entry's
+// `shortLabel` ("Student's t", "Welch's t") — falling back to `label`
+// for entries that don't carry a short form (the ANOVAs and KW are
+// already concise enough). Boxplot / aequorin both consume `label`.
+export const TEST_LABELS_LP: Record<string, string> = Object.fromEntries(
+  Object.entries(STATS_TEST_REGISTRY).map(([id, entry]) => [id, entry.shortLabel || entry.label])
+);
+export const POSTHOC_LABELS_LP: Record<string, string> = Object.fromEntries(
+  Object.entries(STATS_POSTHOC_REGISTRY).map(([id, entry]) => [id, entry.label])
+);
 
 export function formatStat(testName: string, res: any): string {
   if (!res || res.error) return "—";

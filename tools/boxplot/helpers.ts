@@ -16,24 +16,23 @@ export function statsSummaryHeight(summary: string | null): number {
 }
 
 // ── Test / post-hoc metadata ────────────────────────────────────────────────
+//
+// Sourced from the shared registry (`tools/shared-stats-registry.js`).
+// Pre-registry these were verbatim duplicates of the labels /
+// option-arrays that lived in three other files (boxplot here, lineplot,
+// aequorin). Consumers in this package still import the `_BP`-suffixed
+// names so the public API is unchanged; only the source of truth moved.
 
-export const TEST_LABELS_BP: Record<string, string> = {
-  studentT: "Student's t-test",
-  welchT: "Welch's t-test",
-  mannWhitney: "Mann-Whitney U",
-  oneWayANOVA: "One-way ANOVA",
-  welchANOVA: "Welch's ANOVA",
-  kruskalWallis: "Kruskal-Wallis",
-};
+export const TEST_LABELS_BP: Record<string, string> = Object.fromEntries(
+  Object.entries(STATS_TEST_REGISTRY).map(([id, entry]) => [id, entry.label])
+);
 
-export const POSTHOC_LABELS_BP: Record<string, string> = {
-  tukeyHSD: "Tukey HSD",
-  gamesHowell: "Games-Howell",
-  dunn: "Dunn (BH-adjusted)",
-};
+export const POSTHOC_LABELS_BP: Record<string, string> = Object.fromEntries(
+  Object.entries(STATS_POSTHOC_REGISTRY).map(([id, entry]) => [id, entry.label])
+);
 
-export const TEST_OPTIONS_BP_2 = ["studentT", "welchT", "mannWhitney"];
-export const TEST_OPTIONS_BP_K = ["oneWayANOVA", "welchANOVA", "kruskalWallis"];
+export const TEST_OPTIONS_BP_2 = STATS_TESTS_FOR_K2;
+export const TEST_OPTIONS_BP_K = STATS_TESTS_FOR_K;
 
 export const ERROR_BAR_LABELS: Record<string, string> = {
   none: "None",

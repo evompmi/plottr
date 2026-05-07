@@ -13,6 +13,10 @@ const esbuild = require("esbuild");
 const toolsDir = path.join(__dirname, "../../tools");
 const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
 const statsSrc = fs.readFileSync(path.join(toolsDir, "stats.js"), "utf8");
+// helpers.ts → ../_shell/stats-dispatch.ts → STATS_TEST_REGISTRY. Bundle
+// the registry source into the same script as helpers so the dispatcher's
+// free reference resolves at call time.
+const registrySrc = fs.readFileSync(path.join(toolsDir, "shared-stats-registry.js"), "utf8");
 
 const helpersCjs = esbuild.buildSync({
   entryPoints: [path.join(toolsDir, "lineplot/helpers.ts")],
@@ -44,7 +48,10 @@ const ctx = {
 vm.createContext(ctx);
 vm.runInContext(sharedSrc, ctx);
 vm.runInContext(statsSrc, ctx);
-vm.runInContext(helpersCjs, ctx);
+// Concatenate registry + helpers into one script so helpers.ts's free
+// reference to STATS_TEST_REGISTRY resolves at runtime — `const`
+// bindings don't persist across separate runInContext calls.
+vm.runInContext(registrySrc + "\n" + helpersCjs, ctx);
 
 module.exports = {
   parseRaw: ctx.parseRaw,

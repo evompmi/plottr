@@ -23,42 +23,35 @@
 // Kept plain JS (React.createElement, no JSX) so it can live alongside the
 // rest of the shared components without requiring a build step.
 
-const STATS_LABELS = {
-  studentT: "Student's t-test",
-  welchT: "Welch's t-test",
-  mannWhitney: "Mann-Whitney U",
-  oneWayANOVA: "One-way ANOVA",
-  welchANOVA: "Welch's ANOVA",
-  kruskalWallis: "Kruskal-Wallis",
-};
-const POSTHOC_LABELS = {
-  tukeyHSD: "Tukey HSD",
-  gamesHowell: "Games-Howell",
-  dunn: "Dunn (BH-adjusted)",
-};
+// Test/post-hoc labels and dispatch helpers all read from
+// STATS_TEST_REGISTRY / STATS_POSTHOC_REGISTRY (tools/shared-stats-registry.js).
+// Pre-registry these were duplicated copies of the same data; the
+// `_runTest` / `_runPostHoc` / `_postHocFor` thin wrappers keep the
+// existing call shape so the rest of this file is unchanged.
+const STATS_LABELS = Object.fromEntries(
+  Object.entries(STATS_TEST_REGISTRY).map(function (entry) {
+    return [entry[0], entry[1].label];
+  })
+);
+const POSTHOC_LABELS = Object.fromEntries(
+  Object.entries(STATS_POSTHOC_REGISTRY).map(function (entry) {
+    return [entry[0], entry[1].label];
+  })
+);
 
 function _runTest(name, values) {
-  if (name === "studentT") return tTest(values[0], values[1], { equalVar: true });
-  if (name === "welchT") return tTest(values[0], values[1], { equalVar: false });
-  if (name === "mannWhitney") return mannWhitneyU(values[0], values[1]);
-  if (name === "oneWayANOVA") return oneWayANOVA(values);
-  if (name === "welchANOVA") return welchANOVA(values);
-  if (name === "kruskalWallis") return kruskalWallis(values);
-  return null;
+  const entry = STATS_TEST_REGISTRY[name];
+  return entry ? entry.run(values) : null;
 }
 
 function _runPostHoc(name, values) {
-  if (name === "tukeyHSD") return tukeyHSD(values);
-  if (name === "gamesHowell") return gamesHowell(values);
-  if (name === "dunn") return dunnTest(values);
-  return null;
+  const entry = STATS_POSTHOC_REGISTRY[name];
+  return entry ? entry.run(values) : null;
 }
 
 function _postHocFor(testName) {
-  if (testName === "oneWayANOVA") return "tukeyHSD";
-  if (testName === "welchANOVA") return "gamesHowell";
-  if (testName === "kruskalWallis") return "dunn";
-  return null;
+  const entry = STATS_TEST_REGISTRY[testName];
+  return entry ? entry.postHoc : null;
 }
 
 // Format a test's primary result line. Each test returns slightly different
@@ -917,10 +910,7 @@ function StatsTile({
   );
 
   // ── Test picker ───────────────────────────────────────────────────────────
-  const testOptions =
-    k === 2
-      ? ["studentT", "welchT", "mannWhitney"]
-      : ["oneWayANOVA", "welchANOVA", "kruskalWallis"];
+  const testOptions = k === 2 ? STATS_TESTS_FOR_K2 : STATS_TESTS_FOR_K;
   const recTest =
     recommendation && recommendation.recommendation && recommendation.recommendation.test;
   const recReason =

@@ -18,20 +18,26 @@
 // props. Loaded as a regular <script> tag in boxplot.html / aequorin.html /
 // power.html so its globals are visible to the compiled tool bundles.
 
-const _R_TEST_LABELS = {
-  studentT: "Student's t-test",
-  welchT: "Welch's t-test",
-  mannWhitney: "Mann-Whitney U",
-  oneWayANOVA: "One-way ANOVA",
-  welchANOVA: "Welch's ANOVA",
-  kruskalWallis: "Kruskal-Wallis",
-};
+// Test / post-hoc display labels are sourced from the shared registry
+// (tools/shared-stats-registry.js) — same labels the StatsTile uses on
+// screen, so the R script's `# Welch's t-test` comment matches the test
+// name shown to the user. Pre-registry these were verbatim duplicates.
+// The R-code generation below still has per-test branches because each
+// test produces a different R function call (`t.test`, `wilcox.test`,
+// `oneway.test`, …) — the dispatch lives in this file because the
+// emitted strings are R-specific, not part of the JS dispatcher
+// surface that the registry collapses.
+const _R_TEST_LABELS = Object.fromEntries(
+  Object.entries(STATS_TEST_REGISTRY).map(function (entry) {
+    return [entry[0], entry[1].label];
+  })
+);
 
-const _R_POSTHOC_LABELS = {
-  tukeyHSD: "Tukey HSD",
-  gamesHowell: "Games-Howell",
-  dunn: "Dunn (BH-adjusted)",
-};
+const _R_POSTHOC_LABELS = Object.fromEntries(
+  Object.entries(STATS_POSTHOC_REGISTRY).map(function (entry) {
+    return [entry[0], entry[1].label];
+  })
+);
 
 function sanitizeRString(s) {
   // Escape backslashes first, then double-quotes. All line terminators (LF,

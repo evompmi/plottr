@@ -754,6 +754,30 @@ declare global {
     | "welchANOVA"
     | "kruskalWallis";
   type RecommendedPostHoc = "tukeyHSD" | "gamesHowell" | "dunn" | null;
+
+  // ── Stats registry (tools/shared-stats-registry.js) ─────────────────────────
+  // Single source of truth that every test/post-hoc dispatcher reads from.
+  // Adding a new entry to STATS_TEST_REGISTRY (with the corresponding union-
+  // member added to RecommendedTest above) makes every consumer aware of the
+  // new test in one edit, instead of the 8+ string-matching sites pre-registry.
+  type TestArity = 2 | "k";
+  interface StatsTestEntry {
+    label: string;
+    // Shorter label for tight UIs — fall back to `label` if absent.
+    shortLabel?: string;
+    arity: TestArity;
+    postHoc: Exclude<RecommendedPostHoc, null> | null;
+    run: (values: number[][]) => Record<string, unknown>;
+  }
+  interface StatsPostHocEntry {
+    label: string;
+    run: (values: number[][]) => Record<string, unknown>;
+  }
+  const STATS_TEST_REGISTRY: Record<RecommendedTest, StatsTestEntry>;
+  const STATS_POSTHOC_REGISTRY: Record<Exclude<RecommendedPostHoc, null>, StatsPostHocEntry>;
+  const STATS_TESTS_FOR_K2: RecommendedTest[];
+  const STATS_TESTS_FOR_K: RecommendedTest[];
+
   function selectTest(
     groups: number[][],
     opts?: { alphaNormality?: number; alphaVariance?: number }
