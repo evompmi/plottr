@@ -563,6 +563,17 @@ export function App() {
 
   const chartRef = useRef<any>(null);
 
+  // Density-aware label cap: chart fires this after each layout
+  // computation with the actual forced/attempted counts. Surfaces in
+  // the LabelsTile as a "labels at this density may overlap" warning
+  // when the user has asked for more than the data distribution can
+  // place cleanly. One render-tick lag (chart commits → effect →
+  // setState → controls re-render); fine for an advisory hint.
+  const [labelDensity, setLabelDensity] = useState<{
+    forcedCount: number;
+    attemptedCount: number;
+  }>({ forcedCount: 0, attemptedCount: 0 });
+
   const onDownloadCsv = () => {
     const { headers, rows } = buildVolcanoCsv({
       points,
@@ -669,6 +680,8 @@ export function App() {
           onDownloadCsv={onDownloadCsv}
           onDownloadR={onDownloadR}
           onReset={resetAll}
+          labelDensity={labelDensity}
+          onLabelLayoutInfo={setLabelDensity}
         />
       )}
     </PlotToolShell>

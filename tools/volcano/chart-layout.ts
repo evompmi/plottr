@@ -163,6 +163,17 @@ export interface LabelLayoutResult {
   // again at render time is O(N²); keeping the radii alongside the
   // layout result keeps it O(N).
   radii: number[];
+  // Number of labels the layout could not place cleanly (forced
+  // fallback fired). Surfaces to the controls UI as a data-density
+  // signal: high `forcedCount` means the user requested more labels
+  // than the actual point distribution can fit cleanly. Calibrated to
+  // the real layout — not a heuristic estimate.
+  forcedCount: number;
+  // Total labels the layout attempted (manual or top-N picks that had
+  // a renderable point + label string). Pairs with `forcedCount` so
+  // the warning copy can phrase the suggestion as
+  // "N of M didn't fit cleanly; try ~M-N".
+  attemptedCount: number;
 }
 
 export interface BuildLabelLayoutInput {
@@ -212,7 +223,7 @@ export function buildLabelLayout(input: BuildLabelLayoutInput): LabelLayoutResul
     w,
     h,
   } = input;
-  if (!showLabels) return { labels: [], radii: [] };
+  if (!showLabels) return { labels: [], radii: [], forcedCount: 0, attemptedCount: 0 };
 
   const renderByIdx = new Map<number, RenderedPoint>();
   for (const r of rendered) renderByIdx.set(r.pt.idx, r);
@@ -228,7 +239,8 @@ export function buildLabelLayout(input: BuildLabelLayoutInput): LabelLayoutResul
       if (r) pickedRenders.push(r);
     }
   } else {
-    if (topNUp <= 0 && topNDown <= 0) return { labels: [], radii: [] };
+    if (topNUp <= 0 && topNDown <= 0)
+      return { labels: [], radii: [], forcedCount: 0, attemptedCount: 0 };
     const top = pickTopLabels(points, topNUp, topNDown, fcCutoff, pCutoff, pFloor);
     pickedRenders = top
       .map(({ idx }) => renderByIdx.get(points[idx].idx))
@@ -270,7 +282,8 @@ export function buildLabelLayout(input: BuildLabelLayoutInput): LabelLayoutResul
   };
   const placed = layoutLabels(inputs, obstacles, labelBounds);
   const radii = pickedRenders.map((r) => radiusFor(r.pt.idx));
-  return { labels: placed, radii };
+  const forcedCount = placed.reduce((acc, p) => acc + (p.forced ? 1 : 0), 0);
+  return { labels: placed, radii, forcedCount, attemptedCount: placed.length };
 }
 
 // ── Per-point fill / radius resolvers (aesthetic-mapping fallback) ─────────

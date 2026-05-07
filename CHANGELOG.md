@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Volcano label placement: smarter fallback, multi-restart, sub-degree
+  refinement, and a density-aware cap warning.** Previously the
+  greedy-first-fit layout always defaulted forced labels to 12 o'clock,
+  which produced a visible label pile in tight gene clusters; sat on a
+  fixed input order, locking high-priority labels into easy slots; and
+  picked from a 24-angle × 4-distance coarse grid with no sub-degree
+  precision. Four targeted improvements:
+  (1) Forced labels now score every in-bounds candidate by weighted
+  overlap penalty (text-on-dot > leader-vs-point ≈ leader-vs-leader >
+  bbox overlap area) and pick the least-bad — replaces the 12-o'clock
+  pile.
+  (2) The wrapper runs the greedy pass with K=4 input orderings (input
+  order, reverse, most-isolated-first, most-clustered-first) and
+  returns the result with lowest total penalty — strictly
+  non-regressing.
+  (3) Forced winners get a level-1 ±7.5° fine sweep then a level-2
+  ±3.75° sweep around the level-1 winner, so labels needing a few
+  degrees' lateral adjustment can now find it.
+  (4) The chart now surfaces (forcedCount, attemptedCount) to the
+  Labels tile, which shows a "N of M labels couldn't place cleanly"
+  warning + a "Use suggested" button that drops top-N to the actual
+  clean budget — the cap is calibrated to the layout's real outcome,
+  not a heuristic estimate.
+
 - **Stats test/post-hoc dispatch consolidated behind a single registry.**
   Pre-registry, the same identifier → (function, label, post-hoc, k=2
   membership) mapping was duplicated across `_shell/stats-dispatch.ts`,
