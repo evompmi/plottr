@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Property-test coverage expanded across all seven non-volcano tools.** Internal/test-only: 117 → 247 properties (heatmap 35, boxplot 34, upset 27, venn 27, aequorin 27, scatter 22, lineplot 18, volcano unchanged at 57). Suite total: 1322 tests.
 
+- **Property tests for `stats.js` distributions and the power calculator.** Internal/test-only: new `tests/stats.property.test.js` (48 properties: cdf monotonicity, cdf↔inv round-trips, gammaln recursion, swap-symmetry of two-sample tests, BH order preservation) and `tests/power.property.test.js` (45 properties: power ∈ [0, 1], null-hypothesis floor, monotonicity in n / es / α, 1-tail ≥ 2-tail, effect-size converter scaling laws). Suite total: 1415 tests.
+
 - **Volcano label placement: smarter fallback, multi-restart, sub-degree
   refinement, and a density-aware cap warning.** Previously the
   greedy-first-fit layout always defaulted forced labels to 12 o'clock,
