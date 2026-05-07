@@ -13,7 +13,7 @@ Tech stack: React 18 (vendored in `/vendor/`) + esbuild (build-time TSX compilat
 This file holds repo-wide rules. Folder-scoped details live in nested `CLAUDE.md` files that Claude Code auto-loads when work touches that subtree:
 
 - **`tools/CLAUDE.md`** — Architecture: SPA shell, per-tool folder layout, shared code (`shared*.js` / `stats.js` / `theme.js`), shared plot-tool scaffold (`_shell/`), theming rules (chrome var(--\*) vs. SVG hex literals, ESLint enforcement), data flow + ingest size policy, sample-data convention, SVG export named-group conventions, statistical methodology (Welch-by-default in `selectTest`).
-- **`tests/CLAUDE.md`** — Vitest runner + house-vocabulary harness, real-React-18 + happy-dom render helpers, fuzz harnesses, mandatory test standards for new work, per-tool test loaders.
+- **`tests/CLAUDE.md`** — Vitest runner + house-vocabulary harness, real-React-18 + happy-dom render helpers, fast-check property tests (per-tool, replaced the prior fuzz harnesses), shared CSV arbitraries / corpus, mandatory test standards for new work, per-tool test loaders.
 - **`benchmark/CLAUDE.md`** — R 4.5 + SciPy cross-validation suites, regime classification (`pass` / `deep-tail` / `underflow` / `pathological` / `fail`), how to extend the grids.
 
 If a rule applies regardless of folder (code style, build commands, the pre-commit hook, changelog policy), it stays here.
