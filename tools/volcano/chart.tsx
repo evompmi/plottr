@@ -214,16 +214,13 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(functio
   // layout outcome, not a heuristic; if the user lowers top-N enough
   // that every requested label places cleanly, forcedCount drops to 0
   // and the warning disappears.
-  useEffect(
-    () => {
-      if (!onLabelLayoutInfo) return;
-      onLabelLayoutInfo({
-        forcedCount: labelLayout.forcedCount,
-        attemptedCount: labelLayout.attemptedCount,
-      });
-    },
-    [onLabelLayoutInfo, labelLayout.forcedCount, labelLayout.attemptedCount]
-  );
+  useEffect(() => {
+    if (!onLabelLayoutInfo) return;
+    onLabelLayoutInfo({
+      forcedCount: labelLayout.forcedCount,
+      attemptedCount: labelLayout.attemptedCount,
+    });
+  }, [onLabelLayoutInfo, labelLayout.forcedCount, labelLayout.attemptedCount]);
 
   // Reference-line coordinates: vertical at ±fcCutoff (in x-axis units),
   // horizontal at -log10(pCutoff) (in y-axis units). Only drawn when

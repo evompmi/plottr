@@ -510,8 +510,7 @@ export function LabelsTile({
   // proportionally rather than going to 50/50).
   const cleanBudget = Math.max(0, attemptedCount - forcedCount);
   const totalRequested = (vis.topNUp || 0) + (vis.topNDown || 0);
-  const ratioUp =
-    totalRequested > 0 ? (vis.topNUp || 0) / totalRequested : 0.5;
+  const ratioUp = totalRequested > 0 ? (vis.topNUp || 0) / totalRequested : 0.5;
   const suggestedUp = Math.max(0, Math.round(cleanBudget * ratioUp));
   const suggestedDown = Math.max(0, cleanBudget - suggestedUp);
   return (
@@ -602,8 +601,7 @@ export function LabelsTile({
           }}
         >
           <span>
-            ⚠ {forcedCount} of {attemptedCount} labels couldn't place cleanly at this data
-            density.
+            ⚠ {forcedCount} of {attemptedCount} labels couldn't place cleanly at this data density.
           </span>
           {cleanBudget > 0 && cleanBudget < totalRequested && (
             <button
