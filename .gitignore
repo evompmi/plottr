@@ -1,11 +1,15 @@
 .DS_Store
 node_modules/
-future_improvement.txt
-claude_review.txt
 .claude/
-think_bout_that.txt
-r-export-plan.txt
-
+# Reviews — local-only commissioned reviews, not part of the public history.
+docs/reviews/
+# Same policy applies to the older root-level review drafts that predate
+# the docs/reviews/ convention. Pinned by exact filename rather than a
+# wildcard so an unrelated future file (e.g. code-review-checklist.md)
+# doesn't get silently ignored.
+/1.2.0_harsh_review.md
+/1.2.0_harsh_review_revisit.md
+/plottr_harsh_review_OPUS.md
 # Playwright e2e
 test-results/
 playwright-report/
