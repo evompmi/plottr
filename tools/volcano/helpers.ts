@@ -541,150 +541,245 @@ const PENALTY_LEADER_ON_POINT = 50;
 const PENALTY_LEADER_CROSS = 50;
 const PENALTY_BBOX_OVERLAP_PER_100PX2 = 1;
 
+// Single-candidate evaluator: build the bbox / leader at the given
+// (angleDeg, distance) and tally the constraint penalty against the
+// already-placed labels. Returns null if the candidate spills past
+// `bounds` (hard reject, never refined into); else returns the
+// placement + penalty pair.
+//
+// Extracted so both the coarse search in findBestPlacement and the
+// sub-degree refinement (refineForcedAngle) call the same evaluator.
+function evaluateCandidate(
+  inp: LayoutInput,
+  obstacles: ObstaclePoint[],
+  bounds: LayoutBounds,
+  placed: PlacedLabel[],
+  angleDeg: number,
+  distance: number
+): { placement: PlacedLabel; penalty: number } | null {
+  const w = inp.charWidth * inp.text.length;
+  const h = inp.lineHeight;
+  const sx = inp.pointPx.x;
+  const sy = inp.pointPx.y;
+  const rad = (angleDeg * Math.PI) / 180;
+  const cosA = Math.cos(rad);
+  const sinA = Math.sin(rad);
+  const labelCx = sx + distance * cosA;
+  const labelCy = sy + distance * sinA;
+  const bbox = { x: labelCx - w / 2, y: labelCy - h / 2, w, h };
+
+  if (!within(bbox, bounds)) return null;
+
+  const startX = sx + inp.ringRadius * cosA;
+  const startY = sy + inp.ringRadius * sinA;
+  const leaderEnd = nearestPointOnBbox(bbox, sx, sy);
+
+  let labelOverlapArea = 0;
+  for (const p of placed) {
+    const ix1 = Math.max(bbox.x, p.bbox.x);
+    const iy1 = Math.max(bbox.y, p.bbox.y);
+    const ix2 = Math.min(bbox.x + bbox.w, p.bbox.x + p.bbox.w);
+    const iy2 = Math.min(bbox.y + bbox.h, p.bbox.y + p.bbox.h);
+    if (ix2 > ix1 && iy2 > iy1) {
+      labelOverlapArea += (ix2 - ix1) * (iy2 - iy1);
+    }
+  }
+
+  let bboxHitsPointCount = 0;
+  for (const obs of obstacles) {
+    const ox = obs.x - sx;
+    const oy = obs.y - sy;
+    if (ox * ox + oy * oy < 1) continue;
+    if (pointInPaddedRect(obs.x, obs.y, bbox, obs.r + LABEL_BBOX_PAD)) {
+      bboxHitsPointCount++;
+    }
+  }
+
+  let leaderHitsPointCount = 0;
+  for (const obs of obstacles) {
+    const ox = obs.x - sx;
+    const oy = obs.y - sy;
+    if (ox * ox + oy * oy < 1) continue;
+    if (
+      lineSegmentIntersectsCircle(
+        startX,
+        startY,
+        leaderEnd.x,
+        leaderEnd.y,
+        obs.x,
+        obs.y,
+        obs.r + 0.5
+      )
+    ) {
+      leaderHitsPointCount++;
+    }
+  }
+
+  let leaderCrossCount = 0;
+  for (const p of placed) {
+    if (
+      lineSegmentsIntersect(
+        startX,
+        startY,
+        leaderEnd.x,
+        leaderEnd.y,
+        p.leaderStart.x,
+        p.leaderStart.y,
+        p.leaderEnd.x,
+        p.leaderEnd.y
+      )
+    ) {
+      leaderCrossCount++;
+    }
+  }
+
+  const penalty =
+    labelOverlapArea * (PENALTY_BBOX_OVERLAP_PER_100PX2 / 100) +
+    leaderCrossCount * PENALTY_LEADER_CROSS +
+    leaderHitsPointCount * PENALTY_LEADER_ON_POINT +
+    bboxHitsPointCount * PENALTY_BBOX_ON_POINT;
+
+  return {
+    placement: {
+      pointPx: { x: sx, y: sy },
+      textPx: { x: labelCx, y: labelCy + h / 4 },
+      bbox,
+      text: inp.text,
+      leaderStart: { x: startX, y: startY },
+      leaderEnd,
+      forced: false,
+    },
+    penalty,
+  };
+}
+
+// Sub-degree refinement around a coarse forced placement. The coarse
+// search uses a fixed 15° grid (24 angles); a forced winner at -105°
+// might have a strictly-better placement at -97° that the grid missed.
+// This walks ±7.5° in 5 evenly-spaced fine angles, picks the lowest
+// penalty, and recurses one level (3 angles ±3.75°) around the winner.
+//
+// Only kicks in for forced placements — clean ones already have
+// penalty 0 and can't be improved. Total cost: ~8 extra evaluations
+// per forced label.
+const REFINE_RANGE_DEG = 7.5;
+const REFINE_STEPS_LEVEL_1 = 5;
+const REFINE_STEPS_LEVEL_2 = 3;
+
+function refineForcedAngle(
+  inp: LayoutInput,
+  obstacles: ObstaclePoint[],
+  bounds: LayoutBounds,
+  placed: PlacedLabel[],
+  baseAngleDeg: number,
+  baseDistance: number,
+  basePenalty: number,
+  baseCandidate: PlacedLabel
+): { placement: PlacedLabel; penalty: number } {
+  let best = { placement: baseCandidate, penalty: basePenalty };
+
+  // Level 1: coarse fine-grained sweep ±REFINE_RANGE_DEG.
+  let bestLevel1Angle = baseAngleDeg;
+  for (let i = 0; i < REFINE_STEPS_LEVEL_1; i++) {
+    const offset =
+      -REFINE_RANGE_DEG + (2 * REFINE_RANGE_DEG * i) / (REFINE_STEPS_LEVEL_1 - 1);
+    const angleDeg = baseAngleDeg + offset;
+    if (Math.abs(offset) < 1e-9) continue; // skip the base — already evaluated
+    const result = evaluateCandidate(inp, obstacles, bounds, placed, angleDeg, baseDistance);
+    if (result && result.penalty < best.penalty) {
+      best = result;
+      bestLevel1Angle = angleDeg;
+    }
+  }
+
+  // Level 2: tighter sweep around level-1 winner ±REFINE_RANGE_DEG/2.
+  // No-op when level 1 didn't improve — bestLevel1Angle is still the
+  // base, which we already evaluated at level 1.
+  if (bestLevel1Angle === baseAngleDeg) return best;
+  const half = REFINE_RANGE_DEG / 2;
+  for (let i = 0; i < REFINE_STEPS_LEVEL_2; i++) {
+    const offset = -half + (2 * half * i) / (REFINE_STEPS_LEVEL_2 - 1);
+    if (Math.abs(offset) < 1e-9) continue;
+    const angleDeg = bestLevel1Angle + offset;
+    const result = evaluateCandidate(inp, obstacles, bounds, placed, angleDeg, baseDistance);
+    if (result && result.penalty < best.penalty) {
+      best = result;
+    }
+  }
+  return best;
+}
+
 // Single-label search: walk the candidate (angle, distance) grid given
 // the labels already placed, return the placement with lowest penalty.
-// Penalty == 0 means clean (no constraint violations). The caller
-// decides what to do with non-clean placements (forced flag, etc.).
-//
-// Extracted from layoutLabels so the multi-restart wrapper can call it
-// repeatedly with different `placed` accumulator states without
-// duplicating ~80 lines of constraint-evaluation code.
+// Penalty == 0 means clean (no constraint violations). Forced
+// placements get a sub-degree refinement pass around the coarse
+// winner — cheap precision boost when the 15° angle grid doesn't land
+// on the true minimum.
 function findBestPlacement(
   inp: LayoutInput,
   obstacles: ObstaclePoint[],
   bounds: LayoutBounds,
   placed: PlacedLabel[]
 ): { placement: PlacedLabel; penalty: number } {
-  const w = inp.charWidth * inp.text.length;
-  const h = inp.lineHeight;
-  const sx = inp.pointPx.x;
-  const sy = inp.pointPx.y;
-
   let chosen: PlacedLabel | null = null;
-  let bestForced: { penalty: number; candidate: PlacedLabel } | null = null;
+  let bestForced: {
+    penalty: number;
+    candidate: PlacedLabel;
+    angleDeg: number;
+    distance: number;
+  } | null = null;
 
   distanceLoop: for (const dist of LEADER_DISTANCES) {
     for (const deg of LABEL_ANGLES_DEG) {
-      const rad = (deg * Math.PI) / 180;
-      const cosA = Math.cos(rad);
-      const sinA = Math.sin(rad);
-      const labelCx = sx + dist * cosA;
-      const labelCy = sy + dist * sinA;
-      const bbox = { x: labelCx - w / 2, y: labelCy - h / 2, w, h };
+      const result = evaluateCandidate(inp, obstacles, bounds, placed, deg, dist);
+      if (!result) continue;
 
-      // Bounds is a hard constraint — out-of-bounds candidates are
-      // rejected unconditionally even when no clean placement exists,
-      // because labels spilling past `bounds` would corrupt the SVG
-      // export (the chart caller sized `bounds` to its drawable area).
-      if (!within(bbox, bounds)) continue;
-
-      const startX = sx + inp.ringRadius * cosA;
-      const startY = sy + inp.ringRadius * sinA;
-      const leaderEnd = nearestPointOnBbox(bbox, sx, sy);
-
-      // Constraint 2: bbox vs already-placed labels (overlap area gives
-      // a smooth penalty — small overlap reads better than a stacked
-      // fallback).
-      let labelOverlapArea = 0;
-      for (const p of placed) {
-        const ix1 = Math.max(bbox.x, p.bbox.x);
-        const iy1 = Math.max(bbox.y, p.bbox.y);
-        const ix2 = Math.min(bbox.x + bbox.w, p.bbox.x + p.bbox.w);
-        const iy2 = Math.min(bbox.y + bbox.h, p.bbox.y + p.bbox.h);
-        if (ix2 > ix1 && iy2 > iy1) {
-          labelOverlapArea += (ix2 - ix1) * (iy2 - iy1);
-        }
-      }
-
-      // Constraint 3: bbox vs data points (text-on-dot = worst).
-      let bboxHitsPointCount = 0;
-      for (const obs of obstacles) {
-        const ox = obs.x - sx;
-        const oy = obs.y - sy;
-        if (ox * ox + oy * oy < 1) continue;
-        if (pointInPaddedRect(obs.x, obs.y, bbox, obs.r + LABEL_BBOX_PAD)) {
-          bboxHitsPointCount++;
-        }
-      }
-
-      // Constraint 4: leader vs other data points.
-      let leaderHitsPointCount = 0;
-      for (const obs of obstacles) {
-        const ox = obs.x - sx;
-        const oy = obs.y - sy;
-        if (ox * ox + oy * oy < 1) continue;
-        if (
-          lineSegmentIntersectsCircle(
-            startX,
-            startY,
-            leaderEnd.x,
-            leaderEnd.y,
-            obs.x,
-            obs.y,
-            obs.r + 0.5
-          )
-        ) {
-          leaderHitsPointCount++;
-        }
-      }
-
-      // Constraint 5: leader vs already-placed leaders.
-      let leaderCrossCount = 0;
-      for (const p of placed) {
-        if (
-          lineSegmentsIntersect(
-            startX,
-            startY,
-            leaderEnd.x,
-            leaderEnd.y,
-            p.leaderStart.x,
-            p.leaderStart.y,
-            p.leaderEnd.x,
-            p.leaderEnd.y
-          )
-        ) {
-          leaderCrossCount++;
-        }
-      }
-
-      const penalty =
-        labelOverlapArea * (PENALTY_BBOX_OVERLAP_PER_100PX2 / 100) +
-        leaderCrossCount * PENALTY_LEADER_CROSS +
-        leaderHitsPointCount * PENALTY_LEADER_ON_POINT +
-        bboxHitsPointCount * PENALTY_BBOX_ON_POINT;
-
-      const candidate: PlacedLabel = {
-        pointPx: { x: sx, y: sy },
-        textPx: { x: labelCx, y: labelCy + h / 4 },
-        bbox,
-        text: inp.text,
-        leaderStart: { x: startX, y: startY },
-        leaderEnd,
-        forced: false,
-      };
-
-      if (penalty < 1e-9) {
-        chosen = candidate;
+      if (result.penalty < 1e-9) {
+        chosen = result.placement;
         break distanceLoop;
       }
 
-      if (!bestForced || penalty < bestForced.penalty) {
-        bestForced = { penalty, candidate };
+      if (!bestForced || result.penalty < bestForced.penalty) {
+        bestForced = {
+          penalty: result.penalty,
+          candidate: result.placement,
+          angleDeg: deg,
+          distance: dist,
+        };
       }
     }
   }
 
   if (chosen) return { placement: chosen, penalty: 0 };
   if (bestForced) {
+    // Sub-degree refinement around the coarse forced winner. May find
+    // a placement with strictly lower penalty (e.g. a label that
+    // needed 4 px lateral movement to clear an overlap can now find
+    // it; the 15° coarse grid steps ~10 px laterally at the nearest
+    // distance, missing such fits).
+    const refined = refineForcedAngle(
+      inp,
+      obstacles,
+      bounds,
+      placed,
+      bestForced.angleDeg,
+      bestForced.distance,
+      bestForced.penalty,
+      bestForced.candidate
+    );
     return {
-      placement: { ...bestForced.candidate, forced: true },
-      penalty: bestForced.penalty,
+      placement: { ...refined.placement, forced: true },
+      penalty: refined.penalty,
     };
   }
   // Last-resort fallback: no in-bounds candidate at all (caller passed
   // bounds smaller than the label can fit). Plant at 12 o'clock anyway,
   // marked forced; the caller sees a visibly broken result and should
   // widen `bounds`.
+  const w = inp.charWidth * inp.text.length;
+  const h = inp.lineHeight;
+  const sx = inp.pointPx.x;
+  const sy = inp.pointPx.y;
   const rad = (-90 * Math.PI) / 180;
   const cosA = Math.cos(rad);
   const sinA = Math.sin(rad);
