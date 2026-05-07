@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Stats test/post-hoc dispatch consolidated behind a single registry.**
+  Pre-registry, the same identifier → (function, label, post-hoc, k=2
+  membership) mapping was duplicated across `_shell/stats-dispatch.ts`,
+  `shared-stats-tile.js`, `shared-r-export.js`, and
+  `aequorin/reports.ts` — eight string-matching sites with no
+  compile-time guarantee they stayed in sync. New
+  `tools/shared-stats-registry.js` is the single source of truth; every
+  consumer reads from `STATS_TEST_REGISTRY` /
+  `STATS_POSTHOC_REGISTRY` / `STATS_TESTS_FOR_K2` /
+  `STATS_TESTS_FOR_K`. Adding a new test now requires one row instead
+  of editing eight sites. New `tests/stats-registry.test.js` (22
+  assertions) pins routing parity with direct stats.js calls and locks
+  down the post-hoc / arity tables. Pure refactor, no runtime
+  behaviour change.
+
 ### Fixed
 
 - **Boxplot: rotated x-tick labels no longer clip into the legend.** The

@@ -144,6 +144,11 @@ const sharedGlobals = {
   dunnTest: "readonly",
   compactLetterDisplay: "readonly",
   selectTest: "readonly",
+  // shared-stats-registry.js
+  STATS_TEST_REGISTRY: "readonly",
+  STATS_POSTHOC_REGISTRY: "readonly",
+  STATS_TESTS_FOR_K2: "readonly",
+  STATS_TESTS_FOR_K: "readonly",
   pStars: "readonly",
   formatP: "readonly",
   StatsTile: "readonly",

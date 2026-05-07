@@ -1,30 +1,26 @@
 // Shared test / post-hoc dispatchers for every plot tool that runs
-// inferential stats (boxplot, lineplot, aequorin). Previously each tool kept
-// its own near-identical copy of these three functions (runBpTest,
-// runChosenTest, runAqTest; runBpPostHoc, runPostHocByName, runAqPostHoc;
-// postHocForBpTest, postHocForTest, postHocForAqTest) — ~90 lines of
-// triplicated dispatch code that had already started to drift (lineplot's
-// post-hoc runner was missing the try/catch its siblings had).
+// inferential stats (boxplot, lineplot, aequorin). Thin wrappers over
+// STATS_TEST_REGISTRY and STATS_POSTHOC_REGISTRY (defined in
+// `tools/shared-stats-registry.js`) — the registry is the single source
+// of truth for the test-id → (label, runner, post-hoc, arity) mapping.
 //
-// All three functions return `{ error }`-shaped values on failure so callers
-// don't have to branch on the test name.
+// Pre-registry, this file carried its own switch chain on test names,
+// duplicated across `shared-stats-tile.js` and `aequorin/reports.ts` —
+// adding a new test meant editing 4+ string-matching sites with no
+// compile-time guarantee they stayed in sync. The registry collapses
+// the dispatch surface to one table.
 //
-// Ambient names consumed (from tools/shared.bundle.js globals via stats.js):
-//   - tTest, mannWhitneyU, oneWayANOVA, welchANOVA, kruskalWallis
-//   - tukeyHSD, gamesHowell, dunnTest
+// All three functions return `{ error }`-shaped values on failure so
+// callers don't have to branch on the test name.
 
 type GroupValues = number[][];
 export type TestResult = { p?: number; error?: string; [key: string]: unknown };
 
 export function runTest(name: RecommendedTest | string, values: GroupValues): TestResult {
+  const entry = STATS_TEST_REGISTRY[name as RecommendedTest];
+  if (!entry) return { error: "unknown test" };
   try {
-    if (name === "studentT") return tTest(values[0], values[1], { equalVar: true });
-    if (name === "welchT") return tTest(values[0], values[1], { equalVar: false });
-    if (name === "mannWhitney") return mannWhitneyU(values[0], values[1]);
-    if (name === "oneWayANOVA") return oneWayANOVA(values);
-    if (name === "welchANOVA") return welchANOVA(values);
-    if (name === "kruskalWallis") return kruskalWallis(values);
-    return { error: "unknown test" };
+    return entry.run(values) as TestResult;
   } catch (e) {
     return { error: String((e && (e as Error).message) || e) };
   }
@@ -34,11 +30,10 @@ export function runPostHoc(
   name: Exclude<RecommendedPostHoc, null> | string,
   values: GroupValues
 ): { pairs?: unknown[]; error?: string } | null {
+  const entry = STATS_POSTHOC_REGISTRY[name as Exclude<RecommendedPostHoc, null>];
+  if (!entry) return null;
   try {
-    if (name === "tukeyHSD") return tukeyHSD(values);
-    if (name === "gamesHowell") return gamesHowell(values);
-    if (name === "dunn") return dunnTest(values);
-    return null;
+    return entry.run(values) as { pairs?: unknown[]; error?: string };
   } catch (e) {
     return { error: String((e && (e as Error).message) || e) };
   }
@@ -47,8 +42,7 @@ export function runPostHoc(
 export function postHocForTest(
   testName: RecommendedTest | string | null | undefined
 ): Exclude<RecommendedPostHoc, null> | null {
-  if (testName === "oneWayANOVA") return "tukeyHSD";
-  if (testName === "welchANOVA") return "gamesHowell";
-  if (testName === "kruskalWallis") return "dunn";
-  return null;
+  if (testName == null) return null;
+  const entry = STATS_TEST_REGISTRY[testName as RecommendedTest];
+  return entry ? entry.postHoc : null;
 }

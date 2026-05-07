@@ -26,6 +26,11 @@ const FILES = [
   "theme.js",
   "shared.js",
   "stats.js",
+  // shared-stats-registry depends on stats.js function globals (tTest,
+  // welchANOVA, …) and is consumed by shared-r-export.js +
+  // shared-stats-tile.js downstream — must load after stats.js, before
+  // those two.
+  "shared-stats-registry.js",
   "shared-color-input.js",
   "shared-discrete-palette.js",
   "shared-file-drop.js",

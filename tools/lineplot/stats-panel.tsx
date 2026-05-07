@@ -24,10 +24,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: any) {
   const recReason = rec.recommendation && rec.recommendation.reason;
   const recTest = rec.recommendation && rec.recommendation.test;
   const suggestion = rec.suggestion || null;
-  const testOptions =
-    k === 2
-      ? ["studentT", "welchT", "mannWhitney"]
-      : ["oneWayANOVA", "welchANOVA", "kruskalWallis"];
+  const testOptions = k === 2 ? STATS_TESTS_FOR_K2 : STATS_TESTS_FOR_K;
 
   const subhead: React.CSSProperties = {
     margin: "10px 0 6px",

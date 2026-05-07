@@ -15,6 +15,7 @@ const esbuild = require("esbuild");
 const toolsDir = path.join(__dirname, "../../tools");
 const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
 const statsSrc = fs.readFileSync(path.join(toolsDir, "stats.js"), "utf8");
+const registrySrc = fs.readFileSync(path.join(toolsDir, "shared-stats-registry.js"), "utf8");
 const statsTileSrc = fs.readFileSync(path.join(toolsDir, "shared-stats-tile.js"), "utf8");
 const helpersSrc = fs.readFileSync(path.join(toolsDir, "boxplot/helpers.ts"), "utf8");
 
@@ -65,7 +66,12 @@ const ctx = {
 vm.createContext(ctx);
 vm.runInContext(sharedSrc, ctx);
 vm.runInContext(statsSrc, ctx);
-vm.runInContext(statsTileSrc, ctx);
+// shared-stats-registry must run BEFORE shared-stats-tile because the
+// tile reads from STATS_TEST_REGISTRY at top level. Concatenate both
+// into one runInContext call so the const-declared registry binding is
+// visible to the tile script's free references — `const` doesn't bleed
+// across separate runInContext calls.
+vm.runInContext(registrySrc + "\n" + statsTileSrc, ctx);
 vm.runInContext(helpersCjs, ctx);
 
 module.exports = {
