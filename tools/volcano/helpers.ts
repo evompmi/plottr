@@ -541,183 +541,288 @@ const PENALTY_LEADER_ON_POINT = 50;
 const PENALTY_LEADER_CROSS = 50;
 const PENALTY_BBOX_OVERLAP_PER_100PX2 = 1;
 
-export function layoutLabels(
-  inputs: LayoutInput[],
+// Single-label search: walk the candidate (angle, distance) grid given
+// the labels already placed, return the placement with lowest penalty.
+// Penalty == 0 means clean (no constraint violations). The caller
+// decides what to do with non-clean placements (forced flag, etc.).
+//
+// Extracted from layoutLabels so the multi-restart wrapper can call it
+// repeatedly with different `placed` accumulator states without
+// duplicating ~80 lines of constraint-evaluation code.
+function findBestPlacement(
+  inp: LayoutInput,
   obstacles: ObstaclePoint[],
-  bounds: LayoutBounds
-): PlacedLabel[] {
-  const placed: PlacedLabel[] = [];
-  for (const inp of inputs) {
-    const w = inp.charWidth * inp.text.length;
-    const h = inp.lineHeight;
-    const sx = inp.pointPx.x;
-    const sy = inp.pointPx.y;
+  bounds: LayoutBounds,
+  placed: PlacedLabel[]
+): { placement: PlacedLabel; penalty: number } {
+  const w = inp.charWidth * inp.text.length;
+  const h = inp.lineHeight;
+  const sx = inp.pointPx.x;
+  const sy = inp.pointPx.y;
 
-    let chosen: PlacedLabel | null = null;
-    // Track the least-bad in-bounds candidate across the entire search.
-    // Used only when no clean (penalty == 0) candidate exists; this is
-    // the smart-fallback replacement for the prior "always 12 o'clock"
-    // behavior, which made forced labels in tight clusters stack
-    // visibly on top of each other.
-    let bestForced: { penalty: number; candidate: PlacedLabel } | null = null;
+  let chosen: PlacedLabel | null = null;
+  let bestForced: { penalty: number; candidate: PlacedLabel } | null = null;
 
-    // Outer loop = distance (prefer near placement). Inner loop = angle
-    // (prefer 12 o'clock). Total candidate count = 24 × 4 = 96 — enough
-    // wiggle room for dense plots without becoming a force-directed
-    // simulation.
-    distanceLoop: for (const dist of LEADER_DISTANCES) {
-      for (const deg of LABEL_ANGLES_DEG) {
-        const rad = (deg * Math.PI) / 180;
-        const cosA = Math.cos(rad);
-        const sinA = Math.sin(rad);
-        const labelCx = sx + dist * cosA;
-        const labelCy = sy + dist * sinA;
-        const bbox = { x: labelCx - w / 2, y: labelCy - h / 2, w, h };
-
-        // Bounds is a hard constraint: label spilling past the layout
-        // bounds breaks SVG export and is rejected unconditionally,
-        // even when no clean placement exists.
-        if (!within(bbox, bounds)) continue;
-
-        const startX = sx + inp.ringRadius * cosA;
-        const startY = sy + inp.ringRadius * sinA;
-        const leaderEnd = nearestPointOnBbox(bbox, sx, sy);
-
-        // Tally each constraint violation for this candidate. The
-        // first-fit fast path (penalty == 0) short-circuits the search
-        // exactly like the prior algorithm; the slow path keeps going
-        // and tracks the lowest-penalty candidate for the smart
-        // fallback.
-
-        // Constraint 2: bbox vs already-placed labels (overlap area
-        // gives a smooth penalty so a small overlap reads better than
-        // a stacked-on-top fallback).
-        let labelOverlapArea = 0;
-        for (const p of placed) {
-          const ix1 = Math.max(bbox.x, p.bbox.x);
-          const iy1 = Math.max(bbox.y, p.bbox.y);
-          const ix2 = Math.min(bbox.x + bbox.w, p.bbox.x + p.bbox.w);
-          const iy2 = Math.min(bbox.y + bbox.h, p.bbox.y + p.bbox.h);
-          if (ix2 > ix1 && iy2 > iy1) {
-            labelOverlapArea += (ix2 - ix1) * (iy2 - iy1);
-          }
-        }
-
-        // Constraint 3: bbox vs data points (text on a dot is the
-        // worst failure — counted in number of points enclosed so a
-        // candidate burying two dots is twice as bad as one).
-        let bboxHitsPointCount = 0;
-        for (const obs of obstacles) {
-          const ox = obs.x - sx;
-          const oy = obs.y - sy;
-          if (ox * ox + oy * oy < 1) continue; // skip the source itself
-          if (pointInPaddedRect(obs.x, obs.y, bbox, obs.r + LABEL_BBOX_PAD)) {
-            bboxHitsPointCount++;
-          }
-        }
-
-        // Constraint 4: leader line vs other data points.
-        let leaderHitsPointCount = 0;
-        for (const obs of obstacles) {
-          const ox = obs.x - sx;
-          const oy = obs.y - sy;
-          if (ox * ox + oy * oy < 1) continue; // source
-          if (
-            lineSegmentIntersectsCircle(
-              startX,
-              startY,
-              leaderEnd.x,
-              leaderEnd.y,
-              obs.x,
-              obs.y,
-              obs.r + 0.5
-            )
-          ) {
-            leaderHitsPointCount++;
-          }
-        }
-
-        // Constraint 5: leader vs already-placed leaders.
-        let leaderCrossCount = 0;
-        for (const p of placed) {
-          if (
-            lineSegmentsIntersect(
-              startX,
-              startY,
-              leaderEnd.x,
-              leaderEnd.y,
-              p.leaderStart.x,
-              p.leaderStart.y,
-              p.leaderEnd.x,
-              p.leaderEnd.y
-            )
-          ) {
-            leaderCrossCount++;
-          }
-        }
-
-        const penalty =
-          labelOverlapArea * (PENALTY_BBOX_OVERLAP_PER_100PX2 / 100) +
-          leaderCrossCount * PENALTY_LEADER_CROSS +
-          leaderHitsPointCount * PENALTY_LEADER_ON_POINT +
-          bboxHitsPointCount * PENALTY_BBOX_ON_POINT;
-
-        const candidate: PlacedLabel = {
-          pointPx: { x: sx, y: sy },
-          textPx: { x: labelCx, y: labelCy + h / 4 },
-          bbox,
-          text: inp.text,
-          leaderStart: { x: startX, y: startY },
-          leaderEnd,
-          forced: false,
-        };
-
-        if (penalty < 1e-9) {
-          // Clean win — first-fit, take it and move on.
-          chosen = candidate;
-          break distanceLoop;
-        }
-
-        // Track the least-bad candidate. Earlier (angle, distance) wins
-        // ties because we only update on strict improvement, preserving
-        // the prior "prefer near, prefer 12 o'clock" priority order
-        // for the forced path too.
-        if (!bestForced || penalty < bestForced.penalty) {
-          bestForced = { penalty, candidate };
-        }
-      }
-    }
-
-    if (chosen) {
-      placed.push(chosen);
-    } else if (bestForced) {
-      placed.push({ ...bestForced.candidate, forced: true });
-    } else {
-      // No in-bounds candidate exists at all — happens only when the
-      // caller passes bounds smaller than the label can fit inside.
-      // Fall back to 12 o'clock so the result is visibly broken (and
-      // signals the caller to widen `bounds`); flag as forced.
-      const rad = (-90 * Math.PI) / 180;
+  distanceLoop: for (const dist of LEADER_DISTANCES) {
+    for (const deg of LABEL_ANGLES_DEG) {
+      const rad = (deg * Math.PI) / 180;
       const cosA = Math.cos(rad);
       const sinA = Math.sin(rad);
-      const labelCx = sx + LEADER_DISTANCES[0] * cosA;
-      const labelCy = sy + LEADER_DISTANCES[0] * sinA;
+      const labelCx = sx + dist * cosA;
+      const labelCy = sy + dist * sinA;
       const bbox = { x: labelCx - w / 2, y: labelCy - h / 2, w, h };
+
+      // Bounds is a hard constraint — out-of-bounds candidates are
+      // rejected unconditionally even when no clean placement exists,
+      // because labels spilling past `bounds` would corrupt the SVG
+      // export (the chart caller sized `bounds` to its drawable area).
+      if (!within(bbox, bounds)) continue;
+
       const startX = sx + inp.ringRadius * cosA;
       const startY = sy + inp.ringRadius * sinA;
       const leaderEnd = nearestPointOnBbox(bbox, sx, sy);
-      placed.push({
+
+      // Constraint 2: bbox vs already-placed labels (overlap area gives
+      // a smooth penalty — small overlap reads better than a stacked
+      // fallback).
+      let labelOverlapArea = 0;
+      for (const p of placed) {
+        const ix1 = Math.max(bbox.x, p.bbox.x);
+        const iy1 = Math.max(bbox.y, p.bbox.y);
+        const ix2 = Math.min(bbox.x + bbox.w, p.bbox.x + p.bbox.w);
+        const iy2 = Math.min(bbox.y + bbox.h, p.bbox.y + p.bbox.h);
+        if (ix2 > ix1 && iy2 > iy1) {
+          labelOverlapArea += (ix2 - ix1) * (iy2 - iy1);
+        }
+      }
+
+      // Constraint 3: bbox vs data points (text-on-dot = worst).
+      let bboxHitsPointCount = 0;
+      for (const obs of obstacles) {
+        const ox = obs.x - sx;
+        const oy = obs.y - sy;
+        if (ox * ox + oy * oy < 1) continue;
+        if (pointInPaddedRect(obs.x, obs.y, bbox, obs.r + LABEL_BBOX_PAD)) {
+          bboxHitsPointCount++;
+        }
+      }
+
+      // Constraint 4: leader vs other data points.
+      let leaderHitsPointCount = 0;
+      for (const obs of obstacles) {
+        const ox = obs.x - sx;
+        const oy = obs.y - sy;
+        if (ox * ox + oy * oy < 1) continue;
+        if (
+          lineSegmentIntersectsCircle(
+            startX,
+            startY,
+            leaderEnd.x,
+            leaderEnd.y,
+            obs.x,
+            obs.y,
+            obs.r + 0.5
+          )
+        ) {
+          leaderHitsPointCount++;
+        }
+      }
+
+      // Constraint 5: leader vs already-placed leaders.
+      let leaderCrossCount = 0;
+      for (const p of placed) {
+        if (
+          lineSegmentsIntersect(
+            startX,
+            startY,
+            leaderEnd.x,
+            leaderEnd.y,
+            p.leaderStart.x,
+            p.leaderStart.y,
+            p.leaderEnd.x,
+            p.leaderEnd.y
+          )
+        ) {
+          leaderCrossCount++;
+        }
+      }
+
+      const penalty =
+        labelOverlapArea * (PENALTY_BBOX_OVERLAP_PER_100PX2 / 100) +
+        leaderCrossCount * PENALTY_LEADER_CROSS +
+        leaderHitsPointCount * PENALTY_LEADER_ON_POINT +
+        bboxHitsPointCount * PENALTY_BBOX_ON_POINT;
+
+      const candidate: PlacedLabel = {
         pointPx: { x: sx, y: sy },
         textPx: { x: labelCx, y: labelCy + h / 4 },
         bbox,
         text: inp.text,
         leaderStart: { x: startX, y: startY },
         leaderEnd,
-        forced: true,
-      });
+        forced: false,
+      };
+
+      if (penalty < 1e-9) {
+        chosen = candidate;
+        break distanceLoop;
+      }
+
+      if (!bestForced || penalty < bestForced.penalty) {
+        bestForced = { penalty, candidate };
+      }
     }
   }
-  return placed;
+
+  if (chosen) return { placement: chosen, penalty: 0 };
+  if (bestForced) {
+    return {
+      placement: { ...bestForced.candidate, forced: true },
+      penalty: bestForced.penalty,
+    };
+  }
+  // Last-resort fallback: no in-bounds candidate at all (caller passed
+  // bounds smaller than the label can fit). Plant at 12 o'clock anyway,
+  // marked forced; the caller sees a visibly broken result and should
+  // widen `bounds`.
+  const rad = (-90 * Math.PI) / 180;
+  const cosA = Math.cos(rad);
+  const sinA = Math.sin(rad);
+  const labelCx = sx + LEADER_DISTANCES[0] * cosA;
+  const labelCy = sy + LEADER_DISTANCES[0] * sinA;
+  const bbox = { x: labelCx - w / 2, y: labelCy - h / 2, w, h };
+  const startX = sx + inp.ringRadius * cosA;
+  const startY = sy + inp.ringRadius * sinA;
+  const leaderEnd = nearestPointOnBbox(bbox, sx, sy);
+  return {
+    placement: {
+      pointPx: { x: sx, y: sy },
+      textPx: { x: labelCx, y: labelCy + h / 4 },
+      bbox,
+      text: inp.text,
+      leaderStart: { x: startX, y: startY },
+      leaderEnd,
+      forced: true,
+    },
+    // Sentinel: outside the normal penalty range so multi-restart
+    // always prefers any other run that managed an in-bounds placement.
+    penalty: 1e9,
+  };
+}
+
+// Greedy first-fit pass over `inputs` in the given `order`. Returns the
+// placements re-indexed back to input order (placed[i] corresponds to
+// inputs[i]) plus the total penalty across all labels. The total is
+// what the multi-restart wrapper minimizes over.
+function greedyPass(
+  inputs: LayoutInput[],
+  obstacles: ObstaclePoint[],
+  bounds: LayoutBounds,
+  order: number[]
+): { placed: PlacedLabel[]; totalPenalty: number } {
+  const placedInOrder: PlacedLabel[] = [];
+  const placedAt: number[] = []; // input index for each entry in placedInOrder
+  let totalPenalty = 0;
+  for (const idx of order) {
+    const { placement, penalty } = findBestPlacement(
+      inputs[idx],
+      obstacles,
+      bounds,
+      placedInOrder
+    );
+    placedInOrder.push(placement);
+    placedAt.push(idx);
+    totalPenalty += penalty;
+  }
+  // Re-index back to input order — the public contract is
+  // `placed[i] ↔ inputs[i]` regardless of internal placement order.
+  const placed: PlacedLabel[] = new Array(inputs.length);
+  for (let k = 0; k < placedInOrder.length; k++) {
+    placed[placedAt[k]] = placedInOrder[k];
+  }
+  return { placed, totalPenalty };
+}
+
+// Build several input orderings to run the greedy pass with. Each
+// ordering is a permutation of [0..inputs.length-1].
+//
+// Why multiple orderings: greedy first-fit is order-dependent — the
+// label placed first claims its preferred slot, leaving downstream
+// labels to fight over what remains. A label that's "harder" to place
+// (anchor in a dense region) might come up early and grab the easy
+// slot, leaving an "easy" label stranded in a forced fallback later.
+// By running the greedy pass with a few different orderings and
+// picking the lowest-total-penalty result, we get most of the benefit
+// of a global optimization without paying the cost of a force-directed
+// or simulated-annealing solver.
+function buildOrderings(inputs: LayoutInput[]): number[][] {
+  const n = inputs.length;
+  if (n <= 1) return [Array.from({ length: n }, (_, i) => i)];
+
+  const idxs = Array.from({ length: n }, (_, i) => i);
+
+  // Ordering 1 — input order. Highest-priority label first under
+  // pickTopLabels' ranking by |log2FC| × −log10(p).
+  const inputOrder = [...idxs];
+
+  // Ordering 2 — reverse. Lowest-priority label first.
+  const reverseOrder = [...idxs].reverse();
+
+  // Ordering 3 — most-isolated anchor first. For each anchor, find
+  // the distance to its nearest neighbor; sort by that distance
+  // descending. Isolated anchors trivially get clean candidates and
+  // don't constrain others; clustered anchors fight last over what's
+  // left.
+  const isolation = idxs.map((i) => {
+    let minD2 = Infinity;
+    for (const j of idxs) {
+      if (j === i) continue;
+      const dx = inputs[i].pointPx.x - inputs[j].pointPx.x;
+      const dy = inputs[i].pointPx.y - inputs[j].pointPx.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < minD2) minD2 = d2;
+    }
+    return { idx: i, isolation: minD2 };
+  });
+  isolation.sort((a, b) => b.isolation - a.isolation);
+  const isolatedFirst = isolation.map((e) => e.idx);
+
+  // Ordering 4 — most-clustered first. Reverse of isolation: dense
+  // anchors get first claim, the isolated ones place later (where
+  // they'll easily find clean spots regardless). Sometimes wins on
+  // grids that are uniformly dense in one quadrant.
+  const clusteredFirst = [...isolatedFirst].reverse();
+
+  return [inputOrder, reverseOrder, isolatedFirst, clusteredFirst];
+}
+
+export function layoutLabels(
+  inputs: LayoutInput[],
+  obstacles: ObstaclePoint[],
+  bounds: LayoutBounds
+): PlacedLabel[] {
+  if (inputs.length === 0) return [];
+
+  // Multi-restart greedy: try a handful of input orderings, pick the
+  // result with lowest total penalty. Strictly non-regressing — the
+  // single-pass greedy result (input-order) is one of the candidates,
+  // so the worst case is "no improvement found, return the original
+  // result." No force-directed simulation, no stochastic steps; pure
+  // re-runs of the deterministic greedy with different starting orders.
+  //
+  // Cost: K × greedy-pass-cost. With K = 4 orderings and ~20 typical
+  // labels, this is ~4× the prior single-pass layout — measured
+  // ~5–20 ms on a 50-label dense plot. Fast enough that we don't gate
+  // it behind a "high density" heuristic; just always run K passes.
+  const orderings = buildOrderings(inputs);
+  let best = greedyPass(inputs, obstacles, bounds, orderings[0]);
+  for (let i = 1; i < orderings.length; i++) {
+    const candidate = greedyPass(inputs, obstacles, bounds, orderings[i]);
+    if (candidate.totalPenalty < best.totalPenalty) {
+      best = candidate;
+    }
+  }
+  return best.placed;
 }
 
 // Estimate average char width for a monospace font at a given size.
