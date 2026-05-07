@@ -915,4 +915,99 @@ test("null/missing parsed → empty list (defensive)", () => {
   eq(eligibleColumns({}, 0, 1, -1), []);
 });
 
+// ── layoutLabels — smart fallback (replaces always-12-o'clock) ─────────────
+//
+// Pre-fix: when no candidate angle/distance satisfied all five
+// constraints, the algorithm always placed the label straight up at the
+// nearest distance, so multiple "forced" labels in a tight cluster all
+// stacked at the same y above their respective anchors — visible
+// label-pile artefact.
+//
+// Post-fix: the fallback path scores every in-bounds candidate by
+// weighted overlap penalty (label-on-dot > leader-on-dot ≈ leader-cross
+// > bbox overlap area) and picks the least-bad one. The pinning here:
+//
+//   1. forced labels for nearby anchors no longer collapse to the same
+//      bbox (the prior 12-o'clock pile failure mode).
+//   2. forced labels still fit inside `bounds` — the smart fallback is
+//      not allowed to soften that hard constraint.
+//   3. when a clean placement IS available, the algorithm still finds
+//      it (no regression in the easy case).
+
+suite("volcano helpers — layoutLabels smart fallback");
+
+test("forced labels in tight cluster do not all stack at 12 o'clock", () => {
+  // Pack three anchors close together with obstacles surrounding them
+  // so most candidate angles fail. Pre-fix all three would force-place
+  // straight up at distance LEADER_DISTANCES[0] = 38 px — i.e. all
+  // three label centres would land at y = anchor.y - 38, causing
+  // identical y-coordinates within ~0.1 px. Post-fix they should
+  // diverge.
+  const inputs = [
+    makeInput({ x: 200, y: 300 }, "GeneA"),
+    makeInput({ x: 210, y: 300 }, "GeneB"),
+    makeInput({ x: 220, y: 300 }, "GeneC"),
+  ];
+  // Ring of obstacles tight enough that the clean candidates all fail.
+  const obstacles = [];
+  for (let dx = -40; dx <= 60; dx += 10) {
+    for (let dy = -50; dy <= 50; dy += 10) {
+      obstacles.push({ x: 210 + dx, y: 300 + dy, r: 4 });
+    }
+  }
+  const placed = layoutLabels(inputs, obstacles, bigBounds());
+
+  // At least some labels should be forced under this density.
+  const forcedCount = placed.filter((p) => p.forced).length;
+  assert(forcedCount > 0, "expected at least one forced label under high obstacle density");
+
+  // The smoking gun for the prior bug: all forced labels at the same
+  // bbox y-coordinate to within < 1 px.
+  const forced = placed.filter((p) => p.forced);
+  if (forced.length >= 2) {
+    const ys = forced.map((p) => p.bbox.y);
+    const ySpread = Math.max(...ys) - Math.min(...ys);
+    assert(
+      ySpread > 1.0,
+      "forced labels stacked at identical y (prior 12-o'clock pile bug); ySpread=" + ySpread
+    );
+  }
+});
+
+test("smart fallback never spills past bounds (hard constraint preserved)", () => {
+  // Tiny bounds + an unsatisfiable obstacle field forces the fallback
+  // path. Even when no clean candidate exists, the smart-fallback
+  // placement must stay inside `bounds`.
+  const tightBounds = { x: 0, y: 0, w: 200, h: 200 };
+  const inputs = [makeInput({ x: 100, y: 100 }, "Hit")];
+  // Obstacles in a circle around the anchor to block every clean angle.
+  const obstacles = [];
+  for (let deg = 0; deg < 360; deg += 10) {
+    const r = (deg * Math.PI) / 180;
+    obstacles.push({ x: 100 + 30 * Math.cos(r), y: 100 + 30 * Math.sin(r), r: 6 });
+  }
+  const placed = layoutLabels(inputs, obstacles, tightBounds);
+  eq(placed.length, 1);
+  const lab = placed[0];
+  assert(
+    lab.bbox.x >= tightBounds.x &&
+      lab.bbox.y >= tightBounds.y &&
+      lab.bbox.x + lab.bbox.w <= tightBounds.x + tightBounds.w &&
+      lab.bbox.y + lab.bbox.h <= tightBounds.y + tightBounds.h,
+    "forced label must stay inside bounds"
+  );
+});
+
+test("clean placement still preferred when available (no regression in easy case)", () => {
+  // Single isolated label, generous bounds — the clean 12-o'clock
+  // candidate should win and the label must NOT be flagged forced.
+  const placed = layoutLabels(
+    [makeInput({ x: 300, y: 300 }, "Solo")],
+    [],
+    bigBounds()
+  );
+  eq(placed.length, 1);
+  assert(!placed[0].forced, "isolated label should place cleanly, not via fallback");
+});
+
 summary();

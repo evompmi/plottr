@@ -424,13 +424,6 @@ const LABEL_ANGLES_DEG = [
   15, 165, 30, 150, 45, 135, 60, 120, 75, 105, 90,
 ];
 
-function rectsOverlap(
-  a: { x: number; y: number; w: number; h: number },
-  b: { x: number; y: number; w: number; h: number }
-): boolean {
-  return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
-}
-
 function within(
   bbox: { x: number; y: number; w: number; h: number },
   bounds: LayoutBounds
@@ -530,6 +523,24 @@ function pointInPaddedRect(
   );
 }
 
+// Penalty weights for the smart-fallback path. A clean placement scores
+// 0 (all constraints satisfied) and short-circuits the fallback. When no
+// clean candidate exists, every (angle, distance) is scored by these
+// weights and the least-bad wins — replaces the previous always-12-
+// o'clock fallback, which produced visible label piles when multiple
+// labels' clean candidates were all blocked.
+//
+// Weight ordering (most → least bad):
+//   - bbox-on-dot: text sitting directly on a data point is unreadable.
+//   - leader-on-dot or leader-vs-leader: visually confusing but the text
+//     itself stays legible.
+//   - bbox-vs-bbox overlap: legible if mild; the overlap area gives a
+//     graceful penalty proportional to how much text gets obscured.
+const PENALTY_BBOX_ON_POINT = 200;
+const PENALTY_LEADER_ON_POINT = 50;
+const PENALTY_LEADER_CROSS = 50;
+const PENALTY_BBOX_OVERLAP_PER_100PX2 = 1;
+
 export function layoutLabels(
   inputs: LayoutInput[],
   obstacles: ObstaclePoint[],
@@ -541,13 +552,19 @@ export function layoutLabels(
     const h = inp.lineHeight;
     const sx = inp.pointPx.x;
     const sy = inp.pointPx.y;
+
     let chosen: PlacedLabel | null = null;
+    // Track the least-bad in-bounds candidate across the entire search.
+    // Used only when no clean (penalty == 0) candidate exists; this is
+    // the smart-fallback replacement for the prior "always 12 o'clock"
+    // behavior, which made forced labels in tight clusters stack
+    // visibly on top of each other.
+    let bestForced: { penalty: number; candidate: PlacedLabel } | null = null;
 
     // Outer loop = distance (prefer near placement). Inner loop = angle
     // (prefer 12 o'clock). Total candidate count = 24 × 4 = 96 — enough
     // wiggle room for dense plots without becoming a force-directed
-    // simulation. The first candidate that satisfies all five
-    // constraints wins.
+    // simulation.
     distanceLoop: for (const dist of LEADER_DISTANCES) {
       for (const deg of LABEL_ANGLES_DEG) {
         const rad = (deg * Math.PI) / 180;
@@ -557,40 +574,50 @@ export function layoutLabels(
         const labelCy = sy + dist * sinA;
         const bbox = { x: labelCx - w / 2, y: labelCy - h / 2, w, h };
 
-        // Constraint 1: bbox stays inside layout bounds.
+        // Bounds is a hard constraint: label spilling past the layout
+        // bounds breaks SVG export and is rejected unconditionally,
+        // even when no clean placement exists.
         if (!within(bbox, bounds)) continue;
 
-        // Constraint 2: bbox doesn't overlap any already-placed label.
-        let labelCollides = false;
+        const startX = sx + inp.ringRadius * cosA;
+        const startY = sy + inp.ringRadius * sinA;
+        const leaderEnd = nearestPointOnBbox(bbox, sx, sy);
+
+        // Tally each constraint violation for this candidate. The
+        // first-fit fast path (penalty == 0) short-circuits the search
+        // exactly like the prior algorithm; the slow path keeps going
+        // and tracks the lowest-penalty candidate for the smart
+        // fallback.
+
+        // Constraint 2: bbox vs already-placed labels (overlap area
+        // gives a smooth penalty so a small overlap reads better than
+        // a stacked-on-top fallback).
+        let labelOverlapArea = 0;
         for (const p of placed) {
-          if (rectsOverlap(bbox, p.bbox)) {
-            labelCollides = true;
-            break;
+          const ix1 = Math.max(bbox.x, p.bbox.x);
+          const iy1 = Math.max(bbox.y, p.bbox.y);
+          const ix2 = Math.min(bbox.x + bbox.w, p.bbox.x + p.bbox.w);
+          const iy2 = Math.min(bbox.y + bbox.h, p.bbox.y + p.bbox.h);
+          if (ix2 > ix1 && iy2 > iy1) {
+            labelOverlapArea += (ix2 - ix1) * (iy2 - iy1);
           }
         }
-        if (labelCollides) continue;
 
-        // Constraint 3: bbox doesn't enclose any data point. Padding by
-        // (obstacle radius + LABEL_BBOX_PAD) so text doesn't kiss dot edges.
-        let bboxHitsPoint = false;
+        // Constraint 3: bbox vs data points (text on a dot is the
+        // worst failure — counted in number of points enclosed so a
+        // candidate burying two dots is twice as bad as one).
+        let bboxHitsPointCount = 0;
         for (const obs of obstacles) {
           const ox = obs.x - sx;
           const oy = obs.y - sy;
           if (ox * ox + oy * oy < 1) continue; // skip the source itself
           if (pointInPaddedRect(obs.x, obs.y, bbox, obs.r + LABEL_BBOX_PAD)) {
-            bboxHitsPoint = true;
-            break;
+            bboxHitsPointCount++;
           }
         }
-        if (bboxHitsPoint) continue;
 
-        // Leader: ring edge → nearest bbox edge point.
-        const startX = sx + inp.ringRadius * cosA;
-        const startY = sy + inp.ringRadius * sinA;
-        const leaderEnd = nearestPointOnBbox(bbox, sx, sy);
-
-        // Constraint 4: leader doesn't cross any other data point.
-        let leaderCollides = false;
+        // Constraint 4: leader line vs other data points.
+        let leaderHitsPointCount = 0;
         for (const obs of obstacles) {
           const ox = obs.x - sx;
           const oy = obs.y - sy;
@@ -606,14 +633,12 @@ export function layoutLabels(
               obs.r + 0.5
             )
           ) {
-            leaderCollides = true;
-            break;
+            leaderHitsPointCount++;
           }
         }
-        if (leaderCollides) continue;
 
-        // Constraint 5: leader doesn't cross any already-placed leader.
-        let leadersCross = false;
+        // Constraint 5: leader vs already-placed leaders.
+        let leaderCrossCount = 0;
         for (const p of placed) {
           if (
             lineSegmentsIntersect(
@@ -627,13 +652,17 @@ export function layoutLabels(
               p.leaderEnd.y
             )
           ) {
-            leadersCross = true;
-            break;
+            leaderCrossCount++;
           }
         }
-        if (leadersCross) continue;
 
-        chosen = {
+        const penalty =
+          labelOverlapArea * (PENALTY_BBOX_OVERLAP_PER_100PX2 / 100) +
+          leaderCrossCount * PENALTY_LEADER_CROSS +
+          leaderHitsPointCount * PENALTY_LEADER_ON_POINT +
+          bboxHitsPointCount * PENALTY_BBOX_ON_POINT;
+
+        const candidate: PlacedLabel = {
           pointPx: { x: sx, y: sy },
           textPx: { x: labelCx, y: labelCy + h / 4 },
           bbox,
@@ -642,14 +671,32 @@ export function layoutLabels(
           leaderEnd,
           forced: false,
         };
-        break distanceLoop;
+
+        if (penalty < 1e-9) {
+          // Clean win — first-fit, take it and move on.
+          chosen = candidate;
+          break distanceLoop;
+        }
+
+        // Track the least-bad candidate. Earlier (angle, distance) wins
+        // ties because we only update on strict improvement, preserving
+        // the prior "prefer near, prefer 12 o'clock" priority order
+        // for the forced path too.
+        if (!bestForced || penalty < bestForced.penalty) {
+          bestForced = { penalty, candidate };
+        }
       }
     }
 
-    if (!chosen) {
-      // Fallback: place straight up at the nearest distance regardless
-      // of collisions; flag as forced so the chart renders the leader
-      // visibly anyway.
+    if (chosen) {
+      placed.push(chosen);
+    } else if (bestForced) {
+      placed.push({ ...bestForced.candidate, forced: true });
+    } else {
+      // No in-bounds candidate exists at all — happens only when the
+      // caller passes bounds smaller than the label can fit inside.
+      // Fall back to 12 o'clock so the result is visibly broken (and
+      // signals the caller to widen `bounds`); flag as forced.
       const rad = (-90 * Math.PI) / 180;
       const cosA = Math.cos(rad);
       const sinA = Math.sin(rad);
@@ -659,7 +706,7 @@ export function layoutLabels(
       const startX = sx + inp.ringRadius * cosA;
       const startY = sy + inp.ringRadius * sinA;
       const leaderEnd = nearestPointOnBbox(bbox, sx, sy);
-      chosen = {
+      placed.push({
         pointPx: { x: sx, y: sy },
         textPx: { x: labelCx, y: labelCy + h / 4 },
         bbox,
@@ -667,9 +714,8 @@ export function layoutLabels(
         leaderStart: { x: startX, y: startY },
         leaderEnd,
         forced: true,
-      };
+      });
     }
-    placed.push(chosen);
   }
   return placed;
 }
