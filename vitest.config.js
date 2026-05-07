@@ -1,15 +1,14 @@
-// Vitest config — runs the existing tests/*.test.js suite under Vitest
-// without rewriting the 24 test files. The bespoke `tests/harness.js`
-// has been rewritten as a thin shim that delegates `suite() / test() /
+// Vitest config — runs the existing tests/*.test.js suite (per-tool
+// unit tests + fast-check property tests) under Vitest. The bespoke
+// `tests/harness.js` is a thin shim delegating `suite() / test() /
 // assert() / eq() / approx() / throws() / summary()` to Vitest's own
 // `test()` global, so the project keeps its testing vocabulary while
 // gaining parallel file execution, watch mode, IDE integration,
 // snapshot support, and proper diff output on failures.
 //
-// Out-of-scope for this config: tests/fuzz/*.fuzz.js (own driver,
-// invoked via `npm run fuzz:<tool>`) and tests/helpers/* (vm-context
-// loaders for shared.js / per-tool helpers.ts — these are imported by
-// the test files but are never themselves tests).
+// Out-of-scope for this config: tests/helpers/* (vm-context loaders
+// for shared.js / per-tool helpers.ts and shared CSV arbitraries —
+// imported by the test files but never themselves tests).
 
 const { defineConfig } = require("vitest/config");
 
@@ -29,12 +28,12 @@ module.exports = defineConfig({
     environment: "node",
 
     // Test discovery: every tests/*.test.js (no nesting). The harness
-    // itself (`tests/harness.js`), the per-tool / per-domain loaders
-    // under `tests/helpers/`, and the fuzz drivers under `tests/fuzz/`
-    // are explicitly not tests; the include pattern + the default
-    // exclude list (node_modules, build/, dist/) keep them out.
+    // itself (`tests/harness.js`) and the per-tool / per-domain loaders
+    // under `tests/helpers/` are explicitly not tests; the include
+    // pattern + the default exclude list (node_modules, build/, dist/)
+    // keep them out.
     include: ["tests/*.test.js"],
-    exclude: ["node_modules/**", "tests/fuzz/**", "tests/helpers/**", "tests/harness.js"],
+    exclude: ["node_modules/**", "tests/helpers/**", "tests/harness.js"],
 
     // Verbose reporter prints every test name as it runs, matching the
     // pre-Vitest `✓  <name>` cadence the contributor expectation has

@@ -1,11 +1,19 @@
-// Deterministic, seeded input generators for fuzz-testing the toolbox.
-// Each generator takes a PRNG (function () → [0,1)) and returns
-// `{ label, text }` where `label` is a short tag for failure reports
-// and `text` is the raw CSV/TSV/… string that will be fed to a parser.
+// Deterministic, seeded input generators producing the toolbox's
+// pathological-CSV corpus. Each generator takes a PRNG (function () →
+// [0,1)) and returns `{ label, text }` where `label` is a short tag
+// for failure reports and `text` is the raw CSV/TSV/… string that
+// will be fed to a parser.
 //
 // Generators deliberately produce plausibly-broken inputs — things a
 // careless user might paste: mixed delimiters, stray quotes, decimal
 // commas, extreme sizes, unicode, NaN/Inf, ragged rows, BOM, etc.
+//
+// Originally lived under `tests/fuzz/generators.js` and was driven by a
+// hand-written for-loop in each `tests/fuzz/<tool>.fuzz.js`. The fuzz
+// harnesses were retired in favour of fast-check property tests; this
+// corpus moved here and is now wrapped as a fast-check arbitrary by
+// `tests/helpers/csv-arbitraries.js` so the property suites still
+// exercise every pathology the corpus covers.
 
 const SEPARATORS = [",", "\t", ";", " "];
 
