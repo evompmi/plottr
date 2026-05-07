@@ -681,8 +681,7 @@ function refineForcedAngle(
   // Level 1: coarse fine-grained sweep ±REFINE_RANGE_DEG.
   let bestLevel1Angle = baseAngleDeg;
   for (let i = 0; i < REFINE_STEPS_LEVEL_1; i++) {
-    const offset =
-      -REFINE_RANGE_DEG + (2 * REFINE_RANGE_DEG * i) / (REFINE_STEPS_LEVEL_1 - 1);
+    const offset = -REFINE_RANGE_DEG + (2 * REFINE_RANGE_DEG * i) / (REFINE_STEPS_LEVEL_1 - 1);
     const angleDeg = baseAngleDeg + offset;
     if (Math.abs(offset) < 1e-9) continue; // skip the base — already evaluated
     const result = evaluateCandidate(inp, obstacles, bounds, placed, angleDeg, baseDistance);
@@ -819,12 +818,7 @@ function greedyPass(
   const placedAt: number[] = []; // input index for each entry in placedInOrder
   let totalPenalty = 0;
   for (const idx of order) {
-    const { placement, penalty } = findBestPlacement(
-      inputs[idx],
-      obstacles,
-      bounds,
-      placedInOrder
-    );
+    const { placement, penalty } = findBestPlacement(inputs[idx], obstacles, bounds, placedInOrder);
     placedInOrder.push(placement);
     placedAt.push(idx);
     totalPenalty += penalty;

@@ -1001,11 +1001,7 @@ test("smart fallback never spills past bounds (hard constraint preserved)", () =
 test("clean placement still preferred when available (no regression in easy case)", () => {
   // Single isolated label, generous bounds — the clean 12-o'clock
   // candidate should win and the label must NOT be flagged forced.
-  const placed = layoutLabels(
-    [makeInput({ x: 300, y: 300 }, "Solo")],
-    [],
-    bigBounds()
-  );
+  const placed = layoutLabels([makeInput({ x: 300, y: 300 }, "Solo")], [], bigBounds());
   eq(placed.length, 1);
   assert(!placed[0].forced, "isolated label should place cleanly, not via fallback");
 });

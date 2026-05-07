@@ -68,7 +68,11 @@ const ctx = {
     visibilityState: "visible",
   },
   window: {
-    matchMedia: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+    matchMedia: () => ({
+      matches: false,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }),
     addEventListener: () => {},
     removeEventListener: () => {},
     dispatchEvent: () => {},
