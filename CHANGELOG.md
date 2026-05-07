@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Per-tool fuzz harnesses replaced by fast-check property suites.** Internal/test-only: each tool's `tests/fuzz/<tool>.fuzz.js` (and the weekly `fuzz-release.yml` sweep) is gone; coverage now runs inside `npm test` via `tests/<tool>.property.test.js`, with shrinking on failure.
 
+- **Property-test coverage expanded across all seven non-volcano tools.** Internal/test-only: 117 → 247 properties (heatmap 35, boxplot 34, upset 27, venn 27, aequorin 27, scatter 22, lineplot 18, volcano unchanged at 57). Suite total: 1322 tests.
+
 - **Volcano label placement: smarter fallback, multi-restart, sub-degree
   refinement, and a density-aware cap warning.** Previously the
   greedy-first-fit layout always defaulted forced labels to 12 o'clock,

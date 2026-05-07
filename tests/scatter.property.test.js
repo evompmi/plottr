@@ -2,9 +2,9 @@
 //
 // Replaces the prior tests/fuzz/scatter.fuzz.js. Drives the same chain
 // (parseRaw → (x, y) extraction → computeLinearRegression →
-//  interpolateColor across every palette) under fast-check, with the
-// curated CSV-pathology corpus and structural arbitraries from
-// tests/helpers/csv-arbitraries.
+//  interpolateColor across every palette) plus the pure helpers
+// (fmtTick, SHAPES) under fast-check, with the curated CSV-pathology
+// corpus and structural arbitraries from tests/helpers/csv-arbitraries.
 
 const fc = require("fast-check");
 const { suite, test } = require("./harness");
@@ -61,11 +61,17 @@ test("returns { headers, rows } as arrays", () => {
   );
 });
 
-// ── computeLinearRegression ────────────────────────────────────────────
+// ── computeLinearRegression: structural ────────────────────────────────
 
-suite("scatter property — computeLinearRegression");
+suite("scatter property — computeLinearRegression structural");
 
-test("never throws on extracted (x, y) pairs", () => {
+const arbPair = fc.tuple(
+  fc.double({ min: -1e6, max: 1e6, noNaN: true, noDefaultInfinity: true }),
+  fc.double({ min: -1e6, max: 1e6, noNaN: true, noDefaultInfinity: true })
+);
+const arbPairs = fc.array(arbPair, { minLength: 0, maxLength: 50 });
+
+test("never throws on arbitrary (x, y) pairs from parsed CSV", () => {
   check(
     fc.property(
       fc.oneof(arbWideCsv, arbLongCsv),
@@ -84,50 +90,89 @@ test("never throws on extracted (x, y) pairs", () => {
   );
 });
 
-test("valid regressions have finite slope and intercept", () => {
+test("returns valid:false for fewer than 2 input rows", () => {
   check(
     fc.property(
-      fc.array(
-        fc.tuple(
-          fc.double({ min: -1e6, max: 1e6, noNaN: true, noDefaultInfinity: true }),
-          fc.double({ min: -1e6, max: 1e6, noNaN: true, noDefaultInfinity: true })
-        ),
-        { minLength: 0, maxLength: 50 }
-      ),
+      fc.oneof(fc.constant([]), fc.array(arbPair, { minLength: 1, maxLength: 1 })),
       (pairs) => {
-        const reg = computeLinearRegression(pairs, 0, 1);
-        if (!reg.valid) return true;
-        return Number.isFinite(reg.slope) && Number.isFinite(reg.intercept);
+        return computeLinearRegression(pairs, 0, 1).valid === false;
       }
     )
+  );
+});
+
+test("returns valid:false when x has zero variance (all-equal x)", () => {
+  // Use integer x to avoid subnormal-scale arithmetic where
+  // `n * sxx - sx * sx` can pick up FP noise near zero and the
+  // implementation's exact `denomX === 0` check misses it.
+  check(
+    fc.property(
+      fc.integer({ min: -100, max: 100 }),
+      fc.array(fc.double({ min: -100, max: 100, noNaN: true, noDefaultInfinity: true }), {
+        minLength: 2,
+        maxLength: 20,
+      }),
+      (x, ys) => {
+        const pairs = ys.map((y) => [x, y]);
+        return computeLinearRegression(pairs, 0, 1).valid === false;
+      }
+    )
+  );
+});
+
+test("valid regressions have finite slope and intercept", () => {
+  check(
+    fc.property(arbPairs, (pairs) => {
+      const reg = computeLinearRegression(pairs, 0, 1);
+      if (!reg.valid) return true;
+      return Number.isFinite(reg.slope) && Number.isFinite(reg.intercept);
+    })
   );
 });
 
 test("r² is in [0, 1] when finite (allowing tiny FP slack)", () => {
   check(
+    fc.property(arbPairs, (pairs) => {
+      const reg = computeLinearRegression(pairs, 0, 1);
+      if (!reg.valid) return true;
+      if (!Number.isFinite(reg.r2)) return true;
+      return reg.r2 >= -1e-9 && reg.r2 <= 1 + 1e-9;
+    })
+  );
+});
+
+test("n equals the count of non-NaN (x, y) pairs", () => {
+  // The implementation skips on `isNaN(x) || isNaN(y)`, *not* on
+  // `Number.isFinite(...)`. Match that filter here so the property
+  // describes the actual contract.
+  check(
     fc.property(
       fc.array(
         fc.tuple(
-          fc.double({ min: -1e6, max: 1e6, noNaN: true, noDefaultInfinity: true }),
-          fc.double({ min: -1e6, max: 1e6, noNaN: true, noDefaultInfinity: true })
+          fc.oneof(fc.double(), fc.constantFrom(NaN)),
+          fc.oneof(fc.double(), fc.constantFrom(NaN))
         ),
-        { minLength: 0, maxLength: 50 }
+        { minLength: 2, maxLength: 30 }
       ),
-      (pairs) => {
-        const reg = computeLinearRegression(pairs, 0, 1);
+      (rawPairs) => {
+        const reg = computeLinearRegression(rawPairs, 0, 1);
         if (!reg.valid) return true;
-        if (!Number.isFinite(reg.r2)) return true;
-        return reg.r2 >= -1e-9 && reg.r2 <= 1 + 1e-9;
+        const expected = rawPairs.filter(([x, y]) => !Number.isNaN(x) && !Number.isNaN(y)).length;
+        return reg.n === expected;
       }
     )
   );
 });
 
-test("identity regression (y = x) recovers slope ≈ 1, intercept ≈ 0, r² ≈ 1", () => {
-  // Use integer xs with a guaranteed non-degenerate spread. Floats spanning
+// ── computeLinearRegression: numerical fixtures ────────────────────────
+
+suite("scatter property — computeLinearRegression numerical");
+
+test("identity regression (y = x) recovers slope = 1, intercept = 0, r² = 1", () => {
+  // Integer xs with guaranteed non-degenerate spread. Floats spanning
   // many orders of magnitude trigger FP-underflow paths where covar / var
-  // collapse to 0 / 0 and the recovered slope drifts wildly — the regression
-  // implementation is correct, the assertion just isn't robust to that.
+  // collapse to 0 / 0; the regression is correct, the assertion isn't
+  // robust to that scale, so we use ints.
   check(
     fc.property(
       fc
@@ -142,6 +187,66 @@ test("identity regression (y = x) recovers slope ≈ 1, intercept ≈ 0, r² ≈
           Math.abs(reg.intercept) < 1e-9 &&
           Math.abs(reg.r2 - 1) < 1e-9
         );
+      }
+    )
+  );
+});
+
+test("y = a·x + b recovers (a, b) within FP tolerance", () => {
+  check(
+    fc.property(
+      fc.integer({ min: -10, max: 10 }),
+      fc.integer({ min: -50, max: 50 }),
+      fc
+        .array(fc.integer({ min: -100, max: 100 }), { minLength: 3, maxLength: 30 })
+        .filter((xs) => new Set(xs).size >= 2),
+      (a, b, xs) => {
+        const pairs = xs.map((x) => [x, a * x + b]);
+        const reg = computeLinearRegression(pairs, 0, 1);
+        if (!reg.valid) return true;
+        return (
+          Math.abs(reg.slope - a) < 1e-6 &&
+          Math.abs(reg.intercept - b) < 1e-6 &&
+          (Number.isNaN(reg.r2) || Math.abs(reg.r2 - 1) < 1e-6)
+        );
+      }
+    )
+  );
+});
+
+test("zero-y-variance with non-zero-x-variance gives r² = NaN", () => {
+  check(
+    fc.property(
+      fc.integer({ min: -100, max: 100 }),
+      fc
+        .array(fc.integer({ min: -100, max: 100 }), { minLength: 3, maxLength: 30 })
+        .filter((xs) => new Set(xs).size >= 2),
+      (yConst, xs) => {
+        const pairs = xs.map((x) => [x, yConst]);
+        const reg = computeLinearRegression(pairs, 0, 1);
+        if (!reg.valid) return true;
+        return Number.isNaN(reg.r2);
+      }
+    )
+  );
+});
+
+test("slope sign matches data trend (positive correlation → positive slope)", () => {
+  // Construct (x, x + ε noise) so the trend is unambiguously positive.
+  // r² may not be perfect, but the sign should never flip.
+  check(
+    fc.property(
+      fc
+        .array(fc.integer({ min: -50, max: 50 }), { minLength: 4, maxLength: 30 })
+        .filter((xs) => new Set(xs).size >= 2),
+      (xs) => {
+        // Ensure non-trivial spread so the slope estimate is well-conditioned.
+        const sortedXs = [...xs].sort((a, b) => a - b);
+        if (sortedXs[sortedXs.length - 1] - sortedXs[0] < 1) return true;
+        const pairs = xs.map((x, i) => [x, 2 * x + (i % 3) - 1]);
+        const reg = computeLinearRegression(pairs, 0, 1);
+        if (!reg.valid) return true;
+        return reg.slope > 0;
       }
     )
   );
@@ -191,6 +296,45 @@ test("interpolation is deterministic", () => {
   );
 });
 
+test("t = 0 hits the first palette stop; t = 1 hits the last", () => {
+  check(
+    fc.property(fc.constantFrom(...PALETTE_NAMES), (name) => {
+      const stops = COLOR_PALETTES[name];
+      const c0 = interpolateColor(stops, 0);
+      const c1 = interpolateColor(stops, 1);
+      // Compare case-insensitive; the helper may return the canonicalised
+      // hex of whichever case the palette was declared in.
+      return (
+        c0.toLowerCase() === stops[0].toLowerCase() &&
+        c1.toLowerCase() === stops[stops.length - 1].toLowerCase()
+      );
+    })
+  );
+});
+
+test("clamps out-of-range t to the boundary stops", () => {
+  check(
+    fc.property(
+      fc.constantFrom(...PALETTE_NAMES),
+      fc.double({ min: -10, max: -0.001, noNaN: true, noDefaultInfinity: true }),
+      (name, t) => {
+        const stops = COLOR_PALETTES[name];
+        return interpolateColor(stops, t).toLowerCase() === stops[0].toLowerCase();
+      }
+    )
+  );
+  check(
+    fc.property(
+      fc.constantFrom(...PALETTE_NAMES),
+      fc.double({ min: 1.001, max: 10, noNaN: true, noDefaultInfinity: true }),
+      (name, t) => {
+        const stops = COLOR_PALETTES[name];
+        return interpolateColor(stops, t).toLowerCase() === stops[stops.length - 1].toLowerCase();
+      }
+    )
+  );
+});
+
 // ── pure helpers ───────────────────────────────────────────────────────
 
 suite("scatter property — pure helpers");
@@ -203,10 +347,40 @@ test("fmtTick always returns a string", () => {
   );
 });
 
-test("SHAPES is a non-empty array of distinct identifiers", () => {
+test("fmtTick(0) === '0' exactly", () => {
+  if (fmtTick(0) !== "0") throw new Error("fmtTick(0) should be '0'");
+  if (fmtTick(-0) !== "0") throw new Error("fmtTick(-0) should be '0'");
+});
+
+test("fmtTick uses exponential for large or tiny magnitudes", () => {
+  check(
+    fc.property(fc.double({ min: 10000, max: 1e10, noNaN: true, noDefaultInfinity: true }), (v) =>
+      /e[+-]/i.test(fmtTick(v))
+    )
+  );
+  check(
+    fc.property(fc.double({ min: 1e-10, max: 0.009, noNaN: true, noDefaultInfinity: true }), (v) =>
+      /e[+-]/i.test(fmtTick(v))
+    )
+  );
+});
+
+test("fmtTick returns whole-number string for moderate integers ≥ 100", () => {
+  check(
+    fc.property(fc.integer({ min: 100, max: 9999 }), (v) => {
+      return fmtTick(v) === String(v);
+    })
+  );
+});
+
+test("SHAPES is a non-empty array of unique non-empty strings", () => {
   if (!Array.isArray(SHAPES) || SHAPES.length === 0) {
     throw new Error("SHAPES is not a non-empty array");
   }
-  const seen = new Set(SHAPES);
-  if (seen.size !== SHAPES.length) throw new Error("SHAPES contains duplicates");
+  const seen = new Set();
+  for (const s of SHAPES) {
+    if (typeof s !== "string" || s.length === 0) throw new Error("SHAPES entry not a string");
+    if (seen.has(s)) throw new Error("SHAPES contains duplicates");
+    seen.add(s);
+  }
 });
