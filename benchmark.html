@@ -237,8 +237,8 @@
   <header>
     <h1>statistical cross-validation vs R + SciPy</h1>
     <ul class="lede">
-      <li><strong>Two independent references.</strong> Plöttr's <code>tools/stats.js</code> is cross-checked against (a) R 4.5.3 on real built-in datasets and (b) SciPy 1.17.1 on synthetic targeted grids over the (df, λ) regimes the R bank only touches indirectly.</li>
-      <li>Plöttr reruns every function in <code>tools/stats.js</code> against its R 4.5.3 counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
+      <li><strong>Two independent references.</strong> Plöttr's <code>tools/stats-*.js</code> is cross-checked against (a) R 4.5.3 on real built-in datasets and (b) SciPy 1.17.1 on synthetic targeted grids over the (df, λ) regimes the R bank only touches indirectly.</li>
+      <li>Plöttr reruns every function in <code>tools/stats-*.js</code> against its R 4.5.3 counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
       <li>Inputs are bit-identical between R and Plöttr.</li>
       <li>Tolerance: |Δ| ≤ 0.005 on test statistics and on p-values ≥ 0.01. Deep-tail p-values (&lt; 0.01) are compared in log space, so the ratio between R's p and Plöttr's stays within [1/1.1, 1.1].</li>
       <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons.</li>
@@ -3388,8 +3388,8 @@
     </details>
 
   <footer>
-    R reference generated 2026-05-02 13:54:51 UTC.
-    Tolerance 0.005. Tool source: <code>tools/stats.js</code>.
+    R reference generated 2026-05-08 20:04:05 UTC.
+    Tolerance 0.005. Tool source: <code>tools/stats-*.js</code>.
   </footer>
 </div>
 <script>
