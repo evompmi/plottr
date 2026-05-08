@@ -33,7 +33,6 @@
 // natively. We compile to an IIFE in-memory and splice symbol-export
 // assignments inside the IIFE so the closures land on the context.
 
-const fs = require("fs");
 const vm = require("vm");
 const path = require("path");
 const esbuild = require("esbuild");
