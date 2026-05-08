@@ -3,11 +3,11 @@
 // constants and pure helpers (computeSeries, computePerXStats, buildLineD)
 // live in tools/lineplot/helpers.ts.
 
-import { MARGIN, STAR_ROW_H, buildLineD } from "./helpers";
+import { MARGIN, STAR_ROW_H, buildLineD, ChartProps, SeriesPoint } from "./helpers";
 
 const { forwardRef } = React;
 
-export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
+export const Chart = forwardRef<SVGSVGElement, ChartProps>(function Chart(
   {
     series,
     perXStats,
@@ -34,13 +34,13 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
   },
   ref
 ) {
-  const itemW = (b: any) => {
-    const maxLen = Math.max(0, ...(b.items || []).map((i: any) => (i.label || "").length));
+  const itemW = (b: LegendBlock): number => {
+    const maxLen = Math.max(0, ...(b.items || []).map((i) => (i.label || "").length));
     return Math.max(110, maxLen * 6 + 28);
   };
   const legendH = computeLegendHeight(svgLegend, vbW - MARGIN.left - MARGIN.right, itemW);
   const topPad = (plotTitle ? 20 : 0) + (plotSubtitle ? 16 : 0);
-  const starRowH = showStars && perXStats.some((r: any) => r.pAdj != null) ? STAR_ROW_H : 0;
+  const starRowH = showStars && perXStats.some((r) => r.pAdj != null) ? STAR_ROW_H : 0;
 
   const w = vbW - MARGIN.left - MARGIN.right;
   const h = vbH - MARGIN.top - MARGIN.bottom;
@@ -57,7 +57,7 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
 
   // errorType === "none" returns null so the render loop's
   // `!e || !Number.isFinite(e)` guard skips the bar entirely.
-  const errOf = (p: any) =>
+  const errOf = (p: SeriesPoint): number | null =>
     errorType === "none" ? null : errorType === "sd" ? p.sd : errorType === "ci95" ? p.ci95 : p.sem;
 
   return (
@@ -136,8 +136,8 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
           </g>
         )}
         <g id="traces">
-          {series.map((s: any) => {
-            const linePts = s.points.map((p: any) => ({
+          {series.map((s) => {
+            const linePts = s.points.map((p) => ({
               x: sx(p.x),
               y: p.mean != null ? sy(p.mean) : null,
             }));
@@ -156,9 +156,9 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
           })}
         </g>
         <g id="error-bars">
-          {series.map((s: any) => (
+          {series.map((s) => (
             <g key={`errs-${s.name}`} id={`errbars-${svgSafeId(s.name)}`}>
-              {s.points.map((p: any, pi: number) => {
+              {s.points.map((p, pi) => {
                 if (p.n < 2 || p.mean == null) return null;
                 const e = errOf(p);
                 if (!e || !Number.isFinite(e)) return null;
@@ -199,9 +199,9 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
           ))}
         </g>
         <g id="data-points">
-          {series.map((s: any) => (
+          {series.map((s) => (
             <g key={`pts-${s.name}`} id={`points-${svgSafeId(s.name)}`}>
-              {s.points.map((p: any, pi: number) =>
+              {s.points.map((p, pi) =>
                 p.mean == null ? null : (
                   <circle
                     key={`pt-${pi}`}
@@ -219,7 +219,7 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
         </g>
         {showStars && starRowH > 0 && (
           <g id="significance-stars">
-            {perXStats.map((r: any, i: number) => {
+            {perXStats.map((r, i) => {
               if (r.pAdj == null) return null;
               const s = pStars(r.pAdj);
               if (!s || s === "ns") return null;

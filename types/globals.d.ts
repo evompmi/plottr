@@ -558,13 +558,16 @@ declare global {
     [k: string]: any;
   }
   type LegendItemWidth = number | ((block: LegendBlock) => number);
+  // Both helpers tolerate null / undefined / empty input — the runtime guard
+  // is `if (!blocks || !blocks.length) return 0;` (see shared-svg-legend.js).
+  // Reflect that in the type so callers don't have to coerce.
   function computeLegendHeight(
-    blocks: LegendBlock[],
+    blocks: LegendBlock[] | null | undefined,
     usableW: number,
     itemWidth: LegendItemWidth
   ): number;
   function renderSvgLegend(
-    blocks: LegendBlock[],
+    blocks: LegendBlock[] | null | undefined,
     startY: number,
     leftX: number,
     usableW: number,
