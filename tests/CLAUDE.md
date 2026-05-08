@@ -52,38 +52,35 @@ Mutation testing is a meta-test of the test suite itself: Stryker mutates the so
 npm run mutation    # runs Stryker against the files in stryker.conf.mjs
 ```
 
-Initial scope is `tools/volcano/helpers.ts` only — the deepest-property-covered helpers file in the repo. The first run produced **996 mutants → 932 killed + 64 timed out + 0 survived = 100% mutation score**, validating that the 57 volcano property tests + ~74 unit tests fully constrain the file's behavioural surface.
+Files measured so far (run one at a time, scope toggled in `stryker.conf.mjs`):
 
-**Cost.** ~3 hours of CPU time on a 4-core M-series Mac for volcano alone (perTest coverage + four parallel runners). Not a CI gate; run on demand when extending coverage or before a release.
+| File                       | Mutants | Killed             | Survived           | Raw score  | Notes                                                                                      |
+| -------------------------- | ------- | ------------------ | ------------------ | ---------- | ------------------------------------------------------------------------------------------ |
+| `tools/volcano/helpers.ts` | 996     | 932 + 64 timed out | 0                  | **100%**   | Coverage tracked through SPA-bundle render path.                                           |
+| `tools/scatter/helpers.ts` | 88      | 82                 | 6 (all equivalent) | **93.18%** | Required loader refactor; remaining mutants are equivalent (no test can distinguish them). |
+
+**Cost.** ~3 h on volcano (1214 LOC), ~1 min on scatter (63 LOC) — wall-clock scales roughly linearly with file size. Not a CI gate; run on demand when extending coverage or before a release.
 
 **Configuration choices** (`stryker.conf.mjs`):
 
-- `vitest: { related: false }` — Vitest's `--related` flag traces static `import` graphs, but the per-tool loaders read source via `vm.runInContext` (so the test files don't statically import the mutated `.ts`). With `related` left on, Stryker reports "no tests were found" and exits. Disabling it lets Vitest run the full set; `coverageAnalysis: "perTest"` then scopes which tests fire per mutant.
-- `coverageAnalysis: "perTest"` — instruments the initial test run to record which tests cover which lines, then runs only the covering tests for each mutant. ~13 tests/mutant on average, vs ~1400 if disabled.
-- `concurrency: 4` — reasonable parallelism without saturating the workstation. Adjust to taste.
+- `vitest: { related: false }` — Vitest's `--related` flag traces static `import` graphs, but the per-tool loaders read source via `vm.runInContext` (so the test files don't statically import the mutated `.ts`). With `related` left on, Stryker reports "no tests were found" and exits.
+- `coverageAnalysis: "perTest"` — instruments the initial test run to record which tests cover which lines, then runs only the covering tests for each mutant. ~3-13 tests/mutant on average, vs ~1400 if disabled.
+- `concurrency: 4` — reasonable parallelism without saturating the workstation.
 - `timeoutMS: 60000` — many mutants produce infinite loops; the timeout catches them and counts the mutation as killed.
+- `ignoreStatic: true` — skip mutations on static / type-only constructs that can't change semantic behaviour.
 
-**HTML report.** `reports/mutation/mutation.html` (gitignored). One row per source line, colour-coded by survived / killed / no-coverage. Drill into a survived mutant to see the diff and which tests covered it but didn't fail.
+**Loader pattern matters.** Stryker's `perTest` coverage instrumentation injects a `__stryker__` global into mutated source to record which tests touch which lines. The vm.runInContext-based loaders give loaded code its own context, so `__stryker__` writes from inside the vm don't reach the test runner — and Stryker reports those tests as having zero coverage of the helpers, marking every mutant as "no coverage" and skipping them. Two ways to make a tool's helpers Stryker-visible:
 
-**Scope expansion path.** The `mutate:` array in `stryker.conf.mjs` lists the other helpers as commented-out entries:
+1. **Reachable via the compiled SPA bundle** (what makes volcano work). The render-smoke tests in `tests/components.test.js` load `tools/_app/index.js` (the bundled SPA), which has helpers.ts inlined. Stryker can see that path because it's a normal Node import. Works whenever the chart actually exercises the helper at render time — volcano's chart uses pickTopLabels / layoutLabels / summarize / etc. on every render, so the entire helpers file is naturally covered.
+2. **`require()`-based loader** (what fixed scatter). Refactor the per-tool loader to compile helpers.ts to a temp `.cjs` file and `require()` it instead of `vm.runInContext`. Makes the file part of Node's module graph; Stryker's coverage instrumentation traces the link. See `tests/helpers/scatter-loader.js` as the reference. Required when the tool's helpers aren't fully exercised by render tests — typically true for tools where some helpers only run under specific user-config (regression, calibration, threshold-driven label picking, …). Caveat: the refactor only works if the helpers don't reference `shared.js` / `stats.js` globals as free variables; if they do, those have to stay vm-loaded and the helpers split between vm and require paths.
 
-```js
-mutate: [
-  "tools/volcano/helpers.ts",
-  // "tools/stats.js",
-  // "tools/heatmap/helpers.ts",
-  // "tools/boxplot/helpers.ts",
-  // "tools/scatter/helpers.ts",
-  // "tools/aequorin/helpers.ts",
-  // "tools/lineplot/helpers.ts",
-  // "tools/upset/helpers.ts",
-  // "tools/venn/**/*.ts",
-],
-```
+**Equivalent mutants are the practical ceiling.** Stryker generates _syntactically-different_ mutations of the source. Some of them are _semantically identical_ — e.g. `if (t === 0) return "0"` mutated to `if (false) return "0"`, where the math fallback path also produces "0" for input 0; or `if (abs >= 100)` mutated to `if (abs > 100)` where both branches happen to render "100" at the boundary. No test can kill an equivalent mutant by definition; they show up as survivors but aren't real test gaps. Stryker has no built-in "is-equivalent" detector, so distinguishing equivalent from real survivors is a manual read of each diff. Scatter's 6 surviving mutants are all equivalent; the _non-equivalent mutation score_ is 100%.
 
-Uncomment one at a time and re-run. Each will take a few hours; survivors are the actionable output — they tell you exactly which line / mutation kind your suite doesn't catch, and the fix is usually a tighter property assertion rather than a new test file.
+**HTML report.** `reports/mutation/mutation.html` (gitignored). One row per source line, colour-coded by survived / killed / no-coverage. Drill into a survived mutant to see the diff and which tests covered it but didn't fail; this is the input you use to decide whether the survivor is a real gap (write a sharper property) or an equivalent mutant (note in commit and move on).
 
-**When NOT to run mutation testing.** Day-to-day editing — the existing 1416-test suite catches most regressions in seconds, mutation testing is a quarterly exercise. Run it after a substantial test-suite expansion (to validate the new properties have bite), before a release (to confirm coverage didn't regress), or when investigating a class of bug the suite missed (to find the gap that let it through).
+**Scope expansion path.** The `mutate:` array in `stryker.conf.mjs` is a single-target switch — uncomment one entry, comment the others, run, document. Already-validated entries listed in a comment block above the array. To expand to a new tool: (a) check that its helpers.ts doesn't reference shared globals as free vars; if it does, keep the vm.runInContext path and accept that Stryker will only see render-bundle coverage; (b) if it doesn't, refactor that tool's loader to the require()-based pattern (see `tests/helpers/scatter-loader.js`); (c) swap the active scope and run; (d) drive the score up by adding sharp boundary properties for each non-equivalent survivor; (e) document the final score and equivalent-mutant count in the table above + commit.
+
+**When NOT to run mutation testing.** Day-to-day editing — the existing 1420-test suite catches most regressions in seconds, mutation testing is a quarterly exercise. Run it after a substantial test-suite expansion (to validate the new properties have bite), before a release (to confirm coverage didn't regress), or when investigating a class of bug the suite missed (to find the gap that let it through).
 
 ## Test standards (mandatory for new work)
 

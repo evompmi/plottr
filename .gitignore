@@ -20,3 +20,6 @@ playwright/.cache/
 reports/
 .stryker-tmp/
 stryker-incremental.json
+# Per-tool helpers compiled to CJS for Stryker-visible require()
+# (tests/helpers/scatter-loader.js → tests/.tmp/scatter-helpers.cjs etc.).
+tests/.tmp/

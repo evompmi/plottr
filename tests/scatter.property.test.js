@@ -95,7 +95,89 @@ test("returns valid:false for fewer than 2 input rows", () => {
     fc.property(
       fc.oneof(fc.constant([]), fc.array(arbPair, { minLength: 1, maxLength: 1 })),
       (pairs) => {
-        return computeLinearRegression(pairs, 0, 1).valid === false;
+        const r = computeLinearRegression(pairs, 0, 1);
+        // Pin the *shape* of the failure result, not just the
+        // `valid` boolean. A mutation that returns `{}` instead of
+        // `{ valid: false }` would let `r.valid === false` pass
+        // (undefined !== false) without us noticing.
+        return r != null && r.valid === false;
+      }
+    )
+  );
+});
+
+test("two distinct (x, y) rows are enough for a valid regression", () => {
+  // Pins the boundary at n = 2. The helper uses `rows.length < 2` and
+  // `n < 2` — strict-less-than. A mutation to `<= 2` would reject
+  // exactly-2-row inputs even when they're well-formed.
+  check(
+    fc.property(
+      fc.tuple(
+        fc.integer({ min: -100, max: 100 }),
+        fc.integer({ min: -100, max: 100 }),
+        fc.integer({ min: -100, max: 100 }),
+        fc.integer({ min: -100, max: 100 })
+      ),
+      ([x1, y1, x2, y2]) => {
+        // Skip degenerate (same x), where x-variance is 0 → valid:false
+        // is correct.
+        if (x1 === x2) return true;
+        const r = computeLinearRegression(
+          [
+            [x1, y1],
+            [x2, y2],
+          ],
+          0,
+          1
+        );
+        return r != null && r.valid === true && r.n === 2;
+      }
+    )
+  );
+});
+
+test("≥2-row input with every row filtered returns { valid: false } (post-filter n < 2)", () => {
+  // Distinct from the `<2 input rows` path: this triggers the
+  // post-filter `n < 2` return at line 55, where the early-return at
+  // line 37 has been bypassed because rows.length ≥ 2 but every row
+  // got dropped by the null/NaN filter inside the loop. A mutation
+  // that returns `{}` instead of `{ valid: false }` here would slip
+  // past every test that gates on `!reg.valid`, so the precondition
+  // pins the result *shape*.
+  check(
+    fc.property(fc.integer({ min: 2, max: 10 }), (n) => {
+      const allNullRows = new Array(n).fill([null, null]);
+      const r = computeLinearRegression(allNullRows, 0, 1);
+      return r != null && r.valid === false;
+    })
+  );
+});
+
+test("null x rows are skipped, not coerced to 0 (no silent zero-injection)", () => {
+  // `if (x == null || y == null || isNaN(x) || isNaN(y)) continue;`
+  // — the `x == null` check matters because `null + number` coerces
+  // to `0 + number` in JS, which would silently pollute sx / sxx. A
+  // mutation removing the null-x guard would let nulls through and
+  // shift the regression. Compare a clean dataset against the same
+  // dataset with extra null-x rows: outputs must match.
+  check(
+    fc.property(
+      fc
+        .array(fc.tuple(fc.integer({ min: -50, max: 50 }), fc.integer({ min: -50, max: 50 })), {
+          minLength: 3,
+          maxLength: 15,
+        })
+        .filter((rows) => new Set(rows.map((r) => r[0])).size >= 2),
+      (clean) => {
+        const dirty = [...clean, [null, 5], [null, -3]];
+        const a = computeLinearRegression(clean, 0, 1);
+        const b = computeLinearRegression(dirty, 0, 1);
+        if (!a.valid || !b.valid) return true;
+        return (
+          Math.abs(a.slope - b.slope) < 1e-9 &&
+          Math.abs(a.intercept - b.intercept) < 1e-9 &&
+          a.n === b.n
+        );
       }
     )
   );
@@ -371,6 +453,25 @@ test("fmtTick returns whole-number string for moderate integers ≥ 100", () => 
       return fmtTick(v) === String(v);
     })
   );
+});
+
+test("fmtTick at the exponential boundary: abs = 0.01 stays in the precision branch", () => {
+  // Pin the strict-vs-loose boundary at abs = 0.01: the helper uses
+  // `abs < 0.01` (strict), so values *equal to* 0.01 take the
+  // toPrecision path and render as "0.01", not "1.0e-2". A mutation
+  // flipping `<` to `<=` would route 0.01 through exponential.
+  if (fmtTick(0.01) !== "0.01") throw new Error("expected '0.01', got " + fmtTick(0.01));
+  if (fmtTick(-0.01) !== "-0.01") throw new Error("expected '-0.01', got " + fmtTick(-0.01));
+});
+
+test("fmtTick at the integer-rendering boundary: abs = 100 returns '100'", () => {
+  // The helper uses `abs >= 100` (inclusive). A mutation to `> 100`
+  // would route exactly-100 through the toPrecision branch. Both
+  // paths happen to render "100" for v = 100 (so this is partially
+  // redundant), but pinning the strict-inclusive contract documents
+  // the boundary intent for future contributors.
+  if (fmtTick(100) !== "100") throw new Error("expected '100', got " + fmtTick(100));
+  if (fmtTick(-100) !== "-100") throw new Error("expected '-100', got " + fmtTick(-100));
 });
 
 test("SHAPES is a non-empty array of unique non-empty strings", () => {
