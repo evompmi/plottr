@@ -3,12 +3,12 @@
 // computations the parent App built. Delegates per-point shape rendering
 // to renderPoint in shapes.tsx.
 
-import { fmtTick, MARGIN, VBW, VBH } from "./helpers";
+import { fmtTick, MARGIN, VBW, VBH, ChartProps, RefLine } from "./helpers";
 import { renderPoint } from "./shapes";
 
 const { forwardRef } = React;
 
-export const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart(
+export const ScatterChart = forwardRef<SVGSVGElement, ChartProps>(function ScatterChart(
   {
     data,
     rawData,
@@ -51,12 +51,9 @@ export const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart
 ) {
   const w = VBW - MARGIN.left - MARGIN.right;
   const h = VBH - MARGIN.top - MARGIN.bottom;
-  const legendItemWidth = (block: any) => {
+  const legendItemWidth = (block: LegendBlock): number => {
     if (!block.items) return 88;
-    const maxLen = block.items.reduce(
-      (m: number, it: any) => Math.max(m, (it.label || "").length),
-      0
-    );
+    const maxLen = block.items.reduce((m: number, it) => Math.max(m, (it.label || "").length), 0);
     return Math.max(88, Math.min(260, maxLen * 6.2 + 22));
   };
   const legendH = computeLegendHeight(svgLegend, VBW - MARGIN.left - MARGIN.right, legendItemWidth);
@@ -169,7 +166,7 @@ export const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart
       )}
 
       <g id="reference-lines" clipPath="url(#sc-clip)">
-        {refLines.map((rl: any) => {
+        {refLines.map((rl: RefLine) => {
           const isH = rl.dir === "h";
           const x1 = isH ? MARGIN.left : sx(rl.value);
           const x2 = isH ? MARGIN.left + w : sx(rl.value);
@@ -196,7 +193,7 @@ export const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart
       </g>
 
       <g id="reference-line-labels">
-        {refLines.map((rl: any) => {
+        {refLines.map((rl: RefLine) => {
           if (!rl.label) return null;
           const isH = rl.dir === "h";
           if (isH) {
@@ -243,7 +240,7 @@ export const ScatterChart = forwardRef<SVGSVGElement, any>(function ScatterChart
         role="group"
         aria-label={`${data.length} data points`}
       >
-        {data.map((row: any, ri: number) => {
+        {data.map((row, ri) => {
           const xVal = row[xCol],
             yVal = row[yCol];
           if (xVal == null || yVal == null) return null;
