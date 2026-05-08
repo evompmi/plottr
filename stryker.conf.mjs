@@ -27,8 +27,13 @@ export default {
     //   - tools/volcano/helpers.ts  (100%, 996 mutants, 932 killed + 64 timed out)
     //   - tools/scatter/helpers.ts  (93.18% raw / 100% non-equivalent, 88 mutants)
     //   - tools/lineplot/helpers.ts (79.20% raw / ~95% non-equivalent, 125 mutants)
+    //   - tools/stats.js            (14.87% raw / 55.37% covered, 3504 mutants;
+    //                                73% no-coverage because stats.test.js is
+    //                                skipped under Stryker — see docs/testing-2026-05-08.md)
     //
-    // Active target:
+    // Active target (stays here so `npm run mutation` reproduces the
+    // most recent run; swap for one of the pending entries below to
+    // measure another file):
     "tools/stats.js",
     //
     // Pending — uncomment one at a time and re-run:
