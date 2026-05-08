@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Boxplot's sidebar control panels were 6px taller-spaced than every other tool's.** `PlotSidebar` (the shared sidebar shell) lays its children out with `gap: 10`, and every tool's `ControlSection` zeroes its own `marginBottom` so the parent gap is the only spacing — except boxplot, whose `ControlSection` set `marginBottom: 6` and stacked on top of the parent gap. Result: 16px between boxplot panels vs 10px elsewhere. Set boxplot's `ControlSection` to `marginBottom: 0` to match.
+
 ### Changed
 
 - **Per-tool fuzz harnesses replaced by fast-check property suites.** Internal/test-only: each tool's `tests/fuzz/<tool>.fuzz.js` (and the weekly `fuzz-release.yml` sweep) is gone; coverage now runs inside `npm test` via `tests/<tool>.property.test.js`, with shrinking on failure.

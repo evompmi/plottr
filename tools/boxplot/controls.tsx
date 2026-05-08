@@ -23,7 +23,7 @@ export function ControlSection({
     requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
   }, [open]);
   return (
-    <div ref={rootRef} className="dv-panel" style={{ marginBottom: 6, padding: 0 }}>
+    <div ref={rootRef} className="dv-panel" style={{ marginBottom: 0, padding: 0 }}>
       <button
         onClick={() => setOpen(!open)}
         className="dv-tile-title"
