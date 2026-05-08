@@ -6,7 +6,7 @@
 // mutant that survives — i.e. all tests still pass with broken code
 // — points at an invariant the suite doesn't actually constrain.
 //
-// Scope: per-tool helpers + tools/stats.js. Tool entry points (.tsx)
+// Scope: per-tool helpers + tools/stats-*.js. Tool entry points (.tsx)
 // and the SPA shell (`tools/_app/**`) are excluded — they're
 // orchestration / React glue and the property tests cover the pure
 // helpers, not the framework code.
@@ -32,12 +32,15 @@ export default {
     //                                property tests for multiset/clustering + power-
     //                                loader refactor + Stryker-disable annotations on
     //                                equivalent-mutant validators. No-coverage dropped
-    //                                528 → 102. See docs/testing-2026-05-08.md.)
+    //                                528 → 102. See docs/testing-2026-05-08.md.
+    //                                Pre-split — measured before stats.js was carved
+    //                                into stats-{dist,tests,posthoc,cluster,msi}.js.
+    //                                The glob below covers the same source.)
     //
     // Active target (stays here so `npm run mutation` reproduces the
     // most recent run; swap for one of the pending entries below to
     // measure another file):
-    "tools/stats.js",
+    "tools/stats-*.js",
     //
     // Pending — uncomment one at a time and re-run:
     // "tools/volcano/helpers.ts",

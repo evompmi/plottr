@@ -175,8 +175,20 @@ if (!regenerated && !fs.existsSync(fixturePath)) {
 
 const data = JSON.parse(fs.readFileSync(fixturePath, "utf-8"));
 
-// ── Load tools/stats.js into a vm sandbox ─────────────────────────────────
-const code = fs.readFileSync(path.join(repoRoot, "tools", "stats.js"), "utf-8");
+// ── Load tools/stats-*.js into a vm sandbox ───────────────────────────────
+// Load order mirrors scripts/build-shared.js's FILES array (and
+// STATS_FILES in tests/helpers/stats-source.js). Inlined here rather than
+// imported from tests/ so the benchmark stays self-contained.
+const STATS_FILES = [
+  "stats-dist.js",
+  "stats-tests.js",
+  "stats-posthoc.js",
+  "stats-cluster.js",
+  "stats-msi.js",
+];
+const code = STATS_FILES.map((name) =>
+  fs.readFileSync(path.join(repoRoot, "tools", name), "utf-8")
+).join("\n");
 const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(code, ctx);

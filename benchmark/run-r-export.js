@@ -62,7 +62,16 @@ const ctx = {
 };
 vm.createContext(ctx);
 const TOOLS = path.join(__dirname, "../tools");
-vm.runInContext(fs.readFileSync(path.join(TOOLS, "stats.js"), "utf8"), ctx);
+// stats-*.js — load order matches scripts/build-shared.js's FILES array.
+for (const name of [
+  "stats-dist.js",
+  "stats-tests.js",
+  "stats-posthoc.js",
+  "stats-cluster.js",
+  "stats-msi.js",
+]) {
+  vm.runInContext(fs.readFileSync(path.join(TOOLS, name), "utf8"), ctx);
+}
 vm.runInContext(fs.readFileSync(path.join(TOOLS, "shared-r-export.js"), "utf8"), ctx);
 
 const { tTest, buildRScript } = ctx;
