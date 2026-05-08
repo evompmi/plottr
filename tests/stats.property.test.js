@@ -42,6 +42,9 @@ const {
   multisetIntersectionPPoisson,
   multisetExclusiveExpected,
   multisetExclusiveP,
+  hclust,
+  dendrogramLayout,
+  kmeans,
 } = require("./helpers/stats-loader");
 
 const RUNS = 300;
@@ -1091,4 +1094,309 @@ test("default tail is upper (matches explicit upper)", () => {
 test("invalid args → NaN", () => {
   if (!Number.isNaN(multisetExclusiveP(1, [10], [], 0))) throw new Error("N=0");
   if (!Number.isNaN(multisetExclusiveP(1, [200], [], 100))) throw new Error("n_i>N");
+});
+
+// ── clustering primitives (kmeans / hclust / dendrogramLayout) ──────────
+//
+// These functions are exercised by tests/heatmap.property.test.js, but
+// that file goes through tests/helpers/heatmap-loader.js which uses
+// vm.runInContext to evaluate stats.js — invisible to Stryker's per-test
+// coverage instrumentation. Calling them through the require()-based
+// stats-loader makes the test → source link traceable, so Stryker no
+// longer flags them as no-coverage.
+//
+// Properties focus on structural invariants (cluster ids in range, tree
+// covers every leaf, heights non-negative, leaf-order permutation,
+// determinism under fixed seed) — not numerical accuracy of the cluster
+// boundary, which depends on the data and is brittle under fast-check
+// shrinking.
+
+const arbSmallMatrix = (rows, cols) =>
+  fc.array(
+    fc.array(fc.double({ min: -10, max: 10, noNaN: true, noDefaultInfinity: true }), {
+      minLength: cols,
+      maxLength: cols,
+    }),
+    { minLength: rows, maxLength: rows }
+  );
+
+// Build a symmetric distance matrix from row vectors using Euclidean
+// distance. Diagonal is 0; entry (i, j) equals (j, i).
+const matrixToDistMatrix = (m) => {
+  const n = m.length;
+  const D = Array.from({ length: n }, () => new Array(n).fill(0));
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      let s = 0;
+      for (let k = 0; k < m[i].length; k++) {
+        const diff = m[i][k] - m[j][k];
+        s += diff * diff;
+      }
+      const d = Math.sqrt(s);
+      D[i][j] = d;
+      D[j][i] = d;
+    }
+  }
+  return D;
+};
+
+suite("stats property — kmeans");
+
+test("empty matrix → empty result", () => {
+  const r = kmeans([], 3);
+  if (r.clusters.length !== 0) throw new Error("clusters not empty");
+  if (r.centroids.length !== 0) throw new Error("centroids not empty");
+  if (r.inertia !== 0) throw new Error("inertia not 0");
+  if (r.iterations !== 0) throw new Error("iterations not 0");
+});
+
+test("clusters has length n", () => {
+  check(
+    fc.property(
+      fc.integer({ min: 1, max: 10 }),
+      fc.integer({ min: 1, max: 6 }),
+      fc.integer({ min: 1, max: 4 }),
+      (n, d, k) => {
+        const m = Array.from({ length: n }, () =>
+          Array.from({ length: d }, () => Math.random() * 5)
+        );
+        const r = kmeans(m, k, { seed: 7, maxIter: 20, restarts: 1 });
+        return r.clusters.length === n;
+      }
+    )
+  );
+});
+
+test("all cluster ids are in [0, min(k, n) − 1]", () => {
+  check(
+    fc.property(
+      arbSmallMatrix(8, 3),
+      fc.integer({ min: 1, max: 5 }),
+      fc.integer({ min: 1, max: 1000 }),
+      (m, k, seed) => {
+        const r = kmeans(m, k, { seed, maxIter: 20, restarts: 1 });
+        const kEff = Math.min(k, m.length);
+        return r.clusters.every((c) => Number.isInteger(c) && c >= 0 && c < kEff);
+      }
+    )
+  );
+});
+
+test("order is a permutation of 0..n−1", () => {
+  check(
+    fc.property(
+      arbSmallMatrix(6, 2),
+      fc.integer({ min: 1, max: 3 }),
+      fc.integer({ min: 1, max: 1000 }),
+      (m, k, seed) => {
+        const r = kmeans(m, k, { seed, maxIter: 20, restarts: 1 });
+        const sorted = [...r.order].sort((a, b) => a - b);
+        for (let i = 0; i < m.length; i++) if (sorted[i] !== i) return false;
+        return true;
+      }
+    )
+  );
+});
+
+test("inertia is non-negative", () => {
+  check(
+    fc.property(
+      arbSmallMatrix(8, 3),
+      fc.integer({ min: 1, max: 4 }),
+      fc.integer({ min: 1, max: 1000 }),
+      (m, k, seed) => {
+        const r = kmeans(m, k, { seed, maxIter: 20, restarts: 1 });
+        return Number.isFinite(r.inertia) && r.inertia >= 0;
+      }
+    )
+  );
+});
+
+test("deterministic under the same seed", () => {
+  check(
+    fc.property(
+      arbSmallMatrix(8, 3),
+      fc.integer({ min: 2, max: 4 }),
+      fc.integer({ min: 1, max: 1000 }),
+      (m, k, seed) => {
+        const a = kmeans(m, k, { seed, maxIter: 20, restarts: 1 });
+        const b = kmeans(m, k, { seed, maxIter: 20, restarts: 1 });
+        if (a.clusters.length !== b.clusters.length) return false;
+        for (let i = 0; i < a.clusters.length; i++) {
+          if (a.clusters[i] !== b.clusters[i]) return false;
+        }
+        return Math.abs(a.inertia - b.inertia) < 1e-12;
+      }
+    )
+  );
+});
+
+test("k=1 forces every row into cluster 0", () => {
+  check(
+    fc.property(arbSmallMatrix(6, 3), (m) => {
+      const r = kmeans(m, 1, { seed: 1, maxIter: 10, restarts: 1 });
+      return r.clusters.every((c) => c === 0);
+    })
+  );
+});
+
+test("k > n → cluster ids stay within [0, n − 1] (clamp branch)", () => {
+  // Naive thinking: "each row gets its own cluster" — false when the
+  // matrix has duplicate or near-duplicate rows, which kmeans++ init
+  // can collide on. The actual contract is that kEff = min(k, n), so
+  // cluster ids are bounded by n − 1, not k − 1. This exercises the
+  // clamp without making the over-strong "perfect partition" claim.
+  check(
+    fc.property(arbSmallMatrix(4, 2), fc.integer({ min: 5, max: 10 }), (m, k) => {
+      const r = kmeans(m, k, { seed: 1, maxIter: 10, restarts: 4 });
+      return r.clusters.every((c) => c >= 0 && c < m.length);
+    })
+  );
+});
+
+suite("stats property — hclust");
+
+test("n = 0 → tree null and order empty", () => {
+  const r = hclust([], "average");
+  if (r.tree !== null) throw new Error("tree not null");
+  if (r.order.length !== 0) throw new Error("order not empty");
+});
+
+test("n = 1 → singleton tree with index 0", () => {
+  const r = hclust([[0]], "average");
+  if (!r.tree) throw new Error("tree null");
+  if (r.tree.index !== 0) throw new Error("tree.index !== 0");
+  if (r.tree.size !== 1) throw new Error("tree.size !== 1");
+  if (r.order.length !== 1 || r.order[0] !== 0) throw new Error("bad order");
+});
+
+test("order has length n and is a permutation of 0..n−1", () => {
+  check(
+    fc.property(
+      arbSmallMatrix(6, 3),
+      fc.constantFrom("average", "complete", "single"),
+      (m, linkage) => {
+        const D = matrixToDistMatrix(m);
+        const r = hclust(D, linkage);
+        if (r.order.length !== m.length) return false;
+        const sorted = [...r.order].sort((a, b) => a - b);
+        for (let i = 0; i < m.length; i++) if (sorted[i] !== i) return false;
+        return true;
+      }
+    )
+  );
+});
+
+test("root tree.size equals n", () => {
+  // Every merge sums the children's sizes, so the root necessarily covers
+  // all leaves. A regression here would mean a leaf is silently dropped.
+  check(
+    fc.property(
+      arbSmallMatrix(7, 2),
+      fc.constantFrom("average", "complete", "single"),
+      (m, linkage) => {
+        const D = matrixToDistMatrix(m);
+        const r = hclust(D, linkage);
+        return r.tree.size === m.length;
+      }
+    )
+  );
+});
+
+test("all merge heights are finite and non-negative", () => {
+  check(
+    fc.property(
+      arbSmallMatrix(6, 2),
+      fc.constantFrom("average", "complete", "single"),
+      (m, linkage) => {
+        const D = matrixToDistMatrix(m);
+        const r = hclust(D, linkage);
+        const visit = (node) => {
+          if (!node) return true;
+          if (!Number.isFinite(node.height) || node.height < 0) return false;
+          return visit(node.left) && visit(node.right);
+        };
+        return visit(r.tree);
+      }
+    )
+  );
+});
+
+test("all-NaN distances → fallback path still covers every leaf", () => {
+  // The fallback at line ~2024-2032 force-merges when no finite distances
+  // remain; without it leaves would silently truncate. This check fires
+  // on an n × n matrix where every off-diagonal is NaN.
+  check(
+    fc.property(fc.integer({ min: 2, max: 6 }), (n) => {
+      const D = Array.from({ length: n }, (_, i) =>
+        Array.from({ length: n }, (_, j) => (i === j ? 0 : NaN))
+      );
+      const r = hclust(D, "average");
+      return r.tree.size === n && r.order.length === n;
+    })
+  );
+});
+
+suite("stats property — dendrogramLayout");
+
+test("null tree → empty segments and maxHeight 0", () => {
+  const r = dendrogramLayout(null);
+  if (r.segments.length !== 0) throw new Error("segments not empty");
+  if (r.maxHeight !== 0) throw new Error("maxHeight not 0");
+});
+
+test("n leaves produce 3·(n − 1) segments", () => {
+  // Each merge contributes exactly 3 segments (two verticals + one
+  // horizontal), and there are n − 1 merges in a binary tree of n leaves.
+  check(
+    fc.property(arbSmallMatrix(6, 2), (m) => {
+      if (m.length < 2) return true; // n=1 → 0 merges → 0 segments
+      const D = matrixToDistMatrix(m);
+      const t = hclust(D, "average").tree;
+      const r = dendrogramLayout(t);
+      return r.segments.length === 3 * (m.length - 1);
+    })
+  );
+});
+
+test("maxHeight is the largest height in the tree", () => {
+  check(
+    fc.property(arbSmallMatrix(6, 2), (m) => {
+      if (m.length < 2) return true;
+      const D = matrixToDistMatrix(m);
+      const t = hclust(D, "average").tree;
+      const r = dendrogramLayout(t);
+      let maxH = 0;
+      const visit = (node) => {
+        if (!node) return;
+        if (node.height > maxH) maxH = node.height;
+        visit(node.left);
+        visit(node.right);
+      };
+      visit(t);
+      return Math.abs(r.maxHeight - maxH) < 1e-12;
+    })
+  );
+});
+
+test("all segment x positions lie in [0, n − 1]", () => {
+  check(
+    fc.property(arbSmallMatrix(6, 2), (m) => {
+      if (m.length < 2) return true;
+      const D = matrixToDistMatrix(m);
+      const t = hclust(D, "average").tree;
+      const r = dendrogramLayout(t);
+      const max = m.length - 1;
+      return r.segments.every(
+        (s) => s.x1 >= 0 && s.x1 <= max && s.x2 >= 0 && s.x2 <= max
+      );
+    })
+  );
+});
+
+test("singleton tree (n = 1) → no segments, maxHeight 0", () => {
+  const t = hclust([[0]], "average").tree;
+  const r = dendrogramLayout(t);
+  if (r.segments.length !== 0) throw new Error("segments not empty");
+  if (r.maxHeight !== 0) throw new Error("maxHeight not 0");
 });
