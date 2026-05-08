@@ -54,10 +54,11 @@ npm run mutation    # runs Stryker against the files in stryker.conf.mjs
 
 Files measured so far (run one at a time, scope toggled in `stryker.conf.mjs`):
 
-| File                       | Mutants | Killed             | Survived           | Raw score  | Notes                                                                                      |
-| -------------------------- | ------- | ------------------ | ------------------ | ---------- | ------------------------------------------------------------------------------------------ |
-| `tools/volcano/helpers.ts` | 996     | 932 + 64 timed out | 0                  | **100%**   | Coverage tracked through SPA-bundle render path.                                           |
-| `tools/scatter/helpers.ts` | 88      | 82                 | 6 (all equivalent) | **93.18%** | Required loader refactor; remaining mutants are equivalent (no test can distinguish them). |
+| File                        | Mutants | Killed             | Survived                                      | Raw score  | Notes                                                                                                                |
+| --------------------------- | ------- | ------------------ | --------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| `tools/volcano/helpers.ts`  | 996     | 932 + 64 timed out | 0                                             | **100%**   | Coverage tracked through SPA-bundle render path.                                                                     |
+| `tools/scatter/helpers.ts`  | 88      | 82                 | 6 (all equivalent)                            | **93.18%** | Required loader refactor; remaining mutants are equivalent (no test can distinguish them).                           |
+| `tools/lineplot/helpers.ts` | 125     | 99                 | 23 (~16 equivalent + ~7 contrived-input-only) | **79.20%** | Hybrid loader (vm for shared globals + require for helpers); residual gaps need selectTest-failure inputs to expose. |
 
 **Cost.** ~3 h on volcano (1214 LOC), ~1 min on scatter (63 LOC) — wall-clock scales roughly linearly with file size. Not a CI gate; run on demand when extending coverage or before a release.
 

@@ -23,19 +23,20 @@ export default {
     // keep wall-clock manageable; results land in CHANGELOG and git
     // history, so the others can stay commented until they're up next.
     //
-    // Already verified at 100% mutation score:
-    //   - tools/volcano/helpers.ts  (996 mutants, 932 killed + 64 timed out)
+    // Already verified:
+    //   - tools/volcano/helpers.ts  (100%, 996 mutants, 932 killed + 64 timed out)
+    //   - tools/scatter/helpers.ts  (93.18% raw / 100% non-equivalent, 88 mutants)
     //
     // Active target:
-    "tools/scatter/helpers.ts",
+    "tools/lineplot/helpers.ts",
     //
     // Pending — uncomment one at a time and re-run:
     // "tools/volcano/helpers.ts",
+    // "tools/scatter/helpers.ts",
     // "tools/stats.js",
     // "tools/heatmap/helpers.ts",
     // "tools/boxplot/helpers.ts",
     // "tools/aequorin/helpers.ts",
-    // "tools/lineplot/helpers.ts",
     // "tools/upset/helpers.ts",
     // "tools/venn/**/*.ts",
   ],
@@ -67,8 +68,14 @@ export default {
   // Vitest's default timeout is 30s; mutations that hang typically
   // produce infinite loops in property tests, so cap them tighter.
   timeoutMS: 60000,
-  // Stryker also waits an extra "net" multiplier of the typical
-  // baseline; bump only if false-positive timeouts show up.
+
+  // Stryker's default *dry run* budget (the initial baseline pass) is
+  // 5 minutes. Under perTest coverage instrumentation the full suite
+  // is noticeably slower than `npm test` alone — at ~1500 tests
+  // including a handful of legitimately slow R-cross-validation
+  // checks (iris TukeyHSD, deep-tail cpsets, qtukey at small df), the
+  // baseline can exceed 5 min on a busy machine. Bump to 10 min.
+  dryRunTimeoutMinutes: 10,
 
   // Reasonable parallelism for a workstation. Leave ~half of cores
   // free so the rest of the system stays responsive.
