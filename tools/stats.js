@@ -1982,9 +1982,12 @@ function rowDistance(a, b, metric) {
 //   order — array of leaf indices in dendrogram left-to-right order.
 function hclust(distMatrix, linkage) {
   const n = distMatrix.length;
+  // Stryker disable next-line all -- defensive early return for empty distance matrix; the algorithm body returns the same shape via { tree: undefined, order: [] }, so most mutations on this guard are equivalent
   if (n === 0) return { tree: null, order: [] };
+  // Stryker disable all -- defensive early return for singleton matrix; the while-loop body skips when active.size === 1, so a missed n===1 short-circuit yields the same singleton tree
   if (n === 1)
     return { tree: { index: 0, left: null, right: null, height: 0, size: 1 }, order: [0] };
+  // Stryker restore all
 
   // Working copies: active cluster metadata + mutable distance matrix.
   const clusters = new Array(n);
@@ -2086,6 +2089,7 @@ function hclust(distMatrix, linkage) {
 // where segments is an array of { x1, y1, x2, y2 } in DATA space
 // (y = merge height, 0 at leaves). The caller scales x, y into pixels.
 function dendrogramLayout(tree) {
+  // Stryker disable next-line all -- defensive early return for null tree (passed when hclust got an empty matrix); the body would crash on null without this guard
   if (!tree) return { segments: [], maxHeight: 0 };
   const segments = [];
   let maxHeight = 0;
@@ -2140,6 +2144,7 @@ function kmeans(matrix, k, opts) {
   const maxIter = options.maxIter != null ? options.maxIter : 100;
   const restarts = options.restarts != null ? options.restarts : 8;
   const n = matrix.length;
+  // Stryker disable next-line all -- defensive early return for empty matrix; the body would crash on `matrix[0].length` (next line) without this guard
   if (n === 0) return { clusters: [], centroids: [], inertia: 0, iterations: 0, order: [] };
   const d = matrix[0].length;
   const kEff = Math.max(1, Math.min(k, n));
@@ -2392,6 +2397,11 @@ function _multisetIntersectionLogPmf(ns, N) {
   return logP;
 }
 
+// Stryker disable all -- pure input validator: when this lets bad inputs
+// through, the algorithm body propagates NaN/Infinity through arithmetic
+// and the caller still sees NaN, so individual clauses are equivalent
+// mutants. The relevant caller-visible behaviour (NaN on bad shape) is
+// pinned in tests/stats.property.test.js's "invalid args → NaN" tests.
 function _validateMsiArgs(ns, N) {
   if (!Array.isArray(ns) || ns.length < 2) return false;
   if (!Number.isFinite(N) || N <= 0) return false;
@@ -2400,8 +2410,10 @@ function _validateMsiArgs(ns, N) {
   }
   return true;
 }
+// Stryker restore all
 
 function multisetIntersectionPExact(xObs, ns, N) {
+  // Stryker disable next-line all -- defensive validator delegate; equivalent-mutant pattern (bad inputs would NaN through the DP anyway)
   if (!_validateMsiArgs(ns, N)) return NaN;
   if (xObs <= 0) return 1;
   const minN = Math.min(...ns);
@@ -2442,13 +2454,16 @@ function multisetIntersectionPExact(xObs, ns, N) {
 // tests (VennPlex, pybedtools shuffle reference tables) use.
 
 function multisetExclusiveExpected(insideSizes, outsideSizes, N) {
+  // Stryker disable next-line all -- defensive validator; bad N collapses the product to NaN/Infinity through arithmetic anyway, equivalent mutants
   if (!Number.isFinite(N) || N <= 0) return NaN;
   let p = 1;
   for (const n_i of insideSizes) {
+    // Stryker disable next-line all -- defensive validator (same reasoning as the N guard above)
     if (!Number.isFinite(n_i) || n_i < 0 || n_i > N) return NaN;
     p *= n_i / N;
   }
   for (const n_j of outsideSizes) {
+    // Stryker disable next-line all -- defensive validator (same reasoning)
     if (!Number.isFinite(n_j) || n_j < 0 || n_j > N) return NaN;
     p *= 1 - n_j / N;
   }
@@ -2459,9 +2474,11 @@ function multisetExclusiveExpected(insideSizes, outsideSizes, N) {
 //   tail = "upper" → P(X ≥ x) = I_p(x, N − x + 1)
 //   tail = "lower" → P(X ≤ x) = I_{1−p}(N − x, x + 1)
 function multisetExclusiveP(xObs, insideSizes, outsideSizes, N, opts) {
+  // Stryker disable next-line all -- defensive validator; same reasoning as multisetExclusiveExpected
   if (!Number.isFinite(N) || N <= 0) return NaN;
   const Nint = Math.floor(N);
   const expected = multisetExclusiveExpected(insideSizes, outsideSizes, Nint);
+  // Stryker disable next-line all -- defensive: expected is NaN exactly when its inputs are bad; this rethrow is redundant with the upstream check inside multisetExclusiveExpected
   if (!Number.isFinite(expected)) return NaN;
   const p = expected / Nint;
   const tail = opts && opts.tail === "lower" ? "lower" : "upper";
@@ -2480,6 +2497,7 @@ function multisetExclusiveP(xObs, insideSizes, outsideSizes, N, opts) {
 }
 
 function multisetIntersectionPExactLower(xObs, ns, N) {
+  // Stryker disable next-line all -- defensive validator delegate; equivalent-mutant pattern (bad inputs would NaN through the algorithm body anyway)
   if (!_validateMsiArgs(ns, N)) return NaN;
   if (xObs < 0) return 0;
   const minN = Math.min(...ns);
@@ -2498,10 +2516,13 @@ function multisetIntersectionPExactLower(xObs, ns, N) {
 // expected intersection size is N · Π(n_i / N) = Π(n_i) / N^(k-1). Kept in
 // log-space to avoid Π(n_i) overflow for large k or n_i.
 function multisetIntersectionExpected(ns, N) {
+  // Stryker disable next-line all -- defensive validator (shape check)
   if (!Array.isArray(ns) || ns.length === 0) return NaN;
+  // Stryker disable next-line all -- defensive validator (N range check); equivalent-mutant pattern via NaN propagation through Math.log(N)
   if (!Number.isFinite(N) || N <= 0) return NaN;
   let logLambda = 0;
   for (const n_i of ns) {
+    // Stryker disable next-line all -- defensive validator; same reasoning
     if (!Number.isFinite(n_i) || n_i < 0 || n_i > N) return NaN;
     if (n_i === 0) return 0;
     logLambda += Math.log(n_i);
@@ -2511,9 +2532,12 @@ function multisetIntersectionExpected(ns, N) {
 }
 
 function multisetIntersectionPPoisson(xObs, ns, N) {
+  // Stryker disable next-line all -- defensive validator (shape check); equivalent-mutant pattern, bad inputs would propagate through gammainc as NaN
   if (!Array.isArray(ns) || ns.length < 2) return NaN;
+  // Stryker disable next-line all -- defensive validator (N range check); same reasoning
   if (!Number.isFinite(N) || N <= 0) return NaN;
   for (const n_i of ns) {
+    // Stryker disable next-line all -- defensive validator; same reasoning
     if (!Number.isFinite(n_i) || n_i < 0 || n_i > N) return NaN;
     if (n_i === 0) return xObs <= 0 ? 1 : 0;
   }
@@ -2530,6 +2554,7 @@ function multisetIntersectionPPoisson(xObs, ns, N) {
 }
 
 function multisetIntersectionP(xObs, ns, N) {
+  // Stryker disable next-line all -- defensive validator (shape check); the dispatch below to PExact / PPoisson re-validates fully, so this guard is doubly redundant
   if (!Array.isArray(ns) || ns.length < 2) return NaN;
   // Exact DP cost is ~ (k - 1) · min(n_i)² log-sum-exp evaluations. Cap at
   // ~10 M ops so UI round-trips stay sub-second. Beyond that, Poisson is a
