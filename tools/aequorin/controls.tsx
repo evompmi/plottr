@@ -31,7 +31,7 @@ export function ControlSection({
     requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
   }, [open]);
   return (
-    <div ref={rootRef} className="dv-panel" style={{ marginBottom: 0, padding: 0 }}>
+    <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
       <div
         style={{
           display: "flex",

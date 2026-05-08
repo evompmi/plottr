@@ -23,7 +23,7 @@ export function ControlSection({
     requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
   }, [open]);
   return (
-    <div ref={rootRef} className="dv-panel" style={{ marginBottom: 0, padding: 0 }}>
+    <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
       <button
         onClick={() => setOpen(!open)}
         className="dv-tile-title"
@@ -128,7 +128,6 @@ export function PlotControls({
             background: "var(--success-bg)",
             borderColor: "var(--success-border)",
             padding: "10px 12px",
-            marginBottom: 0,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -192,7 +191,7 @@ export function PlotControls({
       {/* Plot style — always visible */}
       <div
         className="dv-panel"
-        style={{ padding: 12, marginBottom: 0, display: "flex", flexDirection: "column", gap: 9 }}
+        style={{ padding: 12, display: "flex", flexDirection: "column", gap: 9 }}
       >
         <div>
           <div className="dv-label">Plot style</div>
