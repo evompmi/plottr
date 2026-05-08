@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Property tests for `stats.js` distributions and the power calculator.** Internal/test-only: new `tests/stats.property.test.js` (48 properties: cdf monotonicity, cdf↔inv round-trips, gammaln recursion, swap-symmetry of two-sample tests, BH order preservation) and `tests/power.property.test.js` (45 properties: power ∈ [0, 1], null-hypothesis floor, monotonicity in n / es / α, 1-tail ≥ 2-tail, effect-size converter scaling laws). Suite total: 1415 tests.
 
+- **Stryker mutation testing wired up via `npm run mutation`.** Internal/test-only: meta-tests the test suite itself by mutating source on disk and rerunning `npm test`. First scope (`tools/volcano/helpers.ts`) produced 996 mutants, all killed → **100% mutation score**, validating that the volcano property tests + unit tests fully constrain the file's behavioural surface. Other helpers / `stats.js` are listed in `stryker.conf.mjs` as commented-out scope to enable incrementally; runs on demand (~3 h per file), not a CI gate.
+
 - **Volcano label placement: smarter fallback, multi-restart, sub-degree
   refinement, and a density-aware cap warning.** Previously the
   greedy-first-fit layout always defaulted forced labels to 12 o'clock,

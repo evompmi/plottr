@@ -8,6 +8,7 @@ Auto-loaded by Claude Code when work touches anything under `tests/`. Cross-cutt
 npm test            # full deterministic suite under Vitest (parallel by file)
 npm run test:watch  # watch mode for local development
 npm run test:coverage
+npm run mutation    # Stryker mutation testing — measures whether the suite *catches* bugs, not just whether tests pass. See "Mutation testing" below.
 ```
 
 The suite splits into four rough buckets:
@@ -42,6 +43,47 @@ Why fast-check replaced the prior bespoke fuzz harnesses (the eight `tests/fuzz/
 **Subsume-then-delete rule.** When refactoring an invariant-coverage driver, the new file must cover every invariant the old one asserted before the old file is removed. The migration from fuzz harnesses to property tests followed this rule strictly — every fuzz-harness invariant has a corresponding property in the per-tool property file, plus extras (idempotency, boundary cases, sign-symmetry, etc.) that the imperative loop couldn't easily express.
 
 **`tests/helpers/csv-corpus.js`** still exists and is still used: `arbCorpusCsv` in `csv-arbitraries.js` wraps it as a fast-check arbitrary so all property tests inherit the same pathological-input distribution the fuzz harnesses tested (BOM, CRLF, mixed delimiters, decimal commas, ragged rows, null bytes, unicode labels, NaN/Inf tokens, very long labels, trailing commas, …). Adding a new pathology category means appending to the `GENERATORS` array there; every property test that pulls from `arbAnyCsv` picks it up automatically.
+
+## Mutation testing (Stryker)
+
+Mutation testing is a meta-test of the test suite itself: Stryker mutates the source on disk (flips comparators, swaps constants, deletes statements, inverts conditionals, …) and re-runs `npm test` against each mutated version. A _killed_ mutant means at least one test failed on the broken code; a _surviving_ mutant points at an invariant the suite doesn't actually constrain.
+
+```bash
+npm run mutation    # runs Stryker against the files in stryker.conf.mjs
+```
+
+Initial scope is `tools/volcano/helpers.ts` only — the deepest-property-covered helpers file in the repo. The first run produced **996 mutants → 932 killed + 64 timed out + 0 survived = 100% mutation score**, validating that the 57 volcano property tests + ~74 unit tests fully constrain the file's behavioural surface.
+
+**Cost.** ~3 hours of CPU time on a 4-core M-series Mac for volcano alone (perTest coverage + four parallel runners). Not a CI gate; run on demand when extending coverage or before a release.
+
+**Configuration choices** (`stryker.conf.mjs`):
+
+- `vitest: { related: false }` — Vitest's `--related` flag traces static `import` graphs, but the per-tool loaders read source via `vm.runInContext` (so the test files don't statically import the mutated `.ts`). With `related` left on, Stryker reports "no tests were found" and exits. Disabling it lets Vitest run the full set; `coverageAnalysis: "perTest"` then scopes which tests fire per mutant.
+- `coverageAnalysis: "perTest"` — instruments the initial test run to record which tests cover which lines, then runs only the covering tests for each mutant. ~13 tests/mutant on average, vs ~1400 if disabled.
+- `concurrency: 4` — reasonable parallelism without saturating the workstation. Adjust to taste.
+- `timeoutMS: 60000` — many mutants produce infinite loops; the timeout catches them and counts the mutation as killed.
+
+**HTML report.** `reports/mutation/mutation.html` (gitignored). One row per source line, colour-coded by survived / killed / no-coverage. Drill into a survived mutant to see the diff and which tests covered it but didn't fail.
+
+**Scope expansion path.** The `mutate:` array in `stryker.conf.mjs` lists the other helpers as commented-out entries:
+
+```js
+mutate: [
+  "tools/volcano/helpers.ts",
+  // "tools/stats.js",
+  // "tools/heatmap/helpers.ts",
+  // "tools/boxplot/helpers.ts",
+  // "tools/scatter/helpers.ts",
+  // "tools/aequorin/helpers.ts",
+  // "tools/lineplot/helpers.ts",
+  // "tools/upset/helpers.ts",
+  // "tools/venn/**/*.ts",
+],
+```
+
+Uncomment one at a time and re-run. Each will take a few hours; survivors are the actionable output — they tell you exactly which line / mutation kind your suite doesn't catch, and the fix is usually a tighter property assertion rather than a new test file.
+
+**When NOT to run mutation testing.** Day-to-day editing — the existing 1416-test suite catches most regressions in seconds, mutation testing is a quarterly exercise. Run it after a substantial test-suite expansion (to validate the new properties have bite), before a release (to confirm coverage didn't regress), or when investigating a class of bug the suite missed (to find the gap that let it through).
 
 ## Test standards (mandatory for new work)
 
