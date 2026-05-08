@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Stryker mutation testing wired up via `npm run mutation`.** Internal/test-only: meta-tests the test suite itself by mutating source on disk and rerunning `npm test`. First scope (`tools/volcano/helpers.ts`) produced 996 mutants, all killed → **100% mutation score**, validating that the volcano property tests + unit tests fully constrain the file's behavioural surface. Other helpers / `stats.js` are listed in `stryker.conf.mjs` as commented-out scope to enable incrementally; runs on demand (~3 h per file), not a CI gate.
 
+- **Tightened the `tukeyHSD` pair-coverage property's arbitrary** to avoid occasional 30s timeouts at `k=6` groups with `n=2` per group (qtukey is a 200-step bisection over a 48-node Gauss-Legendre quadrature of ptukey at df=1, ~10s of ms per pair × 15 pairs × 80 runs blew past the per-test budget). Capping at `k ≤ 4` and requiring `n ≥ 3` keeps the workload well below the budget without weakening the structural invariant — pair coverage doesn't depend on group count beyond k ≥ 2.
+
 - **Volcano label placement: smarter fallback, multi-restart, sub-degree
   refinement, and a density-aware cap warning.** Previously the
   greedy-first-fit layout always defaulted forced labels to 12 o'clock,
