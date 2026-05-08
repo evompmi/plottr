@@ -62,7 +62,21 @@ const ctx = {
 };
 vm.createContext(ctx);
 const TOOLS = path.join(__dirname, "../tools");
-vm.runInContext(fs.readFileSync(path.join(TOOLS, "stats.js"), "utf8"), ctx);
+// Load order matches scripts/build-shared.js's FILES array:
+//   stats-*.js → shared-stats-registry.js → shared-r-export.js
+// shared-r-export.js consumes STATS_TEST_REGISTRY / STATS_POSTHOC_REGISTRY
+// (declared in shared-stats-registry.js) at top level — without the
+// registry loaded first, evaluation throws ReferenceError.
+for (const name of [
+  "stats-dist.js",
+  "stats-tests.js",
+  "stats-posthoc.js",
+  "stats-cluster.js",
+  "stats-msi.js",
+]) {
+  vm.runInContext(fs.readFileSync(path.join(TOOLS, name), "utf8"), ctx);
+}
+vm.runInContext(fs.readFileSync(path.join(TOOLS, "shared-stats-registry.js"), "utf8"), ctx);
 vm.runInContext(fs.readFileSync(path.join(TOOLS, "shared-r-export.js"), "utf8"), ctx);
 
 const { tTest, buildRScript } = ctx;

@@ -11,10 +11,11 @@ const fs = require("fs");
 const vm = require("vm");
 const path = require("path");
 const esbuild = require("esbuild");
+const { readStatsSource } = require("./stats-source");
 
 const toolsDir = path.join(__dirname, "../../tools");
 const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
-const statsSrc = fs.readFileSync(path.join(toolsDir, "stats.js"), "utf8");
+const statsSrc = readStatsSource();
 const registrySrc = fs.readFileSync(path.join(toolsDir, "shared-stats-registry.js"), "utf8");
 const statsTileSrc = fs.readFileSync(path.join(toolsDir, "shared-stats-tile.js"), "utf8");
 const helpersSrc = fs.readFileSync(path.join(toolsDir, "boxplot/helpers.ts"), "utf8");

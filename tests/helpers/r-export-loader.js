@@ -6,13 +6,14 @@
 const fs = require("fs");
 const vm = require("vm");
 const path = require("path");
+const { readStatsSource } = require("./stats-source");
 
 const toolsDir = path.join(__dirname, "../../tools");
 // shared-r-export now derives its label maps from STATS_TEST_REGISTRY /
 // STATS_POSTHOC_REGISTRY (defined in tools/shared-stats-registry.js).
 // Stats.js provides the test functions the registry's `run` closures
 // reference. Load order: stats.js → registry → r-export.
-const statsSrc = fs.readFileSync(path.join(toolsDir, "stats.js"), "utf8");
+const statsSrc = readStatsSource();
 const registrySrc = fs.readFileSync(path.join(toolsDir, "shared-stats-registry.js"), "utf8");
 const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
 const src = fs.readFileSync(path.join(toolsDir, "shared-r-export.js"), "utf8");

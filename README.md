@@ -84,10 +84,10 @@ Each tool has an in-app **How to** panel.
 
 ## Statistical validation
 
-All numerics (`tools/stats.js`) are cross-validated against **two independent references**:
+All numerics (`tools/stats-*.js`) are cross-validated against **two independent references**:
 
 - **R 4.5** on real built-in datasets (`iris`, `PlantGrowth`, `ToothGrowth`, `mtcars`, …). Current run: **303 comparisons, max absolute |R − JS| ≈ 8 × 10⁻⁷** (max over test statistics alone is 4 × 10⁻⁹); zero comparisons exceed 10⁻⁶ in absolute terms. Reproducible via `npm run benchmark`. Results render as a public page at `benchmark.html` — failing rows are shown in red, not hidden.
-- **SciPy 1.17** on synthetic targeted grids over the (df, λ) regimes the R bank only touches indirectly: `nctcdf` at deep δ, `ncf_sf` / `ncchi2cdf` at large λ across the noncentral normal-approx threshold, `qtukey` at extreme corners. **847 cases / ~1080 comparisons, 0 failures**, with 92 deep-tail rows (both values < 10⁻¹³, informational) and 1 pathological annotation (`qtukey` at df = 1, documented as outside the design envelope in `tools/stats.js`). Reproducible via `npm run benchmark:scipy`.
+- **SciPy 1.17** on synthetic targeted grids over the (df, λ) regimes the R bank only touches indirectly: `nctcdf` at deep δ, `ncf_sf` / `ncchi2cdf` at large λ across the noncentral normal-approx threshold, `qtukey` at extreme corners. **847 cases / ~1080 comparisons, 0 failures**, with 92 deep-tail rows (both values < 10⁻¹³, informational) and 1 pathological annotation (`qtukey` at df = 1, documented as outside the design envelope in `tools/stats-posthoc.js`). Reproducible via `npm run benchmark:scipy`.
 
 On top of that, a deterministic unit + integration test suite (CI-gated on every commit, alongside ESLint, Prettier, and `tsc --noEmit`) plus per-tool fuzz harnesses (`npm run fuzz:<tool>`) that run 2 × 1000 iterations of pathological-input corpus through each tool's pipeline. The current test count is shown on the [landing page](https://evompmi.github.io/plottr/) and auto-bumped after every `npm test`.
 
@@ -146,7 +146,7 @@ If you use Plöttr in published research, cite the repository. Suggested citatio
 
 ## License
 
-Plöttr is released under the [MIT License](LICENSE). Vendored copies of React + ReactDOM (`vendor/`) keep their upstream MIT license — see [`vendor/LICENSE-react.txt`](vendor/LICENSE-react.txt). Continued-fraction primitives (`betacf`, `gammainc`, `gammainc_upper` in `tools/stats.js`) are ported from the public-domain [Cephes Mathematical Library](https://www.netlib.org/cephes/). All algorithmic references and third-party attributions are consolidated in [`THIRD_PARTY.md`](THIRD_PARTY.md).
+Plöttr is released under the [MIT License](LICENSE). Vendored copies of React + ReactDOM (`vendor/`) keep their upstream MIT license — see [`vendor/LICENSE-react.txt`](vendor/LICENSE-react.txt). Continued-fraction primitives (`betacf`, `gammainc`, `gammainc_upper` in `tools/stats-dist.js`) are ported from the public-domain [Cephes Mathematical Library](https://www.netlib.org/cephes/). All algorithmic references and third-party attributions are consolidated in [`THIRD_PARTY.md`](THIRD_PARTY.md).
 
 ## Acknowledgements
 

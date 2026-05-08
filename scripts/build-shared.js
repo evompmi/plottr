@@ -25,11 +25,19 @@ const OUT_FILE = path.join(TOOLS_DIR, "shared.bundle.js");
 const FILES = [
   "theme.js",
   "shared.js",
-  "stats.js",
-  // shared-stats-registry depends on stats.js function globals (tTest,
-  // welchANOVA, …) and is consumed by shared-r-export.js +
-  // shared-stats-tile.js downstream — must load after stats.js, before
-  // those two.
+  // stats-*.js — `stats.js` was carved into five focused files in 1.x.x.
+  // Load order matters: stats-tests depends on stats-dist's distributions,
+  // stats-posthoc depends on stats-tests' ANOVA/sample helpers, stats-msi
+  // depends on stats-dist's gammaln/betai/gammainc. stats-cluster has no
+  // intra-stats dependencies but is grouped with the family for clarity.
+  "stats-dist.js",
+  "stats-tests.js",
+  "stats-posthoc.js",
+  "stats-cluster.js",
+  "stats-msi.js",
+  // shared-stats-registry depends on stats globals (tTest, welchANOVA, …)
+  // and is consumed by shared-r-export.js + shared-stats-tile.js
+  // downstream — must load after the stats-*.js files, before those two.
   "shared-stats-registry.js",
   "shared-color-input.js",
   "shared-discrete-palette.js",

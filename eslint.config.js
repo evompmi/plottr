@@ -18,8 +18,9 @@ const plottrLocal = {
 
 const compiledTools = ["tools/_app/index.js", "tools/version.js"];
 
-// Names declared at top-level of tools/shared.js, tools/stats.js, and the
-// tools/shared-*.js component files, consumed by tool .tsx files via <script>-tag globals.
+// Names declared at top-level of tools/shared.js, the tools/stats-*.js files,
+// and the tools/shared-*.js component files, consumed by tool .tsx files via
+// <script>-tag globals.
 const sharedGlobals = {
   // shared.js
   hexToRgb: "readonly",
@@ -102,23 +103,29 @@ const sharedGlobals = {
   extractStylePrefs: "readonly",
   isLabelKey: "readonly",
   PrefsPanel: "readonly",
-  // stats.js
+  // stats-*.js (carved from the original stats.js)
   normcdf: "readonly",
+  normsf: "readonly",
   norminv: "readonly",
   gammaln: "readonly",
   betai: "readonly",
+  betai_upper: "readonly",
   betacf: "readonly",
   gammainc: "readonly",
   gammainc_upper: "readonly",
   tcdf: "readonly",
+  tcdf_upper: "readonly",
   tpdf: "readonly",
   tinv: "readonly",
   fcdf: "readonly",
+  fcdf_upper: "readonly",
   chi2cdf: "readonly",
+  chi2pdf: "readonly",
   chi2inv: "readonly",
   nctcdf: "readonly",
   ncf_sf: "readonly",
   ncchi2cdf: "readonly",
+  _gaussLegendre: "readonly",
   bisect: "readonly",
   sampleMean: "readonly",
   sampleVariance: "readonly",
@@ -298,7 +305,7 @@ module.exports = [
   // (self-declarations collide with the global list), and disable
   // no-unused-vars (names are consumed via globals).
   {
-    files: ["tools/shared.js", "tools/stats.js", "tools/*.js"],
+    files: ["tools/shared.js", "tools/stats-*.js", "tools/*.js"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "script",

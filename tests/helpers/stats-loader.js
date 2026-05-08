@@ -20,9 +20,9 @@
 
 const fs = require("fs");
 const path = require("path");
+const { readStatsSource } = require("./stats-source");
 
-const toolsDir = path.join(__dirname, "../../tools");
-const statsRaw = fs.readFileSync(path.join(toolsDir, "stats.js"), "utf8");
+const statsRaw = readStatsSource();
 
 // Auto-generate the exports footer. Match `function name(` and
 // `const name = …` at the start of a line. Underscore-prefixed names

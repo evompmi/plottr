@@ -15,12 +15,13 @@
 
 const { suite, test, assert, approx, summary } = require("./harness");
 const vm = require("vm");
-const fs = require("fs");
 const esbuild = require("esbuild");
 
-// Load stats.js + the power-app source into a vm context with minimal
-// React stubs. stats.js provides the distribution primitives (normcdf,
-// tcdf, nctcdf, bisect, …) that power-app.tsx declares itself against.
+// Load stats-*.js + the power-app source into a vm context with minimal
+// React stubs. The stats-*.js bundle provides the distribution primitives
+// (normcdf, tcdf, nctcdf, bisect, …) that power-app.tsx declares itself
+// against. `readStatsSource()` concatenates the five files in the same
+// order `scripts/build-shared.js` does for the browser bundle.
 //
 // SPA-era detail: pre-iframe→SPA migration there was a precompiled
 // `tools/power.js` that this test could read verbatim. The migration
@@ -29,7 +30,7 @@ const esbuild = require("esbuild");
 // trick `tests/helpers/render-loader.js` uses for the chart loaders.
 // IIFE format keeps `vm.runInContext` happy (ESM `export` would
 // error in script-mode evaluation).
-const statsCode = fs.readFileSync(require("path").join(__dirname, "../tools/stats.js"), "utf-8");
+const statsCode = require("./helpers/stats-source").readStatsSource();
 const powerAppPath = require("path").join(__dirname, "../tools/power-app.tsx");
 const powerBuild = esbuild.buildSync({
   entryPoints: [powerAppPath],
