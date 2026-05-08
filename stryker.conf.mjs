@@ -27,9 +27,10 @@ export default {
     //   - tools/volcano/helpers.ts  (100%, 996 mutants, 932 killed + 64 timed out)
     //   - tools/scatter/helpers.ts  (93.18% raw / 100% non-equivalent, 88 mutants)
     //   - tools/lineplot/helpers.ts (79.20% raw / ~95% non-equivalent, 125 mutants)
-    //   - tools/stats.js            (14.87% raw / 55.37% covered, 3504 mutants;
-    //                                73% no-coverage because stats.test.js is
-    //                                skipped under Stryker — see docs/testing-2026-05-08.md)
+    //   - tools/stats.js            (57.72% raw / 68.02% covered, 3489 mutants;
+    //                                up from 14.87% / 55.37% after switching from a
+    //                                file-level skip to a 3-test name-list skip in
+    //                                tests/stats.test.js — see docs/testing-2026-05-08.md)
     //
     // Active target (stays here so `npm run mutation` reproduces the
     // most recent run; swap for one of the pending entries below to
@@ -77,11 +78,13 @@ export default {
 
   // Stryker's default *dry run* budget (the initial baseline pass) is
   // 5 minutes. Under perTest coverage instrumentation the full suite
-  // is noticeably slower than `npm test` alone — at ~1500 tests
-  // including a handful of legitimately slow R-cross-validation
-  // checks (iris TukeyHSD, deep-tail cpsets, qtukey at small df), the
-  // baseline can exceed 5 min on a busy machine. Bump to 10 min.
-  dryRunTimeoutMinutes: 10,
+  // is noticeably slower than `npm test` alone — and on `tools/stats.js`
+  // specifically, the R-cross-validation tests in `stats.test.js`
+  // include some near-pathological inner numerical loops that bloat
+  // by ~3000× under per-line probes. Bump to 30 min so the dry run
+  // can finish even when those slow tests are included; per-test
+  // outliers are skipped under Stryker via name-list in stats.test.js.
+  dryRunTimeoutMinutes: 30,
 
   // Reasonable parallelism for a workstation. Leave ~half of cores
   // free so the rest of the system stays responsive.

@@ -40,19 +40,22 @@ module.exports = defineConfig({
     // built around.
     reporters: ["verbose"],
 
-    // Per-test timeout. Vitest's default 5s is fine for the vast
-    // majority of unit tests, but a handful of statistical
-    // cross-validations exercise expensive pure-JS routines that
-    // legitimately take a few seconds: the `multisetIntersectionPExact`
-    // deep-tail check (k=5, p ≈ 1e-15) is ~3 s, and `qtukey` at small
-    // df runs a doubling bracket-expansion plus 200-step bisection
-    // where each iteration is a 48-node Gauss-Legendre integration of
-    // ptukey. 60 s gives those slow cases ~10× headroom under Stryker's
-    // perTest-coverage instrumentation (which adds ~10× overhead to
-    // hot loops); regular `npm test` runs unaffected because nothing
-    // takes more than ~5 s without instrumentation. Still short enough
-    // that a genuinely-hung test won't bleed CI time forever.
-    testTimeout: 60_000,
+    // Per-test timeout. Two regimes:
+    //   - Regular `npm test`: 60 s is comfortable headroom for the
+    //     handful of legitimately-slow statistical cross-validations
+    //     (`multisetIntersectionPExact` k=5 deep-tail ~3 s; `qtukey`
+    //     at small df runs a doubling bracket-expansion plus 200-step
+    //     bisection over a 48-node Gauss-Legendre quadrature of
+    //     ptukey). Short enough that a genuinely-hung test gets
+    //     killed in a minute rather than bleeding CI time forever.
+    //   - Under Stryker: bump to 300 s. Stryker's perTest-coverage
+    //     instrumentation injects a per-line probe that, on the
+    //     hottest stats inner loops (qtukey-at-df=1, cpsets deep
+    //     tail), pushes per-test latency ~3000× — even tests that
+    //     fit in 100 ms regular need minutes under instrumentation.
+    //     Detected via `.stryker-tmp` in cwd (Stryker copies the repo
+    //     to a sandbox under that path).
+    testTimeout: process.cwd().includes(".stryker-tmp") ? 300_000 : 60_000,
 
     // Pre-test hook: build-shared still runs via package.json's
     // `pretest` script (just like before), so by the time vitest

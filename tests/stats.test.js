@@ -9,27 +9,45 @@
 
 const harness = require("./harness");
 
-// Stats.test.js's R-cross-validation tests pin specific numerical values
-// (qtukey at small df, cpsets multisetIntersectionPExact deep tails,
-// nctcdf / ncf_sf at extreme params). Many run inner loops with
-// 10⁴+ quadrature evaluations that, under Stryker's perTest-coverage
-// instrumentation, slow by ~3000× per call (every probe is a global-
-// object write). Tests that fit comfortably in the 30 s vitest budget
-// during regular `npm test` blow past 60 s under Stryker, regardless
-// of how high the budget is bumped.
-//
-// The property tests in `tests/stats.property.test.js` cover the same
-// stats.js surface with structural invariants (monotonicity, cdf↔inv
-// round-trips, swap-symmetry, output-range bounds) — no slow numerical
-// convergence, full Stryker visibility. So under Stryker we no-op
-// every test in this file; under regular `npm test` the file runs
-// normally.
+// Stats.test.js's R-cross-validation suite is mostly fast (~200ms total
+// outside Stryker, all individual tests well under 100 ms). A few
+// outliers internally drive numerical-convergence loops with 10⁴+
+// quadrature evaluations — qtukey at very small df (df=1, 2),
+// multisetIntersectionPExact at deep tails (k=5, p~1e-15) — and under
+// Stryker's perTest-coverage instrumentation the per-line probe tax
+// makes them ~3000× slower, which exceeds even a generous per-test
+// timeout. Skipping the whole file under Stryker is the heavy hammer
+// (it leaves only stats.property.test.js's 49 properties as Stryker-
+// visible coverage of stats.js); skipping just the named outliers
+// keeps the bulk of the cross-validation pinning while sidestepping
+// the unfixable cases.
 //
 // Detection: Stryker copies the repo to a sandbox under `.stryker-tmp/
 // sandbox-XXX/` and runs from there, so the cwd is a reliable signal.
 const IS_STRYKER = process.cwd().includes(".stryker-tmp");
-const test = IS_STRYKER ? () => {} : harness.test;
-const suite = IS_STRYKER ? () => {} : harness.suite;
+
+// Tests known to time out under Stryker even with generous budgets —
+// the inner numerical loop is too long-running for any reasonable
+// per-test timeout. Pinned by exact name; everything else in this file
+// runs normally under Stryker.
+const SKIP_UNDER_STRYKER = new Set([
+  // qtukey at df=1 — the smallest df is the slowest because the
+  // ptukey integrand has a heavy tail and the bisection bracket
+  // expansion runs many iterations.
+  "qtukey(0.999, 50, 1) > 100 (bracket actually expanded)",
+  // multisetIntersectionPExact at k=5 deep tail — the dynamic-
+  // programming table at this scale has ~10⁵ cells × log-space
+  // exponentials.
+  "k=5 deep tail p ~ 1e-15 matches R in log-space",
+  // multisetIntersectionPExact at k=2 even deeper tail — same DP
+  // structure, slightly smaller table but more iterations.
+  "k=2 very deep tail p ~ 1e-31 matches R in log-space",
+]);
+
+const test = IS_STRYKER
+  ? (name, fn) => (SKIP_UNDER_STRYKER.has(name) ? undefined : harness.test(name, fn))
+  : harness.test;
+const suite = harness.suite;
 const { assert, approx, eq, summary } = harness;
 
 // Load tools/stats.js via the shared loader (which require()'s a CJS
