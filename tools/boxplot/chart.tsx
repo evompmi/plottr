@@ -1,11 +1,31 @@
 // BoxplotChart (forwardRef SVG renderer) and its stats-summary SVG helpers.
 // Split out of tools/boxplot.tsx as part of the folder-split refactor — pure
-// React/SVG; no state, no side effects. Its only sibling-module dependency is
-// the constants in ./helpers (STATS_LINE_H / STATS_FONT / statsSummaryHeight),
-// which keep the font-size and line-height arithmetic testable.
+// React/SVG; no state, no side effects. The pure layout / scale arithmetic
+// (margins, viewbox, y-domain, band/value scales, ticks, tick formatter)
+// lives in `./layout` and `./scales` so it's independently testable; this
+// file orchestrates the React/SVG render around their outputs.
 
-import { STATS_LINE_H, STATS_FONT, statsSummaryHeight } from "./helpers";
+// statsSummaryHeight + STATS_FONT are now consumed inside ./layout's
+// computeViewBox; chart.tsx still pulls STATS_LINE_H + STATS_FONT for its
+// internal SVG text rendering.
+import { STATS_LINE_H, STATS_FONT } from "./helpers";
 import { SignificanceBrackets, CldLabels } from "../_shell/chart-annotations";
+import {
+  computeAnnotationPadding,
+  computeBandSizing,
+  computeChartMargins,
+  computeCumulativeGap,
+  computeViewBox,
+  expandYMaxForAnnotations,
+  findSubgroupForIndex,
+} from "./layout";
+import {
+  computeYDomain,
+  computeYTicks,
+  makeBandScale,
+  makeTickFormatter,
+  makeValueScale,
+} from "./scales";
 
 const { forwardRef, useRef } = React;
 
@@ -111,48 +131,24 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   },
   ref
 ) {
-  const isBar = plotStyle === "bar";
-  const hz = !!horizontal;
-  const angle = hz ? 0 : xLabelAngle || 0;
-  const absA = Math.abs(angle);
-  const hasPie = cbc >= 0 && showCompPie;
-  const pieSpace = hasPie ? 60 : 0;
-  // maxLabelLen drives BOTH the hz-mode left margin (where labels render
-  // horizontally on the y-axis) AND the non-hz-mode bottom-margin
-  // reservation when labels are rotated. Pre-fix this was only computed
-  // for hz mode, so vertical-mode rotated labels longer than ~12 chars
-  // overran their reservation and clipped into the legend zone below.
-  const maxLabelLen = Math.max(...groups.map((g: any) => g.name.length), 4);
-  const labelZone = maxLabelLen * 7 + 20;
-  // Bottom-margin for non-hz mode:
-  //   - 60 px baseline (one row of horizontal text + axis line + gap).
-  //   - When rotated, take the larger of the old angle-only heuristic
-  //     and a sharper label-aware estimate (label length × char width ×
-  //     sin(angle) + small padding for the tick line). The Math.max
-  //     keeps the old heuristic as a floor so short-label charts don't
-  //     suddenly shrink on this fix; long-label charts gain the room
-  //     they were silently missing.
-  const rotationExtra =
-    absA > 0
-      ? Math.max(
-          absA * (isBar ? 0.9 : 0.8),
-          maxLabelLen * 7 * Math.sin((absA * Math.PI) / 180) + 12
-        )
-      : 0;
-  const botM = hz ? 50 : 60 + rotationExtra + pieSpace;
-  const leftM = hz ? Math.max(62, labelZone + (hasPie ? pieSpace : 0)) : 62;
+  // ── Layout: margins + annotation padding ─────────────────────────────────
+  const { M, hz, isBar, angle, absA, pieSpace, labelZone } = computeChartMargins({
+    groups,
+    horizontal,
+    xLabelAngle,
+    plotStyle,
+    showCompPie,
+    colorByCol: cbc,
+  });
+  const {
+    hasLabels: _hasLabels,
+    hasPairs: _hasPairs,
+    annotPairs,
+    subgroupLabelPad,
+    annotTopPad,
+  } = computeAnnotationPadding({ annotations, subgroups });
 
-  const _hasLabels = annotations && (annotations.kind === "cld" || annotations.kind === "both");
-  const _hasPairs = annotations && (annotations.kind === "brackets" || annotations.kind === "both");
-  const annotPairs = _hasPairs ? assignBracketLevels(annotations.pairs || []) : [];
-  const annotMaxLevel = annotPairs.reduce((m: any, pr: any) => Math.max(m, pr._level || 0), 0);
-  const subgroupLabelPad = subgroups && subgroups.length > 0 ? 18 : 0;
-  const cldPad = _hasLabels ? 22 : 0;
-  const bracketPad = annotPairs.length > 0 ? (annotMaxLevel + 1) * 20 + 6 : 0;
-  const annotTopPadBase = Math.max(cldPad, bracketPad);
-  const annotTopPad = annotTopPadBase + subgroupLabelPad;
-  const M = { top: 24, right: 24, bottom: botM, left: leftM };
-
+  // ── KDE cache hook (must precede any early-return for rules-of-hooks) ────
   // Cache kde() across renders, keyed on the underlying allValues array. The
   // chart wrapper rebuilds `groups` on every aesthetic tweak (sliders, colors)
   // but each group's `allValues` reference is preserved from the upstream
@@ -161,9 +157,6 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   // violin/raincloud plots (O(nPoints × n) Gaussian evaluations per group),
   // and it is invoked twice per group per render — once for axis bounds, once
   // for the path geometry — so this also dedupes within a single render.
-  //
-  // Hook MUST come before any early-return so React's call order stays stable
-  // across renders (rules-of-hooks).
   const kdeCacheRef = useRef<WeakMap<number[], Array<{ x: number; d: number }>>>(new WeakMap());
 
   const allV = groups.flatMap((g: any) => g.allValues);
@@ -177,163 +170,75 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
     return pts;
   };
 
-  let dMin = Math.min(...allV);
-  let dMax = Math.max(...allV);
-  if (isBar) {
-    dMin = 0;
-    dMax = 0;
-    for (const g of groups) {
-      if (!g.stats) continue;
-      const errVal =
-        errorType === "none"
-          ? 0
-          : errorType === "sd"
-            ? g.stats.sd
-            : errorType === "ci95"
-              ? g.stats.ci95
-              : g.stats.sem;
-      const top = g.stats.mean + errVal;
-      if (top > dMax) dMax = top;
-      if (g.stats.mean < dMin) dMin = g.stats.mean;
-      if (g.stats.max > dMax) dMax = g.stats.max;
-      if (g.stats.min < dMin) dMin = g.stats.min;
-    }
-  } else if (plotStyle === "violin" || plotStyle === "raincloud") {
-    for (const g of groups) {
-      if (g.allValues.length >= 2) {
-        const pts = getKde(g.allValues);
-        const kMin = pts[0].x,
-          kMax = pts[pts.length - 1].x;
-        if (kMin < dMin) dMin = kMin;
-        if (kMax > dMax) dMax = kMax;
-      }
-    }
-  }
-  const pad = (dMax - dMin) * 0.08 || 1;
-  let yMin = yMinP != null ? yMinP : isBar ? (dMin >= 0 ? 0 : dMin - pad) : dMin - pad;
-  let yMax = yMaxP != null ? yMaxP : dMax + pad;
+  // ── Y-domain (with log-scale handling) ───────────────────────────────────
+  // Destructured into a `let` for yMin/yMax (mutable: expandYMaxForAnnotations
+  // adjusts yMax once the chart's pixel dimensions are known) and a `const`
+  // for the log-scale derivatives.
+  const yDomain = computeYDomain({
+    allV,
+    groups,
+    isBar,
+    plotStyle,
+    errorType,
+    getKde,
+    yMinP,
+    yMaxP,
+    yScale,
+  });
+  let { yMin, yMax } = yDomain;
+  const { isLog, logBase, safeLog } = yDomain;
 
-  const isLog = yScale && yScale !== "linear";
-  const logFn =
-    yScale === "log2"
-      ? Math.log2
-      : yScale === "log10"
-        ? Math.log10
-        : yScale === "ln"
-          ? Math.log
-          : null;
-  const logBase = yScale === "log2" ? 2 : yScale === "log10" ? 10 : yScale === "ln" ? Math.E : 0;
-  const safeLog = (v: any) => (logFn && v > 0 ? logFn(v) : logFn ? logFn(1e-10) : v);
+  // ── Band sizing + viewbox ───────────────────────────────────────────────
+  const { n, separatorGap, totalGap, catSize, valSize } = computeBandSizing({
+    groups,
+    subgroups,
+    boxGap,
+    isBar,
+    hz,
+    absA,
+  });
+  const {
+    vbW,
+    vbH,
+    vbHChart: vbH_chart,
+    w,
+    h,
+    legH: _legH,
+    hasSgSummaries: _hasSgSummaries,
+  } = computeViewBox({
+    subgroups,
+    subgroupSummaries,
+    statsSummary,
+    hz,
+    valSize,
+    catSize,
+    M,
+    svgLegend,
+  });
 
-  if (isLog) {
-    const posVals = allV.filter((v: any) => v > 0);
-    if (posVals.length > 0) {
-      const smallestPos = Math.min(...posVals);
-      if (yMin <= 0) yMin = smallestPos / 2;
-    } else {
-      yMin = logBase === 2 ? 0.5 : 0.1;
-    }
-    if (yMax <= yMin) yMax = yMin * 10;
-  }
-
-  const n = groups.length;
-  const compact = (100 - (boxGap != null ? boxGap : 0)) / 100;
-  const separatorGap = subgroups && subgroups.length > 1 ? 40 : 0;
-  const totalGap = subgroups ? (subgroups.length - 1) * separatorGap : 0;
-  const catSize = Math.max(200, n * 100 * compact) + totalGap;
-  const valSize = (isBar ? 420 : 504) + (hz ? 0 : absA > 0 ? absA * (isBar ? 0.9 : 0.8) : 0);
-  const _hasSgSummaries =
-    subgroupSummaries && subgroups && Object.values(subgroupSummaries).some((v: any) => v);
-  const _hzSgSummaryW =
-    hz && _hasSgSummaries
-      ? Math.max(
-          ...Object.values(subgroupSummaries as Record<string, string | null>).map((txt: any) => {
-            if (!txt) return 0;
-            const maxLen = Math.max(...txt.split("\n").map((l: any) => l.length), 0);
-            return maxLen * (STATS_FONT * 0.62) + 16;
-          }),
-          0
-        )
-      : 0;
-  const _statsH =
-    _hasSgSummaries && !hz
-      ? Math.max(
-          ...subgroups.map((sg: any) => statsSummaryHeight(subgroupSummaries[sg.name] || null)),
-          0
-        )
-      : statsSummaryHeight(statsSummary);
-  const vbW = (hz ? valSize : catSize) + M.left + M.right + _hzSgSummaryW;
-  const vbH_base = (hz ? catSize : valSize) + M.top + M.bottom;
-  const _legH = computeLegendHeight(svgLegend, vbW - M.left - M.right - _hzSgSummaryW, 88);
-  const vbH_chart = vbH_base - _statsH;
-  const vbH = vbH_base + _legH;
-  const w = vbW - M.left - M.right - _hzSgSummaryW;
-  const h = vbH_chart - M.top - M.bottom;
-
+  // ── Annotation y-max expansion ──────────────────────────────────────────
   const annotDim = hz ? w : h;
-  if (annotTopPad > 0 && annotDim > annotTopPad + 10) {
-    if (isLog) {
-      const lMin = safeLog(yMin);
-      const lMax = safeLog(yMax);
-      const lRange = ((lMax - lMin) * annotDim) / (annotDim - annotTopPad);
-      const candidate = Math.pow(logBase, lMin + lRange);
-      if (isFinite(candidate) && candidate > yMin) yMax = candidate;
-    } else {
-      yMax = yMin + ((yMax - yMin) * annotDim) / (annotDim - annotTopPad);
-    }
-  }
+  yMax = expandYMaxForAnnotations({
+    yMin,
+    yMax,
+    annotTopPad,
+    annotDim,
+    isLog,
+    logBase,
+    safeLog,
+  });
 
+  // ── Scales + ticks ──────────────────────────────────────────────────────
   const bandW = ((hz ? h : w) - totalGap) / n;
-  const _cumulGap = (() => {
-    if (!subgroups || subgroups.length < 2) return null;
-    const boundaries = new Set(subgroups.slice(1).map((sg: any) => sg.startIndex));
-    const arr = new Array(n);
-    let gap = 0;
-    for (let i = 0; i < n; i++) {
-      if (boundaries.has(i)) gap += separatorGap;
-      arr[i] = gap;
-    }
-    return arr;
-  })();
-  const bx = (i: any) => {
-    const base = (hz ? M.top : M.left) + i * bandW + bandW / 2;
-    return _cumulGap ? base + _cumulGap[i] : base;
-  };
-  const sy = isLog
-    ? (v: number) => {
-        const lv = safeLog(Math.max(v, yMin));
-        const lMin = safeLog(yMin);
-        const lMax = safeLog(yMax);
-        const frac = (lv - lMin) / (lMax - lMin || 1);
-        return hz ? M.left + frac * w : M.top + (1 - frac) * h;
-      }
-    : (v: number) => {
-        const frac = (v - yMin) / (yMax - yMin || 1);
-        return hz ? M.left + frac * w : M.top + (1 - frac) * h;
-      };
-  const yTicks: Array<{ value: number; major: boolean }> = isLog
-    ? makeLogTicks(yMin, yMax, logBase)
-    : makeTicks(yMin, yMax, 8).map((v: any) => ({ value: v, major: true }));
-  const fmtTick = (t: number) => {
-    if (!isLog)
-      return Math.abs(t) < 0.01 && t !== 0
-        ? t.toExponential(1)
-        : t % 1 === 0
-          ? String(t)
-          : t.toFixed(2);
-    if (t >= 1 && t === Math.round(t)) return String(t);
-    if (t >= 0.01) return t.toPrecision(2);
-    return t.toExponential(1);
-  };
-  const _sgForIdx = (i: any) => {
-    if (!subgroups) return null;
-    for (const sg of subgroups) {
-      if (i >= sg.startIndex && i < sg.startIndex + sg.count) return sg;
-    }
-    return null;
-  };
+  const cumulGap = computeCumulativeGap(subgroups, n, separatorGap);
+  const bx = makeBandScale({ M, hz, bandW, cumulGap });
+  const sy = makeValueScale({ yMin, yMax, isLog, safeLog, M, w, h, hz });
+  const yTicks = computeYTicks({ yMin, yMax, isLog, logBase });
+  const fmtTick = makeTickFormatter(isLog);
+
+  // ── Chart-local closures (subgroup-scoped element IDs) ──────────────────
   const _grpId = (prefix: any, gi: any, name: any) => {
-    const sg = _sgForIdx(gi);
+    const sg = findSubgroupForIndex(subgroups, gi);
     return sg
       ? `${prefix}-${svgSafeId(sg.name)}-${svgSafeId(name)}`
       : `${prefix}-${svgSafeId(name)}`;

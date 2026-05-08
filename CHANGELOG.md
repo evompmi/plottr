@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`tools/boxplot/chart.tsx` layout/scale math extracted into typed sibling modules.** Internal-only refactor mirroring the venn/ folder's pattern: `boxplot/layout.ts` (margins, annotation padding, band sizing, viewbox, cumulative subgroup gap, y-max annotation expansion, subgroup-by-index lookup) and `boxplot/scales.ts` (y-domain with log handling, band scale, value scale, ticks, tick formatter). chart.tsx drops from 1087 LOC to 992 and is now React/SVG orchestration only — no inlined arithmetic. The pure-math helpers are independently testable; the bundle and visual output are byte-identical.
+
 - **`tools/stats.js` carved into five files.** Internal-only refactor: `stats-dist.js` (distributions + special functions + `bisect` + power calcs), `stats-tests.js` (sample helpers + Shapiro/Levene/t/MWU/ANOVAs/KW + effect sizes), `stats-posthoc.js` (studentized range + Tukey/Games-Howell/Dunn/BH + CLD + `selectTest`), `stats-cluster.js` (distance + hclust + kmeans), `stats-msi.js` (multiset intersection). The bundle, every global name, and every public function signature are unchanged. Test loaders now route through `tests/helpers/stats-source.js`'s `STATS_FILES` list — one source of truth instead of eight scattered `readFileSync` calls. The single 2566-line file was the largest in the repo; each new file lands in the 200–800 LOC range that matches the `shared-*.js` family.
 
 - **Per-tool fuzz harnesses replaced by fast-check property suites.** Internal/test-only: each tool's `tests/fuzz/<tool>.fuzz.js` (and the weekly `fuzz-release.yml` sweep) is gone; coverage now runs inside `npm test` via `tests/<tool>.property.test.js`, with shrinking on failure.
