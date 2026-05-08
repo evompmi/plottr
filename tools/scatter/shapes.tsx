@@ -8,8 +8,11 @@ export function PaletteStrip({
   width,
   height = 12,
 }: {
-  palette: any;
-  width?: any;
+  // The palette key (`viridis`, `plasma`, …) — looked up in COLOR_PALETTES
+  // with a viridis fallback so unknown keys don't blank the swatch.
+  palette: string;
+  // Either an explicit pixel width or any CSS length (`"100%"`, `"12rem"`).
+  width?: number | string;
   height?: number;
 }) {
   const stops = COLOR_PALETTES[palette] || COLOR_PALETTES.viridis;

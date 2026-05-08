@@ -5,7 +5,7 @@
 
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
-import { SHAPES, computeLinearRegression } from "./helpers";
+import { SHAPES, computeLinearRegression, ScatterVis, RefLine, ScatterRegression } from "./helpers";
 import { UploadStep } from "./steps";
 import { PlotStep } from "./plot-area";
 
@@ -15,7 +15,7 @@ const { useState, useMemo, useCallback, useEffect, useRef } = React;
 // App so dev-mode StrictMode double-renders don't reset it.
 let refLineCounter = 0;
 
-const VIS_INIT_SCATTER = {
+const VIS_INIT_SCATTER: ScatterVis = {
   xMin: null,
   xMax: null,
   yMin: null,
@@ -49,7 +49,7 @@ const VIS_INIT_SCATTER = {
   sizeMapMax: 15,
   sizeMapDiscrete: {},
   shapeMapDiscrete: {},
-  refLines: [] as any[],
+  refLines: [],
   regression: {
     on: false,
     color: "#dc2626",
@@ -244,27 +244,29 @@ export function App() {
   // direct values AND functional updaters so existing call sites (including
   // setShape((prev) => ({...prev, [k]: v})) patterns) keep working unchanged.
   const pointColor = vis.pointColor ?? "#648FFF";
-  const setPointColor = useCallback((v: any) => updVis({ pointColor: v }), [updVis]);
+  const setPointColor = useCallback((v: string) => updVis({ pointColor: v }), [updVis]);
   const pointSize = vis.pointSize ?? 5;
-  const setPointSize = useCallback((v: any) => updVis({ pointSize: v }), [updVis]);
+  const setPointSize = useCallback((v: number) => updVis({ pointSize: v }), [updVis]);
   const pointOpacity = vis.pointOpacity ?? 0.8;
-  const setPointOpacity = useCallback((v: any) => updVis({ pointOpacity: v }), [updVis]);
+  const setPointOpacity = useCallback((v: number) => updVis({ pointOpacity: v }), [updVis]);
   const strokeColor = vis.strokeColor ?? "#000000";
-  const setStrokeColor = useCallback((v: any) => updVis({ strokeColor: v }), [updVis]);
+  const setStrokeColor = useCallback((v: string) => updVis({ strokeColor: v }), [updVis]);
   const strokeWidth = vis.strokeWidth ?? 1;
-  const setStrokeWidth = useCallback((v: any) => updVis({ strokeWidth: v }), [updVis]);
+  const setStrokeWidth = useCallback((v: number) => updVis({ strokeWidth: v }), [updVis]);
 
   // Column-index mappings stay local — they're tied to the current dataset's
   // columns, not a visual pref the user wants restored across reloads.
   const [colorMapCol, setColorMapCol] = useState<number | null>(null);
   const colorMapPalette = vis.colorMapPalette ?? "viridis";
-  const setColorMapPalette = useCallback((v: any) => updVis({ colorMapPalette: v }), [updVis]);
+  const setColorMapPalette = useCallback((v: string) => updVis({ colorMapPalette: v }), [updVis]);
   const colorMapDiscrete: Record<string, string> = useMemo(
     () => vis.colorMapDiscrete || {},
     [vis.colorMapDiscrete]
   );
   const setColorMapDiscrete = useCallback(
-    (updater: any) =>
+    (
+      updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)
+    ) =>
       updVis({
         colorMapDiscrete:
           typeof updater === "function" ? updater(vis.colorMapDiscrete || {}) : updater || {},
@@ -274,15 +276,17 @@ export function App() {
 
   const [sizeMapCol, setSizeMapCol] = useState<number | null>(null);
   const sizeMapMin = vis.sizeMapMin ?? 3;
-  const setSizeMapMin = useCallback((v: any) => updVis({ sizeMapMin: v }), [updVis]);
+  const setSizeMapMin = useCallback((v: number) => updVis({ sizeMapMin: v }), [updVis]);
   const sizeMapMax = vis.sizeMapMax ?? 15;
-  const setSizeMapMax = useCallback((v: any) => updVis({ sizeMapMax: v }), [updVis]);
+  const setSizeMapMax = useCallback((v: number) => updVis({ sizeMapMax: v }), [updVis]);
   const sizeMapDiscrete: Record<string, number> = useMemo(
     () => vis.sizeMapDiscrete || {},
     [vis.sizeMapDiscrete]
   );
   const setSizeMapDiscrete = useCallback(
-    (updater: any) =>
+    (
+      updater: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)
+    ) =>
       updVis({
         sizeMapDiscrete:
           typeof updater === "function" ? updater(vis.sizeMapDiscrete || {}) : updater || {},
@@ -296,7 +300,9 @@ export function App() {
     [vis.shapeMapDiscrete]
   );
   const setShapeMapDiscrete = useCallback(
-    (updater: any) =>
+    (
+      updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)
+    ) =>
       updVis({
         shapeMapDiscrete:
           typeof updater === "function" ? updater(vis.shapeMapDiscrete || {}) : updater || {},
@@ -307,9 +313,9 @@ export function App() {
   // Filter state stays local — depends on the current dataset's column values.
   const [filterState, setFilterState] = useState<Record<string, string[]>>({});
 
-  const refLines = vis.refLines || [];
+  const refLines: RefLine[] = vis.refLines || [];
   const setRefLines = useCallback(
-    (updater: any) =>
+    (updater: RefLine[] | ((prev: RefLine[]) => RefLine[])) =>
       updVis({
         refLines: typeof updater === "function" ? updater(vis.refLines || []) : updater || [],
       }),
@@ -318,7 +324,7 @@ export function App() {
 
   // Regression styling is a sub-object; merge patches via updRegression so
   // existing `updRegression({ on: true })` call sites stay unchanged.
-  const regression = vis.regression || {
+  const regression: ScatterRegression = vis.regression || {
     on: false,
     color: "#dc2626",
     strokeWidth: 1.5,
@@ -326,8 +332,9 @@ export function App() {
     showStats: true,
     position: "tl",
   };
-  const updRegression = (patch: any) => updVis({ regression: { ...regression, ...patch } });
-  const svgRef = useRef<SVGSVGElement | null>(null);
+  const updRegression = (patch: Partial<ScatterRegression>) =>
+    updVis({ regression: { ...regression, ...patch } });
+  const svgRef = useRef<SVGSVGElement>(null);
   const sepRef = useRef("");
 
   const parsed = useMemo(() => (rawText ? parseData(rawText, sepRef.current) : null), [rawText]);
@@ -336,9 +343,8 @@ export function App() {
   const colIsNumeric = useMemo<Record<number, boolean>>(() => {
     if (!parsed) return {};
     return parsed.headers.reduce<Record<number, boolean>>((acc, _, i) => {
-      const vals = parsed.rawData.map((r: any) => r[i]).filter((v: any) => v !== "" && v != null);
-      acc[i] =
-        vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5;
+      const vals = parsed.rawData.map((r) => r[i]).filter((v) => v !== "" && v != null);
+      acc[i] = vals.length > 0 && vals.filter((v) => isNumericValue(v)).length / vals.length > 0.5;
       return acc;
     }, {});
   }, [parsed]);
@@ -400,12 +406,10 @@ export function App() {
 
   // Detect column type (numeric vs discrete)
   const detectColType = useCallback(
-    (colIdx: number | null) => {
+    (colIdx: number | null): "continuous" | "discrete" | null => {
       if (colIdx == null || !parsed) return null;
-      const vals = parsed.rawData
-        .map((r: any) => r[colIdx])
-        .filter((v: any) => v != null && v !== "");
-      return vals.every((v: any) => isNumericValue(v)) ? "continuous" : "discrete";
+      const vals = parsed.rawData.map((r) => r[colIdx]).filter((v) => v != null && v !== "");
+      return vals.every((v) => isNumericValue(v)) ? "continuous" : "discrete";
     },
     [parsed]
   );
@@ -418,9 +422,7 @@ export function App() {
     (colIdx: number | null): string[] => {
       if (colIdx == null || !parsed) return [];
       const vals = [
-        ...new Set(
-          parsed.rawData.map((r: any) => r[colIdx]).filter((v: any) => v != null && v !== "")
-        ),
+        ...new Set(parsed.rawData.map((r) => r[colIdx]).filter((v) => v != null && v !== "")),
       ] as string[];
       const allNum = vals.every((v) => isNumericValue(v));
       return allNum
@@ -455,8 +457,8 @@ export function App() {
     (colIdx: number | null): [number, number] => {
       if (colIdx == null || !parsed) return [0, 1];
       const vals = parsed.rawData
-        .map((r: any) => parseFloat((r[colIdx] || "").replace(",", ".")))
-        .filter((v: number) => !isNaN(v));
+        .map((r) => parseFloat((r[colIdx] || "").replace(",", ".")))
+        .filter((v) => !isNaN(v));
       return vals.length ? [Math.min(...vals), Math.max(...vals)] : [0, 1];
     },
     [parsed]
@@ -474,13 +476,13 @@ export function App() {
       setColorMapDiscrete({});
       return;
     }
-    setColorMapDiscrete((prev: any) => {
+    setColorMapDiscrete((prev) => {
       const seed = resolveDiscretePalette(
         vis.discretePalette || "okabe-ito",
         colorMapCategories.length
       );
       const next: Record<string, string> = {};
-      colorMapCategories.forEach((cat: string, i: number) => {
+      colorMapCategories.forEach((cat, i) => {
         next[cat] = prev[cat] || seed[i % Math.max(1, seed.length)] || PALETTE[i % PALETTE.length];
       });
       return next;
@@ -493,9 +495,9 @@ export function App() {
       setSizeMapDiscrete({});
       return;
     }
-    setSizeMapDiscrete((prev: any) => {
+    setSizeMapDiscrete((prev) => {
       const next: Record<string, number> = {};
-      sizeMapCategories.forEach((cat: string, i: number) => {
+      sizeMapCategories.forEach((cat, i) => {
         next[cat] = prev[cat] !== undefined ? prev[cat] : 3 + i * 3;
       });
       return next;
@@ -508,9 +510,9 @@ export function App() {
       setShapeMapDiscrete({});
       return;
     }
-    setShapeMapDiscrete((prev: any) => {
+    setShapeMapDiscrete((prev) => {
       const next: Record<string, string> = {};
-      shapeMapCategories.forEach((cat: string, i: number) => {
+      shapeMapCategories.forEach((cat, i) => {
         next[cat] = prev[cat] || SHAPES[i % SHAPES.length];
       });
       return next;
@@ -590,7 +592,7 @@ export function App() {
       items.push({
         id: "legend-color",
         title: parsed.headers[colorMapCol],
-        items: colorMapCategories.map((c: any) => ({
+        items: colorMapCategories.map((c) => ({
           label: c,
           color: colorMapDiscrete[c] || "#999",
           shape: "dot",
@@ -602,7 +604,7 @@ export function App() {
       items.push({
         id: "legend-size",
         title: parsed.headers[sizeMapCol],
-        sizeItems: sizeMapCategories.map((c: any) => ({
+        sizeItems: sizeMapCategories.map((c) => ({
           label: c,
           r: sizeMapDiscrete[c] || sizeMapMin,
         })),
@@ -622,7 +624,7 @@ export function App() {
       items.push({
         id: "legend-shape",
         title: parsed.headers[shapeMapCol],
-        items: shapeMapCategories.map((c: any) => ({
+        items: shapeMapCategories.map((c) => ({
           label: c,
           color: "var(--text-muted)",
           shape: shapeMapDiscrete[c] || "circle",
@@ -670,11 +672,9 @@ export function App() {
       setRawText(fixedText);
 
       // Auto-assign X and Y to first two numeric columns
-      const isNum = (idx: number) => {
-        const vals = rawData.map((r: any) => r[idx]).filter((v: any) => v !== "" && v != null);
-        return (
-          vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5
-        );
+      const isNum = (idx: number): boolean => {
+        const vals = rawData.map((r) => r[idx]).filter((v) => v !== "" && v != null);
+        return vals.length > 0 && vals.filter((v) => isNumericValue(v)).length / vals.length > 0.5;
       };
       const nums = headers.reduce<number[]>((acc, _, i) => (isNum(i) ? [...acc, i] : acc), []);
       setXCol(nums[0] !== undefined ? nums[0] : 0);
@@ -724,7 +724,7 @@ export function App() {
   };
 
   const addRefLine = (dir: "h" | "v") =>
-    setRefLines((prev: any[]) => [
+    setRefLines((prev) => [
       ...prev,
       {
         id: ++refLineCounter,
@@ -739,11 +739,8 @@ export function App() {
       },
     ]);
   const updateRefLine = (id: number, key: string, val: unknown) =>
-    setRefLines((prev: any[]) =>
-      prev.map((rl: any) => (rl.id === id ? { ...rl, [key]: val } : rl))
-    );
-  const removeRefLine = (id: number) =>
-    setRefLines((prev: any[]) => prev.filter((rl: any) => rl.id !== id));
+    setRefLines((prev) => prev.map((rl) => (rl.id === id ? { ...rl, [key]: val } : rl)));
+  const removeRefLine = (id: number) => setRefLines((prev) => prev.filter((rl) => rl.id !== id));
 
   const canNavigate = (s: string) => {
     if (s === "upload") return true;

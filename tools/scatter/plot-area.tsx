@@ -4,7 +4,7 @@
 import { ScatterChart } from "./chart";
 import { PaletteStrip, ShapePreview } from "./shapes";
 import { AesBox, ControlSection } from "./steps";
-import { fmtTick, SHAPES } from "./helpers";
+import { fmtTick, SHAPES, PlotStepProps, RefLine } from "./helpers";
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DownloadTiles } from "../_shell/DownloadTiles";
 
@@ -76,7 +76,7 @@ export function PlotStep({
   resetAll,
   svgRef,
   svgLegend,
-}: any) {
+}: PlotStepProps) {
   const hasColorMap = colorMapCol != null;
   const hasSizeMap = sizeMapCol != null;
   const hasShapeMap = shapeMapCol != null;
@@ -87,7 +87,7 @@ export function PlotStep({
     requestAnimationFrame(() => scrollDisclosureIntoView(filtersPanelRef.current));
   }, [filtersOpen]);
   const handleFilterToggle = (ci: number, v: string, vals: string[], checked: boolean) => {
-    setFilterState((prev: Record<number, string[]>) => {
+    setFilterState((prev) => {
       const curr = prev[ci] || [];
       if (curr.length === 0) {
         return { ...prev, [ci]: vals.filter((x) => x !== v) };
@@ -117,7 +117,7 @@ export function PlotStep({
               onClick: () =>
                 downloadCsv(
                   activeColIdxs.map((i: number) => parsed.headers[i]),
-                  filteredRawRows.map((r: any) => activeColIdxs.map((i: number) => r[i])),
+                  filteredRawRows.map((r) => activeColIdxs.map((i) => r[i])),
                   `${fileBaseName(fileName, "scatter")}_scatter.csv`
                 ),
             },
@@ -472,7 +472,7 @@ export function PlotStep({
             </p>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {refLines.map((rl: any) => (
+            {refLines.map((rl: RefLine) => (
               <div
                 key={rl.id}
                 style={{
@@ -659,7 +659,7 @@ export function PlotStep({
                     className="dv-select"
                     style={{ width: "100%", fontSize: 11 }}
                   >
-                    {Object.keys(COLOR_PALETTES).map((p: any) => (
+                    {Object.keys(COLOR_PALETTES).map((p) => (
                       <option key={p} value={p}>
                         {p}
                       </option>
@@ -695,9 +695,7 @@ export function PlotStep({
                       <div key={cat} style={{ display: "flex", gap: 8, alignItems: "center" }}>
                         <ColorInput
                           value={colorMapDiscrete[cat] || PALETTE[ci % PALETTE.length]}
-                          onChange={(v) =>
-                            setColorMapDiscrete((prev: any) => ({ ...prev, [cat]: v }))
-                          }
+                          onChange={(v) => setColorMapDiscrete((prev) => ({ ...prev, [cat]: v }))}
                           size={18}
                         />
                         <span style={{ fontSize: 12, color: "var(--text)" }}>{cat}</span>
@@ -788,7 +786,7 @@ export function PlotStep({
                         min={1}
                         max={20}
                         step={0.5}
-                        onChange={(v) => setSizeMapDiscrete((prev: any) => ({ ...prev, [cat]: v }))}
+                        onChange={(v) => setSizeMapDiscrete((prev) => ({ ...prev, [cat]: v }))}
                       />
                     );
                   })}
@@ -847,12 +845,12 @@ export function PlotStep({
                     <select
                       value={shapeMapDiscrete[cat] || SHAPES[ci % SHAPES.length]}
                       onChange={(e) =>
-                        setShapeMapDiscrete((prev: any) => ({ ...prev, [cat]: e.target.value }))
+                        setShapeMapDiscrete((prev) => ({ ...prev, [cat]: e.target.value }))
                       }
                       className="dv-select"
                       style={{ fontSize: 11, width: 90 }}
                     >
-                      {SHAPES.map((s: any) => (
+                      {SHAPES.map((s) => (
                         <option key={s} value={s}>
                           {s}
                         </option>
@@ -1022,7 +1020,7 @@ export function PlotStep({
                           {parsed.headers[ci]}
                         </span>
                         <button
-                          onClick={() => setFilterState((prev: any) => ({ ...prev, [ci]: [] }))}
+                          onClick={() => setFilterState((prev) => ({ ...prev, [ci]: [] }))}
                           style={{
                             fontSize: 10,
                             padding: "1px 6px",
@@ -1038,7 +1036,7 @@ export function PlotStep({
                         </button>
                       </div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                        {vals.map((v: any) => {
+                        {vals.map((v) => {
                           const checked = allChecked || allowed.includes(v);
                           return (
                             <label
