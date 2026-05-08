@@ -1,9 +1,32 @@
-// Loads the lineplot pure helpers (tools/lineplot/helpers.ts) and their shared
-// dependencies (tools/shared.js, tools/stats.js) into a Node vm context.
-// helpers.ts is a pure-TS ES module that imports from ../_shell/stats-dispatch,
-// so we bundle it (inlining the shared dispatcher) to CommonJS with esbuild
-// and evaluate it in a vm context that already has the shared globals
-// (sampleMean, sampleSD, tinv, bhAdjust, selectTest, tTest, …) available.
+// Loads the lineplot pure helpers (tools/lineplot/helpers.ts) and their
+// shared dependencies (tools/shared.js, tools/stats.js, the stats
+// registry) for fuzz / unit / property / mutation tests.
+//
+// Hybrid pattern, deliberately:
+//
+//   1. shared.js + stats.js + shared-stats-registry.js → loaded into a
+//      Node vm context. They use script-mode top-level `const` /
+//      `function` declarations and are consumed as globals across the
+//      codebase, so vm.runInContext is the right harness.
+//
+//   2. lineplot/helpers.ts → bundled to CommonJS with esbuild
+//      (inlining `_shell/stats-dispatch.ts` and `_shell/chart-layout.ts`)
+//      and `require()`d via a stable temp path under `tests/.tmp/`.
+//      This makes the file part of Node's module dependency graph, so
+//      Stryker's per-test coverage instrumentation can trace
+//      property-test → helpers.ts links — without this, the
+//      vm.runInContext path hides the link and Stryker reports the
+//      property tests as having zero coverage of the mutated source.
+//
+//      Caveat — helpers.ts uses several shared-globals as *free
+//      variables* (sampleMean / sampleSD / tinv / selectTest /
+//      bhAdjust, plus STATS_TEST_REGISTRY consumed indirectly via the
+//      bundled stats-dispatch). require()'d code runs in its own
+//      module scope where those globals aren't visible. Bridge them
+//      onto `globalThis` from the vm ctx before requiring, so the free
+//      references resolve. Slightly leaky (the assignments persist for
+//      the test process lifetime), but Plöttr's stats globals are
+//      stable across loaders so cross-test interference is a non-issue.
 
 const fs = require("fs");
 const vm = require("vm");
@@ -13,20 +36,10 @@ const esbuild = require("esbuild");
 const toolsDir = path.join(__dirname, "../../tools");
 const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
 const statsSrc = fs.readFileSync(path.join(toolsDir, "stats.js"), "utf8");
-// helpers.ts → ../_shell/stats-dispatch.ts → STATS_TEST_REGISTRY. Bundle
-// the registry source into the same script as helpers so the dispatcher's
-// free reference resolves at call time.
 const registrySrc = fs.readFileSync(path.join(toolsDir, "shared-stats-registry.js"), "utf8");
 
-const helpersCjs = esbuild.buildSync({
-  entryPoints: [path.join(toolsDir, "lineplot/helpers.ts")],
-  bundle: true,
-  format: "cjs",
-  platform: "neutral",
-  write: false,
-}).outputFiles[0].text;
+// ── Path 1: shared.js + stats.js + registry via vm.runInContext ────────
 
-const moduleObj = { exports: {} };
 const ctx = {
   Math,
   parseInt,
@@ -41,17 +54,71 @@ const ctx = {
   NaN,
   Set,
   Map,
-  module: moduleObj,
-  exports: moduleObj.exports,
 };
 
 vm.createContext(ctx);
 vm.runInContext(sharedSrc, ctx);
 vm.runInContext(statsSrc, ctx);
-// Concatenate registry + helpers into one script so helpers.ts's free
-// reference to STATS_TEST_REGISTRY resolves at runtime — `const`
-// bindings don't persist across separate runInContext calls.
-vm.runInContext(registrySrc + "\n" + helpersCjs, ctx);
+// Run registry in same call as a small forwarding suffix that copies
+// its `const`-declared bindings (STATS_TEST_REGISTRY,
+// STATS_POSTHOC_REGISTRY, …) onto `this` so subsequent context
+// reads can pick them up via vm.runInContext("…", ctx).
+vm.runInContext(
+  registrySrc +
+    "\nthis.STATS_TEST_REGISTRY = STATS_TEST_REGISTRY;" +
+    "\nthis.STATS_POSTHOC_REGISTRY = STATS_POSTHOC_REGISTRY;",
+  ctx
+);
+
+// ── Bridge globals from ctx onto globalThis ───────────────────────────
+//
+// The require()'d helpers below resolve free-variable references against
+// the test process's global scope (`globalThis`), not against `ctx`.
+// Copy the names helpers.ts and the bundled `_shell/stats-dispatch`
+// reference at runtime.
+const NEEDED_GLOBALS = [
+  "sampleMean",
+  "sampleSD",
+  "tinv",
+  "bhAdjust",
+  "selectTest",
+  "tTest",
+  "mannWhitneyU",
+  "oneWayANOVA",
+  "welchANOVA",
+  "kruskalWallis",
+  "STATS_TEST_REGISTRY",
+  "STATS_POSTHOC_REGISTRY",
+  "tukeyHSD",
+  "gamesHowell",
+  "dunnTest",
+];
+for (const name of NEEDED_GLOBALS) {
+  if (ctx[name] !== undefined) {
+    globalThis[name] = ctx[name];
+  }
+}
+
+// ── Path 2: lineplot/helpers.ts via require() (Stryker-visible) ───────
+
+const tmpDir = path.join(__dirname, "../.tmp");
+fs.mkdirSync(tmpDir, { recursive: true });
+const tmpHelpersFile = path.join(tmpDir, "lineplot-helpers.cjs");
+
+const helpersCjs = esbuild.buildSync({
+  entryPoints: [path.join(toolsDir, "lineplot/helpers.ts")],
+  bundle: true,
+  format: "cjs",
+  platform: "neutral",
+  write: false,
+}).outputFiles[0].text;
+fs.writeFileSync(tmpHelpersFile, helpersCjs);
+
+// Bust Node's require cache — Stryker mutates `tools/lineplot/helpers.ts`
+// on disk in its sandbox, so each test-runner cold-start should see a
+// freshly-transformed copy.
+delete require.cache[tmpHelpersFile];
+const lineplotHelpers = require(tmpHelpersFile);
 
 module.exports = {
   parseRaw: ctx.parseRaw,
@@ -66,9 +133,10 @@ module.exports = {
   oneWayANOVA: ctx.oneWayANOVA,
   welchANOVA: ctx.welchANOVA,
   kruskalWallis: ctx.kruskalWallis,
-  // Helpers now directly testable instead of mirrored in the fuzz script.
-  buildLineD: moduleObj.exports.buildLineD,
-  formatX: moduleObj.exports.formatX,
-  computeSeries: moduleObj.exports.computeSeries,
-  computePerXStats: moduleObj.exports.computePerXStats,
+  // Lineplot-specific pure helpers, exposed through Node's module
+  // graph so Stryker's per-test coverage tracking can see them.
+  buildLineD: lineplotHelpers.buildLineD,
+  formatX: lineplotHelpers.formatX,
+  computeSeries: lineplotHelpers.computeSeries,
+  computePerXStats: lineplotHelpers.computePerXStats,
 };
