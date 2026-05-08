@@ -3302,9 +3302,10 @@ function hclust(distMatrix, linkage) {
   const n = distMatrix.length;
   // Stryker disable next-line all -- defensive early return for empty distance matrix; the algorithm body returns the same shape via { tree: undefined, order: [] }, so most mutations on this guard are equivalent
   if (n === 0) return { tree: null, order: [] };
-  // Stryker disable next 2 lines all -- defensive early return for singleton matrix; the while-loop body skips when active.size === 1, so a missed n===1 short-circuit yields the same singleton tree
+  // Stryker disable all -- defensive early return for singleton matrix; the while-loop body skips when active.size === 1, so a missed n===1 short-circuit yields the same singleton tree
   if (n === 1)
     return { tree: { index: 0, left: null, right: null, height: 0, size: 1 }, order: [0] };
+  // Stryker restore all
 
   // Working copies: active cluster metadata + mutable distance matrix.
   const clusters = new Array(n);
