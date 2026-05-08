@@ -27,10 +27,12 @@ export default {
     //   - tools/volcano/helpers.ts  (100%, 996 mutants, 932 killed + 64 timed out)
     //   - tools/scatter/helpers.ts  (93.18% raw / 100% non-equivalent, 88 mutants)
     //   - tools/lineplot/helpers.ts (79.20% raw / ~95% non-equivalent, 125 mutants)
-    //   - tools/stats.js            (57.72% raw / 68.02% covered, 3489 mutants;
-    //                                up from 14.87% / 55.37% after switching from a
-    //                                file-level skip to a 3-test name-list skip in
-    //                                tests/stats.test.js — see docs/testing-2026-05-08.md)
+    //   - tools/stats.js            (65.27% raw / 67.34% covered, 3329 mutants;
+    //                                three passes — file-skip → selective skip →
+    //                                property tests for multiset/clustering + power-
+    //                                loader refactor + Stryker-disable annotations on
+    //                                equivalent-mutant validators. No-coverage dropped
+    //                                528 → 102. See docs/testing-2026-05-08.md.)
     //
     // Active target (stays here so `npm run mutation` reproduces the
     // most recent run; swap for one of the pending entries below to
