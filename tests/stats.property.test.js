@@ -810,23 +810,17 @@ test("xObs ≥ min(ns) → 1 (all probability mass below)", () => {
 
 test("xObs < 0 → 0", () => {
   check(
-    fc.property(
-      arbSmallNs(2, 3),
-      arbN,
-      fc.integer({ min: -10, max: -1 }),
-      (ns, N, xObs) => {
-        const capped = ns.map((n) => Math.min(n, N));
-        return multisetIntersectionPExactLower(xObs, capped, N) === 0;
-      }
-    )
+    fc.property(arbSmallNs(2, 3), arbN, fc.integer({ min: -10, max: -1 }), (ns, N, xObs) => {
+      const capped = ns.map((n) => Math.min(n, N));
+      return multisetIntersectionPExactLower(xObs, capped, N) === 0;
+    })
   );
 });
 
 test("invalid args → NaN", () => {
   if (!Number.isNaN(multisetIntersectionPExactLower(1, [10], 100))) throw new Error("k<2");
   if (!Number.isNaN(multisetIntersectionPExactLower(1, [10, 10], 0))) throw new Error("N=0");
-  if (!Number.isNaN(multisetIntersectionPExactLower(1, [10, 200], 100)))
-    throw new Error("n>N");
+  if (!Number.isNaN(multisetIntersectionPExactLower(1, [10, 200], 100))) throw new Error("n>N");
 });
 
 suite("stats property — multisetIntersectionExpected");
@@ -903,15 +897,10 @@ test("monotonic non-increasing in xObs (upper tail of a CDF)", () => {
 
 test("xObs ≤ 0 → 1", () => {
   check(
-    fc.property(
-      arbSmallNs(2, 3),
-      arbN,
-      fc.integer({ min: -5, max: 0 }),
-      (ns, N, xObs) => {
-        const capped = ns.map((n) => Math.min(n, N));
-        return multisetIntersectionPPoisson(xObs, capped, N) === 1;
-      }
-    )
+    fc.property(arbSmallNs(2, 3), arbN, fc.integer({ min: -5, max: 0 }), (ns, N, xObs) => {
+      const capped = ns.map((n) => Math.min(n, N));
+      return multisetIntersectionPPoisson(xObs, capped, N) === 1;
+    })
   );
 });
 
@@ -1026,8 +1015,7 @@ test("upper-tail boundary: xObs ≤ 0 → 1, xObs > N → 0", () => {
         const inside = insideRaw.map((n) => Math.min(n, N));
         const outside = outsideRaw.map((n) => Math.min(n, N));
         if (multisetExclusiveP(0, inside, outside, N, { tail: "upper" }) !== 1) return false;
-        if (multisetExclusiveP(N + 1, inside, outside, N, { tail: "upper" }) !== 0)
-          return false;
+        if (multisetExclusiveP(N + 1, inside, outside, N, { tail: "upper" }) !== 0) return false;
         return true;
       }
     )
@@ -1387,9 +1375,7 @@ test("all segment x positions lie in [0, n − 1]", () => {
       const t = hclust(D, "average").tree;
       const r = dendrogramLayout(t);
       const max = m.length - 1;
-      return r.segments.every(
-        (s) => s.x1 >= 0 && s.x1 <= max && s.x2 >= 0 && s.x2 <= max
-      );
+      return r.segments.every((s) => s.x1 >= 0 && s.x1 <= max && s.x2 >= 0 && s.x2 <= max);
     })
   );
 });
