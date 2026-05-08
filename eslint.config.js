@@ -190,6 +190,11 @@ module.exports = [
       // produce thousands of duplicate lint errors against the copy.
       ".stryker-tmp/**",
       "reports/**",
+      // Per-tool helpers compiled to CJS by the require()-based test
+      // loaders (see tests/helpers/scatter-loader.js,
+      // tests/helpers/lineplot-loader.js). Gitignored, regenerated on
+      // every test run.
+      "tests/.tmp/**",
       ...compiledTools,
     ],
   },
