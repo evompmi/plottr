@@ -3,8 +3,17 @@
 // labels and the text/R script builders from reports.ts; uses the shared
 // stats-dispatch helpers for runtime overrides.
 
-import { runTest, runPostHoc, postHocForTest } from "../_shell/stats-dispatch";
-import { formatX } from "./helpers";
+import { runTest, runPostHoc, postHocForTest, TestResult } from "../_shell/stats-dispatch";
+import {
+  formatX,
+  EnrichedPerXRow,
+  PerXDetailProps,
+  PerXStatsPanelProps,
+  PerXRow,
+  PostHocPair,
+  PostHocResult,
+  SelectTestResult,
+} from "./helpers";
 import {
   TEST_LABELS_LP,
   POSTHOC_LABELS_LP,
@@ -15,16 +24,24 @@ import {
 
 const { useState, useMemo } = React;
 
-export function PerXDetail({ row, onOverrideTest, isOverridden }: any) {
+export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProps) {
   const names = row.names;
   const values = row.values;
   const k = names.length;
-  const res = row.result || {};
-  const rec = row.rec || {};
-  const recReason = rec.recommendation && rec.recommendation.reason;
-  const recTest = rec.recommendation && rec.recommendation.test;
-  const suggestion = rec.suggestion || null;
+  // SelectTestResult fields are all optional (selectTest can return early on
+  // bad input); the `?? {}` defaults keep the JSX null-safe without forcing
+  // an `if` early-return that would skip the assumptions panel entirely.
+  const res = row.result ?? ({} as TestResult);
+  const rec = (row.rec ?? {}) as SelectTestResult;
+  const recReason = rec.recommendation?.reason;
+  const recTest = rec.recommendation?.test ?? null;
+  const suggestion = rec.suggestion ?? null;
   const testOptions = k === 2 ? STATS_TESTS_FOR_K2 : STATS_TESTS_FOR_K;
+  // Hoist nullable conditionally-rendered fields into local consts so
+  // TypeScript's narrowing inside `{x && (...)}` survives into the inner
+  // .map callbacks (a closure-captured property access stays nullable).
+  const postHoc = row.postHocResult;
+  const power = row.powerResult;
 
   const subhead: React.CSSProperties = {
     margin: "10px 0 6px",
@@ -71,8 +88,8 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: any) {
     background: "var(--neutral-bg)",
     color: "var(--neutral-text)",
   };
-  const norm = rec.normality || [];
-  const lev = rec.levene || {};
+  const norm = rec.normality ?? [];
+  const lev = rec.levene ?? {};
 
   return (
     <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>
@@ -119,7 +136,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: any) {
             Shapiro-Wilk (normality)
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {norm.map((r: any, i: number) => {
+            {norm.map((r, i) => {
               const label = names[r.group] || `g${r.group}`;
               const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
               const verdict =
@@ -155,9 +172,12 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: any) {
       >
         <select
           value={row.chosenTest || ""}
-          onChange={(e) =>
-            onOverrideTest && onOverrideTest(e.target.value === recTest ? null : e.target.value)
-          }
+          onChange={(e) => {
+            // The select renders only RecommendedTest options, but TS sees
+            // `e.target.value` as a generic string — narrow it explicitly.
+            const next = e.target.value === "" ? null : (e.target.value as RecommendedTest);
+            if (onOverrideTest) onOverrideTest(next === recTest ? null : next);
+          }}
           className="dv-select"
           style={{ fontSize: 11, padding: "2px 6px", minWidth: 180 }}
           onClick={(e) => e.stopPropagation()}
@@ -242,7 +262,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: any) {
             }`}
       </div>
 
-      {k >= 3 && row.postHocResult && !row.postHocResult.error && (
+      {k >= 3 && postHoc && !postHoc.error && row.postHocName && (
         <>
           <div style={subhead}>
             Post-hoc — {POSTHOC_LABELS_LP[row.postHocName] || row.postHocName}
@@ -257,7 +277,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: any) {
               </tr>
             </thead>
             <tbody>
-              {row.postHocResult.pairs.map((pr: any, i: number) => {
+              {postHoc.pairs.map((pr: PostHocPair, i: number) => {
                 const p = pr.pAdj != null ? pr.pAdj : pr.p;
                 const diff =
                   pr.diff != null
@@ -289,7 +309,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: any) {
         </>
       )}
 
-      {row.powerResult && (
+      {power && (
         <>
           <div style={subhead}>Power analysis (target 80%)</div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -302,11 +322,11 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: any) {
               </tr>
             </thead>
             <tbody>
-              {row.powerResult.rows.map((pr: any, i: number) => (
+              {power.rows.map((pr, i) => (
                 <tr key={i}>
                   {i === 0 ? (
-                    <td style={tdS} rowSpan={row.powerResult.rows.length}>
-                      {row.powerResult.effectLabel} = {row.powerResult.effect.toFixed(3)}
+                    <td style={tdS} rowSpan={power.rows.length}>
+                      {power.effectLabel} = {power.effect.toFixed(3)}
                     </td>
                   ) : null}
                   <td style={tdS}>{String(pr.alpha)}</td>
@@ -320,15 +340,13 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: any) {
                     {(pr.achieved * 100).toFixed(1)}%
                   </td>
                   <td style={tdS}>
-                    {pr.nForTarget != null
-                      ? `${pr.nForTarget} ${row.powerResult.nLabel}`
-                      : "> 5000"}
+                    {pr.nForTarget != null ? `${pr.nForTarget} ${power.nLabel}` : "> 5000"}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {row.powerResult.approximate && (
+          {power.approximate && (
             <div
               style={{
                 fontSize: 10,
@@ -346,52 +364,61 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: any) {
   );
 }
 
-export function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars }: any) {
+export function PerXStatsPanel({
+  rows,
+  xLabel,
+  fileName,
+  showStars,
+  setShowStars,
+}: PerXStatsPanelProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [hovered, setHovered] = useState<string | null>(null);
-  const [overrides, setOverrides] = useState<Record<string, string>>({});
+  const [overrides, setOverrides] = useState<Record<string, RecommendedTest>>({});
   const stem = fileBaseName(fileName, "lineplot");
   const hasR = typeof buildRScript === "function";
 
-  const enriched = useMemo(() => {
-    const withChosen = rows.map((r: any) => {
+  const enriched = useMemo<EnrichedPerXRow[]>(() => {
+    const withChosen: EnrichedPerXRow[] = rows.map((r: PerXRow) => {
       const key = formatX(r.x);
-      const rec = selectTest(r.values);
-      const recTest =
-        rec && rec.recommendation && rec.recommendation.test ? rec.recommendation.test : null;
+      const rec = selectTest(r.values) as SelectTestResult;
+      const recTest = rec.recommendation?.test ?? null;
       const chosenTest = overrides[key] || recTest || r.chosenTest;
       const result = chosenTest ? runTest(chosenTest, r.values) : null;
       const postHocName = postHocForTest(chosenTest);
-      const postHocResult =
-        r.names.length >= 3 && postHocName ? runPostHoc(postHocName, r.values) : null;
-      const powerResult = computePowerFromData(chosenTest, r.values);
-      return { ...r, rec, chosenTest, result, postHocName, postHocResult, powerResult };
+      // runPostHoc's typed return is intentionally loose (`{ pairs?: unknown[] }`)
+      // because the three post-hoc shapes differ. Cast to PostHocResult here so
+      // downstream rendering can pick optional fields off pairs without
+      // re-asserting at every call site.
+      const postHocResult = (
+        r.names.length >= 3 && postHocName ? runPostHoc(postHocName, r.values) : null
+      ) as PostHocResult | null;
+      const powerResult = computePowerFromData(chosenTest ?? "", r.values);
+      return { ...r, rec, chosenTest, result, postHocName, postHocResult, powerResult, pAdj: null };
     });
     // Recompute BH-adjusted p-values across the x-axis using the (possibly
     // user-overridden) per-x test results.
     const validIdx: number[] = [];
     const validPs: number[] = [];
-    withChosen.forEach((r: any, i: number) => {
-      if (r.result && !r.result.error && Number.isFinite(r.result.p)) {
+    withChosen.forEach((r, i) => {
+      if (r.result && !r.result.error && r.result.p != null && Number.isFinite(r.result.p)) {
         validIdx.push(i);
         validPs.push(r.result.p);
       }
     });
     const adjPs = validPs.length > 0 ? bhAdjust(validPs) : [];
-    withChosen.forEach((r: any) => (r.pAdj = null));
     validIdx.forEach((origIdx, j) => (withChosen[origIdx].pAdj = adjPs[j]));
     return withChosen;
   }, [rows, overrides]);
 
-  const setOverride = (key: string, test: string | null) =>
-    setOverrides((prev: Record<string, string>) => {
+  const setOverride = (key: string, test: RecommendedTest | null) =>
+    setOverrides((prev) => {
       const next = { ...prev };
       if (test == null) delete next[key];
       else next[key] = test;
       return next;
     });
 
-  const xSlug = (row: any, i: number) => {
+  const xSlug = (row: EnrichedPerXRow, i: number): string => {
     const raw = formatX(row.x);
     const clean =
       typeof svgSafeId === "function"
@@ -406,7 +433,7 @@ export function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars
       downloadText(buildAggregateReport(enriched, xLabel), `${stem}_stats.txt`);
       return;
     }
-    enriched.forEach((row: any, i: number) => {
+    enriched.forEach((row, i) => {
       const content = buildAggregateReport([row], xLabel);
       const name = `${stem}_${xSlug(row, i)}_stats.txt`;
       setTimeout(() => downloadText(content, name), i * 120);
@@ -417,7 +444,7 @@ export function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars
       downloadText(buildAggregateRScript(enriched, xLabel), `${stem}_stats.R`);
       return;
     }
-    enriched.forEach((row: any, i: number) => {
+    enriched.forEach((row, i) => {
       const content = buildAggregateRScript([row], xLabel);
       const name = `${stem}_${xSlug(row, i)}_stats.R`;
       setTimeout(() => downloadText(content, name), i * 120);
@@ -569,7 +596,7 @@ export function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars
           </tr>
         </thead>
         <tbody>
-          {enriched.map((r: any) => {
+          {enriched.map((r) => {
             const key = formatX(r.x);
             const isOpen = !!expanded[key];
             const p = r.result && !r.result.error ? r.result.p : null;
@@ -594,7 +621,9 @@ export function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars
                   <td style={{ ...tdS, fontFamily: "ui-monospace, Menlo, monospace" }}>
                     {formatX(r.x)}
                   </td>
-                  <td style={tdS}>{TEST_LABELS_LP[r.chosenTest] || r.chosenTest || "—"}</td>
+                  <td style={tdS}>
+                    {r.chosenTest ? TEST_LABELS_LP[r.chosenTest] || r.chosenTest : "—"}
+                  </td>
                   <td style={{ ...tdS, fontFamily: "ui-monospace, Menlo, monospace" }}>
                     {formatStat(r.chosenTest, r.result)}
                   </td>
@@ -628,7 +657,7 @@ export function PerXStatsPanel({ rows, xLabel, fileName, showStars, setShowStars
                       <PerXDetail
                         row={r}
                         isOverridden={!!overrides[key]}
-                        onOverrideTest={(t: string | null) => setOverride(key, t)}
+                        onOverrideTest={(t) => setOverride(key, t)}
                       />
                     </td>
                   </tr>

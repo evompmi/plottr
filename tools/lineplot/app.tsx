@@ -129,28 +129,27 @@ export function App() {
 
   const parsed = useMemo(() => (rawText ? parseData(rawText, sepRef.current) : null), [rawText]);
 
-  const colIsNumeric = useMemo(() => {
+  const colIsNumeric = useMemo<Record<number, boolean>>(() => {
     if (!parsed) return {};
-    return parsed.headers.reduce((acc: any, _: unknown, i: number) => {
-      const vals = parsed.rawData.map((r: any) => r[i]).filter((v: any) => v !== "" && v != null);
-      acc[i] =
-        vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5;
+    return parsed.headers.reduce<Record<number, boolean>>((acc, _, i) => {
+      const vals = parsed.rawData.map((r) => r[i]).filter((v) => v !== "" && v != null);
+      acc[i] = vals.length > 0 && vals.filter((v) => isNumericValue(v)).length / vals.length > 0.5;
       return acc;
     }, {});
   }, [parsed]);
 
-  const numericCols = useMemo(() => {
+  const numericCols = useMemo<number[]>(() => {
     if (!parsed) return [];
-    return parsed.headers.reduce(
-      (acc: any, _: unknown, i: number) => (colIsNumeric[i] ? [...acc, i] : acc),
+    return parsed.headers.reduce<number[]>(
+      (acc, _, i) => (colIsNumeric[i] ? [...acc, i] : acc),
       []
     );
   }, [parsed, colIsNumeric]);
 
-  const categoricalCols = useMemo(() => {
+  const categoricalCols = useMemo<number[]>(() => {
     if (!parsed) return [];
-    return parsed.headers.reduce(
-      (acc: any, _: unknown, i: number) => (colIsNumeric[i] ? acc : [...acc, i]),
+    return parsed.headers.reduce<number[]>(
+      (acc, _, i) => (colIsNumeric[i] ? acc : [...acc, i]),
       []
     );
   }, [parsed, colIsNumeric]);
@@ -165,10 +164,7 @@ export function App() {
     const groupCount =
       groupCol == null
         ? 1
-        : Math.min(
-            128,
-            new Set(parsed.rawData.map((r: any) => String(r[groupCol] ?? ""))).size || 1
-          );
+        : Math.min(128, new Set(parsed.rawData.map((r) => String(r[groupCol] ?? ""))).size || 1);
     const seedColors = resolveDiscretePalette(vis.discretePalette || "okabe-ito", groupCount);
     return computeSeries(
       parsed.data,
@@ -241,7 +237,7 @@ export function App() {
       {
         id: "legend-group",
         title: groupCol != null && parsed ? parsed.headers[groupCol] : "",
-        items: series.map((s: any) => ({ label: s.name, color: s.color, shape: "dot" })),
+        items: series.map((s) => ({ label: s.name, color: s.color, shape: "dot" })),
       },
     ];
   }, [series, groupCol, parsed]);
@@ -277,20 +273,12 @@ export function App() {
       setParseError(null);
       setRawText(fixedText);
 
-      const isNum = (idx: number) => {
-        const vals = rawData.map((r: any) => r[idx]).filter((v: any) => v !== "" && v != null);
-        return (
-          vals.length > 0 && vals.filter((v: any) => isNumericValue(v)).length / vals.length > 0.5
-        );
+      const isNum = (idx: number): boolean => {
+        const vals = rawData.map((r) => r[idx]).filter((v) => v !== "" && v != null);
+        return vals.length > 0 && vals.filter((v) => isNumericValue(v)).length / vals.length > 0.5;
       };
-      const nums = headers.reduce(
-        (acc: any, _: unknown, i: number) => (isNum(i) ? [...acc, i] : acc),
-        []
-      );
-      const cats = headers.reduce(
-        (acc: any, _: unknown, i: number) => (isNum(i) ? acc : [...acc, i]),
-        []
-      );
+      const nums = headers.reduce<number[]>((acc, _, i) => (isNum(i) ? [...acc, i] : acc), []);
+      const cats = headers.reduce<number[]>((acc, _, i) => (isNum(i) ? acc : [...acc, i]), []);
       setXCol(nums[0] !== undefined ? nums[0] : 0);
       setYCol(nums[1] !== undefined ? nums[1] : nums[0] !== undefined ? nums[0] : 1);
       setGroupCol(cats[0] !== undefined ? cats[0] : null);

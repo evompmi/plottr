@@ -191,13 +191,116 @@ export interface PlotControlsProps {
   setShowStars: (b: boolean) => void;
   statsRows: PerXRow[];
   svgRef: React.RefObject<SVGSVGElement>;
-  svgLegend: unknown;
+  svgLegend: LegendBlock[] | null;
   resetAll: () => void;
 }
 
 // PlotStep just forwards the same prop bag down to PlotControls + the
 // chart, so it accepts the superset.
 export type PlotStepProps = PlotControlsProps;
+
+// ── Chart prop interface ────────────────────────────────────────────────────
+//
+// Concrete shape for `forwardRef<SVGSVGElement, ChartProps>` in chart.tsx.
+// Pulls together the slimmed view of `LineplotVis` the chart actually
+// consumes (axis bounds + style props) plus the precomputed series and
+// per-x stats from app.tsx.
+
+export interface ChartProps {
+  series: Series[];
+  perXStats: PerXRow[];
+  xMin: number;
+  xMax: number;
+  yMin: number;
+  yMax: number;
+  vbW: number;
+  vbH: number;
+  xLabel: string;
+  yLabel: string;
+  plotTitle: string;
+  plotSubtitle: string;
+  plotBg: string;
+  showGrid: boolean;
+  gridColor: string;
+  lineWidth: number;
+  pointRadius: number;
+  errorStrokeWidth: number;
+  errorCapWidth: number;
+  errorType: ErrorKind;
+  svgLegend: LegendBlock[] | null;
+  showStars: boolean;
+}
+
+// ── Per-x stats panel prop interfaces ───────────────────────────────────────
+//
+// `PerXStatsPanel` enriches every input row with `rec` / `chosenTest` /
+// `result` / `postHocResult` / `powerResult` / `pAdj` derived from the
+// override state — so `PerXDetail` (the expander) consumes the enriched
+// shape, while the panel itself accepts the raw `PerXRow[]`.
+
+// `selectTest` returns `recommendation` plus an optional `suggestion` field
+// that the global type stub omits; we widen here so the panel can pick up
+// the suggestion narrative.
+export type SelectTestResult = ReturnType<typeof selectTest> & {
+  suggestion?: {
+    test: RecommendedTest;
+    postHoc?: RecommendedPostHoc;
+    why?: string;
+  };
+};
+
+// Post-hoc pairs across tukeyHSD / gamesHowell / dunnTest share a small
+// common surface; the per-cell renderer in PerXDetail branches on which
+// optional fields are present.
+export interface PostHocPair {
+  i: number;
+  j: number;
+  p: number;
+  pAdj?: number | null;
+  diff?: number;
+  z?: number;
+  // tukeyHSD-only fields:
+  se?: number;
+  q?: number;
+  lwr?: number;
+  upr?: number;
+  // games-howell:
+  df?: number;
+}
+
+export interface PostHocResult {
+  pairs: PostHocPair[];
+  k?: number;
+  df?: number;
+  mse?: number;
+  method?: string;
+  error?: string;
+}
+
+// PerXRow + the override-derived fields PerXStatsPanel attaches to it.
+export interface EnrichedPerXRow extends PerXRow {
+  rec: SelectTestResult | null;
+  chosenTest: RecommendedTest | null;
+  result: TestResult | null;
+  postHocName: Exclude<RecommendedPostHoc, null> | null;
+  postHocResult: PostHocResult | null;
+  powerResult: PowerFromDataResult | null;
+  pAdj: number | null;
+}
+
+export interface PerXDetailProps {
+  row: EnrichedPerXRow;
+  onOverrideTest: (test: RecommendedTest | null) => void;
+  isOverridden: boolean;
+}
+
+export interface PerXStatsPanelProps {
+  rows: PerXRow[];
+  xLabel: string;
+  fileName: string;
+  showStars: boolean;
+  setShowStars: (b: boolean) => void;
+}
 
 export function computePerXStats(series: Series[]) {
   const xSet = new Set<number>();
