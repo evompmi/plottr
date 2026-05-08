@@ -3,6 +3,21 @@
 
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
 
+// Narrow-viewport detection — mirrors molarity-app's `useIsMobile`. Power
+// collapses to a single-column layout below 900 px and drops the plot card
+// entirely (the SVG is unreadable that small, and computing it is wasted
+// work when the user is on a phone). Plot tools are desktop-first by
+// design; this responsive treatment is calculator-specific.
+function useIsMobile(breakpoint = 900) {
+  const [mobile, setMobile] = useState(window.innerWidth < breakpoint);
+  useEffect(() => {
+    const handler = () => setMobile(window.innerWidth < breakpoint);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [breakpoint]);
+  return mobile;
+}
+
 // Distribution functions, noncentral distributions, `bisect`,
 // Shapiro-Wilk, power functions (powerTwoSample / powerPaired /
 // powerOneSample / powerAnova / powerCorrelation / powerChi2) and the
@@ -711,6 +726,7 @@ const PowerCurve = forwardRef<
 // ── Main App ────────────────────────────────────────────────────────────────
 
 export function App() {
+  const isMobile = useIsMobile(900);
   const [testKey, setTestKey] = useState<TestKey>("t-ind");
   const [solveFor, setSolveFor] = useState("n");
   const [effectSize, setEffectSize] = useState("0.5");
@@ -794,7 +810,7 @@ export function App() {
   const inputStyle = { width: "100%" };
 
   return (
-    <div style={{ maxWidth: 960, padding: "24px 32px" }}>
+    <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 32px" }}>
       <PageHeader toolName="power" title="Power Analysis" />
 
       {/* ── Top group: test + solve + question banner. CSS order + flex-wrap
@@ -859,14 +875,30 @@ export function App() {
         </div>
       </div>
 
-      {/* ── Main row: controls (left) + plot/result (right). Mobile (≤ 900 px)
-          collapses to a single column via .power-main-row + scraps the chart
-          card (see power.html @media rule). */}
-      <div className="power-main-row" style={{ display: "flex", gap: 20, alignItems: "stretch" }}>
+      {/* ── Main row: controls (left) + plot/result (right). On mobile
+          (< 900 px) the row collapses to a single column and the plot card
+          is dropped entirely (the SVG is unreadable that small and the
+          curve is just a visual aid; the numeric result panel still
+          conveys everything that matters). */}
+      <div
+        className="power-main-row"
+        style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          gap: 20,
+          alignItems: "stretch",
+        }}
+      >
         {/* ── Left panel ── */}
         <div
           className="power-col-left"
-          style={{ width: 279, flexShrink: 0, display: "flex", flexDirection: "column", gap: 6 }}
+          style={{
+            width: isMobile ? "auto" : 279,
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+          }}
         >
           {/* Effect size */}
           <div className="dv-panel" style={{ padding: 12 }}>
@@ -1018,31 +1050,40 @@ export function App() {
         {/* ── Right panel ── */}
         <div
           className="power-col-right"
-          style={{ flex: 1, minWidth: 360, display: "flex", flexDirection: "column", gap: 6 }}
+          style={{
+            flex: 1,
+            minWidth: isMobile ? 0 : 360,
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+          }}
         >
-          {/* Power curve */}
-          <div
-            className="dv-plot-card power-chart-card"
-            style={{
-              background: "var(--plot-card-bg)",
-              border: "1px solid var(--plot-card-border)",
-              borderRadius: 10,
-              padding: 12,
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              minHeight: 0,
-            }}
-          >
-            <PowerCurve
-              testKey={testKey}
-              powerFn={test.power}
-              params={{ es, n, alpha, tails, k, df }}
-              solveFor={solveFor}
-              result={result}
-            />
-          </div>
+          {/* Power curve — desktop only. Below 900 px the card is dropped
+              entirely; the result panel below keeps the numeric answer. */}
+          {!isMobile && (
+            <div
+              className="dv-plot-card power-chart-card"
+              style={{
+                background: "var(--plot-card-bg)",
+                border: "1px solid var(--plot-card-border)",
+                borderRadius: 10,
+                padding: 12,
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: 0,
+              }}
+            >
+              <PowerCurve
+                testKey={testKey}
+                powerFn={test.power}
+                params={{ es, n, alpha, tails, k, df }}
+                solveFor={solveFor}
+                result={result}
+              />
+            </div>
+          )}
 
           {/* Result */}
           <div
