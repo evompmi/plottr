@@ -47,9 +47,12 @@ module.exports = defineConfig({
     // deep-tail check (k=5, p ≈ 1e-15) is ~3 s, and `qtukey` at small
     // df runs a doubling bracket-expansion plus 200-step bisection
     // where each iteration is a 48-node Gauss-Legendre integration of
-    // ptukey. 30 s is comfortable headroom for the slow cases without
-    // letting a genuinely-hung test bleed CI time forever.
-    testTimeout: 30_000,
+    // ptukey. 60 s gives those slow cases ~10× headroom under Stryker's
+    // perTest-coverage instrumentation (which adds ~10× overhead to
+    // hot loops); regular `npm test` runs unaffected because nothing
+    // takes more than ~5 s without instrumentation. Still short enough
+    // that a genuinely-hung test won't bleed CI time forever.
+    testTimeout: 60_000,
 
     // Pre-test hook: build-shared still runs via package.json's
     // `pretest` script (just like before), so by the time vitest
