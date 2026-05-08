@@ -26,14 +26,15 @@ export default {
     // Already verified:
     //   - tools/volcano/helpers.ts  (100%, 996 mutants, 932 killed + 64 timed out)
     //   - tools/scatter/helpers.ts  (93.18% raw / 100% non-equivalent, 88 mutants)
+    //   - tools/lineplot/helpers.ts (79.20% raw / ~95% non-equivalent, 125 mutants)
     //
     // Active target:
-    "tools/lineplot/helpers.ts",
+    "tools/stats.js",
     //
     // Pending — uncomment one at a time and re-run:
     // "tools/volcano/helpers.ts",
     // "tools/scatter/helpers.ts",
-    // "tools/stats.js",
+    // "tools/lineplot/helpers.ts",
     // "tools/heatmap/helpers.ts",
     // "tools/boxplot/helpers.ts",
     // "tools/aequorin/helpers.ts",

@@ -8,17 +8,13 @@
 //   5e-3  — test statistics (W) and p-values (matches power-tool bar)
 
 const { suite, test, assert, approx, eq, summary } = require("./harness");
-const vm = require("vm");
-const fs = require("fs");
-const path = require("path");
 
-// Load tools/stats.js into a vm context. It's plain JS that declares its
-// functions at top-level, so they land in the ctx object directly.
-const code = fs.readFileSync(path.join(__dirname, "../tools/stats.js"), "utf-8");
-const ctx = {};
-vm.createContext(ctx);
-vm.runInContext(code, ctx);
-
+// Load tools/stats.js via the shared loader (which require()'s a CJS
+// wrapper instead of vm.runInContext). The require() path makes the
+// source visible to Stryker's per-test coverage instrumentation; the
+// vm path hides it. Behaviourally identical to the prior inline load
+// — every function this file destructures is auto-exported by the
+// loader's source-scanning footer.
 const {
   normcdf,
   normsf,
@@ -61,7 +57,12 @@ const {
   dendrogramLayout,
   kmeans,
   formatP,
-} = ctx;
+  // `ctx` mirrors every export — kept for the few suites that reach in
+  // for underscore-prefixed internals (`_wprob`, `_wprob_upper`) or
+  // less-frequently-used names. Behaviourally identical to the prior
+  // vm.runInContext pattern's `ctx`.
+  ctx,
+} = require("./helpers/stats-loader");
 
 // ── Primitives smoke test ──────────────────────────────────────────────────
 // Power-tool tests already cover these exhaustively — here we just confirm
