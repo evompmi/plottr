@@ -373,43 +373,40 @@ test("post-hoc runs without throwing for k ≥ 3", () => {
 });
 
 test("tukeyHSD pairs cover every i<j ordered pair exactly once", () => {
-  // Tight bounds for this property only: tukeyHSD's qtukey (inverse
-  // studentized range) is a 200-step bisection over a 48-node
-  // Gauss-Legendre quadrature of ptukey. At small df it's tens of
-  // ms per pair, and under Stryker's perTest-coverage instrumentation
-  // the overhead pushes a property that fits in 25 s locally past
-  // the 30 s vitest timeout. Cap k=3 (3 pairs), require n ≥ 5
-  // (df ≥ 12 across groups, where qtukey is at its fast regime),
-  // and numRuns=15 — the property is purely structural (counting
-  // ordered (i, j) pairs), not statistical, so coverage doesn't
-  // depend on the number of runs. The same off-by-one bugs that
-  // 1000 runs would catch fire in the first 5.
-  const arbKGroupsTukey = fc.array(
-    fc.array(fc.double({ min: -100, max: 100, noNaN: true, noDefaultInfinity: true }), {
-      minLength: 5,
-      maxLength: 12,
-    }),
-    { minLength: 3, maxLength: 3 }
-  );
-  fc.assert(
-    fc.property(arbKGroupsTukey, (groups) => {
-      const r = tukeyHSD(groups);
-      if (!r || !Array.isArray(r.pairs)) return true;
-      const k = groups.length;
-      const expected = (k * (k - 1)) / 2;
-      if (r.pairs.length !== expected) return false;
-      const seen = new Set();
-      for (const pr of r.pairs) {
-        const key = `${pr.i},${pr.j}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        if (!(pr.i < pr.j)) return false;
-        if (pr.i < 0 || pr.j >= k) return false;
-      }
-      return true;
-    }),
-    { numRuns: 15 }
-  );
+  // Deterministic fixture, not an fc property. Pair coverage is a
+  // structural fact of the function — for k groups, tukeyHSD returns
+  // k(k-1)/2 unique ordered (i, j) pairs with i < j and indices in
+  // [0, k). That contract doesn't depend on the *values* in the
+  // groups, only on k, so randomising the values via fast-check adds
+  // no test bite and only multiplies the qtukey workload (200-step
+  // bisection over a 48-node Gauss-Legendre quadrature of ptukey,
+  // tens of ms per pair). Three previous attempts at tightening fc
+  // bounds still tripped the 30 s timeout under Stryker's perTest
+  // instrumentation; a single deterministic call lands in <100 ms.
+  const groups = [
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+  ];
+  const k = groups.length;
+  const expected = (k * (k - 1)) / 2;
+  const r = tukeyHSD(groups);
+  if (!r || !Array.isArray(r.pairs)) {
+    throw new Error("tukeyHSD must return a result with `pairs` array");
+  }
+  if (r.pairs.length !== expected) {
+    throw new Error(`expected ${expected} pairs for k=${k}, got ${r.pairs.length}`);
+  }
+  const seen = new Set();
+  for (const pr of r.pairs) {
+    const key = `${pr.i},${pr.j}`;
+    if (seen.has(key)) throw new Error(`duplicate pair (${pr.i}, ${pr.j})`);
+    seen.add(key);
+    if (!(pr.i < pr.j)) throw new Error(`pair must have i < j, got (${pr.i}, ${pr.j})`);
+    if (pr.i < 0 || pr.j >= k) {
+      throw new Error(`pair indices out of range: (${pr.i}, ${pr.j}), k=${k}`);
+    }
+  }
 });
 
 // ── BH adjust ──────────────────────────────────────────────────────────
