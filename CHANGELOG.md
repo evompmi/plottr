@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Tightened the `tukeyHSD` pair-coverage property's arbitrary** to avoid occasional 30s timeouts at `k=6` groups with `n=2` per group (qtukey is a 200-step bisection over a 48-node Gauss-Legendre quadrature of ptukey at df=1, ~10s of ms per pair × 15 pairs × 80 runs blew past the per-test budget). Capping at `k ≤ 4` and requiring `n ≥ 3` keeps the workload well below the budget without weakening the structural invariant — pair coverage doesn't depend on group count beyond k ≥ 2.
 
+- **Stryker mutation testing expanded to `tools/scatter/helpers.ts`** — final score **93.18% raw / 100% non-equivalent** (88 mutants, 82 killed, 6 surviving equivalent mutants). Required two changes: (a) refactoring `tests/helpers/scatter-loader.js` to compile helpers via `require()` instead of `vm.runInContext` so Stryker's per-test coverage instrumentation can see the test → source link (the vm-context path makes the property tests look like they have zero coverage); (b) five new sharp boundary properties in `tests/scatter.property.test.js` to close real gaps surfaced by the run (`fmtTick(0.01)`, `fmtTick(100)`, n=2 valid regression, null-x non-coercion, post-filter `{valid:false}` shape). The 6 surviving mutants are syntactically-different but semantically-identical — no test can distinguish them.
+
 - **Volcano label placement: smarter fallback, multi-restart, sub-degree
   refinement, and a density-aware cap warning.** Previously the
   greedy-first-fit layout always defaulted forced labels to 12 o'clock,
