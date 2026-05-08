@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Boxplot's sidebar control panels were 6px taller-spaced than every other tool's.** `PlotSidebar` (the shared sidebar shell) lays its children out with `gap: 10`, and every tool's `ControlSection` zeroes its own `marginBottom` so the parent gap is the only spacing — except boxplot, whose `ControlSection` set `marginBottom: 6` and stacked on top of the parent gap. Result: 16px between boxplot panels vs 10px elsewhere. Set boxplot's `ControlSection` to `marginBottom: 0` to match.
+- **Sidebar control-panel spacing was inconsistent across and within tools.** Two stacked bugs: (1) Boxplot's `ControlSection` set `marginBottom: 6`, stacking on top of `PlotSidebar`'s `gap: 10` and giving 16px gaps boxplot-only; (2) the `.dv-panel` CSS class itself carries `margin-bottom: 16px`, which `ControlSection` overrides inline but bare `<div className="dv-panel">` tiles don't — so any tool that mixed both (boxplot, lineplot, heatmap) saw the gap pulse between 10px (after a ControlSection) and 26px (after a bare panel), and tools using only bare panels (venn) got 26px throughout vs 10px on tools using only ControlSections. Fix at the shell level: `PlotSidebar` now carries a `dv-sidebar` class, and `components.css` zeros `margin-bottom` on every `.dv-panel` direct child of `.dv-sidebar` — uniform 10px from the flex gap regardless of tile type. Boxplot's stray `marginBottom: 6` is also cleaned up.
 
 ### Changed
 
