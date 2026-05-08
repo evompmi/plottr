@@ -81,8 +81,14 @@ export interface AxisRanges {
 // Auto-ranges from the data, with optional user overrides honoured.
 // Symmetric around 0 on the x-axis (volcano convention — the centre of
 // the plot is "no fold change") so up and down points balance visually.
-// Y-axis runs 0..max with a 5% headroom so the highest -log10(p) point
-// doesn't sit on the top frame.
+// Y-axis runs slightly-below-0 .. max·1.05. The bottom pad (3% of maxNL)
+// keeps points at p=1 (i.e., -log10(p)=0) from colliding with the
+// x-axis line — common in -omics datasets where many genes are
+// filtered to p=1 by upstream tools. The pad is small enough that the
+// y=0 tick still appears as the lowest tick (`makeTicks` rounds the
+// start up to a "nice" value, so a tiny negative yMin doesn't produce
+// negative ticks); it just opens a small visual gap between the data
+// and the bottom frame.
 export function computeAxisRanges(
   points: VolcanoPoint[],
   pFloor: number,
@@ -109,7 +115,7 @@ export function computeAxisRanges(
   maxNL = Math.max(maxNL, -Math.log10(pCutoff) * 1.5, 1);
   const autoXMin = -absMaxFc * 1.05;
   const autoXMax = absMaxFc * 1.05;
-  const autoYMin = 0;
+  const autoYMin = -maxNL * 0.03;
   const autoYMax = maxNL * 1.05;
   return {
     xMin: userXMin != null ? userXMin : autoXMin,

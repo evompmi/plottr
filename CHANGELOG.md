@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Volcano: points at p=1 collided with the bottom x-axis line.** Auto y-range used to start at exactly 0, so points with `-log10(p) = 0` (very common in -omics datasets where many genes are filtered to p=1 upstream) sat on the axis. The auto-range now opens a 3% bottom pad below 0 (`autoYMin = -maxNL * 0.03`), giving ~10–17 px of clearance depending on plot height. The y=0 tick still appears as the lowest tick — `makeTicks` rounds the start up to a "nice" value, so the tiny negative `yMin` doesn't produce negative tick labels. User-supplied `yMin` overrides remain unchanged.
+
 - **Sidebar control-panel spacing was inconsistent across and within tools.** Two stacked bugs: (1) Boxplot's `ControlSection` set `marginBottom: 6`, stacking on top of `PlotSidebar`'s `gap: 10` and giving 16px gaps boxplot-only; (2) the `.dv-panel` CSS class itself carries `margin-bottom: 16px`, which `ControlSection` overrides inline but bare `<div className="dv-panel">` tiles don't — so any tool that mixed both (boxplot, lineplot, heatmap) saw the gap pulse between 10px (after a ControlSection) and 26px (after a bare panel), and tools using only bare panels (venn) got 26px throughout vs 10px on tools using only ControlSections. Fix at the shell level: `PlotSidebar` now carries a `dv-sidebar` class, and `components.css` zeros `margin-bottom` on every `.dv-panel` direct child of `.dv-sidebar` — uniform 10px from the flex gap regardless of tile type. Boxplot's stray `marginBottom: 6` is also cleaned up.
 
 ### Changed
