@@ -17,6 +17,17 @@
   margin-bottom: 16px;
 }
 
+/* Inside the plot sidebar (`tools/_shell/PlotSidebar.tsx`), the parent
+   uses flex `gap: 10` for between-panel spacing. The default 16px
+   margin-bottom on bare `.dv-panel` children stacks on top of that
+   gap and gives 26px between bare panels but only 10px between
+   ControlSections (which override the margin inline). Force every
+   panel child of the sidebar to zero margin-bottom so the canonical
+   between-panel spacing is uniformly the 10px flex gap. */
+.dv-sidebar > .dv-panel {
+  margin-bottom: 0;
+}
+
 /* Small label — `lbl` */
 .dv-label {
   font-size: 12px;
