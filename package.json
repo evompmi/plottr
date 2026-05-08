@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "node scripts/build-shared.js && vitest",
     "test:coverage": "vitest run --coverage",
+    "mutation": "stryker run",
     "benchmark": "Rscript benchmark/run-r.R && node benchmark/run.js && node benchmark/run-r-export.js && node benchmark/run-scipy.js",
     "benchmark:scipy": "node benchmark/run-scipy.js",
     "typecheck": "tsc --noEmit",
@@ -29,6 +30,8 @@
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@playwright/test": "1.59.1",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^8.58.1",

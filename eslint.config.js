@@ -185,6 +185,11 @@ module.exports = [
       "vendor/**",
       "test-results/**",
       "playwright-report/**",
+      // Stryker mutation-testing scratch dirs — sandbox copies of the
+      // repo with mutated source. Local-only, gitignored, and would
+      // produce thousands of duplicate lint errors against the copy.
+      ".stryker-tmp/**",
+      "reports/**",
       ...compiledTools,
     ],
   },

@@ -15,3 +15,8 @@ test-results/
 playwright-report/
 .playwright/
 playwright/.cache/
+# Stryker mutation-test artefacts (local-only — large HTML reports,
+# sandbox dirs, incremental cache).
+reports/
+.stryker-tmp/
+stryker-incremental.json
