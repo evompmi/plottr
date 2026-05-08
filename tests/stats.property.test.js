@@ -36,6 +36,12 @@ const {
   mannWhitneyU,
   cohenD,
   bhAdjust,
+  multisetIntersectionPExact,
+  multisetIntersectionPExactLower,
+  multisetIntersectionExpected,
+  multisetIntersectionPPoisson,
+  multisetExclusiveExpected,
+  multisetExclusiveP,
 } = require("./helpers/stats-loader");
 
 const RUNS = 300;
@@ -722,4 +728,367 @@ test("preserves rank order of the input p-values", () => {
       }
     )
   );
+});
+
+// ── multiset intersection family ───────────────────────────────────────
+//
+// `multisetIntersectionPExact` already has R-cross-validation pins in
+// stats.test.js; the variants below (lower-tail, expected, Poisson
+// approximation, exclusive-cell expected and p-value) had no direct
+// coverage — Stryker reported all their lines as no-coverage. These
+// properties cover them through structural invariants that don't pay
+// the slow numerical-convergence tax of the deep-tail R pins.
+//
+// Set sizes are kept small (max k=4, max n_i=20, max N=60) so the
+// inner DP stays cheap even at numRuns=300.
+
+const arbSmallNs = (kMin, kMax) =>
+  fc
+    .array(fc.integer({ min: 1, max: 20 }), { minLength: kMin, maxLength: kMax })
+    .filter((ns) => ns.length >= kMin);
+
+const arbN = fc.integer({ min: 30, max: 60 });
+
+suite("stats property — multisetIntersectionPExactLower");
+
+test("output is in [0, 1] for valid args", () => {
+  check(
+    fc.property(arbSmallNs(2, 3), arbN, fc.integer({ min: 0, max: 25 }), (ns, N, xObs) => {
+      const capped = ns.map((n) => Math.min(n, N));
+      const p = multisetIntersectionPExactLower(xObs, capped, N);
+      return Number.isFinite(p) && p >= 0 && p <= 1;
+    })
+  );
+});
+
+test("monotonic non-decreasing in xObs", () => {
+  // P(|∩| ≤ x) is a CDF, so it cannot decrease as x grows.
+  check(
+    fc.property(
+      arbSmallNs(2, 3),
+      arbN,
+      fc.integer({ min: 0, max: 10 }),
+      fc.integer({ min: 0, max: 10 }),
+      (ns, N, a, b) => {
+        const capped = ns.map((n) => Math.min(n, N));
+        const lo = Math.min(a, b);
+        const hi = Math.max(a, b);
+        const pLo = multisetIntersectionPExactLower(lo, capped, N);
+        const pHi = multisetIntersectionPExactLower(hi, capped, N);
+        return pLo <= pHi + 1e-12;
+      }
+    )
+  );
+});
+
+test("complementarity: lower(x) + upper(x + 1) ≈ 1", () => {
+  // Discrete CDF identity: P(X ≤ x) + P(X ≥ x + 1) = 1, so
+  // multisetIntersectionPExactLower(x) + multisetIntersectionPExact(x + 1) = 1.
+  check(
+    fc.property(arbSmallNs(2, 3), arbN, fc.integer({ min: 0, max: 8 }), (ns, N, xObs) => {
+      const capped = ns.map((n) => Math.min(n, N));
+      const lower = multisetIntersectionPExactLower(xObs, capped, N);
+      const upper = multisetIntersectionPExact(xObs + 1, capped, N);
+      return Math.abs(lower + upper - 1) < 1e-9;
+    })
+  );
+});
+
+test("xObs ≥ min(ns) → 1 (all probability mass below)", () => {
+  // |∩| is bounded above by min(n_i), so P(|∩| ≤ that) = 1 trivially.
+  check(
+    fc.property(arbSmallNs(2, 3), arbN, (ns, N) => {
+      const capped = ns.map((n) => Math.min(n, N));
+      const p = multisetIntersectionPExactLower(Math.min(...capped), capped, N);
+      return Math.abs(p - 1) < 1e-9;
+    })
+  );
+});
+
+test("xObs < 0 → 0", () => {
+  check(
+    fc.property(
+      arbSmallNs(2, 3),
+      arbN,
+      fc.integer({ min: -10, max: -1 }),
+      (ns, N, xObs) => {
+        const capped = ns.map((n) => Math.min(n, N));
+        return multisetIntersectionPExactLower(xObs, capped, N) === 0;
+      }
+    )
+  );
+});
+
+test("invalid args → NaN", () => {
+  if (!Number.isNaN(multisetIntersectionPExactLower(1, [10], 100))) throw new Error("k<2");
+  if (!Number.isNaN(multisetIntersectionPExactLower(1, [10, 10], 0))) throw new Error("N=0");
+  if (!Number.isNaN(multisetIntersectionPExactLower(1, [10, 200], 100)))
+    throw new Error("n>N");
+});
+
+suite("stats property — multisetIntersectionExpected");
+
+test("equals N · Π(n_i / N) (closed-form check)", () => {
+  // E[|∩|] = N · Π(n_i / N) = Π(n_i) / N^(k-1).
+  check(
+    fc.property(arbSmallNs(2, 4), arbN, (ns, N) => {
+      const capped = ns.map((n) => Math.min(n, N));
+      const got = multisetIntersectionExpected(capped, N);
+      const expected = capped.reduce((acc, n) => (acc * n) / N, N);
+      return Math.abs(got - expected) < 1e-9 * Math.max(1, expected);
+    })
+  );
+});
+
+test("any n_i = 0 → expected = 0", () => {
+  check(
+    fc.property(arbSmallNs(1, 3), arbN, (rest, N) => {
+      // Prepend a 0 to guarantee at least one zero, then ensure k ≥ 2.
+      const ns = [0, ...rest.map((n) => Math.min(n, N))];
+      return multisetIntersectionExpected(ns, N) === 0;
+    })
+  );
+});
+
+test("non-negative for valid args", () => {
+  check(
+    fc.property(arbSmallNs(2, 4), arbN, (ns, N) => {
+      const capped = ns.map((n) => Math.min(n, N));
+      const e = multisetIntersectionExpected(capped, N);
+      return Number.isFinite(e) && e >= 0;
+    })
+  );
+});
+
+test("invalid args → NaN", () => {
+  if (!Number.isNaN(multisetIntersectionExpected([], 100))) throw new Error("empty ns");
+  if (!Number.isNaN(multisetIntersectionExpected([10, 10], 0))) throw new Error("N=0");
+  if (!Number.isNaN(multisetIntersectionExpected([10, 200], 100))) throw new Error("n>N");
+});
+
+suite("stats property — multisetIntersectionPPoisson");
+
+test("output is in [0, 1] for valid args", () => {
+  check(
+    fc.property(arbSmallNs(2, 3), arbN, fc.integer({ min: 0, max: 15 }), (ns, N, xObs) => {
+      const capped = ns.map((n) => Math.min(n, N));
+      const p = multisetIntersectionPPoisson(xObs, capped, N);
+      return Number.isFinite(p) && p >= 0 && p <= 1;
+    })
+  );
+});
+
+test("monotonic non-increasing in xObs (upper tail of a CDF)", () => {
+  check(
+    fc.property(
+      arbSmallNs(2, 3),
+      arbN,
+      fc.integer({ min: 0, max: 10 }),
+      fc.integer({ min: 0, max: 10 }),
+      (ns, N, a, b) => {
+        const capped = ns.map((n) => Math.min(n, N));
+        const lo = Math.min(a, b);
+        const hi = Math.max(a, b);
+        return (
+          multisetIntersectionPPoisson(lo, capped, N) >=
+          multisetIntersectionPPoisson(hi, capped, N) - 1e-12
+        );
+      }
+    )
+  );
+});
+
+test("xObs ≤ 0 → 1", () => {
+  check(
+    fc.property(
+      arbSmallNs(2, 3),
+      arbN,
+      fc.integer({ min: -5, max: 0 }),
+      (ns, N, xObs) => {
+        const capped = ns.map((n) => Math.min(n, N));
+        return multisetIntersectionPPoisson(xObs, capped, N) === 1;
+      }
+    )
+  );
+});
+
+test("any n_i = 0 → 1 if xObs ≤ 0 else 0", () => {
+  check(
+    fc.property(arbSmallNs(1, 2), arbN, fc.integer({ min: -3, max: 5 }), (rest, N, xObs) => {
+      const ns = [0, ...rest.map((n) => Math.min(n, N))];
+      const p = multisetIntersectionPPoisson(xObs, ns, N);
+      return xObs <= 0 ? p === 1 : p === 0;
+    })
+  );
+});
+
+test("agrees with Exact in the sparse limit (N >> max(n_i))", () => {
+  // For small λ = Π(n_i)/N^(k-1), the Poisson approximation matches the
+  // exact fixed-margin distribution to within a few percent. This is what
+  // makes Poisson a safe fallback when the exact DP is too expensive.
+  check(
+    fc.property(
+      fc.array(fc.integer({ min: 2, max: 8 }), { minLength: 2, maxLength: 3 }),
+      fc.integer({ min: 200, max: 500 }),
+      fc.integer({ min: 0, max: 4 }),
+      (ns, N, xObs) => {
+        const exact = multisetIntersectionPExact(xObs, ns, N);
+        const poisson = multisetIntersectionPPoisson(xObs, ns, N);
+        // Loose tolerance: the approximation has a known O(λ²/N) error,
+        // and at low xObs both are close to 1 so absolute differences
+        // are small.
+        return Math.abs(exact - poisson) < 0.05;
+      }
+    )
+  );
+});
+
+test("invalid args → NaN", () => {
+  if (!Number.isNaN(multisetIntersectionPPoisson(1, [10], 100))) throw new Error("k<2");
+  if (!Number.isNaN(multisetIntersectionPPoisson(1, [10, 10], 0))) throw new Error("N=0");
+  if (!Number.isNaN(multisetIntersectionPPoisson(1, [10, 200], 100))) throw new Error("n>N");
+});
+
+suite("stats property — multisetExclusiveExpected");
+
+test("equals N · Π(n_i/N) · Π(1 − n_j/N) (closed-form check)", () => {
+  check(
+    fc.property(
+      fc.array(fc.integer({ min: 1, max: 15 }), { minLength: 1, maxLength: 3 }),
+      fc.array(fc.integer({ min: 1, max: 15 }), { minLength: 0, maxLength: 3 }),
+      arbN,
+      (insideRaw, outsideRaw, N) => {
+        const inside = insideRaw.map((n) => Math.min(n, N));
+        const outside = outsideRaw.map((n) => Math.min(n, N));
+        const got = multisetExclusiveExpected(inside, outside, N);
+        let p = 1;
+        for (const n of inside) p *= n / N;
+        for (const n of outside) p *= 1 - n / N;
+        const expected = N * p;
+        return Math.abs(got - expected) < 1e-9 * Math.max(1, Math.abs(expected));
+      }
+    )
+  );
+});
+
+test("output is non-negative and ≤ N for valid args", () => {
+  check(
+    fc.property(
+      fc.array(fc.integer({ min: 0, max: 15 }), { minLength: 1, maxLength: 3 }),
+      fc.array(fc.integer({ min: 0, max: 15 }), { minLength: 0, maxLength: 3 }),
+      arbN,
+      (insideRaw, outsideRaw, N) => {
+        const inside = insideRaw.map((n) => Math.min(n, N));
+        const outside = outsideRaw.map((n) => Math.min(n, N));
+        const e = multisetExclusiveExpected(inside, outside, N);
+        return Number.isFinite(e) && e >= 0 && e <= N + 1e-9;
+      }
+    )
+  );
+});
+
+test("invalid args → NaN", () => {
+  if (!Number.isNaN(multisetExclusiveExpected([10], [10], 0))) throw new Error("N=0");
+  if (!Number.isNaN(multisetExclusiveExpected([200], [], 100))) throw new Error("n_i>N");
+  if (!Number.isNaN(multisetExclusiveExpected([10], [200], 100))) throw new Error("n_j>N");
+});
+
+suite("stats property — multisetExclusiveP");
+
+test("output is in [0, 1] for valid args", () => {
+  check(
+    fc.property(
+      fc.array(fc.integer({ min: 1, max: 15 }), { minLength: 1, maxLength: 2 }),
+      fc.array(fc.integer({ min: 1, max: 15 }), { minLength: 0, maxLength: 2 }),
+      arbN,
+      fc.integer({ min: 0, max: 15 }),
+      fc.constantFrom("upper", "lower"),
+      (insideRaw, outsideRaw, N, xObs, tail) => {
+        const inside = insideRaw.map((n) => Math.min(n, N));
+        const outside = outsideRaw.map((n) => Math.min(n, N));
+        const p = multisetExclusiveP(xObs, inside, outside, N, { tail });
+        return Number.isFinite(p) && p >= 0 && p <= 1;
+      }
+    )
+  );
+});
+
+test("upper-tail boundary: xObs ≤ 0 → 1, xObs > N → 0", () => {
+  check(
+    fc.property(
+      fc.array(fc.integer({ min: 1, max: 10 }), { minLength: 1, maxLength: 2 }),
+      fc.array(fc.integer({ min: 1, max: 10 }), { minLength: 0, maxLength: 2 }),
+      arbN,
+      (insideRaw, outsideRaw, N) => {
+        const inside = insideRaw.map((n) => Math.min(n, N));
+        const outside = outsideRaw.map((n) => Math.min(n, N));
+        if (multisetExclusiveP(0, inside, outside, N, { tail: "upper" }) !== 1) return false;
+        if (multisetExclusiveP(N + 1, inside, outside, N, { tail: "upper" }) !== 0)
+          return false;
+        return true;
+      }
+    )
+  );
+});
+
+test("lower-tail boundary: xObs < 0 → 0, xObs ≥ N → 1", () => {
+  check(
+    fc.property(
+      fc.array(fc.integer({ min: 1, max: 10 }), { minLength: 1, maxLength: 2 }),
+      fc.array(fc.integer({ min: 1, max: 10 }), { minLength: 0, maxLength: 2 }),
+      arbN,
+      (insideRaw, outsideRaw, N) => {
+        const inside = insideRaw.map((n) => Math.min(n, N));
+        const outside = outsideRaw.map((n) => Math.min(n, N));
+        if (multisetExclusiveP(-1, inside, outside, N, { tail: "lower" }) !== 0) return false;
+        if (multisetExclusiveP(N, inside, outside, N, { tail: "lower" }) !== 1) return false;
+        return true;
+      }
+    )
+  );
+});
+
+test("upper monotonic non-increasing in xObs", () => {
+  check(
+    fc.property(
+      fc.array(fc.integer({ min: 1, max: 10 }), { minLength: 1, maxLength: 2 }),
+      fc.array(fc.integer({ min: 1, max: 10 }), { minLength: 0, maxLength: 2 }),
+      arbN,
+      fc.integer({ min: 0, max: 12 }),
+      fc.integer({ min: 0, max: 12 }),
+      (insideRaw, outsideRaw, N, a, b) => {
+        const inside = insideRaw.map((n) => Math.min(n, N));
+        const outside = outsideRaw.map((n) => Math.min(n, N));
+        const lo = Math.min(a, b);
+        const hi = Math.max(a, b);
+        return (
+          multisetExclusiveP(lo, inside, outside, N, { tail: "upper" }) >=
+          multisetExclusiveP(hi, inside, outside, N, { tail: "upper" }) - 1e-12
+        );
+      }
+    )
+  );
+});
+
+test("default tail is upper (matches explicit upper)", () => {
+  check(
+    fc.property(
+      fc.array(fc.integer({ min: 1, max: 10 }), { minLength: 1, maxLength: 2 }),
+      fc.array(fc.integer({ min: 1, max: 10 }), { minLength: 0, maxLength: 2 }),
+      arbN,
+      fc.integer({ min: 0, max: 12 }),
+      (insideRaw, outsideRaw, N, xObs) => {
+        const inside = insideRaw.map((n) => Math.min(n, N));
+        const outside = outsideRaw.map((n) => Math.min(n, N));
+        const dflt = multisetExclusiveP(xObs, inside, outside, N);
+        const explicit = multisetExclusiveP(xObs, inside, outside, N, { tail: "upper" });
+        return Math.abs(dflt - explicit) < 1e-12;
+      }
+    )
+  );
+});
+
+test("invalid args → NaN", () => {
+  if (!Number.isNaN(multisetExclusiveP(1, [10], [], 0))) throw new Error("N=0");
+  if (!Number.isNaN(multisetExclusiveP(1, [200], [], 100))) throw new Error("n_i>N");
 });
