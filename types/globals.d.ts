@@ -222,52 +222,6 @@ declare global {
     filename: string
   ): void;
 
-  // ── R-script export (shared-r-export.js) ──────────────────────────────────
-  // Per-group context fed into the R reproducibility script. `recommendation` is
-  // the full selectTest() return — we accept it loosely because callers
-  // sometimes pass the raw selectTest result and sometimes a slimmed copy.
-  interface BuildRScriptContext {
-    names: string[];
-    values: number[][];
-    recommendation?: {
-      recommendation?: {
-        test?: RecommendedTest;
-        postHoc?: RecommendedPostHoc;
-        reason?: string;
-      };
-    } | null;
-    chosenTest?: RecommendedTest | null;
-    postHocName?: string | null;
-    dataNote?: string;
-    generatedAt?: string;
-  }
-  function buildRScript(ctx: BuildRScriptContext): string;
-
-  // Power-tool context. Numeric fields may be null when the tool is mid-edit;
-  // the script generator emits a placeholder comment in that case rather than
-  // rejecting the input.
-  interface BuildRScriptForPowerState {
-    testKey: string;
-    // Loose `string` / `number` rather than narrow unions because the calling
-    // tool stores these in `useState` without a type parameter; tightening here
-    // would force casts at every call site without catching real bugs.
-    solveFor: string;
-    es?: number | null;
-    n?: number | null;
-    alpha?: number | null;
-    power?: number | null;
-    tails?: number | null;
-    k?: number | null;
-    df?: number | null;
-    result?: number | null;
-    generatedAt?: string;
-  }
-  function buildRScriptForPower(state: BuildRScriptForPowerState): string;
-  function sanitizeRString(s: unknown): string;
-  function sanitizeRComment(s: unknown): string;
-  function formatRNumber(n: number | null | undefined): string;
-  function formatRVector(arr: Array<number | null | undefined>): string;
-
   // ── Shared components ──────────────────────────────────────────────────────
   // Implementations live in `tools/shared-*.js` (plain JS, concatenated into
   // shared.bundle.js — see CLAUDE.md). Prop types are tightened here for
@@ -276,33 +230,6 @@ declare global {
     unique: string[];
     included: Set<string>;
   }
-  // StatsTile — assumption checks + test selection + post-hocs + annotation
-  // emission. `groups` is the list of {name, values}; `onAnnotationsChange`
-  // receives a brackets/CLD spec the parent chart renders. `compact` shrinks
-  // text by ~15%; `renderLayout` is an optional escape hatch for tools that
-  // need to swap the default vertical stack for a custom container.
-  interface StatsTileAnnotationBracket {
-    kind: "brackets";
-    pairs: Array<{ i: number; j: number; label: string; p: number }>;
-    groupNames: string[];
-  }
-  interface StatsTileAnnotationCLD {
-    kind: "cld";
-    labels: string[];
-    groupNames: string[];
-  }
-  type StatsTileAnnotation = StatsTileAnnotationBracket | StatsTileAnnotationCLD;
-  const StatsTile: FC<{
-    groups: Array<{ name: string; values: number[] }> | null | undefined;
-    onAnnotationsChange?: (spec: StatsTileAnnotation | null) => void;
-    onStatsSummaryChange?: (summary: unknown) => void;
-    defaultOpen?: boolean;
-    title?: ReactNode;
-    compact?: boolean;
-    renderLayout?: (children: ReactNode) => ReactNode;
-    fileStem?: string;
-  }>;
-
   interface SubgroupMeta {
     name: string;
     startIndex: number;
@@ -317,23 +244,6 @@ declare global {
     label?: string;
     _level?: number;
   }
-  function assignBracketLevels(pairs: BracketPair[]): BracketPair[];
-
-  interface PowerFromDataRow {
-    alpha: number;
-    achieved: number;
-    nForTarget: number | null;
-  }
-  interface PowerFromDataResult {
-    effectLabel: string;
-    effect: number;
-    rows: PowerFromDataRow[];
-    targetPower: number;
-    nLabel: string;
-    approximate: boolean;
-  }
-  function computePowerFromData(chosenTest: string, values: number[][]): PowerFromDataResult | null;
-
   // ── Legend SVG helpers from shared-components.js ───────────────────────────
 
   // ── tools/theme.js ─────────────────────────────────────────────────────────
@@ -521,7 +431,7 @@ declare global {
 
   // ── Stats registry (tools/shared-stats-registry.js) ─────────────────────────
   // Single source of truth that every test/post-hoc dispatcher reads from.
-  // Adding a new entry to STATS_TEST_REGISTRY (with the corresponding union-
+  // Adding a new entry to STATS_*_REGISTRY (with the corresponding union-
   // member added to RecommendedTest above) makes every consumer aware of the
   // new test in one edit, instead of the 8+ string-matching sites pre-registry.
   type TestArity = 2 | "k";
@@ -537,10 +447,6 @@ declare global {
     label: string;
     run: (values: number[][]) => Record<string, unknown>;
   }
-  const STATS_TEST_REGISTRY: Record<RecommendedTest, StatsTestEntry>;
-  const STATS_POSTHOC_REGISTRY: Record<Exclude<RecommendedPostHoc, null>, StatsPostHocEntry>;
-  const STATS_TESTS_FOR_K2: RecommendedTest[];
-  const STATS_TESTS_FOR_K: RecommendedTest[];
 
   function selectTest(
     groups: number[][],

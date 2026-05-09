@@ -35,12 +35,6 @@ const FILES = [
   "stats-posthoc.js",
   "stats-cluster.js",
   "stats-msi.js",
-  // shared-stats-registry depends on stats globals (tTest, welchANOVA, …)
-  // and is consumed by shared-r-export.js + shared-stats-tile.js
-  // downstream — must load after the stats-*.js files, before those two.
-  "shared-stats-registry.js",
-  "shared-r-export.js",
-  "shared-stats-tile.js",
 ];
 
 function buildBundle() {

@@ -2,6 +2,7 @@
 // Do NOT edit the .js file directly.
 
 import { NumberInput, PageHeader } from "./_shell/ui";
+import { buildRScriptForPower } from "./_shell/r-export";
 
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
 

@@ -70,27 +70,30 @@ handoff). Order matters — see the `FILES` array in
 
 Files (current contents):
 
-| File                     | Role                                                                                                                                                |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `usePlotToolState.ts`    | The shared `usePlotToolState<TVis>` hook — step state, upload fields, vis reducer with auto-prefs persist.                                          |
-| `PlotToolShell.tsx`      | Outer page frame — PageHeader (with PrefsPanel), StepNavBar, banners, then delegates to children.                                                   |
-| `PlotSidebar.tsx`        | Sticky right-rail wrapper used by every plot tool's controls panel.                                                                                 |
-| `DownloadTiles.tsx`      | `ActionsPanel` wrapper for the per-tool download chips (SVG / PNG / CSV / R script / …).                                                            |
-| `ScrollablePlotCard.tsx` | Horizontal-scroll affordance (edge fades + "Scroll for more →" pill, `ResizeObserver`-driven).                                                      |
-| `prefs-store.ts`         | Pure data layer for per-tool plot-render-settings persistence (load/save/import/export/migrate/merge).                                              |
-| `PrefsPanel.tsx`         | Gear-menu UI on top of `prefs-store`; rendered in PageHeader's right slot via `PlotToolShell`.                                                      |
-| `handoff.ts`             | One-shot localStorage-backed inter-tool data hand-off (`setHandoff`, `consumeHandoff`, `navigateToTool`).                                           |
-| `discrete-palette.ts`    | Discrete palette catalogue + `resolveDiscretePalette` / `applyDiscretePalette` / hue + viridis builders.                                            |
-| `DiscretePaletteRow.tsx` | Dropdown + swatch-strip preview component for picking a discrete palette in tool sidebars.                                                          |
-| `svg-legend.ts`          | `computeLegendHeight` + `renderSvgLegend` — SVG legend block layout for chart components.                                                           |
-| `core.tsx`               | `DataPreview` table + `ErrorBoundary` class component used by every tool's parsing UI + the SPA shell.                                              |
-| `color-input.tsx`        | `ColorInput` swatch+text widget + `normalizeHexColor` validator.                                                                                    |
-| `long-format.tsx`        | `ColumnRoleEditor` / `FilterCheckboxPanel` / `RenameReorderPanel` / `StatsTable` / `GroupColorEditor` / `BaseStyleControls`.                        |
-| `file-drop.tsx`          | `FileDropZone` upload widget + `FILE_LIMIT_BYTES` / `FILE_WARN_BYTES` ingest-size constants.                                                        |
-| `ui.tsx`                 | Chrome components: `NumberInput`, `SliderControl`, `StepNavBar`, `PageHeader`, `UploadPanel`, `HowToCard`, `ActionsPanel`, banners, scroll helpers. |
-| `chart-layout.ts`        | `CHART_MARGIN` and `buildLineD` — used by `lineplot/` + `aequorin/` (see `helpers.ts` re-exports).                                                  |
-| `stats-dispatch.ts`      | `runTest` / `runPostHoc` / `postHocForTest` — shared by boxplot / lineplot / aequorin.                                                              |
-| `chart-annotations.tsx`  | `SignificanceBrackets`, `CldLabels` — shared annotation renderers.                                                                                  |
+| File                     | Role                                                                                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `usePlotToolState.ts`    | The shared `usePlotToolState<TVis>` hook — step state, upload fields, vis reducer with auto-prefs persist.                                                 |
+| `PlotToolShell.tsx`      | Outer page frame — PageHeader (with PrefsPanel), StepNavBar, banners, then delegates to children.                                                          |
+| `PlotSidebar.tsx`        | Sticky right-rail wrapper used by every plot tool's controls panel.                                                                                        |
+| `DownloadTiles.tsx`      | `ActionsPanel` wrapper for the per-tool download chips (SVG / PNG / CSV / R script / …).                                                                   |
+| `ScrollablePlotCard.tsx` | Horizontal-scroll affordance (edge fades + "Scroll for more →" pill, `ResizeObserver`-driven).                                                             |
+| `prefs-store.ts`         | Pure data layer for per-tool plot-render-settings persistence (load/save/import/export/migrate/merge).                                                     |
+| `PrefsPanel.tsx`         | Gear-menu UI on top of `prefs-store`; rendered in PageHeader's right slot via `PlotToolShell`.                                                             |
+| `handoff.ts`             | One-shot localStorage-backed inter-tool data hand-off (`setHandoff`, `consumeHandoff`, `navigateToTool`).                                                  |
+| `discrete-palette.ts`    | Discrete palette catalogue + `resolveDiscretePalette` / `applyDiscretePalette` / hue + viridis builders.                                                   |
+| `DiscretePaletteRow.tsx` | Dropdown + swatch-strip preview component for picking a discrete palette in tool sidebars.                                                                 |
+| `svg-legend.ts`          | `computeLegendHeight` + `renderSvgLegend` — SVG legend block layout for chart components.                                                                  |
+| `core.tsx`               | `DataPreview` table + `ErrorBoundary` class component used by every tool's parsing UI + the SPA shell.                                                     |
+| `color-input.tsx`        | `ColorInput` swatch+text widget + `normalizeHexColor` validator.                                                                                           |
+| `long-format.tsx`        | `ColumnRoleEditor` / `FilterCheckboxPanel` / `RenameReorderPanel` / `StatsTable` / `GroupColorEditor` / `BaseStyleControls`.                               |
+| `file-drop.tsx`          | `FileDropZone` upload widget + `FILE_LIMIT_BYTES` / `FILE_WARN_BYTES` ingest-size constants.                                                               |
+| `ui.tsx`                 | Chrome components: `NumberInput`, `SliderControl`, `StepNavBar`, `PageHeader`, `UploadPanel`, `HowToCard`, `ActionsPanel`, banners, scroll helpers.        |
+| `stats-registry.ts`      | `STATS_TEST_REGISTRY` + `STATS_POSTHOC_REGISTRY` + `STATS_TESTS_FOR_K2` / `STATS_TESTS_FOR_K` — single source of truth for the inferential test catalogue. |
+| `r-export.ts`            | `buildRScript` (data-driven stats) + `buildRScriptForPower` (power tool) + R-string formatters (`sanitizeRString`, `formatRNumber`, `formatRVector`).      |
+| `stats-tile.tsx`         | `StatsTile` component + `computePowerFromData` + `assignBracketLevels`; emits annotation specs to charts and a plain-text stats report.                    |
+| `chart-layout.ts`        | `CHART_MARGIN` and `buildLineD` — used by `lineplot/` + `aequorin/` (see `helpers.ts` re-exports).                                                         |
+| `stats-dispatch.ts`      | `runTest` / `runPostHoc` / `postHocForTest` — shared by boxplot / lineplot / aequorin.                                                                     |
+| `chart-annotations.tsx`  | `SignificanceBrackets`, `CldLabels` — shared annotation renderers.                                                                                         |
 
 ## Decision tree for adding a new shared helper
 

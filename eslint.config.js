@@ -116,26 +116,15 @@ const sharedGlobals = {
   dunnTest: "readonly",
   compactLetterDisplay: "readonly",
   selectTest: "readonly",
-  // shared-stats-registry.js
-  STATS_TEST_REGISTRY: "readonly",
-  STATS_POSTHOC_REGISTRY: "readonly",
-  STATS_TESTS_FOR_K2: "readonly",
-  STATS_TESTS_FOR_K: "readonly",
+  // pStars / formatP remain plain-JS in stats-posthoc.js. The
+  // STATS_*_REGISTRY / R-export / StatsTile / computePowerFromData /
+  // assignBracketLevels family all migrated to tools/_shell/ in 2026-05.
   pStars: "readonly",
   formatP: "readonly",
-  StatsTile: "readonly",
-  assignBracketLevels: "readonly",
-  computePowerFromData: "readonly",
   pairwiseDistance: "readonly",
   hclust: "readonly",
   dendrogramLayout: "readonly",
   kmeans: "readonly",
-  // shared-r-export.js
-  buildRScript: "readonly",
-  buildRScriptForPower: "readonly",
-  sanitizeRString: "readonly",
-  formatRNumber: "readonly",
-  formatRVector: "readonly",
   // theme.js
   ThemeToggle: "readonly",
   useThemeMode: "readonly",

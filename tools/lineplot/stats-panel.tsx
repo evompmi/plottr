@@ -4,6 +4,9 @@
 // stats-dispatch helpers for runtime overrides.
 
 import { runTest, runPostHoc, postHocForTest, TestResult } from "../_shell/stats-dispatch";
+import { STATS_TESTS_FOR_K2, STATS_TESTS_FOR_K } from "../_shell/stats-registry";
+import { buildRScript } from "../_shell/r-export";
+import { computePowerFromData } from "../_shell/stats-tile";
 import {
   formatX,
   EnrichedPerXRow,

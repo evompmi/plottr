@@ -10,6 +10,7 @@ import {
   SelectTestResult,
 } from "./helpers";
 import type { TestResult } from "../_shell/stats-dispatch";
+import { buildRScript, sanitizeRComment } from "../_shell/r-export";
 
 // `BpReportRow` is just the EnrichedBoxplotStatsRow — re-exported as a
 // distinct alias because the report builders are intentionally permissive

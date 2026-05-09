@@ -16,14 +16,38 @@ const { readStatsSource } = require("./stats-source");
 const toolsDir = path.join(__dirname, "../../tools");
 const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
 const statsSrc = readStatsSource();
-const registrySrc = fs.readFileSync(path.join(toolsDir, "shared-stats-registry.js"), "utf8");
-const statsTileSrc = fs.readFileSync(path.join(toolsDir, "shared-stats-tile.js"), "utf8");
-const helpersSrc = fs.readFileSync(path.join(toolsDir, "boxplot/helpers.ts"), "utf8");
 
-const helpersCjs = esbuild.transformSync(helpersSrc, {
-  loader: "ts",
+// Stats registry + stats-tile + r-export migrated from shared-*.js
+// plain-JS files into _shell/ TypeScript modules in 2026-05's cluster-C
+// migration. Each is bundled separately so its named exports can be
+// lifted onto the vm ctx the same way the previous globals were.
+const registryCjs = esbuild.buildSync({
+  entryPoints: [path.join(toolsDir, "_shell/stats-registry.ts")],
+  bundle: true,
   format: "cjs",
-}).code;
+  platform: "neutral",
+  write: false,
+}).outputFiles[0].text;
+const statsTileCjs = esbuild.buildSync({
+  entryPoints: [path.join(toolsDir, "_shell/stats-tile.tsx")],
+  bundle: true,
+  format: "cjs",
+  platform: "neutral",
+  jsx: "transform",
+  write: false,
+}).outputFiles[0].text;
+
+// boxplot/helpers.ts now imports from _shell/stats-registry,
+// _shell/stats-tile, _shell/r-export — use bundle: true so esbuild
+// inlines them.
+const helpersCjs = esbuild.buildSync({
+  entryPoints: [path.join(toolsDir, "boxplot/helpers.ts")],
+  bundle: true,
+  format: "cjs",
+  platform: "neutral",
+  jsx: "transform",
+  write: false,
+}).outputFiles[0].text;
 
 const moduleObj = { exports: {} };
 const ctx = {
@@ -67,12 +91,31 @@ const ctx = {
 vm.createContext(ctx);
 vm.runInContext(sharedSrc, ctx);
 vm.runInContext(statsSrc, ctx);
-// shared-stats-registry must run BEFORE shared-stats-tile because the
-// tile reads from STATS_TEST_REGISTRY at top level. Concatenate both
-// into one runInContext call so the const-declared registry binding is
-// visible to the tile script's free references — `const` doesn't bleed
-// across separate runInContext calls.
-vm.runInContext(registrySrc + "\n" + statsTileSrc, ctx);
+
+// Bundle the registry first, copy its exports onto the vm ctx so the
+// stats-tile bundle (which inlines its own copy of the registry but
+// also references `assignBracketLevels` from itself) sees consistent
+// state. Then bundle stats-tile and lift `assignBracketLevels` onto
+// the ctx for the consumer code below.
+const registryModule = { exports: {} };
+ctx.module = registryModule;
+ctx.exports = registryModule.exports;
+vm.runInContext(registryCjs, ctx);
+ctx.STATS_TEST_REGISTRY = registryModule.exports.STATS_TEST_REGISTRY;
+ctx.STATS_POSTHOC_REGISTRY = registryModule.exports.STATS_POSTHOC_REGISTRY;
+ctx.STATS_TESTS_FOR_K2 = registryModule.exports.STATS_TESTS_FOR_K2;
+ctx.STATS_TESTS_FOR_K = registryModule.exports.STATS_TESTS_FOR_K;
+
+const statsTileModule = { exports: {} };
+ctx.module = statsTileModule;
+ctx.exports = statsTileModule.exports;
+vm.runInContext(statsTileCjs, ctx);
+ctx.assignBracketLevels = statsTileModule.exports.assignBracketLevels;
+ctx.computePowerFromData = statsTileModule.exports.computePowerFromData;
+
+// helpers.ts bundle now lands the boxplot pure helpers.
+ctx.module = moduleObj;
+ctx.exports = moduleObj.exports;
 vm.runInContext(helpersCjs, ctx);
 
 module.exports = {

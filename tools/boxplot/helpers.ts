@@ -7,6 +7,13 @@
 
 import type { TestResult } from "../_shell/stats-dispatch";
 import type { LegendBlock } from "../_shell/svg-legend";
+import {
+  STATS_TEST_REGISTRY,
+  STATS_POSTHOC_REGISTRY,
+  STATS_TESTS_FOR_K2,
+  STATS_TESTS_FOR_K,
+} from "../_shell/stats-registry";
+import type { PowerFromDataResult } from "../_shell/stats-tile";
 
 // ── Stats summary SVG layout constants ──────────────────────────────────────
 
