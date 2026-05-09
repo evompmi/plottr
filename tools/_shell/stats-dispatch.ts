@@ -1,8 +1,8 @@
 // Shared test / post-hoc dispatchers for every plot tool that runs
 // inferential stats (boxplot, lineplot, aequorin). Thin wrappers over
-// STATS_TEST_REGISTRY and STATS_POSTHOC_REGISTRY (defined in
-// `tools/shared-stats-registry.js`) — the registry is the single source
-// of truth for the test-id → (label, runner, post-hoc, arity) mapping.
+// `STATS_TEST_REGISTRY` and `STATS_POSTHOC_REGISTRY` (defined in
+// `./stats-registry`) — the registry is the single source of truth for
+// the test-id → (label, runner, post-hoc, arity) mapping.
 //
 // Pre-registry, this file carried its own switch chain on test names,
 // duplicated across `shared-stats-tile.js` and `aequorin/reports.ts` —
@@ -12,6 +12,8 @@
 //
 // All three functions return `{ error }`-shaped values on failure so
 // callers don't have to branch on the test name.
+
+import { STATS_TEST_REGISTRY, STATS_POSTHOC_REGISTRY } from "./stats-registry";
 
 type GroupValues = number[][];
 export type TestResult = { p?: number; error?: string; [key: string]: unknown };

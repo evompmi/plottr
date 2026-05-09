@@ -11,6 +11,7 @@
 
 import type { BoxplotGroup } from "./helpers";
 import { computeLegendHeight, type LegendBlock } from "../_shell/svg-legend";
+import { assignBracketLevels } from "../_shell/stats-tile";
 
 // ── Public types ────────────────────────────────────────────────────────────
 

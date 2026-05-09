@@ -1,45 +1,40 @@
-// shared-r-export.js — plain JS, no JSX
-//
 // Generates a runnable R script from the StatsTile decision trace so the
 // user can paste it into RStudio and reproduce the exact same tests in a
 // "real" statistics environment. Closes the "no reproducibility trail"
 // gap called out in the README's Scope & limitations section.
 //
-// Public globals exposed by this file:
+// Public exports:
 //   buildRScript(ctx)             — for data-driven stats (boxplot, aequorin)
 //   buildRScriptForPower(state)   — for the power-analysis tool
 //   sanitizeRString(s)            — escape " and \ for safe R string inlining
-//   formatRNumber(n)              — Number → R literal (uses period decimals,
+//   sanitizeRComment(s)           — strip line terminators for `#` comments
+//   formatRNumber(n)              — Number → R literal (period decimals,
 //                                   NA for non-finite)
 //   formatRVector(arr)            — [n] → "c(n1, n2, ...)"
 //
-// The ctx shape matches _buildStatsReport(ctx) in shared-stats-tile.js so the
-// R-script chip can reuse the exact same context object without threading new
-// props. Loaded as a regular <script> tag in boxplot.html / aequorin.html /
-// power.html so its globals are visible to the compiled tool bundles.
+// The ctx shape matches the StatsTile's internal report-builder shape so
+// the R-script chip can reuse the exact same context object without
+// threading new props.
 
-// Test / post-hoc display labels are sourced from the shared registry
-// (tools/shared-stats-registry.js) — same labels the StatsTile uses on
-// screen, so the R script's `# Welch's t-test` comment matches the test
-// name shown to the user. Pre-registry these were verbatim duplicates.
+import { STATS_TEST_REGISTRY, STATS_POSTHOC_REGISTRY } from "./stats-registry";
+
+// Test / post-hoc display labels are sourced from the shared registry —
+// same labels the StatsTile uses on screen, so the R script's
+// `# Welch's t-test` comment matches the test name shown to the user.
 // The R-code generation below still has per-test branches because each
 // test produces a different R function call (`t.test`, `wilcox.test`,
 // `oneway.test`, …) — the dispatch lives in this file because the
 // emitted strings are R-specific, not part of the JS dispatcher
 // surface that the registry collapses.
-const _R_TEST_LABELS = Object.fromEntries(
-  Object.entries(STATS_TEST_REGISTRY).map(function (entry) {
-    return [entry[0], entry[1].label];
-  })
+const _R_TEST_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(STATS_TEST_REGISTRY).map((entry) => [entry[0], entry[1].label])
 );
 
-const _R_POSTHOC_LABELS = Object.fromEntries(
-  Object.entries(STATS_POSTHOC_REGISTRY).map(function (entry) {
-    return [entry[0], entry[1].label];
-  })
+const _R_POSTHOC_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(STATS_POSTHOC_REGISTRY).map((entry) => [entry[0], entry[1].label])
 );
 
-function sanitizeRString(s) {
+export function sanitizeRString(s: unknown): string {
   // Escape backslashes first, then double-quotes. All line terminators (LF,
   // CR, NEL, LS, PS) are flattened to a single space — a multi-line factor
   // level is almost certainly a paste accident and would break the one-line
@@ -58,27 +53,25 @@ function sanitizeRString(s) {
 // stricter scrub — a CR or LF inside a comment ends the comment, so any
 // embedded line terminator must be flattened. Backslashes / quotes are
 // left alone (they're harmless inside a comment).
-function sanitizeRComment(s) {
+export function sanitizeRComment(s: unknown): string {
   return String(s).replace(/[\r\n\u0085\u2028\u2029]/g, " ");
 }
 
-function formatRNumber(n) {
-  // JS number → R literal. Period decimals (R expects that); NA for non-finite.
+export function formatRNumber(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "NA";
   return String(n);
 }
 
-function formatRVector(arr) {
+export function formatRVector(arr: Array<number | null | undefined>): string {
   return "c(" + arr.map(formatRNumber).join(", ") + ")";
 }
 
-// Wrap a long c(...) literal across multiple indented lines so the generated
-// script stays readable when group sizes get into the dozens. For short
-// vectors (<=perLine entries) we still emit a single line.
-function _wrapC(items, perLine) {
+// Wrap a long c(...) literal across multiple indented lines so the
+// generated script stays readable when group sizes get into the dozens.
+function _wrapC(items: string[], perLine?: number): string {
   const P = perLine || 8;
   if (items.length <= P) return "c(" + items.join(", ") + ")";
-  const lines = [];
+  const lines: string[] = [];
   for (let i = 0; i < items.length; i += P) {
     lines.push("    " + items.slice(i, i + P).join(", "));
   }
@@ -87,10 +80,10 @@ function _wrapC(items, perLine) {
 
 // Build a long-format data.frame literal: one row per observation, columns
 // `group` (character, re-factored with the tile's display order) and `value`.
-function _longFormatDataFrame(names, values, varName) {
+function _longFormatDataFrame(names: string[], values: number[][], varName?: string): string {
   const vn = varName || "df";
-  const groupEntries = [];
-  const valueEntries = [];
+  const groupEntries: string[] = [];
+  const valueEntries: string[] = [];
   for (let i = 0; i < names.length; i++) {
     const quoted = '"' + sanitizeRString(names[i]) + '"';
     const vs = values[i] || [];
@@ -110,18 +103,13 @@ function _longFormatDataFrame(names, values, varName) {
   ].join("\n");
 }
 
-// Which R packages does the script require, given the chosen test + post-hoc?
-// Levene (car) is always required because the toolbox always runs it as part
-// of the assumption check. rstatix is only pulled in when the post-hoc needs
-// it. Kept as an array so the header comment can show a single
-// install.packages(c(...)) line and a matching library() block.
-function _rPackagesFor(postHocName) {
+function _rPackagesFor(postHocName: string | null | undefined): string[] {
   const pkgs = ["car"];
   if (postHocName === "gamesHowell" || postHocName === "dunn") pkgs.push("rstatix");
   return pkgs;
 }
 
-function _headerComment(generated, dataNote) {
+function _headerComment(generated: string, dataNote: string | null | undefined): string {
   const lines = [
     "# -----------------------------------------------------------------------------",
     "# Plöttr — R script export",
@@ -132,10 +120,10 @@ function _headerComment(generated, dataNote) {
   ];
   if (dataNote) {
     lines.push("#");
-    // Split on every line-terminator R recognises (LF, CR, CRLF, NEL, LS, PS)
-    // so a hostile multi-line `dataNote` becomes multiple comment lines —
-    // each one then run through sanitizeRComment so a stray terminator the
-    // split missed still can't escape the comment.
+    // Split on every line-terminator R recognises so a hostile multi-line
+    // `dataNote` becomes multiple comment lines — each one then run through
+    // sanitizeRComment so a stray terminator the split missed still can't
+    // escape the comment.
     const noteLines = String(dataNote).split(/\r\n|[\r\n\u0085\u2028\u2029]/);
     for (let i = 0; i < noteLines.length; i++) {
       lines.push("# " + sanitizeRComment(noteLines[i]));
@@ -145,11 +133,11 @@ function _headerComment(generated, dataNote) {
   return lines.join("\n");
 }
 
-function _mainTestBlock(chosenTest) {
+function _mainTestBlock(chosenTest: string | null | undefined): string {
   const header = "# --- Main test ---------------------------------------------------------------";
-  const label = _R_TEST_LABELS[chosenTest] || chosenTest || "—";
+  const label = (chosenTest && _R_TEST_LABELS[chosenTest]) || chosenTest || "—";
   const pickComment = "# Toolbox picked: " + label;
-  let call;
+  let call: string;
   if (chosenTest === "studentT") {
     call = "t.test(value ~ group, data = df, var.equal = TRUE)";
   } else if (chosenTest === "welchT") {
@@ -168,12 +156,12 @@ function _mainTestBlock(chosenTest) {
   return [header, pickComment, call].join("\n");
 }
 
-function _postHocBlock(postHocName, k) {
+function _postHocBlock(postHocName: string | null | undefined, k: number): string {
   if (!postHocName || k < 3) return "";
   const header = "# --- Post-hoc ----------------------------------------------------------------";
   const label = _R_POSTHOC_LABELS[postHocName] || postHocName;
   const pickComment = "# Toolbox picked: " + label;
-  let call;
+  let call: string;
   if (postHocName === "tukeyHSD") {
     call = "TukeyHSD(aov(value ~ group, data = df))";
   } else if (postHocName === "gamesHowell") {
@@ -186,7 +174,17 @@ function _postHocBlock(postHocName, k) {
   return [header, pickComment, call].join("\n");
 }
 
-function buildRScript(ctx) {
+export interface BuildRScriptCtx {
+  names?: string[];
+  values?: number[][];
+  recommendation?: { recommendation?: { reason?: string } } | null;
+  chosenTest?: string | null;
+  postHocName?: string | null;
+  dataNote?: string | null;
+  generatedAt?: string;
+}
+
+export function buildRScript(ctx: BuildRScriptCtx | null | undefined): string {
   const names = (ctx && ctx.names) || [];
   const values = (ctx && ctx.values) || [];
   const recommendation = ctx && ctx.recommendation;
@@ -198,21 +196,16 @@ function buildRScript(ctx) {
   const k = names.length;
   const pkgs = _rPackagesFor(postHocName);
 
-  const parts = [];
+  const parts: string[] = [];
   parts.push(_headerComment(generated, dataNote));
   parts.push("");
   parts.push("# install.packages(c(" + pkgs.map((p) => '"' + p + '"').join(", ") + "))");
   for (let i = 0; i < pkgs.length; i++) parts.push("library(" + pkgs[i] + ")");
   parts.push("");
 
-  // Data frame. Safe even when k < 2 — the script will still run and the user
-  // can inspect/plot the data, it just won't call any inferential test.
   parts.push(_longFormatDataFrame(names, values, "df"));
   parts.push("");
 
-  // Descriptive statistics mirror the Groups section of the StatsTile: n, mean,
-  // SD, SEM, and 95% CI half-width (t-critical × SEM) per group. Built with
-  // base R so no extra package is needed.
   parts.push("# --- Descriptive statistics --------------------------------------------------");
   parts.push("desc <- do.call(rbind, by(df$value, df$group, function(v) {");
   parts.push("  n    <- length(v)");
@@ -225,27 +218,19 @@ function buildRScript(ctx) {
   parts.push("print(desc)");
   parts.push("");
 
-  // Assumption checks mirror what the StatsTile reports: per-group Shapiro-Wilk
-  // for normality, then Brown-Forsythe Levene for variance homogeneity.
   parts.push("# --- Assumptions -------------------------------------------------------------");
   parts.push("by(df$value, df$group, shapiro.test)");
   parts.push('car::leveneTest(value ~ group, data = df, center = "median")');
   parts.push("");
 
-  // Main test. If the tile couldn't pick one (k<2 or degenerate data) this
-  // still emits a labeled placeholder so the script structure stays consistent.
   parts.push(_mainTestBlock(chosenTest));
 
-  // Post-hoc only when k>=3 AND the chosen test implies one.
   const ph = _postHocBlock(postHocName, k);
   if (ph) {
     parts.push("");
     parts.push(ph);
   }
 
-  // Append the decision-tree rationale as a trailing comment so the reader
-  // can see *why* the tile recommended this particular test, not just what
-  // ended up running.
   const reason =
     recommendation && recommendation.recommendation && recommendation.recommendation.reason;
   if (reason) {
@@ -258,22 +243,9 @@ function buildRScript(ctx) {
   return parts.join("\n") + "\n";
 }
 
-// ── Power analysis ─────────────────────────────────────────────────────────
-//
-// R's pwr package solves for whichever parameter you leave as NULL. The
-// Dataviz power tool lets the user pick `solveFor ∈ {"n", "power"}` and then
-// computes the missing value — so the generated script sets every *known*
-// parameter to its numeric value and omits the one being solved for, which
-// causes pwr to solve for it automatically.
-//
-// The ctx shape mirrors tools/power.tsx's App() state:
-//   { testKey, solveFor, es, n, alpha, power, tails, k, df, result }
-// where testKey ∈ {"t-ind","t-paired","t-one","anova","chi2","correlation"}
-// and solveFor ∈ {"n","power"}. `result` (optional) is the value the JS
-// solver produced — embedded as a trailing comment so the R run can be
-// cross-checked.
+// ── Power analysis ─────────────────────────────────────────────────────
 
-const _R_POWER_TEST_LABELS = {
+const _R_POWER_TEST_LABELS: Record<string, string> = {
   "t-ind": "Two-sample t-test (independent)",
   "t-paired": "Paired t-test",
   "t-one": "One-sample t-test",
@@ -282,21 +254,23 @@ const _R_POWER_TEST_LABELS = {
   correlation: "Correlation test",
 };
 
-function _tTypeForTestKey(testKey) {
+function _tTypeForTestKey(testKey: string): string | null {
   if (testKey === "t-ind") return "two.sample";
   if (testKey === "t-paired") return "paired";
   if (testKey === "t-one") return "one.sample";
   return null;
 }
 
-function _alternativeForTails(tails) {
+function _alternativeForTails(tails: number | undefined): string {
   return tails === 1 ? "one.sided" : "two.sided";
 }
 
-// Emit one argument line like `  n = 30,` or `  n = NULL,  # solve for this`.
-// When `solveFor` matches `arg`, the value is replaced with NULL so pwr knows
-// this is the unknown — mirrors the R idiom exactly.
-function _pwrArg(arg, value, solveFor, annotation) {
+function _pwrArg(
+  arg: string,
+  value: number | null | undefined,
+  solveFor: string | undefined,
+  annotation?: string
+): string {
   const isSolveTarget =
     (arg === "n" && solveFor === "n") || (arg === "power" && solveFor === "power");
   const rhs = isSolveTarget ? "NULL" : formatRNumber(value);
@@ -304,14 +278,28 @@ function _pwrArg(arg, value, solveFor, annotation) {
   return "  " + arg + " = " + rhs + "," + suffix;
 }
 
-function _pwrArgString(arg, value) {
+function _pwrArgString(arg: string, value: string | null): string {
   return "  " + arg + ' = "' + value + '",';
 }
 
-function _pwrCallBody(testKey, state) {
+export interface PowerScriptState {
+  testKey?: string;
+  solveFor?: string;
+  es?: number;
+  n?: number;
+  alpha?: number;
+  power?: number;
+  tails?: number;
+  k?: number;
+  df?: number;
+  result?: number | null;
+  generatedAt?: string;
+}
+
+function _pwrCallBody(testKey: string, state: PowerScriptState): string[] {
   const solveFor = state.solveFor;
   const tTypeArg = _tTypeForTestKey(testKey);
-  const lines = [];
+  const lines: string[] = [];
   if (testKey === "t-ind" || testKey === "t-paired" || testKey === "t-one") {
     lines.push(_pwrArg("n", state.n, solveFor));
     lines.push(_pwrArg("d", state.es, solveFor));
@@ -341,13 +329,11 @@ function _pwrCallBody(testKey, state) {
     lines.push(_pwrArg("power", state.power, solveFor));
     lines.push(_pwrArgString("alternative", _alternativeForTails(state.tails)));
   }
-  // Drop the trailing comma from whatever the last non-comment line is so the
-  // R call parses cleanly even if we added an inline comment.
+  // Drop the trailing comma from whatever the last non-comment line is.
   for (let i = lines.length - 1; i >= 0; i--) {
     const ln = lines[i];
     const commentIdx = ln.indexOf("#");
     const beforeComment = commentIdx >= 0 ? ln.slice(0, commentIdx) : ln;
-    // Strip the last comma in the non-comment portion.
     const trimmed = beforeComment.replace(/,\s*$/, " ");
     lines[i] = commentIdx >= 0 ? trimmed + ln.slice(commentIdx) : trimmed.replace(/\s+$/, "");
     break;
@@ -355,7 +341,7 @@ function _pwrCallBody(testKey, state) {
   return lines;
 }
 
-function _pwrCallName(testKey) {
+function _pwrCallName(testKey: string | undefined): string | null {
   if (testKey === "t-ind" || testKey === "t-paired" || testKey === "t-one") {
     return "pwr::pwr.t.test";
   }
@@ -365,18 +351,20 @@ function _pwrCallName(testKey) {
   return null;
 }
 
-function buildRScriptForPower(state) {
+export function buildRScriptForPower(state: PowerScriptState | null | undefined): string {
   const s = state || {};
   const testKey = s.testKey;
-  const call = _pwrCallName(testKey);
+  const call = testKey ? _pwrCallName(testKey) : null;
   const generated = s.generatedAt || new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 
-  const lines = [];
+  const lines: string[] = [];
   lines.push("# -----------------------------------------------------------------------------");
   lines.push("# Plöttr — Power analysis R export");
   lines.push("# Generated: " + generated);
   lines.push("#");
-  lines.push("# Test:        " + (_R_POWER_TEST_LABELS[testKey] || testKey || "(unknown)"));
+  lines.push(
+    "# Test:        " + ((testKey && _R_POWER_TEST_LABELS[testKey]) || testKey || "(unknown)")
+  );
   lines.push(
     "# Solving for: " +
       (s.solveFor === "n"
@@ -393,7 +381,7 @@ function buildRScriptForPower(state) {
   lines.push("library(pwr)");
   lines.push("");
 
-  if (!call) {
+  if (!call || !testKey) {
     lines.push("# (unknown test id — no pwr call emitted)");
     return lines.join("\n") + "\n";
   }
@@ -403,8 +391,6 @@ function buildRScriptForPower(state) {
   for (let i = 0; i < body.length; i++) lines.push(body[i]);
   lines.push(")");
 
-  // Trailing sanity-check comment: what did the toolbox report for this
-  // configuration? Lets the user eyeball the R output against the JS one.
   if (s.result != null && Number.isFinite(s.result)) {
     lines.push("");
     if (s.solveFor === "n") {
@@ -415,15 +401,4 @@ function buildRScriptForPower(state) {
   }
 
   return lines.join("\n") + "\n";
-}
-
-// Expose globals for browser consumption. In Node (tests) these live on the
-// module scope and the loader helper reads them off the vm context.
-if (typeof window !== "undefined") {
-  window.buildRScript = buildRScript;
-  window.buildRScriptForPower = buildRScriptForPower;
-  window.sanitizeRString = sanitizeRString;
-  window.sanitizeRComment = sanitizeRComment;
-  window.formatRNumber = formatRNumber;
-  window.formatRVector = formatRVector;
 }

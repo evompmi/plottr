@@ -1,23 +1,31 @@
-// Loads tools/shared-r-export.js into a Node vm context and re-exports its
-// globals for the test suite. The module is pure string-building (no React,
-// no DOM), so the sandbox is minimal — just enough builtins to evaluate the
-// file top-to-bottom.
+// Loads tools/_shell/r-export.ts (compiled to CJS, with stats-registry.ts
+// inlined by esbuild's bundle: true) on top of the shared bundle so the
+// stats-* function globals (tTest, welchANOVA, …) are available when the
+// registry's `run` closures fire. Module is pure string-building, so the
+// sandbox is minimal.
+//
+// Pre-2026-05 cluster C migration the loader read shared-r-export.js
+// directly; now r-export lives at tools/_shell/r-export.ts.
 
 const fs = require("fs");
 const vm = require("vm");
 const path = require("path");
+const esbuild = require("esbuild");
 const { readStatsSource } = require("./stats-source");
 
 const toolsDir = path.join(__dirname, "../../tools");
-// shared-r-export now derives its label maps from STATS_TEST_REGISTRY /
-// STATS_POSTHOC_REGISTRY (defined in tools/shared-stats-registry.js).
-// Stats.js provides the test functions the registry's `run` closures
-// reference. Load order: stats.js → registry → r-export.
 const statsSrc = readStatsSource();
-const registrySrc = fs.readFileSync(path.join(toolsDir, "shared-stats-registry.js"), "utf8");
 const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
-const src = fs.readFileSync(path.join(toolsDir, "shared-r-export.js"), "utf8");
 
+const rExportCjs = esbuild.buildSync({
+  entryPoints: [path.join(toolsDir, "_shell/r-export.ts")],
+  bundle: true,
+  format: "cjs",
+  platform: "neutral",
+  write: false,
+}).outputFiles[0].text;
+
+const moduleObj = { exports: {} };
 const ctx = {
   Math,
   Number,
@@ -27,7 +35,6 @@ const ctx = {
   JSON,
   Date,
   console,
-  // shared.js + stats.js touch a few extras at top level
   parseInt,
   parseFloat,
   isNaN,
@@ -36,19 +43,19 @@ const ctx = {
   NaN,
   Set,
   Map,
+  module: moduleObj,
+  exports: moduleObj.exports,
 };
 
 vm.createContext(ctx);
-// Concatenate so the const-declared registry binding is visible to the
-// shared-r-export script's free references (cross-`runInContext` calls
-// don't share lexical scope for `const`).
-vm.runInContext(sharedSrc + "\n" + statsSrc + "\n" + registrySrc + "\n" + src, ctx);
+vm.runInContext(sharedSrc + "\n" + statsSrc, ctx);
+vm.runInContext(rExportCjs, ctx);
 
 module.exports = {
-  buildRScript: ctx.buildRScript,
-  buildRScriptForPower: ctx.buildRScriptForPower,
-  sanitizeRString: ctx.sanitizeRString,
-  sanitizeRComment: ctx.sanitizeRComment,
-  formatRNumber: ctx.formatRNumber,
-  formatRVector: ctx.formatRVector,
+  buildRScript: moduleObj.exports.buildRScript,
+  buildRScriptForPower: moduleObj.exports.buildRScriptForPower,
+  sanitizeRString: moduleObj.exports.sanitizeRString,
+  sanitizeRComment: moduleObj.exports.sanitizeRComment,
+  formatRNumber: moduleObj.exports.formatRNumber,
+  formatRVector: moduleObj.exports.formatRVector,
 };

@@ -25,6 +25,8 @@
 // tools/_shell/stats-dispatch.ts.
 
 import { runTest, runPostHoc, postHocForTest, TestResult } from "../_shell/stats-dispatch";
+import { buildRScript } from "../_shell/r-export";
+import { computePowerFromData } from "../_shell/stats-tile";
 import {
   TEST_LABELS_BP,
   POSTHOC_LABELS_BP,

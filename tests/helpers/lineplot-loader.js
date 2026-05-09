@@ -37,10 +37,21 @@ const { readStatsSource } = require("./stats-source");
 const toolsDir = path.join(__dirname, "../../tools");
 const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
 const statsSrc = readStatsSource();
-const registrySrc = fs.readFileSync(path.join(toolsDir, "shared-stats-registry.js"), "utf8");
+// Stats-registry moved from tools/shared-stats-registry.js to
+// tools/_shell/stats-registry.ts in the 2026-05 cluster-C migration.
+// Bundle it via esbuild so its const exports can be lifted onto the
+// vm ctx the same way the old plain-JS file's globals were.
+const registryCjs = esbuild.buildSync({
+  entryPoints: [path.join(toolsDir, "_shell/stats-registry.ts")],
+  bundle: true,
+  format: "cjs",
+  platform: "neutral",
+  write: false,
+}).outputFiles[0].text;
 
 // ── Path 1: shared.js + stats.js + registry via vm.runInContext ────────
 
+const registryModule = { exports: {} };
 const ctx = {
   Math,
   parseInt,
@@ -55,21 +66,20 @@ const ctx = {
   NaN,
   Set,
   Map,
+  module: registryModule,
+  exports: registryModule.exports,
 };
 
 vm.createContext(ctx);
 vm.runInContext(sharedSrc, ctx);
 vm.runInContext(statsSrc, ctx);
-// Run registry in same call as a small forwarding suffix that copies
-// its `const`-declared bindings (STATS_TEST_REGISTRY,
-// STATS_POSTHOC_REGISTRY, …) onto `this` so subsequent context
-// reads can pick them up via vm.runInContext("…", ctx).
-vm.runInContext(
-  registrySrc +
-    "\nthis.STATS_TEST_REGISTRY = STATS_TEST_REGISTRY;" +
-    "\nthis.STATS_POSTHOC_REGISTRY = STATS_POSTHOC_REGISTRY;",
-  ctx
-);
+vm.runInContext(registryCjs, ctx);
+// Lift the registry exports onto ctx so the rest of the loader (and the
+// `NEEDED_GLOBALS` bridge below) can pick them up by name.
+ctx.STATS_TEST_REGISTRY = registryModule.exports.STATS_TEST_REGISTRY;
+ctx.STATS_POSTHOC_REGISTRY = registryModule.exports.STATS_POSTHOC_REGISTRY;
+ctx.STATS_TESTS_FOR_K2 = registryModule.exports.STATS_TESTS_FOR_K2;
+ctx.STATS_TESTS_FOR_K = registryModule.exports.STATS_TESTS_FOR_K;
 
 // ── Bridge globals from ctx onto globalThis ───────────────────────────
 //

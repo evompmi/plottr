@@ -1,15 +1,16 @@
-// Loads tools/_shell/stats-dispatch.ts (compiled to CJS) and the shared
-// bundle into a single vm context. The bundle is what every browser tool
-// loads at runtime, so reading the registry / stats globals from it
-// matches production exactly.
+// Loads tools/_shell/stats-dispatch.ts (compiled to CJS, with its
+// stats-registry.ts dependency inlined by esbuild) on top of the shared
+// bundle. The bundle is what every browser tool loads at runtime, so
+// reading the stats globals (tTest, welchANOVA, etc.) from it matches
+// production exactly.
 //
-// Why the bundle and not separate vm.runInContext calls per shared file:
-// the registry uses `const STATS_TEST_REGISTRY = …`, and `const`
-// bindings in vm scripts don't bleed across `runInContext` calls.
-// Concatenating the registry + dispatcher into the same script
-// execution (or using the bundle, which is already concatenated) is the
-// only way the dispatcher can resolve `STATS_TEST_REGISTRY` as a free
-// variable. Same constraint discrete-palette-loader.js handles.
+// As of the 2026-05 cluster-C migration, `STATS_TEST_REGISTRY` and
+// friends live in `tools/_shell/stats-registry.ts` (typed module)
+// rather than the shared bundle. esbuild.buildSync with `bundle: true`
+// inlines the import so the dispatcher's `STATS_TEST_REGISTRY`
+// reference resolves; the loader separately bundles stats-registry.ts
+// again to expose the registry constants to test files that need
+// direct access.
 
 const fs = require("fs");
 const vm = require("vm");
@@ -27,6 +28,17 @@ const bundleSrc = fs.readFileSync(bundlePath, "utf8");
 
 const dispatchCjs = esbuild.buildSync({
   entryPoints: [path.join(toolsDir, "_shell/stats-dispatch.ts")],
+  bundle: true,
+  format: "cjs",
+  platform: "neutral",
+  write: false,
+}).outputFiles[0].text;
+
+// Stats-registry needs a separate bundle pass with its own module.exports
+// slot so the loader can read STATS_TEST_REGISTRY / etc. as direct exports
+// for tests that import them by name.
+const registryCjs = esbuild.buildSync({
+  entryPoints: [path.join(toolsDir, "_shell/stats-registry.ts")],
   bundle: true,
   format: "cjs",
   platform: "neutral",
@@ -103,24 +115,28 @@ const ctx = {
 };
 
 vm.createContext(ctx);
-// Concatenate bundle + dispatcher into one script so they share the
-// same lexical scope; the dispatcher's free reference to
-// STATS_TEST_REGISTRY then resolves to the const binding inside the
-// bundle.
-vm.runInContext(bundleSrc + "\n" + dispatchCjs, ctx);
+// Load shared bundle first so stats-* globals (tTest, welchANOVA, …)
+// attach to the vm context; the registry's bundled output picks them up
+// at runtime via the `declare const tTest: …` ambient stubs.
+vm.runInContext(bundleSrc, ctx);
 
-// `const` bindings declared at the top of a vm-loaded script don't
-// become properties of the context object — only `var` and `function`
-// do. Use vm.runInContext("name", ctx) to read them out of the script's
-// lexical scope. Same pattern as discrete-palette-loader.js.
+vm.runInContext(dispatchCjs, ctx);
+const dispatchExports = moduleObj.exports;
+
+// Reset module.exports for the second bundle (registry).
+moduleObj.exports = {};
+ctx.exports = moduleObj.exports;
+vm.runInContext(registryCjs, ctx);
+const registryExports = moduleObj.exports;
+
 module.exports = {
-  runTest: moduleObj.exports.runTest,
-  runPostHoc: moduleObj.exports.runPostHoc,
-  postHocForTest: moduleObj.exports.postHocForTest,
-  STATS_TEST_REGISTRY: vm.runInContext("STATS_TEST_REGISTRY", ctx),
-  STATS_POSTHOC_REGISTRY: vm.runInContext("STATS_POSTHOC_REGISTRY", ctx),
-  STATS_TESTS_FOR_K2: vm.runInContext("STATS_TESTS_FOR_K2", ctx),
-  STATS_TESTS_FOR_K: vm.runInContext("STATS_TESTS_FOR_K", ctx),
+  runTest: dispatchExports.runTest,
+  runPostHoc: dispatchExports.runPostHoc,
+  postHocForTest: dispatchExports.postHocForTest,
+  STATS_TEST_REGISTRY: registryExports.STATS_TEST_REGISTRY,
+  STATS_POSTHOC_REGISTRY: registryExports.STATS_POSTHOC_REGISTRY,
+  STATS_TESTS_FOR_K2: registryExports.STATS_TESTS_FOR_K2,
+  STATS_TESTS_FOR_K: registryExports.STATS_TESTS_FOR_K,
   // Direct stats.js function globals are on `ctx` because they're
   // declared with `function`, which (unlike `const`) attaches to the
   // global object.

@@ -71,8 +71,9 @@ Source files live side-by-side in `tools/` and stay the editable units:
   - (`tools/shared-core.js` retired 2026-05; `DataPreview` + `ErrorBoundary` live in `tools/_shell/core.tsx`)
   - (`tools/shared-ui.js` retired 2026-05; `NumberInput` / `SliderControl` / `StepNavBar` / `PageHeader` / `UploadPanel` / `HowToCard` / `ActionsPanel` / banners / scroll helpers live in `tools/_shell/ui.tsx`)
   - (`tools/shared-long-format.js` retired 2026-05; `ColumnRoleEditor` / `FilterCheckboxPanel` / `RenameReorderPanel` / `StatsTable` / `GroupColorEditor` / `BaseStyleControls` live in `tools/_shell/long-format.tsx`)
-  - `tools/shared-r-export.js` — R reproducibility-script builders used by the download tiles in each plot tool
-  - `tools/shared-stats-tile.js` — `assignBracketLevels`, `StatsTile` (depends on the `stats-*.js` files)
+  - (`tools/shared-r-export.js` retired 2026-05; `buildRScript` + `buildRScriptForPower` + R-string formatters live in `tools/_shell/r-export.ts`)
+  - (`tools/shared-stats-tile.js` retired 2026-05; `StatsTile` + `computePowerFromData` + `assignBracketLevels` live in `tools/_shell/stats-tile.tsx`)
+  - (`tools/shared-stats-registry.js` retired 2026-05; the `STATS_*_REGISTRY` constants + arity arrays live in `tools/_shell/stats-registry.ts`)
   - `tools/theme.js` — theme toggle wiring + `ThemeToggle` React component (runs first so its `data-theme-toggle` listener is live before any tool mounts)
 - `tools/stats-*.js` — plain JS statistical functions, carved into five files (all loaded as `<script>` globals via the shared bundle in the order listed in `scripts/build-shared.js`):
   - **`stats-dist.js`** — distributions + special functions + `bisect` + power calcs.

@@ -4,6 +4,8 @@
 
 import { formatX, EnrichedPerXRow, SelectTestResult } from "./helpers";
 import { TestResult } from "../_shell/stats-dispatch";
+import { STATS_TEST_REGISTRY, STATS_POSTHOC_REGISTRY } from "../_shell/stats-registry";
+import { buildRScript, sanitizeRComment } from "../_shell/r-export";
 
 //
 // One compact summary table: one row per eligible x. Click a row to expand

@@ -1,83 +1,128 @@
-// shared-stats-tile.js — plain JS, no JSX
-// Requires React, shared.js (downloadText, flashSaved, fFromGroupMeans,
-// powerTwoSample, powerAnova), components.css (dv-* classes), and stats.js
-// (tTest, mannWhitneyU,
-// oneWayANOVA, welchANOVA, kruskalWallis, tukeyHSD, gamesHowell, dunnTest,
-// compactLetterDisplay, selectTest, pStars, formatP, sampleMean, sampleSD)
-// to be loaded globally before this script.
+// `StatsTile` — collapsible tile that runs the assumption checks, picks a
+// test from the decision tree (user can override), runs post-hocs for
+// k ≥ 3, and emits an annotation spec to the parent via
+// `onAnnotationsChange` so the chart can draw brackets / compact-letter
+// labels above the bars. Plus the public helpers `computePowerFromData`
+// (achieved power + n-needed-for-80%-power, dispatched per test) and
+// `assignBracketLevels` (greedy bracket-stacking layout).
+//
+// Pre-2026-05 this lived in `tools/shared-stats-tile.js` (plain-JS,
+// React.createElement) loaded as a global. Now a typed module — kept
+// in `React.createElement` form (no JSX rewrite) because the component
+// is dense and a wholesale conversion would balloon the diff. Same
+// pattern as `svg-legend.ts`, `long-format.tsx`, `ui.tsx`.
 
-// ── StatsTile ──────────────────────────────────────────────────────────────
-//
-// Collapsible tile that runs the assumption checks, picks a test from the
-// decision tree (user can override), runs post-hocs for k ≥ 3, and emits an
-// annotation spec to the parent via `onAnnotationsChange` so the chart can
-// draw brackets / compact-letter labels above the bars.
-//
-// Props:
-//   groups                [{ name, values: number[] }]
-//   onAnnotationsChange?  (spec | null) => void
-//                         spec is either
-//                           { kind: "brackets", pairs: [{i,j,label,p}], groupNames }
-//                           { kind: "cld",      labels: string[],       groupNames }
-//
-// Kept plain JS (React.createElement, no JSX) so it can live alongside the
-// rest of the shared components without requiring a build step.
+import {
+  STATS_TEST_REGISTRY,
+  STATS_POSTHOC_REGISTRY,
+  STATS_TESTS_FOR_K2,
+  STATS_TESTS_FOR_K,
+} from "./stats-registry";
+import { buildRScript } from "./r-export";
 
-// Test/post-hoc labels and dispatch helpers all read from
-// STATS_TEST_REGISTRY / STATS_POSTHOC_REGISTRY (tools/shared-stats-registry.js).
-// Pre-registry these were duplicated copies of the same data; the
-// `_runTest` / `_runPostHoc` / `_postHocFor` thin wrappers keep the
+// Globals consumed at runtime (resolved through `tools/shared.bundle.js`):
+//   sampleMean, sampleSD, fFromGroupMeans, powerTwoSample, powerAnova,
+//   compactLetterDisplay, selectTest, pStars, formatP, downloadText,
+//   flashSaved, svgSafeId. All declared in `types/globals.d.ts`.
+
+const h = React.createElement;
+
+// Test/post-hoc labels and dispatch helpers all read from the shared
+// registry. Pre-registry these were duplicated copies of the same data;
+// the `_runTest` / `_runPostHoc` / `_postHocFor` thin wrappers keep the
 // existing call shape so the rest of this file is unchanged.
-const STATS_LABELS = Object.fromEntries(
-  Object.entries(STATS_TEST_REGISTRY).map(function (entry) {
-    return [entry[0], entry[1].label];
-  })
+const STATS_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(STATS_TEST_REGISTRY).map((entry) => [entry[0], entry[1].label])
 );
-const POSTHOC_LABELS = Object.fromEntries(
-  Object.entries(STATS_POSTHOC_REGISTRY).map(function (entry) {
-    return [entry[0], entry[1].label];
-  })
+const POSTHOC_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(STATS_POSTHOC_REGISTRY).map((entry) => [entry[0], entry[1].label])
 );
 
-function _runTest(name, values) {
-  const entry = STATS_TEST_REGISTRY[name];
+function _runTest(
+  name: string | null | undefined,
+  values: number[][]
+): Record<string, unknown> | null {
+  if (!name) return null;
+  const entry = STATS_TEST_REGISTRY[name as RecommendedTest];
   return entry ? entry.run(values) : null;
 }
 
-function _runPostHoc(name, values) {
-  const entry = STATS_POSTHOC_REGISTRY[name];
+function _runPostHoc(
+  name: string | null | undefined,
+  values: number[][]
+): Record<string, unknown> | null {
+  if (!name) return null;
+  const entry = STATS_POSTHOC_REGISTRY[name as Exclude<RecommendedPostHoc, null>];
   return entry ? entry.run(values) : null;
 }
 
-function _postHocFor(testName) {
-  const entry = STATS_TEST_REGISTRY[testName];
+function _postHocFor(
+  testName: string | null | undefined
+): Exclude<RecommendedPostHoc, null> | null {
+  if (!testName) return null;
+  const entry = STATS_TEST_REGISTRY[testName as RecommendedTest];
   return entry ? entry.postHoc : null;
 }
 
 // Format a test's primary result line. Each test returns slightly different
 // fields (t/df/p for t-tests, F/df1/df2/p for ANOVA, U/z/p for MWU, etc.).
-function _formatTestLine(name, res) {
-  if (!res || res.error) return res && res.error ? "⚠ " + res.error : "—";
+function _formatTestLine(
+  name: string | null | undefined,
+  res: Record<string, unknown> | null | undefined
+): string {
+  if (!res || res.error) return res && res.error ? "⚠ " + (res.error as string) : "—";
+  const num = (v: unknown) => v as number;
   if (name === "studentT" || name === "welchT")
-    return `t(${res.df.toFixed(2)}) = ${res.t.toFixed(3)},  p = ${formatP(res.p)}`;
+    return `t(${num(res.df).toFixed(2)}) = ${num(res.t).toFixed(3)},  p = ${formatP(res.p as number)}`;
   if (name === "mannWhitney")
-    return `U = ${res.U.toFixed(1)},  z = ${res.z.toFixed(3)},  p = ${formatP(res.p)}`;
-  if (name === "oneWayANOVA" || name === "welchANOVA")
-    return `F(${res.df1}, ${typeof res.df2 === "number" ? res.df2.toFixed(2) : res.df2}) = ${res.F.toFixed(3)},  p = ${formatP(res.p)}`;
-  if (name === "kruskalWallis") return `H(${res.df}) = ${res.H.toFixed(3)},  p = ${formatP(res.p)}`;
+    return `U = ${num(res.U).toFixed(1)},  z = ${num(res.z).toFixed(3)},  p = ${formatP(res.p as number)}`;
+  if (name === "oneWayANOVA" || name === "welchANOVA") {
+    const df2 = typeof res.df2 === "number" ? res.df2.toFixed(2) : res.df2;
+    return `F(${res.df1}, ${df2}) = ${num(res.F).toFixed(3)},  p = ${formatP(res.p as number)}`;
+  }
+  if (name === "kruskalWallis")
+    return `H(${num(res.df)}) = ${num(res.H).toFixed(3)},  p = ${formatP(res.p as number)}`;
   return "—";
 }
 
-function _padR(s, n) {
-  s = String(s);
-  return s.length >= n ? s : s + " ".repeat(n - s.length);
+function _padR(s: unknown, n: number): string {
+  const str = String(s);
+  return str.length >= n ? str : str + " ".repeat(n - str.length);
+}
+
+interface StatsReportCtx {
+  names: string[];
+  values: number[][];
+  recommendation: Record<string, any> | null;
+  chosenTest: string | null;
+  testResult: Record<string, unknown> | null;
+  postHocName: string | null;
+  postHocResult: {
+    error?: string;
+    pairs: Array<{
+      i: number;
+      j: number;
+      pAdj?: number | null;
+      p: number;
+      diff?: number;
+      z?: number;
+    }>;
+  } | null;
+  powerResult: {
+    effectLabel: string;
+    effect: number;
+    rows: Array<{ alpha: number; achieved: number; nForTarget: number | null }>;
+    targetPower: number;
+    nLabel: string;
+    approximate: boolean;
+  } | null;
 }
 
 // Plain-text statistics report, rendered as fixed-width columns so it
-// reads cleanly in any editor. Mirrors what the StatsTile shows on screen:
-// per-group descriptives, Shapiro-Wilk, Levene, chosen test result, and
-// the post-hoc pairs when k ≥ 3.
-function _buildStatsReport(ctx) {
+// reads cleanly in any editor. Mirrors what the StatsTile shows on
+// screen: per-group descriptives, Shapiro-Wilk, Levene, chosen test
+// result, and the post-hoc pairs when k ≥ 3.
+function _buildStatsReport(ctx: StatsReportCtx): string {
   const {
     names,
     values,
@@ -88,7 +133,7 @@ function _buildStatsReport(ctx) {
     postHocResult,
     powerResult,
   } = ctx;
-  const lines = [];
+  const lines: string[] = [];
   const sep = "=".repeat(64);
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const nameW = Math.max(8, ...names.map((n) => n.length));
@@ -123,7 +168,14 @@ function _buildStatsReport(ctx) {
   lines.push(sep);
   lines.push("");
   lines.push("Shapiro-Wilk test for normality");
-  const norm = (recommendation && recommendation.normality) || [];
+  const norm: Array<{
+    group: number;
+    n: number;
+    W: number | null;
+    p: number | null;
+    normal: boolean | null;
+    note?: string;
+  }> = (recommendation && (recommendation.normality as Array<any>)) || [];
   lines.push(
     "  " +
       _padR("Group", nameW) +
@@ -154,7 +206,14 @@ function _buildStatsReport(ctx) {
   }
   lines.push("");
 
-  const lev = (recommendation && recommendation.levene) || {};
+  const lev: {
+    error?: string;
+    F?: number;
+    df1?: number;
+    df2?: number;
+    p?: number;
+    equalVar?: boolean;
+  } = (recommendation && (recommendation.levene as any)) || {};
   lines.push("Levene (Brown-Forsythe) test for equal variance");
   if (lev.error) {
     lines.push("  error: " + lev.error);
@@ -181,9 +240,13 @@ function _buildStatsReport(ctx) {
   lines.push(sep);
   lines.push("");
   const recTest =
-    recommendation && recommendation.recommendation && recommendation.recommendation.test;
+    recommendation &&
+    (recommendation.recommendation as any) &&
+    (recommendation.recommendation as any).test;
   const recReason =
-    recommendation && recommendation.recommendation && recommendation.recommendation.reason;
+    recommendation &&
+    (recommendation.recommendation as any) &&
+    (recommendation.recommendation as any).reason;
   lines.push("Recommended: " + (recTest ? STATS_LABELS[recTest] : "—"));
   if (recReason) lines.push("Reason:      " + recReason);
   lines.push("Chosen:      " + (chosenTest ? STATS_LABELS[chosenTest] : "—"));
@@ -253,33 +316,52 @@ function _buildStatsReport(ctx) {
   return lines.join("\n");
 }
 
-// Compute achieved power + n-needed-for-80%-power from the observed data,
-// dispatched by the test family chosen in the StatsTile. For non-parametric
-// tests (Mann-Whitney / Kruskal-Wallis) we report the parametric analog as
-// an approximation — noted in the returned `approximate` flag and in the
-// on-screen label. Computed at α = 0.05, 0.01, 0.001; target power = 0.80.
-function computePowerFromData(chosenTest, values) {
+export interface PowerFromDataRow {
+  alpha: number;
+  achieved: number;
+  nForTarget: number | null;
+}
+
+export interface PowerFromDataResult {
+  effectLabel: string;
+  effect: number;
+  rows: PowerFromDataRow[];
+  targetPower: number;
+  nLabel: string;
+  approximate: boolean;
+}
+
+// Compute achieved power + n-needed-for-80%-power from the observed
+// data, dispatched by the test family chosen in the StatsTile. For
+// non-parametric tests (Mann-Whitney / Kruskal-Wallis) we report the
+// parametric analog as an approximation — noted in the returned
+// `approximate` flag and in the on-screen label. Computed at α = 0.05,
+// 0.01, 0.001; target power = 0.80.
+export function computePowerFromData(
+  chosenTest: string | null | undefined,
+  values: number[][] | null | undefined
+): PowerFromDataResult | null {
   if (!chosenTest || !values || values.length < 2) return null;
   const alphas = [0.05, 0.01, 0.001];
   const target = 0.8;
 
   if (chosenTest === "studentT" || chosenTest === "welchT" || chosenTest === "mannWhitney") {
-    const x = values[0],
-      y = values[1];
-    const n1 = x.length,
-      n2 = y.length;
+    const x = values[0];
+    const y = values[1];
+    const n1 = x.length;
+    const n2 = y.length;
     if (n1 < 2 || n2 < 2) return null;
-    const m1 = sampleMean(x),
-      m2 = sampleMean(y);
-    const s1 = sampleSD(x),
-      s2 = sampleSD(y);
+    const m1 = sampleMean(x);
+    const m2 = sampleMean(y);
+    const s1 = sampleSD(x);
+    const s2 = sampleSD(y);
     const sp = Math.sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2));
     const d = sp > 0 ? Math.abs(m1 - m2) / sp : 0;
     const nh = 2 / (1 / n1 + 1 / n2);
     const nEff = Math.max(2, Math.round(nh));
-    const rows = alphas.map(function (alpha) {
+    const rows = alphas.map((alpha) => {
       const achieved = powerTwoSample(d, nEff, alpha, 2);
-      let needed = null;
+      let needed: number | null = null;
       if (d > 0) {
         for (let n = 2; n <= 5000; n++) {
           if (powerTwoSample(d, n, alpha, 2) >= target) {
@@ -288,12 +370,12 @@ function computePowerFromData(chosenTest, values) {
           }
         }
       }
-      return { alpha: alpha, achieved: achieved, nForTarget: needed };
+      return { alpha, achieved, nForTarget: needed };
     });
     return {
       effectLabel: "Cohen's d",
       effect: d,
-      rows: rows,
+      rows,
       targetPower: target,
       nLabel: "per group",
       approximate: chosenTest === "mannWhitney",
@@ -308,17 +390,10 @@ function computePowerFromData(chosenTest, values) {
     const kk = values.length;
     if (kk < 2) return null;
     const means = values.map(sampleMean);
-    const ns = values.map(function (v) {
-      return v.length;
-    });
-    if (
-      ns.some(function (n) {
-        return n < 2;
-      })
-    )
-      return null;
-    let ssW = 0,
-      dfW = 0;
+    const ns = values.map((v) => v.length);
+    if (ns.some((n) => n < 2)) return null;
+    let ssW = 0;
+    let dfW = 0;
     for (let i = 0; i < kk; i++) {
       const m = means[i];
       for (let j = 0; j < values[i].length; j++) ssW += (values[i][j] - m) * (values[i][j] - m);
@@ -326,15 +401,11 @@ function computePowerFromData(chosenTest, values) {
     }
     const sp = dfW > 0 ? Math.sqrt(ssW / dfW) : 0;
     const f = fFromGroupMeans(means, sp);
-    const nh =
-      kk /
-      ns.reduce(function (a, b) {
-        return a + 1 / b;
-      }, 0);
+    const nh = kk / ns.reduce((a, b) => a + 1 / b, 0);
     const nEff = Math.max(2, Math.round(nh));
-    const rows = alphas.map(function (alpha) {
+    const rows = alphas.map((alpha) => {
       const achieved = powerAnova(f, nEff, alpha, kk);
-      let needed = null;
+      let needed: number | null = null;
       if (f > 0) {
         for (let n = 2; n <= 5000; n++) {
           if (powerAnova(f, n, alpha, kk) >= target) {
@@ -343,12 +414,12 @@ function computePowerFromData(chosenTest, values) {
           }
         }
       }
-      return { alpha: alpha, achieved: achieved, nForTarget: needed };
+      return { alpha, achieved, nForTarget: needed };
     });
     return {
       effectLabel: "Cohen's f",
       effect: f,
-      rows: rows,
+      rows,
       targetPower: target,
       nLabel: "per group",
       approximate: chosenTest === "kruskalWallis",
@@ -358,14 +429,22 @@ function computePowerFromData(chosenTest, values) {
   return null;
 }
 
-// Given a list of {i, j} pairs, assign a vertical level (0 = lowest) to each
-// so brackets at overlapping spans stack instead of colliding. Greedy by
-// ascending span width. Exposed as a global so chart renderers can reuse
-// the layout.
-function assignBracketLevels(pairs) {
-  const enriched = pairs.map((pr, idx) => ({ ...pr, _span: Math.abs(pr.j - pr.i), _orig: idx }));
+// Given a list of {i, j} pairs, assign a vertical level (0 = lowest) to
+// each so brackets at overlapping spans stack instead of colliding.
+// Greedy by ascending span width. Exposed so chart renderers can reuse
+// the layout. Generic over T to preserve any additional fields the
+// caller threads through (label, p, etc.).
+export function assignBracketLevels<T extends { i: number; j: number }>(
+  pairs: T[]
+): Array<T & { _level: number }> {
+  const enriched = pairs.map((pr, idx) => ({
+    ...pr,
+    _span: Math.abs(pr.j - pr.i),
+    _orig: idx,
+    _level: 0,
+  }));
   enriched.sort((a, b) => a._span - b._span);
-  const placed = [];
+  const placed: typeof enriched = [];
   for (const pr of enriched) {
     let lvl = 0;
     while (
@@ -383,10 +462,25 @@ function assignBracketLevels(pairs) {
   }
   // Restore original input order so the parent can match up labels.
   placed.sort((a, b) => a._orig - b._orig);
-  return placed.map(({ _orig: _o, _span: _s, ...rest }) => rest);
+  return placed.map(({ _orig: _o, _span: _s, ...rest }) => rest as T & { _level: number });
 }
 
-function StatsTile({
+interface StatsTileProps {
+  groups: Array<{ name: string; values: number[] }> | null | undefined;
+  onAnnotationsChange?: (spec: Record<string, unknown> | null) => void;
+  onStatsSummaryChange?: (summary: string | null) => void;
+  defaultOpen?: boolean;
+  title?: React.ReactNode;
+  compact?: boolean;
+  renderLayout?: (parts: {
+    displayEl: React.ReactNode;
+    summaryEl: React.ReactNode;
+    open?: boolean;
+  }) => React.ReactNode;
+  fileStem?: string;
+}
+
+export function StatsTile({
   groups,
   onAnnotationsChange,
   onStatsSummaryChange,
@@ -395,32 +489,34 @@ function StatsTile({
   compact,
   renderLayout,
   fileStem,
-}) {
+}: StatsTileProps) {
   const scale = compact ? 0.85 : 1;
-  const fs = (n) => Math.round(n * scale * 10) / 10;
+  const fs = (n: number) => Math.round(n * scale * 10) / 10;
   const validGroups = (groups || []).filter(
-    (g) => g && Array.isArray(g.values) && g.values.length >= 2
+    (g): g is { name: string; values: number[] } =>
+      !!g && Array.isArray(g.values) && g.values.length >= 2
   );
   const k = validGroups.length;
 
   const [open, setOpen] = React.useState(!!defaultOpen);
-  const [overrideTest, setOverrideTest] = React.useState(null);
+  const [overrideTest, setOverrideTest] = React.useState<string | null>(null);
   const [showOnPlot, setShowOnPlot] = React.useState(false);
   const [showSummaryOnPlot, setShowSummaryOnPlot] = React.useState(false);
-  const [annotKind, setAnnotKind] = React.useState("cld"); // only used when k>2
+  const [annotKind, setAnnotKind] = React.useState<"cld" | "brackets">("cld");
   const [showNs, setShowNs] = React.useState(false);
   // Unique name for the annotation-kind radio group so multiple StatsTiles
   // (one per facet in Group Plot) don't collapse into a single HTML radio
   // group, which would cause the browser to clear checked state across tiles
   // and make the radios flicker on unrelated re-renders.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const annotKindName = "stats-annot-kind-" + React.useId();
 
   const values = React.useMemo(() => validGroups.map((g) => g.values.slice()), [validGroups]);
   const names = React.useMemo(() => validGroups.map((g) => g.name), [validGroups]);
 
-  const recommendation = React.useMemo(() => {
+  const recommendation = React.useMemo<Record<string, any> | null>(() => {
     if (k < 2) return null;
-    return selectTest(values);
+    return selectTest(values) as Record<string, any>;
   }, [values, k]);
 
   const chosenTest =
@@ -435,7 +531,7 @@ function StatsTile({
 
   const postHocName = _postHocFor(chosenTest);
   const postHocResult = React.useMemo(
-    () => (k > 2 && postHocName ? _runPostHoc(postHocName, values) : null),
+    () => (k > 2 && postHocName ? (_runPostHoc(postHocName, values) as any) : null),
     [postHocName, values, k]
   );
   const powerResult = React.useMemo(
@@ -447,7 +543,7 @@ function StatsTile({
   const annotationSpec = React.useMemo(() => {
     if (!showOnPlot || k < 2) return null;
     if (k === 2) {
-      const p = testResult && !testResult.error ? testResult.p : null;
+      const p = testResult && !testResult.error ? (testResult.p as number) : null;
       if (p == null) return null;
       if (!showNs && p >= 0.05) return null;
       return {
@@ -461,71 +557,56 @@ function StatsTile({
       const labels = compactLetterDisplay(postHocResult.pairs, k);
       return { kind: "cld", labels, groupNames: names };
     }
-    // Brackets: draw all pairs, prefer pAdj if present.
     const all = postHocResult.pairs
-      .map((pr) => ({
+      .map((pr: any) => ({
         i: pr.i,
         j: pr.j,
         p: pr.pAdj != null ? pr.pAdj : pr.p,
       }))
-      .map((pr) => ({ ...pr, label: pStars(pr.p) }))
-      .filter((pr) => showNs || pr.p < 0.05);
+      .map((pr: any) => ({ ...pr, label: pStars(pr.p) }))
+      .filter((pr: any) => showNs || pr.p < 0.05);
     if (all.length === 0) return null;
     return { kind: "brackets", pairs: all, groupNames: names };
   }, [showOnPlot, annotKind, showNs, k, testResult, postHocResult, names]);
 
   // Build a plain-text stats summary for display below the plot.
-  const statsSummary = React.useMemo(
-    function () {
-      // Summary is a sub-option of "Display on plot": both must be on.
-      if (!showOnPlot || !showSummaryOnPlot || !chosenTest || !testResult || testResult.error)
-        return null;
-      const parts = [];
-      parts.push(
-        (STATS_LABELS[chosenTest] || chosenTest) + ": " + _formatTestLine(chosenTest, testResult)
-      );
-      if (k > 2 && postHocResult && !postHocResult.error) {
-        const phLabel = POSTHOC_LABELS[postHocName] || postHocName;
-        parts.push("Post-hoc: " + phLabel);
-        postHocResult.pairs.forEach(function (pr) {
-          const p = pr.pAdj != null ? pr.pAdj : pr.p;
-          parts.push(
-            "  " + names[pr.i] + " vs " + names[pr.j] + ": p = " + formatP(p) + " " + pStars(p)
-          );
-        });
-      }
-      if (powerResult) {
+  const statsSummary = React.useMemo(() => {
+    if (!showOnPlot || !showSummaryOnPlot || !chosenTest || !testResult || testResult.error)
+      return null;
+    const parts: string[] = [];
+    parts.push(
+      (STATS_LABELS[chosenTest] || chosenTest) + ": " + _formatTestLine(chosenTest, testResult)
+    );
+    if (k > 2 && postHocResult && !postHocResult.error && postHocName) {
+      const phLabel = POSTHOC_LABELS[postHocName] || postHocName;
+      parts.push("Post-hoc: " + phLabel);
+      postHocResult.pairs.forEach((pr: any) => {
+        const p = pr.pAdj != null ? pr.pAdj : pr.p;
         parts.push(
-          "Effect size: " + powerResult.effectLabel + " = " + powerResult.effect.toFixed(3)
+          "  " + names[pr.i] + " vs " + names[pr.j] + ": p = " + formatP(p) + " " + pStars(p)
         );
-      }
-      parts.push(
-        "n per group: " +
-          names
-            .map(function (n, i) {
-              return n + "=" + values[i].length;
-            })
-            .join(", ")
-      );
-      return parts.join("\n");
-    },
-    [
-      showOnPlot,
-      showSummaryOnPlot,
-      chosenTest,
-      testResult,
-      k,
-      postHocResult,
-      postHocName,
-      names,
-      powerResult,
-      values,
-    ]
-  );
+      });
+    }
+    if (powerResult) {
+      parts.push("Effect size: " + powerResult.effectLabel + " = " + powerResult.effect.toFixed(3));
+    }
+    parts.push("n per group: " + names.map((n, i) => n + "=" + values[i].length).join(", "));
+    return parts.join("\n");
+  }, [
+    showOnPlot,
+    showSummaryOnPlot,
+    chosenTest,
+    testResult,
+    k,
+    postHocResult,
+    postHocName,
+    names,
+    powerResult,
+    values,
+  ]);
 
   // Emit annotations to the parent. We hold the latest spec in a ref and
-  // fire the effect only when its serialized form changes, so unrelated
-  // re-renders don't trigger a parent state update.
+  // fire the effect only when its serialized form changes.
   const specKey = annotationSpec ? JSON.stringify(annotationSpec) : "";
   const latestSpec = React.useRef(annotationSpec);
   latestSpec.current = annotationSpec;
@@ -535,42 +616,36 @@ function StatsTile({
     if (typeof onChangeRef.current === "function") onChangeRef.current(latestSpec.current);
   }, [specKey]);
 
-  // Emit stats summary to the parent.
   const summaryKey = statsSummary || "";
   const latestSummary = React.useRef(statsSummary);
   latestSummary.current = statsSummary;
   const onSummaryRef = React.useRef(onStatsSummaryChange);
   onSummaryRef.current = onStatsSummaryChange;
-  React.useEffect(
-    function () {
-      if (typeof onSummaryRef.current === "function") onSummaryRef.current(latestSummary.current);
-    },
-    [summaryKey]
-  );
+  React.useEffect(() => {
+    if (typeof onSummaryRef.current === "function") onSummaryRef.current(latestSummary.current);
+  }, [summaryKey]);
 
-  // Nothing to show.
   if (k < 2) return null;
 
-  // ── Styles ────────────────────────────────────────────────────────────────
-  // Override-only object — base panel look comes from className "dv-panel".
-  const wrap = compact
+  // ── Styles ────────────────────────────────────────────────────────────
+  const wrap: React.CSSProperties = compact
     ? { marginTop: 0, marginBottom: 0, background: "var(--surface-subtle)" }
     : { marginTop: 12, background: "var(--surface-subtle)" };
-  const header = {
+  const header: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     gap: 10,
     cursor: "pointer",
     userSelect: "none",
   };
-  const h3 = {
+  const h3style: React.CSSProperties = {
     margin: 0,
     fontSize: fs(14),
     fontWeight: 700,
     color: "var(--text)",
     letterSpacing: "0.2px",
   };
-  const subhead = {
+  const subhead: React.CSSProperties = {
     margin: compact ? "10px 0 6px" : "14px 0 8px",
     padding: compact ? "4px 10px" : "5px 12px",
     fontSize: fs(11),
@@ -582,14 +657,14 @@ function StatsTile({
     borderRadius: 4,
     display: "block",
   };
-  const row = {
+  const row: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     gap: 10,
     fontSize: fs(12),
     color: "var(--text-muted)",
   };
-  const pillOk = {
+  const pillOk: React.CSSProperties = {
     display: "inline-block",
     padding: "2px 8px",
     borderRadius: 10,
@@ -598,39 +673,42 @@ function StatsTile({
     background: "var(--step-ready-bg)",
     color: "var(--step-ready)",
   };
-  const pillBad = { ...pillOk, background: "var(--danger-bg)", color: "var(--danger-text)" };
-  const pillNeutral = { ...pillOk, background: "var(--neutral-bg)", color: "var(--neutral-text)" };
-  const table = {
+  const pillBad: React.CSSProperties = {
+    ...pillOk,
+    background: "var(--danger-bg)",
+    color: "var(--danger-text)",
+  };
+  const pillNeutral: React.CSSProperties = {
+    ...pillOk,
+    background: "var(--neutral-bg)",
+    color: "var(--neutral-text)",
+  };
+  const table: React.CSSProperties = {
     width: "100%",
     borderCollapse: "collapse",
     fontSize: fs(12),
     marginTop: 4,
   };
-  const th = {
+  const th: React.CSSProperties = {
     textAlign: "left",
     padding: compact ? "3px 5px" : "4px 6px",
     borderBottom: "1px solid var(--border)",
     color: "var(--text-muted)",
     fontWeight: 600,
   };
-  const td = {
+  const td: React.CSSProperties = {
     padding: compact ? "3px 5px" : "4px 6px",
     borderBottom: "1px solid var(--border)",
     color: "var(--text)",
   };
 
-  // ── Header rows ───────────────────────────────────────────────────────────
-  const displayTileHeader = React.createElement("h3", { style: h3 }, "Statistics display");
-  // Compute the filename stem once — shared by both download chips.
+  // ── Header rows ───────────────────────────────────────────────────────
+  const displayTileHeader = h("h3", { style: h3style }, "Statistics display");
   const _safeStem =
     typeof fileStem === "string" && fileStem.trim()
       ? (typeof svgSafeId === "function" ? svgSafeId(fileStem) : fileStem).replace(/^-+|-+$/g, "")
       : "stats_report";
-  // Build the ctx once per render so the two download buttons see the exact
-  // same decision trace. `chosenTest`, `postHocName`, etc. are closed over
-  // the current StatsTile memos — capturing them in the ctx means clicking
-  // either chip emits what the tile is currently showing.
-  const _statsCtx = {
+  const _statsCtx: StatsReportCtx = {
     names,
     values,
     recommendation,
@@ -640,10 +718,10 @@ function StatsTile({
     postHocResult,
     powerResult,
   };
-  const downloadReportBtn = React.createElement(
+  const downloadReportBtn = h(
     "button",
     {
-      onClick: (e) => {
+      onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         downloadText(_buildStatsReport(_statsCtx), `${_safeStem || "stats_report"}.txt`);
         flashSaved(e.currentTarget);
@@ -651,35 +729,28 @@ function StatsTile({
       className: "dv-btn dv-btn-dl",
       title: "Download a plain-text stats report",
     },
-    "\u2B07 TXT"
+    "⬇ TXT"
   );
-  // R-script chip: only rendered when tools/shared-r-export.js has been
-  // loaded as a sibling script tag. Guarded on the global so this file
-  // keeps working in environments (tests, tools with no stats) that don't
-  // bundle the exporter.
-  const rScriptBtn =
-    typeof buildRScript === "function"
-      ? React.createElement(
-          "button",
-          {
-            onClick: (e) => {
-              e.stopPropagation();
-              downloadText(buildRScript(_statsCtx), `${_safeStem || "stats_report"}.R`);
-              flashSaved(e.currentTarget);
-            },
-            className: "dv-btn dv-btn-dl",
-            title: "Download a runnable R script reproducing these tests",
-          },
-          "\u2B07 R"
-        )
-      : null;
-  const downloadChipsEl = React.createElement(
+  const rScriptBtn = h(
+    "button",
+    {
+      onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        downloadText(buildRScript(_statsCtx), `${_safeStem || "stats_report"}.R`);
+        flashSaved(e.currentTarget);
+      },
+      className: "dv-btn dv-btn-dl",
+      title: "Download a runnable R script reproducing these tests",
+    },
+    "⬇ R"
+  );
+  const downloadChipsEl = h(
     "div",
     { style: { display: "flex", alignItems: "center", gap: 6 } },
     downloadReportBtn,
     rScriptBtn
   );
-  const summaryHeaderEl = React.createElement(
+  const summaryHeaderEl = h(
     "div",
     {
       style: {
@@ -689,31 +760,28 @@ function StatsTile({
         justifyContent: "space-between",
       },
     },
-    React.createElement(
+    h(
       "div",
-      {
-        style: header,
-        onClick: () => setOpen((o) => !o),
-      },
-      React.createElement("span", {
+      { style: header, onClick: () => setOpen((o) => !o) },
+      h("span", {
         className: "dv-disclosure" + (open ? " dv-disclosure-open" : ""),
         "aria-hidden": "true",
       }),
-      React.createElement("h3", { style: h3 }, title || "Statistics summary")
+      h("h3", { style: h3style }, title || "Statistics summary")
     ),
     downloadChipsEl
   );
 
-  // ── Display-on-plot controls ──────────────────────────────────────────────
-  // Every control below "Display on plot" (style radios, "Print summary",
-  // "Show ns") is a sub-option: disabled when the parent is off so users see
-  // the full control set but can't interact with it. "Show ns" also gets an
-  // extra condition — in CLD mode (k>2 default) it's a dead control because
-  // letter displays don't have a non-significant filter to toggle.
+  // ── Display-on-plot controls ──────────────────────────────────────────
   const subDisabled = !showOnPlot;
   const nsDisabled = subDisabled || (k > 2 && annotKind === "cld");
-  const checkboxLabel = (checked, onChange, text, disabled) =>
-    React.createElement(
+  const checkboxLabel = (
+    checked: boolean,
+    onChange: (b: boolean) => void,
+    text: string,
+    disabled: boolean
+  ) =>
+    h(
       "label",
       {
         style: {
@@ -726,17 +794,17 @@ function StatsTile({
           opacity: disabled ? 0.55 : 1,
         },
       },
-      React.createElement("input", {
+      h("input", {
         type: "checkbox",
         checked: disabled ? false : checked,
         disabled,
-        onChange: (e) => onChange(e.target.checked),
+        onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked),
         style: { accentColor: "var(--cta-primary-bg)" },
       }),
       text
     );
-  var segmentedToggle = function (disabled) {
-    return React.createElement(
+  const segmentedToggle = (disabled: boolean) =>
+    h(
       "div",
       {
         style: {
@@ -745,19 +813,17 @@ function StatsTile({
           overflow: "hidden",
           border: "1px solid var(--border-strong)",
           opacity: disabled ? 0.55 : 1,
-          pointerEvents: disabled ? "none" : "auto",
+          pointerEvents: (disabled ? "none" : "auto") as React.CSSProperties["pointerEvents"],
         },
       },
-      ["cld", "brackets"].map(function (value) {
-        var active = annotKind === value;
-        return React.createElement(
+      (["cld", "brackets"] as const).map((value) => {
+        const active = annotKind === value;
+        return h(
           "button",
           {
             key: value,
             type: "button",
-            onClick: function () {
-              setAnnotKind(value);
-            },
+            onClick: () => setAnnotKind(value),
             style: {
               flex: 1,
               padding: "4px 8px",
@@ -775,8 +841,7 @@ function StatsTile({
         );
       })
     );
-  };
-  const displayControls = React.createElement(
+  const displayControls = h(
     "div",
     {
       style: {
@@ -790,10 +855,10 @@ function StatsTile({
     checkboxLabel(showOnPlot, setShowOnPlot, "Display on plot", false),
     checkboxLabel(showSummaryOnPlot, setShowSummaryOnPlot, "Print summary below plot", subDisabled),
     k > 2
-      ? React.createElement(
+      ? h(
           "div",
           { style: { display: "flex", alignItems: "center", gap: 8, fontSize: 12 } },
-          React.createElement(
+          h(
             "span",
             { style: { color: subDisabled ? "var(--text-faint)" : "var(--text-muted)" } },
             "Style:"
@@ -804,7 +869,7 @@ function StatsTile({
     checkboxLabel(showNs, setShowNs, "Show ns", nsDisabled)
   );
 
-  const displayTile = React.createElement(
+  const displayTile = h(
     "div",
     { className: "dv-panel", style: wrap },
     displayTileHeader,
@@ -813,38 +878,49 @@ function StatsTile({
 
   if (!open) {
     const displayEl = displayTile;
-    const summaryEl = React.createElement(
-      "div",
-      { className: "dv-panel", style: wrap },
-      summaryHeaderEl
-    );
+    const summaryEl = h("div", { className: "dv-panel", style: wrap }, summaryHeaderEl);
     if (typeof renderLayout === "function") return renderLayout({ displayEl, summaryEl, open });
-    return React.createElement(React.Fragment, null, displayEl, summaryEl);
+    return h(React.Fragment, null, displayEl, summaryEl);
   }
 
-  // ── Assumptions section ───────────────────────────────────────────────────
-  const norm = (recommendation && recommendation.normality) || [];
-  const lev = (recommendation && recommendation.levene) || {};
+  // ── Assumptions section ───────────────────────────────────────────────
+  const norm: Array<{
+    group: number;
+    n: number;
+    W: number | null;
+    p: number | null;
+    normal: boolean | null;
+    note?: string;
+  }> = (recommendation && (recommendation.normality as any)) || [];
+  const lev: {
+    error?: string;
+    F?: number;
+    df1?: number;
+    df2?: number;
+    p?: number;
+    equalVar?: boolean;
+  } = (recommendation && (recommendation.levene as any)) || {};
   const normalityRows = norm.map((r) =>
-    React.createElement(
+    h(
       "tr",
       { key: r.group },
-      React.createElement("td", { style: td }, names[r.group]),
-      React.createElement("td", { style: td }, r.n),
-      React.createElement("td", { style: td }, r.W != null ? r.W.toFixed(3) : "—"),
-      React.createElement("td", { style: td }, r.p != null ? formatP(r.p) : r.note || "—"),
-      React.createElement(
+      h("td", { style: td }, names[r.group]),
+      h("td", { style: td }, r.n),
+      h("td", { style: td }, r.W != null ? r.W.toFixed(3) : "—"),
+      h("td", { style: td }, r.p != null ? formatP(r.p) : r.note || "—"),
+      h(
         "td",
         { style: td },
         r.normal === true
-          ? React.createElement("span", { style: pillOk }, "normal")
+          ? h("span", { style: pillOk }, "normal")
           : r.normal === false
-            ? React.createElement("span", { style: pillBad }, "not normal")
-            : React.createElement("span", { style: pillNeutral }, "unknown")
+            ? h("span", { style: pillBad }, "not normal")
+            : h("span", { style: pillNeutral }, "unknown")
       )
     )
   );
-  const normalityCaption = React.createElement(
+
+  const normalityCaption = h(
     "div",
     {
       style: {
@@ -856,26 +932,26 @@ function StatsTile({
     },
     "Shapiro-Wilk test for normality"
   );
-  const normalityTable = React.createElement(
+  const normalityTable = h(
     "table",
     { style: table },
-    React.createElement(
+    h(
       "thead",
       null,
-      React.createElement(
+      h(
         "tr",
         null,
-        React.createElement("th", { style: th }, "Group"),
-        React.createElement("th", { style: th }, "n"),
-        React.createElement("th", { style: th }, "W"),
-        React.createElement("th", { style: th }, "p"),
-        React.createElement("th", { style: th }, "Assessment")
+        h("th", { style: th }, "Group"),
+        h("th", { style: th }, "n"),
+        h("th", { style: th }, "W"),
+        h("th", { style: th }, "p"),
+        h("th", { style: th }, "Assessment")
       )
     ),
-    React.createElement("tbody", null, normalityRows)
+    h("tbody", null, normalityRows)
   );
 
-  const leveneCaption = React.createElement(
+  const leveneCaption = h(
     "div",
     {
       style: {
@@ -888,20 +964,27 @@ function StatsTile({
     },
     "Levene (Brown-Forsythe) test for equal variance"
   );
-  const leveneLine = React.createElement(
+  const leveneLine = h(
     "div",
     { style: row },
     lev.error
-      ? React.createElement("span", { style: { color: "var(--danger-text)" } }, lev.error)
-      : React.createElement(
+      ? h("span", { style: { color: "var(--danger-text)" } }, lev.error)
+      : h(
           React.Fragment,
           null,
-          React.createElement(
+          h(
             "span",
             null,
-            "F(" + lev.df1 + ", " + lev.df2 + ") = " + lev.F.toFixed(3) + ",  p = " + formatP(lev.p)
+            "F(" +
+              lev.df1 +
+              ", " +
+              lev.df2 +
+              ") = " +
+              lev.F!.toFixed(3) +
+              ",  p = " +
+              formatP(lev.p)
           ),
-          React.createElement(
+          h(
             "span",
             { style: lev.equalVar ? pillOk : pillBad },
             lev.equalVar ? "equal variance" : "unequal variance"
@@ -909,26 +992,31 @@ function StatsTile({
         )
   );
 
-  // ── Test picker ───────────────────────────────────────────────────────────
+  // ── Test picker ───────────────────────────────────────────────────────
   const testOptions = k === 2 ? STATS_TESTS_FOR_K2 : STATS_TESTS_FOR_K;
   const recTest =
-    recommendation && recommendation.recommendation && recommendation.recommendation.test;
+    recommendation &&
+    (recommendation.recommendation as any) &&
+    (recommendation.recommendation as any).test;
   const recReason =
-    recommendation && recommendation.recommendation && recommendation.recommendation.reason;
-  const suggestion = recommendation && recommendation.suggestion;
-  const testPicker = React.createElement(
+    recommendation &&
+    (recommendation.recommendation as any) &&
+    (recommendation.recommendation as any).reason;
+  const suggestion = recommendation && (recommendation.suggestion as any);
+  const testPicker = h(
     "div",
     { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } },
-    React.createElement(
+    h(
       "select",
       {
         value: chosenTest || "",
-        onChange: (e) => setOverrideTest(e.target.value === recTest ? null : e.target.value),
+        onChange: (e: React.ChangeEvent<HTMLSelectElement>) =>
+          setOverrideTest(e.target.value === recTest ? null : e.target.value),
         className: "dv-select",
         style: { minWidth: 180 },
       },
       testOptions.map((t) =>
-        React.createElement(
+        h(
           "option",
           { key: t, value: t },
           STATS_LABELS[t] + (t === recTest ? "  (recommended)" : "")
@@ -936,15 +1024,12 @@ function StatsTile({
       )
     ),
     overrideTest
-      ? React.createElement(
+      ? h(
           "button",
           {
             onClick: () => setOverrideTest(null),
             className: "dv-btn dv-btn-secondary",
-            style: {
-              padding: "4px 10px",
-              fontSize: 11,
-            },
+            style: { padding: "4px 10px", fontSize: 11 },
           },
           "Use recommendation"
         )
@@ -952,7 +1037,7 @@ function StatsTile({
   );
 
   const reasonLine = recReason
-    ? React.createElement(
+    ? h(
         "div",
         { style: { fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" } },
         recReason
@@ -961,7 +1046,7 @@ function StatsTile({
 
   const suggestionLine =
     suggestion && chosenTest !== suggestion.test
-      ? React.createElement(
+      ? h(
           "div",
           {
             style: {
@@ -978,15 +1063,15 @@ function StatsTile({
               color: "var(--info-text)",
             },
           },
-          React.createElement("span", { style: { fontWeight: 700 } }, "Suggested alternative:"),
-          React.createElement(
+          h("span", { style: { fontWeight: 700 } }, "Suggested alternative:"),
+          h(
             "span",
             null,
             "Shapiro-Wilk flagged non-normal data — consider ",
-            React.createElement("strong", null, STATS_LABELS[suggestion.test] || suggestion.test),
+            h("strong", null, STATS_LABELS[suggestion.test] || suggestion.test),
             "."
           ),
-          React.createElement(
+          h(
             "button",
             {
               onClick: () => setOverrideTest(suggestion.test),
@@ -998,7 +1083,7 @@ function StatsTile({
         )
       : null;
 
-  const resultLine = React.createElement(
+  const resultLine = h(
     "div",
     {
       style: {
@@ -1015,22 +1100,22 @@ function StatsTile({
     _formatTestLine(chosenTest, testResult)
   );
 
-  // ── Post-hoc table (k ≥ 3) ────────────────────────────────────────────────
-  let postHocBlock = null;
-  if (k > 2 && postHocResult && !postHocResult.error) {
-    const rows = postHocResult.pairs.map((pr, idx) => {
+  // ── Post-hoc table (k ≥ 3) ────────────────────────────────────────────
+  let postHocBlock: React.ReactNode = null;
+  if (k > 2 && postHocResult && !postHocResult.error && postHocName) {
+    const rows = postHocResult.pairs.map((pr: any, idx: number) => {
       const pVal = pr.pAdj != null ? pr.pAdj : pr.p;
-      return React.createElement(
+      return h(
         "tr",
         { key: idx },
-        React.createElement("td", { style: td }, names[pr.i] + " vs " + names[pr.j]),
-        React.createElement(
+        h("td", { style: td }, names[pr.i] + " vs " + names[pr.j]),
+        h(
           "td",
           { style: td },
           pr.diff != null ? pr.diff.toFixed(3) : pr.z != null ? "z = " + pr.z.toFixed(3) : "—"
         ),
-        React.createElement("td", { style: td }, formatP(pVal)),
-        React.createElement(
+        h("td", { style: td }, formatP(pVal)),
+        h(
           "td",
           {
             style: {
@@ -1043,93 +1128,89 @@ function StatsTile({
         )
       );
     });
-    postHocBlock = React.createElement(
+    postHocBlock = h(
       "div",
       null,
-      React.createElement("div", { style: subhead }, "Post-hoc — " + POSTHOC_LABELS[postHocName]),
-      React.createElement(
+      h("div", { style: subhead }, "Post-hoc — " + POSTHOC_LABELS[postHocName]),
+      h(
         "table",
         { style: table },
-        React.createElement(
+        h(
           "thead",
           null,
-          React.createElement(
+          h(
             "tr",
             null,
-            React.createElement("th", { style: th }, "Pair"),
-            React.createElement(
-              "th",
-              { style: th },
-              postHocName === "dunn" ? "Rank diff" : "Mean diff"
-            ),
-            React.createElement("th", { style: th }, "p"),
-            React.createElement("th", { style: th }, "Signif.")
+            h("th", { style: th }, "Pair"),
+            h("th", { style: th }, postHocName === "dunn" ? "Rank diff" : "Mean diff"),
+            h("th", { style: th }, "p"),
+            h("th", { style: th }, "Signif.")
           )
         ),
-        React.createElement("tbody", null, rows)
+        h("tbody", null, rows)
       )
     );
   }
 
-  // ── Power analysis ────────────────────────────────────────────────────────
-  let powerBlock = null;
+  // ── Power analysis ────────────────────────────────────────────────────
+  let powerBlock: React.ReactNode = null;
   if (powerResult) {
-    const fmtPct = (p) => (p * 100).toFixed(1) + "%";
-    const fmtAlpha = (a) => String(a);
-    const nNeededText = (row) =>
-      row.nForTarget != null ? row.nForTarget + " " + powerResult.nLabel : "> 5000";
-    powerBlock = React.createElement(
+    const fmtPct = (p: number) => (p * 100).toFixed(1) + "%";
+    const fmtAlpha = (a: number) => String(a);
+    const nNeededText = (r: PowerFromDataRow) =>
+      r.nForTarget != null ? r.nForTarget + " " + powerResult.nLabel : "> 5000";
+    powerBlock = h(
       "div",
       null,
-      React.createElement("div", { style: subhead }, "Power analysis (target 80%)"),
-      React.createElement(
+      h("div", { style: subhead }, "Power analysis (target 80%)"),
+      h(
         "table",
         { style: table },
-        React.createElement(
+        h(
           "thead",
           null,
-          React.createElement(
+          h(
             "tr",
             null,
-            React.createElement("th", { style: th }, "Effect size"),
-            React.createElement("th", { style: th }, "\u03B1"),
-            React.createElement("th", { style: th }, "Achieved power"),
-            React.createElement("th", { style: th }, "n for 80% power")
+            h("th", { style: th }, "Effect size"),
+            h("th", { style: th }, "α"),
+            h("th", { style: th }, "Achieved power"),
+            h("th", { style: th }, "n for 80% power")
           )
         ),
-        React.createElement(
+        h(
           "tbody",
           null,
-          powerResult.rows.map((row, ri) =>
-            React.createElement(
+          powerResult.rows.map((rrow, ri) =>
+            h(
               "tr",
               { key: ri },
               ri === 0
-                ? React.createElement(
+                ? h(
                     "td",
                     { style: td, rowSpan: powerResult.rows.length },
                     powerResult.effectLabel + " = " + powerResult.effect.toFixed(3)
                   )
                 : null,
-              React.createElement("td", { style: td }, fmtAlpha(row.alpha)),
-              React.createElement(
+              h("td", { style: td }, fmtAlpha(rrow.alpha)),
+              h(
                 "td",
                 {
                   style: {
                     ...td,
                     fontWeight: 700,
-                    color: row.achieved >= 0.8 ? "var(--step-ready)" : "var(--warning-text)",
+                    color: rrow.achieved >= 0.8 ? "var(--step-ready)" : "var(--warning-text)",
                   },
                 },
-                fmtPct(row.achieved)
+                fmtPct(rrow.achieved)
               ),
-              React.createElement("td", { style: td }, nNeededText(row))
+              h("td", { style: td }, nNeededText(rrow))
             )
           )
         )
       ),
       powerResult.approximate
-        ? React.createElement(
+        ? h(
             "div",
             {
               style: {
@@ -1146,19 +1227,19 @@ function StatsTile({
   }
 
   const displayEl = displayTile;
-  const summaryEl = React.createElement(
+  const summaryEl = h(
     "div",
     { className: "dv-panel", style: wrap },
     summaryHeaderEl,
-    React.createElement(
+    h(
       "div",
       { style: { marginTop: 10 } },
-      React.createElement("div", { style: subhead }, "Assumptions"),
+      h("div", { style: subhead }, "Assumptions"),
       normalityCaption,
       normalityTable,
       leveneCaption,
       leveneLine,
-      React.createElement("div", { style: subhead }, "Test"),
+      h("div", { style: subhead }, "Test"),
       testPicker,
       reasonLine,
       suggestionLine,
@@ -1168,5 +1249,5 @@ function StatsTile({
     )
   );
   if (typeof renderLayout === "function") return renderLayout({ displayEl, summaryEl });
-  return React.createElement(React.Fragment, null, displayEl, summaryEl);
+  return h(React.Fragment, null, displayEl, summaryEl);
 }

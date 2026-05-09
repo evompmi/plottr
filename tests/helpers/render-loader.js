@@ -136,6 +136,30 @@ function ensureSharedBundleLoaded() {
         "scrollDisclosureIntoView",
       ],
     },
+    {
+      src: path.join(toolsDir, "_shell/stats-registry.ts"),
+      names: [
+        "STATS_TEST_REGISTRY",
+        "STATS_POSTHOC_REGISTRY",
+        "STATS_TESTS_FOR_K2",
+        "STATS_TESTS_FOR_K",
+      ],
+    },
+    {
+      src: path.join(toolsDir, "_shell/r-export.ts"),
+      names: [
+        "buildRScript",
+        "buildRScriptForPower",
+        "sanitizeRString",
+        "sanitizeRComment",
+        "formatRNumber",
+        "formatRVector",
+      ],
+    },
+    {
+      src: path.join(toolsDir, "_shell/stats-tile.tsx"),
+      names: ["StatsTile", "computePowerFromData", "assignBracketLevels"],
+    },
   ];
   for (const { src, names } of SHELL_GLOBALS) {
     const built = esbuild.buildSync({
