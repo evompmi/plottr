@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:sri": "node scripts/vendor-sri.js --check",
+    "audit:contrast": "node scripts/audit-palette-contrast.js",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
