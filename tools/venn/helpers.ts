@@ -85,6 +85,73 @@ export interface ConfigureStepProps {
   isLongFormat: boolean;
 }
 
+// ── Layout warning info ─────────────────────────────────────────────────────
+//
+// Reported by VennChart back to App via `onLayoutInfo` after every layout
+// pass. The warnings array is human-readable text (proportional layout
+// can hit a degenerate config that the validator falls back from); the
+// error metrics let the App badge the chart when the requested
+// proportions couldn't be honoured exactly.
+export interface VennLayoutInfo {
+  warnings: string[];
+  proportional: boolean;
+  maxError: number;
+  meanError: number;
+}
+
+// `setSetColors` accepts either a direct value or a functional updater
+// (mirrors React's `Dispatch<SetStateAction<T>>` shape so call sites
+// using either form keep working).
+export type SetColorsUpdater =
+  | Record<string, string>
+  | ((prev: Record<string, string>) => Record<string, string>);
+
+export interface VennChartProps {
+  setNames: string[];
+  sets: SetMap;
+  intersections: Region[];
+  colors: Record<string, string>;
+  selectedMask: number | null;
+  onRegionClick?: (mask: number | null) => void;
+  plotTitle: string;
+  plotBg: string;
+  fontSize: number;
+  fillOpacity: number;
+  onLayoutInfo?: (info: VennLayoutInfo) => void;
+  proportional: boolean;
+  readabilityBlend?: number;
+  showOutline?: boolean;
+}
+
+export interface IntersectionTableProps {
+  intersections: Region[];
+  allSetNames: string[];
+  selectedMask: number | null;
+  onSelect: (mask: number | null) => void;
+}
+
+export interface ItemListPanelProps {
+  intersection: Region | null;
+  allSetNames: string[];
+  fileName: string;
+}
+
+export interface PlotAreaProps {
+  chartRef: React.RefObject<SVGSVGElement>;
+  activeSetNames: string[];
+  activeSetsMap: SetMap;
+  intersections: Region[];
+  setColors: Record<string, string>;
+  selectedMask: number | null;
+  setSelectedMask: (mask: number | null) => void;
+  vis: VennVis;
+  proportional: boolean;
+  layoutInfo: VennLayoutInfo;
+  setLayoutInfo: (info: VennLayoutInfo) => void;
+  selectedIntersection: Region | null;
+  fileName: string;
+}
+
 export interface PlotControlsProps {
   allSetNames: string[];
   allSets: SetMap;
@@ -97,7 +164,7 @@ export interface PlotControlsProps {
   onRename: (oldName: string, newName: string) => boolean;
   vis: VennVis;
   updVis: UpdVis;
-  chartRef: React.RefObject<SVGSVGElement | null>;
+  chartRef: React.RefObject<SVGSVGElement>;
   resetAll: () => void;
   proportional: boolean;
   onProportionalChange: (b: boolean) => void;

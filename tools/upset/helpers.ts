@@ -192,6 +192,85 @@ export interface ComputeProgress {
   total: number;
 }
 
+// Direction of the observed exclusive bar height vs. its expected value
+// under the fixed-margin null. Drives the bar's colour (when "Color by
+// significance" is on) and the direction pill in the per-bar stats panel.
+export type IntersectionDirection = "enriched" | "depleted" | "neutral";
+
+// One cached SuperExactTest-style result. Stored keyed by
+// `${mask}:${universe}` in the App's `intersectionTests` map; the
+// per-tail values stay around for the directional breakdown shown in
+// `IntersectionStatsPanel`. `pAdj*` start null and get filled in by the
+// BH pass once every test in the batch has its raw p.
+export interface IntersectionTest {
+  mask: number;
+  universe: number;
+  xExclusive: number;
+  insideSizes: number[];
+  outsideSizes: number[];
+  expected: number;
+  direction: IntersectionDirection;
+  p: number;
+  pUpper: number;
+  pLower: number;
+  pTwoSided: number;
+  pAdj: number | null;
+  pAdjUpper: number | null;
+  pAdjLower: number | null;
+  pAdjTwoSided: number | null;
+}
+
+// Chart-side projection of `IntersectionTest`: only the fields the
+// renderer needs to draw markers + bar colour. Built once per
+// universe-change in App's `significanceByMask` memo.
+export interface IntersectionSignificance {
+  p: number;
+  pAdj: number | null;
+  pAdjUpper: number | null;
+  pAdjLower: number | null;
+  pAdjTwoSided: number | null;
+  direction: IntersectionDirection;
+}
+
+// Inbound payload from the Venn → UpSet hand-off (postMessage or
+// sessionStorage). Text + an optional separator / format / filename.
+// All fields treated as untrusted — the App validates types and length
+// before forwarding to the parser.
+export interface UpsetHandoffPayload {
+  text: string;
+  fileName?: string;
+  sep?: string;
+  format?: string;
+}
+
+export interface UpsetChartProps {
+  setNames: string[];
+  setSizes: Map<string, number>;
+  intersections: Intersection[];
+  selectedMask: number | null;
+  onColumnClick?: (mask: number | null) => void;
+  plotTitle: string;
+  plotSubtitle: string;
+  plotBg: string;
+  fontSize: number;
+  barOpacity: number;
+  dotSize: number;
+  showIntersectionLabels: boolean;
+  showSetSizeLabels: boolean;
+  significanceDisplay: string;
+  significanceByMask?: Map<number, IntersectionSignificance>;
+  colorBarsBySignificance: boolean;
+}
+
+export interface IntersectionStatsPanelProps {
+  intersection: Intersection | null;
+  displaySetNames: string[];
+  sets: Map<string, Set<string>>;
+  membershipMap: Map<string, number>;
+  universeSize: number | "";
+  intersectionTests: Map<string, IntersectionTest>;
+}
+
 export interface PlotControlsProps {
   activeSetNames: string[];
   allSets: Map<string, Set<string>>;

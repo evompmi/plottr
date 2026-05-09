@@ -5,6 +5,7 @@
 // from the parent App.
 
 import { intersectionIdKey, buildBarTicks } from "./helpers";
+import type { Intersection, UpsetChartProps } from "./helpers";
 
 const { forwardRef } = React;
 
@@ -54,7 +55,7 @@ function computeColWidth(nCols: number, matrixLeftX: number): number {
 
 // ── UpsetChart ──────────────────────────────────────────────────────────────
 
-export const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
+export const UpsetChart = forwardRef<SVGSVGElement, UpsetChartProps>(function UpsetChart(
   {
     setNames,
     setSizes,
@@ -128,7 +129,7 @@ export const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
   // the domain max (last tick) is strictly above the data max so the largest
   // bar stops just below the panel edge rather than touching it.
   const topPanelBottom = topPanelY + TOP_PANEL_H;
-  const topAxisMax = Math.max(1, ...intersections.map((r: any) => r.size));
+  const topAxisMax = Math.max(1, ...intersections.map((r) => r.size));
   const topTicks = buildBarTicks(topAxisMax, 4);
   const topDomainMax = topTicks[topTicks.length - 1];
   // Both the intersection-size labels and the significance markers render
@@ -294,7 +295,7 @@ export const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           significant. Bars with no cached test, or tests that don't cross
           p < 0.05, fall back to the default black fill. */}
       <g id="intersection-bars">
-        {intersections.map((inter: any, i: number) => {
+        {intersections.map((inter: Intersection, i: number) => {
           const cx = colX(i);
           const barW = Math.max(6, colW * 0.7);
           const barX = cx - barW / 2;
@@ -304,7 +305,8 @@ export const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           let fill = BAR_FILL;
           if (colorBarsBySignificance && significanceByMask) {
             const sig = significanceByMask.get(inter.mask);
-            if (sig && Number.isFinite(sig.pAdjTwoSided) && sig.pAdjTwoSided < 0.05) {
+            const twoSided = sig?.pAdjTwoSided;
+            if (sig && twoSided != null && Number.isFinite(twoSided) && twoSided < 0.05) {
               if (sig.direction === "enriched") fill = BAR_FILL_ENRICHED;
               else if (sig.direction === "depleted") fill = BAR_FILL_DEPLETED;
             }
@@ -333,7 +335,7 @@ export const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
 
       {sizeLabelShown && (
         <g id="intersection-bar-labels">
-          {intersections.map((inter: any, i: number) => {
+          {intersections.map((inter: Intersection, i: number) => {
             const cx = colX(i);
             const h = topBarScale(inter.size);
             const anchorY = topPanelBottom - h - 3;
@@ -364,9 +366,10 @@ export const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
           in `significanceByMask`. */}
       {significanceDisplay && significanceDisplay !== "off" && significanceByMask && (
         <g id="significance-markers">
-          {intersections.map((inter: any, i: number) => {
+          {intersections.map((inter: Intersection, i: number) => {
             const sig = significanceByMask.get(inter.mask);
-            if (!sig || !Number.isFinite(sig.pAdj)) return null;
+            const pAdj = sig?.pAdj;
+            if (!sig || pAdj == null || !Number.isFinite(pAdj)) return null;
             const cx = colX(i);
             const h = topBarScale(inter.size);
             // Size label is rotated -90°, so its on-screen height equals its
@@ -376,8 +379,7 @@ export const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
               ? String(inter.size).length * sizeLabelFS * 0.58
               : 0;
             const labelOffset = sizeLabelShown ? thisSizeLabelHeight + 7 : 3;
-            const text =
-              significanceDisplay === "stars" ? pStars(sig.pAdj) : "p=" + formatP(sig.pAdj);
+            const text = significanceDisplay === "stars" ? pStars(pAdj) : "p=" + formatP(pAdj);
             // Size: star glyphs render a hair bigger than the bar-size label;
             // "ns" renders smaller so a non-significant bar stays visually
             // quiet; p-values match the bar-size label so numeric widths stay
@@ -391,7 +393,7 @@ export const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
                 : Math.max(9, fSize - 3);
             // Stars / "ns" always render in black; p-values use blue below 0.05
             // to match the usual "significant" colour convention.
-            const fill = isStarsMode ? "#111111" : sig.pAdj < 0.05 ? "#1f6feb" : "#555555";
+            const fill = isStarsMode ? "#111111" : pAdj < 0.05 ? "#1f6feb" : "#555555";
             const anchorY = topPanelBottom - h - labelOffset;
             return (
               <text
@@ -585,7 +587,7 @@ export const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
       <g id="column-ids">
         {(() => {
           const idLaneY = matrixY + matrixH + idLaneOffset;
-          return intersections.map((inter: any, i: number) => {
+          return intersections.map((inter: Intersection, i: number) => {
             const cx = colX(i);
             return (
               <text
@@ -633,7 +635,7 @@ export const UpsetChart = forwardRef<SVGSVGElement, any>(function UpsetChart(
       {/* Matrix: per-column group with line + dots. */}
       <g id="matrix">
         <g id="matrix-columns">
-          {intersections.map((inter: any, i: number) => {
+          {intersections.map((inter: Intersection, i: number) => {
             const cx = colX(i);
             const inSet = new Set(inter.setIndices);
             const isSelected = selectedMask === inter.mask;
