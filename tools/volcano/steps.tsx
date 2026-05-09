@@ -17,6 +17,7 @@ import {
   StyleTile,
   SummaryTile,
 } from "./controls";
+import type { ConfigureStepProps, PlotStepProps } from "./helpers";
 import { VolcanoChart } from "./chart";
 
 // ── Configure step ─────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ export function ConfigureStep({
   setYCol,
   setLabelCol,
   setYIsAdjusted,
-}: any) {
+}: ConfigureStepProps) {
   const xValid = xCol >= 0;
   const yValid = yCol >= 0;
   return (
@@ -66,7 +67,7 @@ export function ConfigureStep({
             }}
           >
             {!xValid && <option value="">— choose a log₂FC column —</option>}
-            {parsed.headers.map((h: any, i: number) => (
+            {parsed.headers.map((h, i) => (
               <option key={i} value={i}>
                 {h}
               </option>
@@ -89,7 +90,7 @@ export function ConfigureStep({
             }}
           >
             {!yValid && <option value="">— choose a p-value column —</option>}
-            {parsed.headers.map((h: any, i: number) => (
+            {parsed.headers.map((h, i) => (
               <option key={i} value={i}>
                 {h}
               </option>
@@ -128,7 +129,7 @@ export function ConfigureStep({
             onChange={(e) => setLabelCol(parseInt(e.target.value))}
           >
             <option value={-1}>— none —</option>
-            {parsed.headers.map((h: any, i: number) => (
+            {parsed.headers.map((h, i) => (
               <option key={i} value={i}>
                 {h}
               </option>
@@ -214,7 +215,7 @@ export function PlotStep({
   onReset,
   labelDensity,
   onLabelLayoutInfo,
-}: any) {
+}: PlotStepProps) {
   return (
     <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
       <PlotSidebar>
