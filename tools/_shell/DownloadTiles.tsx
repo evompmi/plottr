@@ -5,12 +5,17 @@
 //   onDownloadPng={() => downloadPng(chartRef.current, `${stem}.png`, 2)}
 // boilerplate that every plot tool's controls / plot-area used to repeat.
 //
-// Tools with simple "one chart → one SVG + one PNG" semantics (heatmap,
-// lineplot, scatter, upset, venn, volcano) consume this directly. Tools
-// with multi-chart / multi-format export (boxplot's faceted SVG bundle,
-// aequorin's combined + barplot + facets) keep using ActionsPanel
-// directly because the per-tool callback shape doesn't fit the common
-// case.
+// Tools with simple "one chart → one SVG + one PNG" semantics (lineplot,
+// scatter, upset, venn, volcano) consume this directly. Three plot tools
+// keep using ActionsPanel directly because their export shape doesn't fit
+// the (single chartRef, single fileStem) contract:
+//   - boxplot — when facetByCol >= 0, downloads one file per facet via
+//     facetRefs (multi-file bundle).
+//   - aequorin — fans out across combined / faceted / barplot refs through
+//     useImperativeHandle on PlotPanel.
+//   - heatmap — the SVG/PNG buttons live inside the plot panel header next
+//     to the matrix; the sidebar tile carries only CSV / R-script / reset,
+//     with no primary downloads to auto-build.
 //
 // `pngScale` defaults to 2 — matches what every existing call site
 // passed. Override only if a tool needs higher / lower resolution.
