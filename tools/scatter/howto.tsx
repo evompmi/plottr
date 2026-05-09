@@ -1,5 +1,4 @@
-import type { HowToContent } from "../_shell/HowTo";
-
+import type { HowToContent } from "../_shell";
 export const SCATTER_HOWTO: HowToContent = {
   toolName: "scatter",
   title: "Scatter Plot — How to use",

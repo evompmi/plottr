@@ -9,9 +9,8 @@ import {
   EnrichedBoxplotStatsRow,
   SelectTestResult,
 } from "./helpers";
-import type { TestResult } from "../_shell/stats-dispatch";
-import { buildRScript, sanitizeRComment } from "../_shell/r-export";
-
+import { buildRScript, sanitizeRComment } from "../_shell";
+import type { TestResult } from "../_shell";
 // `BpReportRow` is just the EnrichedBoxplotStatsRow — re-exported as a
 // distinct alias because the report builders are intentionally permissive
 // about extra fields the panel might layer on top.

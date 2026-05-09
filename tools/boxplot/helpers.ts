@@ -5,16 +5,13 @@
 // the big text-block builders (buildBpSetTextBlock / buildBpAggregateReport /
 // buildBpAggregateRScript) stay in tools/boxplot.tsx.
 
-import type { TestResult } from "../_shell/stats-dispatch";
-import type { LegendBlock } from "../_shell/svg-legend";
 import {
-  STATS_TEST_REGISTRY,
   STATS_POSTHOC_REGISTRY,
-  STATS_TESTS_FOR_K2,
   STATS_TESTS_FOR_K,
-} from "../_shell/stats-registry";
-import type { PowerFromDataResult } from "../_shell/stats-tile";
-
+  STATS_TESTS_FOR_K2,
+  STATS_TEST_REGISTRY,
+} from "../_shell";
+import type { LegendBlock, PowerFromDataResult, TestResult } from "../_shell";
 // ── Stats summary SVG layout constants ──────────────────────────────────────
 
 export const STATS_LINE_H = 11;

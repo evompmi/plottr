@@ -29,11 +29,25 @@ const registryCjs = esbuild.buildSync({
   write: false,
 }).outputFiles[0].text;
 const statsTileCjs = esbuild.buildSync({
-  entryPoints: [path.join(toolsDir, "_shell/stats-tile.tsx")],
+  entryPoints: [path.join(toolsDir, "_shell/StatsTile.tsx")],
   bundle: true,
   format: "cjs",
   platform: "neutral",
   jsx: "transform",
+  write: false,
+}).outputFiles[0].text;
+const bracketLevelsCjs = esbuild.buildSync({
+  entryPoints: [path.join(toolsDir, "_shell/bracket-levels.ts")],
+  bundle: true,
+  format: "cjs",
+  platform: "neutral",
+  write: false,
+}).outputFiles[0].text;
+const powerFromDataCjs = esbuild.buildSync({
+  entryPoints: [path.join(toolsDir, "_shell/power-from-data.ts")],
+  bundle: true,
+  format: "cjs",
+  platform: "neutral",
   write: false,
 }).outputFiles[0].text;
 
@@ -106,12 +120,30 @@ ctx.STATS_POSTHOC_REGISTRY = registryModule.exports.STATS_POSTHOC_REGISTRY;
 ctx.STATS_TESTS_FOR_K2 = registryModule.exports.STATS_TESTS_FOR_K2;
 ctx.STATS_TESTS_FOR_K = registryModule.exports.STATS_TESTS_FOR_K;
 
+// `assignBracketLevels` and `computePowerFromData` were extracted from
+// the StatsTile bundle into their own _shell modules in 2026-06; bundle
+// each separately and lift onto ctx so helpers.ts (which uses both via
+// the barrel) resolves them cleanly.
+const bracketLevelsModule = { exports: {} };
+ctx.module = bracketLevelsModule;
+ctx.exports = bracketLevelsModule.exports;
+vm.runInContext(bracketLevelsCjs, ctx);
+ctx.assignBracketLevels = bracketLevelsModule.exports.assignBracketLevels;
+
+const powerFromDataModule = { exports: {} };
+ctx.module = powerFromDataModule;
+ctx.exports = powerFromDataModule.exports;
+vm.runInContext(powerFromDataCjs, ctx);
+ctx.computePowerFromData = powerFromDataModule.exports.computePowerFromData;
+
+// StatsTile bundle still loaded so its top-level evaluation stays
+// representative of the production bundle (catches "module crashes at
+// import time" regressions); its exports overwrite the previous lifts
+// without changing values.
 const statsTileModule = { exports: {} };
 ctx.module = statsTileModule;
 ctx.exports = statsTileModule.exports;
 vm.runInContext(statsTileCjs, ctx);
-ctx.assignBracketLevels = statsTileModule.exports.assignBracketLevels;
-ctx.computePowerFromData = statsTileModule.exports.computePowerFromData;
 
 // helpers.ts bundle now lands the boxplot pure helpers.
 ctx.module = moduleObj;

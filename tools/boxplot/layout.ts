@@ -10,9 +10,8 @@
 // geometry / layout split.
 
 import type { BoxplotGroup } from "./helpers";
-import { computeLegendHeight, type LegendBlock } from "../_shell/svg-legend";
-import { assignBracketLevels } from "../_shell/stats-tile";
-
+import { assignBracketLevels, computeLegendHeight } from "../_shell";
+import type { LegendBlock } from "../_shell";
 // ── Public types ────────────────────────────────────────────────────────────
 
 export interface ChartMargins {

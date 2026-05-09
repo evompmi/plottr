@@ -3,10 +3,14 @@
 // universe-size override, Start over) and the ControlSection-grouped
 // tiles for sort/filter/style/significance/labels.
 
-import { PlotSidebar } from "../_shell/PlotSidebar";
-import { DownloadTiles } from "../_shell/DownloadTiles";
-import { ColorInput } from "../_shell/color-input";
-import { NumberInput, SliderControl, scrollDisclosureIntoView } from "../_shell/ui";
+import {
+  ColorInput,
+  DownloadTiles,
+  NumberInput,
+  PlotSidebar,
+  SliderControl,
+  scrollDisclosureIntoView,
+} from "../_shell";
 import { intersectionLabel } from "./helpers";
 import type { Intersection, PlotControlsProps, UpsetVis } from "./helpers";
 import { BAR_FILL_ENRICHED, BAR_FILL_DEPLETED } from "./chart";

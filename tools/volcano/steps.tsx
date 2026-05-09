@@ -5,9 +5,7 @@
 // AesBox / sidebar tiles come from ./controls.tsx; the SVG renderer
 // comes from ./chart.tsx.
 
-import { PlotSidebar } from "../_shell/PlotSidebar";
-import { DownloadTiles } from "../_shell/DownloadTiles";
-import { DataPreview } from "../_shell/core";
+import { DataPreview, DownloadTiles, PlotSidebar } from "../_shell";
 import {
   VolcanoAesBox,
   ThresholdsTile,

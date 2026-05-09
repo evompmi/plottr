@@ -24,9 +24,14 @@
 // tools/boxplot/reports.ts. Test / post-hoc dispatchers live in
 // tools/_shell/stats-dispatch.ts.
 
-import { runTest, runPostHoc, postHocForTest, TestResult } from "../_shell/stats-dispatch";
-import { buildRScript } from "../_shell/r-export";
-import { computePowerFromData } from "../_shell/stats-tile";
+import {
+  TestResult,
+  buildRScript,
+  computePowerFromData,
+  postHocForTest,
+  runPostHoc,
+  runTest,
+} from "../_shell";
 import {
   TEST_LABELS_BP,
   POSTHOC_LABELS_BP,

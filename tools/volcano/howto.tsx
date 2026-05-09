@@ -1,5 +1,4 @@
-import type { HowToContent } from "../_shell/HowTo";
-
+import type { HowToContent } from "../_shell";
 export const VOLCANO_HOWTO: HowToContent = {
   toolName: "volcano",
   title: "Volcano Plot — How to use",

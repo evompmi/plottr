@@ -3,9 +3,7 @@
 // step panels, and the plot-step composition live in sibling modules
 // under tools/scatter/.
 
-import { usePlotToolState } from "../_shell/usePlotToolState";
-import { PlotToolShell } from "../_shell/PlotToolShell";
-import { resolveDiscretePalette } from "../_shell/discrete-palette";
+import { PlotToolShell, resolveDiscretePalette, usePlotToolState } from "../_shell";
 import { SHAPES, computeLinearRegression, ScatterVis, RefLine, ScatterRegression } from "./helpers";
 import { UploadStep } from "./steps";
 import { PlotStep } from "./plot-area";

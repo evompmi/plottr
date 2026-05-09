@@ -3,10 +3,13 @@
 // so PerXDetail and PerXStatsPanel can share them.
 
 import { formatX, EnrichedPerXRow, SelectTestResult } from "./helpers";
-import { TestResult } from "../_shell/stats-dispatch";
-import { STATS_TEST_REGISTRY, STATS_POSTHOC_REGISTRY } from "../_shell/stats-registry";
-import { buildRScript, sanitizeRComment } from "../_shell/r-export";
-
+import {
+  STATS_POSTHOC_REGISTRY,
+  STATS_TEST_REGISTRY,
+  TestResult,
+  buildRScript,
+  sanitizeRComment,
+} from "../_shell";
 //
 // One compact summary table: one row per eligible x. Click a row to expand
 // the decision trace + post-hoc inline. Aggregate TXT / R downloads at the

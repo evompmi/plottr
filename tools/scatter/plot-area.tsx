@@ -5,14 +5,17 @@ import { ScatterChart } from "./chart";
 import { PaletteStrip, ShapePreview } from "./shapes";
 import { AesBox, ControlSection } from "./steps";
 import { fmtTick, SHAPES, PlotStepProps, RefLine } from "./helpers";
-import { PlotSidebar } from "../_shell/PlotSidebar";
-import { DownloadTiles } from "../_shell/DownloadTiles";
-import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
-import { applyDiscretePalette } from "../_shell/discrete-palette";
-import { ColorInput } from "../_shell/color-input";
-import { BaseStyleControls } from "../_shell/long-format";
-import { NumberInput, SliderControl, scrollDisclosureIntoView } from "../_shell/ui";
-
+import {
+  BaseStyleControls,
+  ColorInput,
+  DiscretePaletteRow,
+  DownloadTiles,
+  NumberInput,
+  PlotSidebar,
+  SliderControl,
+  applyDiscretePalette,
+  scrollDisclosureIntoView,
+} from "../_shell";
 const { useState, useRef, useEffect } = React;
 
 export function PlotStep({

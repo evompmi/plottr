@@ -20,10 +20,7 @@
 // banner, etc.) come from the tools/_shell/ + shared.bundle.js pair every
 // other tool uses.
 
-import { usePlotToolState } from "../_shell/usePlotToolState";
-import { PlotToolShell } from "../_shell/PlotToolShell";
-import { HowTo } from "../_shell/HowTo";
-import { UploadPanel } from "../_shell/ui";
+import { HowTo, PlotToolShell, UploadPanel, usePlotToolState } from "../_shell";
 import { VOLCANO_HOWTO } from "./howto";
 import {
   VOLCANO_DEFAULT_COLORS,

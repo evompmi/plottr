@@ -9,15 +9,15 @@
 // Mirrors tools/boxplot/reports.ts.
 
 import { EnrichedAequorinStatsRow, SelectTestResult } from "./helpers";
-import type { TestResult } from "../_shell/stats-dispatch";
 import {
-  STATS_TEST_REGISTRY,
   STATS_POSTHOC_REGISTRY,
-  STATS_TESTS_FOR_K2,
   STATS_TESTS_FOR_K,
-} from "../_shell/stats-registry";
-import { buildRScript, sanitizeRComment } from "../_shell/r-export";
-
+  STATS_TESTS_FOR_K2,
+  STATS_TEST_REGISTRY,
+  buildRScript,
+  sanitizeRComment,
+} from "../_shell";
+import type { TestResult } from "../_shell";
 // Test/post-hoc labels + group-arity option lists derived from the
 // shared registry (`tools/shared-stats-registry.js`). Pre-registry these
 // were a verbatim copy of `STATS_LABELS` / `POSTHOC_LABELS` from

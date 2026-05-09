@@ -3,12 +3,14 @@
 // rename / size readout), and the Display tile (proportional toggle, blend
 // slider, opacity / outline / font / background).
 
-import { PlotSidebar } from "../_shell/PlotSidebar";
-import { DownloadTiles } from "../_shell/DownloadTiles";
-import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
-import { applyDiscretePalette } from "../_shell/discrete-palette";
-import { ColorInput } from "../_shell/color-input";
-import { SliderControl } from "../_shell/ui";
+import {
+  ColorInput,
+  DiscretePaletteRow,
+  DownloadTiles,
+  PlotSidebar,
+  SliderControl,
+  applyDiscretePalette,
+} from "../_shell";
 import { regionLabel, regionFilenamePart } from "./helpers";
 import type { PlotControlsProps, Region, VennVis } from "./helpers";
 

@@ -1,5 +1,4 @@
-import type { HowToContent } from "../_shell/HowTo";
-
+import type { HowToContent } from "../_shell";
 export const LINEPLOT_HOWTO: HowToContent = {
   toolName: "lineplot",
   title: "Line Plot — How to use",

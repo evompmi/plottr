@@ -3,9 +3,7 @@
 // wiring — chart rendering, step panels, sidebar controls, and plot-area
 // composition live in sibling modules under tools/venn/.
 
-import { usePlotToolState } from "../_shell/usePlotToolState";
-import { PlotToolShell } from "../_shell/PlotToolShell";
-import { applyDiscretePalette } from "../_shell/discrete-palette";
+import { PlotToolShell, applyDiscretePalette, usePlotToolState } from "../_shell";
 import { computeIntersections, detectLongFormat, VIS_INIT_VENN } from "./helpers";
 import type { SetColorsUpdater } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";

@@ -3,10 +3,16 @@
 // labels and the text/R script builders from reports.ts; uses the shared
 // stats-dispatch helpers for runtime overrides.
 
-import { runTest, runPostHoc, postHocForTest, TestResult } from "../_shell/stats-dispatch";
-import { STATS_TESTS_FOR_K2, STATS_TESTS_FOR_K } from "../_shell/stats-registry";
-import { buildRScript } from "../_shell/r-export";
-import { computePowerFromData } from "../_shell/stats-tile";
+import {
+  STATS_TESTS_FOR_K,
+  STATS_TESTS_FOR_K2,
+  TestResult,
+  buildRScript,
+  computePowerFromData,
+  postHocForTest,
+  runPostHoc,
+  runTest,
+} from "../_shell";
 import {
   formatX,
   EnrichedPerXRow,

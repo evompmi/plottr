@@ -1,5 +1,4 @@
-import type { HowToContent } from "../_shell/HowTo";
-
+import type { HowToContent } from "../_shell";
 export const AEQUORIN_HOWTO: HowToContent = {
   toolName: "aequorin",
   title: "RLU timecourse — How to use",

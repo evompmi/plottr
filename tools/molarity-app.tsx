@@ -1,8 +1,7 @@
 // molarity.jsx — editable source. Run `npm run build` to compile to molarity.js
 // Do NOT edit the .js file directly.
 
-import { PageHeader } from "./_shell/ui";
-
+import { PageHeader } from "./_shell";
 const { useState, useMemo, useCallback, useEffect } = React;
 
 function useIsMobile(breakpoint = 600) {

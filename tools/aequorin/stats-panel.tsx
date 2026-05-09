@@ -22,9 +22,14 @@ import {
   buildAqAggregateReport,
   buildAqAggregateRScript,
 } from "./reports";
-import { runTest, runPostHoc, postHocForTest, TestResult } from "../_shell/stats-dispatch";
-import { buildRScript } from "../_shell/r-export";
-import { computePowerFromData } from "../_shell/stats-tile";
+import {
+  TestResult,
+  buildRScript,
+  computePowerFromData,
+  postHocForTest,
+  runPostHoc,
+  runTest,
+} from "../_shell";
 import {
   AequorinStatsDetailProps,
   AequorinStatsPanelProps,

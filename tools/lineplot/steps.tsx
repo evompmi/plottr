@@ -3,9 +3,7 @@
 // and the LpAesBox themed wrapper used in the configure-step grid.
 
 import type { UploadStepProps, ConfigureStepProps } from "./helpers";
-import { HowTo } from "../_shell/HowTo";
-import { DataPreview } from "../_shell/core";
-import { UploadPanel, scrollDisclosureIntoView } from "../_shell/ui";
+import { DataPreview, HowTo, UploadPanel, scrollDisclosureIntoView } from "../_shell";
 import { LINEPLOT_HOWTO } from "./howto";
 
 const { useState, useRef, useEffect } = React;

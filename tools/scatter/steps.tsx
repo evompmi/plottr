@@ -2,8 +2,7 @@
 // small ControlSection disclosure helper. AesBox + the aesTheme palette
 // are re-exported because the Plot step and its sidebar both want them.
 
-import { HowTo } from "../_shell/HowTo";
-import { UploadPanel, scrollDisclosureIntoView } from "../_shell/ui";
+import { HowTo, UploadPanel, scrollDisclosureIntoView } from "../_shell";
 import { SCATTER_HOWTO } from "./howto";
 
 export const aesTheme = {

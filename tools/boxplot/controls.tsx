@@ -4,12 +4,17 @@
 // SliderControl, ColorInput, BaseStyleControls, GroupColorEditor, PALETTE,
 // scrollDisclosureIntoView) resolves through shared.bundle.js.
 
-import { PlotSidebar } from "../_shell/PlotSidebar";
-import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
-import { applyDiscretePalette } from "../_shell/discrete-palette";
-import { ColorInput } from "../_shell/color-input";
-import { GroupColorEditor, BaseStyleControls } from "../_shell/long-format";
-import { SliderControl, ActionsPanel, scrollDisclosureIntoView } from "../_shell/ui";
+import {
+  ActionsPanel,
+  BaseStyleControls,
+  ColorInput,
+  DiscretePaletteRow,
+  GroupColorEditor,
+  PlotSidebar,
+  SliderControl,
+  applyDiscretePalette,
+  scrollDisclosureIntoView,
+} from "../_shell";
 import type { BoxplotGroup, BoxplotVis, PlotControlsProps } from "./helpers";
 
 export function ControlSection({

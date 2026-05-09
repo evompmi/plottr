@@ -6,13 +6,11 @@
 //
 import type { PlotToolState } from "./usePlotToolState";
 import { PrefsPanel } from "./PrefsPanel";
-import {
-  PageHeader,
-  StepNavBar,
-  CommaFixBanner,
-  FormulaInjectionBanner,
-  ParseErrorBanner,
-} from "./ui";
+import { PageHeader } from "./PageHeader";
+import { StepNavBar } from "./StepNavBar";
+import { CommaFixBanner } from "./CommaFixBanner";
+import { FormulaInjectionBanner } from "./FormulaInjectionBanner";
+import { ParseErrorBanner } from "./ParseErrorBanner";
 
 const { useEffect, useRef, useState } = React;
 

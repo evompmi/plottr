@@ -5,9 +5,13 @@
 // imported from ./chart so the sidebar's palette picker and the
 // heatmap's colourbar stay visually in sync.
 
-import { PlotSidebar } from "../_shell/PlotSidebar";
-import { ColorInput } from "../_shell/color-input";
-import { NumberInput, ActionsPanel, scrollDisclosureIntoView } from "../_shell/ui";
+import {
+  ActionsPanel,
+  ColorInput,
+  NumberInput,
+  PlotSidebar,
+  scrollDisclosureIntoView,
+} from "../_shell";
 import { PaletteStrip } from "./chart";
 import { buildHeatmapRScript, buildCsvExport } from "./reports";
 import type {

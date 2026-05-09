@@ -3,11 +3,8 @@
 // lineplot-loader.js loads this file directly). Keep render-layer code and
 // UI-specific components out — they belong in tools/lineplot.tsx.
 
-import { runTest, TestResult } from "../_shell/stats-dispatch";
-import { CHART_MARGIN, buildLineD } from "../_shell/chart-layout";
-import type { LegendBlock } from "../_shell/svg-legend";
-import type { PowerFromDataResult } from "../_shell/stats-tile";
-
+import { CHART_MARGIN, TestResult, buildLineD, runTest } from "../_shell";
+import type { LegendBlock, PowerFromDataResult } from "../_shell";
 // ── Constants ──────────────────────────────────────────────────────────────
 // `MARGIN` used to live here as a byte-identical twin of aequorin's. Lifted
 // into `_shell/chart-layout.ts` (audit M7); re-export here so the existing

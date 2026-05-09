@@ -9,8 +9,7 @@
 // computeViewBox; chart.tsx still pulls STATS_LINE_H + STATS_FONT for its
 // internal SVG text rendering.
 import { STATS_LINE_H, STATS_FONT, ChartProps, BoxplotGroup, Subgroup } from "./helpers";
-import { SignificanceBrackets, CldLabels } from "../_shell/chart-annotations";
-import { renderSvgLegend } from "../_shell/svg-legend";
+import { CldLabels, SignificanceBrackets, renderSvgLegend } from "../_shell";
 import {
   computeAnnotationPadding,
   computeBandSizing,

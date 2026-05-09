@@ -2,13 +2,16 @@
 // download, stats CSV, Start over) and the ControlSection-grouped tiles for
 // labels, axis bounds, error-bar style, and per-group colour overrides.
 
-import { PlotSidebar } from "../_shell/PlotSidebar";
-import { DownloadTiles } from "../_shell/DownloadTiles";
-import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
-import { applyDiscretePalette } from "../_shell/discrete-palette";
-import { ColorInput } from "../_shell/color-input";
-import { BaseStyleControls } from "../_shell/long-format";
-import { NumberInput, SliderControl } from "../_shell/ui";
+import {
+  BaseStyleControls,
+  ColorInput,
+  DiscretePaletteRow,
+  DownloadTiles,
+  NumberInput,
+  PlotSidebar,
+  SliderControl,
+  applyDiscretePalette,
+} from "../_shell";
 import { ERROR_KINDS, formatX, round2 } from "./helpers";
 import type { PerXRow, PlotControlsProps, Series } from "./helpers";
 import { ControlSection } from "./steps";

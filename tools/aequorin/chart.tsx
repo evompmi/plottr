@@ -15,10 +15,14 @@ import {
   RepSum,
   SeriesRow,
 } from "./helpers";
-import { SignificanceBrackets, CldLabels } from "../_shell/chart-annotations";
-import { computeLegendHeight, renderSvgLegend, type LegendBlock } from "../_shell/svg-legend";
-import { assignBracketLevels } from "../_shell/stats-tile";
-
+import {
+  CldLabels,
+  SignificanceBrackets,
+  assignBracketLevels,
+  computeLegendHeight,
+  renderSvgLegend,
+} from "../_shell";
+import type { LegendBlock } from "../_shell";
 const { forwardRef, useRef, useEffect, memo } = React;
 
 // ── Chart ────────────────────────────────────────────────────────────────────

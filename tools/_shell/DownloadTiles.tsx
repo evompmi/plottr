@@ -24,7 +24,7 @@
 // ActionsPanel takes; passed through unchanged so tool-specific CSV /
 // stats / R-script chips compose with the standard SVG/PNG pair.
 
-import { ActionsPanel, type ActionsPanelDownload } from "./ui";
+import { ActionsPanel, type ActionsPanelDownload } from "./ActionsPanel";
 
 interface DownloadTilesProps {
   chartRef: React.RefObject<SVGSVGElement | null>;

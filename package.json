@@ -1,6 +1,7 @@
 {
   "name": "plottr",
   "private": true,
+  "sideEffects": false,
   "license": "MIT",
   "scripts": {
     "prebuild": "node scripts/write-version.js && node scripts/build-shared.js && node scripts/vendor-sri.js",
