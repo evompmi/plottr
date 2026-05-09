@@ -11,6 +11,7 @@ import { Chart, InsetBarplot, FacetChartItem } from "./chart";
 import { AequorinStatsPanel } from "./stats-panel";
 import { AQ_ERROR_BAR_LABELS } from "./reports";
 import { setHandoff, navigateToTool } from "../_shell/handoff";
+import { ColorInput } from "../_shell/color-input";
 import {
   convertTime,
   smooth,

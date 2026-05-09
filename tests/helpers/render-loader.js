@@ -100,6 +100,21 @@ function ensureSharedBundleLoaded() {
   // Each entry: source path → list of exports to lift onto globalThis.
   const SHELL_GLOBALS = [
     { src: path.join(toolsDir, "_shell/core.tsx"), names: ["DataPreview", "ErrorBoundary"] },
+    {
+      src: path.join(toolsDir, "_shell/color-input.tsx"),
+      names: ["ColorInput", "normalizeHexColor"],
+    },
+    {
+      src: path.join(toolsDir, "_shell/long-format.tsx"),
+      names: [
+        "ColumnRoleEditor",
+        "FilterCheckboxPanel",
+        "RenameReorderPanel",
+        "StatsTable",
+        "GroupColorEditor",
+        "BaseStyleControls",
+      ],
+    },
   ];
   for (const { src, names } of SHELL_GLOBALS) {
     const built = esbuild.buildSync({

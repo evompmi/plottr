@@ -274,7 +274,6 @@ declare global {
   // Implementations live in `tools/shared-*.js` (plain JS, concatenated into
   // shared.bundle.js — see CLAUDE.md). Prop types are tightened here for
   // .tsx call sites; runtime is unaffected.
-  const ColorInput: FC<{ value: string; onChange: (hex: string) => void; size?: number }>;
   const FileDropZone: FC<{
     onFileLoad: (text: string, fileName: string) => void;
     accept?: string;
@@ -349,70 +348,6 @@ declare global {
     unique: string[];
     included: Set<string>;
   }
-  interface ColumnRoleEditorProps {
-    headers: string[];
-    rows: string[][];
-    colRoles: ColumnRole[];
-    colNames: string[];
-    onRoleChange: (i: number, role: ColumnRole) => void;
-    onNameChange: (i: number, name: string) => void;
-  }
-  const ColumnRoleEditor: FC<ColumnRoleEditorProps>;
-
-  interface FilterCheckboxPanelProps {
-    headers: string[];
-    colNames: string[];
-    colRoles: ColumnRole[];
-    filters: Record<number, FilterEntry>;
-    filteredCount: number;
-    totalCount: number;
-    onToggle: (i: number, value: string) => void;
-    onToggleAll: (i: number, allOn: boolean) => void;
-  }
-  const FilterCheckboxPanel: FC<FilterCheckboxPanelProps>;
-
-  interface RenameReorderPanelProps {
-    headers: string[];
-    colNames: string[];
-    colRoles: ColumnRole[];
-    filters: Record<number, FilterEntry>;
-    valueRenames: Record<number, Record<string, string>>;
-    orderableCols?: Record<number, { order: string[]; onReorder: (newOrder: string[]) => void }>;
-    applyRename: (i: number, value: string) => string;
-    onRenameVal: (i: number, origValue: string, newValue: string) => void;
-    dragState: { col: number; idx: number } | null;
-    onDragStart: (state: { col: number; idx: number }) => void;
-    onDragEnd: () => void;
-  }
-  const RenameReorderPanel: FC<RenameReorderPanelProps>;
-  const StatsTable: FC<{
-    stats: GroupStats[] | null | undefined;
-    groupLabel: string;
-  }>;
-  // Group color editor — one row per group with a colour swatch, a name input
-  // (commits via `onNameChange`), and an optional toggle checkbox. `g.stats`
-  // is shown as `n=…` when present.
-  interface GroupColorEditorGroup {
-    name: string;
-    color: string;
-    displayName?: string;
-    enabled?: boolean;
-    stats?: { n: number } | null;
-  }
-  const GroupColorEditor: FC<{
-    groups: GroupColorEditorGroup[];
-    onColorChange: (i: number, color: string) => void;
-    onNameChange?: (i: number, name: string) => void;
-    onToggle?: (i: number) => void;
-  }>;
-  const BaseStyleControls: FC<{
-    plotBg: string;
-    onPlotBgChange: (hex: string) => void;
-    showGrid: boolean;
-    onShowGridChange: (v: boolean) => void;
-    gridColor: string;
-    onGridColorChange: (hex: string) => void;
-  }>;
   // StatsTile — assumption checks + test selection + post-hocs + annotation
   // emission. `groups` is the list of {name, values}; `onAnnotationsChange`
   // receives a brackets/CLD spec the parent chart renders. `compact` shrinks

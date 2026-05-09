@@ -68,9 +68,9 @@ const sharedGlobals = {
   powerCorrelation: "readonly",
   powerChi2: "readonly",
   fFromGroupMeans: "readonly",
-  // shared-color-input.js
-  normalizeHexColor: "readonly",
-  ColorInput: "readonly",
+  // shared-*.js residual globals (post-2026-05 _shell migration; the
+  // shared-color-input + shared-long-format families moved to typed
+  // modules in tools/_shell/).
   FileDropZone: "readonly",
   NumberInput: "readonly",
   SliderControl: "readonly",
@@ -82,12 +82,6 @@ const sharedGlobals = {
   ActionsPanel: "readonly",
   scrollIntoViewWithinAncestor: "readonly",
   scrollDisclosureIntoView: "readonly",
-  ColumnRoleEditor: "readonly",
-  FilterCheckboxPanel: "readonly",
-  RenameReorderPanel: "readonly",
-  StatsTable: "readonly",
-  GroupColorEditor: "readonly",
-  BaseStyleControls: "readonly",
   // stats-*.js (carved from the original stats.js)
   normcdf: "readonly",
   normsf: "readonly",

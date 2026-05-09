@@ -9,6 +9,8 @@
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
 import { resolveDiscretePalette } from "../_shell/discrete-palette";
+import { ColorInput } from "../_shell/color-input";
+import { BaseStyleControls } from "../_shell/long-format";
 import { TIME_UNITS, convertTime } from "./helpers";
 import type { Condition, PlotControlsProps } from "./helpers";
 import { ConditionEditor } from "./plot-area";

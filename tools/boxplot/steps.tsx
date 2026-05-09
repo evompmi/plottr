@@ -13,6 +13,7 @@ import type {
 } from "./helpers";
 import { HowTo } from "../_shell/HowTo";
 import { DataPreview } from "../_shell/core";
+import { FilterCheckboxPanel, RenameReorderPanel, StatsTable } from "../_shell/long-format";
 import { BOXPLOT_HOWTO } from "./howto";
 
 // Role-colour themes for the Configure-step AesBox cards. Reuses scatter's

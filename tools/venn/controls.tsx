@@ -7,6 +7,7 @@ import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DownloadTiles } from "../_shell/DownloadTiles";
 import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
 import { applyDiscretePalette } from "../_shell/discrete-palette";
+import { ColorInput } from "../_shell/color-input";
 import { regionLabel, regionFilenamePart } from "./helpers";
 import type { PlotControlsProps, Region, VennVis } from "./helpers";
 
