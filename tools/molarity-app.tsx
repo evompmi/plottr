@@ -369,7 +369,7 @@ function MolarityMode({ compact }: { compact?: boolean }) {
               style={{
                 background: "var(--success-bg)",
                 borderRadius: 8,
-                border: "1px solid #86efac",
+                border: "1px solid var(--success-border)",
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
@@ -600,7 +600,7 @@ function DilutionMode({ compact }: { compact?: boolean }) {
               style={{
                 background: "var(--success-bg)",
                 borderRadius: 8,
-                border: "1px solid #86efac",
+                border: "1px solid var(--success-border)",
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
@@ -899,7 +899,7 @@ function BatchMode() {
               </thead>
               <tbody>
                 {results.map((r, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
+                  <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
                     <td style={{ padding: "6px 10px", fontWeight: 600, color: "var(--text)" }}>
                       {r.name}
                     </td>

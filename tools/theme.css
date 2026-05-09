@@ -119,6 +119,18 @@
   --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.12);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.18);
 
+  /* Per-button hover-lift shadows. Each light-mode value tints the drop
+     shadow with the button's accent hue (teal for plot CTA, neutral
+     black for secondary, success-green for download, danger-red for
+     destructive); dark mode flips to black-tinted with deeper alpha,
+     matching the --cta-primary-shadow / --accent-warning-shadow
+     pattern (accent-tinted in light → neutral-deep in dark, since
+     bright accents glow on dark surfaces). */
+  --btn-plot-hover-shadow: 0 4px 12px -2px rgba(46, 196, 182, 0.5);
+  --btn-secondary-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.18);
+  --btn-dl-hover-shadow: 0 3px 10px -3px rgba(63, 107, 42, 0.4);
+  --btn-danger-hover-shadow: 0 3px 10px -3px rgba(220, 38, 38, 0.4);
+
   /* Focused-input glow — used by hand-built inputs that don't get
      `dv-input`'s default `:focus-visible` outline (e.g. venn's per-set
      rename field uses an inline boxShadow on focus). Mirrors the
@@ -215,6 +227,15 @@
   --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+  /* Hover-lift shadows flip to black-tinted in dark mode so the accent
+     glow doesn't punch against the dark surface (mirrors how
+     --cta-primary-shadow drops its slate tint for black). Alpha sits
+     at 0.45–0.5 to match the dark --shadow-* tier. */
+  --btn-plot-hover-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+  --btn-secondary-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.45);
+  --btn-dl-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.45);
+  --btn-danger-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.45);
 
   /* Focus-ring glow — same accent tint, slightly higher alpha so it
      reads against the dark surface. */
@@ -313,6 +334,10 @@
     --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --btn-plot-hover-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+    --btn-secondary-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.45);
+    --btn-dl-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.45);
+    --btn-danger-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.45);
     --focus-ring: 0 0 0 2px rgba(100, 143, 255, 0.35);
 
     --step-active-bg: #1e293b;

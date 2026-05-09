@@ -268,7 +268,7 @@ export function PlotStep({
                     padding: "6px 8px",
                     background: "var(--surface-subtle)",
                     borderRadius: 4,
-                    border: "1px solid #eee",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   <div>
@@ -824,7 +824,7 @@ export function PlotStep({
                     padding: "6px 10px",
                     borderRadius: 6,
                     background: "var(--danger-bg)",
-                    border: "1px solid #fca5a5",
+                    border: "1px solid var(--danger-border)",
                     marginBottom: 6,
                   }}
                 >
@@ -1026,7 +1026,7 @@ export function PlotStep({
                             padding: "1px 6px",
                             borderRadius: 4,
                             cursor: "pointer",
-                            border: "1px solid #ccc",
+                            border: "1px solid var(--border-strong)",
                             background: "var(--surface-sunken)",
                             color: "var(--text-muted)",
                             fontFamily: "inherit",

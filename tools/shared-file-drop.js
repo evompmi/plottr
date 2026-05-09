@@ -94,7 +94,7 @@ function FileDropZone({
           background: drag
             ? "var(--accent-primary-weak)"
             : sizeError
-              ? "rgba(239,68,68,0.04)"
+              ? "var(--danger-bg)"
               : "transparent",
           transition: "all .2s",
           outline: focus ? "2px solid var(--accent-primary)" : "none",
