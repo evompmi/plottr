@@ -72,7 +72,6 @@ const sharedGlobals = {
   normalizeHexColor: "readonly",
   ColorInput: "readonly",
   FileDropZone: "readonly",
-  DataPreview: "readonly",
   NumberInput: "readonly",
   SliderControl: "readonly",
   StepNavBar: "readonly",
@@ -89,7 +88,6 @@ const sharedGlobals = {
   StatsTable: "readonly",
   GroupColorEditor: "readonly",
   BaseStyleControls: "readonly",
-  ErrorBoundary: "readonly",
   // stats-*.js (carved from the original stats.js)
   normcdf: "readonly",
   normsf: "readonly",

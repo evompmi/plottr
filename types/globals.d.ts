@@ -280,11 +280,6 @@ declare global {
     accept?: string;
     hint?: string;
   }>;
-  const DataPreview: FC<{
-    headers: string[];
-    rows: Array<Array<string | number | null>>;
-    maxRows?: number;
-  }>;
   // NumberInput mirrors `<input type="number">`: onChange fires with
   // `{ target: { value: string } }` so `(e) => setX(e.target.value)`
   // handlers keep working unchanged.
@@ -418,7 +413,6 @@ declare global {
     gridColor: string;
     onGridColorChange: (hex: string) => void;
   }>;
-  const ErrorBoundary: FC<{ toolName?: string; children?: ReactNode }>;
   // StatsTile — assumption checks + test selection + post-hocs + annotation
   // emission. `groups` is the list of {name, values}; `onAnnotationsChange`
   // receives a brackets/CLD spec the parent chart renders. `compact` shrinks

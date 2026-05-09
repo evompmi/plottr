@@ -2,6 +2,7 @@
 // ConfigureStep (rename / colour / include + degree window), and
 // ItemListPanel (the per-intersection items table + CSV download).
 
+import { DataPreview } from "../_shell/core";
 import {
   intersectionLabel,
   intersectionFilenamePart,

@@ -41,7 +41,6 @@ const FILES = [
   "shared-stats-registry.js",
   "shared-color-input.js",
   "shared-file-drop.js",
-  "shared-core.js",
   "shared-ui.js",
   "shared-long-format.js",
   "shared-r-export.js",

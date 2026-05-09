@@ -68,7 +68,7 @@ Source files live side-by-side in `tools/` and stay the editable units:
   - `tools/shared-file-drop.js` — `FileDropZone`
   - (`tools/shared-svg-legend.js` retired 2026-05; `computeLegendHeight` + `renderSvgLegend` live in `tools/_shell/svg-legend.ts`)
   - (`tools/shared-discrete-palette.js` retired 2026-05; the catalogue + helpers live in `tools/_shell/discrete-palette.ts` and the dropdown component in `tools/_shell/DiscretePaletteRow.tsx`)
-  - `tools/shared-core.js` — `DataPreview`, `ErrorBoundary`
+  - (`tools/shared-core.js` retired 2026-05; `DataPreview` + `ErrorBoundary` live in `tools/_shell/core.tsx`)
   - `tools/shared-ui.js` — `SliderControl`, `StepNavBar`, `CommaFixBanner`, `ParseErrorBanner`, `PageHeader`, `UploadPanel`, `ActionsPanel` (depends on `shared-file-drop.js`)
   - `tools/shared-long-format.js` — `ColumnRoleEditor`, `FilterCheckboxPanel`, `RenameReorderPanel`, `StatsTable`, `GroupColorEditor`, `BaseStyleControls` (depends on `shared-color-input.js`)
   - `tools/shared-r-export.js` — R reproducibility-script builders used by the download tiles in each plot tool
