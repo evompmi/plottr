@@ -5,10 +5,16 @@
 
 import { VennChart } from "./chart";
 import { regionLabel, regionFilenamePart } from "./helpers";
+import type { IntersectionTableProps, ItemListPanelProps, PlotAreaProps, Region } from "./helpers";
 
 const { useState } = React;
 
-export function IntersectionTable({ intersections, allSetNames, selectedMask, onSelect }: any) {
+export function IntersectionTable({
+  intersections,
+  allSetNames,
+  selectedMask,
+  onSelect,
+}: IntersectionTableProps) {
   const [hoveredMask, setHoveredMask] = useState<number | null>(null);
   return (
     <div style={{ overflowX: "auto" }}>
@@ -48,7 +54,7 @@ export function IntersectionTable({ intersections, allSetNames, selectedMask, on
           </tr>
         </thead>
         <tbody>
-          {intersections.map((inter: any) => (
+          {intersections.map((inter: Region) => (
             <tr
               key={inter.mask}
               onClick={() => onSelect(inter.mask)}
@@ -91,7 +97,7 @@ export function IntersectionTable({ intersections, allSetNames, selectedMask, on
   );
 }
 
-export function ItemListPanel({ intersection, allSetNames, fileName }: any) {
+export function ItemListPanel({ intersection, allSetNames, fileName }: ItemListPanelProps) {
   const baseName = fileBaseName(fileName, "venn");
   if (!intersection)
     return (
@@ -245,7 +251,7 @@ export function PlotArea({
   setLayoutInfo,
   selectedIntersection,
   fileName,
-}: any) {
+}: PlotAreaProps) {
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
       <div

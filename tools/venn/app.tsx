@@ -6,6 +6,7 @@
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
 import { computeIntersections, detectLongFormat, VIS_INIT_VENN } from "./helpers";
+import type { SetColorsUpdater } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
 import { PlotControls } from "./controls";
 import { PlotArea } from "./plot-area";
@@ -66,7 +67,7 @@ export function App() {
   // and round-trip through PrefsPanel save / load.
   const setColors: Record<string, string> = useMemo(() => vis.setColors || {}, [vis.setColors]);
   const setSetColors = useCallback(
-    (updater: any) =>
+    (updater: SetColorsUpdater) =>
       updVis({
         setColors: typeof updater === "function" ? updater(vis.setColors || {}) : updater || {},
       }),
@@ -83,7 +84,7 @@ export function App() {
 
   const [proportional, setProportional] = useState(false);
 
-  const chartRef = useRef<SVGSVGElement | null>(null);
+  const chartRef = useRef<SVGSVGElement>(null);
   const [layoutInfo, setLayoutInfo] = useState({
     warnings: [] as string[],
     proportional: true,

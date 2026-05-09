@@ -12,13 +12,14 @@ import {
   computeRegionCentroids,
   VENN_CONFIG,
 } from "./helpers";
+import type { Region, VennChartProps } from "./helpers";
 
 const { useMemo, useEffect, forwardRef } = React;
 
 const VW = 600,
   VH = 500;
 
-export const VennChart = forwardRef<SVGSVGElement, any>(function VennChart(
+export const VennChart = forwardRef<SVGSVGElement, VennChartProps>(function VennChart(
   {
     setNames,
     sets,
@@ -113,7 +114,7 @@ export const VennChart = forwardRef<SVGSVGElement, any>(function VennChart(
             stroke={outlineOn ? colors[setNames[i]] || PALETTE[i] : "none"}
             strokeWidth={outlineOn ? 2 : 0}
             strokeOpacity={outlineOn ? 0.6 : 0}
-            aria-label={`Set ${setNames[i]}: ${sets[setNames[i]] || 0} elements`}
+            aria-label={`Set ${setNames[i]}: ${sets.get(setNames[i])?.size ?? 0} elements`}
           />
         ))}
       </g>
@@ -132,7 +133,7 @@ export const VennChart = forwardRef<SVGSVGElement, any>(function VennChart(
       )}
 
       <g id="region-counts">
-        {intersections.map((inter: any) => {
+        {intersections.map((inter: Region) => {
           const c = centroids[inter.mask];
           if (!c) return null;
           const isSelected = selectedMask === inter.mask;
@@ -197,7 +198,7 @@ export const VennChart = forwardRef<SVGSVGElement, any>(function VennChart(
               fill={colors[setNames[i]] || PALETTE[i]}
               fontFamily="sans-serif"
             >
-              {setNames[i]} ({sets.get(setNames[i]).size})
+              {setNames[i]} ({sets.get(setNames[i])?.size ?? 0})
             </text>
           </g>
         ))}
