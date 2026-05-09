@@ -5,6 +5,8 @@
 // scrollDisclosureIntoView) resolves through shared.bundle.js.
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
+import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
+import { applyDiscretePalette } from "../_shell/discrete-palette";
 import type { BoxplotGroup, BoxplotVis, PlotControlsProps } from "./helpers";
 
 export function ControlSection({

@@ -67,6 +67,7 @@ Source files live side-by-side in `tools/` and stay the editable units:
   - `tools/shared-color-input.js` — `normalizeHexColor`, `ColorInput`
   - `tools/shared-file-drop.js` — `FileDropZone`
   - `tools/shared-svg-legend.js` — `computeLegendHeight`, `renderSvgLegend`
+  - (`tools/shared-discrete-palette.js` retired 2026-05; the catalogue + helpers live in `tools/_shell/discrete-palette.ts` and the dropdown component in `tools/_shell/DiscretePaletteRow.tsx`)
   - `tools/shared-core.js` — `DataPreview`, `ErrorBoundary`
   - `tools/shared-ui.js` — `SliderControl`, `StepNavBar`, `CommaFixBanner`, `ParseErrorBanner`, `PageHeader`, `UploadPanel`, `ActionsPanel` (depends on `shared-file-drop.js`)
   - `tools/shared-long-format.js` — `ColumnRoleEditor`, `FilterCheckboxPanel`, `RenameReorderPanel`, `StatsTable`, `GroupColorEditor`, `BaseStyleControls` (depends on `shared-color-input.js`)

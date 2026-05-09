@@ -40,7 +40,6 @@ const FILES = [
   // downstream — must load after the stats-*.js files, before those two.
   "shared-stats-registry.js",
   "shared-color-input.js",
-  "shared-discrete-palette.js",
   "shared-file-drop.js",
   "shared-svg-legend.js",
   "shared-core.js",

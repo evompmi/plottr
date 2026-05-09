@@ -6,6 +6,7 @@
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
 import { consumeHandoff } from "../_shell/handoff";
+import { resolveDiscretePalette } from "../_shell/discrete-palette";
 import {
   ERROR_BAR_LABELS,
   mergeSubgroupAnnotations,

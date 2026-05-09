@@ -5,6 +5,7 @@
 
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
+import { resolveDiscretePalette } from "../_shell/discrete-palette";
 import { computeSeries, computePerXStats, round2, ErrorKind, LineplotVis } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
 import { PlotStep } from "./plot-area";

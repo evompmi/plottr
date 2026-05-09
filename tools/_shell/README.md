@@ -80,6 +80,8 @@ Files (current contents):
 | `prefs-store.ts`         | Pure data layer for per-tool plot-render-settings persistence (load/save/import/export/migrate/merge).     |
 | `PrefsPanel.tsx`         | Gear-menu UI on top of `prefs-store`; rendered in PageHeader's right slot via `PlotToolShell`.             |
 | `handoff.ts`             | One-shot localStorage-backed inter-tool data hand-off (`setHandoff`, `consumeHandoff`, `navigateToTool`).  |
+| `discrete-palette.ts`    | Discrete palette catalogue + `resolveDiscretePalette` / `applyDiscretePalette` / hue + viridis builders.   |
+| `DiscretePaletteRow.tsx` | Dropdown + swatch-strip preview component for picking a discrete palette in tool sidebars.                 |
 | `chart-layout.ts`        | `CHART_MARGIN` and `buildLineD` — used by `lineplot/` + `aequorin/` (see `helpers.ts` re-exports).         |
 | `stats-dispatch.ts`      | `runTest` / `runPostHoc` / `postHocForTest` — shared by boxplot / lineplot / aequorin.                     |
 | `chart-annotations.tsx`  | `SignificanceBrackets`, `CldLabels` — shared annotation renderers.                                         |
