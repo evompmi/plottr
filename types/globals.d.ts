@@ -24,6 +24,8 @@ declare global {
     export type MouseEvent<T = Element> = ReactNs.MouseEvent<T>;
     export type KeyboardEvent<T = Element> = ReactNs.KeyboardEvent<T>;
     export type FormEvent<T = Element> = ReactNs.FormEvent<T>;
+    export type PointerEvent<T = Element> = ReactNs.PointerEvent<T>;
+    export type WheelEvent<T = Element> = ReactNs.WheelEvent<T>;
   }
   const ReactDOM: typeof import("react-dom/client");
 

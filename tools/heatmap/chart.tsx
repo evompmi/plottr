@@ -14,13 +14,17 @@ import {
   buildDendroLayout,
   CLUSTER_PALETTE,
   fmtColorbarTick,
+  HeatmapChartProps,
+  PaletteStripProps,
+  type DendroLayoutNode,
+  type DendroLayoutSegment,
 } from "./helpers";
 
 const { useState, useMemo, useCallback, useRef, forwardRef } = React;
 
 // ── Palette strip (same shape as scatter.tsx's local helper) ─────────────────
 
-export function PaletteStrip({ palette, invert = false, height = 12 }: any) {
+export function PaletteStrip({ palette, invert = false, height = 12 }: PaletteStripProps) {
   const base = COLOR_PALETTES[palette] || COLOR_PALETTES.viridis;
   const stops = invert ? [...base].reverse() : base;
   const n = 48;
@@ -48,7 +52,7 @@ export function PaletteStrip({ palette, invert = false, height = 12 }: any) {
 
 // ── Heatmap chart ────────────────────────────────────────────────────────────
 
-export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart(
+export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(function HeatmapChart(
   {
     rowLabels,
     colLabels,
@@ -142,8 +146,8 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   const stops = invertPalette ? [...paletteBase].reverse() : paletteBase;
 
   // Longest label lengths drive the margin sizes. Labels render at 10 px.
-  const longestRowLabel = Math.max(0, ...rowLabels.map((l: any) => (l || "").length));
-  const longestColLabel = Math.max(0, ...colLabels.map((l: any) => (l || "").length));
+  const longestRowLabel = Math.max(0, ...rowLabels.map((l) => (l || "").length));
+  const longestColLabel = Math.max(0, ...colLabels.map((l) => (l || "").length));
 
   // Cell size: cap the per-cell pixels (28 px max), allow shrinking down to a
   // 2 px floor so very tall / wide matrices (hundreds of rows or cols) render
@@ -269,22 +273,22 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   // Cells live at their OWN display index + an optional cell offset, so the
   // detail view can draw only the selected slice at the same pixel column
   // as the main plot's originating cells.
-  const colIx = (ci: any) => ci + cellOffsetCols;
-  const rowIx = (ri: any) => ri + cellOffsetRows;
-  const colGap = (ci: any) => colGapOffsets[ci] || 0;
-  const rowGap = (ri: any) => rowGapOffsets[ri] || 0;
-  const cellX = (ci: any) =>
+  const colIx = (ci: number) => ci + cellOffsetCols;
+  const rowIx = (ri: number) => ri + cellOffsetRows;
+  const colGap = (ci: number) => colGapOffsets[ci] || 0;
+  const rowGap = (ri: number) => rowGapOffsets[ri] || 0;
+  const cellX = (ci: number) =>
     (bordersOn ? colIx(ci) * cellW + colGap(ci) : Math.round(colIx(ci) * cellW) + colGap(ci)) +
     colGapStartPx;
-  const cellY = (ri: any) =>
+  const cellY = (ri: number) =>
     (bordersOn ? rowIx(ri) * cellH + rowGap(ri) : Math.round(rowIx(ri) * cellH) + rowGap(ri)) +
     rowGapStartPx;
-  const cellWPx = (ci: any) =>
+  const cellWPx = (ci: number) =>
     bordersOn ? cellW : Math.round((colIx(ci) + 1) * cellW) - Math.round(colIx(ci) * cellW);
-  const cellHPx = (ri: any) =>
+  const cellHPx = (ri: number) =>
     bordersOn ? cellH : Math.round((rowIx(ri) + 1) * cellH) - Math.round(rowIx(ri) * cellH);
 
-  const valueToColor = (v: any) => {
+  const valueToColor = (v: number) => {
     if (!Number.isFinite(v)) return NAN_FILL;
     const t = (v - vmin) / (vmax - vmin || 1);
     return interpolateColor(stops, Math.max(0, Math.min(1, t)));
@@ -304,12 +308,12 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   const [hover, setHover] = useState<any>(null); // { ri, ci, localX, localY }
   const [brush, setBrush] = useState<any>(null); // { anchorRi, anchorCi, curRi, curCi }
   const [axisHover, setAxisHover] = useState<any>(null); // { axis, leaves: Set }
-  const svgLocalRef = useRef<any>(null);
-  const wrapperRef = useRef<any>(null);
+  const svgLocalRef = useRef<SVGSVGElement | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   // The forwarded ref and our local ref both need to point at the SVG.
   const setRefs = useCallback(
-    (node: any) => {
+    (node: SVGSVGElement | null) => {
       svgLocalRef.current = node;
       if (typeof ref === "function") ref(node);
       else if (ref) ref.current = node;
@@ -318,7 +322,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   );
 
   // Convert a DOM pointer event to viewBox coordinates.
-  function svgPoint(e: any) {
+  function svgPoint(e: React.PointerEvent<SVGElement>) {
     const svg = svgLocalRef.current;
     if (!svg || !svg.createSVGPoint) return null;
     const pt = svg.createSVGPoint();
@@ -330,7 +334,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   }
 
   // Given a viewBox point, return {ri, ci} if inside the cell grid; else null.
-  function pointToCell(p: any) {
+  function pointToCell(p: { x: number; y: number } | null) {
     if (!p) return null;
     const localX = p.x - MARGIN.left;
     const localY = p.y - MARGIN.top;
@@ -359,7 +363,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
     return { ri, ci };
   }
 
-  function handlePointerMove(e: any) {
+  function handlePointerMove(e: React.PointerEvent<SVGElement>) {
     const p = svgPoint(e);
     const hit = pointToCell(p);
     if (hit) {
@@ -376,7 +380,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
     if (brush && hit) setBrush({ ...brush, curRi: hit.ri, curCi: hit.ci });
   }
 
-  function handlePointerDown(e: any) {
+  function handlePointerDown(e: React.PointerEvent<SVGElement>) {
     if (!interactive) return;
     const p = svgPoint(e);
     const hit = pointToCell(p);
@@ -387,7 +391,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
     e.currentTarget.setPointerCapture?.(e.pointerId);
   }
 
-  function handlePointerUp(_e: any) {
+  function handlePointerUp(_e: React.PointerEvent<SVGElement>) {
     if (!interactive) {
       setBrush(null);
       return;
@@ -415,14 +419,14 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   const selRowsDisplay = useMemo(() => {
     if (!selection || !selection.rows) return null;
     const keep = new Set(selection.rows);
-    const ris: any[] = [];
+    const ris: number[] = [];
     for (let ri = 0; ri < rowOrder.length; ri++) if (keep.has(rowOrder[ri])) ris.push(ri);
     return ris;
   }, [selection, rowOrder]);
   const selColsDisplay = useMemo(() => {
     if (!selection || !selection.cols) return null;
     const keep = new Set(selection.cols);
-    const cis: any[] = [];
+    const cis: number[] = [];
     for (let ci = 0; ci < colOrder.length; ci++) if (keep.has(colOrder[ci])) cis.push(ci);
     return cis;
   }, [selection, colOrder]);
@@ -431,14 +435,14 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   const hoverRowsDisplay = useMemo(() => {
     if (!axisHover || axisHover.axis !== "row") return null;
     const keep = axisHover.leaves;
-    const ris: any[] = [];
+    const ris: number[] = [];
     for (let ri = 0; ri < rowOrder.length; ri++) if (keep.has(rowOrder[ri])) ris.push(ri);
     return ris;
   }, [axisHover, rowOrder]);
   const hoverColsDisplay = useMemo(() => {
     if (!axisHover || axisHover.axis !== "col") return null;
     const keep = axisHover.leaves;
-    const cis: any[] = [];
+    const cis: number[] = [];
     for (let ci = 0; ci < colOrder.length; ci++) if (keep.has(colOrder[ci])) cis.push(ci);
     return cis;
   }, [axisHover, colOrder]);
@@ -450,7 +454,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   const cbX = MARGIN.left + plotW + ROW_LABEL_W + CB_OFFSET;
   const cbY = MARGIN.top;
   const cbGradId = "heatmap-colorbar-grad";
-  const cbStops = stops.map((c: any, i: number) =>
+  const cbStops = stops.map((c: string, i: number) =>
     React.createElement("stop", {
       key: i,
       offset: ((i / (stops.length - 1)) * 100).toFixed(2) + "%",
@@ -461,7 +465,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   // Dendrogram helpers — scale from data space into pixel space.
   // A segment belongs to the currently-hovered subtree iff its [xMin, xMax]
   // leaf span sits inside the hovered node's span — O(1) per segment.
-  function segmentInHover(seg: any, axis: any) {
+  function segmentInHover(seg: DendroLayoutSegment, axis: "row" | "col") {
     if (!axisHover || axisHover.axis !== axis) return false;
     return seg.xMin >= axisHover.xMin && seg.xMax <= axisHover.xMax;
   }
@@ -472,12 +476,12 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
     if (maxHeight === 0 || segments.length === 0) return null;
     const yBase = MARGIN.top - LABEL_GAP - COL_LABEL_H - LABEL_GAP;
     const yTop = yBase - DENDRO_SIZE_TOP + 4;
-    const scaleY = (h: any) => yBase - (h / maxHeight) * (yBase - yTop);
-    const scaleX = (x: any) => MARGIN.left + x * cellW + cellW / 2;
+    const scaleY = (h: number) => yBase - (h / maxHeight) * (yBase - yTop);
+    const scaleX = (x: number) => MARGIN.left + x * cellW + cellW / 2;
     return (
       <g id="col-dendrogram">
         <g fill="none" strokeLinecap="round">
-          {segments.map((s: any, i: number) => {
+          {segments.map((s: DendroLayoutSegment, i: number) => {
             const active = segmentInHover(s, "col");
             return (
               <line
@@ -496,7 +500,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
           // Move onMouseLeave up to the hits group so sliding between
           // adjacent hit bands doesn't briefly flash the hover state off.
           <g id="col-dendrogram-hits" onMouseLeave={() => setAxisHover(null)}>
-            {nodes.map((n: any, i: number) => {
+            {nodes.map((n: DendroLayoutNode, i: number) => {
               const x = scaleX(n.xMin) - cellW / 2;
               const w = scaleX(n.xMax) - scaleX(n.xMin) + cellW;
               const y = scaleY(n.height) - 4;
@@ -537,13 +541,13 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
     if (maxHeight === 0 || segments.length === 0) return null;
     const xRight = MARGIN.left - LABEL_GAP;
     const xLeft = xRight - DENDRO_SIZE_LEFT + 4;
-    const scaleX = (h: any) => xRight - (h / maxHeight) * (xRight - xLeft);
-    const scaleY = (x: any) => MARGIN.top + x * cellH + cellH / 2;
+    const scaleX = (h: number) => xRight - (h / maxHeight) * (xRight - xLeft);
+    const scaleY = (x: number) => MARGIN.top + x * cellH + cellH / 2;
     // Row dendrogram lies on its side: x-axis is the merge height, y-axis is leaf position.
     return (
       <g id="row-dendrogram">
         <g fill="none" strokeLinecap="round">
-          {segments.map((s: any, i: number) => {
+          {segments.map((s: DendroLayoutSegment, i: number) => {
             const active = segmentInHover(s, "row");
             return (
               <line
@@ -560,7 +564,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
         </g>
         {interactive && (
           <g id="row-dendrogram-hits" onMouseLeave={() => setAxisHover(null)}>
-            {nodes.map((n: any, i: number) => {
+            {nodes.map((n: DendroLayoutNode, i: number) => {
               const y = scaleY(n.xMin) - cellH / 2;
               const h = scaleY(n.xMax) - scaleY(n.xMin) + cellH;
               const x = scaleX(n.height) - 4;
@@ -595,7 +599,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
     );
   }
 
-  function clusterColor(id: any) {
+  function clusterColor(id: number) {
     return CLUSTER_PALETTE[
       ((id % CLUSTER_PALETTE.length) + CLUSTER_PALETTE.length) % CLUSTER_PALETTE.length
     ];
@@ -615,7 +619,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
     // Contiguous runs along colOrder → one horizontal "Cluster n° X" label
     // per run, centered on the band and parked in the reserved
     // CLUSTER_LABEL_H band directly above the strip.
-    const bands: any[] = [];
+    const bands: Array<{ id: number; start: number; end: number }> = [];
     for (let i = 0; i < colOrder.length; ) {
       const id = colCluster.clusters[colOrder[i]];
       let j = i + 1;
@@ -625,7 +629,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
     }
     return (
       <g id="col-cluster-strip" onMouseLeave={interactive ? () => setAxisHover(null) : undefined}>
-        {colOrder.map((origCi: any, ci: number) => {
+        {colOrder.map((origCi: number, ci: number) => {
           const cid = colCluster.clusters[origCi];
           return (
             <rect
@@ -648,7 +652,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
                   ? (e) => {
                       e.stopPropagation();
                       onAxisSelect &&
-                        onAxisSelect("col", leavesByCluster!.get(cid), {
+                        onAxisSelect("col", leavesByCluster!.get(cid) ?? null, {
                           clusterId: cid,
                         });
                     }
@@ -658,7 +662,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
           );
         })}
         {CLUSTER_LABEL_H > 0 &&
-          bands.map((b: any) => {
+          bands.map((b) => {
             const x0 = MARGIN.left + cellX(b.start);
             const x1 = MARGIN.left + cellX(b.end - 1) + cellWPx(b.end - 1);
             const cx = (x0 + x1) / 2;
@@ -696,7 +700,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
         leavesByCluster.get(id)!.push(r);
       }
     }
-    const bands: any[] = [];
+    const bands: Array<{ id: number; start: number; end: number }> = [];
     for (let i = 0; i < rowOrder.length; ) {
       const id = rowCluster.clusters[rowOrder[i]];
       let j = i + 1;
@@ -706,7 +710,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
     }
     return (
       <g id="row-cluster-strip" onMouseLeave={interactive ? () => setAxisHover(null) : undefined}>
-        {rowOrder.map((origRi: any, ri: number) => {
+        {rowOrder.map((origRi: number, ri: number) => {
           const cid = rowCluster.clusters[origRi];
           return (
             <rect
@@ -729,7 +733,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
                   ? (e) => {
                       e.stopPropagation();
                       onAxisSelect &&
-                        onAxisSelect("row", leavesByCluster!.get(cid), {
+                        onAxisSelect("row", leavesByCluster!.get(cid) ?? null, {
                           clusterId: cid,
                         });
                     }
@@ -739,7 +743,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
           );
         })}
         {CLUSTER_LABEL_W > 0 &&
-          bands.map((b: any) => {
+          bands.map((b) => {
             const y0 = MARGIN.top + cellY(b.start);
             const y1 = MARGIN.top + cellY(b.end - 1) + cellHPx(b.end - 1);
             const cy = (y0 + y1) / 2;
@@ -799,9 +803,9 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
       })()
     : null;
 
-  function renderRowBands(ris: any, stroke: any, fillOpacity: any) {
+  function renderRowBands(ris: number[], stroke: string, fillOpacity: number) {
     if (!ris || ris.length === 0) return null;
-    return ris.map((ri: any) => (
+    return ris.map((ri: number) => (
       <rect
         key={`rb-${ri}`}
         x={MARGIN.left + cellX(0)}
@@ -815,9 +819,9 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
       />
     ));
   }
-  function renderColBands(cis: any, stroke: any, fillOpacity: any) {
+  function renderColBands(cis: number[], stroke: string, fillOpacity: number) {
     if (!cis || cis.length === 0) return null;
-    return cis.map((ci: any) => (
+    return cis.map((ci: number) => (
       <rect
         key={`cb-${ci}`}
         x={MARGIN.left + cellX(ci)}
@@ -836,11 +840,11 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   // washed-out pale tint so the selected cluster pops. A light (white)
   // overlay keeps hue discrimination on the selected cells instead of
   // muddying them the way a dark overlay would.
-  function renderSelectionMask(selRis: any, selCis: any) {
+  function renderSelectionMask(selRis: number[] | null, selCis: number[] | null) {
     if ((!selRis || selRis.length === 0) && (!selCis || selCis.length === 0)) return null;
     const rowSel = selRis && selRis.length ? new Set(selRis) : null;
     const colSel = selCis && selCis.length ? new Set(selCis) : null;
-    const rects: any[] = [];
+    const rects: React.ReactElement[] = [];
     const MASK_FILL = "#ffffff";
     const MASK_OPACITY = 0.6;
     const fullW = cellX(nCols - 1) + cellWPx(nCols - 1) - cellX(0);
@@ -916,7 +920,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
   // in ~10 ms and ships a single PNG-encoded image. The dataURL is also what
   // the SVG-export pipeline picks up directly — no separate export-time
   // injection, the live SVG already contains the encoded cells.
-  const cellCanvasRef = useRef<any>(null);
+  const cellCanvasRef = useRef<HTMLCanvasElement | null>(null);
   if (cellCanvasRef.current === null && typeof document !== "undefined") {
     cellCanvasRef.current = document.createElement("canvas");
   }
@@ -1089,7 +1093,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
         {/* Column labels */}
         {showColLabels && (
           <g id="col-labels">
-            {colOrder.map((origCi: any, ci: number) => {
+            {colOrder.map((origCi: number, ci: number) => {
               const cx = MARGIN.left + cellX(ci) + cellW / 2;
               const cy = MARGIN.top - LABEL_GAP;
               return (
@@ -1113,7 +1117,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, any>(function HeatmapChart
         {/* Row labels */}
         {showRowLabels && (
           <g id="row-labels">
-            {rowOrder.map((origRi: any, ri: number) => (
+            {rowOrder.map((origRi: number, ri: number) => (
               <text
                 key={ri}
                 x={MARGIN.left + plotW + LABEL_GAP}
