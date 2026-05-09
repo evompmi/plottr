@@ -1,5 +1,4 @@
-import type { HowToContent } from "../_shell/HowTo";
-
+import type { HowToContent } from "../_shell";
 export const BOXPLOT_HOWTO: HowToContent = {
   toolName: "boxplot",
   title: "Group Plot — How to use",

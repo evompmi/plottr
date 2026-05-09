@@ -6,12 +6,17 @@
 // ColorInput, NumberInput, scrollDisclosureIntoView) resolves through
 // shared.bundle.js; TIME_UNITS comes from ./helpers.
 
-import { PlotSidebar } from "../_shell/PlotSidebar";
-import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
-import { resolveDiscretePalette } from "../_shell/discrete-palette";
-import { ColorInput } from "../_shell/color-input";
-import { BaseStyleControls } from "../_shell/long-format";
-import { NumberInput, SliderControl, ActionsPanel, scrollDisclosureIntoView } from "../_shell/ui";
+import {
+  ActionsPanel,
+  BaseStyleControls,
+  ColorInput,
+  DiscretePaletteRow,
+  NumberInput,
+  PlotSidebar,
+  SliderControl,
+  resolveDiscretePalette,
+  scrollDisclosureIntoView,
+} from "../_shell";
 import { TIME_UNITS, convertTime } from "./helpers";
 import type { Condition, PlotControlsProps } from "./helpers";
 import { ConditionEditor } from "./plot-area";

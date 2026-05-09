@@ -1,22 +1,18 @@
-// Shared chart annotation primitives — significance brackets and CLD-letter
-// labels. Used by boxplot's main chart (vertical + horizontal) and aequorin's
-// inset bar chart (vertical only). Audit M7 follow-up: collapses three
-// near-identical bracket renderers and three near-identical CLD-label
-// renderers into two parameterised components, with boxplot's styling as the
-// source of truth (stroke #333, bracket fontSize 12, CLD fontSize 13, text
-// colour #222 — aequorin's previous fontSize 10 / stroke #222 inset values
-// are dropped in favour of the unified set).
+// `SignificanceBrackets` — pair-wise significance bracket renderer used by
+// boxplot's main chart (vertical + horizontal) and aequorin's inset bar
+// chart (vertical only). The caller pre-computes per-pair levels (via
+// `assignBracketLevels`) and per-pair labels (e.g. `pStars(p)` upstream
+// in the annotation-spec builder); this component only translates
+// (i, j, _level) → SVG geometry.
 //
-// Pure presentational. The caller is expected to pre-compute per-pair levels
-// (via `assignBracketLevels` from `shared.js`) and per-pair labels (e.g.
-// `pStars(p)` upstream in the annotation-spec builder). These components
-// consume `pr.label` directly and only translate (i, j, _level) → SVG geometry.
-//
-// Coordinate system is parameterised through `axisCoord(i)` so the same
+// Coordinate system parameterised through `axisCoord(i)` so the same
 // component works for box-axis, line-x, and any future categorical axis.
 // Orientation drives the layout fork:
 //   - "vertical-top": brackets arc above the data, levels stack upward
 //   - "horizontal-right": brackets arc to the right, levels stack rightward
+//
+// Pre-2026-05 lived in `_shell/chart-annotations.tsx` (paired with
+// `CldLabels`); split per the per-component _shell convention.
 
 const BRACKET_DEFAULTS = {
   stroke: "#333",
@@ -29,17 +25,10 @@ const BRACKET_DEFAULTS = {
   tickHeight: 4,
 };
 
-const CLD_DEFAULTS = {
-  fontSize: 13,
-  fontWeight: 700,
-  fontFamily: "sans-serif",
-  textColor: "#222",
-};
-
 // Same shape as the ambient BracketPair declared in types/globals.d.ts —
 // label may be omitted (the renderer falls back to a default string), so
-// the local prop interface must accept `string | undefined` to be
-// assignable from the global type that StatsTile produces.
+// the local prop interface accepts `string | undefined` to be assignable
+// from the global type that StatsTile produces.
 interface ChartAnnotationBracketPair {
   i: number;
   j: number;
@@ -136,53 +125,6 @@ export function SignificanceBrackets({
           </g>
         );
       })}
-    </g>
-  );
-}
-
-interface CldLabelsProps {
-  labels: (string | null)[];
-  axisCoord: (i: number) => number;
-  // Perpendicular coord — y for vertical-top, x for horizontal-right.
-  crossCoord: number;
-  orientation: "vertical-top" | "horizontal-right";
-  fontSize?: number;
-  fontWeight?: number | string;
-  fontFamily?: string;
-  textColor?: string;
-}
-
-export function CldLabels({
-  labels,
-  axisCoord,
-  crossCoord,
-  orientation,
-  fontSize = CLD_DEFAULTS.fontSize,
-  fontWeight = CLD_DEFAULTS.fontWeight,
-  fontFamily = CLD_DEFAULTS.fontFamily,
-  textColor = CLD_DEFAULTS.textColor,
-}: CldLabelsProps) {
-  if (!labels || labels.length === 0) return null;
-  const horizontal = orientation === "horizontal-right";
-  return (
-    <g id="cld-annotations">
-      {labels.map((lbl, i) =>
-        lbl != null ? (
-          <text
-            key={`cld-${i}`}
-            x={horizontal ? crossCoord : axisCoord(i)}
-            y={horizontal ? axisCoord(i) : crossCoord}
-            textAnchor={horizontal ? "end" : "middle"}
-            {...(horizontal ? { dominantBaseline: "middle" } : {})}
-            fontSize={fontSize}
-            fontWeight={fontWeight}
-            fill={textColor}
-            fontFamily={fontFamily}
-          >
-            {lbl}
-          </text>
-        ) : null
-      )}
     </g>
   );
 }

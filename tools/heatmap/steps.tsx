@@ -4,8 +4,7 @@
 // resolved through shared.bundle.js.
 
 import type { UploadStepProps } from "./helpers";
-import { HowTo } from "../_shell/HowTo";
-import { UploadPanel } from "../_shell/ui";
+import { HowTo, UploadPanel } from "../_shell";
 import { HEATMAP_HOWTO } from "./howto";
 
 export function UploadStep({

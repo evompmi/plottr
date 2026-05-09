@@ -5,11 +5,8 @@
 // tools/aequorin/ (chart.tsx, stats-panel.tsx, reports.ts, plot-area.tsx,
 // steps.tsx, controls.tsx, index.tsx).
 
-import { CHART_MARGIN, buildLineD } from "../_shell/chart-layout";
-import type { TestResult } from "../_shell/stats-dispatch";
-import { resolveDiscretePalette } from "../_shell/discrete-palette";
-import type { LegendBlock } from "../_shell/svg-legend";
-import type { PowerFromDataResult } from "../_shell/stats-tile";
+import { CHART_MARGIN, buildLineD, resolveDiscretePalette } from "../_shell";
+import type { LegendBlock, PowerFromDataResult, TestResult } from "../_shell";
 export { buildLineD };
 
 // ── Calibration defaults ─────────────────────────────────────────────────────

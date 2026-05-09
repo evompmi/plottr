@@ -1,16 +1,17 @@
-// `StatsTile` — collapsible tile that runs the assumption checks, picks a
-// test from the decision tree (user can override), runs post-hocs for
+// `StatsTile` — collapsible tile that runs the assumption checks, picks
+// a test from the decision tree (user can override), runs post-hocs for
 // k ≥ 3, and emits an annotation spec to the parent via
 // `onAnnotationsChange` so the chart can draw brackets / compact-letter
-// labels above the bars. Plus the public helpers `computePowerFromData`
-// (achieved power + n-needed-for-80%-power, dispatched per test) and
-// `assignBracketLevels` (greedy bracket-stacking layout).
+// labels above the bars. Pure data helpers `computePowerFromData` and
+// `assignBracketLevels` live in sibling files (`./power-from-data`,
+// `./bracket-levels`) so per-tool stats panels can import them without
+// pulling in this whole component.
 //
-// Pre-2026-05 this lived in `tools/shared-stats-tile.js` (plain-JS,
-// React.createElement) loaded as a global. Now a typed module — kept
-// in `React.createElement` form (no JSX rewrite) because the component
-// is dense and a wholesale conversion would balloon the diff. Same
-// pattern as `svg-legend.ts`, `long-format.tsx`, `ui.tsx`.
+// Pre-2026-05 lived in `tools/shared-stats-tile.js` as a single
+// React.createElement bundle. Migration kept the createElement form
+// (full JSX conversion would balloon the diff for no behaviour change);
+// 2026-06 split out the public pure helpers per the per-component
+// _shell convention.
 
 import {
   STATS_TEST_REGISTRY,
@@ -19,6 +20,7 @@ import {
   STATS_TESTS_FOR_K,
 } from "./stats-registry";
 import { buildRScript } from "./r-export";
+import { computePowerFromData, type PowerFromDataRow } from "./power-from-data";
 
 // Globals consumed at runtime (resolved through `tools/shared.bundle.js`):
 //   sampleMean, sampleSD, fFromGroupMeans, powerTwoSample, powerAnova,
@@ -314,155 +316,6 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
   }
 
   return lines.join("\n");
-}
-
-export interface PowerFromDataRow {
-  alpha: number;
-  achieved: number;
-  nForTarget: number | null;
-}
-
-export interface PowerFromDataResult {
-  effectLabel: string;
-  effect: number;
-  rows: PowerFromDataRow[];
-  targetPower: number;
-  nLabel: string;
-  approximate: boolean;
-}
-
-// Compute achieved power + n-needed-for-80%-power from the observed
-// data, dispatched by the test family chosen in the StatsTile. For
-// non-parametric tests (Mann-Whitney / Kruskal-Wallis) we report the
-// parametric analog as an approximation — noted in the returned
-// `approximate` flag and in the on-screen label. Computed at α = 0.05,
-// 0.01, 0.001; target power = 0.80.
-export function computePowerFromData(
-  chosenTest: string | null | undefined,
-  values: number[][] | null | undefined
-): PowerFromDataResult | null {
-  if (!chosenTest || !values || values.length < 2) return null;
-  const alphas = [0.05, 0.01, 0.001];
-  const target = 0.8;
-
-  if (chosenTest === "studentT" || chosenTest === "welchT" || chosenTest === "mannWhitney") {
-    const x = values[0];
-    const y = values[1];
-    const n1 = x.length;
-    const n2 = y.length;
-    if (n1 < 2 || n2 < 2) return null;
-    const m1 = sampleMean(x);
-    const m2 = sampleMean(y);
-    const s1 = sampleSD(x);
-    const s2 = sampleSD(y);
-    const sp = Math.sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2));
-    const d = sp > 0 ? Math.abs(m1 - m2) / sp : 0;
-    const nh = 2 / (1 / n1 + 1 / n2);
-    const nEff = Math.max(2, Math.round(nh));
-    const rows = alphas.map((alpha) => {
-      const achieved = powerTwoSample(d, nEff, alpha, 2);
-      let needed: number | null = null;
-      if (d > 0) {
-        for (let n = 2; n <= 5000; n++) {
-          if (powerTwoSample(d, n, alpha, 2) >= target) {
-            needed = n;
-            break;
-          }
-        }
-      }
-      return { alpha, achieved, nForTarget: needed };
-    });
-    return {
-      effectLabel: "Cohen's d",
-      effect: d,
-      rows,
-      targetPower: target,
-      nLabel: "per group",
-      approximate: chosenTest === "mannWhitney",
-    };
-  }
-
-  if (
-    chosenTest === "oneWayANOVA" ||
-    chosenTest === "welchANOVA" ||
-    chosenTest === "kruskalWallis"
-  ) {
-    const kk = values.length;
-    if (kk < 2) return null;
-    const means = values.map(sampleMean);
-    const ns = values.map((v) => v.length);
-    if (ns.some((n) => n < 2)) return null;
-    let ssW = 0;
-    let dfW = 0;
-    for (let i = 0; i < kk; i++) {
-      const m = means[i];
-      for (let j = 0; j < values[i].length; j++) ssW += (values[i][j] - m) * (values[i][j] - m);
-      dfW += values[i].length - 1;
-    }
-    const sp = dfW > 0 ? Math.sqrt(ssW / dfW) : 0;
-    const f = fFromGroupMeans(means, sp);
-    const nh = kk / ns.reduce((a, b) => a + 1 / b, 0);
-    const nEff = Math.max(2, Math.round(nh));
-    const rows = alphas.map((alpha) => {
-      const achieved = powerAnova(f, nEff, alpha, kk);
-      let needed: number | null = null;
-      if (f > 0) {
-        for (let n = 2; n <= 5000; n++) {
-          if (powerAnova(f, n, alpha, kk) >= target) {
-            needed = n;
-            break;
-          }
-        }
-      }
-      return { alpha, achieved, nForTarget: needed };
-    });
-    return {
-      effectLabel: "Cohen's f",
-      effect: f,
-      rows,
-      targetPower: target,
-      nLabel: "per group",
-      approximate: chosenTest === "kruskalWallis",
-    };
-  }
-
-  return null;
-}
-
-// Given a list of {i, j} pairs, assign a vertical level (0 = lowest) to
-// each so brackets at overlapping spans stack instead of colliding.
-// Greedy by ascending span width. Exposed so chart renderers can reuse
-// the layout. Generic over T to preserve any additional fields the
-// caller threads through (label, p, etc.).
-export function assignBracketLevels<T extends { i: number; j: number }>(
-  pairs: T[]
-): Array<T & { _level: number }> {
-  const enriched = pairs.map((pr, idx) => ({
-    ...pr,
-    _span: Math.abs(pr.j - pr.i),
-    _orig: idx,
-    _level: 0,
-  }));
-  enriched.sort((a, b) => a._span - b._span);
-  const placed: typeof enriched = [];
-  for (const pr of enriched) {
-    let lvl = 0;
-    while (
-      placed.some(
-        (q) =>
-          q._level === lvl &&
-          Math.max(Math.min(q.i, q.j), Math.min(pr.i, pr.j)) <=
-            Math.min(Math.max(q.i, q.j), Math.max(pr.i, pr.j))
-      )
-    ) {
-      lvl++;
-    }
-    pr._level = lvl;
-    placed.push(pr);
-  }
-  // Restore original input order so the parent can match up labels.
-  placed.sort((a, b) => a._orig - b._orig);
-  return placed.map(({ _orig: _o, _span: _s, ...rest }) => rest as T & { _level: number });
 }
 
 interface StatsTileProps {

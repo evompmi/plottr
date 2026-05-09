@@ -6,7 +6,7 @@
 // ./helpers.
 
 import { HeatmapChart } from "./chart";
-import { DataPreview } from "../_shell/core";
+import { DataPreview } from "../_shell";
 import {
   pruneDendroTree,
   ClusterResult,

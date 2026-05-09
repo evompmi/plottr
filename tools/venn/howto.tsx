@@ -1,5 +1,4 @@
-import type { HowToContent } from "../_shell/HowTo";
-
+import type { HowToContent } from "../_shell";
 export const VENN_HOWTO: HowToContent = {
   toolName: "venn",
   title: "Venn Diagram — How to use",

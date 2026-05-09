@@ -3,9 +3,7 @@
 // rendering, step panels, sidebar controls, and the per-x stats panel live
 // in sibling modules under tools/lineplot/.
 
-import { usePlotToolState } from "../_shell/usePlotToolState";
-import { PlotToolShell } from "../_shell/PlotToolShell";
-import { resolveDiscretePalette } from "../_shell/discrete-palette";
+import { PlotToolShell, resolveDiscretePalette, usePlotToolState } from "../_shell";
 import { computeSeries, computePerXStats, round2, ErrorKind, LineplotVis } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
 import { PlotStep } from "./plot-area";

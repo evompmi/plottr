@@ -5,8 +5,8 @@
 
 import { fmtTick, MARGIN, VBW, VBH, ChartProps, RefLine } from "./helpers";
 import { renderPoint } from "./shapes";
-import { computeLegendHeight, renderSvgLegend, type LegendBlock } from "../_shell/svg-legend";
-
+import { computeLegendHeight, renderSvgLegend } from "../_shell";
+import type { LegendBlock } from "../_shell";
 const { forwardRef } = React;
 
 export const ScatterChart = forwardRef<SVGSVGElement, ChartProps>(function ScatterChart(

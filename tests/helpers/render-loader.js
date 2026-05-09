@@ -94,71 +94,69 @@ function ensureSharedBundleLoaded() {
   const bundleSrc = fs.readFileSync(bundlePath, "utf8");
   vm.runInThisContext(bundleSrc, { filename: "tools/shared.bundle.js" });
 
-  // Migrated _shell modules — bundle via esbuild and expose the named
-  // exports on globalThis so the existing `sc.DataPreview` / `sc.X`
-  // call sites in tests/components.test.js continue to resolve.
-  // Each entry: source path → list of exports to lift onto globalThis.
+  // Migrated _shell modules — bundle the barrel via esbuild and lift its
+  // named exports onto globalThis so existing `sc.DataPreview` / `sc.X`
+  // call sites in tests/components.test.js continue to resolve through
+  // the same surface that real consumers use.
+  //
+  // 2026-06: collapsed from a per-source-file array into a single barrel
+  // entry once `_shell/index.ts` became the public surface. Adding a new
+  // shared export means appending to this `names` list (and the barrel
+  // itself); no separate registration block.
   const SHELL_GLOBALS = [
-    { src: path.join(toolsDir, "_shell/core.tsx"), names: ["DataPreview", "ErrorBoundary"] },
     {
-      src: path.join(toolsDir, "_shell/color-input.tsx"),
-      names: ["ColorInput", "normalizeHexColor"],
-    },
-    {
-      src: path.join(toolsDir, "_shell/long-format.tsx"),
+      src: path.join(toolsDir, "_shell/index.ts"),
       names: [
-        "ColumnRoleEditor",
-        "FilterCheckboxPanel",
-        "RenameReorderPanel",
-        "StatsTable",
-        "GroupColorEditor",
-        "BaseStyleControls",
-      ],
-    },
-    {
-      src: path.join(toolsDir, "_shell/file-drop.tsx"),
-      names: ["FileDropZone", "FILE_LIMIT_BYTES", "FILE_WARN_BYTES"],
-    },
-    {
-      src: path.join(toolsDir, "_shell/ui.tsx"),
-      names: [
-        "NumberInput",
-        "SliderControl",
-        "StepNavBar",
-        "CommaFixBanner",
-        "FormulaInjectionBanner",
-        "ParseErrorBanner",
-        "PageHeader",
-        "UploadPanel",
-        "HowToCard",
         "ActionsPanel",
-        "scrollIntoViewWithinAncestor",
-        "scrollDisclosureIntoView",
-      ],
-    },
-    {
-      src: path.join(toolsDir, "_shell/stats-registry.ts"),
-      names: [
-        "STATS_TEST_REGISTRY",
+        "BaseStyleControls",
+        "CldLabels",
+        "ColorInput",
+        "ColumnRoleEditor",
+        "CommaFixBanner",
+        "DataPreview",
+        "DiscretePaletteRow",
+        "DownloadTiles",
+        "ErrorBoundary",
+        "FILE_LIMIT_BYTES",
+        "FILE_WARN_BYTES",
+        "FileDropZone",
+        "FilterCheckboxPanel",
+        "FormulaInjectionBanner",
+        "GroupColorEditor",
+        "HowTo",
+        "HowToCard",
+        "NumberInput",
+        "PageHeader",
+        "ParseErrorBanner",
+        "PlotSidebar",
+        "PlotToolShell",
+        "PrefsPanel",
+        "RenameReorderPanel",
         "STATS_POSTHOC_REGISTRY",
-        "STATS_TESTS_FOR_K2",
         "STATS_TESTS_FOR_K",
-      ],
-    },
-    {
-      src: path.join(toolsDir, "_shell/r-export.ts"),
-      names: [
+        "STATS_TESTS_FOR_K2",
+        "STATS_TEST_REGISTRY",
+        "ScrollablePlotCard",
+        "SignificanceBrackets",
+        "SliderControl",
+        "StatsTable",
+        "StatsTile",
+        "StepNavBar",
+        "UploadPanel",
+        "applyDiscretePalette",
+        "assignBracketLevels",
         "buildRScript",
         "buildRScriptForPower",
-        "sanitizeRString",
-        "sanitizeRComment",
+        "computePowerFromData",
         "formatRNumber",
         "formatRVector",
+        "normalizeHexColor",
+        "resolveDiscretePalette",
+        "sanitizeRComment",
+        "sanitizeRString",
+        "scrollDisclosureIntoView",
+        "scrollIntoViewWithinAncestor",
       ],
-    },
-    {
-      src: path.join(toolsDir, "_shell/stats-tile.tsx"),
-      names: ["StatsTile", "computePowerFromData", "assignBracketLevels"],
     },
   ];
   for (const { src, names } of SHELL_GLOBALS) {

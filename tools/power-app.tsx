@@ -1,9 +1,7 @@
 // power.jsx — editable source. Run `npm run build` to compile to power.js
 // Do NOT edit the .js file directly.
 
-import { NumberInput, PageHeader } from "./_shell/ui";
-import { buildRScriptForPower } from "./_shell/r-export";
-
+import { NumberInput, PageHeader, buildRScriptForPower } from "./_shell";
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
 
 // Narrow-viewport detection — mirrors molarity-app's `useIsMobile`. Power

@@ -2,8 +2,7 @@
 // ConfigureStep (rename / colour / include + degree window), and
 // ItemListPanel (the per-intersection items table + CSV download).
 
-import { DataPreview } from "../_shell/core";
-import { NumberInput, UploadPanel } from "../_shell/ui";
+import { DataPreview, HowTo, NumberInput, UploadPanel } from "../_shell";
 import {
   intersectionLabel,
   intersectionFilenamePart,
@@ -16,7 +15,6 @@ import type {
   ItemListPanelProps,
   UploadStepProps,
 } from "./helpers";
-import { HowTo } from "../_shell/HowTo";
 import { UPSET_HOWTO } from "./howto";
 
 const { useEffect, useMemo } = React;

@@ -4,9 +4,7 @@
 // detail view, reports, and pure helpers all live in sibling modules under
 // tools/heatmap/.
 
-import { usePlotToolState } from "../_shell/usePlotToolState";
-import { PlotToolShell } from "../_shell/PlotToolShell";
-import { DataPreview } from "../_shell/core";
+import { DataPreview, PlotToolShell, usePlotToolState } from "../_shell";
 import { normalizeMatrix, autoRange } from "./helpers";
 import type {
   AxisClusterMeta,

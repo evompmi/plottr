@@ -1,5 +1,4 @@
-import type { HowToContent } from "../_shell/HowTo";
-
+import type { HowToContent } from "../_shell";
 export const HEATMAP_HOWTO: HowToContent = {
   toolName: "heatmap",
   title: "Heatmap — How to use",

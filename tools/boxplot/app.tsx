@@ -3,10 +3,7 @@
 // wiring — chart rendering, step panels, sidebar controls, and stats-panel
 // live in sibling modules under tools/boxplot/.
 
-import { usePlotToolState } from "../_shell/usePlotToolState";
-import { PlotToolShell } from "../_shell/PlotToolShell";
-import { consumeHandoff } from "../_shell/handoff";
-import { resolveDiscretePalette } from "../_shell/discrete-palette";
+import { PlotToolShell, consumeHandoff, resolveDiscretePalette, usePlotToolState } from "../_shell";
 import {
   ERROR_BAR_LABELS,
   mergeSubgroupAnnotations,

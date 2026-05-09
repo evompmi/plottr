@@ -1,5 +1,4 @@
-import type { HowToContent } from "../_shell/HowTo";
-
+import type { HowToContent } from "../_shell";
 export const UPSET_HOWTO: HowToContent = {
   toolName: "upset",
   title: "UpSet Plot — How to use",

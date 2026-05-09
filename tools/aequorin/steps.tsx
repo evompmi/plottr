@@ -7,9 +7,7 @@
 
 import { TIME_UNITS } from "./helpers";
 import type { ConfigureStepProps, UploadStepProps } from "./helpers";
-import { HowTo } from "../_shell/HowTo";
-import { DataPreview } from "../_shell/core";
-import { NumberInput, UploadPanel } from "../_shell/ui";
+import { DataPreview, HowTo, NumberInput, UploadPanel } from "../_shell";
 import { AEQUORIN_HOWTO } from "./howto";
 
 export function HowToSection() {

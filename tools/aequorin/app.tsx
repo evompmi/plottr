@@ -4,8 +4,7 @@
 // step panels, sidebar controls, stats-panel, reports, and pure helpers
 // live in sibling modules under tools/aequorin/.
 
-import { usePlotToolState } from "../_shell/usePlotToolState";
-import { PlotToolShell } from "../_shell/PlotToolShell";
+import { PlotToolShell, usePlotToolState } from "../_shell";
 import {
   DEFAULT_KR,
   DEFAULT_KTR,

@@ -6,10 +6,14 @@
 // see the same names. DiscretePaletteRow + resolveDiscretePalette are
 // imported from the typed _shell scaffold (post-2026-05 migration).
 
-import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
-import { resolveDiscretePalette } from "../_shell/discrete-palette";
-import { ColorInput } from "../_shell/color-input";
-import { NumberInput, SliderControl, scrollDisclosureIntoView } from "../_shell/ui";
+import {
+  ColorInput,
+  DiscretePaletteRow,
+  NumberInput,
+  SliderControl,
+  resolveDiscretePalette,
+  scrollDisclosureIntoView,
+} from "../_shell";
 import { VOLCANO_DEFAULT_COLORS, eligibleColumns } from "./helpers";
 import type {
   ColorMapTileProps,

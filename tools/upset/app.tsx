@@ -3,10 +3,7 @@
 // panels, sidebar controls, intersection-stats panel, and item list
 // live in sibling modules under tools/upset/.
 
-import { usePlotToolState } from "../_shell/usePlotToolState";
-import { PlotToolShell } from "../_shell/PlotToolShell";
-import { ScrollablePlotCard } from "../_shell/ScrollablePlotCard";
-import { FILE_LIMIT_BYTES } from "../_shell/file-drop";
+import { FILE_LIMIT_BYTES, PlotToolShell, ScrollablePlotCard, usePlotToolState } from "../_shell";
 import {
   computeMemberships,
   enumerateIntersections,
