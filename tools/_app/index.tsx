@@ -9,12 +9,11 @@
 import { App } from "./App";
 import { navigate } from "./Router";
 
-// Register the SPA's hash-router navigator so `tools/shared-handoff.js`
-// can use it to switch tools in place when a cross-tool handoff fires
-// (e.g. RLU-timecourse → Group Plot). When this global isn't set
-// (i.e. someone loads a tool's standalone HTML directly), the helper
-// falls back to a top-level `window.location.assign("<tool>.html")`
-// — see `navigateToTool` in shared-handoff.js.
+// Register the SPA's hash-router navigator so `tools/_shell/handoff.ts`'s
+// `navigateToTool` can use it to switch tools in place when a cross-tool
+// handoff fires (e.g. RLU-timecourse → Group Plot). When this global
+// isn't set (i.e. someone loads a tool's standalone HTML directly), the
+// helper falls back to a top-level `window.location.assign("<tool>.html")`.
 (window as unknown as { __plottrSpaNavigate?: (key: string) => void }).__plottrSpaNavigate =
   navigate;
 

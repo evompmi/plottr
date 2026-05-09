@@ -480,23 +480,6 @@ declare global {
   ): void;
   function scrollDisclosureIntoView(el: Element | null, pad?: number): void;
 
-  // ── Inter-tool data hand-off (shared-handoff.js) ───────────────────────────
-  interface HandoffPayload {
-    tool: string;
-    csv?: string;
-    mode?: "long" | "wide";
-    source?: string;
-    fileName?: string;
-    colRoles?: string[];
-    [key: string]: any;
-  }
-  function setHandoff(payload: HandoffPayload): boolean;
-  function consumeHandoff(targetTool: string): HandoffPayload | null;
-  // SPA-aware navigation helper. Prefers `window.__plottrSpaNavigate`
-  // when the SPA shell has registered it; falls back to a top-level
-  // `window.location.assign("<key>.html")` for legacy / standalone-page
-  // deploys. Source tools call this immediately after `setHandoff(...)`.
-  function navigateToTool(toolKey: string): void;
   interface SubgroupMeta {
     name: string;
     startIndex: number;

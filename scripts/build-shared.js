@@ -48,7 +48,6 @@ const FILES = [
   "shared-long-format.js",
   "shared-r-export.js",
   "shared-stats-tile.js",
-  "shared-handoff.js",
 ];
 
 function buildBundle() {

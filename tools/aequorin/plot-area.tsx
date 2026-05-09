@@ -10,6 +10,7 @@
 import { Chart, InsetBarplot, FacetChartItem } from "./chart";
 import { AequorinStatsPanel } from "./stats-panel";
 import { AQ_ERROR_BAR_LABELS } from "./reports";
+import { setHandoff, navigateToTool } from "../_shell/handoff";
 import {
   convertTime,
   smooth,
@@ -423,29 +424,22 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                             .join(",")
                         )
                         .join("\n");
-                      if (typeof setHandoff === "function") {
-                        setHandoff({
-                          tool: "boxplot",
-                          csv,
-                          mode: "long",
-                          source: "RLU timecourse — Σ barplot",
-                          fileName: csvFileName.replace(/\.csv$/i, "") + "_boxplot.csv",
-                        });
-                      }
-                      // Single shell-aware path: `navigateToTool` (from
-                      // tools/shared-handoff.js) prefers the SPA router
-                      // when registered (`window.__plottrSpaNavigate`),
-                      // and falls back to a top-level
-                      // `window.location.assign("boxplot.html")` for
-                      // legacy / standalone-page deploys. Either way,
-                      // Group Plot's mount-time `consumeHandoff()`
-                      // finds the localStorage payload we just wrote
-                      // and applies it.
-                      if (typeof navigateToTool === "function") {
-                        navigateToTool("boxplot");
-                      } else {
-                        window.location.assign("boxplot.html");
-                      }
+                      setHandoff({
+                        tool: "boxplot",
+                        csv,
+                        mode: "long",
+                        source: "RLU timecourse — Σ barplot",
+                        fileName: csvFileName.replace(/\.csv$/i, "") + "_boxplot.csv",
+                      });
+                      // Single shell-aware path: `navigateToTool` prefers
+                      // the SPA router when registered
+                      // (`window.__plottrSpaNavigate`), and falls back to
+                      // a top-level `window.location.assign("boxplot.html")`
+                      // for legacy / standalone-page deploys. Either way,
+                      // Group Plot's mount-time `consumeHandoff()` finds
+                      // the localStorage payload we just wrote and applies
+                      // it.
+                      navigateToTool("boxplot");
                     }}
                     className="dv-btn dv-btn-secondary"
                     // Match the sibling ⬇ CSV chip's vertical padding

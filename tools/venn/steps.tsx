@@ -4,6 +4,7 @@
 
 import type { UploadStepProps, ConfigureStepProps } from "./helpers";
 import { HowTo } from "../_shell/HowTo";
+import { navigateToTool } from "../_shell/handoff";
 import { VENN_HOWTO } from "./howto";
 
 export function UploadStep({
@@ -89,11 +90,7 @@ export function ConfigureStep({
     } catch {
       /* swallow */
     }
-    if (typeof navigateToTool === "function") {
-      navigateToTool("upset");
-    } else {
-      window.location.href = "upset.html";
-    }
+    navigateToTool("upset");
   };
   const showNudge = allColumnNames.length >= 4;
 

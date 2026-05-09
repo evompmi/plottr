@@ -5,6 +5,7 @@
 
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
+import { consumeHandoff } from "../_shell/handoff";
 import {
   ERROR_BAR_LABELS,
   mergeSubgroupAnnotations,
@@ -362,7 +363,6 @@ export function App() {
   // user has implicitly confirmed the column roles by choosing this
   // destination, so both paths skip the configure step.
   React.useEffect(() => {
-    if (typeof consumeHandoff !== "function") return;
     interface HandoffPayload {
       csv?: string;
       fileName?: string;
