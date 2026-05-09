@@ -24,7 +24,7 @@
 // tools/boxplot/reports.ts. Test / post-hoc dispatchers live in
 // tools/_shell/stats-dispatch.ts.
 
-import { runTest, runPostHoc, postHocForTest } from "../_shell/stats-dispatch";
+import { runTest, runPostHoc, postHocForTest, TestResult } from "../_shell/stats-dispatch";
 import {
   TEST_LABELS_BP,
   POSTHOC_LABELS_BP,
@@ -34,21 +34,31 @@ import {
   formatBpResultLine,
   computeBpAnnotationSpec,
   computeBpSummaryText,
+  AnnotationSpec,
+  BoxplotStatsDetailProps,
+  BoxplotStatsPanelProps,
+  BoxplotStatsSet,
+  EnrichedBoxplotStatsRow,
+  PostHocPair,
+  PostHocResult,
+  SelectTestResult,
 } from "./helpers";
 import { buildBpAggregateReport, buildBpAggregateRScript } from "./reports";
 
 const { useState, useMemo, useRef, useEffect } = React;
 
-function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: any) {
+function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsDetailProps) {
   const names = row.names;
   const values = row.values;
   const k = names.length;
-  const res = row.testResult || {};
-  const rec = row.rec || {};
-  const recReason = rec.recommendation && rec.recommendation.reason;
-  const recTest = rec.recommendation && rec.recommendation.test;
-  const suggestion = rec.suggestion || null;
+  const res = row.testResult ?? ({} as TestResult);
+  const rec = (row.rec ?? {}) as SelectTestResult;
+  const recReason = rec.recommendation?.reason;
+  const recTest = rec.recommendation?.test ?? null;
+  const suggestion = rec.suggestion ?? null;
   const testOptions = k === 2 ? TEST_OPTIONS_BP_2 : TEST_OPTIONS_BP_K;
+  const postHoc = row.postHocResult;
+  const power = row.powerResult;
 
   const subhead: React.CSSProperties = {
     margin: "10px 0 6px",
@@ -95,8 +105,8 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: any) {
     background: "var(--neutral-bg)",
     color: "var(--neutral-text)",
   };
-  const norm = rec.normality || [];
-  const lev = rec.levene || {};
+  const norm = rec.normality ?? [];
+  const lev = rec.levene ?? {};
 
   return (
     <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>
@@ -113,7 +123,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: any) {
           </tr>
         </thead>
         <tbody>
-          {names.map((name: any, i: number) => {
+          {names.map((name, i) => {
             const vs = values[i];
             const n = vs.length;
             const m = sampleMean(vs);
@@ -143,7 +153,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: any) {
             Shapiro-Wilk (normality)
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {norm.map((r: any, i: number) => {
+            {norm.map((r, i) => {
               const label = names[r.group] || `g${r.group}`;
               const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
               const verdict =
@@ -179,14 +189,15 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: any) {
       >
         <select
           value={row.chosenTest || ""}
-          onChange={(e) =>
-            onOverrideTest && onOverrideTest(e.target.value === recTest ? null : e.target.value)
-          }
+          onChange={(e) => {
+            const next = e.target.value === "" ? null : (e.target.value as RecommendedTest);
+            if (onOverrideTest) onOverrideTest(next === recTest ? null : next);
+          }}
           className="dv-select"
           style={{ fontSize: 11, padding: "2px 6px", minWidth: 180 }}
           onClick={(e) => e.stopPropagation()}
         >
-          {testOptions.map((t: any) => (
+          {testOptions.map((t) => (
             <option key={t} value={t}>
               {TEST_LABELS_BP[t]}
               {t === recTest ? "  (recommended)" : ""}
@@ -266,7 +277,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: any) {
             : "—"}
       </div>
 
-      {k >= 3 && row.postHocResult && !row.postHocResult.error && (
+      {k >= 3 && postHoc && !postHoc.error && row.postHocName && (
         <>
           <div style={subhead}>
             Post-hoc — {POSTHOC_LABELS_BP[row.postHocName] || row.postHocName}
@@ -281,7 +292,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: any) {
               </tr>
             </thead>
             <tbody>
-              {row.postHocResult.pairs.map((pr: any, i: number) => {
+              {postHoc.pairs.map((pr: PostHocPair, i: number) => {
                 const p = pr.pAdj != null ? pr.pAdj : pr.p;
                 const diff =
                   pr.diff != null
@@ -313,7 +324,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: any) {
         </>
       )}
 
-      {row.powerResult && (
+      {power && (
         <>
           <div style={subhead}>Power analysis (target 80%)</div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -326,11 +337,11 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: any) {
               </tr>
             </thead>
             <tbody>
-              {row.powerResult.rows.map((pr: any, i: number) => (
+              {power.rows.map((pr, i) => (
                 <tr key={i}>
                   {i === 0 ? (
-                    <td style={tdS} rowSpan={row.powerResult.rows.length}>
-                      {row.powerResult.effectLabel} = {row.powerResult.effect.toFixed(3)}
+                    <td style={tdS} rowSpan={power.rows.length}>
+                      {power.effectLabel} = {power.effect.toFixed(3)}
                     </td>
                   ) : null}
                   <td style={tdS}>{String(pr.alpha)}</td>
@@ -344,15 +355,13 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: any) {
                     {(pr.achieved * 100).toFixed(1)}%
                   </td>
                   <td style={tdS}>
-                    {pr.nForTarget != null
-                      ? `${pr.nForTarget} ${row.powerResult.nLabel}`
-                      : "> 5000"}
+                    {pr.nForTarget != null ? `${pr.nForTarget} ${power.nLabel}` : "> 5000"}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {row.powerResult.approximate && (
+          {power.approximate && (
             <div
               style={{
                 fontSize: 10,
@@ -384,33 +393,42 @@ export function BoxplotStatsPanel({
   showSummary,
   onShowSummaryChange,
   errorBarLabel,
-}: any) {
+}: BoxplotStatsPanelProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     singletonAutoExpand && sets.length === 1 ? { [sets[0].key]: true } : {}
   );
   const [hovered, setHovered] = useState<string | null>(null);
-  const [overrides, setOverrides] = useState<Record<string, string>>({});
+  const [overrides, setOverrides] = useState<Record<string, RecommendedTest>>({});
   const setDisplayMode = onDisplayModeChange;
   const setShowNs = onShowNsChange;
   const setShowSummary = onShowSummaryChange;
 
-  const enriched = useMemo(
+  // EnrichedOrSkip variant — the `skip` branch carries enough fields for the
+  // skip handling at the top of the render path; the populated branch is the
+  // full EnrichedBoxplotStatsRow.
+  type EnrichedOrSkip =
+    | EnrichedBoxplotStatsRow
+    | (BoxplotStatsSet & { names: string[]; values: number[][]; k: number; skip: true });
+
+  const enriched = useMemo<EnrichedOrSkip[]>(
     () =>
-      sets.map((s: any) => {
+      sets.map((s): EnrichedOrSkip => {
         const validGroups = (s.groups || []).filter(
-          (g: any) => g && Array.isArray(g.values) && g.values.length >= 2
+          (g): g is { name: string; values: number[] } =>
+            !!g && Array.isArray(g.values) && g.values.length >= 2
         );
-        const names = validGroups.map((g: any) => g.name);
-        const values = validGroups.map((g: any) => g.values.slice());
+        const names = validGroups.map((g) => g.name);
+        const values = validGroups.map((g) => g.values.slice());
         const k = names.length;
         if (k < 2) return { ...s, names, values, k, skip: true };
-        const rec = selectTest(values);
-        const recTest =
-          rec && rec.recommendation && rec.recommendation.test ? rec.recommendation.test : null;
+        const rec = selectTest(values) as SelectTestResult;
+        const recTest = rec.recommendation?.test ?? null;
         const chosenTest = overrides[s.key] || recTest || null;
         const testResult = chosenTest ? runTest(chosenTest, values) : null;
         const postHocName = postHocForTest(chosenTest);
-        const postHocResult = k > 2 && postHocName ? runPostHoc(postHocName, values) : null;
+        const postHocResult = (
+          k > 2 && postHocName ? runPostHoc(postHocName, values) : null
+        ) as PostHocResult | null;
         const powerResult = chosenTest ? computePowerFromData(chosenTest, values) : null;
         return {
           ...s,
@@ -430,7 +448,7 @@ export function BoxplotStatsPanel({
   );
 
   const annotByKey = useMemo(() => {
-    const out: Record<string, any> = {};
+    const out: Record<string, AnnotationSpec | null> = {};
     for (const r of enriched) {
       out[r.key] = r.skip ? null : computeBpAnnotationSpec(r, displayMode, showNs);
     }
@@ -470,15 +488,17 @@ export function BoxplotStatsPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [summaryKey]);
 
-  const setOverride = (key: string, test: string | null) =>
-    setOverrides((prev: any) => {
+  const setOverride = (key: string, test: RecommendedTest | null) =>
+    setOverrides((prev) => {
       const next = { ...prev };
       if (test == null) delete next[key];
       else next[key] = test;
       return next;
     });
 
-  const eligible = enriched.filter((r: any) => !r.skip);
+  // Narrow to the populated branch — skip rows are filtered out before any
+  // downstream code reads the test/post-hoc/power fields.
+  const eligible = enriched.filter((r): r is EnrichedBoxplotStatsRow => !r.skip);
   if (eligible.length === 0) return null;
 
   const hasR = typeof buildRScript === "function";
@@ -486,7 +506,7 @@ export function BoxplotStatsPanel({
     typeof fileStem === "string" && fileStem.trim()
       ? (typeof svgSafeId === "function" ? svgSafeId(fileStem) : fileStem).replace(/^-+|-+$/g, "")
       : "stats_report";
-  const rowSlug = (row: any, i: number) => {
+  const rowSlug = (row: EnrichedBoxplotStatsRow, i: number): string => {
     const raw = row.name || `set-${i + 1}`;
     const clean =
       typeof svgSafeId === "function"
@@ -496,11 +516,11 @@ export function BoxplotStatsPanel({
             .replace(/^-+|-+$/g, "");
     return clean || `set-${i + 1}`;
   };
-  const downloadReport = (e: any) => {
+  const downloadReport = (e: React.MouseEvent<HTMLElement>) => {
     if (eligible.length === 1) {
       downloadText(buildBpAggregateReport(eligible, setLabel), `${stem}_stats.txt`);
     } else {
-      eligible.forEach((row: any, i: number) => {
+      eligible.forEach((row, i) => {
         const content = buildBpAggregateReport([row], setLabel);
         const name = `${stem}_${rowSlug(row, i)}_stats.txt`;
         setTimeout(() => downloadText(content, name), i * 120);
@@ -508,11 +528,11 @@ export function BoxplotStatsPanel({
     }
     flashSaved(e.currentTarget);
   };
-  const downloadR = (e: any) => {
+  const downloadR = (e: React.MouseEvent<HTMLElement>) => {
     if (eligible.length === 1) {
       downloadText(buildBpAggregateRScript(eligible, setLabel), `${stem}_stats.R`);
     } else {
-      eligible.forEach((row: any, i: number) => {
+      eligible.forEach((row, i) => {
         const content = buildBpAggregateRScript([row], setLabel);
         const name = `${stem}_${rowSlug(row, i)}_stats.R`;
         setTimeout(() => downloadText(content, name), i * 120);
@@ -521,7 +541,7 @@ export function BoxplotStatsPanel({
     flashSaved(e.currentTarget);
   };
 
-  const anyMulti = eligible.some((r: any) => r.k > 2);
+  const anyMulti = eligible.some((r) => r.k > 2);
   const singleSet = sets.length === 1;
   const headingLabel =
     setLabel && !singleSet ? `Statistics at each ${setLabel.toLowerCase()}` : "Statistics";
@@ -709,7 +729,7 @@ export function BoxplotStatsPanel({
           </tr>
         </thead>
         <tbody>
-          {enriched.map((r: any) => {
+          {enriched.map((r) => {
             const key = r.key;
             const isOpen = !!expanded[key];
             if (r.skip) {
@@ -730,9 +750,9 @@ export function BoxplotStatsPanel({
             return (
               <React.Fragment key={key}>
                 <tr
-                  onClick={() => setExpanded((prev: any) => ({ ...prev, [key]: !isOpen }))}
+                  onClick={() => setExpanded((prev) => ({ ...prev, [key]: !isOpen }))}
                   onMouseEnter={() => setHovered(key)}
-                  onMouseLeave={() => setHovered((h: any) => (h === key ? null : h))}
+                  onMouseLeave={() => setHovered((h) => (h === key ? null : h))}
                   style={{
                     cursor: "pointer",
                     background: isOpen
@@ -745,7 +765,9 @@ export function BoxplotStatsPanel({
                 >
                   <td style={tdS}>{r.name || "—"}</td>
                   <td style={tdS}>{r.k}</td>
-                  <td style={tdS}>{TEST_LABELS_BP[r.chosenTest] || r.chosenTest || "—"}</td>
+                  <td style={tdS}>
+                    {r.chosenTest ? TEST_LABELS_BP[r.chosenTest] || r.chosenTest : "—"}
+                  </td>
                   <td style={{ ...tdS, ...mono }}>
                     {formatBpStatShort(r.chosenTest, r.testResult)}
                   </td>
@@ -776,7 +798,7 @@ export function BoxplotStatsPanel({
                       <BoxplotStatsDetail
                         row={r}
                         isOverridden={!!overrides[key]}
-                        onOverrideTest={(t: string | null) => setOverride(key, t)}
+                        onOverrideTest={(t) => setOverride(key, t)}
                       />
                     </td>
                   </tr>

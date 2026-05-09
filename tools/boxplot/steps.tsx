@@ -35,8 +35,16 @@ const BP_AES_THEMES = {
   },
 };
 
-function BpAesBox({ theme, children }: any) {
-  const t = (BP_AES_THEMES as Record<string, any>)[theme];
+interface BpAesTheme {
+  bg: string;
+  border: string;
+  header: string;
+  headerText: string;
+  label: string;
+}
+
+function BpAesBox({ theme, children }: { theme: string; children?: React.ReactNode }) {
+  const t = (BP_AES_THEMES as Record<string, BpAesTheme>)[theme];
   return (
     <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
       <div style={{ background: t.header, padding: "8px 14px", borderRadius: "8px 8px 0 0" }}>
@@ -63,12 +71,26 @@ function BpAesBox({ theme, children }: any) {
 // decision: "use as filter" (on = role `filter`; off = role `ignore`).
 // Users can still rename; the per-column value preview stays. If nothing
 // remains after Group + Value (2-column file), the panel hides itself.
-function OtherColumnsPanel({ headers, rows, colRoles, colNames, onRoleChange, onNameChange }: any) {
+interface OtherColumnsPanelProps {
+  headers: string[];
+  rows: string[][];
+  colRoles: ColumnRole[];
+  colNames: string[];
+  onRoleChange: (i: number, role: ColumnRole) => void;
+  onNameChange: (i: number, name: string) => void;
+}
+
+function OtherColumnsPanel({
+  headers,
+  rows,
+  colRoles,
+  colNames,
+  onRoleChange,
+  onNameChange,
+}: OtherColumnsPanelProps) {
   const groupColIdx = colRoles.indexOf("group");
   const valueColIdx = colRoles.indexOf("value");
-  const otherIdxs = headers
-    .map((_: any, i: number) => i)
-    .filter((i: any) => i !== groupColIdx && i !== valueColIdx);
+  const otherIdxs = headers.map((_, i) => i).filter((i) => i !== groupColIdx && i !== valueColIdx);
   if (otherIdxs.length === 0) return null;
 
   return (
@@ -82,10 +104,10 @@ function OtherColumnsPanel({ headers, rows, colRoles, colNames, onRoleChange, on
         Otherwise the column is ignored.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {otherIdxs.map((i: any) => {
-          const seen = new Set();
-          const u: any[] = [];
-          rows.forEach((r: any) => {
+        {otherIdxs.map((i) => {
+          const seen = new Set<string>();
+          const u: string[] = [];
+          rows.forEach((r) => {
             const v = r[i];
             if (!seen.has(v)) {
               seen.add(v);

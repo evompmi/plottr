@@ -8,7 +8,7 @@
 // statsSummaryHeight + STATS_FONT are now consumed inside ./layout's
 // computeViewBox; chart.tsx still pulls STATS_LINE_H + STATS_FONT for its
 // internal SVG text rendering.
-import { STATS_LINE_H, STATS_FONT } from "./helpers";
+import { STATS_LINE_H, STATS_FONT, ChartProps, BoxplotGroup, Subgroup } from "./helpers";
 import { SignificanceBrackets, CldLabels } from "../_shell/chart-annotations";
 import {
   computeAnnotationPadding,
@@ -36,7 +36,7 @@ function statsTextLines(
   anchor: "start" | "middle" | "end" = "start",
   baseline?: "middle" | "central" | "hanging"
 ) {
-  return lines.map((line: any, i: number) => (
+  return lines.map((line, i) => (
     <text
       key={i}
       x={x}
@@ -55,6 +55,17 @@ function renderStatsSummary(summary: string | null, y: number, x: number) {
   if (!summary) return null;
   return <g id="stats-summary">{statsTextLines(summary.split("\n"), x, y + 10)}</g>;
 }
+interface RenderSubgroupSummariesArgs {
+  subgroups: Subgroup[] | null | undefined;
+  summaries: Record<string, string | null> | null | undefined;
+  hz: boolean;
+  bx: (i: number) => number;
+  bandW: number;
+  separatorGap: number;
+  M: { left: number; top: number; right: number; bottom: number };
+  w: number;
+  summaryY: number;
+}
 function renderSubgroupSummaries({
   subgroups,
   summaries,
@@ -65,9 +76,11 @@ function renderSubgroupSummaries({
   M,
   w,
   summaryY,
-}: any) {
-  return subgroups.map((sg: any, sgIdx: number) => {
-    const txt = summaries[sg.name];
+}: RenderSubgroupSummariesArgs) {
+  if (!subgroups || !summaries) return null;
+  const sums = summaries;
+  return subgroups.map((sg, sgIdx) => {
+    const txt = sums[sg.name];
     if (!txt) return null;
     const lines = txt.split("\n");
     const gid = `stats-summary-${svgSafeId(sg.name)}`;
@@ -93,7 +106,7 @@ function renderSubgroupSummaries({
   });
 }
 
-export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart(
+export const BoxplotChart = forwardRef<SVGSVGElement, ChartProps>(function BoxplotChart(
   {
     groups,
     yLabel,
@@ -159,7 +172,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   // for the path geometry — so this also dedupes within a single render.
   const kdeCacheRef = useRef<WeakMap<number[], Array<{ x: number; d: number }>>>(new WeakMap());
 
-  const allV = groups.flatMap((g: any) => g.allValues);
+  const allV = groups.flatMap((g) => g.allValues);
   if (allV.length === 0) return null;
   const getKde = (allValues: number[]) => {
     let pts = kdeCacheRef.current.get(allValues);
@@ -237,7 +250,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   const fmtTick = makeTickFormatter(isLog);
 
   // ── Chart-local closures (subgroup-scoped element IDs) ──────────────────
-  const _grpId = (prefix: any, gi: any, name: any) => {
+  const _grpId = (prefix: string, gi: number, name: string) => {
     const sg = findSubgroupForIndex(subgroups, gi);
     return sg
       ? `${prefix}-${svgSafeId(sg.name)}-${svgSafeId(name)}`
@@ -245,20 +258,20 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
   };
   const halfBox = (boxWidth / 100) * bandW * 0.4;
 
-  const pointColor = (g: any, src: any, si: any) => {
+  const pointColor = (g: BoxplotGroup, src: BoxplotGroup["sources"][number], si: number) => {
     if (cbc >= 0 && catCols && src.category)
       return catCols[src.category] || getPointColors(g.color, g.sources.length)[si] || g.color;
     return getPointColors(g.color, g.sources.length)[si] || g.color;
   };
 
-  const renderCompPie = (g: any, px: any, py: any, gi = 0) => {
+  const renderCompPie = (g: BoxplotGroup, px: number, py: number, gi = 0) => {
     if (cbc < 0 || !g.sources || !showCompPie) return null;
     const total = g.allValues.length;
     if (!total) return null;
     const r = 20;
     let cum = 0;
 
-    const slices = g.sources.map((src: any, si: number) => {
+    const slices = g.sources.map((src, si) => {
       const pct = src.values.length / total;
       const a0 = cum * Math.PI * 2;
       const a1 = (cum + pct) * Math.PI * 2;
@@ -282,12 +295,10 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
       );
     });
 
-    const labels = g.sources.map((src: any, si: number) => {
+    const labels = g.sources.map((src, si) => {
       const pct = src.values.length / total;
       if (pct < 0.08) return null;
-      const cumPct = g.sources
-        .slice(0, si)
-        .reduce((s: any, ss: any) => s + ss.values.length / total, 0);
+      const cumPct = g.sources.slice(0, si).reduce((s, ss) => s + ss.values.length / total, 0);
       const midA = (cumPct + pct / 2) * Math.PI * 2;
       const lr = r + 8;
       return (
@@ -331,8 +342,8 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
       {showGrid && (
         <g id="grid">
           {yTicks
-            .filter((tk: any) => tk.major)
-            .map((tk: any) =>
+            .filter((tk) => tk.major)
+            .map((tk) =>
               hz ? (
                 <line
                   key={tk.value}
@@ -359,7 +370,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
       )}
 
       <g id={hz ? "axis-x" : "axis-y"}>
-        {yTicks.map((tk: any) => {
+        {yTicks.map((tk) => {
           const v = tk.value;
           const tickLen = tk.major ? 5 : 3;
           return (
@@ -417,7 +428,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
       </g>
 
       <g id={isBar ? "bars" : "groups"}>
-        {groups.map((g: any, gi: number) => {
+        {groups.map((g: BoxplotGroup, gi: number) => {
           if (!g.stats) return null;
           const cx = bx(gi);
 
@@ -505,10 +516,10 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
                   </>
                 )}
                 {showPoints &&
-                  g.sources.map((src: any, si: number) => {
+                  g.sources.map((src, si) => {
                     const rng = seededRandom(gi * 1000 + si * 100 + 42);
                     const ptColor = pointColor(g, src, si);
-                    return src.values.map((v: any, vi: number) => {
+                    return src.values.map((v, vi) => {
                       const jitter = (rng() - 0.5) * jitterWidth * halfBox * 2;
                       return (
                         <circle
@@ -537,9 +548,9 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
           let violinPath = null;
           if (isViolin && g.allValues.length >= 2) {
             const pts = getKde(g.allValues);
-            const maxD = Math.max(...pts.map((p: any) => p.d));
+            const maxD = Math.max(...pts.map((p) => p.d));
             if (maxD > 0) {
-              const sc = (d: any) => (d / maxD) * halfBox;
+              const sc = (d: number) => (d / maxD) * halfBox;
               if (isRain) {
                 let d = hz ? `M ${sy(pts[0].x)},${cx}` : `M ${cx},${sy(pts[0].x)}`;
                 for (const p of pts)
@@ -672,10 +683,10 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
           const ptOffset = isRain ? halfBox * 0.55 : 0;
           const jitterEls =
             showPoints &&
-            g.sources.map((src: any, si: number) => {
+            g.sources.map((src, si) => {
               const rng = seededRandom(gi * 1000 + si * 100 + 42);
               const ptColor = pointColor(g, src, si);
-              return src.values.map((v: any, vi: number) => {
+              return src.values.map((v, vi) => {
                 const j = isRain
                   ? ptOffset + Math.abs(rng() - 0.5) * jitterWidth * halfBox
                   : (rng() - 0.5) * jitterWidth * halfBox * 2;
@@ -697,10 +708,10 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
 
           /* ── Outlier dots (always visible) ── */
           const outlierCx = isRain ? cx + ptOffset : cx;
-          const outlierEls = g.sources.flatMap((src: any, si: number) =>
+          const outlierEls = g.sources.flatMap((src, si) =>
             src.values
-              .filter((v: any) => v < wLo || v > wHi)
-              .map((v: any, oi: number) => (
+              .filter((v) => v < wLo || v > wHi)
+              .map((v, oi) => (
                 <circle
                   key={`out-${gi}-${si}-${oi}`}
                   cx={hz ? sy(v) : outlierCx}
@@ -738,7 +749,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
 
       {subgroups && subgroups.length > 1 && (
         <g id="subgroup-separators">
-          {subgroups.slice(1).map((sg: any, idx: number) => {
+          {subgroups.slice(1).map((sg, idx) => {
             const sepPos = bx(sg.startIndex) - bandW / 2 - separatorGap / 2;
             return hz ? (
               <line
@@ -769,7 +780,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
 
       {subgroups && subgroups.length > 0 && (
         <g id="subgroup-labels">
-          {subgroups.map((sg: any) => {
+          {subgroups.map((sg) => {
             const firstX = bx(sg.startIndex);
             const lastX = bx(sg.startIndex + sg.count - 1);
             const midPos = (firstX + lastX) / 2;
@@ -814,7 +825,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
       )}
 
       <g id={hz ? "axis-y" : "axis-x"}>
-        {groups.map((g: any, gi: number) => {
+        {groups.map((g: BoxplotGroup, gi: number) => {
           const gp = bx(gi);
           if (hz) {
             const labelX = M.left - 8;
@@ -912,7 +923,7 @@ export const BoxplotChart = forwardRef<SVGSVGElement, any>(function BoxplotChart
         })}
       </g>
 
-      {annotations && _hasLabels && (
+      {annotations && (annotations.kind === "cld" || annotations.kind === "both") && (
         <CldLabels
           labels={annotations.labels || []}
           axisCoord={bx}

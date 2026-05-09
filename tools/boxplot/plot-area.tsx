@@ -3,8 +3,23 @@
 // component and a couple of React hooks — no tool-specific state lives here.
 
 import { BoxplotChart } from "./chart";
+import {
+  ChartProps,
+  FacetCell,
+  FacetPlotListProps,
+  FacetTrioProps,
+  PlotAreaProps,
+} from "./helpers";
 
 const { memo, useMemo, useRef, useEffect } = React;
+
+interface FacetBoxplotItemProps {
+  fd: FacetCell;
+  facetRefs: React.MutableRefObject<Record<string, SVGSVGElement | null>>;
+  chartProps: ChartProps;
+  categoryColors: Record<string, string>;
+  fillHeight?: boolean;
+}
 
 const FacetBoxplotItem = memo(function FacetBoxplotItem({
   fd,
@@ -12,8 +27,8 @@ const FacetBoxplotItem = memo(function FacetBoxplotItem({
   chartProps,
   categoryColors,
   fillHeight,
-}: any) {
-  const localRef = useRef<any>(null);
+}: FacetBoxplotItemProps) {
+  const localRef = useRef<SVGSVGElement | null>(null);
   useEffect(() => {
     // Capture facetRefs.current to a local so the cleanup closes over the
     // map that was current when the effect ran, not whatever the ref
@@ -53,7 +68,7 @@ const FacetBoxplotItem = memo(function FacetBoxplotItem({
           {fd.category}
         </p>
         <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
-          ({fd.groups.reduce((a: any, g: any) => a + g.allValues.length, 0)} pts)
+          ({fd.groups.reduce((a, g) => a + g.allValues.length, 0)} pts)
         </span>
       </div>
       <BoxplotChart ref={localRef} {...chartProps} />
@@ -77,7 +92,7 @@ export function PlotArea({
   chartSummary,
   subgroups,
   subgroupSummaries,
-}: any) {
+}: PlotAreaProps) {
   if (displayBoxplotGroups.length === 0 && (facetByCol < 0 || facetedData.length === 0)) {
     return (
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -122,7 +137,7 @@ export function PlotArea({
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
             Points colored by: {colNames[colorByCol]}
           </span>
-          {colorByCategories.map((cat: any) => (
+          {colorByCategories.map((cat) => (
             <div key={cat} style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <div
                 style={{
@@ -187,7 +202,7 @@ export function PlotArea({
                     {
                       id: "legend-color",
                       title: `Points colored by: ${colNames[colorByCol]}`,
-                      items: colorByCategories.map((c: any) => ({
+                      items: colorByCategories.map((c) => ({
                         label: c,
                         color: categoryColors[c] || "#999",
                         shape: "dot",
@@ -224,10 +239,10 @@ const FacetTrio = memo(function FacetTrio({
   colorByCol,
   svgLegend,
   facetRefs,
-}: any) {
+}: FacetTrioProps) {
   const chartProps = useMemo(
     () => ({
-      groups: fd.groups.map((g: any) => ({
+      groups: fd.groups.map((g) => ({
         ...g,
         name: plotGroupRenames[g.name] ?? g.name,
         color: boxplotColors[g.name] ?? g.color,
@@ -305,7 +320,7 @@ export function FacetPlotList({
   facetStatsAnnotations,
   facetStatsSummary,
   facetSubgroupSummaries,
-}: any) {
+}: FacetPlotListProps) {
   // Stabilise svgLegend so FacetTrio's shallow-compare can hold across
   // unrelated re-renders. Without this, it would be a fresh array literal
   // on every render and every memoised trio would re-render.
@@ -316,7 +331,7 @@ export function FacetPlotList({
             {
               id: "legend-color",
               title: `Points colored by: ${colNames[colorByCol]}`,
-              items: colorByCategories.map((c: any) => ({
+              items: colorByCategories.map((c) => ({
                 label: c,
                 color: categoryColors[c] || "#999",
                 shape: "dot",
@@ -345,7 +360,7 @@ export function FacetPlotList({
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
             Points colored by: {colNames[colorByCol]}
           </span>
-          {colorByCategories.map((cat: any) => (
+          {colorByCategories.map((cat) => (
             <div key={cat} style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <div
                 style={{
@@ -360,7 +375,7 @@ export function FacetPlotList({
           ))}
         </div>
       )}
-      {facetedData.map((fd: any) => (
+      {facetedData.map((fd: FacetCell) => (
         <FacetTrio
           key={fd.category}
           fd={fd}

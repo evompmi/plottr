@@ -20,7 +20,16 @@ export const statsInit = {
   cellSummaries: {} as Record<string, string | null>,
 };
 
-export function statsReducer(state: typeof statsInit, a: any): typeof statsInit {
+export type StatsAction =
+  | { type: "reset" }
+  | { type: "setDisplayMode"; value: "none" | "cld" | "brackets" }
+  | { type: "setShowNs"; value: boolean }
+  | { type: "setShowSummary"; value: boolean }
+  | { type: "clearCells" }
+  | { type: "setCellAnnotation"; key: string; value: unknown }
+  | { type: "setCellSummary"; key: string; value: string | null };
+
+export function statsReducer(state: typeof statsInit, a: StatsAction): typeof statsInit {
   switch (a.type) {
     case "reset":
       return statsInit;
