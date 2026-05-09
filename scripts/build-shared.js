@@ -39,8 +39,6 @@ const FILES = [
   // and is consumed by shared-r-export.js + shared-stats-tile.js
   // downstream — must load after the stats-*.js files, before those two.
   "shared-stats-registry.js",
-  "shared-file-drop.js",
-  "shared-ui.js",
   "shared-r-export.js",
   "shared-stats-tile.js",
 ];

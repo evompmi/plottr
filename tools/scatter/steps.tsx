@@ -3,6 +3,7 @@
 // are re-exported because the Plot step and its sidebar both want them.
 
 import { HowTo } from "../_shell/HowTo";
+import { UploadPanel, scrollDisclosureIntoView } from "../_shell/ui";
 import { SCATTER_HOWTO } from "./howto";
 
 export const aesTheme = {

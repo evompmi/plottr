@@ -1,23 +1,61 @@
-// shared-ui.js — plain JS, no JSX
-// Requires React, shared.js (toolIcon, flashSaved), components.css (dv-*
-// classes), and shared-file-drop.js (FileDropZone) to be loaded globally
-// before this script.
-
-// ── Shared UI Components ─────────────────────────────────────────────────────
-
-// NumberInput — compact numeric entry with −/+ buttons on either side
-// replacing the native stacked spinner. Mimics the native <input type=
-// "number"> API: `value`, `onChange(e)` where `e.target.value` is a string,
-// plus `min`, `max`, `step`, `disabled`, `placeholder`, `className`, `style`,
-// `inputStyle`. The −/+ buttons fire a synthetic event with the next value
-// as a string so existing `(e) => setX(e.target.value)` handlers keep working.
+// Shared chrome components — NumberInput, SliderControl, StepNavBar,
+// PageHeader, UploadPanel, HowToCard, ActionsPanel, the three banners
+// (CommaFix / FormulaInjection / ParseError), plus scroll helpers.
 //
-// Press-and-hold: the button repeats at an accelerating cadence for as long
-// as the pointer is held (first bump immediate, 400 ms before repeat kicks
-// in, then 80 ms for a handful of ticks, then 40 ms). Release anywhere on
-// the page stops the hold via a window-level pointerup listener, so the user
-// can drag off the button mid-hold without breaking the gesture.
-function NumberInput(props) {
+// Pre-2026-05 these lived in `tools/shared-ui.js` (plain-JS, React.createElement)
+// loaded as globals. Now a typed module — kept in `React.createElement`
+// form (no JSX rewrite) because the components are dense and a wholesale
+// JSX conversion would balloon the diff for no functional change. Same
+// pattern as `svg-legend.ts` and `long-format.tsx`.
+//
+// `toolIcon` and `flashSaved` come from `tools/shared.js` (still ambient
+// globals); `FormulaInjectionWarning` is also ambient (declared in
+// `types/globals.d.ts` because `scanForFormulaInjection` lives in the
+// plain-JS `shared.js`).
+
+import { FileDropZone } from "./file-drop";
+
+const h = React.createElement;
+const { useState, useRef, useEffect, useMemo, memo } = React;
+
+// ── NumberInput ─────────────────────────────────────────────────────
+//
+// Compact numeric entry with −/+ buttons on either side replacing the
+// native stacked spinner. Mimics the native `<input type="number">` API:
+// `value`, `onChange(e)` where `e.target.value` is a string, plus `min`,
+// `max`, `step`, `disabled`, `placeholder`, `className`, `style`,
+// `inputStyle`. The −/+ buttons fire a synthetic event with the next
+// value as a string so existing `(e) => setX(e.target.value)` handlers
+// keep working.
+//
+// Press-and-hold: the button repeats at an accelerating cadence for as
+// long as the pointer is held (first bump immediate, 400 ms before
+// repeat kicks in, then 80 ms for a handful of ticks, then 40 ms).
+// Release anywhere on the page stops the hold via a window-level
+// pointerup listener, so the user can drag off the button mid-hold
+// without breaking the gesture.
+
+interface NumberInputProps {
+  value: number | string | null | undefined;
+  onChange: (e: { target: { value: string } }) => void;
+  min?: number | string;
+  max?: number | string;
+  step?: number | string;
+  disabled?: boolean;
+  placeholder?: string;
+  className?: string;
+  style?: React.CSSProperties;
+  inputStyle?: React.CSSProperties;
+}
+
+interface HoldState {
+  dir: number;
+  next: number;
+  timerId: ReturnType<typeof setTimeout> | null;
+  onUp: (() => void) | null;
+}
+
+export function NumberInput(props: NumberInputProps) {
   const value = props.value != null ? props.value : "";
   const onChange = props.onChange;
   const min = props.min != null ? Number(props.min) : null;
@@ -29,18 +67,15 @@ function NumberInput(props) {
   const className = "dv-num" + (disabled ? " dv-num-disabled" : "");
 
   // Hold state lives in a ref so setTimeout chains survive React re-renders
-  // triggered by each fireChange. `holdRef.current` is an object per gesture:
-  // { dir, next, timerId, onUp } — comparing identity in the tick lets us
-  // bail out if a new hold has replaced the old one, or if stopRepeat cleared
-  // it.
-  const holdRef = React.useRef(null);
+  // triggered by each fireChange.
+  const holdRef = useRef<HoldState | null>(null);
 
-  const fireChange = function (newValueStr) {
+  const fireChange = (newValueStr: string) => {
     if (!onChange) return;
     onChange({ target: { value: newValueStr } });
   };
 
-  const clamp = function (n) {
+  const clamp = (n: number): number => {
     if (min != null && n < min) n = min;
     if (max != null && n > max) n = max;
     // Round to the step's decimal precision to avoid 0.1+0.2 float noise.
@@ -52,7 +87,7 @@ function NumberInput(props) {
   const minusDisabled = disabled || (min != null && !isNaN(numericValue) && numericValue <= min);
   const plusDisabled = disabled || (max != null && !isNaN(numericValue) && numericValue >= max);
 
-  const stopRepeat = function () {
+  const stopRepeat = () => {
     const state = holdRef.current;
     if (!state) return;
     if (state.timerId) clearTimeout(state.timerId);
@@ -63,15 +98,15 @@ function NumberInput(props) {
     holdRef.current = null;
   };
 
-  const startRepeat = function (dir) {
+  const startRepeat = (dir: number) => {
     if ((dir < 0 && minusDisabled) || (dir > 0 && plusDisabled)) return;
     // Seed from the current prop value; every subsequent tick walks our own
     // ref so we stay correct even if React hasn't flushed the re-render yet.
     const seed = isNaN(Number(value)) ? (min != null ? min : 0) : Number(value);
-    const state = { dir: dir, next: seed, timerId: null, onUp: null };
+    const state: HoldState = { dir, next: seed, timerId: null, onUp: null };
     holdRef.current = state;
 
-    const doStep = function () {
+    const doStep = () => {
       if (holdRef.current !== state) return;
       const n = clamp(state.next + dir * step);
       state.next = n;
@@ -86,7 +121,7 @@ function NumberInput(props) {
     if (holdRef.current !== state) return;
 
     let ticks = 0;
-    const tick = function () {
+    const tick = () => {
       if (holdRef.current !== state) return;
       doStep();
       if (holdRef.current !== state) return;
@@ -99,9 +134,7 @@ function NumberInput(props) {
 
     // Release anywhere on the page ends the hold — survives the user
     // dragging off the button mid-gesture.
-    state.onUp = function () {
-      stopRepeat();
-    };
+    state.onUp = () => stopRepeat();
     if (typeof window !== "undefined") {
       window.addEventListener("pointerup", state.onUp);
       window.addEventListener("pointercancel", state.onUp);
@@ -109,27 +142,25 @@ function NumberInput(props) {
   };
 
   // Clean up if the component unmounts during a hold.
-  React.useEffect(function () {
-    return function () {
-      stopRepeat();
-    };
+  useEffect(() => {
+    return () => stopRepeat();
   }, []);
 
-  const onMinusDown = function (e) {
+  const onMinusDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (e.button != null && e.button !== 0) return;
     e.preventDefault();
     startRepeat(-1);
   };
-  const onPlusDown = function (e) {
+  const onPlusDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (e.button != null && e.button !== 0) return;
     e.preventDefault();
     startRepeat(1);
   };
 
-  return React.createElement(
+  return h(
     "div",
-    { className: className, style: props.style },
-    React.createElement(
+    { className, style: props.style },
+    h(
       "button",
       {
         type: "button",
@@ -139,23 +170,21 @@ function NumberInput(props) {
         tabIndex: -1,
         "aria-label": "Decrement",
       },
-      "\u2212"
+      "−"
     ),
-    React.createElement("input", {
+    h("input", {
       type: "number",
       className: "dv-num-input",
-      value: value,
+      value,
       min: props.min,
       max: props.max,
       step: props.step != null ? props.step : 1,
-      disabled: disabled,
-      placeholder: placeholder,
-      onChange: function (e) {
-        fireChange(e.target.value);
-      },
+      disabled,
+      placeholder,
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => fireChange(e.target.value),
       style: props.inputStyle,
     }),
-    React.createElement(
+    h(
       "button",
       {
         type: "button",
@@ -170,62 +199,64 @@ function NumberInput(props) {
   );
 }
 
+// ── SliderControl ───────────────────────────────────────────────────
+//
 // Slider with label + value display on top, range input below.
 //
-// Wrapped in React.memo with a custom comparator that intentionally ignores
-// the `onChange` prop. Without this, dragging one slider re-renders every
-// other slider in the same sidebar (sliders all live under the same parent
-// reducer), because each call site passes an inline `onChange={(v) => updVis(
-// {...})}` that gets a fresh function reference every render.
+// Wrapped in React.memo with a custom comparator that intentionally
+// ignores the `onChange` prop. Without this, dragging one slider
+// re-renders every other slider in the same sidebar (sliders all live
+// under the same parent reducer), because each call site passes an
+// inline `onChange={(v) => updVis({...})}` that gets a fresh function
+// reference every render.
 //
-// Ignoring onChange is safe HERE because every call site closes the inline
-// arrow over a `useReducer` dispatch (or other stable setter) plus a literal
-// patch object — no captured state that could go stale between renders. If a
-// future caller ever needs onChange to capture mutable state, switch back to
-// React's default shallow compare and useCallback at the call sites.
-function _SliderControlImpl(props) {
-  const label = props.label,
-    value = props.value,
-    displayValue = props.displayValue,
-    min = props.min,
-    max = props.max,
-    step = props.step,
-    onChange = props.onChange;
-  var dv = displayValue != null ? displayValue : value;
-  var pct = ((value - min) / (max - min)) * 100;
-  var grad =
+// Ignoring onChange is safe HERE because every call site closes the
+// inline arrow over a `useReducer` dispatch (or other stable setter)
+// plus a literal patch object — no captured state that could go stale
+// between renders.
+
+interface SliderControlProps {
+  label: React.ReactNode;
+  value: number;
+  displayValue?: React.ReactNode;
+  min: number;
+  max: number;
+  step?: number;
+  onChange: (v: number) => void;
+}
+
+function _SliderControlImpl(props: SliderControlProps) {
+  const { label, value, displayValue, min, max, step, onChange } = props;
+  const dv = displayValue != null ? displayValue : value;
+  const pct = ((value - min) / (max - min)) * 100;
+  const grad =
     "linear-gradient(to right, var(--accent-primary) " +
     pct +
     "%, var(--slider-track) " +
     pct +
     "%)";
-  return React.createElement(
+  return h(
     "div",
     null,
-    React.createElement(
+    h(
       "div",
       { style: { display: "flex", justifyContent: "space-between", marginBottom: 2 } },
-      React.createElement("span", { className: "dv-label" }, label),
-      React.createElement("span", { style: { fontSize: 10, color: "var(--text-faint)" } }, dv)
+      h("span", { className: "dv-label" }, label),
+      h("span", { style: { fontSize: 10, color: "var(--text-faint)" } }, dv)
     ),
-    React.createElement("input", {
+    h("input", {
       type: "range",
-      min: min,
-      max: max,
-      step: step,
-      value: value,
-      onChange: function (e) {
-        onChange(Number(e.target.value));
-      },
+      min,
+      max,
+      step,
+      value,
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(Number(e.target.value)),
       style: { width: "100%", background: grad },
     })
   );
 }
-// `var` (not `const`) so the binding lands on the script-tag global, the same
-// way every other shared-*.js export does. Tools consume SliderControl as a
-// global symbol; a top-level `const` would scope it to the script and break
-// downstream tool .tsx files.
-var SliderControl = React.memo(_SliderControlImpl, function (prev, next) {
+
+export const SliderControl = memo(_SliderControlImpl, (prev, next) => {
   return (
     prev.value === next.value &&
     prev.min === next.min &&
@@ -236,40 +267,48 @@ var SliderControl = React.memo(_SliderControlImpl, function (prev, next) {
   );
 });
 
-// Step navigation bar — horizontal stepper with circles + labels + connector line.
-// Past steps render a ✓ on a filled --step-ready circle; the current step renders
-// its number on --step-active-bg chrome; reachable-unvisited steps render a
-// --step-ready outline; locked steps render a neutral outline. Connector line
-// between circles fills --step-ready green up to the last completed step.
-function StepNavBar(props) {
-  const steps = props.steps,
-    currentStep = props.currentStep,
-    onStepChange = props.onStepChange,
-    canNavigate = props.canNavigate,
-    stepLabels = props.stepLabels || {};
+// ── StepNavBar ──────────────────────────────────────────────────────
+//
+// Horizontal stepper with circles + labels + connector line. Past steps
+// render a ✓ on a filled --step-ready circle; the current step renders
+// its number on --step-active-bg chrome; reachable-unvisited steps
+// render a --step-ready outline; locked steps render a neutral outline.
+// Connector line between circles fills --step-ready up to the last
+// completed step.
+
+interface StepNavBarProps {
+  steps: string[];
+  currentStep: string;
+  onStepChange: (s: string) => void;
+  canNavigate?: (s: string) => boolean;
+  // Optional override for the visible label of a step key. Keys remain
+  // the stable identifier used by navigation state; labels can be
+  // dynamic (e.g. venn showing "Import check" vs "Configure").
+  stepLabels?: Record<string, string>;
+}
+
+export function StepNavBar(props: StepNavBarProps) {
+  const { steps, currentStep, onStepChange } = props;
+  const canNavigate = props.canNavigate;
+  const stepLabels = props.stepLabels || {};
   const currentIdx = steps.indexOf(currentStep);
-  const capitalize = function (s) {
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  };
-  // Allow callers to override the visible label for a step key without
-  // changing the key itself. Keys remain the stable identifier used by
-  // navigation state; labels can be dynamic (e.g. venn showing "Import
-  // check" vs "Configure" depending on detected set count).
-  const labelFor = function (s) {
-    return stepLabels[s] || capitalize(s);
-  };
-  const cells = steps.map(function (s, i) {
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const labelFor = (s: string) => stepLabels[s] || capitalize(s);
+  const cells = steps.map((s, i) => {
     const enabled = canNavigate ? canNavigate(s) : true;
     const isCurrent = i === currentIdx;
     const isPast = i < currentIdx;
     const isReachableUnvisited = enabled && !isCurrent && !isPast;
 
-    let circleBg, circleBorder, circleColor, circleContent;
+    let circleBg: string;
+    let circleBorder: string;
+    let circleColor: string;
+    let circleContent: React.ReactNode;
     if (isPast) {
       circleBg = "var(--step-ready)";
       circleBorder = "none";
       circleColor = "#ffffff";
-      circleContent = React.createElement(
+      circleContent = h(
         "svg",
         {
           key: "check",
@@ -279,7 +318,7 @@ function StepNavBar(props) {
           "aria-hidden": "true",
           style: { display: "block" },
         },
-        React.createElement("path", {
+        h("path", {
           d: "M5 12.5l4.2 4.2L19 7",
           fill: "none",
           stroke: "currentColor",
@@ -316,7 +355,7 @@ function StepNavBar(props) {
 
     const connector =
       i < steps.length - 1
-        ? React.createElement("div", {
+        ? h("div", {
             key: "conn",
             "aria-hidden": "true",
             style: {
@@ -332,7 +371,7 @@ function StepNavBar(props) {
           })
         : null;
 
-    const circle = React.createElement(
+    const circle = h(
       "span",
       {
         key: "circle",
@@ -359,7 +398,7 @@ function StepNavBar(props) {
       circleContent
     );
 
-    const label = React.createElement(
+    const label = h(
       "span",
       {
         key: "label",
@@ -376,16 +415,12 @@ function StepNavBar(props) {
       labelFor(s)
     );
 
-    const button = React.createElement(
+    const button = h(
       "button",
       {
         key: "btn",
         type: "button",
-        onClick: enabled
-          ? function () {
-              onStepChange(s);
-            }
-          : undefined,
+        onClick: enabled ? () => onStepChange(s) : undefined,
         disabled: !enabled,
         "aria-current": isCurrent ? "step" : undefined,
         "aria-label": "Step " + (i + 1) + " of " + steps.length + ": " + labelFor(s),
@@ -409,7 +444,7 @@ function StepNavBar(props) {
       label
     );
 
-    return React.createElement(
+    return h(
       "div",
       {
         key: "step-" + s,
@@ -427,7 +462,7 @@ function StepNavBar(props) {
     );
   });
 
-  return React.createElement(
+  return h(
     "div",
     {
       style: {
@@ -441,10 +476,16 @@ function StepNavBar(props) {
   );
 }
 
-// Decimal comma auto-fix banner
-function CommaFixBanner(props) {
+// ── CommaFixBanner ──────────────────────────────────────────────────
+
+interface CommaFixBannerProps {
+  commaFixed: boolean;
+  commaFixCount: number;
+}
+
+export function CommaFixBanner(props: CommaFixBannerProps) {
   if (!props.commaFixed) return null;
-  return React.createElement(
+  return h(
     "div",
     {
       className: "dv-panel",
@@ -458,62 +499,57 @@ function CommaFixBanner(props) {
         padding: "10px 16px",
       },
     },
-    React.createElement("span", { style: { fontSize: 18 }, "aria-hidden": "true" }, "\uD83D\uDD04"),
-    React.createElement(
+    h("span", { style: { fontSize: 18 }, "aria-hidden": "true" }, "🔄"),
+    h(
       "div",
       { style: { flex: 1 } },
-      React.createElement(
+      h(
         "p",
         { style: { margin: 0, fontSize: 12, color: "var(--warning-text)", fontWeight: 600 } },
         "Decimal commas automatically converted to dots"
       ),
-      React.createElement(
+      h(
         "p",
-        { style: { margin: "2px 0 0", fontSize: 11, color: "var(--warning-text)", opacity: 0.85 } },
+        {
+          style: { margin: "2px 0 0", fontSize: 11, color: "var(--warning-text)", opacity: 0.85 },
+        },
         props.commaFixCount +
           " value" +
           (props.commaFixCount > 1 ? "s" : "") +
-          ' had commas as decimal separators (e.g. "0,5" \u2192 "0.5").'
+          ' had commas as decimal separators (e.g. "0,5" → "0.5").'
       )
     )
   );
 }
 
-// Formula-injection warning banner. Surfaces the result of
-// scanForFormulaInjection at ingest time so the user sees that their
-// uploaded file contains cells / headers that would trigger formula
-// evaluation in Excel / LibreOffice / Sheets — even if Plöttr itself
-// just round-trips them as text. We sanitize on export (see
-// _escapeCsvCell), but the user might re-export by other means or
-// share the original file, so flagging the input is the safer signal.
-//
-// `warning` is the FormulaInjectionWarning object from shared.js (or
-// null when the dataset is clean — in which case the banner renders
-// nothing).
-function FormulaInjectionBanner(props) {
+// ── FormulaInjectionBanner ──────────────────────────────────────────
+
+interface FormulaInjectionBannerProps {
+  warning: FormulaInjectionWarning | null;
+}
+
+export function FormulaInjectionBanner(props: FormulaInjectionBannerProps) {
   const w = props.warning;
   if (!w || !w.count) return null;
-  // Trim long offending values so the banner stays compact even when
-  // the cell is megabytes of pasted formula.
-  const trim = function (v) {
+  const trim = (v: unknown) => {
     const s = String(v);
     return s.length > 80 ? s.slice(0, 80) + "…" : s;
   };
-  const fmtCell = function (c) {
+  const fmtCell = (c: { header?: string | null; row: number; col: number; value: unknown }) => {
     const where = c.header
       ? "“" + c.header + "” row " + (c.row + 1)
       : "row " + (c.row + 1) + " col " + (c.col + 1);
     return where + ": " + trim(c.value);
   };
-  const fmtHeader = function (h) {
-    return "column " + (h.idx + 1) + ": " + trim(h.value);
+  const fmtHeader = (hdr: { idx: number; value: unknown }) => {
+    return "column " + (hdr.idx + 1) + ": " + trim(hdr.value);
   };
-  const examples = [];
+  const examples: string[] = [];
   for (let i = 0; i < w.headers.length; i++) examples.push("Header — " + fmtHeader(w.headers[i]));
   for (let i = 0; i < w.cells.length; i++) examples.push(fmtCell(w.cells[i]));
   const shown = examples.length;
   const overflow = w.count - shown;
-  return React.createElement(
+  return h(
     "div",
     {
       role: "alert",
@@ -528,20 +564,16 @@ function FormulaInjectionBanner(props) {
         gap: 10,
       },
     },
-    React.createElement(
-      "span",
-      { style: { fontSize: 18, lineHeight: "20px" }, "aria-hidden": "true" },
-      "⚠️"
-    ),
-    React.createElement(
+    h("span", { style: { fontSize: 18, lineHeight: "20px" }, "aria-hidden": "true" }, "⚠️"),
+    h(
       "div",
       { style: { flex: 1, minWidth: 0 } },
-      React.createElement(
+      h(
         "p",
         { style: { margin: 0, fontSize: 12, color: "var(--warning-text)", fontWeight: 700 } },
         "Suspicious cells in uploaded data (" + w.count + (w.count === 1 ? " cell" : " cells") + ")"
       ),
-      React.createElement(
+      h(
         "p",
         {
           style: {
@@ -555,7 +587,7 @@ function FormulaInjectionBanner(props) {
           "= + - @ tab CR" +
           " are treated as formulas by Excel / LibreOffice / Sheets and could exfiltrate or run code if you re-open this data there. Plöttr exports prefix them with a leading apostrophe to neutralise them — but the original file is unchanged, so handle with care."
       ),
-      React.createElement(
+      h(
         "ul",
         {
           style: {
@@ -568,12 +600,10 @@ function FormulaInjectionBanner(props) {
             wordBreak: "break-all",
           },
         },
-        examples.map(function (e, i) {
-          return React.createElement("li", { key: i }, e);
-        })
+        examples.map((e, i) => h("li", { key: i }, e))
       ),
       overflow > 0
-        ? React.createElement(
+        ? h(
             "p",
             {
               style: {
@@ -590,10 +620,15 @@ function FormulaInjectionBanner(props) {
   );
 }
 
-// Parse error banner
-function ParseErrorBanner(props) {
+// ── ParseErrorBanner ────────────────────────────────────────────────
+
+interface ParseErrorBannerProps {
+  error: string | null | undefined;
+}
+
+export function ParseErrorBanner(props: ParseErrorBannerProps) {
   if (!props.error) return null;
-  return React.createElement(
+  return h(
     "div",
     {
       role: "alert",
@@ -608,8 +643,8 @@ function ParseErrorBanner(props) {
         gap: 8,
       },
     },
-    React.createElement("span", { style: { fontSize: 16 }, "aria-hidden": "true" }, "\uD83D\uDEAB"),
-    React.createElement(
+    h("span", { style: { fontSize: 16 }, "aria-hidden": "true" }, "🚫"),
+    h(
       "span",
       { style: { fontSize: 12, color: "var(--danger-text)", fontWeight: 600 } },
       props.error
@@ -617,12 +652,22 @@ function ParseErrorBanner(props) {
   );
 }
 
-// Page header with tool icon. The landing page owns the theme toggle in
-// its top bar — we don't render a second one here.
-function PageHeader(props) {
-  const vbar = function (key) {
-    return React.createElement("div", {
-      key: key,
+// ── PageHeader ──────────────────────────────────────────────────────
+//
+// Page header with tool icon. The landing page owns the theme toggle
+// in its top bar — we don't render a second one here.
+
+interface PageHeaderProps {
+  toolName: string;
+  title: React.ReactNode;
+  middle?: React.ReactNode;
+  right?: React.ReactNode;
+}
+
+export function PageHeader(props: PageHeaderProps) {
+  const vbar = (key: string) =>
+    h("div", {
+      key,
       "aria-hidden": "true",
       style: {
         flex: "0 0 auto",
@@ -631,9 +676,8 @@ function PageHeader(props) {
         background: "var(--border-strong)",
       },
     });
-  };
-  const rowChildren = [
-    React.createElement(
+  const rowChildren: React.ReactNode[] = [
+    h(
       "h1",
       {
         key: "title",
@@ -654,7 +698,7 @@ function PageHeader(props) {
   if (props.middle) {
     rowChildren.push(vbar("vbar-middle"));
     rowChildren.push(
-      React.createElement(
+      h(
         "div",
         {
           key: "middle",
@@ -664,12 +708,12 @@ function PageHeader(props) {
       )
     );
   } else {
-    rowChildren.push(React.createElement("div", { key: "spacer", style: { flex: "1 1 auto" } }));
+    rowChildren.push(h("div", { key: "spacer", style: { flex: "1 1 auto" } }));
   }
   if (props.right) {
     rowChildren.push(vbar("vbar-right"));
     rowChildren.push(
-      React.createElement(
+      h(
         "div",
         {
           key: "right",
@@ -679,7 +723,7 @@ function PageHeader(props) {
       )
     );
   }
-  return React.createElement(
+  return h(
     "div",
     {
       style: {
@@ -688,7 +732,7 @@ function PageHeader(props) {
         paddingBottom: 16,
       },
     },
-    React.createElement(
+    h(
       "div",
       {
         style: {
@@ -703,18 +747,25 @@ function PageHeader(props) {
   );
 }
 
-// Separator selector + FileDropZone combo for upload step
-function UploadPanel(props) {
-  const sepOverride = props.sepOverride,
-    onSepChange = props.onSepChange,
-    onFileLoad = props.onFileLoad,
-    onLoadExample = props.onLoadExample,
-    exampleLabel = props.exampleLabel,
-    hint = props.hint;
-  return React.createElement(
+// ── UploadPanel ─────────────────────────────────────────────────────
+//
+// Separator selector + FileDropZone combo for the upload step.
+
+interface UploadPanelProps {
+  sepOverride: string;
+  onSepChange: (s: string) => void;
+  onFileLoad: (text: string, fileName: string) => void;
+  onLoadExample?: () => void;
+  exampleLabel?: React.ReactNode;
+  hint?: string;
+}
+
+export function UploadPanel(props: UploadPanelProps) {
+  const { sepOverride, onSepChange, onFileLoad, onLoadExample, exampleLabel, hint } = props;
+  return h(
     "div",
     { className: "dv-panel" },
-    React.createElement(
+    h(
       "div",
       {
         style: {
@@ -728,7 +779,7 @@ function UploadPanel(props) {
           gap: 10,
         },
       },
-      React.createElement(
+      h(
         "label",
         {
           htmlFor: "dv-separator-select",
@@ -736,25 +787,23 @@ function UploadPanel(props) {
         },
         "Column separator"
       ),
-      React.createElement(
+      h(
         "select",
         {
           id: "dv-separator-select",
           value: sepOverride,
-          onChange: function (e) {
-            onSepChange(e.target.value);
-          },
+          onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onSepChange(e.target.value),
           className: "dv-select-sep",
         },
-        React.createElement("option", { value: "" }, "\u2014 Select \u2014"),
-        React.createElement("option", { value: "," }, "Comma (,)"),
-        React.createElement("option", { value: ";" }, "Semicolon (;)"),
-        React.createElement("option", { value: "\t" }, "Tab (\\t)"),
-        React.createElement("option", { value: " " }, "Space")
+        h("option", { value: "" }, "— Select —"),
+        h("option", { value: "," }, "Comma (,)"),
+        h("option", { value: ";" }, "Semicolon (;)"),
+        h("option", { value: "\t" }, "Tab (\\t)"),
+        h("option", { value: " " }, "Space")
       )
     ),
     !sepOverride
-      ? React.createElement(
+      ? h(
           "div",
           {
             style: {
@@ -766,24 +815,20 @@ function UploadPanel(props) {
               opacity: 0.5,
             },
           },
-          React.createElement(
-            "div",
-            { style: { fontSize: 40, marginBottom: 8 }, "aria-hidden": "true" },
-            "\uD83D\uDEAB"
-          ),
-          React.createElement(
+          h("div", { style: { fontSize: 40, marginBottom: 8 }, "aria-hidden": "true" }, "🚫"),
+          h(
             "p",
             { style: { margin: 0, fontSize: 15, color: "var(--text-faint)" } },
             "Pick a column separator above to enable file loading"
           )
         )
-      : React.createElement(FileDropZone, {
-          onFileLoad: onFileLoad,
+      : h(FileDropZone, {
+          onFileLoad,
           accept: ".csv,.tsv,.txt,.dat,.tab",
-          hint: hint || "CSV \u00B7 TSV \u00B7 TXT \u00B7 DAT \u2014 2 MB max",
+          hint: hint || "CSV · TSV · TXT · DAT — 2 MB max",
         }),
     onLoadExample
-      ? React.createElement(
+      ? h(
           "div",
           {
             style: {
@@ -796,66 +841,62 @@ function UploadPanel(props) {
               color: "var(--text-muted)",
             },
           },
-          React.createElement("span", null, "Try sample data:"),
-          React.createElement(
+          h("span", null, "Try sample data:"),
+          h(
             "button",
             {
               type: "button",
               className: "dv-btn dv-btn-secondary",
               onClick: onLoadExample,
-              // Stable hook for the Playwright e2e suite (every tool has
-              // a different `exampleLabel` string, so a label-based
-              // selector wouldn't work cross-tool). The `data-testid`
-              // never affects user-visible behaviour and is stripped by
-              // a 100-line read of the page; safe to ship.
               "data-testid": "load-example",
             },
-            exampleLabel || "Load example \u2192"
+            exampleLabel || "Load example →"
           )
         )
       : null
   );
 }
 
-// Collapsible "How to use" card shared across every plot tool's upload step.
-// Props: toolName (drives the icon + localStorage key), title, subtitle,
-// children (the tool-specific body content). Open state persists under
-// `dv-howto-<toolName>`; open by default on first visit, then follows whatever
-// the user last chose. The header acts as a <button> so keyboard users can
-// toggle with Enter / Space, and aria-expanded lets AT announce state.
-function HowToCard(props) {
-  const toolName = props.toolName,
-    title = props.title,
-    subtitle = props.subtitle,
-    children = props.children;
+// ── HowToCard ───────────────────────────────────────────────────────
+//
+// Collapsible "How to use" card shared across every plot tool's upload
+// step. Open state persists under `dv-howto-<toolName>` in localStorage;
+// open by default on first visit.
+
+interface HowToCardProps {
+  toolName: string;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  children?: React.ReactNode;
+}
+
+export function HowToCard(props: HowToCardProps) {
+  const { toolName, title, subtitle, children } = props;
   const storageKey = "dv-howto-" + toolName;
-  const initialOpen = React.useMemo(
-    function () {
-      try {
-        const v = localStorage.getItem(storageKey);
-        if (v === "1") return true;
-        if (v === "0") return false;
-      } catch (_e) {
-        /* ignore */
-      }
-      return true;
-    },
-    [storageKey]
-  );
-  const [open, setOpen] = React.useState(initialOpen);
+  const initialOpen = useMemo(() => {
+    try {
+      const v = localStorage.getItem(storageKey);
+      if (v === "1") return true;
+      if (v === "0") return false;
+    } catch {
+      /* ignore */
+    }
+    return true;
+  }, [storageKey]);
+  const [open, setOpen] = useState(initialOpen);
   const bodyId = "dv-howto-body-" + toolName;
-  const toggle = function () {
-    setOpen(function (prev) {
+  const toggle = () => {
+    setOpen((prev) => {
       const next = !prev;
       try {
         localStorage.setItem(storageKey, next ? "1" : "0");
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
       return next;
     });
   };
-  return React.createElement(
+  return h(
     "section",
     {
       style: {
@@ -866,7 +907,7 @@ function HowToCard(props) {
         boxShadow: "var(--howto-shadow)",
       },
     },
-    React.createElement(
+    h(
       "button",
       {
         type: "button",
@@ -888,23 +929,19 @@ function HowToCard(props) {
         },
       },
       toolIcon(toolName, 24, { circle: true }),
-      React.createElement(
+      h(
         "div",
         { style: { flex: 1, minWidth: 0 } },
-        React.createElement(
-          "div",
-          { style: { color: "var(--on-accent)", fontWeight: 700, fontSize: 15 } },
-          title
-        ),
+        h("div", { style: { color: "var(--on-accent)", fontWeight: 700, fontSize: 15 } }, title),
         subtitle
-          ? React.createElement(
+          ? h(
               "div",
               { style: { color: "var(--on-accent-muted)", fontSize: 11, marginTop: 2 } },
               subtitle
             )
           : null
       ),
-      React.createElement(
+      h(
         "span",
         {
           "aria-hidden": "true",
@@ -918,10 +955,10 @@ function HowToCard(props) {
             flexShrink: 0,
           },
         },
-        React.createElement(
+        h(
           "svg",
           { width: 22, height: 22, viewBox: "0 0 24 24", style: { display: "block" } },
-          React.createElement("path", {
+          h("path", {
             d: "M9 5l7 7-7 7",
             fill: "none",
             stroke: "currentColor",
@@ -933,7 +970,7 @@ function HowToCard(props) {
       )
     ),
     open
-      ? React.createElement(
+      ? h(
           "div",
           {
             id: bodyId,
@@ -951,17 +988,28 @@ function HowToCard(props) {
   );
 }
 
-// Actions tile for plot step. Renders a wrapping row of unified download chips
-// (SVG / PNG / + any `extraDownloads` like CSV/TXT) followed by a full-width
-// Start-over button. Each chip flex-grows so 1/2/3 fit evenly; a 4th wraps.
+// ── ActionsPanel ────────────────────────────────────────────────────
 //
-// Every button gets a native `title` tooltip: SVG / PNG / Start-over carry
-// fixed built-in strings (the output is the same across tools), and each
-// `extraDownloads` entry may pass its own `title` to describe the file it
-// emits (what's inside, how it's formatted) — that's where tool-specific
-// context lives.
-function ActionsPanel(props) {
-  const downloads = [];
+// Actions tile for plot step. Renders a wrapping row of unified
+// download chips (SVG / PNG / + any `extraDownloads` like CSV/TXT)
+// followed by a full-width Start-over button. Each chip flex-grows so
+// 1/2/3 fit evenly; a 4th wraps.
+
+export interface ActionsPanelDownload {
+  label: string;
+  title?: string;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}
+
+interface ActionsPanelProps {
+  onDownloadSvg?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onDownloadPng?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  extraDownloads?: ActionsPanelDownload[];
+  onReset: () => void;
+}
+
+export function ActionsPanel(props: ActionsPanelProps) {
+  const downloads: ActionsPanelDownload[] = [];
   if (props.onDownloadSvg) {
     downloads.push({
       label: "SVG",
@@ -977,30 +1025,28 @@ function ActionsPanel(props) {
     });
   }
   if (props.extraDownloads) {
-    props.extraDownloads.forEach(function (d) {
-      downloads.push(d);
-    });
+    props.extraDownloads.forEach((d) => downloads.push(d));
   }
-  const dlButtons = downloads.map(function (d, i) {
-    return React.createElement(
+  const dlButtons = downloads.map((d, i) =>
+    h(
       "button",
       {
         key: "dl" + i,
         title: d.title || undefined,
-        onClick: function (e) {
+        onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
           d.onClick(e);
           flashSaved(e.currentTarget);
         },
         className: "dv-btn dv-btn-dl",
         style: { flex: "1 1 0" },
       },
-      "\u2B07 " + d.label
-    );
-  });
-  return React.createElement(
+      "⬇ " + d.label
+    )
+  );
+  return h(
     "div",
     { className: "dv-panel" },
-    React.createElement(
+    h(
       "p",
       {
         className: "dv-tile-title",
@@ -1009,7 +1055,7 @@ function ActionsPanel(props) {
       "Actions"
     ),
     dlButtons.length > 0
-      ? React.createElement(
+      ? h(
           "div",
           {
             style: {
@@ -1022,36 +1068,42 @@ function ActionsPanel(props) {
           dlButtons
         )
       : null,
-    React.createElement(
+    h(
       "button",
       {
         onClick: props.onReset,
         title: "Clear all data, controls, and current session — returns to the upload step",
         className: "dv-btn dv-btn-danger",
       },
-      "\u21BA Start over"
+      "↺ Start over"
     )
   );
 }
 
-// scrollIntoViewWithinAncestor — after a collapsible section expands, scroll
-// just enough to bring `el`'s bottom (plus optional `extraBottom` px) into
-// view, padded by `pad` px. Prefers the nearest scrollable ancestor (typically
-// a sticky control-panel sidebar with its own overflow-y); falls back to
-// scrolling the window when no such ancestor exists, so the helper works for
-// tools like heatmap whose sidebar rides the page's own scroll.
+// ── Scroll helpers ──────────────────────────────────────────────────
 //
-// Deliberately does NOT use Element.scrollIntoView() — that bubbles up and
-// scrolls every scrollable ancestor including the page even when the sidebar
-// alone could satisfy the request. This helper picks ONE scroll container and
-// only moves that one.
+// `scrollIntoViewWithinAncestor` — after a collapsible section expands,
+// scroll just enough to bring `el`'s bottom (plus optional `extraBottom`
+// px) into view, padded by `pad` px. Prefers the nearest scrollable
+// ancestor (typically a sticky control-panel sidebar with its own
+// overflow-y); falls back to scrolling the window when no such ancestor
+// exists, so the helper works for tools like heatmap whose sidebar
+// rides the page's own scroll.
 //
-// Clamps the scroll so the panel's own top never moves out of view.
-function scrollIntoViewWithinAncestor(el, pad, extraBottom) {
+// Deliberately does NOT use Element.scrollIntoView() — that bubbles up
+// and scrolls every scrollable ancestor including the page even when
+// the sidebar alone could satisfy the request. This helper picks ONE
+// scroll container and only moves that one.
+
+export function scrollIntoViewWithinAncestor(
+  el: Element | null,
+  pad?: number,
+  extraBottom?: number
+): void {
   if (!el) return;
   const padding = pad == null ? 8 : pad;
   const extra = extraBottom || 0;
-  let parent = el.parentElement;
+  let parent: Element | null = el.parentElement;
   while (parent) {
     const style = getComputedStyle(parent);
     const ov = style.overflowY;
@@ -1083,23 +1135,13 @@ function scrollIntoViewWithinAncestor(el, pad, extraBottom) {
   }
 }
 
-// scrollDisclosureIntoView — the disclosure-specific wrapper around
-// scrollIntoViewWithinAncestor. Measures where the next section's header
-// actually sits relative to the expanded section (accounting for whatever
-// gap / margin sits between sibling tiles — varies from 0 to 10px across
-// tools), and reveals its bottom edge PLUS ~14 px of clearance below so the
-// next header lands comfortably inside the viewport instead of flush at the
-// bottom. This is the shared "norm" for every ControlSection across the
-// toolbox — callers just pass their section's root element.
-//
-// The trailing clearance is sized so the next header lands inside the
-// viewport's comfortable reading zone rather than flush at the bottom edge.
-// Combined with the default 8 px `pad`, the next header's bottom sits
-// 40 + 8 = 48 px above the viewport bottom — enough empty space below the
-// title to unambiguously read as "there's another tile below, click its
-// header to open it" rather than "header partially clipped".
+// `scrollDisclosureIntoView` — disclosure-specific wrapper. Measures
+// where the next section's header sits relative to the expanded section,
+// and reveals its bottom edge plus ~14 px of clearance below so the
+// next header lands comfortably inside the viewport instead of flush at
+// the bottom edge.
 const DISCLOSURE_TRAILING_CLEARANCE = 40;
-function scrollDisclosureIntoView(el, pad) {
+export function scrollDisclosureIntoView(el: Element | null, pad?: number): void {
   if (!el) return;
   const next = el.nextElementSibling;
   const nextHeader = next && next.firstElementChild;
@@ -1107,8 +1149,6 @@ function scrollDisclosureIntoView(el, pad) {
   if (nextHeader) {
     const elRect = el.getBoundingClientRect();
     const nhRect = nextHeader.getBoundingClientRect();
-    // Reveal through nextHeader's bottom + a trailing clearance. Covers the
-    // inter-tile gap exactly (whatever it is) plus margin for legibility.
     extra = Math.max(0, nhRect.bottom + DISCLOSURE_TRAILING_CLEARANCE - elRect.bottom);
   }
   scrollIntoViewWithinAncestor(el, pad == null ? 8 : pad, extra);

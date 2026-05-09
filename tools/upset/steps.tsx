@@ -3,6 +3,7 @@
 // ItemListPanel (the per-intersection items table + CSV download).
 
 import { DataPreview } from "../_shell/core";
+import { NumberInput, UploadPanel } from "../_shell/ui";
 import {
   intersectionLabel,
   intersectionFilenamePart,

@@ -65,11 +65,11 @@ Source files live side-by-side in `tools/` and stay the editable units:
 - `tools/shared.js` — plain JS globals: color helpers, numeric detection, seeded random, axis tick generation, separator detection, CSV parsing, statistics, download helpers, `roleColors` (chrome styling lives in `tools/components.css` via `dv-*` classes; see the Theming section)
 - Shared UI split into focused plain-JS files (all `React.createElement`, NOT JSX):
   - (`tools/shared-color-input.js` retired 2026-05; `ColorInput` + `normalizeHexColor` live in `tools/_shell/color-input.tsx`)
-  - `tools/shared-file-drop.js` — `FileDropZone`
+  - (`tools/shared-file-drop.js` retired 2026-05; `FileDropZone` + `FILE_LIMIT_BYTES` / `FILE_WARN_BYTES` live in `tools/_shell/file-drop.tsx`)
   - (`tools/shared-svg-legend.js` retired 2026-05; `computeLegendHeight` + `renderSvgLegend` live in `tools/_shell/svg-legend.ts`)
   - (`tools/shared-discrete-palette.js` retired 2026-05; the catalogue + helpers live in `tools/_shell/discrete-palette.ts` and the dropdown component in `tools/_shell/DiscretePaletteRow.tsx`)
   - (`tools/shared-core.js` retired 2026-05; `DataPreview` + `ErrorBoundary` live in `tools/_shell/core.tsx`)
-  - `tools/shared-ui.js` — `SliderControl`, `StepNavBar`, `CommaFixBanner`, `ParseErrorBanner`, `PageHeader`, `UploadPanel`, `ActionsPanel` (depends on `shared-file-drop.js`)
+  - (`tools/shared-ui.js` retired 2026-05; `NumberInput` / `SliderControl` / `StepNavBar` / `PageHeader` / `UploadPanel` / `HowToCard` / `ActionsPanel` / banners / scroll helpers live in `tools/_shell/ui.tsx`)
   - (`tools/shared-long-format.js` retired 2026-05; `ColumnRoleEditor` / `FilterCheckboxPanel` / `RenameReorderPanel` / `StatsTable` / `GroupColorEditor` / `BaseStyleControls` live in `tools/_shell/long-format.tsx`)
   - `tools/shared-r-export.js` — R reproducibility-script builders used by the download tiles in each plot tool
   - `tools/shared-stats-tile.js` — `assignBracketLevels`, `StatsTile` (depends on the `stats-*.js` files)

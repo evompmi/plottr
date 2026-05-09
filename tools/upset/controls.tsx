@@ -6,6 +6,7 @@
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DownloadTiles } from "../_shell/DownloadTiles";
 import { ColorInput } from "../_shell/color-input";
+import { NumberInput, SliderControl, scrollDisclosureIntoView } from "../_shell/ui";
 import { intersectionLabel } from "./helpers";
 import type { Intersection, PlotControlsProps, UpsetVis } from "./helpers";
 import { BAR_FILL_ENRICHED, BAR_FILL_DEPLETED } from "./chart";

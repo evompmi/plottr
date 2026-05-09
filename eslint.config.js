@@ -68,20 +68,6 @@ const sharedGlobals = {
   powerCorrelation: "readonly",
   powerChi2: "readonly",
   fFromGroupMeans: "readonly",
-  // shared-*.js residual globals (post-2026-05 _shell migration; the
-  // shared-color-input + shared-long-format families moved to typed
-  // modules in tools/_shell/).
-  FileDropZone: "readonly",
-  NumberInput: "readonly",
-  SliderControl: "readonly",
-  StepNavBar: "readonly",
-  CommaFixBanner: "readonly",
-  ParseErrorBanner: "readonly",
-  PageHeader: "readonly",
-  UploadPanel: "readonly",
-  ActionsPanel: "readonly",
-  scrollIntoViewWithinAncestor: "readonly",
-  scrollDisclosureIntoView: "readonly",
   // stats-*.js (carved from the original stats.js)
   normcdf: "readonly",
   normsf: "readonly",

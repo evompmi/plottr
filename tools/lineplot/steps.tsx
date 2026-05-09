@@ -5,6 +5,7 @@
 import type { UploadStepProps, ConfigureStepProps } from "./helpers";
 import { HowTo } from "../_shell/HowTo";
 import { DataPreview } from "../_shell/core";
+import { UploadPanel, scrollDisclosureIntoView } from "../_shell/ui";
 import { LINEPLOT_HOWTO } from "./howto";
 
 const { useState, useRef, useEffect } = React;

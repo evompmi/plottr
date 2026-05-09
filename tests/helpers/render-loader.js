@@ -115,6 +115,27 @@ function ensureSharedBundleLoaded() {
         "BaseStyleControls",
       ],
     },
+    {
+      src: path.join(toolsDir, "_shell/file-drop.tsx"),
+      names: ["FileDropZone", "FILE_LIMIT_BYTES", "FILE_WARN_BYTES"],
+    },
+    {
+      src: path.join(toolsDir, "_shell/ui.tsx"),
+      names: [
+        "NumberInput",
+        "SliderControl",
+        "StepNavBar",
+        "CommaFixBanner",
+        "FormulaInjectionBanner",
+        "ParseErrorBanner",
+        "PageHeader",
+        "UploadPanel",
+        "HowToCard",
+        "ActionsPanel",
+        "scrollIntoViewWithinAncestor",
+        "scrollDisclosureIntoView",
+      ],
+    },
   ];
   for (const { src, names } of SHELL_GLOBALS) {
     const built = esbuild.buildSync({

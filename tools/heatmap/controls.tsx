@@ -7,6 +7,7 @@
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { ColorInput } from "../_shell/color-input";
+import { NumberInput, ActionsPanel, scrollDisclosureIntoView } from "../_shell/ui";
 import { PaletteStrip } from "./chart";
 import { buildHeatmapRScript, buildCsvExport } from "./reports";
 import type {

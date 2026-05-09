@@ -8,6 +8,7 @@ import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
 import { applyDiscretePalette } from "../_shell/discrete-palette";
 import { ColorInput } from "../_shell/color-input";
 import { BaseStyleControls } from "../_shell/long-format";
+import { NumberInput, SliderControl } from "../_shell/ui";
 import { ERROR_KINDS, formatX, round2 } from "./helpers";
 import type { PerXRow, PlotControlsProps, Series } from "./helpers";
 import { ControlSection } from "./steps";
