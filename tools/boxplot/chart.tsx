@@ -10,6 +10,7 @@
 // internal SVG text rendering.
 import { STATS_LINE_H, STATS_FONT, ChartProps, BoxplotGroup, Subgroup } from "./helpers";
 import { SignificanceBrackets, CldLabels } from "../_shell/chart-annotations";
+import { renderSvgLegend } from "../_shell/svg-legend";
 import {
   computeAnnotationPadding,
   computeBandSizing,

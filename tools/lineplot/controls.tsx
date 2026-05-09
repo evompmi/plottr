@@ -4,6 +4,8 @@
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DownloadTiles } from "../_shell/DownloadTiles";
+import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
+import { applyDiscretePalette } from "../_shell/discrete-palette";
 import { ERROR_KINDS, formatX, round2 } from "./helpers";
 import type { PerXRow, PlotControlsProps, Series } from "./helpers";
 import { ControlSection } from "./steps";

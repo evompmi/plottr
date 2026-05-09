@@ -77,6 +77,13 @@ Files (current contents):
 | `PlotSidebar.tsx`        | Sticky right-rail wrapper used by every plot tool's controls panel.                                        |
 | `DownloadTiles.tsx`      | `ActionsPanel` wrapper for the per-tool download chips (SVG / PNG / CSV / R script / …).                   |
 | `ScrollablePlotCard.tsx` | Horizontal-scroll affordance (edge fades + "Scroll for more →" pill, `ResizeObserver`-driven).             |
+| `prefs-store.ts`         | Pure data layer for per-tool plot-render-settings persistence (load/save/import/export/migrate/merge).     |
+| `PrefsPanel.tsx`         | Gear-menu UI on top of `prefs-store`; rendered in PageHeader's right slot via `PlotToolShell`.             |
+| `handoff.ts`             | One-shot localStorage-backed inter-tool data hand-off (`setHandoff`, `consumeHandoff`, `navigateToTool`).  |
+| `discrete-palette.ts`    | Discrete palette catalogue + `resolveDiscretePalette` / `applyDiscretePalette` / hue + viridis builders.   |
+| `DiscretePaletteRow.tsx` | Dropdown + swatch-strip preview component for picking a discrete palette in tool sidebars.                 |
+| `svg-legend.ts`          | `computeLegendHeight` + `renderSvgLegend` — SVG legend block layout for chart components.                  |
+| `core.tsx`               | `DataPreview` table + `ErrorBoundary` class component used by every tool's parsing UI + the SPA shell.     |
 | `chart-layout.ts`        | `CHART_MARGIN` and `buildLineD` — used by `lineplot/` + `aequorin/` (see `helpers.ts` re-exports).         |
 | `stats-dispatch.ts`      | `runTest` / `runPostHoc` / `postHocForTest` — shared by boxplot / lineplot / aequorin.                     |
 | `chart-annotations.tsx`  | `SignificanceBrackets`, `CldLabels` — shared annotation renderers.                                         |

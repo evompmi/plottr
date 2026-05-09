@@ -1,10 +1,13 @@
 // Sidebar tiles + AesBox primitive for the Volcano tool. Pattern-matches
 // boxplot/controls.tsx and scatter's tile layout. Shared UI (SliderControl,
-// ColorInput, NumberInput, DiscretePaletteRow, scrollDisclosureIntoView,
-// COLOR_PALETTES, DIVERGING_PALETTES, interpolateColor, PALETTE,
-// resolveDiscretePalette) resolves through shared.bundle.js at runtime;
-// `types/globals.d.ts` lets `tsc --noEmit` see the same names.
+// ColorInput, NumberInput, scrollDisclosureIntoView, COLOR_PALETTES,
+// DIVERGING_PALETTES, interpolateColor, PALETTE) resolves through
+// shared.bundle.js at runtime; `types/globals.d.ts` lets `tsc --noEmit`
+// see the same names. DiscretePaletteRow + resolveDiscretePalette are
+// imported from the typed _shell scaffold (post-2026-05 migration).
 
+import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
+import { resolveDiscretePalette } from "../_shell/discrete-palette";
 import { VOLCANO_DEFAULT_COLORS, eligibleColumns } from "./helpers";
 import type {
   ColorMapTileProps,

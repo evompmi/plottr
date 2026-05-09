@@ -4,19 +4,27 @@
 // (runs via `pretest` in package.json), so the test harness reads the same
 // artefact the browser does — single source of truth for load order.
 // React-dependent components (ColorInput, FileDropZone, etc.) are stubbed out.
+//
+// `computeLegendHeight` / `renderSvgLegend` are no longer in the bundle as
+// of the 2026-05 migration to `tools/_shell/svg-legend.ts`; they're loaded
+// alongside via `esbuild.transformSync` and exported off the migrated
+// module.
 
 const fs = require("fs");
 const vm = require("vm");
 const path = require("path");
+const esbuild = require("esbuild");
 
 const toolsDir = path.join(__dirname, "../../tools");
 const bundlePath = path.join(toolsDir, "shared.bundle.js");
+const svgLegendPath = path.join(toolsDir, "_shell", "svg-legend.ts");
 if (!fs.existsSync(bundlePath)) {
   throw new Error(
     "components-loader: tools/shared.bundle.js is missing. Run `npm run build:shared` (or any build / test) to generate it."
   );
 }
 const bundleSrc = fs.readFileSync(bundlePath, "utf8");
+const svgLegendSrc = fs.readFileSync(svgLegendPath, "utf8");
 
 const ctx = {
   Math,
@@ -77,10 +85,24 @@ const ctx = {
   },
 };
 
+// Thread module.exports through so the esbuild-transformed _shell/svg-legend.ts
+// CJS output can write its named exports onto a slot we can read after.
+const moduleObj = { exports: {} };
+ctx.module = moduleObj;
+ctx.exports = moduleObj.exports;
+
 vm.createContext(ctx);
 vm.runInContext(bundleSrc, ctx);
 
+const svgLegendCjs = esbuild.transformSync(svgLegendSrc, {
+  loader: "ts",
+  format: "cjs",
+  target: "es2022",
+}).code;
+vm.runInContext(svgLegendCjs, ctx);
+const svgLegend = ctx.module.exports;
+
 module.exports = {
-  computeLegendHeight: ctx.computeLegendHeight,
-  renderSvgLegend: ctx.renderSvgLegend,
+  computeLegendHeight: svgLegend.computeLegendHeight,
+  renderSvgLegend: svgLegend.renderSvgLegend,
 };

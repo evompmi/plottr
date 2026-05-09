@@ -7,6 +7,8 @@ import { AesBox, ControlSection } from "./steps";
 import { fmtTick, SHAPES, PlotStepProps, RefLine } from "./helpers";
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DownloadTiles } from "../_shell/DownloadTiles";
+import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
+import { applyDiscretePalette } from "../_shell/discrete-palette";
 
 const { useState, useRef, useEffect } = React;
 

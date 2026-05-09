@@ -6,9 +6,9 @@
 //
 // Ambient names consumed (from tools/shared.bundle.js globals):
 //   - PageHeader, StepNavBar, CommaFixBanner, ParseErrorBanner  (shared-ui.js)
-//   - PrefsPanel  (shared-prefs.js)
 
 import type { PlotToolState } from "./usePlotToolState";
+import { PrefsPanel } from "./PrefsPanel";
 
 const { useEffect, useRef, useState } = React;
 

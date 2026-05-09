@@ -5,6 +5,7 @@
 
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
+import { applyDiscretePalette } from "../_shell/discrete-palette";
 import { computeIntersections, detectLongFormat, VIS_INIT_VENN } from "./helpers";
 import type { SetColorsUpdater } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";

@@ -1,19 +1,24 @@
-// Loads the shared bundle into a Node vm context and exposes the
-// discrete-palette catalogue + helpers for unit testing. Mirrors
-// tests/helpers/components-loader.js.
+// Loads the shared bundle into a Node vm context (for COLOR_PALETTES /
+// interpolateColor / PALETTE — still plain-JS globals from shared.js) and
+// then esbuild-transforms tools/_shell/discrete-palette.ts on top of that
+// context so the migrated module's exports can be read out for unit tests.
+// Mirrors tests/helpers/prefs-loader.js's hybrid bundle-then-module pattern.
 
 const fs = require("fs");
 const vm = require("vm");
 const path = require("path");
+const esbuild = require("esbuild");
 
 const toolsDir = path.join(__dirname, "../../tools");
 const bundlePath = path.join(toolsDir, "shared.bundle.js");
+const palettePath = path.join(toolsDir, "_shell", "discrete-palette.ts");
 if (!fs.existsSync(bundlePath)) {
   throw new Error(
     "discrete-palette-loader: tools/shared.bundle.js is missing. Run `npm run build:shared` (or any build / test) to generate it."
   );
 }
 const bundleSrc = fs.readFileSync(bundlePath, "utf8");
+const paletteSrc = fs.readFileSync(palettePath, "utf8");
 
 const ctx = {
   Math,
@@ -73,20 +78,32 @@ const ctx = {
   },
 };
 
+// Thread module.exports through so the transformed CJS-shaped TS module
+// finds the slot to write its named exports into.
+const moduleObj = { exports: {} };
+ctx.module = moduleObj;
+ctx.exports = moduleObj.exports;
+
 vm.createContext(ctx);
 vm.runInContext(bundleSrc, ctx);
 
-// `const` bindings declared at the top of a vm-loaded script don't become
-// properties of the context object — only `var` and `function` do. Use
-// vm.runInContext("name", ctx) to read them out of the script's lexical
-// scope. Function declarations (resolveDiscretePalette, applyDiscretePalette,
-// buildGgplot2Hue, buildViridisDiscrete) are on `ctx` directly.
+const transformed = esbuild.transformSync(paletteSrc, {
+  loader: "ts",
+  format: "cjs",
+  target: "es2022",
+}).code;
+vm.runInContext(transformed, ctx);
+const palette = ctx.module.exports;
+
+// `PALETTE` (from shared.js) is a `const` binding; not a context property,
+// so we read it via vm.runInContext. Everything else comes off the migrated
+// module's named exports.
 module.exports = {
   PALETTE: vm.runInContext("PALETTE", ctx),
-  DISCRETE_PALETTES: vm.runInContext("DISCRETE_PALETTES", ctx),
-  COLORBLIND_SAFE_PALETTES: vm.runInContext("COLORBLIND_SAFE_PALETTES", ctx),
-  resolveDiscretePalette: ctx.resolveDiscretePalette,
-  applyDiscretePalette: ctx.applyDiscretePalette,
-  buildGgplot2Hue: ctx.buildGgplot2Hue,
-  buildViridisDiscrete: ctx.buildViridisDiscrete,
+  DISCRETE_PALETTES: palette.DISCRETE_PALETTES,
+  COLORBLIND_SAFE_PALETTES: palette.COLORBLIND_SAFE_PALETTES,
+  resolveDiscretePalette: palette.resolveDiscretePalette,
+  applyDiscretePalette: palette.applyDiscretePalette,
+  buildGgplot2Hue: palette.buildGgplot2Hue,
+  buildViridisDiscrete: palette.buildViridisDiscrete,
 };

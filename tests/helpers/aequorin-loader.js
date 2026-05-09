@@ -14,18 +14,13 @@ const { readStatsSource } = require("./stats-source");
 const toolsDir = path.join(__dirname, "../../tools");
 const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
 const statsSrc = readStatsSource();
-// detectConditions reads `resolveDiscretePalette` from globals to seed the
-// per-condition colours. The shared bundle exposes it via tools/shared-
-// discrete-palette.js — load alongside shared.js / stats.js.
-const discretePaletteSrc = fs.readFileSync(
-  path.join(toolsDir, "shared-discrete-palette.js"),
-  "utf8"
-);
 
-// `helpers.ts` imports from `_shell/chart-layout` (audit M7 refactor) so a
-// plain `transformSync` leaves an unresolved `require("../_shell/...")` that
-// blows up in the vm context. `buildSync` with `bundle: true` inlines the
-// cross-module import the same way the production build does.
+// `helpers.ts` imports from `_shell/chart-layout` (audit M7 refactor) and
+// `_shell/discrete-palette` (post-2026-05 migration), so a plain
+// `transformSync` would leave unresolved `require("../_shell/...")` that
+// blows up in the vm context. `buildSync` with `bundle: true` inlines
+// every cross-module import the same way the production build does — so
+// `resolveDiscretePalette` and friends end up baked into the output.
 const helpersCjs = esbuild.buildSync({
   entryPoints: [path.join(toolsDir, "aequorin/helpers.ts")],
   bundle: true,
@@ -56,7 +51,6 @@ const ctx = {
 vm.createContext(ctx);
 vm.runInContext(sharedSrc, ctx);
 vm.runInContext(statsSrc, ctx);
-vm.runInContext(discretePaletteSrc, ctx);
 vm.runInContext(helpersCjs, ctx);
 
 module.exports = {

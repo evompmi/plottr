@@ -144,34 +144,6 @@ declare global {
   const DIVERGING_PALETTES: Set<string>;
   function interpolateColor(stops: string[], t: number): string;
 
-  // Discrete palette catalogue (shared-discrete-palette.js). Keys are palette
-  // names; values are hex arrays. Two keys ("ggplot2-hue", "viridis-d") use a
-  // ["*"] sentinel meaning "generate at runtime sized to names.length" — call
-  // `resolveDiscretePalette(name, n)` to get the concrete colour list.
-  const DISCRETE_PALETTES: Record<string, string[]>;
-  const COLORBLIND_SAFE_PALETTES: Set<string>;
-  function resolveDiscretePalette(name: string, n: number): string[];
-  function applyDiscretePalette(name: string, names: string[]): Record<string, string>;
-  function buildGgplot2Hue(n: number): string[];
-  function buildViridisDiscrete(n: number): string[];
-  const DiscreteSwatchStrip: FC<{
-    palette: string;
-    n?: number;
-    width?: number | string;
-    height?: number;
-  }>;
-  const DiscretePaletteSelect: FC<{
-    value: string;
-    onChange: (next: string) => void;
-    n?: number;
-  }>;
-  const DiscretePaletteRow: FC<{
-    value: string;
-    onChange: (next: string) => void;
-    names: string[];
-    applyColors?: (resolved: string[]) => void;
-  }>;
-
   function wideToLong(
     headers: string[],
     rows: string[][]
@@ -308,11 +280,6 @@ declare global {
     accept?: string;
     hint?: string;
   }>;
-  const DataPreview: FC<{
-    headers: string[];
-    rows: Array<Array<string | number | null>>;
-    maxRows?: number;
-  }>;
   // NumberInput mirrors `<input type="number">`: onChange fires with
   // `{ target: { value: string } }` so `(e) => setX(e.target.value)`
   // handlers keep working unchanged.
@@ -446,7 +413,6 @@ declare global {
     gridColor: string;
     onGridColorChange: (hex: string) => void;
   }>;
-  const ErrorBoundary: FC<{ toolName?: string; children?: ReactNode }>;
   // StatsTile — assumption checks + test selection + post-hocs + annotation
   // emission. `groups` is the list of {name, values}; `onAnnotationsChange`
   // receives a brackets/CLD spec the parent chart renders. `compact` shrinks
@@ -480,52 +446,6 @@ declare global {
   ): void;
   function scrollDisclosureIntoView(el: Element | null, pad?: number): void;
 
-  // ── Preferences persistence (shared-prefs.js) ──────────────────────────────
-  function loadAutoPrefs<T extends Record<string, any>>(toolName: string, visInit: T): T;
-  function saveAutoPrefs(toolName: string, vis: Record<string, any>): void;
-  function flushAutoPrefs(toolName: string, vis: Record<string, any>): void;
-  function clearAutoPrefs(toolName: string): void;
-  function exportPrefsFile(toolName: string, vis: Record<string, any>): void;
-  function importPrefsFile(
-    toolName: string,
-    visInit: Record<string, any>,
-    cb: (merged: Record<string, any> | null, error: string | null) => void
-  ): void;
-  function mergePrefsSettings(
-    settings: Record<string, any>,
-    visInit: Record<string, any>,
-    opts?: { onlyStyle?: boolean }
-  ): Record<string, any>;
-  function extractStylePrefs(vis: Record<string, any>): Record<string, any>;
-  function isLabelKey(key: string): boolean;
-
-  // ── Inter-tool data hand-off (shared-handoff.js) ───────────────────────────
-  interface HandoffPayload {
-    tool: string;
-    csv?: string;
-    mode?: "long" | "wide";
-    source?: string;
-    fileName?: string;
-    colRoles?: string[];
-    [key: string]: any;
-  }
-  function setHandoff(payload: HandoffPayload): boolean;
-  function consumeHandoff(targetTool: string): HandoffPayload | null;
-  // SPA-aware navigation helper. Prefers `window.__plottrSpaNavigate`
-  // when the SPA shell has registered it; falls back to a top-level
-  // `window.location.assign("<key>.html")` for legacy / standalone-page
-  // deploys. Source tools call this immediately after `setHandoff(...)`.
-  function navigateToTool(toolKey: string): void;
-  const PrefsPanel: FC<{
-    tool: string;
-    vis: Record<string, any>;
-    visInit: Record<string, any>;
-    // Accept the same patch shape `usePlotToolState`'s reducer produces:
-    // a partial-vis patch or the `{ _reset: true }` sentinel. `any` keeps
-    // the call sites assignable from typed `updVis<TVis>` returns under
-    // strict function types.
-    updVis: (patch: any) => void;
-  }>;
   interface SubgroupMeta {
     name: string;
     startIndex: number;
@@ -558,30 +478,6 @@ declare global {
   function computePowerFromData(chosenTest: string, values: number[][]): PowerFromDataResult | null;
 
   // ── Legend SVG helpers from shared-components.js ───────────────────────────
-  // `items` is optional because scatter / heatmap legends mix three block
-  // shapes (categorical `items`, continuous `gradient`, sized `sizeItems`)
-  // and the runtime guards each access with `if (b.items)` etc.
-  interface LegendBlock {
-    items?: Array<{ label: string; color: string }>;
-    [k: string]: any;
-  }
-  type LegendItemWidth = number | ((block: LegendBlock) => number);
-  // Both helpers tolerate null / undefined / empty input — the runtime guard
-  // is `if (!blocks || !blocks.length) return 0;` (see shared-svg-legend.js).
-  // Reflect that in the type so callers don't have to coerce.
-  function computeLegendHeight(
-    blocks: LegendBlock[] | null | undefined,
-    usableW: number,
-    itemWidth: LegendItemWidth
-  ): number;
-  function renderSvgLegend(
-    blocks: LegendBlock[] | null | undefined,
-    startY: number,
-    leftX: number,
-    usableW: number,
-    itemWidth: LegendItemWidth,
-    truncateLabel?: number
-  ): ReactNode;
 
   // ── tools/theme.js ─────────────────────────────────────────────────────────
   // Theme switching primitives, exposed as script-scope globals via the

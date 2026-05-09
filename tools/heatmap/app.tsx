@@ -6,6 +6,7 @@
 
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
+import { DataPreview } from "../_shell/core";
 import { normalizeMatrix, autoRange } from "./helpers";
 import type {
   AxisClusterMeta,

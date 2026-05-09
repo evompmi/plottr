@@ -7,6 +7,8 @@
 
 import { CHART_MARGIN, buildLineD } from "../_shell/chart-layout";
 import type { TestResult } from "../_shell/stats-dispatch";
+import { resolveDiscretePalette } from "../_shell/discrete-palette";
+import type { LegendBlock } from "../_shell/svg-legend";
 export { buildLineD };
 
 // ── Calibration defaults ─────────────────────────────────────────────────────

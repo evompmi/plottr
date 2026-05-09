@@ -93,6 +93,43 @@ function ensureSharedBundleLoaded() {
   }
   const bundleSrc = fs.readFileSync(bundlePath, "utf8");
   vm.runInThisContext(bundleSrc, { filename: "tools/shared.bundle.js" });
+
+  // Migrated _shell modules — bundle via esbuild and expose the named
+  // exports on globalThis so the existing `sc.DataPreview` / `sc.X`
+  // call sites in tests/components.test.js continue to resolve.
+  // Each entry: source path → list of exports to lift onto globalThis.
+  const SHELL_GLOBALS = [
+    { src: path.join(toolsDir, "_shell/core.tsx"), names: ["DataPreview", "ErrorBoundary"] },
+  ];
+  for (const { src, names } of SHELL_GLOBALS) {
+    const built = esbuild.buildSync({
+      entryPoints: [src],
+      bundle: true,
+      format: "cjs",
+      platform: "neutral",
+      jsx: "transform",
+      write: false,
+      external: ["react", "react-dom"],
+    }).outputFiles[0].text;
+    const moduleObj = { exports: {} };
+    // The bundled output references React via `require("react")`; bridge
+    // that to the same React module the test file uses.
+    const fakeRequire = (id) => {
+      if (id === "react") return React;
+      if (id === "react-dom") return require("react-dom");
+      throw new Error(`render-loader: unexpected require(${id})`);
+    };
+    new Function("module", "exports", "require", "React", built)(
+      moduleObj,
+      moduleObj.exports,
+      fakeRequire,
+      React
+    );
+    for (const name of names) {
+      globalThis[name] = moduleObj.exports[name];
+    }
+  }
+
   _bundleLoaded = true;
 }
 

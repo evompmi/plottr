@@ -5,6 +5,7 @@
 
 import { fmtTick, MARGIN, VBW, VBH, ChartProps, RefLine } from "./helpers";
 import { renderPoint } from "./shapes";
+import { computeLegendHeight, renderSvgLegend, type LegendBlock } from "../_shell/svg-legend";
 
 const { forwardRef } = React;
 

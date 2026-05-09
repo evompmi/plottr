@@ -1,16 +1,60 @@
-// shared-svg-legend.js — plain JS, no JSX
-// Requires React to be loaded globally before this script.
+// SVG legend renderer shared across chart components. Builds `<g id="legend">`
+// blocks with the right layout for three block shapes:
+//   - categorical `items` (circle / line / triangle / square / cross + label)
+//   - continuous `gradient` (linearGradient stops + min/max labels)
+//   - sized circles `sizeItems` (scatter aesthetic — label-aware row wrapping)
+// `computeLegendHeight` mirrors the layout math so callers can size the
+// reserved bottom band before rendering.
+//
+// Stays in `React.createElement` form (no JSX) because the SVG output is
+// nested deeply enough that JSX would be lower-density without saving any
+// real complexity. Hand-typed as `ReactNode | null` rather than a precise
+// element-tree type.
+//
+// Hex literals inside the SVG output are intentional (chart internals must
+// stay as literal hex per the chrome / SVG split — see
+// `tools/CLAUDE.md` § Theming and the no-css-var-in-svg lint rule).
+//
+// `svgSafeId` is read off the ambient browser globals (still a global from
+// shared.js); the module declares it locally so TS sees the right shape.
 
-// ── SVG Legend helpers ────────────────────────────────────────────────────────
+declare const svgSafeId: (s: string) => string;
 
-// itemWidth: number (fixed) or function(block) => number (dynamic per block)
-function computeLegendHeight(blocks, usableW, itemWidth) {
+const h = React.createElement;
+
+export interface LegendBlock {
+  // Optional title rendered above the items / gradient / sizeItems.
+  // Accepts null in addition to undefined because the runtime guard is
+  // `if (block.title)` (see renderSvgLegend), and existing call sites
+  // pass `title: null` for the no-header case.
+  title?: string | null;
+  // Optional explicit DOM id for the rendered `<g>` (otherwise derived from
+  // title via svgSafeId). Useful when a tool needs a stable hook into the
+  // exported SVG.
+  id?: string;
+  // Categorical legend items (circle / line / triangle / square / cross).
+  items?: Array<{ label: string; color: string; shape?: string }>;
+  // Continuous colour-bar block.
+  gradient?: { stops: string[]; min: string | number; max: string | number };
+  // Scatter aesthetic — variable-radius circles with labels.
+  sizeItems?: Array<{ r: number; label?: string }>;
+  // Tools occasionally extend with their own per-block keys.
+  [k: string]: unknown;
+}
+
+export type LegendItemWidth = number | ((block: LegendBlock) => number);
+
+export function computeLegendHeight(
+  blocks: LegendBlock[] | null | undefined,
+  usableW: number,
+  itemWidth: LegendItemWidth
+): number {
   if (!blocks || !blocks.length) return 0;
   const IH = 18,
     TH = 15;
-  const iw = itemWidth || 88;
+  const iw: LegendItemWidth = itemWidth || 88;
   let t = 10;
-  blocks.forEach(function (b, bi) {
+  blocks.forEach((b, bi) => {
     if (b.title) t += TH;
     if (b.items) {
       const bIW = typeof iw === "function" ? iw(b) : iw;
@@ -18,17 +62,12 @@ function computeLegendHeight(blocks, usableW, itemWidth) {
     }
     if (b.gradient) t += 30;
     if (b.sizeItems && b.sizeItems.length) {
-      const mr = Math.max(
-        ...b.sizeItems.map(function (i) {
-          return i.r;
-        }),
-        3
-      );
+      const mr = Math.max(...b.sizeItems.map((i) => i.r), 3);
       const rowH = mr * 2 + 4;
-      // Compute per-item widths and wrap into rows
+      // Compute per-item widths and wrap into rows.
       let cx = 0,
         rows = 1;
-      b.sizeItems.forEach(function (item, ii) {
+      b.sizeItems.forEach((item, ii) => {
         const labelW = (item.label || "").length * 5.6 + 6;
         const itemW = mr * 2 + 4 + labelW + 12;
         if (ii > 0 && cx + itemW > usableW) {
@@ -44,19 +83,21 @@ function computeLegendHeight(blocks, usableW, itemWidth) {
   return t + 6;
 }
 
-// Renders SVG legend blocks. Returns array of <g> elements.
-// startY: y offset for the first block, leftX: x offset, usableW: available width
-// itemWidth: number or function(block) => number
-// truncateLabel: optional max char length for labels (falsy = no truncation)
-function renderSvgLegend(blocks, startY, leftX, usableW, itemWidth, truncateLabel) {
+export function renderSvgLegend(
+  blocks: LegendBlock[] | null | undefined,
+  startY: number,
+  leftX: number,
+  usableW: number,
+  itemWidth: LegendItemWidth,
+  truncateLabel?: number
+): React.ReactNode {
   if (!blocks || !blocks.length) return null;
-  const h = React.createElement;
   const IH = 18,
     TH = 15;
-  const iw = itemWidth || 88;
+  const iw: LegendItemWidth = itemWidth || 88;
 
-  // Pre-compute block Y offsets in a single pass (avoids O(n²) slice+reduce)
-  const blockOffsets = [0];
+  // Pre-compute block Y offsets in a single pass (avoids O(n²) slice+reduce).
+  const blockOffsets: number[] = [0];
   for (let bi = 0; bi < blocks.length - 1; bi++) {
     const b = blocks[bi];
     let off = blockOffsets[bi];
@@ -67,26 +108,19 @@ function renderSvgLegend(blocks, startY, leftX, usableW, itemWidth, truncateLabe
     }
     if (b.gradient) off += 30;
     if (b.sizeItems && b.sizeItems.length) {
-      const mr = Math.max(
-        ...b.sizeItems
-          .map(function (i) {
-            return i.r;
-          })
-          .concat([3])
-      );
+      const mr = Math.max(...b.sizeItems.map((i) => i.r).concat([3]));
       off += mr * 2 + 4;
     }
     off += 8;
     blockOffsets.push(off);
   }
 
-  const blockGroups = blocks.map(function (block, bi) {
+  const blockGroups = blocks.map((block, bi) => {
     const bIW = typeof iw === "function" ? iw(block) : iw;
     const blockY = startY + blockOffsets[bi];
     const itemsPerRow = Math.max(1, Math.floor(usableW / bIW));
-    const children = [];
+    const children: React.ReactNode[] = [];
 
-    // Title
     if (block.title) {
       children.push(
         h(
@@ -97,15 +131,15 @@ function renderSvgLegend(blocks, startY, leftX, usableW, itemWidth, truncateLabe
       );
     }
 
-    // Items (circles or lines)
     if (block.items) {
-      block.items.forEach(function (item, ii) {
+      block.items.forEach((item, ii) => {
         const row = Math.floor(ii / itemsPerRow);
         const col = ii % itemsPerRow;
         let label = item.label || "";
-        if (truncateLabel && label.length > truncateLabel)
-          label = label.slice(0, truncateLabel - 2) + "\u2026";
-        let shape;
+        if (truncateLabel && label.length > truncateLabel) {
+          label = label.slice(0, truncateLabel - 2) + "…";
+        }
+        let shape: React.ReactNode;
         if (item.shape === "line") {
           shape = h("line", {
             key: "s",
@@ -156,19 +190,18 @@ function renderSvgLegend(blocks, startY, leftX, usableW, itemWidth, truncateLabe
       });
     }
 
-    // Gradient
     if (block.gradient) {
       const gw = Math.min(usableW * 0.6, 200),
         gh = 12;
       const th = block.title ? TH : 0;
       const gradId = "svggrad-" + bi;
-      const stops = block.gradient.stops.map(function (c, si) {
-        return h("stop", {
+      const stops = block.gradient.stops.map((c, si) =>
+        h("stop", {
           key: si,
-          offset: (si / (block.gradient.stops.length - 1)) * 100 + "%",
+          offset: (si / (block.gradient!.stops.length - 1)) * 100 + "%",
           stopColor: c,
-        });
-      });
+        })
+      );
       children.push(
         h(
           "g",
@@ -207,19 +240,14 @@ function renderSvgLegend(blocks, startY, leftX, usableW, itemWidth, truncateLabe
       );
     }
 
-    // Size items (scatter) — label-aware spacing with row wrapping
+    // Size items (scatter) — label-aware spacing with row wrapping.
     if (block.sizeItems && block.sizeItems.length) {
       const sth = block.title ? TH : 0;
-      const maxR = Math.max(
-        ...block.sizeItems.map(function (i) {
-          return i.r;
-        }),
-        3
-      );
+      const maxR = Math.max(...block.sizeItems.map((i) => i.r), 3);
       const rowH = maxR * 2 + 4;
       let cx = 0,
         row = 0;
-      const sizeChildren = block.sizeItems.map(function (item, ii) {
+      const sizeChildren = block.sizeItems.map((item, ii) => {
         const labelW = (item.label || "").length * 5.6 + 6;
         const itemW = maxR * 2 + 4 + labelW + 12;
         if (ii > 0 && cx + itemW > usableW) {

@@ -7,6 +7,8 @@
 // shared.bundle.js; TIME_UNITS comes from ./helpers.
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
+import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
+import { resolveDiscretePalette } from "../_shell/discrete-palette";
 import { TIME_UNITS, convertTime } from "./helpers";
 import type { Condition, PlotControlsProps } from "./helpers";
 import { ConditionEditor } from "./plot-area";

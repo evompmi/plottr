@@ -12,6 +12,7 @@ import type {
   UploadStepProps,
 } from "./helpers";
 import { HowTo } from "../_shell/HowTo";
+import { DataPreview } from "../_shell/core";
 import { BOXPLOT_HOWTO } from "./howto";
 
 // Role-colour themes for the Configure-step AesBox cards. Reuses scatter's

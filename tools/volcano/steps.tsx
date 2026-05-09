@@ -7,6 +7,7 @@
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DownloadTiles } from "../_shell/DownloadTiles";
+import { DataPreview } from "../_shell/core";
 import {
   VolcanoAesBox,
   ThresholdsTile,
