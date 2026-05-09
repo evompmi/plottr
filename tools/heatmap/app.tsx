@@ -7,7 +7,18 @@
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
 import { normalizeMatrix, autoRange } from "./helpers";
-import type { ClusterMode, DistanceMetric, LinkageMethod, Normalization } from "./helpers";
+import type {
+  AxisClusterMeta,
+  BrushBox,
+  CellBorderState,
+  ClusterMode,
+  ClusterResult,
+  DistanceMetric,
+  HeatmapSelection,
+  LinkageMethod,
+  MatrixExportRef,
+  Normalization,
+} from "./helpers";
 import { HeatmapChart } from "./chart";
 import { UploadStep } from "./steps";
 import { PlotControls } from "./controls";
@@ -65,7 +76,7 @@ const EXAMPLE_CSV = (() => {
       const geneName = `gene${String(geneIdx).padStart(3, "0")}`;
       const ctrlBase = p.ctrl[0] + rand() * (p.ctrl[1] - p.ctrl[0]);
       const stressBase = p.stress[0] + rand() * (p.stress[1] - p.stress[0]);
-      const cols: any[] = [];
+      const cols: string[] = [];
       for (let j = 0; j < 3; j++) cols.push((ctrlBase + (rand() - 0.5) * 2 * p.noise).toFixed(2));
       for (let j = 0; j < 3; j++) cols.push((stressBase + (rand() - 0.5) * 2 * p.noise).toFixed(2));
       lines.push([geneName, ...cols].join(","));
@@ -109,28 +120,31 @@ export function App() {
   const [distanceMetric, setDistanceMetric] = useState<DistanceMetric>("euclidean");
   const [linkageMethod, setLinkageMethod] = useState<LinkageMethod>("average");
 
-  const cellBorderInit = { on: false, color: "#ffffff", width: 0.5 };
+  const cellBorderInit: CellBorderState = { on: false, color: "#ffffff", width: 0.5 };
   const [cellBorder, updCellBorder] = useReducer(
-    (s: any, a: any) => (a._reset ? { ...cellBorderInit } : { ...s, ...a }),
+    (s: CellBorderState, a: Partial<CellBorderState> | { _reset: true }): CellBorderState =>
+      "_reset" in a && a._reset
+        ? { ...cellBorderInit }
+        : { ...s, ...(a as Partial<CellBorderState>) },
     cellBorderInit
   );
 
-  const chartRef = useRef<any>(null);
-  const detailChartRef = useRef<any>(null);
-  const matrixRef = useRef<any>(null);
+  const chartRef = useRef<SVGSVGElement | null>(null);
+  const detailChartRef = useRef<SVGSVGElement | null>(null);
+  const matrixRef = useRef<MatrixExportRef | null>(null);
 
   // Selection state: which rows / columns are highlighted for the detail view.
   // `null` on an axis means "all rows/cols". Indices are into the ORIGINAL
   // rawMatrix, not into rowOrder/colOrder — so clustering changes don't
   // invalidate them.
-  const [selection, setSelection] = useState({
+  const [selection, setSelection] = useState<HeatmapSelection>({
     rows: null,
     cols: null,
     clusterId: null,
     clusterAxis: null,
   });
 
-  const selectBox = useCallback((rows: any, cols: any) => {
+  const selectBox = useCallback((rows: number[] | null, cols: number[] | null) => {
     setSelection({
       rows: rows && rows.length ? rows : null,
       cols: cols && cols.length ? cols : null,
@@ -142,15 +156,18 @@ export function App() {
   // any prior selection rather than layering onto it — otherwise clicking a
   // column subtree after a row brush would intersect the two, which doesn't
   // match the user's mental model of "show me this subtree".
-  const selectAxis = useCallback((axis: any, indices: any, meta: any) => {
-    const valid = indices && indices.length ? indices : null;
-    setSelection({
-      rows: axis === "row" ? valid : null,
-      cols: axis === "col" ? valid : null,
-      clusterId: meta && meta.clusterId != null ? meta.clusterId : null,
-      clusterAxis: meta && meta.clusterId != null ? axis : null,
-    });
-  }, []);
+  const selectAxis = useCallback(
+    (axis: "row" | "col", indices: number[] | null, meta: AxisClusterMeta | null | undefined) => {
+      const valid = indices && indices.length ? indices : null;
+      setSelection({
+        rows: axis === "row" ? valid : null,
+        cols: axis === "col" ? valid : null,
+        clusterId: meta && meta.clusterId != null ? meta.clusterId : null,
+        clusterAxis: meta && meta.clusterId != null ? axis : null,
+      });
+    },
+    []
+  );
   const clearSelection = useCallback(
     () => setSelection({ rows: null, cols: null, clusterId: null, clusterAxis: null }),
     []
@@ -163,7 +180,7 @@ export function App() {
   );
 
   // Clustering — expensive; only recompute when relevant inputs change.
-  const rowCluster = useMemo(() => {
+  const rowCluster = useMemo<ClusterResult | null>(() => {
     if (rowMode === "hierarchical") {
       if (normalized.length < 2) return null;
       const D = pairwiseDistance(normalized, distanceMetric);
@@ -179,7 +196,7 @@ export function App() {
     return null;
   }, [rowMode, normalized, distanceMetric, linkageMethod, rowK, kmeansSeed]);
 
-  const colCluster = useMemo(() => {
+  const colCluster = useMemo<ClusterResult | null>(() => {
     if (normalized.length < 1 || normalized[0].length < 2) return null;
     // Transpose once — both hierarchical and k-means need column-as-observation.
     const nRows = normalized.length;
@@ -204,12 +221,12 @@ export function App() {
 
   const rowOrder = useMemo(() => {
     if (rowCluster) return rowCluster.order;
-    return rawMatrix.rowLabels.map((_: any, i: number) => i);
+    return rawMatrix.rowLabels.map((_, i) => i);
   }, [rowCluster, rawMatrix.rowLabels]);
 
   const colOrder = useMemo(() => {
     if (colCluster) return colCluster.order;
-    return rawMatrix.colLabels.map((_: any, i: number) => i);
+    return rawMatrix.colLabels.map((_, i) => i);
   }, [colCluster, rawMatrix.colLabels]);
 
   // Detail slice — honours current rowOrder/colOrder for visual continuity
@@ -217,22 +234,22 @@ export function App() {
   const detailRowOrder = useMemo(() => {
     if (!selection.rows) return rowOrder;
     const keep = new Set(selection.rows);
-    return rowOrder.filter((i: any) => keep.has(i));
+    return rowOrder.filter((i) => keep.has(i));
   }, [rowOrder, selection.rows]);
   const detailColOrder = useMemo(() => {
     if (!selection.cols) return colOrder;
     const keep = new Set(selection.cols);
-    return colOrder.filter((i: any) => keep.has(i));
+    return colOrder.filter((i) => keep.has(i));
   }, [colOrder, selection.cols]);
   const hasSelection = selection.rows !== null || selection.cols !== null;
 
   // A brush on the MAIN chart sends display-space (ri, ci) ranges; convert to
   // original indices via rowOrder/colOrder before storing in selection.
   const onBrushEnd = useCallback(
-    ({ riMin, riMax, ciMin, ciMax }: any) => {
-      const rows: any[] = [];
+    ({ riMin, riMax, ciMin, ciMax }: BrushBox) => {
+      const rows: number[] = [];
       for (let ri = riMin; ri <= riMax; ri++) if (rowOrder[ri] != null) rows.push(rowOrder[ri]);
-      const cols: any[] = [];
+      const cols: number[] = [];
       for (let ci = ciMin; ci <= ciMax; ci++) if (colOrder[ci] != null) cols.push(colOrder[ci]);
       selectBox(rows, cols);
     },
@@ -278,7 +295,7 @@ export function App() {
   }, [normalized, vis.palette, normalization, updVis]);
 
   const canNavigate = useCallback(
-    (target: any) => {
+    (target: string) => {
       if (target === "upload") return true;
       if (target === "configure") return rawMatrix.rowLabels.length > 0;
       if (target === "plot") return rawMatrix.rowLabels.length > 0;
@@ -288,7 +305,7 @@ export function App() {
   );
 
   const doParse = useCallback(
-    (text: any, sep: any) => {
+    (text: string, sep: string) => {
       const dc = fixDecimalCommas(text, sep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
@@ -321,7 +338,7 @@ export function App() {
   );
 
   const handleFileLoad = useCallback(
-    (text: any, name: any) => {
+    (text: string, name: string) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
@@ -408,9 +425,9 @@ export function App() {
           </p>
           <DataPreview
             headers={[""].concat(rawMatrix.colLabels)}
-            rows={rawMatrix.matrix.map((row: any, ri: number) =>
+            rows={rawMatrix.matrix.map((row, ri) =>
               [rawMatrix.rowLabels[ri]].concat(
-                row.map((v: any) => (Number.isFinite(v) ? String(v) : ""))
+                row.map((v) => (Number.isFinite(v) ? String(v) : ""))
               )
             )}
           />

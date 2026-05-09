@@ -6,7 +6,13 @@
 // ./helpers.
 
 import { HeatmapChart } from "./chart";
-import { pruneDendroTree } from "./helpers";
+import {
+  pruneDendroTree,
+  ClusterResult,
+  DataMatrix,
+  DetailPreviewCardProps,
+  DetailViewProps,
+} from "./helpers";
 import { buildCsvExport } from "./reports";
 
 const { useMemo, useRef } = React;
@@ -30,7 +36,7 @@ export function DetailView({
   detailChartRef,
   fileName,
   clusterId,
-}: any) {
+}: DetailViewProps) {
   // Detail tile is now an independent sibling next to the main plot rather
   // than stacked beneath it, so it no longer mirrors the main's width,
   // column offsets, dendrogram band, or legend length. Row height is still
@@ -53,19 +59,19 @@ export function DetailView({
   // k-means: forward as-is (the strip + inter-cluster gap math both need
   // the original `clusters` array, which is indexed by original leaf idx).
   // Null when neither applies (so HeatmapChart reserves no dendro band).
-  const detailRowCluster = useMemo(() => {
+  const detailRowCluster = useMemo<ClusterResult | null>(() => {
     if (mainRowIsKmeans) return mainRowCluster;
-    if (mainRowIsHier) {
+    if (mainRowIsHier && mainRowCluster && mainRowCluster.mode === "hierarchical") {
       const pruned = pruneDendroTree(mainRowCluster.tree, new Set(detailRowOrder));
-      return pruned ? { mode: "hierarchical", tree: pruned } : null;
+      return pruned ? { mode: "hierarchical", tree: pruned, order: detailRowOrder } : null;
     }
     return null;
   }, [mainRowCluster, mainRowIsKmeans, mainRowIsHier, detailRowOrder]);
-  const detailColCluster = useMemo(() => {
+  const detailColCluster = useMemo<ClusterResult | null>(() => {
     if (mainColIsKmeans) return mainColCluster;
-    if (mainColIsHier) {
+    if (mainColIsHier && mainColCluster && mainColCluster.mode === "hierarchical") {
       const pruned = pruneDendroTree(mainColCluster.tree, new Set(detailColOrder));
-      return pruned ? { mode: "hierarchical", tree: pruned } : null;
+      return pruned ? { mode: "hierarchical", tree: pruned, order: detailColOrder } : null;
     }
     return null;
   }, [mainColCluster, mainColIsKmeans, mainColIsHier, detailColOrder]);
@@ -83,7 +89,10 @@ export function DetailView({
   // cluster-1 and cluster-3 exports apart on disk without re-opening them.
   const clusterSuffix = clusterId != null ? `_cluster${clusterId + 1}` : "";
 
-  const downloadButton = (label: any, onClick: any) => (
+  const downloadButton = (
+    label: string,
+    onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
+  ) => (
     <button
       onClick={(e) => {
         onClick(e);
@@ -136,10 +145,10 @@ export function DetailView({
           colOrder={detailColOrder}
           rowCluster={detailRowCluster}
           colCluster={detailColCluster}
-          showClusterStrip={detailShowDendrogram}
+          showClusterStrip={!!detailShowDendrogram}
           showRowDendrogram={vis.showRowDendrogram !== false}
           showColDendrogram={vis.showColDendrogram !== false}
-          showKmeansStrip={mainRowIsKmeans || mainColIsKmeans}
+          showKmeansStrip={!!(mainRowIsKmeans || mainColIsKmeans)}
           dendrogramStrokeWidth={DETAIL_DENDRO_STROKE_WIDTH}
           vmin={vis.vmin}
           vmax={vis.vmax}
@@ -167,20 +176,29 @@ export function DetailPreviewCard({
   detailColOrder,
   fileName,
   clusterId,
-}: any) {
+}: DetailPreviewCardProps) {
   const base = fileBaseName(fileName || "heatmap") || "heatmap";
   const clusterSuffix = clusterId != null ? `_cluster${clusterId + 1}` : "";
   const nR = detailRowOrder.length;
   const nC = detailColOrder.length;
-  const tableHeaders = [""].concat(detailColOrder.map((ci: any) => rawMatrix.colLabels[ci]));
-  const tableRows = detailRowOrder.map((ri: any) => {
-    const cells = detailColOrder.map((ci: any) => {
+  const tableHeaders = [""].concat(detailColOrder.map((ci) => rawMatrix.colLabels[ci]));
+  const tableRows = detailRowOrder.map((ri) => {
+    const cells = detailColOrder.map((ci) => {
       const v = rawMatrix.matrix[ri][ci];
       return Number.isFinite(v) ? String(v) : "";
     });
     return [rawMatrix.rowLabels[ri]].concat(cells);
   });
-  const detailMatrixRef = useRef<any>(null);
+  // Holds the export-ready matrix shape; written to in render so the
+  // download buttons see the latest data on click.
+  interface DetailMatrixRefData {
+    rowLabels: string[];
+    colLabels: string[];
+    matrix: DataMatrix;
+    rowOrder: number[];
+    colOrder: number[];
+  }
+  const detailMatrixRef = useRef<DetailMatrixRefData | null>(null);
   detailMatrixRef.current = {
     rowLabels: rawMatrix.rowLabels,
     colLabels: rawMatrix.colLabels,
@@ -188,6 +206,9 @@ export function DetailPreviewCard({
     rowOrder: detailRowOrder,
     colOrder: detailColOrder,
   };
+  // CsvExportOpts requires rowClusterIds + colClusterIds; the detail
+  // preview never carries cluster colour strips, so both are null here.
+  const csvOpts = { ...detailMatrixRef.current!, rowClusterIds: null, colClusterIds: null };
 
   return (
     <div
@@ -216,7 +237,7 @@ export function DetailPreviewCard({
         <button
           onClick={(e) => {
             if (!detailMatrixRef.current) return;
-            const { headers, rows } = buildCsvExport(detailMatrixRef.current);
+            const { headers, rows } = buildCsvExport(csvOpts);
             downloadCsv(headers, rows, `${base}_heatmap${clusterSuffix}_detail.csv`);
             flashSaved(e.currentTarget);
           }}

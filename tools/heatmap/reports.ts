@@ -14,6 +14,34 @@ declare const DIVERGING_PALETTES: Set<string>;
 declare const sanitizeRString: (s: string) => string;
 declare const formatRNumber: (v: number) => string;
 
+import type {
+  CellBorderState,
+  ClusterMode,
+  DataMatrix,
+  DistanceMetric,
+  LinkageMethod,
+  Normalization,
+  RawMatrix,
+} from "./helpers";
+
+export interface HeatmapRScriptOpts {
+  rawMatrix: RawMatrix;
+  normalization: Normalization;
+  rowMode: ClusterMode;
+  colMode: ClusterMode;
+  rowK: number;
+  colK: number;
+  kmeansSeed: number;
+  distanceMetric: DistanceMetric;
+  linkageMethod: LinkageMethod;
+  palette: string;
+  invertPalette: boolean;
+  vmin: number;
+  vmax: number;
+  plotTitle: string;
+  cellBorder: CellBorderState;
+}
+
 export function buildHeatmapRScript({
   rawMatrix,
   normalization,
@@ -30,15 +58,15 @@ export function buildHeatmapRScript({
   vmax,
   plotTitle,
   cellBorder,
-}: any) {
+}: HeatmapRScriptOpts): string {
   const { rowLabels, colLabels, matrix } = rawMatrix;
-  const rowNamesR = "c(" + rowLabels.map((l: any) => `"${sanitizeRString(l)}"`).join(", ") + ")";
-  const colNamesR = "c(" + colLabels.map((l: any) => `"${sanitizeRString(l)}"`).join(", ") + ")";
-  const flat: any[] = [];
+  const rowNamesR = "c(" + rowLabels.map((l) => `"${sanitizeRString(l)}"`).join(", ") + ")";
+  const colNamesR = "c(" + colLabels.map((l) => `"${sanitizeRString(l)}"`).join(", ") + ")";
+  const flat: number[] = [];
   for (let r = 0; r < matrix.length; r++) {
     for (let c = 0; c < matrix[r].length; c++) flat.push(matrix[r][c]);
   }
-  const dataRows: any[] = [];
+  const dataRows: string[] = [];
   const perLine = colLabels.length;
   for (let i = 0; i < flat.length; i += perLine) {
     dataRows.push(
@@ -52,13 +80,13 @@ export function buildHeatmapRScript({
   const dataLiteral = "c(\n" + dataRows.join(",\n") + "\n  )";
   const paletteBase = COLOR_PALETTES[palette] || COLOR_PALETTES.viridis;
   const stops = invertPalette ? [...paletteBase].reverse() : paletteBase;
-  const stopsR = "c(" + stops.map((c: any) => `"${c}"`).join(", ") + ")";
+  const stopsR = "c(" + stops.map((c) => `"${c}"`).join(", ") + ")";
 
   // pheatmap speaks "correlation" directly; map our metric accordingly.
   const pheatmapDist =
     distanceMetric === "correlation" ? "correlation" : distanceMetric || "euclidean";
 
-  const lines: any[] = [];
+  const lines: string[] = [];
   lines.push("# Plöttr — Heatmap R script export");
   lines.push("# Generated " + new Date().toISOString());
   lines.push("#");
@@ -183,6 +211,21 @@ export function buildHeatmapRScript({
   return lines.join("\n");
 }
 
+export interface CsvExportOpts {
+  rowLabels: string[];
+  colLabels: string[];
+  matrix: DataMatrix;
+  rowOrder: number[];
+  colOrder: number[];
+  rowClusterIds: number[] | null;
+  colClusterIds: number[] | null;
+}
+
+export interface CsvExport {
+  headers: string[];
+  rows: string[][];
+}
+
 export function buildCsvExport({
   rowLabels,
   colLabels,
@@ -191,28 +234,28 @@ export function buildCsvExport({
   colOrder,
   rowClusterIds,
   colClusterIds,
-}: any) {
+}: CsvExportOpts): CsvExport {
   const hasRowClusters = Array.isArray(rowClusterIds);
   const hasColClusters = Array.isArray(colClusterIds);
   const headers = [""]
-    .concat(colOrder.map((i: any) => colLabels[i]))
+    .concat(colOrder.map((i) => colLabels[i]))
     .concat(hasRowClusters ? ["cluster"] : []);
-  const rows = rowOrder.map((ri: any) => {
-    const cells = colOrder.map((ci: any) => {
+  const rows = rowOrder.map((ri) => {
+    const cells = colOrder.map((ci) => {
       const v = matrix[ri][ci];
       return Number.isFinite(v) ? String(v) : "";
     });
     const base = [rowLabels[ri]].concat(cells);
-    if (hasRowClusters) {
+    if (hasRowClusters && rowClusterIds) {
       const cid = rowClusterIds[ri];
       base.push(cid != null ? String(cid + 1) : "");
     }
     return base;
   });
-  if (hasColClusters) {
+  if (hasColClusters && colClusterIds) {
     const clusterRow = ["cluster"]
       .concat(
-        colOrder.map((ci: any) => (colClusterIds[ci] != null ? String(colClusterIds[ci] + 1) : ""))
+        colOrder.map((ci) => (colClusterIds[ci] != null ? String(colClusterIds[ci] + 1) : ""))
       )
       .concat(hasRowClusters ? [""] : []);
     rows.unshift(clusterRow);
