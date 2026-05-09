@@ -1,61 +1,29 @@
-// Loads tools/_shell/r-export.ts (compiled to CJS, with stats-registry.ts
-// inlined by esbuild's bundle: true) on top of the shared bundle so the
-// stats-* function globals (tTest, welchANOVA, …) are available when the
-// registry's `run` closures fire. Module is pure string-building, so the
-// sandbox is minimal.
-//
-// Pre-2026-05 cluster C migration the loader read shared-r-export.js
-// directly; now r-export lives at tools/_shell/r-export.ts.
+// Loads `tools/_shell/r-export.ts` (with stats-registry.ts inlined by
+// esbuild's bundle: true) on top of shared.js + the stats-*.js sources,
+// so the registry's `run` closures resolve their `tTest` / `welchANOVA`
+// / etc. references at runtime. Pure string-building module — no DOM
+// needed beyond the JS built-ins.
 
-const fs = require("fs");
 const vm = require("vm");
+const fs = require("fs");
 const path = require("path");
-const esbuild = require("esbuild");
 const { readStatsSource } = require("./stats-source");
+const { TOOLS_DIR, builtins, bundleShell, runCjs } = require("./_shell-test-utils");
 
-const toolsDir = path.join(__dirname, "../../tools");
+const sharedSrc = fs.readFileSync(path.join(TOOLS_DIR, "shared.js"), "utf8");
 const statsSrc = readStatsSource();
-const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
+const rExportCjs = bundleShell("_shell/r-export.ts");
 
-const rExportCjs = esbuild.buildSync({
-  entryPoints: [path.join(toolsDir, "_shell/r-export.ts")],
-  bundle: true,
-  format: "cjs",
-  platform: "neutral",
-  write: false,
-}).outputFiles[0].text;
-
-const moduleObj = { exports: {} };
-const ctx = {
-  Math,
-  Number,
-  String,
-  Array,
-  Object,
-  JSON,
-  Date,
-  console,
-  parseInt,
-  parseFloat,
-  isNaN,
-  isFinite,
-  Infinity,
-  NaN,
-  Set,
-  Map,
-  module: moduleObj,
-  exports: moduleObj.exports,
-};
-
+const ctx = builtins();
 vm.createContext(ctx);
 vm.runInContext(sharedSrc + "\n" + statsSrc, ctx);
-vm.runInContext(rExportCjs, ctx);
+const rExport = runCjs(ctx, rExportCjs);
 
 module.exports = {
-  buildRScript: moduleObj.exports.buildRScript,
-  buildRScriptForPower: moduleObj.exports.buildRScriptForPower,
-  sanitizeRString: moduleObj.exports.sanitizeRString,
-  sanitizeRComment: moduleObj.exports.sanitizeRComment,
-  formatRNumber: moduleObj.exports.formatRNumber,
-  formatRVector: moduleObj.exports.formatRVector,
+  buildRScript: rExport.buildRScript,
+  buildRScriptForPower: rExport.buildRScriptForPower,
+  sanitizeRString: rExport.sanitizeRString,
+  sanitizeRComment: rExport.sanitizeRComment,
+  formatRNumber: rExport.formatRNumber,
+  formatRVector: rExport.formatRVector,
 };

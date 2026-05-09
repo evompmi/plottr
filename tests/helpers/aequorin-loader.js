@@ -1,71 +1,41 @@
-// Loads the aequorin pure helpers (tools/aequorin/helpers.ts) plus shared.js /
-// stats.js into a Node vm context for fuzz / unit tests. helpers.ts is a pure
-// ES module (calibration, condition detection, smoothing, time conversion,
-// SVG path builders) with no React/DOM dependency, so we transform it to
-// CommonJS with esbuild and evaluate it in a vm context that already has the
-// shared globals (PALETTE, parseWideMatrix, …) available.
+// Loads the aequorin pure helpers (`tools/aequorin/helpers.ts`) on top
+// of `shared.js` + the stats-* sources for fuzz / unit / property
+// tests. helpers.ts has no React/DOM dependency — pure calibration,
+// condition detection, smoothing, time conversion, SVG path math.
+//
+// `bundleShell` follows the helpers.ts → `_shell/chart-layout` /
+// `_shell/discrete-palette` import chain so all the shared helpers
+// land in one CJS output.
 
-const fs = require("fs");
 const vm = require("vm");
+const fs = require("fs");
 const path = require("path");
-const esbuild = require("esbuild");
 const { readStatsSource } = require("./stats-source");
+const { TOOLS_DIR, builtins, bundleShell, runCjs } = require("./_shell-test-utils");
 
-const toolsDir = path.join(__dirname, "../../tools");
-const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
+const sharedSrc = fs.readFileSync(path.join(TOOLS_DIR, "shared.js"), "utf8");
 const statsSrc = readStatsSource();
+const helpersCjs = bundleShell("aequorin/helpers.ts");
 
-// `helpers.ts` imports from `_shell/chart-layout` (audit M7 refactor) and
-// `_shell/discrete-palette` (post-2026-05 migration), so a plain
-// `transformSync` would leave unresolved `require("../_shell/...")` that
-// blows up in the vm context. `buildSync` with `bundle: true` inlines
-// every cross-module import the same way the production build does — so
-// `resolveDiscretePalette` and friends end up baked into the output.
-const helpersCjs = esbuild.buildSync({
-  entryPoints: [path.join(toolsDir, "aequorin/helpers.ts")],
-  bundle: true,
-  format: "cjs",
-  platform: "neutral",
-  write: false,
-}).outputFiles[0].text;
-
-const moduleObj = { exports: {} };
-const ctx = {
-  Math,
-  parseInt,
-  parseFloat,
-  isNaN,
-  isFinite,
-  Number,
-  String,
-  Array,
-  Object,
-  Infinity,
-  NaN,
-  Set,
-  Map,
-  module: moduleObj,
-  exports: moduleObj.exports,
-};
-
+const ctx = builtins();
 vm.createContext(ctx);
 vm.runInContext(sharedSrc, ctx);
 vm.runInContext(statsSrc, ctx);
-vm.runInContext(helpersCjs, ctx);
+const helpers = runCjs(ctx, helpersCjs);
 
 module.exports = {
   parseWideMatrix: ctx.parseWideMatrix,
-  calibrate: moduleObj.exports.calibrate,
-  calibrateHill: moduleObj.exports.calibrateHill,
-  calibrateGeneralized: moduleObj.exports.calibrateGeneralized,
-  detectConditions: moduleObj.exports.detectConditions,
-  smooth: moduleObj.exports.smooth,
-  convertTime: moduleObj.exports.convertTime,
-  buildAreaD: moduleObj.exports.buildAreaD,
-  buildLineD: moduleObj.exports.buildLineD,
-  computeAutoYRange: moduleObj.exports.computeAutoYRange,
-  DEFAULT_KR: moduleObj.exports.DEFAULT_KR,
-  DEFAULT_KTR: moduleObj.exports.DEFAULT_KTR,
-  DEFAULT_KD: moduleObj.exports.DEFAULT_KD,
-  DEFAULT_HILL_N: moduleObj.exports.DEFAULT_HILL_N,
+  calibrate: helpers.calibrate,
+  calibrateHill: helpers.calibrateHill,
+  calibrateGeneralized: helpers.calibrateGeneralized,
+  detectConditions: helpers.detectConditions,
+  smooth: helpers.smooth,
+  convertTime: helpers.convertTime,
+  buildAreaD: helpers.buildAreaD,
+  buildLineD: helpers.buildLineD,
+  computeAutoYRange: helpers.computeAutoYRange,
+  DEFAULT_KR: helpers.DEFAULT_KR,
+  DEFAULT_KTR: helpers.DEFAULT_KTR,
+  DEFAULT_KD: helpers.DEFAULT_KD,
+  DEFAULT_HILL_N: helpers.DEFAULT_HILL_N,
 };
