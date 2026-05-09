@@ -152,6 +152,8 @@ export const Chart = forwardRef<SVGSVGElement, ChartProps>(function Chart(
                 fill="none"
                 stroke={s.color}
                 strokeWidth={lineWidth}
+                role="img"
+                aria-label={`${s.name}: ${s.points.length} x-point${s.points.length !== 1 ? "s" : ""}`}
               />
             );
           })}
