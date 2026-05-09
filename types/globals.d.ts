@@ -480,25 +480,6 @@ declare global {
   ): void;
   function scrollDisclosureIntoView(el: Element | null, pad?: number): void;
 
-  // ── Preferences persistence (shared-prefs.js) ──────────────────────────────
-  function loadAutoPrefs<T extends Record<string, any>>(toolName: string, visInit: T): T;
-  function saveAutoPrefs(toolName: string, vis: Record<string, any>): void;
-  function flushAutoPrefs(toolName: string, vis: Record<string, any>): void;
-  function clearAutoPrefs(toolName: string): void;
-  function exportPrefsFile(toolName: string, vis: Record<string, any>): void;
-  function importPrefsFile(
-    toolName: string,
-    visInit: Record<string, any>,
-    cb: (merged: Record<string, any> | null, error: string | null) => void
-  ): void;
-  function mergePrefsSettings(
-    settings: Record<string, any>,
-    visInit: Record<string, any>,
-    opts?: { onlyStyle?: boolean }
-  ): Record<string, any>;
-  function extractStylePrefs(vis: Record<string, any>): Record<string, any>;
-  function isLabelKey(key: string): boolean;
-
   // ── Inter-tool data hand-off (shared-handoff.js) ───────────────────────────
   interface HandoffPayload {
     tool: string;
@@ -516,16 +497,6 @@ declare global {
   // `window.location.assign("<key>.html")` for legacy / standalone-page
   // deploys. Source tools call this immediately after `setHandoff(...)`.
   function navigateToTool(toolKey: string): void;
-  const PrefsPanel: FC<{
-    tool: string;
-    vis: Record<string, any>;
-    visInit: Record<string, any>;
-    // Accept the same patch shape `usePlotToolState`'s reducer produces:
-    // a partial-vis patch or the `{ _reset: true }` sentinel. `any` keeps
-    // the call sites assignable from typed `updVis<TVis>` returns under
-    // strict function types.
-    updVis: (patch: any) => void;
-  }>;
   interface SubgroupMeta {
     name: string;
     startIndex: number;

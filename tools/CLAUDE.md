@@ -69,7 +69,6 @@ Source files live side-by-side in `tools/` and stay the editable units:
   - `tools/shared-svg-legend.js` — `computeLegendHeight`, `renderSvgLegend`
   - `tools/shared-core.js` — `DataPreview`, `ErrorBoundary`
   - `tools/shared-ui.js` — `SliderControl`, `StepNavBar`, `CommaFixBanner`, `ParseErrorBanner`, `PageHeader`, `UploadPanel`, `ActionsPanel` (depends on `shared-file-drop.js`)
-  - `tools/shared-prefs.js` — `loadAutoPrefs`, `saveAutoPrefs`, `exportPrefsFile`, `importPrefsFile`, `clearAutoPrefs`, `PrefsPanel` — persists per-tool plot render settings to `localStorage` and to a portable `.json` file (depends on `shared.js`)
   - `tools/shared-long-format.js` — `ColumnRoleEditor`, `FilterCheckboxPanel`, `RenameReorderPanel`, `StatsTable`, `GroupColorEditor`, `BaseStyleControls` (depends on `shared-color-input.js`)
   - `tools/shared-r-export.js` — R reproducibility-script builders used by the download tiles in each plot tool
   - `tools/shared-stats-tile.js` — `assignBracketLevels`, `StatsTile` (depends on the `stats-*.js` files)

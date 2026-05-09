@@ -77,6 +77,8 @@ Files (current contents):
 | `PlotSidebar.tsx`        | Sticky right-rail wrapper used by every plot tool's controls panel.                                        |
 | `DownloadTiles.tsx`      | `ActionsPanel` wrapper for the per-tool download chips (SVG / PNG / CSV / R script / …).                   |
 | `ScrollablePlotCard.tsx` | Horizontal-scroll affordance (edge fades + "Scroll for more →" pill, `ResizeObserver`-driven).             |
+| `prefs-store.ts`         | Pure data layer for per-tool plot-render-settings persistence (load/save/import/export/migrate/merge).     |
+| `PrefsPanel.tsx`         | Gear-menu UI on top of `prefs-store`; rendered in PageHeader's right slot via `PlotToolShell`.             |
 | `chart-layout.ts`        | `CHART_MARGIN` and `buildLineD` — used by `lineplot/` + `aequorin/` (see `helpers.ts` re-exports).         |
 | `stats-dispatch.ts`      | `runTest` / `runPostHoc` / `postHocForTest` — shared by boxplot / lineplot / aequorin.                     |
 | `chart-annotations.tsx`  | `SignificanceBrackets`, `CldLabels` — shared annotation renderers.                                         |

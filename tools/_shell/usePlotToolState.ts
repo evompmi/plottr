@@ -9,7 +9,8 @@
 //
 // Ambient names consumed (from tools/shared.bundle.js globals):
 //   - React (useState, useReducer, useEffect)
-//   - loadAutoPrefs, saveAutoPrefs  (shared-prefs.js)
+
+import { loadAutoPrefs, saveAutoPrefs } from "./prefs-store";
 
 const { useState, useReducer, useEffect } = React;
 
@@ -55,11 +56,11 @@ export function usePlotToolState<TVis extends object>(
     (s: TVis, a: Partial<TVis> | { _reset: true }) =>
       "_reset" in a && a._reset ? { ...initialVis } : { ...s, ...(a as Partial<TVis>) },
     initialVis,
-    (init) => (loadAutoPrefs as (k: string, d: TVis) => TVis)(toolKey, init)
+    (init) => loadAutoPrefs(toolKey, init)
   );
 
   useEffect(() => {
-    (saveAutoPrefs as (k: string, v: TVis) => void)(toolKey, vis);
+    saveAutoPrefs(toolKey, vis);
   }, [toolKey, vis]);
 
   return {
