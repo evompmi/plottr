@@ -439,6 +439,7 @@ export const InsetBarplot = forwardRef<SVGSVGElement, InsetBarplotProps>(functio
       aria-label={plotTitle || "Bar plot"}
     >
       <title>{plotTitle || "Inset bar plot"}</title>
+      <desc>{`Inset bar plot of ${series.length} condition${series.length !== 1 ? "s" : ""}`}</desc>
       {plotTitle && (
         <g id="title">
           <text

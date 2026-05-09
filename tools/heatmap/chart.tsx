@@ -992,6 +992,8 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
     ]
   );
 
+  const hasClustering = rowIsHier || rowIsKmeans || colIsHier || colIsKmeans;
+
   return (
     <div ref={wrapperRef} style={{ position: "relative" }}>
       <svg
@@ -1001,7 +1003,11 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
         width={vbW}
         height={vbH}
         style={{ maxWidth: "100%", height: "auto", display: "block" }}
+        role="img"
+        aria-label={plotTitle || "Heatmap"}
       >
+        <title>{plotTitle || "Heatmap"}</title>
+        <desc>{`Heatmap of ${nRows} row${nRows !== 1 ? "s" : ""} × ${nCols} column${nCols !== 1 ? "s" : ""}${hasClustering ? ", with clustering" : ""}`}</desc>
         <g id="background">
           <rect x={0} y={0} width={vbW} height={vbH} fill="#ffffff" />
         </g>

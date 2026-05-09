@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Heatmap and Volcano charts had no accessibility attributes.** Both
+  SVGs now declare `role="img"`, an `aria-label` (the user's plot title
+  or a default), an SVG `<title>` (renders as hover tooltip on supporting
+  browsers), and an SVG `<desc>` that screen readers read out — for
+  Heatmap, the row × column dimensions and whether clustering is
+  enabled; for Volcano, the up / down / not-significant counts via the
+  existing `summarize()` helper. Brings them up to the same baseline the
+  six other charts already had. Aequorin's inset bar plot also gained
+  the `<desc>` it was missing.
+
 ## [1.4.0] - 2026-05-09
 
 > Long-form release notes — what shipped, why, and how — live in
