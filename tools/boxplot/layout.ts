@@ -190,7 +190,7 @@ export interface ViewBoxInput {
   valSize: number;
   catSize: number;
   M: ChartMargins;
-  svgLegend: LegendBlock[];
+  svgLegend: LegendBlock[] | null;
 }
 
 export interface ViewBoxResult {

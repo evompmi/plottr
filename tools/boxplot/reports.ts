@@ -2,13 +2,25 @@
 // string-builders — no React / DOM dependency — and therefore separately
 // testable alongside tools/boxplot/helpers.ts.
 
-import { TEST_LABELS_BP, POSTHOC_LABELS_BP, formatBpResultLine } from "./helpers";
+import {
+  TEST_LABELS_BP,
+  POSTHOC_LABELS_BP,
+  formatBpResultLine,
+  EnrichedBoxplotStatsRow,
+  SelectTestResult,
+} from "./helpers";
+import type { TestResult } from "../_shell/stats-dispatch";
 
-export function buildBpSetTextBlock(row: any, setLabel: any) {
-  const lines: any[] = [];
+// `BpReportRow` is just the EnrichedBoxplotStatsRow — re-exported as a
+// distinct alias because the report builders are intentionally permissive
+// about extra fields the panel might layer on top.
+export type BpReportRow = EnrichedBoxplotStatsRow;
+
+export function buildBpSetTextBlock(row: BpReportRow, setLabel: string): string {
+  const lines: string[] = [];
   const names = row.names;
   const values = row.values;
-  const res = row.testResult || {};
+  const res = row.testResult ?? ({} as TestResult);
   lines.push("=".repeat(60));
   lines.push(`${setLabel || "Set"}: ${row.name || "—"}`);
   lines.push("=".repeat(60));
@@ -28,57 +40,56 @@ export function buildBpSetTextBlock(row: any, setLabel: any) {
     );
   }
   lines.push("");
-  const rec = row.rec;
-  const recTest = rec && rec.recommendation && rec.recommendation.test;
-  const reason = rec && rec.recommendation && rec.recommendation.reason;
-  lines.push(`Test: ${TEST_LABELS_BP[row.chosenTest] || row.chosenTest || "—"}`);
+  const rec = (row.rec ?? {}) as SelectTestResult;
+  const recTest = rec.recommendation?.test;
+  const reason = rec.recommendation?.reason;
+  lines.push(`Test: ${row.chosenTest ? TEST_LABELS_BP[row.chosenTest] || row.chosenTest : "—"}`);
   if (reason) lines.push(`Reason: ${reason}`);
   if (res.error) lines.push(`Result: ⚠ ${res.error}`);
   else if (row.chosenTest) lines.push(`Result: ${formatBpResultLine(row.chosenTest, res)}`);
   if (recTest && recTest !== row.chosenTest)
     lines.push(`  (Toolbox recommended ${TEST_LABELS_BP[recTest] || recTest})`);
   lines.push("");
-  const norm = (rec && rec.normality) || [];
+  const norm = rec.normality ?? [];
   if (norm.length > 0) {
-    const parts = norm.map((r: any) => {
+    const parts = norm.map((r) => {
       const label = names[r.group] || `g${r.group}`;
       const verdict = r.normal === true ? "normal" : r.normal === false ? "not normal" : "—";
       return `${label}: ${verdict}`;
     });
     lines.push(`Shapiro-Wilk: ${parts.join("; ")}`);
   }
-  const lev = (rec && rec.levene) || {};
+  const lev = rec.levene ?? {};
   if (lev.F != null)
     lines.push(
       `Levene: F(${lev.df1}, ${lev.df2}) = ${lev.F.toFixed(3)}, p = ${formatP(lev.p)} → ${lev.equalVar ? "equal variance" : "unequal variance"}`
     );
-  if (names.length >= 3 && row.postHocResult && !row.postHocResult.error) {
+  const postHoc = row.postHocResult;
+  if (names.length >= 3 && postHoc && !postHoc.error && row.postHocName) {
     lines.push("");
     lines.push(`Post-hoc — ${POSTHOC_LABELS_BP[row.postHocName] || row.postHocName}:`);
-    for (const pr of row.postHocResult.pairs) {
+    for (const pr of postHoc.pairs) {
       const p = pr.pAdj != null ? pr.pAdj : pr.p;
       const diff =
         pr.diff != null ? pr.diff.toFixed(3) : pr.z != null ? `z=${pr.z.toFixed(3)}` : "—";
       lines.push(`  ${names[pr.i]} vs ${names[pr.j]}: ${diff},  p = ${formatP(p)}  ${pStars(p)}`);
     }
   }
-  if (row.powerResult) {
+  const power = row.powerResult;
+  if (power) {
     lines.push("");
-    lines.push(
-      `Power (target 80%): ${row.powerResult.effectLabel} = ${row.powerResult.effect.toFixed(3)}`
-    );
-    for (const pr of row.powerResult.rows) {
-      const nStr = pr.nForTarget != null ? `${pr.nForTarget} ${row.powerResult.nLabel}` : "> 5000";
+    lines.push(`Power (target 80%): ${power.effectLabel} = ${power.effect.toFixed(3)}`);
+    for (const pr of power.rows) {
+      const nStr = pr.nForTarget != null ? `${pr.nForTarget} ${power.nLabel}` : "> 5000";
       lines.push(`  α=${pr.alpha}: achieved ${(pr.achieved * 100).toFixed(1)}%, need n = ${nStr}`);
     }
-    if (row.powerResult.approximate)
-      lines.push("  (rank-based test — estimated from parametric analog)");
+    if (power.approximate) lines.push("  (rank-based test — estimated from parametric analog)");
   }
   lines.push("");
   return lines.join("\n");
 }
 
-export function buildBpAggregateReport(rows: any, setLabel: any) {
+export function buildBpAggregateReport(rows: BpReportRow[], setLabel: string): string {
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const label = setLabel || "Set";
   const head = [
@@ -87,10 +98,10 @@ export function buildBpAggregateReport(rows: any, setLabel: any) {
     `${label}${rows.length === 1 ? "" : "s"}: ${rows.length}`,
     "",
   ];
-  return head.join("\n") + rows.map((r: any) => buildBpSetTextBlock(r, label)).join("");
+  return head.join("\n") + rows.map((r) => buildBpSetTextBlock(r, label)).join("");
 }
 
-export function buildBpAggregateRScript(rows: any, setLabel: any) {
+export function buildBpAggregateRScript(rows: BpReportRow[], setLabel: string): string {
   if (!rows.length || typeof buildRScript !== "function") return "";
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   // sanitizeRComment strips embedded line terminators so a hostile set name

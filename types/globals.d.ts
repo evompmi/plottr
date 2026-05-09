@@ -195,6 +195,9 @@ declare global {
     mean: number;
     sd: number;
     sem: number;
+    // 95% CI half-width = tinv(0.975, n-1) × sem; falls back to 0 when n<2
+    // or tinv is unavailable. Added to match the shared.js implementation.
+    ci95: number;
     n: number;
     min: number;
     max: number;
