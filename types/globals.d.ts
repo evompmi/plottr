@@ -52,8 +52,6 @@ declare global {
   const roleColors: Record<string, string>;
 
   // ── Ingest size policy (shared-file-drop.js) ───────────────────────────────
-  const FILE_LIMIT_BYTES: number;
-  const FILE_WARN_BYTES: number;
 
   // ── Numeric detection & seeded RNG ─────────────────────────────────────────
   function isNumericValue(v: unknown): boolean;
@@ -274,76 +272,6 @@ declare global {
   // Implementations live in `tools/shared-*.js` (plain JS, concatenated into
   // shared.bundle.js — see CLAUDE.md). Prop types are tightened here for
   // .tsx call sites; runtime is unaffected.
-  const FileDropZone: FC<{
-    onFileLoad: (text: string, fileName: string) => void;
-    accept?: string;
-    hint?: string;
-  }>;
-  // NumberInput mirrors `<input type="number">`: onChange fires with
-  // `{ target: { value: string } }` so `(e) => setX(e.target.value)`
-  // handlers keep working unchanged.
-  const NumberInput: FC<{
-    value: number | string | null | undefined;
-    onChange: (e: { target: { value: string } }) => void;
-    min?: number | string;
-    max?: number | string;
-    step?: number | string;
-    disabled?: boolean;
-    placeholder?: string;
-    className?: string;
-    style?: CSSProperties;
-    inputStyle?: CSSProperties;
-  }>;
-  const SliderControl: FC<{
-    label: ReactNode;
-    value: number;
-    displayValue?: ReactNode;
-    min: number;
-    max: number;
-    step?: number;
-    onChange: (v: number) => void;
-  }>;
-  const StepNavBar: FC<{
-    steps: string[];
-    currentStep: string;
-    onStepChange: (s: string) => void;
-    canNavigate?: (s: string) => boolean;
-    stepLabels?: Record<string, string>;
-  }>;
-  const PageHeader: FC<{
-    toolName: string;
-    title: ReactNode;
-    middle?: ReactNode;
-    right?: ReactNode;
-  }>;
-  const UploadPanel: FC<{
-    sepOverride: string;
-    onSepChange: (s: string) => void;
-    onFileLoad: (text: string, fileName: string) => void;
-    onLoadExample?: () => void;
-    exampleLabel?: ReactNode;
-    hint?: string;
-  }>;
-  const HowToCard: FC<{
-    toolName: string;
-    title: ReactNode;
-    subtitle?: ReactNode;
-    children?: ReactNode;
-  }>;
-  interface ActionsPanelDownload {
-    label: string;
-    title?: string;
-    onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  }
-  const ActionsPanel: FC<{
-    onDownloadSvg?: (e: React.MouseEvent<HTMLButtonElement>) => void;
-    onDownloadPng?: (e: React.MouseEvent<HTMLButtonElement>) => void;
-    extraDownloads?: ActionsPanelDownload[];
-    onReset: () => void;
-  }>;
-  const CommaFixBanner: FC<{ commaFixed: boolean; commaFixCount: number }>;
-  const ParseErrorBanner: FC<{ error: string | null | undefined }>;
-  const FormulaInjectionBanner: FC<{ warning: FormulaInjectionWarning | null }>;
   interface FilterEntry {
     unique: string[];
     included: Set<string>;
@@ -374,12 +302,6 @@ declare global {
     renderLayout?: (children: ReactNode) => ReactNode;
     fileStem?: string;
   }>;
-  function scrollIntoViewWithinAncestor(
-    el: Element | null,
-    pad?: number,
-    extraBottom?: number
-  ): void;
-  function scrollDisclosureIntoView(el: Element | null, pad?: number): void;
 
   interface SubgroupMeta {
     name: string;

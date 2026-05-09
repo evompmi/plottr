@@ -11,6 +11,7 @@ import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
 import { applyDiscretePalette } from "../_shell/discrete-palette";
 import { ColorInput } from "../_shell/color-input";
 import { BaseStyleControls } from "../_shell/long-format";
+import { NumberInput, SliderControl, scrollDisclosureIntoView } from "../_shell/ui";
 
 const { useState, useRef, useEffect } = React;
 

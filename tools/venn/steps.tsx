@@ -6,6 +6,7 @@ import type { UploadStepProps, ConfigureStepProps } from "./helpers";
 import { HowTo } from "../_shell/HowTo";
 import { DataPreview } from "../_shell/core";
 import { navigateToTool } from "../_shell/handoff";
+import { UploadPanel } from "../_shell/ui";
 import { VENN_HOWTO } from "./howto";
 
 export function UploadStep({

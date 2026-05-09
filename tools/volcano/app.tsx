@@ -23,6 +23,7 @@
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
 import { HowTo } from "../_shell/HowTo";
+import { UploadPanel } from "../_shell/ui";
 import { VOLCANO_HOWTO } from "./howto";
 import {
   VOLCANO_DEFAULT_COLORS,

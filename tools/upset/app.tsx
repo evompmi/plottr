@@ -6,6 +6,7 @@
 import { usePlotToolState } from "../_shell/usePlotToolState";
 import { PlotToolShell } from "../_shell/PlotToolShell";
 import { ScrollablePlotCard } from "../_shell/ScrollablePlotCard";
+import { FILE_LIMIT_BYTES } from "../_shell/file-drop";
 import {
   computeMemberships,
   enumerateIntersections,

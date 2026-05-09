@@ -13,6 +13,7 @@
 // lives here. Tool-specific content lives in `tools/<tool>/howto.tsx`.
 
 import type { ReactNode } from "react";
+import { HowToCard } from "./ui";
 
 export interface HowToContent {
   /** Drives the tool icon + the collapsible's localStorage key. */

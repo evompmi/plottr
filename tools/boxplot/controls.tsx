@@ -9,6 +9,7 @@ import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
 import { applyDiscretePalette } from "../_shell/discrete-palette";
 import { ColorInput } from "../_shell/color-input";
 import { GroupColorEditor, BaseStyleControls } from "../_shell/long-format";
+import { SliderControl, ActionsPanel, scrollDisclosureIntoView } from "../_shell/ui";
 import type { BoxplotGroup, BoxplotVis, PlotControlsProps } from "./helpers";
 
 export function ControlSection({

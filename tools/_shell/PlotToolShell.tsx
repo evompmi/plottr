@@ -4,11 +4,15 @@
 // tool still owns the per-step content (UploadStep, ConfigureStep, plot
 // layout, etc.) since those differ per tool.
 //
-// Ambient names consumed (from tools/shared.bundle.js globals):
-//   - PageHeader, StepNavBar, CommaFixBanner, ParseErrorBanner  (shared-ui.js)
-
 import type { PlotToolState } from "./usePlotToolState";
 import { PrefsPanel } from "./PrefsPanel";
+import {
+  PageHeader,
+  StepNavBar,
+  CommaFixBanner,
+  FormulaInjectionBanner,
+  ParseErrorBanner,
+} from "./ui";
 
 const { useEffect, useRef, useState } = React;
 
