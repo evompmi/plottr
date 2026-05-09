@@ -531,3 +531,28 @@ input[type="range"]::-moz-range-thumb {
     margin-bottom: 8px;
   }
 }
+
+/* ── prefers-reduced-motion ──────────────────────────────────────────
+   Honour the user's OS-level "reduce motion" preference (vestibular
+   disorders, motion-triggered nausea). Sets transitions / animations
+   to ~zero across every element so hover scales, button transforms,
+   prefetch-bar slides, and disclosure-arrow rotations don't trigger
+   motion. 0.01ms (not 0) keeps `transitionend` event listeners firing
+   so any code that depends on them (none currently, but future-proofs
+   the rule) doesn't break. The PlotToolShell.tsx StepFade component
+   does its own JS-side check for the same media query and skips the
+   opacity fade entirely — both layers are kept in sync.
+
+   Covers components.css, index.html's inline <style>, and any future
+   stylesheet because the universal selector + !important takes
+   precedence over more specific transition declarations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
