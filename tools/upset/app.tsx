@@ -12,6 +12,7 @@ import {
   sortIntersections,
   truncateIntersections,
 } from "./helpers";
+import type { UpsetHandoffPayload } from "./helpers";
 import { UpsetChart } from "./chart";
 import { UploadStep, ConfigureStep, ItemListPanel } from "./steps";
 import { PlotControls } from "./controls";
@@ -460,7 +461,7 @@ export function App() {
   // way; the sessionStorage entry is removed immediately so a future page
   // load with no fresh hand-off doesn't re-load stale data.
   const handleHandoff = useCallback(
-    (payload: any) => {
+    (payload: UpsetHandoffPayload | null | undefined) => {
       if (!payload || typeof payload.text !== "string") return;
       // Audit policy: any ingest surface must gate on FILE_LIMIT_BYTES (see
       // doc-comment in tools/shared-file-drop.js). Same-origin only after

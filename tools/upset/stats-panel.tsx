@@ -4,6 +4,7 @@
 // intersectionTests cache.
 
 import { intersectionShortLabel } from "./helpers";
+import type { IntersectionStatsPanelProps } from "./helpers";
 
 /* ── Intersection significance panel ────────────────────────────────────────
  *
@@ -33,7 +34,7 @@ export function IntersectionStatsPanel({
   membershipMap,
   universeSize,
   intersectionTests,
-}: any) {
+}: IntersectionStatsPanelProps) {
   // Inclusive count: items whose bitmask covers every selected set.
   // Hook MUST run before any early-return so call order stays stable
   // across renders (rules-of-hooks).
