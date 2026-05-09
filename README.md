@@ -86,10 +86,10 @@ Each tool has an in-app **How to** panel.
 
 All numerics (`tools/stats-*.js`) are cross-validated against **two independent references**:
 
-- **R 4.5** on real built-in datasets (`iris`, `PlantGrowth`, `ToothGrowth`, `mtcars`, …). Current run: **303 comparisons, max absolute |R − JS| ≈ 8 × 10⁻⁷** (max over test statistics alone is 4 × 10⁻⁹); zero comparisons exceed 10⁻⁶ in absolute terms. Reproducible via `npm run benchmark`. Results render as a public page at `benchmark.html` — failing rows are shown in red, not hidden.
-- **SciPy 1.17** on synthetic targeted grids over the (df, λ) regimes the R bank only touches indirectly: `nctcdf` at deep δ, `ncf_sf` / `ncchi2cdf` at large λ across the noncentral normal-approx threshold, `qtukey` at extreme corners. **847 cases / ~1080 comparisons, 0 failures**, with 92 deep-tail rows (both values < 10⁻¹³, informational) and 1 pathological annotation (`qtukey` at df = 1, documented as outside the design envelope in `tools/stats-posthoc.js`). Reproducible via `npm run benchmark:scipy`.
+- **R 4.5** on real built-in datasets (`iris`, `PlantGrowth`, `ToothGrowth`, `mtcars`, …). Current run: **303 comparisons, 0 failures**, plus 4 R-floor rows where R's `ptukey` saturates at ~2.2 × 10⁻¹⁵ and Plöttr's `ptukey_upper` continues the true tail past it (cross-checked against SciPy and Monte Carlo). Reproducible via `npm run benchmark`. Results render as a public page at `benchmark.html` — failing rows would be shown in red, not hidden.
+- **SciPy 1.17** on synthetic targeted grids over the (df, λ) regimes the R bank only touches indirectly: `nctcdf` at deep δ, `ncf_sf` / `ncchi2cdf` at large λ across the noncentral normal-approx threshold, `qtukey` at extreme corners. **1,083 comparisons, 0 failures**, with 92 deep-tail / underflow rows (both values < 10⁻¹³, informational) and 1 pathological annotation (`qtukey` at df = 1, documented as outside the design envelope in `tools/stats-posthoc.js`). Reproducible via `npm run benchmark:scipy`.
 
-On top of that, a deterministic unit + integration test suite (CI-gated on every commit, alongside ESLint, Prettier, and `tsc --noEmit`) plus per-tool fuzz harnesses (`npm run fuzz:<tool>`) that run 2 × 1000 iterations of pathological-input corpus through each tool's pipeline. The current test count is shown on the [landing page](https://evompmi.github.io/plottr/) and auto-bumped after every `npm test`.
+On top of that, a deterministic test suite of **1,471 tests** (Vitest 3, CI-gated on every commit alongside ESLint, Prettier, `tsc --noEmit`, and `npm run build`) spanning unit, integration, render-smoke (real React 18 + happy-dom), and per-tool property suites (fast-check, with automatic shrinking on failure). A Playwright e2e suite (`npm run e2e`) covers paste → configure → plot golden paths per tool. Mutation testing is wired up via Stryker (`npm run mutation`) for on-demand meta-tests of whether the suite _catches_ bugs, not just whether tests pass — see [`docs/testing-2026-05-08.md`](docs/testing-2026-05-08.md).
 
 Covers: Shapiro–Wilk, Brown–Forsythe Levene, Student / Welch t, Mann–Whitney U, one-way ANOVA, Welch ANOVA, Kruskal–Wallis, Tukey HSD (studentised range), Games–Howell, Dunn + Benjamini–Hochberg, Cohen's _d_, Hedges' _g_, η², ε², compact letter display.
 
@@ -123,18 +123,19 @@ Node.js ≥ 20 for the tooling (not for running the app):
 npm install
 npm run build       # compile tools/*.tsx → tools/*.js
 npm run watch       # recompile on save
-npm test            # full deterministic suite (count shown on landing page)
-npm run fuzz:<tool> # fuzz one tool (boxplot, scatter, heatmap, …)
+npm test            # full deterministic suite (1,471 tests, Vitest 3)
 npm run typecheck   # tsc --noEmit
 npm run lint        # ESLint
-npm run benchmark   # R + JS cross-validation (requires R 4.5)
+npm run benchmark   # R + SciPy cross-validation (R 4.5, SciPy 1.17)
+npm run e2e         # Playwright e2e suite
+npm run mutation    # Stryker mutation testing (on demand)
 ```
 
-Architecture, shared-code constraints, and conventions for adding tools are in [`CLAUDE.md`](CLAUDE.md).
+Architecture, shared-code constraints, and conventions for adding tools are in [`CLAUDE.md`](CLAUDE.md). Versioned changes are tracked in [`CHANGELOG.md`](CHANGELOG.md); per-release long-form notes live under [`docs/release-notes/`](docs/release-notes/).
 
 ## Technical stack
 
-React 18 (vendored under `vendor/`, no CDN) + esbuild (TSX → JS, ~5 ms incremental) + custom SVG rendering (no charting library) + in-house stats cross-validated against R. Tests via a custom lightweight harness (no Jest/Mocha). Hosted on GitHub Pages.
+React 18 (vendored under `vendor/`, no CDN) + esbuild (TSX → JS, ~5 ms incremental) + custom SVG rendering (no charting library) + in-house stats cross-validated against R 4.5 + SciPy 1.17. Tests via Vitest 3 with a thin compat shim that preserves the project's house vocabulary. Hosted on GitHub Pages as a single-page app (hash-routed; one esbuild entry point).
 
 No runtime dependencies from external CDNs — `vendor/` ships React + ReactDOM so a cloned copy works without network access.
 
