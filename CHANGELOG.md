@@ -7,166 +7,168 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-05-09
+
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.4.0.md`](docs/release-notes/v1.4.0.md). The
+> entries below are summary bullets that link there.
+
 ### Fixed
 
-- **Theme-var audit — second pass.** The 2026-05-04 audit replaced bare-value chrome literals (`background: "#fff"`, `boxShadow: "rgba(...)"`) with theme variables and widened the `plottr/no-chrome-hex-literal` lint rule to catch named colours and `rgba`/`hsl` substrings. This pass closes the remaining gaps the rule still missed: (1) **multi-token hex shorthand** (`border: "1px solid #0072B2"`) — the rule's HEX regex required a full-string match; widened to substring with hex-boundary guards; (2) **ternary / `&&` / `||` / template-literal values inside `style={{...}}`** (e.g. `background: cond ? "#abc" : "..."`) — the rule only inspected `Literal` property values; now recurses through `ConditionalExpression`, `LogicalExpression`, and template-literal quasis. With the widened rule, 17 fresh violations surfaced and were fixed: aequorin parse-banner bg/border ternary now uses `var(--warning-*)`/`var(--danger-*)`; boxplot facet-legend swatches fall back to `var(--text-faint)`; molarity success-borders + table hairline use `var(--success-border)` / `var(--border)`; power calculator's accent-blue chrome (test-description left border + result-text colour) uses `var(--accent-blue)`; scatter regression-info border, shape-warning border, and "all" button border use `var(--border)` / `var(--danger-border)` / `var(--border-strong)`; scatter palette-preview + venn region-table header borders use `var(--border)`. CSS file gaps the JS-only rule can't see were also closed by hand: four `box-shadow` rgb literals in `tools/components.css` (`.dv-btn-plot:hover` / `.dv-btn-secondary:hover` / `.dv-btn-dl:hover` / `.dv-btn-danger:hover`) and the prefs-popover shadow in `tools/shared-prefs.js` now reference new `--btn-*-hover-shadow` tokens (light: accent-tinted; dark: black-tinted with deeper alpha — mirroring the established `--cta-primary-shadow` flip pattern). Two remaining literals in `React.createElement`-style shared `.js` files (which the JSX rule never sees) — `tools/shared-file-drop.js`'s over-size error tint and `tools/shared-long-format.js`'s on-chip text colour — also fixed manually.
+- **Theme-var audit — second pass.** Widened the
+  `plottr/no-chrome-hex-literal` ESLint rule to catch multi-token hex
+  shorthand (`border: "1px solid #0072B2"`) and chrome literals inside
+  ternary / `&&` / `||` / template-literal values; closed 17 fresh
+  violations across aequorin / boxplot / molarity / power / scatter /
+  venn, plus four `box-shadow` rgb literals in `tools/components.css`
+  (new `--btn-*-hover-shadow` tokens) and two literals in
+  `React.createElement`-style shared `.js` files. See
+  [`docs/release-notes/v1.4.0.md`](docs/release-notes/v1.4.0.md#-theme-var-audit--second-pass).
 
-- **Power calculator was left-aligned instead of centered.** The root container had `maxWidth: 960` but no `margin: "0 auto"`, so on wide screens it hugged the left edge. Now matches the molarity calculator's centered pattern.
+- **Power calculator was left-aligned instead of centered.** Missing
+  `margin: "0 auto"`; now matches the molarity calculator's centered
+  pattern.
 
-- **Power calculator collapses to a single column with no plot card below 900 px viewport.** Mirrors molarity's `useIsMobile(900)` hook. The PowerCurve SVG is unreadable at that size and computing it is wasted work on a phone — the numeric result panel still shows the computed power / n / effect size, which is what the calculator is for. Plot tools remain desktop-first by design; this responsive treatment is calculator-specific.
+- **Power calculator collapses to a single column with no plot card
+  below 900 px viewport.** Mirrors molarity's `useIsMobile(900)` hook.
+  The PowerCurve SVG is unreadable at that size; the numeric result
+  panel still shows. Plot tools remain desktop-first by design.
 
-- **Volcano: points at p=1 collided with the bottom x-axis line.** Auto y-range used to start at exactly 0, so points with `-log10(p) = 0` (very common in -omics datasets where many genes are filtered to p=1 upstream) sat on the axis. The auto-range now opens a 3% bottom pad below 0 (`autoYMin = -maxNL * 0.03`), giving ~10–17 px of clearance depending on plot height. The y=0 tick still appears as the lowest tick — `makeTicks` rounds the start up to a "nice" value, so the tiny negative `yMin` doesn't produce negative tick labels. User-supplied `yMin` overrides remain unchanged.
+- **Volcano: points at p=1 collided with the bottom x-axis line.** Auto
+  y-range now opens a 3% bottom pad below 0 (~10–17 px clearance).
+  User-supplied `yMin` overrides remain unchanged.
 
-- **Sidebar control-panel spacing was inconsistent across and within tools.** Two stacked bugs: (1) Boxplot's `ControlSection` set `marginBottom: 6`, stacking on top of `PlotSidebar`'s `gap: 10` and giving 16px gaps boxplot-only; (2) the `.dv-panel` CSS class itself carries `margin-bottom: 16px`, which `ControlSection` overrides inline but bare `<div className="dv-panel">` tiles don't — so any tool that mixed both (boxplot, lineplot, heatmap) saw the gap pulse between 10px (after a ControlSection) and 26px (after a bare panel), and tools using only bare panels (venn) got 26px throughout vs 10px on tools using only ControlSections. Fix at the shell level: `PlotSidebar` now carries a `dv-sidebar` class, and `components.css` zeros `margin-bottom` on every `.dv-panel` direct child of `.dv-sidebar` — uniform 10px from the flex gap regardless of tile type. Boxplot's stray `marginBottom: 6` is also cleaned up.
+- **Sidebar control-panel spacing was inconsistent across and within
+  tools.** `PlotSidebar` now carries a `dv-sidebar` class and
+  `components.css` zeros `margin-bottom` on every `.dv-panel` direct
+  child — uniform 10 px from the flex gap regardless of tile type.
+  Boxplot's stray `marginBottom: 6` cleaned up.
+
+- **Boxplot: rotated x-tick labels no longer clip into the legend.**
+  Bottom-margin reservation now takes the larger of the angle-only
+  heuristic and a sharper `maxLabelLen × charWidth × sin(angle)`
+  estimate.
+
+- **Lineplot / scatter / aequorin: long category names truncate in the
+  legend** at the same 14-char ellipsis cap boxplot already used.
 
 ### Changed
 
-- **Venn React tier fully typed.** Internal-only type-safety tightening: every `: any` annotation in `tools/venn/{app,chart,plot-area}.tsx` replaced with concrete types (6 → 0; the eighth and final tool in the React-tier campaign — every plot tool now type-checks its React surface end to end). New typed prop / data interfaces in `venn/helpers.ts` — `VennChartProps`, `IntersectionTableProps`, `ItemListPanelProps`, `PlotAreaProps`, `VennLayoutInfo` (the `onLayoutInfo` callback shape), `SetColorsUpdater` (mirrors React's `Dispatch<SetStateAction<Record<string,string>>>`). Drive-by aria-label fix in `chart.tsx`: the `Set X: N elements` aria-label was reading `sets[name]` (undefined on a `Map`) instead of `sets.get(name)?.size` — typing the `sets` prop as `SetMap` surfaced the bug. `chartRef` is now `useRef<SVGSVGElement>(null)` matching the established pattern (was `<SVGSVGElement | null>`).
+- **Heavy refactor — `shared-*.js` plain-JS bundle migrated to typed
+  `tools/_shell/` modules.** Every `shared-*.js` file with non-trivial
+  behaviour (prefs, handoff, discrete-palette, svg-legend, core,
+  color-input, long-format, file-drop, ui, stats-registry, r-export,
+  stats-tile) is now a typed `_shell/` sibling. The plain-JS bundle
+  shrank from 19 → 7 files (the seven that remain are intentional —
+  `theme.js`, `shared.js`, and the five `stats-*.js` files load order
+  matters). `_shell/index.ts` barrel exports per-symbol with
+  `"sideEffects": false` for tree-shaking. See
+  [`docs/release-notes/v1.4.0.md`](docs/release-notes/v1.4.0.md#-sharedshell-migration--the-typed-scaffold).
 
-- **UpSet React tier fully typed.** Internal-only type-safety tightening: every `: any` annotation in `tools/upset/{app,chart,stats-panel}.tsx` and `tools/upset/helpers.ts` replaced with concrete types (8 → 0). New typed prop / data interfaces in `upset/helpers.ts` — `UpsetChartProps`, `IntersectionStatsPanelProps`, `IntersectionTest` (the cached SuperExactTest result shape), `IntersectionSignificance` (chart-side projection), `IntersectionDirection` ("enriched" | "depleted" | "neutral"), `UpsetHandoffPayload` (Venn → UpSet message contract). The forwardRef chart now declares `<SVGSVGElement, UpsetChartProps>` so column / bar / label `.map` callbacks narrow to `Intersection`. Stricter null guards on `sig.pAdj` / `sig.pAdjTwoSided` in chart.tsx (Number.isFinite doesn't narrow `null` away in TS).
+- **React-tier typing campaign — every plot tool typed end-to-end.**
+  Every `: any` annotation in each tool's `app.tsx` / `chart.tsx` /
+  `controls.tsx` / `steps.tsx` / `plot-area.tsx` / `helpers.ts` /
+  `reports.ts` / `stats-panel.tsx` replaced with concrete types:
+  Aequorin (170 → 0), Boxplot (160 → 0), Heatmap (101 → 0), Scatter
+  (49 → 0), Volcano (39 → 0), Lineplot (34 → 0), UpSet (8 → 0), Venn
+  (6 → 0). Latent bugs surfaced and fixed (Venn aria-label reading
+  `sets[name]` on a `Map`; two Volcano callers passing the wrong
+  shape to `eligibleColumns`; null-narrowing gaps in Boxplot stats).
+  See [`docs/release-notes/v1.4.0.md`](docs/release-notes/v1.4.0.md#-react-tier-typing-campaign--every-plot-tool-typed-end-to-end).
 
-- **Volcano React tier fully typed.** Internal-only type-safety tightening: every `: any` annotation in `tools/volcano/{app,chart,controls,steps}.tsx` and `tools/volcano/helpers.ts` replaced with concrete types (39 → 0). New typed prop interfaces in `volcano/helpers.ts` — `VolcanoChartProps` (lifted from chart.tsx so it's the type-canonical home), `ThresholdsTileProps`, `ColorsTileProps`, `ColorRowProps`, `LabelSearchRowProps`, `LabelsTileProps`, `StyleTileProps`, `ColorMapTileProps`, `SizeMapTileProps`, `SummaryTileProps`, `ConfigureStepProps`, `PlotStepProps`, plus the persisted-state shape `VolcanoVis` and its updater `UpdVolcanoVis`. `eligibleColumns` now accepts `ParseDataResult | null | undefined` instead of an opaque bag. `VIS_INIT_VOLCANO` is now annotated `: VolcanoVis` to widen the const-literal `colorUp` slot to `string` so reducer dispatches type-check.
-
-- **Heatmap React tier fully typed.** Internal-only type-safety tightening: every `: any` annotation in `tools/heatmap/{app,chart,plot-area}.tsx` and `tools/heatmap/{helpers,reports}.ts` replaced with concrete types (101 → 0; though the .tsx-only count was 69, helpers + reports brought another 32). New typed prop interfaces in `heatmap/helpers.ts` — `HeatmapChartProps` (40+ fields incl. dendrogram + selection + cell-size overrides), `PaletteStripProps`, `DetailViewProps`, `DetailPreviewCardProps`, plus typed data + state shapes (`DataMatrix`, `HeatmapSelection`, `BrushBox`, `AxisClusterMeta`, `ClusterResult`, `MatrixExportRef`, `DendroLayout` / `DendroLayoutSegment` / `DendroLayoutNode`). The eight pure helpers (`finiteMean`, `finiteSD`, `normalizeMatrix`, `autoRange`, `buildDendroLayout`, `pruneDendroTree`, `fmtColorbarTick`) and both report builders (`buildHeatmapRScript`, `buildCsvExport`) now have fully typed signatures. `ClusterResult` is a discriminated union over `mode: "hierarchical" | "kmeans"` so consumers narrow to the right shape via `if (cluster.mode === "kmeans")`. Drive-by global stub fix: added `React.PointerEvent` and `React.WheelEvent` to the global React-namespace type-passthrough so chart pointer handlers can declare typed events.
-
-- **Boxplot React tier fully typed.** Internal-only type-safety tightening: every `: any` annotation in `tools/boxplot/{app,chart,plot-area,stats-panel,steps}.tsx` and `tools/boxplot/{helpers,reports,stats-reducer}.ts` replaced with concrete types (160 → 0; the second-largest tool surface after aequorin). New typed prop interfaces in `boxplot/helpers.ts` — `ChartProps`, `PlotAreaProps`, `FacetPlotListProps`, `FacetTrioProps`, `BoxplotStatsDetailProps`, `BoxplotStatsPanelProps`, `BoxplotStatsSet`, `EnrichedBoxplotStatsRow`, `Subgroup`, `FacetCell`, `SubgroupedData`, `BoxplotGroupStats`, `AnnotationSpec` (discriminated union with a `"both"` arm for facet+subgroup), `PostHocPair`/`PostHocResult`, `SelectTestResult`. Tightened existing types: `BoxplotGroup.stats` → `BoxplotGroupStats | null` (was `any`), `statsReducer` → typed `StatsAction` discriminated union. Drive-by global stub fix: added `ci95` to the `Stats` interface and switched `quartiles`+`computeStats` callers to a guarded `q && cs ? { ...q, ...cs } : null` pattern so chart consumers' `if (!g.stats)` narrows correctly. `formatBpStatShort`/`formatBpResultLine` accept `string | null | undefined` for `testName` and `TestResult | null | undefined` for `res`.
-
-- **Aequorin React tier fully typed.** Internal-only type-safety tightening: every `: any` annotation in `tools/aequorin/{app,chart,plot-area,stats-panel,controls}.tsx` and `tools/aequorin/{helpers,reports}.ts` replaced with concrete types (170 → 0 — the largest tool's surface). New typed prop interfaces in `aequorin/helpers.ts`: `DataMatrix`, `RibbonPoint`, `AequorinSeriesStats`, `SeriesItem`/`SeriesRow`, `RepSum`/`ReplicateSumsRow`, `ColInfo`, `ChartProps`, `InsetBarplotProps`, `FacetChartItemProps`, `PlotPanelProps`, `ConditionEditorProps`, `SampleSelectionOverlayProps`, `AequorinStatsDetailProps`, `AequorinStatsPanelProps`, `EnrichedAequorinStatsRow`, `AnnotationSpec`, `SelectTestResult`, `PostHocPair`/`PostHocResult`, `StatsGroup`. The eight calibration / detection / smoothing / area-builder helpers (`calibrate`, `calibrateHill`, `calibrateGeneralized`, `detectConditions`, `smooth`, `buildAreaD`, `computeAutoYRange`, `convertTime`) now have fully typed signatures. Drive-by global stub fix: `compactLetterDisplay`'s `pairs` accepts `pAdj?: number | null` (matches the run-time post-hoc shapes that emit null).
-
-- **Scatter React tier fully typed.** Internal-only type-safety tightening: every `: any` annotation in `tools/scatter/{app,chart,plot-area,shapes}.tsx` replaced with concrete types (49 → 0). New typed prop interfaces in `scatter/helpers.ts` — `ScatterVis`, `RefLine`, `ScatterRegression`, `ChartProps`, `PlotStepProps`, plus `SetMapDispatch<V>` for the discrete-mapping setter pattern. `computeLinearRegression`'s return type is now a discriminated union (`{ valid: false } | { valid: true; slope; intercept; r2; n }`) so consumers narrow via `if (rs.valid)` instead of optional chaining at every field access. Drive-by `LegendBlock.items` is now optional in the global stub (matches the runtime guard in `shared-svg-legend.js` and reflects the three legend block shapes scatter / heatmap legends use).
-
-- **Lineplot React tier fully typed.** Internal-only type-safety tightening: every `: any` annotation in `tools/lineplot/{app,chart,stats-panel}.tsx` and `tools/lineplot/reports.ts` replaced with concrete types (34 → 0). New typed prop interfaces in `lineplot/helpers.ts` — `ChartProps`, `EnrichedPerXRow`, `PerXDetailProps`, `PerXStatsPanelProps`, `SelectTestResult`, `PostHocPair`, `PostHocResult` — plus tightened `PlotControlsProps.svgLegend` from `unknown` to `LegendBlock[] | null`. `forwardRef<SVGSVGElement, ChartProps>` replaces the previous `any` ref. Drive-by tightening of two global type stubs: `computeLegendHeight` and `renderSvgLegend` now declare `LegendBlock[] | null | undefined` (matches the runtime guard) so callers don't have to coerce. `formatStat` accepts `string | null` and the `TestResult`-shaped `res` object.
-
-- **`tools/boxplot/chart.tsx` layout/scale math extracted into typed sibling modules.** Internal-only refactor mirroring the venn/ folder's pattern: `boxplot/layout.ts` (margins, annotation padding, band sizing, viewbox, cumulative subgroup gap, y-max annotation expansion, subgroup-by-index lookup) and `boxplot/scales.ts` (y-domain with log handling, band scale, value scale, ticks, tick formatter). chart.tsx drops from 1087 LOC to 992 and is now React/SVG orchestration only — no inlined arithmetic. The pure-math helpers are independently testable; the bundle and visual output are byte-identical.
-
-- **`tools/stats.js` carved into five files.** Internal-only refactor: `stats-dist.js` (distributions + special functions + `bisect` + power calcs), `stats-tests.js` (sample helpers + Shapiro/Levene/t/MWU/ANOVAs/KW + effect sizes), `stats-posthoc.js` (studentized range + Tukey/Games-Howell/Dunn/BH + CLD + `selectTest`), `stats-cluster.js` (distance + hclust + kmeans), `stats-msi.js` (multiset intersection). The bundle, every global name, and every public function signature are unchanged. Test loaders now route through `tests/helpers/stats-source.js`'s `STATS_FILES` list — one source of truth instead of eight scattered `readFileSync` calls. The single 2566-line file was the largest in the repo; each new file lands in the 200–800 LOC range that matches the `shared-*.js` family.
-
-- **Per-tool fuzz harnesses replaced by fast-check property suites.** Internal/test-only: each tool's `tests/fuzz/<tool>.fuzz.js` (and the weekly `fuzz-release.yml` sweep) is gone; coverage now runs inside `npm test` via `tests/<tool>.property.test.js`, with shrinking on failure.
-
-- **Property-test coverage expanded across all seven non-volcano tools.** Internal/test-only: 117 → 247 properties (heatmap 35, boxplot 34, upset 27, venn 27, aequorin 27, scatter 22, lineplot 18, volcano unchanged at 57). Suite total: 1322 tests.
-
-- **Property tests for `stats.js` distributions and the power calculator.** Internal/test-only: new `tests/stats.property.test.js` (48 properties: cdf monotonicity, cdf↔inv round-trips, gammaln recursion, swap-symmetry of two-sample tests, BH order preservation) and `tests/power.property.test.js` (45 properties: power ∈ [0, 1], null-hypothesis floor, monotonicity in n / es / α, 1-tail ≥ 2-tail, effect-size converter scaling laws). Suite total: 1415 tests.
-
-- **Stryker mutation testing wired up via `npm run mutation`.** Internal/test-only: meta-tests the test suite itself by mutating source on disk and rerunning `npm test`. First scope (`tools/volcano/helpers.ts`) produced 996 mutants, all killed → **100% mutation score**, validating that the volcano property tests + unit tests fully constrain the file's behavioural surface. Other helpers / `stats.js` are listed in `stryker.conf.mjs` as commented-out scope to enable incrementally; runs on demand (~3 h per file), not a CI gate.
-
-- **Tightened the `tukeyHSD` pair-coverage property's arbitrary** to avoid occasional 30s timeouts at `k=6` groups with `n=2` per group (qtukey is a 200-step bisection over a 48-node Gauss-Legendre quadrature of ptukey at df=1, ~10s of ms per pair × 15 pairs × 80 runs blew past the per-test budget). Capping at `k ≤ 4` and requiring `n ≥ 3` keeps the workload well below the budget without weakening the structural invariant — pair coverage doesn't depend on group count beyond k ≥ 2.
-
-- **Stryker mutation testing expanded to `tools/scatter/helpers.ts`** — final score **93.18% raw / 100% non-equivalent** (88 mutants, 82 killed, 6 surviving equivalent mutants). Required two changes: (a) refactoring `tests/helpers/scatter-loader.js` to compile helpers via `require()` instead of `vm.runInContext` so Stryker's per-test coverage instrumentation can see the test → source link (the vm-context path makes the property tests look like they have zero coverage); (b) five new sharp boundary properties in `tests/scatter.property.test.js` to close real gaps surfaced by the run (`fmtTick(0.01)`, `fmtTick(100)`, n=2 valid regression, null-x non-coercion, post-filter `{valid:false}` shape). The 6 surviving mutants are syntactically-different but semantically-identical — no test can distinguish them.
-
-- **Stryker mutation testing expanded to `tools/lineplot/helpers.ts`** — final score **79.20% raw / ~95% non-equivalent** (125 mutants, 99 killed, 23 surviving). Required a _hybrid_ loader (`tests/helpers/lineplot-loader.js`): vm.runInContext stays for shared.js/stats.js because lineplot's helpers reference shared globals as free variables, but the helpers themselves now compile to a temp `.cjs` file and `require()` from Node's module graph for Stryker visibility. Five new fixtures in `tests/lineplot.property.test.js` close real gaps surfaced by the run (ci95 strict-positive at n≥2, ci95 against (n−1) df, n=1 singleton, computePerXStats sort with non-ascending Set-insertion order, pAdj strict-null on non-finite p). The 23 surviving mutants split as ~16 equivalent (null-check redundancy where `!Number.isFinite(x)` already catches null/undefined; n=1 boundaries where sd=0 makes both branches yield 0) and ~7 contrived-input-only (guards against `rec.recommendation`/`r.result` being null/undefined, which require selectTest-failure inputs that don't add real coverage value).
-
-- **Stryker mutation testing expanded to `tools/stats.js`** — final score **14.87% raw / 55.37% covered** (3504 mutants — the largest scope so far; 521 killed, 420 covered survivors, 2563 no-coverage). The dominant signal is the no-coverage cohort: `tests/stats.test.js`'s R cross-validation suite (where most precision pins live) is skipped under Stryker because its inner numerical loops (qtukey, multisetIntersectionPExact) slow ~3000× under perTest-coverage instrumentation — every line in a hot loop is a probe. Three rounds of testTimeout bumping and per-test fixture rewrites moved the goalposts but a different slow test surfaced each round; skipping the file under Stryker (detected via `.stryker-tmp` in `process.cwd()`) was the only durable fix. The 420 covered survivors cluster on A&S polynomial coefficients in `normcdf`/`normsf` where the property tests' tolerances (1e-3 to 1e-9) are too loose to catch precision-shifting mutations on the constants. The structural surface (sign flips, branch inversions, off-by-ones) is well-covered. Two paths to push higher are documented in `docs/testing-2026-05-08.md`: tighter numerical fixtures with R-pinned reference values, or `coverageAnalysis: "all"` (single-pass instead of per-test, lower probe density). Loader-side: `tests/helpers/stats-loader.js` is now require-based and `tests/stats.test.js` migrated to use it; both were vm.runInContext before, which would have made the property tests invisible to Stryker.
-
-- **Volcano label placement: smarter fallback, multi-restart, sub-degree
-  refinement, and a density-aware cap warning.** Previously the
-  greedy-first-fit layout always defaulted forced labels to 12 o'clock,
-  which produced a visible label pile in tight gene clusters; sat on a
-  fixed input order, locking high-priority labels into easy slots; and
-  picked from a 24-angle × 4-distance coarse grid with no sub-degree
-  precision. Four targeted improvements:
-  (1) Forced labels now score every in-bounds candidate by weighted
-  overlap penalty (text-on-dot > leader-vs-point ≈ leader-vs-leader >
-  bbox overlap area) and pick the least-bad — replaces the 12-o'clock
-  pile.
-  (2) The wrapper runs the greedy pass with K=4 input orderings (input
-  order, reverse, most-isolated-first, most-clustered-first) and
-  returns the result with lowest total penalty — strictly
-  non-regressing.
-  (3) Forced winners get a level-1 ±7.5° fine sweep then a level-2
-  ±3.75° sweep around the level-1 winner, so labels needing a few
-  degrees' lateral adjustment can now find it.
-  (4) The chart now surfaces (forcedCount, attemptedCount) to the
-  Labels tile, which shows a "N of M labels couldn't place cleanly"
-  warning + a "Use suggested" button that drops top-N to the actual
-  clean budget — the cap is calibrated to the layout's real outcome,
-  not a heuristic estimate.
+- **`tools/stats.js` carved into five files.** `stats-dist.js`
+  (distributions + bisect + power), `stats-tests.js` (Shapiro / Levene
+  / t / MWU / ANOVAs / KW + effect sizes), `stats-posthoc.js` (Tukey /
+  Games-Howell / Dunn / BH / CLD / `selectTest`), `stats-cluster.js`
+  (distance + hclust + kmeans), `stats-msi.js` (multiset intersection).
+  Bundle, every global name, every public signature unchanged. The
+  single 2566-line file was the largest in the repo. See
+  [`docs/release-notes/v1.4.0.md`](docs/release-notes/v1.4.0.md#-toolsstatsjs-carved-into-five-focused-files).
 
 - **Stats test/post-hoc dispatch consolidated behind a single registry.**
-  Pre-registry, the same identifier → (function, label, post-hoc, k=2
-  membership) mapping was duplicated across `_shell/stats-dispatch.ts`,
+  The same identifier → (function, label, post-hoc, k=2 membership)
+  mapping used to be duplicated across `_shell/stats-dispatch.ts`,
   `shared-stats-tile.js`, `shared-r-export.js`, and
-  `aequorin/reports.ts` — eight string-matching sites with no
-  compile-time guarantee they stayed in sync. New
-  `tools/shared-stats-registry.js` is the single source of truth; every
-  consumer reads from `STATS_TEST_REGISTRY` /
-  `STATS_POSTHOC_REGISTRY` / `STATS_TESTS_FOR_K2` /
-  `STATS_TESTS_FOR_K`. Adding a new test now requires one row instead
-  of editing eight sites. New `tests/stats-registry.test.js` (22
-  assertions) pins routing parity with direct stats.js calls and locks
-  down the post-hoc / arity tables. Pure refactor, no runtime
-  behaviour change.
+  `aequorin/reports.ts` — eight string-matching sites. New
+  `_shell/stats-registry.ts` is the single source of truth. Adding a
+  new test takes one row instead of editing eight sites. See
+  [`docs/release-notes/v1.4.0.md`](docs/release-notes/v1.4.0.md#-stats-testpost-hoc-dispatch-consolidated-behind-one-registry).
 
-### Fixed
+- **Volcano label placement: smarter fallback, multi-restart,
+  sub-degree refinement, density-aware cap warning.** Forced labels
+  now score every in-bounds candidate by weighted overlap penalty
+  (replaces the 12-o'clock pile). The wrapper runs greedy with K=4
+  input orderings and returns the lowest-penalty result. Forced
+  winners get a level-1 ±7.5° + level-2 ±3.75° fine sweep. The Labels
+  tile shows _"N of M labels couldn't place cleanly"_ + a
+  _"Use suggested"_ button calibrated to the actual layout outcome.
+  See [`docs/release-notes/v1.4.0.md`](docs/release-notes/v1.4.0.md#-volcano-label-placement--smarter-multi-restart-sub-degree).
 
-- **Boxplot: rotated x-tick labels no longer clip into the legend.** The
-  bottom-margin reservation factored in only the rotation angle, not the
-  label length, so long category names at angles like ±45° / ±60° / ±90°
-  spilled past their reservation and overlapped the legend below. The
-  reservation now takes the larger of the old angle-only heuristic and a
-  sharper `maxLabelLen × charWidth × sin(angle)` estimate, so short
-  rotated labels keep their previous (slightly generous) cushion and
-  long rotated labels get the room they were silently missing.
+- **`tools/boxplot/chart.tsx` layout/scale math extracted into typed
+  sibling modules.** New `boxplot/layout.ts` (margins, annotation
+  padding, band sizing, viewbox) and `boxplot/scales.ts` (y-domain
+  with log handling, band/value scales, ticks, formatter); chart.tsx
+  drops 1087 → 992 LOC. Bundle and visual output byte-identical.
 
-- **Lineplot / scatter / aequorin: long category names truncate in the
-  legend.** The shared legend's fixed-width column (88 px) had a ~13-char
-  text budget; longer labels overflowed into the next column's icon and
-  read as garbage. Boxplot already passed the `truncateLabel = 14`
-  ellipsis cap; the other three now do the same.
+- **Heatmap cell grid rasterizes via canvas.** Cells used to render as
+  N individual SVG `<rect>` elements (≈700 ms React mount + 11 MB SVG
+  for a 100 k-cell heatmap). They now paint to an off-screen canvas
+  and ship as a single PNG-encoded `<image>` inside `<g id="cells">`,
+  dropping the cell-grid cost to ~10 ms paint + ~10–30 ms encode and
+  shrinking exported SVGs by ~50×. Hit-testing, hover, brush
+  selection, and dendrograms are unaffected. See
+  [`docs/release-notes/v1.4.0.md`](docs/release-notes/v1.4.0.md#heatmap-cell-grid-rasterizes-via-canvas).
+
+- **Per-tool fuzz harnesses replaced by fast-check property suites.**
+  Internal/test-only: each tool's `tests/fuzz/<tool>.fuzz.js` (and the
+  weekly `fuzz-release.yml` sweep) is gone; coverage now runs inside
+  `npm test` via `tests/<tool>.property.test.js`, with shrinking on
+  failure. 117 → 247 tool-level properties, plus 48 stats.js
+  properties + 45 power properties. Suite total: 1471 tests.
+
+- **Stryker mutation testing wired up via `npm run mutation`.**
+  Internal/test-only: meta-tests the test suite itself by mutating
+  source on disk and re-running `npm test`. Scopes measured this
+  cycle: volcano (100 %), scatter (93.18 % raw / 100 % non-equivalent),
+  lineplot (79.20 % raw / ~95 % non-equivalent), stats.js (14.87 %
+  raw, dominated by no-coverage of the R cross-validation suite).
+  Loader-pattern changes (require()-via-tmp-file) needed for scatter +
+  lineplot + stats.js so Stryker's per-test coverage instrumentation
+  can see the test → source link. Not a CI gate; quarterly exercise.
+  See [`docs/release-notes/v1.4.0.md`](docs/release-notes/v1.4.0.md#stryker-mutation-testing-wired-up).
+
+- **Test-loader plumbing extracted into `_shell-test-utils`.**
+  Internal/test-only: 17 per-domain loaders now thread through one
+  helper module exposing the small composable pieces (`builtins`,
+  `makeDomStubs`, `makeLocalStorage`, `MINIMAL_REACT`, `bundleShell`,
+  `runCjs`, `requireViaTmpFile`); ~600 lines of repeated plumbing
+  removed.
+
+- **Tukey HSD pair-coverage property tightened** to avoid occasional
+  30 s timeouts at `k=6` groups with `n=2` per group. Capping at
+  `k ≤ 4` and requiring `n ≥ 3` keeps the workload below budget
+  without weakening the structural invariant.
+
+- **Boxplot facets stretch to full content-column width** — the 720 px
+  cap on non-subgrouped facets is gone. Subgrouped facets unchanged.
+
+- **Boxplot stats panel gains 16 px breathing room above it**, matching
+  the aequorin gap pattern.
+
+- **Landing-page validation pill now reads "Validated against R + SciPy"**
+  (was "Validated against R 4.5"). Version numbers moved to the hover
+  tooltip so the visible badge doesn't drift on every reference bump.
 
 ### Removed
 
 - **Heatmap detail-view dendrogram thin/medium/bold selector retired.**
-  The toggle had no real workflow value — the detail plot's row pitch is
-  already enlarged for readability, so the stroke-width choice didn't
-  change what users could see. Stroke now hard-codes to the prior
-  "medium" default (1.5 px). The detail-view header simplifies to just
-  the SVG / PNG download buttons.
-
-### Changed
-
-- **Landing-page validation pill now reads "Validated against R + SciPy"**
-  (was "Validated against R 4.5"). The benchmark page already ran a
-  two-reference cross-check vs R 4.5.3 + SciPy 1.17.1; the pill copy was
-  stale. Version numbers moved to the hover tooltip so the visible badge
-  doesn't drift on every reference bump.
-
-- **Boxplot facets stretch to full content-column width.** The non-
-  subgrouped facet wrapper used to cap each facet at 720 px, which made
-  the facet tiles narrower than the stats panel sitting underneath. The
-  cap is gone — facets and the stats panel now both follow viewport
-  resizes together. Subgrouped facets were already uncapped (they need
-  the extra horizontal room for per-subgroup bands), so behavior there
-  is unchanged.
-
-- **Boxplot stats panel gains 16 px breathing room above it**, matching
-  the gap aequorin uses between its main plot card and the integral
-  tile. The panel used to sit flush against the plot area.
-
-- **Heatmap cell grid rasterizes via canvas.** Cells used to render as
-  N individual SVG `<rect>` elements (≈700 ms React mount + 11 MB SVG
-  for a 100k-cell heatmap, with browsers paying significantly more on
-  top). They now paint to an off-screen canvas and ship as a single
-  PNG-encoded `<image>` inside `<g id="cells">`, dropping the cell-grid
-  cost to ~10 ms paint + ~10–30 ms encode and shrinking exported SVGs
-  by ~50×. Per-cell SVG `id="cell-<row>-<col>"` traceability is gone;
-  every other named group (`#col-dendrogram`, `#row-dendrogram`,
-  `#cells`, `#colorbar`, `#col-labels`, `#row-labels`,
-  `#selection-mask`) is unchanged. Hit-testing, hover tooltip, brush
-  selection, and dendrograms are all unaffected — they were already
-  coordinate-based, not per-rect events.
-
-### Removed
+  The toggle had no real workflow value; stroke now hard-codes to 1.5 px.
 
 - **Landing-page footer ("N internal tests / N R cross-checks /
-  view benchmark →") removed.** The numbers were repository trivia
-  rather than user-facing information; the benchmark count is on
-  `benchmark.html`, and the "view benchmark →" link duplicated the
-  trust-badge pill at the top of the landing. The "N internal tests"
-  badge is gone from the trust-badge `title=` attribute too.
-  `scripts/bump-test-count.js` and `scripts/run-vitest.js` retired
-  (the wrapper only existed to feed the bumper); `npm test` is now
-  just `vitest run`. CI's `Verify landing-page test-count badge`
-  step deleted along with the artefact it gated.
+  view benchmark →").** The numbers were repository trivia.
+  `scripts/bump-test-count.js` and `scripts/run-vitest.js` retired;
+  `npm test` is now just `vitest run`. CI's
+  _Verify landing-page test-count badge_ step deleted.
 
 ## [1.3.0] - 2026-05-05
 
