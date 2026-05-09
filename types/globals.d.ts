@@ -740,7 +740,7 @@ declare global {
   }
   function dunnTest(groups: number[][]): { pairs: DunnPair[]; method?: string; error?: string };
   function compactLetterDisplay(
-    pairs: Array<{ i: number; j: number; p: number; pAdj?: number }>,
+    pairs: Array<{ i: number; j: number; p: number; pAdj?: number | null }>,
     k: number,
     alpha?: number
   ): string[];
