@@ -4,6 +4,7 @@
 // live in tools/lineplot/helpers.ts.
 
 import { MARGIN, STAR_ROW_H, buildLineD, ChartProps, SeriesPoint } from "./helpers";
+import { computeLegendHeight, renderSvgLegend, type LegendBlock } from "../_shell/svg-legend";
 
 const { forwardRef } = React;
 

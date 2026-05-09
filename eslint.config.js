@@ -73,8 +73,6 @@ const sharedGlobals = {
   ColorInput: "readonly",
   FileDropZone: "readonly",
   DataPreview: "readonly",
-  computeLegendHeight: "readonly",
-  renderSvgLegend: "readonly",
   NumberInput: "readonly",
   SliderControl: "readonly",
   StepNavBar: "readonly",

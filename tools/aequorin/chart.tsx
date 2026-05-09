@@ -16,6 +16,7 @@ import {
   SeriesRow,
 } from "./helpers";
 import { SignificanceBrackets, CldLabels } from "../_shell/chart-annotations";
+import { computeLegendHeight, renderSvgLegend, type LegendBlock } from "../_shell/svg-legend";
 
 const { forwardRef, useRef, useEffect, memo } = React;
 

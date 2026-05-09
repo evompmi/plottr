@@ -484,30 +484,6 @@ declare global {
   function computePowerFromData(chosenTest: string, values: number[][]): PowerFromDataResult | null;
 
   // ── Legend SVG helpers from shared-components.js ───────────────────────────
-  // `items` is optional because scatter / heatmap legends mix three block
-  // shapes (categorical `items`, continuous `gradient`, sized `sizeItems`)
-  // and the runtime guards each access with `if (b.items)` etc.
-  interface LegendBlock {
-    items?: Array<{ label: string; color: string }>;
-    [k: string]: any;
-  }
-  type LegendItemWidth = number | ((block: LegendBlock) => number);
-  // Both helpers tolerate null / undefined / empty input — the runtime guard
-  // is `if (!blocks || !blocks.length) return 0;` (see shared-svg-legend.js).
-  // Reflect that in the type so callers don't have to coerce.
-  function computeLegendHeight(
-    blocks: LegendBlock[] | null | undefined,
-    usableW: number,
-    itemWidth: LegendItemWidth
-  ): number;
-  function renderSvgLegend(
-    blocks: LegendBlock[] | null | undefined,
-    startY: number,
-    leftX: number,
-    usableW: number,
-    itemWidth: LegendItemWidth,
-    truncateLabel?: number
-  ): ReactNode;
 
   // ── tools/theme.js ─────────────────────────────────────────────────────────
   // Theme switching primitives, exposed as script-scope globals via the

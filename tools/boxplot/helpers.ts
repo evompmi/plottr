@@ -6,6 +6,7 @@
 // buildBpAggregateRScript) stay in tools/boxplot.tsx.
 
 import type { TestResult } from "../_shell/stats-dispatch";
+import type { LegendBlock } from "../_shell/svg-legend";
 
 // ── Stats summary SVG layout constants ──────────────────────────────────────
 

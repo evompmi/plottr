@@ -10,6 +10,7 @@
 // geometry / layout split.
 
 import type { BoxplotGroup } from "./helpers";
+import { computeLegendHeight, type LegendBlock } from "../_shell/svg-legend";
 
 // ── Public types ────────────────────────────────────────────────────────────
 

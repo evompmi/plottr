@@ -5,6 +5,7 @@
 
 import { runTest, TestResult } from "../_shell/stats-dispatch";
 import { CHART_MARGIN, buildLineD } from "../_shell/chart-layout";
+import type { LegendBlock } from "../_shell/svg-legend";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 // `MARGIN` used to live here as a byte-identical twin of aequorin's. Lifted

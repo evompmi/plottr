@@ -9,6 +9,9 @@
 // Keep JSX-bearing helpers (PaletteStrip, renderPoint, ShapePreview) out —
 // they belong in tools/scatter/shapes.tsx.
 
+import type { LegendBlock } from "../_shell/svg-legend";
+export type { LegendBlock };
+
 // ── Tick formatting ────────────────────────────────────────────────────────
 
 export function fmtTick(t: number): string {

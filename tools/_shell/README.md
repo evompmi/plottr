@@ -82,6 +82,7 @@ Files (current contents):
 | `handoff.ts`             | One-shot localStorage-backed inter-tool data hand-off (`setHandoff`, `consumeHandoff`, `navigateToTool`).  |
 | `discrete-palette.ts`    | Discrete palette catalogue + `resolveDiscretePalette` / `applyDiscretePalette` / hue + viridis builders.   |
 | `DiscretePaletteRow.tsx` | Dropdown + swatch-strip preview component for picking a discrete palette in tool sidebars.                 |
+| `svg-legend.ts`          | `computeLegendHeight` + `renderSvgLegend` — SVG legend block layout for chart components.                  |
 | `chart-layout.ts`        | `CHART_MARGIN` and `buildLineD` — used by `lineplot/` + `aequorin/` (see `helpers.ts` re-exports).         |
 | `stats-dispatch.ts`      | `runTest` / `runPostHoc` / `postHocForTest` — shared by boxplot / lineplot / aequorin.                     |
 | `chart-annotations.tsx`  | `SignificanceBrackets`, `CldLabels` — shared annotation renderers.                                         |
