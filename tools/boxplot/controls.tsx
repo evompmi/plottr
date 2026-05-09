@@ -7,6 +7,8 @@
 import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
 import { applyDiscretePalette } from "../_shell/discrete-palette";
+import { ColorInput } from "../_shell/color-input";
+import { GroupColorEditor, BaseStyleControls } from "../_shell/long-format";
 import type { BoxplotGroup, BoxplotVis, PlotControlsProps } from "./helpers";
 
 export function ControlSection({

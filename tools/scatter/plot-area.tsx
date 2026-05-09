@@ -9,6 +9,8 @@ import { PlotSidebar } from "../_shell/PlotSidebar";
 import { DownloadTiles } from "../_shell/DownloadTiles";
 import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
 import { applyDiscretePalette } from "../_shell/discrete-palette";
+import { ColorInput } from "../_shell/color-input";
+import { BaseStyleControls } from "../_shell/long-format";
 
 const { useState, useRef, useEffect } = React;
 

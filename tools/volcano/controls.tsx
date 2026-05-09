@@ -8,6 +8,7 @@
 
 import { DiscretePaletteRow } from "../_shell/DiscretePaletteRow";
 import { resolveDiscretePalette } from "../_shell/discrete-palette";
+import { ColorInput } from "../_shell/color-input";
 import { VOLCANO_DEFAULT_COLORS, eligibleColumns } from "./helpers";
 import type {
   ColorMapTileProps,

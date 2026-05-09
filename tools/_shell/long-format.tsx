@@ -1,27 +1,50 @@
-// shared-long-format.js — plain JS, no JSX
-// Requires React, shared.js (roleColors, isNumericValue, PALETTE),
-// components.css (dv-* classes), and shared-color-input.js (ColorInput) to
-// be loaded globally before this script.
+// Long-format pipeline shared components — column-role editor, filter
+// checkbox grid, rename / reorder panel, stats table, group-colour
+// editor, base style controls. All used in the configure / filter /
+// output steps of every long-format-aware plot tool (boxplot,
+// lineplot, scatter, aequorin).
+//
+// Pre-2026-05 these lived in `tools/shared-long-format.js` (plain-JS,
+// React.createElement) loaded as globals via the shared bundle. Now a
+// typed module — kept in `React.createElement` form (no JSX
+// conversion) because the components are dense markup and a wholesale
+// JSX rewrite would balloon the diff for no functional change.
+//
+// `roleColors`, `isNumericValue`, `PALETTE`, and `GroupStats` /
+// `ColumnRole` / `FilterEntry` types are read off the ambient browser
+// globals (`tools/shared.js` stays in the plain-JS bundle).
 
-// ── Long-format Pipeline Components ─────────────────────────────────────────
+import { ColorInput } from "./color-input";
 
-// Column role assignment editor (used in group plot long format)
-function ColumnRoleEditor(props) {
-  const headers = props.headers,
-    rows = props.rows,
-    colRoles = props.colRoles,
-    colNames = props.colNames,
-    onRoleChange = props.onRoleChange,
-    onNameChange = props.onNameChange;
-  return React.createElement(
+const h = React.createElement;
+
+// ── ColumnRoleEditor ────────────────────────────────────────────────
+
+interface ColumnRoleEditorProps {
+  headers: string[];
+  rows: string[][];
+  colRoles: ColumnRole[];
+  colNames: string[];
+  onRoleChange: (i: number, role: ColumnRole) => void;
+  onNameChange: (i: number, name: string) => void;
+}
+
+export function ColumnRoleEditor(props: ColumnRoleEditorProps) {
+  const headers = props.headers;
+  const rows = props.rows;
+  const colRoles = props.colRoles;
+  const colNames = props.colNames;
+  const onRoleChange = props.onRoleChange;
+  const onNameChange = props.onNameChange;
+  return h(
     "div",
     { className: "dv-panel" },
-    React.createElement(
+    h(
       "p",
       { style: { margin: "0 0 4px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" } },
       "Column roles"
     ),
-    React.createElement(
+    h(
       "p",
       {
         style: {
@@ -32,28 +55,24 @@ function ColumnRoleEditor(props) {
         },
       },
       "Exactly one ",
-      React.createElement("span", { style: { color: roleColors.group, fontWeight: 600 } }, "group"),
+      h("span", { style: { color: roleColors.group, fontWeight: 600 } }, "group"),
       " (x-axis) and one ",
-      React.createElement("span", { style: { color: roleColors.value, fontWeight: 600 } }, "value"),
+      h("span", { style: { color: roleColors.value, fontWeight: 600 } }, "value"),
       " (numeric) column. Picking ",
-      React.createElement("span", { style: { color: roleColors.group, fontWeight: 600 } }, "group"),
+      h("span", { style: { color: roleColors.group, fontWeight: 600 } }, "group"),
       " or ",
-      React.createElement("span", { style: { color: roleColors.value, fontWeight: 600 } }, "value"),
+      h("span", { style: { color: roleColors.value, fontWeight: 600 } }, "value"),
       " on another column demotes the previous one to ",
-      React.createElement(
-        "span",
-        { style: { color: roleColors.filter, fontWeight: 600 } },
-        "filter"
-      ),
+      h("span", { style: { color: roleColors.filter, fontWeight: 600 } }, "filter"),
       "."
     ),
-    React.createElement(
+    h(
       "div",
       { style: { display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" } },
-      Object.entries(roleColors).map(function (entry) {
-        const r = entry[0],
-          c = entry[1];
-        return React.createElement(
+      Object.entries(roleColors).map((entry) => {
+        const r = entry[0];
+        const c = entry[1];
+        return h(
           "span",
           {
             key: r,
@@ -70,21 +89,21 @@ function ColumnRoleEditor(props) {
         );
       })
     ),
-    React.createElement(
+    h(
       "div",
       { style: { display: "flex", flexDirection: "column", gap: 8 } },
-      headers.map(function (h, i) {
-        const u = [];
-        const seen = {};
-        rows.forEach(function (r) {
+      headers.map((_h, i) => {
+        const u: string[] = [];
+        const seen: Record<string, boolean> = {};
+        rows.forEach((r) => {
           const v = r[i];
           if (!seen[v]) {
             seen[v] = true;
             u.push(v);
           }
         });
-        const pv = u.slice(0, 5).join(", ") + (u.length > 5 ? " \u2026 (" + u.length + ")" : "");
-        return React.createElement(
+        const pv = u.slice(0, 5).join(", ") + (u.length > 5 ? " … (" + u.length + ")" : "");
+        return h(
           "div",
           {
             key: "col-" + i,
@@ -98,26 +117,23 @@ function ColumnRoleEditor(props) {
               border: "2px solid " + (roleColors[colRoles[i]] || "var(--border-strong)"),
             },
           },
-          React.createElement(
+          h(
             "span",
             { style: { fontWeight: 700, color: "var(--text)", minWidth: 20, fontSize: 12 } },
             "#" + (i + 1)
           ),
-          React.createElement("input", {
+          h("input", {
             value: colNames[i],
-            onChange: function (e) {
-              onNameChange(i, e.target.value);
-            },
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => onNameChange(i, e.target.value),
             className: "dv-input",
             style: { width: 120, fontWeight: 600 },
           }),
-          React.createElement(
+          h(
             "select",
             {
               value: colRoles[i],
-              onChange: function (e) {
-                onRoleChange(i, e.target.value);
-              },
+              onChange: (e: React.ChangeEvent<HTMLSelectElement>) =>
+                onRoleChange(i, e.target.value as ColumnRole),
               className: "dv-input",
               style: {
                 cursor: "pointer",
@@ -125,12 +141,12 @@ function ColumnRoleEditor(props) {
                 color: roleColors[colRoles[i]],
               },
             },
-            React.createElement("option", { value: "group" }, "group"),
-            React.createElement("option", { value: "value" }, "value"),
-            React.createElement("option", { value: "filter" }, "filter"),
-            React.createElement("option", { value: "ignore" }, "ignore")
+            h("option", { value: "group" }, "group"),
+            h("option", { value: "value" }, "value"),
+            h("option", { value: "filter" }, "filter"),
+            h("option", { value: "ignore" }, "ignore")
           ),
-          React.createElement(
+          h(
             "span",
             {
               style: {
@@ -150,17 +166,29 @@ function ColumnRoleEditor(props) {
   );
 }
 
-// Filter panel with checkboxes for each column
-function FilterCheckboxPanel(props) {
-  const headers = props.headers,
-    colNames = props.colNames,
-    colRoles = props.colRoles,
-    filters = props.filters,
-    filteredCount = props.filteredCount,
-    totalCount = props.totalCount,
-    onToggle = props.onToggle,
-    onToggleAll = props.onToggleAll;
-  return React.createElement(
+// ── FilterCheckboxPanel ─────────────────────────────────────────────
+
+interface FilterCheckboxPanelProps {
+  headers: string[];
+  colNames: string[];
+  colRoles: ColumnRole[];
+  filters: Record<number, FilterEntry>;
+  filteredCount: number;
+  totalCount: number;
+  onToggle: (i: number, value: string) => void;
+  onToggleAll: (i: number, allOn: boolean) => void;
+}
+
+export function FilterCheckboxPanel(props: FilterCheckboxPanelProps) {
+  const headers = props.headers;
+  const colNames = props.colNames;
+  const colRoles = props.colRoles;
+  const filters = props.filters;
+  const filteredCount = props.filteredCount;
+  const totalCount = props.totalCount;
+  const onToggle = props.onToggle;
+  const onToggleAll = props.onToggleAll;
+  return h(
     "div",
     {
       style: {
@@ -173,30 +201,24 @@ function FilterCheckboxPanel(props) {
         flexDirection: "column",
       },
     },
-    React.createElement(
+    h(
       "p",
       { style: { margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "var(--info-text)" } },
       "Filter rows (" + filteredCount + "/" + totalCount + ")"
     ),
-    React.createElement(
+    h(
       "div",
       { style: { display: "flex", gap: 16, flexWrap: "wrap", alignItems: "stretch", flex: 1 } },
-      headers.map(function (h, i) {
+      headers.map((_hdr, i) => {
         // Hide the value column's tile here too: it was assigned in Configure
         // and is guaranteed to stay (rows are kept if their value is numeric);
         // a filter tile adds no affordance and the old "numeric — use axis
         // range in plot" placeholder was pure noise.
         if (colRoles[i] === "ignore" || colRoles[i] === "value") return null;
-        const u = filters[i] ? filters[i].unique : [];
-        const isNumCol =
-          u.length > 0 &&
-          u.filter(function (v) {
-            return isNumericValue(v);
-          }).length /
-            u.length >
-            0.5;
+        const u: string[] = filters[i] ? Array.from(filters[i].unique) : [];
+        const isNumCol = u.length > 0 && u.filter((v) => isNumericValue(v)).length / u.length > 0.5;
         if (isNumCol && colRoles[i] !== "filter") {
-          return React.createElement(
+          return h(
             "div",
             {
               key: "col-" + i,
@@ -209,20 +231,18 @@ function FilterCheckboxPanel(props) {
                 padding: 10,
               },
             },
-            React.createElement(
+            h(
               "div",
               { style: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" } },
-              React.createElement(
+              h(
                 "p",
                 { style: { fontSize: 11, fontWeight: 600, color: "var(--text)", margin: 0 } },
                 colNames[i]
               ),
-              React.createElement(
+              h(
                 "button",
                 {
-                  onClick: function () {
-                    onToggleAll(i, true);
-                  },
+                  onClick: () => onToggleAll(i, true),
                   style: {
                     fontSize: 9,
                     padding: "2px 6px",
@@ -237,7 +257,7 @@ function FilterCheckboxPanel(props) {
                 "All"
               )
             ),
-            React.createElement(
+            h(
               "p",
               {
                 style: {
@@ -247,11 +267,11 @@ function FilterCheckboxPanel(props) {
                   fontStyle: "italic",
                 },
               },
-              "numeric \u2014 use axis range in plot"
+              "numeric — use axis range in plot"
             )
           );
         }
-        return React.createElement(
+        return h(
           "div",
           {
             key: "col-" + i,
@@ -264,20 +284,18 @@ function FilterCheckboxPanel(props) {
               padding: 10,
             },
           },
-          React.createElement(
+          h(
             "p",
             { style: { fontSize: 11, fontWeight: 600, color: "var(--text)", marginBottom: 4 } },
             colNames[i]
           ),
-          React.createElement(
+          h(
             "div",
             { style: { display: "flex", gap: 6, marginBottom: 4 } },
-            React.createElement(
+            h(
               "button",
               {
-                onClick: function () {
-                  onToggleAll(i, true);
-                },
+                onClick: () => onToggleAll(i, true),
                 style: {
                   fontSize: 9,
                   padding: "2px 6px",
@@ -291,12 +309,10 @@ function FilterCheckboxPanel(props) {
               },
               "All"
             ),
-            React.createElement(
+            h(
               "button",
               {
-                onClick: function () {
-                  onToggleAll(i, false);
-                },
+                onClick: () => onToggleAll(i, false),
                 style: {
                   fontSize: 9,
                   padding: "2px 6px",
@@ -311,9 +327,9 @@ function FilterCheckboxPanel(props) {
               "None"
             )
           ),
-          u.map(function (v) {
-            const checked = filters[i] && filters[i].included ? filters[i].included.has(v) : false;
-            return React.createElement(
+          u.map((v) => {
+            const checked = !!(filters[i] && filters[i].included && filters[i].included.has(v));
+            return h(
               "label",
               {
                 key: v,
@@ -327,15 +343,13 @@ function FilterCheckboxPanel(props) {
                   marginBottom: 2,
                 },
               },
-              React.createElement("input", {
+              h("input", {
                 type: "checkbox",
-                checked: checked,
-                onChange: function () {
-                  onToggle(i, v);
-                },
+                checked,
+                onChange: () => onToggle(i, v),
                 style: { accentColor: "var(--cta-primary-bg)" },
               }),
-              v || React.createElement("em", { style: { color: "var(--text-faint)" } }, "(empty)")
+              v || h("em", { style: { color: "var(--text-faint)" } }, "(empty)")
             );
           })
         );
@@ -344,27 +358,40 @@ function FilterCheckboxPanel(props) {
   );
 }
 
-// Rename values & reorder groups panel
-function RenameReorderPanel(props) {
-  const headers = props.headers,
-    colNames = props.colNames,
-    colRoles = props.colRoles,
-    filters = props.filters,
-    valueRenames = props.valueRenames,
-    // Map { [colIdx]: { order: string[], onReorder: (newOrder) => void } }.
-    // Every column whose index appears here gets a drag handle and per-column
-    // independent reorder state. Columns absent from the map are rendered as
-    // rename-only (no drag handle, no accent border).
-    orderableCols = props.orderableCols || {},
-    applyRename = props.applyRename,
-    onRenameVal = props.onRenameVal,
-    // Drag state is scoped per column so dragging on one column doesn't
-    // highlight a row in a neighbouring column with the same positional index.
-    // Shape: { col: number, idx: number } | null
-    dragState = props.dragState,
-    onDragStart = props.onDragStart,
-    onDragEnd = props.onDragEnd;
-  return React.createElement(
+// ── RenameReorderPanel ──────────────────────────────────────────────
+
+interface RenameReorderPanelProps {
+  headers: string[];
+  colNames: string[];
+  colRoles: ColumnRole[];
+  filters: Record<number, FilterEntry>;
+  valueRenames: Record<number, Record<string, string>>;
+  // Map { [colIdx]: { order, onReorder } } — every column whose index appears
+  // here gets a drag handle and per-column independent reorder state. Columns
+  // absent from the map are rendered as rename-only.
+  orderableCols?: Record<number, { order: string[]; onReorder: (newOrder: string[]) => void }>;
+  applyRename: (i: number, value: string) => string;
+  onRenameVal: (i: number, origValue: string, newValue: string) => void;
+  // Drag state is scoped per column so dragging on one column doesn't
+  // highlight a row in a neighbouring column with the same positional index.
+  dragState: { col: number; idx: number } | null;
+  onDragStart: (state: { col: number; idx: number }) => void;
+  onDragEnd: () => void;
+}
+
+export function RenameReorderPanel(props: RenameReorderPanelProps) {
+  const headers = props.headers;
+  const colNames = props.colNames;
+  const colRoles = props.colRoles;
+  const filters = props.filters;
+  const valueRenames = props.valueRenames;
+  const orderableCols = props.orderableCols || {};
+  const applyRename = props.applyRename;
+  const onRenameVal = props.onRenameVal;
+  const dragState = props.dragState;
+  const onDragStart = props.onDragStart;
+  const onDragEnd = props.onDragEnd;
+  return h(
     "div",
     {
       style: {
@@ -375,42 +402,36 @@ function RenameReorderPanel(props) {
         background: "var(--surface-subtle)",
       },
     },
-    React.createElement(
+    h(
       "p",
       { style: { margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" } },
       "Rename values & reorder groups ",
-      React.createElement(
+      h(
         "span",
         { style: { fontSize: 10, color: "var(--text-faint)", fontWeight: 400 } },
-        "(drag \u2630 to reorder groups on plot)"
+        "(drag ☰ to reorder groups on plot)"
       )
     ),
-    React.createElement(
+    h(
       "div",
       { style: { display: "flex", gap: 16, flexWrap: "wrap" } },
-      headers.map(function (h, i) {
+      headers.map((_hdr, i) => {
         if (colRoles[i] !== "group" && colRoles[i] !== "filter") return null;
-        const u = (filters[i] ? filters[i].unique : []).filter(function (v) {
-          return filters[i] && filters[i].included && filters[i].included.has(v);
-        });
+        const u: string[] = (filters[i] ? Array.from(filters[i].unique) : []).filter(
+          (v) => filters[i] && filters[i].included && filters[i].included.has(v)
+        );
         const colOrder = orderableCols[i];
         const isOrderable = !!colOrder;
-        const renamedU = u.map(function (v) {
-          return { orig: v, renamed: applyRename(i, v) };
-        });
+        const renamedU = u.map((v) => ({ orig: v, renamed: applyRename(i, v) }));
         const orderedU =
           isOrderable && colOrder.order
             ? colOrder.order
-                .map(function (g) {
-                  return renamedU.find(function (x) {
-                    return x.renamed === g;
-                  });
-                })
-                .filter(Boolean)
+                .map((g) => renamedU.find((x) => x.renamed === g))
+                .filter((x): x is { orig: string; renamed: string } => Boolean(x))
             : renamedU;
         const displayList = orderedU.length > 0 ? orderedU : renamedU;
         const dragIdxForCol = dragState && dragState.col === i ? dragState.idx : null;
-        return React.createElement(
+        return h(
           "div",
           {
             key: "col-" + i,
@@ -422,41 +443,35 @@ function RenameReorderPanel(props) {
               padding: 10,
             },
           },
-          React.createElement(
+          h(
             "p",
             { style: { fontSize: 11, fontWeight: 600, color: "var(--text)", marginBottom: 6 } },
             colNames[i]
           ),
-          displayList.map(function (item, vi) {
+          displayList.map((item, vi) => {
             const v = item.orig;
-            return React.createElement(
+            return h(
               "div",
               {
                 key: v,
                 draggable: isOrderable,
-                onDragStart: function () {
-                  onDragStart({ col: i, idx: vi });
-                },
-                onDragOver: function (e) {
+                onDragStart: () => onDragStart({ col: i, idx: vi }),
+                onDragOver: (e: { preventDefault(): void }) => {
                   e.preventDefault();
                 },
-                onDrop: function () {
+                onDrop: () => {
                   if (!isOrderable || dragIdxForCol === null || dragIdxForCol === vi) {
                     onDragEnd();
                     return;
                   }
-                  const cur = displayList.map(function (x) {
-                    return x.renamed;
-                  });
+                  const cur = displayList.map((x) => x.renamed);
                   const moved = cur[dragIdxForCol];
                   cur.splice(dragIdxForCol, 1);
                   cur.splice(vi, 0, moved);
-                  colOrder.onReorder(cur);
+                  colOrder!.onReorder(cur);
                   onDragEnd();
                 },
-                onDragEnd: function () {
-                  onDragEnd();
-                },
+                onDragEnd: () => onDragEnd(),
                 style: {
                   display: "flex",
                   gap: 4,
@@ -472,13 +487,13 @@ function RenameReorderPanel(props) {
                 },
               },
               isOrderable
-                ? React.createElement(
+                ? h(
                     "span",
                     { style: { fontSize: 11, color: "var(--text-faint)", cursor: "grab" } },
-                    "\u2630"
+                    "☰"
                   )
                 : null,
-              React.createElement(
+              h(
                 "span",
                 {
                   style: {
@@ -492,16 +507,11 @@ function RenameReorderPanel(props) {
                 },
                 v || "(empty)"
               ),
-              React.createElement(
-                "span",
-                { style: { fontSize: 10, color: "var(--text-faint)" } },
-                "\u2192"
-              ),
-              React.createElement("input", {
+              h("span", { style: { fontSize: 10, color: "var(--text-faint)" } }, "→"),
+              h("input", {
                 value: valueRenames[i] && valueRenames[i][v] != null ? valueRenames[i][v] : v,
-                onChange: function (e) {
-                  onRenameVal(i, v, e.target.value);
-                },
+                onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+                  onRenameVal(i, v, e.target.value),
                 className: "dv-input",
                 style: { width: 100, fontSize: 11 },
               })
@@ -513,37 +523,41 @@ function RenameReorderPanel(props) {
   );
 }
 
-// Summary stats table (used in group plot output step)
-function StatsTable(props) {
-  const stats = props.stats,
-    groupLabel = props.groupLabel;
+// ── StatsTable ──────────────────────────────────────────────────────
+
+interface StatsTableProps {
+  stats: GroupStats[] | null | undefined;
+  groupLabel: string;
+}
+
+export function StatsTable({ stats, groupLabel }: StatsTableProps) {
   if (!stats || stats.length === 0) return null;
   const headers = ["Group", "n", "Mean", "Median", "SD", "SEM", "Min", "Max"];
-  return React.createElement(
+  return h(
     "div",
     { className: "dv-panel" },
-    React.createElement(
+    h(
       "p",
       { style: { margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" } },
-      'Summary \u2014 grouped by "' + groupLabel + '"'
+      `Summary — grouped by "${groupLabel}"`
     ),
-    React.createElement(
+    h(
       "div",
       { style: { overflowX: "auto" } },
-      React.createElement(
+      h(
         "table",
         { style: { borderCollapse: "collapse", fontSize: 12, width: "100%" } },
-        React.createElement(
+        h(
           "thead",
           null,
-          React.createElement(
+          h(
             "tr",
             { style: { borderBottom: "2px solid var(--border-strong)" } },
-            headers.map(function (h) {
-              return React.createElement(
+            headers.map((hdr) =>
+              h(
                 "th",
                 {
-                  key: h,
+                  key: hdr,
                   style: {
                     padding: "4px 10px",
                     textAlign: "left",
@@ -551,19 +565,19 @@ function StatsTable(props) {
                     fontWeight: 600,
                   },
                 },
-                h
-              );
-            })
+                hdr
+              )
+            )
           )
         ),
-        React.createElement(
+        h(
           "tbody",
           null,
-          stats.map(function (s, i) {
-            return React.createElement(
+          stats.map((s, i) =>
+            h(
               "tr",
               { key: s.name, style: { borderBottom: "1px solid var(--border)" } },
-              React.createElement(
+              h(
                 "td",
                 {
                   style: {
@@ -574,85 +588,77 @@ function StatsTable(props) {
                 },
                 s.name
               ),
-              React.createElement("td", { style: { padding: "4px 10px" } }, s.n),
-              React.createElement(
+              h("td", { style: { padding: "4px 10px" } }, s.n),
+              h("td", { style: { padding: "4px 10px" } }, s.mean != null ? s.mean.toFixed(4) : "—"),
+              h(
                 "td",
                 { style: { padding: "4px 10px" } },
-                s.mean != null ? s.mean.toFixed(4) : "\u2014"
+                s.median != null ? s.median.toFixed(4) : "—"
               ),
-              React.createElement(
-                "td",
-                { style: { padding: "4px 10px" } },
-                s.median != null ? s.median.toFixed(4) : "\u2014"
-              ),
-              React.createElement(
-                "td",
-                { style: { padding: "4px 10px" } },
-                s.sd != null ? s.sd.toFixed(4) : "\u2014"
-              ),
-              React.createElement(
-                "td",
-                { style: { padding: "4px 10px" } },
-                s.sem != null ? s.sem.toFixed(4) : "\u2014"
-              ),
-              React.createElement(
-                "td",
-                { style: { padding: "4px 10px" } },
-                s.min != null ? s.min.toFixed(4) : "\u2014"
-              ),
-              React.createElement(
-                "td",
-                { style: { padding: "4px 10px" } },
-                s.max != null ? s.max.toFixed(4) : "\u2014"
-              )
-            );
-          })
+              h("td", { style: { padding: "4px 10px" } }, s.sd != null ? s.sd.toFixed(4) : "—"),
+              h("td", { style: { padding: "4px 10px" } }, s.sem != null ? s.sem.toFixed(4) : "—"),
+              h("td", { style: { padding: "4px 10px" } }, s.min != null ? s.min.toFixed(4) : "—"),
+              h("td", { style: { padding: "4px 10px" } }, s.max != null ? s.max.toFixed(4) : "—")
+            )
+          )
         )
       )
     )
   );
 }
 
-// Condition/group color editor with ColorInput per group
-function GroupColorEditor(props) {
-  const groups = props.groups,
-    onColorChange = props.onColorChange,
-    onNameChange = props.onNameChange;
+// ── GroupColorEditor ────────────────────────────────────────────────
+
+interface GroupColorEditorGroup {
+  name: string;
+  color: string;
+  displayName?: string;
+  enabled?: boolean;
+  stats?: { n: number } | null;
+}
+
+interface GroupColorEditorProps {
+  groups: GroupColorEditorGroup[];
+  onColorChange: (i: number, color: string) => void;
+  onNameChange?: (i: number, name: string) => void;
+  onToggle?: (i: number) => void;
+}
+
+export function GroupColorEditor(props: GroupColorEditorProps) {
+  const groups = props.groups;
+  const onColorChange = props.onColorChange;
+  const onNameChange = props.onNameChange;
   const onToggle = props.onToggle;
-  return React.createElement(
+  return h(
     "div",
     { style: { display: "flex", flexDirection: "column", gap: 4 } },
-    groups.map(function (g, i) {
+    groups.map((g, i) => {
       const enabled = g.enabled !== false;
-      const children = [];
+      const children: React.ReactNode[] = [];
       if (onToggle) {
         children.push(
-          React.createElement("input", {
+          h("input", {
             key: "cb",
             type: "checkbox",
             checked: enabled,
-            onChange: function () {
-              onToggle(i);
-            },
+            onChange: () => onToggle(i),
             style: { accentColor: g.color, flexShrink: 0, cursor: "pointer" },
           })
         );
       }
       children.push(
-        React.createElement(ColorInput, {
+        h(ColorInput, {
           key: "clr",
           value: g.color,
-          onChange: function (c) {
-            onColorChange(i, c);
-          },
+          onChange: (c: string) => onColorChange(i, c),
           size: 18,
         })
       );
       children.push(
-        React.createElement("input", {
+        h("input", {
           key: "nm",
           value: g.displayName || g.name,
-          onChange: function (e) {
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
             if (onNameChange) onNameChange(i, e.target.value);
           },
           style: {
@@ -669,13 +675,13 @@ function GroupColorEditor(props) {
         })
       );
       children.push(
-        React.createElement(
+        h(
           "span",
           { key: "n", style: { color: "var(--text-faint)", fontSize: 10, flexShrink: 0 } },
           "n=" + (g.stats ? g.stats.n : 0)
         )
       );
-      return React.createElement(
+      return h(
         "div",
         {
           key: g.name,
@@ -697,29 +703,39 @@ function GroupColorEditor(props) {
   );
 }
 
-// Style controls section (background, grid, grid color)
-function BaseStyleControls(props) {
-  const plotBg = props.plotBg,
-    onPlotBgChange = props.onPlotBgChange,
-    showGrid = props.showGrid,
-    onShowGridChange = props.onShowGridChange,
-    gridColor = props.gridColor,
-    onGridColorChange = props.onGridColorChange;
-  const children = [
-    React.createElement(
+// ── BaseStyleControls ───────────────────────────────────────────────
+
+interface BaseStyleControlsProps {
+  plotBg: string;
+  onPlotBgChange: (hex: string) => void;
+  showGrid: boolean;
+  onShowGridChange: (v: boolean) => void;
+  gridColor: string;
+  onGridColorChange: (hex: string) => void;
+}
+
+export function BaseStyleControls(props: BaseStyleControlsProps) {
+  const plotBg = props.plotBg;
+  const onPlotBgChange = props.onPlotBgChange;
+  const showGrid = props.showGrid;
+  const onShowGridChange = props.onShowGridChange;
+  const gridColor = props.gridColor;
+  const onGridColorChange = props.onGridColorChange;
+  const children: React.ReactNode[] = [
+    h(
       "div",
       {
         key: "bg",
         style: { display: "flex", alignItems: "center", justifyContent: "space-between" },
       },
-      React.createElement("span", { className: "dv-label" }, "Background"),
-      React.createElement(ColorInput, { value: plotBg, onChange: onPlotBgChange, size: 24 })
+      h("span", { className: "dv-label" }, "Background"),
+      h(ColorInput, { value: plotBg, onChange: onPlotBgChange, size: 24 })
     ),
-    React.createElement(
+    h(
       "div",
       { key: "grid" },
-      React.createElement("span", { className: "dv-label" }, "Grid"),
-      React.createElement(
+      h("span", { className: "dv-label" }, "Grid"),
+      h(
         "div",
         {
           style: {
@@ -729,16 +745,14 @@ function BaseStyleControls(props) {
             border: "1px solid var(--border-strong)",
           },
         },
-        ["off", "on"].map(function (mode) {
-          var active = mode === "on" ? showGrid : !showGrid;
-          return React.createElement(
+        ["off", "on"].map((mode) => {
+          const active = mode === "on" ? showGrid : !showGrid;
+          return h(
             "button",
             {
               key: mode,
               type: "button",
-              onClick: function () {
-                onShowGridChange(mode === "on");
-              },
+              onClick: () => onShowGridChange(mode === "on"),
               style: {
                 flex: 1,
                 padding: "4px 0",
@@ -760,20 +774,16 @@ function BaseStyleControls(props) {
   ];
   if (showGrid) {
     children.push(
-      React.createElement(
+      h(
         "div",
         {
           key: "gc",
           style: { display: "flex", alignItems: "center", justifyContent: "space-between" },
         },
-        React.createElement("span", { className: "dv-label" }, "Grid color"),
-        React.createElement(ColorInput, { value: gridColor, onChange: onGridColorChange, size: 24 })
+        h("span", { className: "dv-label" }, "Grid color"),
+        h(ColorInput, { value: gridColor, onChange: onGridColorChange, size: 24 })
       )
     );
   }
-  return React.createElement(
-    "div",
-    { style: { display: "flex", flexDirection: "column", gap: 8 } },
-    children
-  );
+  return h("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, children);
 }

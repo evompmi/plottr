@@ -6,6 +6,7 @@
 // heatmap's colourbar stay visually in sync.
 
 import { PlotSidebar } from "../_shell/PlotSidebar";
+import { ColorInput } from "../_shell/color-input";
 import { PaletteStrip } from "./chart";
 import { buildHeatmapRScript, buildCsvExport } from "./reports";
 import type {
