@@ -6,7 +6,18 @@
 // `types/globals.d.ts` lets `tsc --noEmit` see the same names.
 
 import { VOLCANO_DEFAULT_COLORS, eligibleColumns } from "./helpers";
-import type { VolcanoPoint, LabelMatchResult } from "./helpers";
+import type {
+  ColorMapTileProps,
+  ColorRowProps,
+  ColorsTileProps,
+  LabelMatchResult,
+  LabelSearchRowProps,
+  LabelsTileProps,
+  SizeMapTileProps,
+  StyleTileProps,
+  SummaryTileProps,
+  ThresholdsTileProps,
+} from "./helpers";
 import { matchPointsByLabel } from "./helpers";
 
 const { useState, useEffect, useRef, useMemo } = React;
@@ -203,7 +214,7 @@ export function ToggleRow({
   );
 }
 
-export function ThresholdsTile({ vis, updVis }: any) {
+export function ThresholdsTile({ vis, updVis }: ThresholdsTileProps) {
   // |log2FC| cutoff: numeric stepper (−/+ buttons + free-form entry).
   // p-value cutoff: discrete select with the conventional values
   // researchers actually use ({0.05, 0.01, 0.001}) plus "None" — the
@@ -211,7 +222,7 @@ export function ThresholdsTile({ vis, updVis }: any) {
   // strictly greater than any real p-value, so `classifyPoint`'s
   // `p < pCutoff` test admits every point on the p axis. 1 also
   // round-trips through localStorage cleanly (Infinity / NaN don't).
-  const onFcChange = (e: any) => {
+  const onFcChange = (e: { target: { value: string } }) => {
     const v = parseFloat(e.target.value);
     if (!Number.isFinite(v)) return;
     updVis({ fcCutoff: Math.max(0, Math.min(10, v)) });
@@ -224,8 +235,7 @@ export function ThresholdsTile({ vis, updVis }: any) {
   ];
   // Snap the persisted vis value to the closest option in the picker
   // (handles legacy values from before this control existed).
-  const pPickValue =
-    P_OPTIONS.find((o: any) => Math.abs(o.value - vis.pCutoff) < 1e-12)?.value ?? 0.05;
+  const pPickValue = P_OPTIONS.find((o) => Math.abs(o.value - vis.pCutoff) < 1e-12)?.value ?? 0.05;
   return (
     <ControlSection title="Thresholds" defaultOpen>
       <label style={{ display: "block" }}>
@@ -247,7 +257,7 @@ export function ThresholdsTile({ vis, updVis }: any) {
             is a real value (1 = "no p threshold"); the active one
             carries `.dv-seg-btn-active`. */}
         <div className="dv-seg">
-          {P_OPTIONS.map((o: any) => {
+          {P_OPTIONS.map((o) => {
             const active = pPickValue === o.value;
             return (
               <button
@@ -270,7 +280,7 @@ export function ThresholdsTile({ vis, updVis }: any) {
   );
 }
 
-export function ColorsTile({ vis, updVis }: any) {
+export function ColorsTile({ vis, updVis }: ColorsTileProps) {
   // Volcano has only 3 fixed slots (up / down / ns), not N categories. The
   // palette picker maps the resolved hex list into the two SIGNIFICANT
   // slots only — `[0]` → colorUp, `[1]` → colorDown — and leaves
@@ -295,26 +305,22 @@ export function ColorsTile({ vis, updVis }: any) {
         onChange={handlePalette}
         names={["up", "down", "ns"]}
       />
-      <ColorRow
-        label="Up-regulated"
-        value={vis.colorUp}
-        onChange={(v: any) => updVis({ colorUp: v })}
-      />
+      <ColorRow label="Up-regulated" value={vis.colorUp} onChange={(v) => updVis({ colorUp: v })} />
       <ColorRow
         label="Down-regulated"
         value={vis.colorDown}
-        onChange={(v: any) => updVis({ colorDown: v })}
+        onChange={(v) => updVis({ colorDown: v })}
       />
       <ColorRow
         label="Not significant"
         value={vis.colorNs}
-        onChange={(v: any) => updVis({ colorNs: v })}
+        onChange={(v) => updVis({ colorNs: v })}
       />
     </ControlSection>
   );
 }
 
-function ColorRow({ label, value, onChange }: any) {
+function ColorRow({ label, value, onChange }: ColorRowProps) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
       <span style={{ fontSize: 12, color: "var(--text)" }}>{label}</span>
@@ -330,7 +336,7 @@ function ColorRow({ label, value, onChange }: any) {
 // Match preview is computed live (debounced 150 ms) against a memoised
 // lower-cased label cache so a 50 k-point dataset stays snappy. The live
 // readout is informational only — nothing commits until the user submits.
-function LabelSearchRow({ points, labelCol, addToManualSelection }: any) {
+function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchRowProps) {
   const [query, setQuery] = useState("");
   const [previewQuery, setPreviewQuery] = useState("");
   const [showUnmatched, setShowUnmatched] = useState(false);
@@ -338,8 +344,7 @@ function LabelSearchRow({ points, labelCol, addToManualSelection }: any) {
   // Pre-lowercase every label once per `points` reference. The match
   // helper accepts this cache via its third argument.
   const labelLowerCache = useMemo(
-    () =>
-      points.map((pt: VolcanoPoint) => (pt.label == null ? null : pt.label.toLocaleLowerCase())),
+    () => points.map((pt) => (pt.label == null ? null : pt.label.toLocaleLowerCase())),
     [points]
   );
 
@@ -494,7 +499,7 @@ export function LabelsTile({
   // top-N sliders. Calibrated to the actual layout outcome — not a
   // heuristic estimate based on point count or plot dimensions.
   labelDensity,
-}: any) {
+}: LabelsTileProps) {
   const manualCount = manualSelection ? manualSelection.size : 0;
   const hasManual = manualCount > 0;
   // The cap warning is hidden in manual mode (the user's explicit
@@ -626,7 +631,7 @@ export function LabelsTile({
   );
 }
 
-export function StyleTile({ vis, updVis }: any) {
+export function StyleTile({ vis, updVis }: StyleTileProps) {
   return (
     <ControlSection title="Style">
       <SliderControl
@@ -734,7 +739,7 @@ export function ColorMapTile({
   colorMap,
   vis,
   updVis,
-}: any) {
+}: ColorMapTileProps) {
   const candidates = eligibleColumns(parsed, xCol, yCol, labelCol);
   // Bare-global access — see the comment in App's colorMap useMemo for
   // why we don't go through `window`.
@@ -748,7 +753,7 @@ export function ColorMapTile({
         style={{ width: "100%", marginBottom: colorMap ? 8 : 0 }}
       >
         <option value="">— None —</option>
-        {candidates.map(({ h, i }: any) => (
+        {candidates.map(({ h, i }) => (
           <option key={i} value={i}>
             {h}
           </option>
@@ -776,7 +781,7 @@ export function ColorMapTile({
                 onChange={(e) => updVis({ colorMapPalette: e.target.value })}
                 style={{ width: "100%", fontSize: 11 }}
               >
-                {paletteNames.map((name: any) => (
+                {paletteNames.map((name) => (
                   <option key={name} value={name}>
                     {name}
                     {DIVERGING_PALETTES.has(name) ? "  (diverging)" : ""}
@@ -828,7 +833,7 @@ export function ColorMapTile({
                 overflowY: "auto",
               }}
             >
-              {colorMap.legend.map((entry: any) => (
+              {colorMap.legend.map((entry) => (
                 <div
                   key={entry.value}
                   style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}
@@ -864,7 +869,16 @@ export function ColorMapTile({
   );
 }
 
-export function SizeMapTile({ parsed, xCol, yCol, labelCol, col, setCol, vis, updVis }: any) {
+export function SizeMapTile({
+  parsed,
+  xCol,
+  yCol,
+  labelCol,
+  col,
+  setCol,
+  vis,
+  updVis,
+}: SizeMapTileProps) {
   const candidates = eligibleColumns(parsed, xCol, yCol, labelCol);
   const active = col >= 0;
   return (
@@ -876,7 +890,7 @@ export function SizeMapTile({ parsed, xCol, yCol, labelCol, col, setCol, vis, up
         style={{ width: "100%", marginBottom: active ? 8 : 0 }}
       >
         <option value="">— None —</option>
-        {candidates.map(({ h, i }: any) => (
+        {candidates.map(({ h, i }) => (
           <option key={i} value={i}>
             {h}
           </option>
@@ -911,7 +925,7 @@ export function SizeMapTile({ parsed, xCol, yCol, labelCol, col, setCol, vis, up
   );
 }
 
-export function SummaryTile({ summary, fcCutoff, pCutoff }: any) {
+export function SummaryTile({ summary, fcCutoff, pCutoff }: SummaryTileProps) {
   return (
     <div
       className="dv-panel"

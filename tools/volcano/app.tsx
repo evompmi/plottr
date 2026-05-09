@@ -25,7 +25,6 @@ import { PlotToolShell } from "../_shell/PlotToolShell";
 import { HowTo } from "../_shell/HowTo";
 import { VOLCANO_HOWTO } from "./howto";
 import {
-  VolcanoPoint,
   VOLCANO_DEFAULT_COLORS,
   classifyPoint,
   computePFloor,
@@ -35,15 +34,18 @@ import {
   buildColorMap,
   buildSizeMap,
   buildPoints,
-  ColorMap,
 } from "./helpers";
+import type { ColorMap, LabelLayoutInfo, VolcanoPoint, VolcanoVis } from "./helpers";
 import { ConfigureStep, PlotStep } from "./steps";
 import { buildVolcanoRScript, buildVolcanoCsv } from "./reports";
 
 const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
-// Initial visualisation state — persisted via auto-prefs.
-const VIS_INIT_VOLCANO = {
+// Initial visualisation state — persisted via auto-prefs. Annotated as
+// `VolcanoVis` so the type widens beyond the const-literal shape (the
+// `colorUp` slot is `string`, not the `"#D55E00"` literal that
+// `VOLCANO_DEFAULT_COLORS.up` would otherwise narrow it to).
+const VIS_INIT_VOLCANO: VolcanoVis = {
   fcCutoff: 1,
   pCutoff: 0.05,
   topNUp: 10,
@@ -71,10 +73,10 @@ const VIS_INIT_VOLCANO = {
   // = ns). Picking a palette maps `[0]` → up, `[1]` → down, last/neutral
   // → ns. The user can hand-edit any of the 3 slots afterward.
   discretePalette: "okabe-ito",
-  xMin: null as number | null,
-  xMax: null as number | null,
-  yMin: null as number | null,
-  yMax: null as number | null,
+  xMin: null,
+  xMax: null,
+  yMin: null,
+  yMax: null,
   plotTitle: "",
 };
 
@@ -344,12 +346,12 @@ export function App() {
   } = shell;
 
   // Tool-local state — column picks, parsed data, derived points.
-  const [parsed, setParsed] = useState<any>(null);
+  const [parsed, setParsed] = useState<ParseDataResult | null>(null);
   const [xCol, setXCol] = useState(-1);
   const [yCol, setYCol] = useState(-1);
   const [labelCol, setLabelCol] = useState(-1);
   const [yIsAdjusted, setYIsAdjusted] = useState(false);
-  const [rawText, setRawText] = useState<any>(null);
+  const [rawText, setRawText] = useState<string | null>(null);
   const sepRef = useRef("");
 
   // Self-healing guard for the non-significant slot. The palette picker
@@ -394,7 +396,7 @@ export function App() {
   const [colorMapCol, setColorMapCol] = useState<number>(-1);
   const [sizeMapCol, setSizeMapCol] = useState<number>(-1);
   const togglePointSelection = useCallback((idx: number) => {
-    setManualSelection((prev: Set<number>) => {
+    setManualSelection((prev) => {
       const next = new Set<number>(prev);
       if (next.has(idx)) next.delete(idx);
       else next.add(idx);
@@ -405,7 +407,7 @@ export function App() {
   // click-to-label. Same Clear button covers both.
   const addToManualSelection = useCallback((indices: number[]) => {
     if (!indices || indices.length === 0) return;
-    setManualSelection((prev: Set<number>) => {
+    setManualSelection((prev) => {
       const next = new Set<number>(prev);
       for (const i of indices) next.add(i);
       return next;
@@ -416,7 +418,7 @@ export function App() {
   // ── Parsing ──────────────────────────────────────────────────────────
 
   const doParse = useCallback(
-    (text: any, sep: any) => {
+    (text: string, sep: string) => {
       sepRef.current = sep;
       const dc = fixDecimalCommas(text, sep);
       setCommaFixed(dc.commaFixed);
@@ -451,7 +453,7 @@ export function App() {
   );
 
   const handleFileLoad = useCallback(
-    (text: any, name: any) => {
+    (text: string, name: string) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
@@ -547,7 +549,7 @@ export function App() {
     if (!parsed || sizeMapCol < 0) return null;
     return buildSizeMap(
       parsed.rawData,
-      points.map((p: any) => p.idx),
+      points.map((p) => p.idx),
       sizeMapCol,
       vis.sizeMapMinR,
       vis.sizeMapMaxR
@@ -561,7 +563,7 @@ export function App() {
 
   // ── Download handlers ────────────────────────────────────────────────
 
-  const chartRef = useRef<any>(null);
+  const chartRef = useRef<SVGSVGElement>(null);
 
   // Density-aware label cap: chart fires this after each layout
   // computation with the actual forced/attempted counts. Surfaces in
@@ -569,10 +571,10 @@ export function App() {
   // when the user has asked for more than the data distribution can
   // place cleanly. One render-tick lag (chart commits → effect →
   // setState → controls re-render); fine for an advisory hint.
-  const [labelDensity, setLabelDensity] = useState<{
-    forcedCount: number;
-    attemptedCount: number;
-  }>({ forcedCount: 0, attemptedCount: 0 });
+  const [labelDensity, setLabelDensity] = useState<LabelLayoutInfo>({
+    forcedCount: 0,
+    attemptedCount: 0,
+  });
 
   const onDownloadCsv = () => {
     const { headers, rows } = buildVolcanoCsv({

@@ -326,8 +326,8 @@ export function pickTopLabels(
     if (cls === "up") ups.push({ idx: i, score, cls });
     else downs.push({ idx: i, score, cls });
   }
-  ups.sort((a: any, b: any) => b.score - a.score);
-  downs.sort((a: any, b: any) => b.score - a.score);
+  ups.sort((a, b) => b.score - a.score);
+  downs.sort((a, b) => b.score - a.score);
   const out: ScoredPoint[] = [];
   if (nUp > 0) for (const e of ups.slice(0, nUp)) out.push(e);
   if (nDown > 0) for (const e of downs.slice(0, nDown)) out.push(e);
@@ -1093,7 +1093,7 @@ export function buildColorMap(args: BuildColorMapArgs): ColorMap {
   return {
     type: "discrete",
     colorByIdx,
-    legend: order.map((value: any) => ({ value, color: seen.get(value)! })),
+    legend: order.map((value) => ({ value, color: seen.get(value)! })),
   };
 }
 
@@ -1196,19 +1196,233 @@ export function buildPoints(
 // `labelCol` stays in the signature so callers can pass it without
 // thinking; it's ignored on purpose.
 //
-// `parsed: any` matches the convention every other tool uses for the
-// parseData() output bag: only `parsed.headers` is read here, and the
-// canonical ParseDataResult typing lives in types/globals.d.ts where
-// React-tier files pick it up.
+// `ParseDataResult` is declared in types/globals.d.ts; we accept null /
+// undefined too because callers (controls tiles) hold the parse result
+// in a `useState<ParseDataResult | null>(null)` slot and pass it through
+// before the first parse fires.
 export function eligibleColumns(
-  parsed: any,
+  parsed: ParseDataResult | null | undefined,
   xCol: number,
   yCol: number,
   labelCol: number
 ): { h: string; i: number }[] {
   void labelCol;
   const used = new Set<number>([xCol, yCol]);
-  return (parsed?.headers || [])
-    .map((h: string, i: number) => ({ h, i }))
-    .filter(({ i }: { i: number }) => !used.has(i));
+  const headers = parsed?.headers ?? [];
+  return headers.map((h, i) => ({ h, i })).filter(({ i }) => !used.has(i));
+}
+
+// ── React-tier prop & state shapes ─────────────────────────────────────
+//
+// These types live alongside the pure helpers because TypeScript's module
+// resolution prefers the type-canonical home of a name to be the file
+// where the runtime value of an adjacent helper already lives. Keeping
+// them here lets chart.tsx / controls.tsx / steps.tsx / app.tsx all
+// import from a single barrel without circular imports.
+
+// Persisted vis-reducer state for the volcano tool. Mirrors the runtime
+// shape of `VIS_INIT_VOLCANO` in app.tsx — every field is set on init,
+// none are optional. Auto-prefs persists this object as JSON, which is
+// why each value is a primitive / plain JSON-compatible scalar.
+export interface VolcanoVis {
+  fcCutoff: number;
+  pCutoff: number;
+  topNUp: number;
+  topNDown: number;
+  showLabels: boolean;
+  showRefLines: boolean;
+  showAxes: boolean;
+  pointRadius: number;
+  pointAlpha: number;
+  labelFontSize: number;
+  colorMapPalette: string;
+  colorMapInvert: boolean;
+  sizeMapMinR: number;
+  sizeMapMaxR: number;
+  plotWidth: number;
+  colorUp: string;
+  colorDown: string;
+  colorNs: string;
+  discretePalette: string;
+  xMin: number | null;
+  xMax: number | null;
+  yMin: number | null;
+  yMax: number | null;
+  plotTitle: string;
+}
+
+// Reducer-style updater dispatched by every sidebar tile — accepts a
+// partial patch that the upstream `usePlotToolState` hook merges into
+// the current vis state. The `_reset` sentinel handled there is not part
+// of the public dispatch surface, so it stays out of the patch type.
+export type UpdVolcanoVis = (patch: Partial<VolcanoVis>) => void;
+
+// The chart's three fixed colour slots. Keyed by VolcanoClass; ns is
+// always grey by default but the user can hand-edit the slot in the
+// Colors tile. The class-keyed shape is what `makeFillFor` consumes.
+export interface VolcanoColors {
+  up: string;
+  down: string;
+  ns: string;
+}
+
+// Tally surfaced from the chart's label-layout pass back to the controls
+// UI so the warning copy can phrase the suggestion as "N of M didn't fit
+// cleanly; try ~M-N" — not a heuristic estimate.
+export interface LabelLayoutInfo {
+  forcedCount: number;
+  attemptedCount: number;
+}
+
+// Props for the SVG renderer in chart.tsx.
+export interface VolcanoChartProps {
+  points: VolcanoPoint[];
+  pFloor: number;
+  fcCutoff: number;
+  pCutoff: number;
+  // Auto means "derive from data"; explicit numbers override.
+  xMin: number | null;
+  xMax: number | null;
+  yMin: number | null;
+  yMax: number | null;
+  xLabel: string;
+  yLabel: string;
+  title: string;
+  subtitle: string;
+  colors: VolcanoColors;
+  pointRadius: number;
+  pointAlpha: number;
+  showRefLines: boolean;
+  showLabels: boolean;
+  topNUp: number;
+  topNDown: number;
+  labelFontSize: number;
+  showAxes: boolean;
+  manualSelection?: Set<number>;
+  onPointClick?: (idx: number) => void;
+  colorMap?: ColorMap;
+  colorMapLabel?: string;
+  sizeMap?: SizeMap | null;
+  sizeMapLabel?: string;
+  plotWidth?: number;
+  plotBg: string;
+  onLabelLayoutInfo?: (info: LabelLayoutInfo) => void;
+}
+
+// ── Sidebar-tile props (controls.tsx) ──────────────────────────────────
+
+export interface ThresholdsTileProps {
+  vis: VolcanoVis;
+  updVis: UpdVolcanoVis;
+}
+
+export interface ColorsTileProps {
+  vis: VolcanoVis;
+  updVis: UpdVolcanoVis;
+}
+
+export interface ColorRowProps {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}
+
+export interface LabelSearchRowProps {
+  points: VolcanoPoint[];
+  labelCol: number;
+  addToManualSelection: (indices: number[]) => void;
+}
+
+export interface LabelsTileProps {
+  vis: VolcanoVis;
+  updVis: UpdVolcanoVis;
+  manualSelection: Set<number> | null | undefined;
+  clearManualSelection: () => void;
+  points: VolcanoPoint[];
+  labelCol: number;
+  addToManualSelection: (indices: number[]) => void;
+  labelDensity?: LabelLayoutInfo | null;
+}
+
+export interface StyleTileProps {
+  vis: VolcanoVis;
+  updVis: UpdVolcanoVis;
+}
+
+export interface ColorMapTileProps {
+  parsed: ParseDataResult | null | undefined;
+  xCol: number;
+  yCol: number;
+  labelCol: number;
+  col: number;
+  setCol: (i: number) => void;
+  colorMap: ColorMap;
+  vis: VolcanoVis;
+  updVis: UpdVolcanoVis;
+}
+
+export interface SizeMapTileProps {
+  parsed: ParseDataResult | null | undefined;
+  xCol: number;
+  yCol: number;
+  labelCol: number;
+  col: number;
+  setCol: (i: number) => void;
+  vis: VolcanoVis;
+  updVis: UpdVolcanoVis;
+}
+
+export interface SummaryTileProps {
+  summary: VolcanoSummary;
+  fcCutoff: number;
+  pCutoff: number;
+}
+
+// ── Step props (steps.tsx) ─────────────────────────────────────────────
+
+export interface ConfigureStepProps {
+  parsed: ParseDataResult;
+  fileName: string;
+  xCol: number;
+  yCol: number;
+  labelCol: number;
+  yIsAdjusted: boolean;
+  setXCol: (i: number) => void;
+  setYCol: (i: number) => void;
+  setLabelCol: (i: number) => void;
+  setYIsAdjusted: (b: boolean) => void;
+}
+
+export interface PlotStepProps {
+  chartRef: React.RefObject<SVGSVGElement>;
+  parsed: ParseDataResult;
+  xCol: number;
+  yCol: number;
+  labelCol: number;
+  points: VolcanoPoint[];
+  pFloor: number;
+  clampedCount: number;
+  summary: VolcanoSummary;
+  xLabel: string;
+  yLabel: string;
+  vis: VolcanoVis;
+  updVis: UpdVolcanoVis;
+  manualSelection: Set<number>;
+  togglePointSelection: (idx: number) => void;
+  clearManualSelection: () => void;
+  addToManualSelection: (indices: number[]) => void;
+  colorMapCol: number;
+  setColorMapCol: (i: number) => void;
+  colorMap: ColorMap;
+  colorMapLabel: string;
+  sizeMapCol: number;
+  setSizeMapCol: (i: number) => void;
+  sizeMap: SizeMap | null;
+  sizeMapLabel: string;
+  fileName: string;
+  onDownloadCsv: () => void;
+  onDownloadR: () => void;
+  onReset: () => void;
+  labelDensity: LabelLayoutInfo;
+  onLabelLayoutInfo: (info: LabelLayoutInfo) => void;
 }
