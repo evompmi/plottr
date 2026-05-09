@@ -51,9 +51,13 @@ module.exports = {
   // Set-membership helpers (Venn / UpSet)
   parseSetData: ctx.parseSetData,
   parseLongFormatSets: ctx.parseLongFormatSets,
-  // Colour palettes (shared between scatter + heatmap)
-  COLOR_PALETTES: ctx.COLOR_PALETTES,
-  DIVERGING_PALETTES: ctx.DIVERGING_PALETTES,
+  // Colour palettes (shared between scatter + heatmap). `const` bindings
+  // inside vm.runInContext stay script-scoped (they don't become
+  // properties of the context object), so reading `ctx.COLOR_PALETTES`
+  // returns undefined. Re-evaluate via vm.runInContext to pull the
+  // values out — same pattern as the volcano + discrete-palette loaders.
+  COLOR_PALETTES: vm.runInContext("COLOR_PALETTES", ctx),
+  DIVERGING_PALETTES: vm.runInContext("DIVERGING_PALETTES", ctx),
   interpolateColor: ctx.interpolateColor,
   // Filename helpers
   fileBaseName: ctx.fileBaseName,

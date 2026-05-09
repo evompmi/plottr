@@ -7,7 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`npm run audit:contrast` — palette contrast audit script.** Walks
+  every stop in the discrete + sequential + diverging palette
+  catalogues plus the volcano default colours, computes WCAG 2.1 SC
+  1.4.11 contrast (3:1) against the chart's white background, and
+  emits a markdown report classifying each palette as
+  discrete / sequential / diverging (so the by-design pale endpoints
+  of viridis / blues / etc. don't get flagged as bugs). Static —
+  pure arithmetic, no Playwright / axe-core dependency. Informational,
+  not a CI gate.
+
 ### Fixed
+
+- **Volcano "not significant" default colour was below WCAG 3:1.**
+  `VOLCANO_DEFAULT_COLORS.ns` was `#999999` (2.85:1 against white),
+  failing WCAG 2.1 SC 1.4.11 by 0.15. Bumped to `#737373` (3.27:1) —
+  same neutral character, a hair darker, comfortably over the bar. NS
+  dots typically dominate the chart (~80–95 % of points); the smallest
+  crossing-the-line change is the right one.
+
+- **`tests/helpers/shared-loader.js` was silently exporting `undefined`
+  for `COLOR_PALETTES` and `DIVERGING_PALETTES`.** `const` bindings
+  inside `vm.runInContext` stay script-scoped and don't become
+  properties of the context object — `ctx.COLOR_PALETTES` was reading
+  back `undefined` even though the declarations succeeded. Switched to
+  `vm.runInContext("COLOR_PALETTES", ctx)` (mirroring the volcano +
+  discrete-palette loaders, which already had the right pattern). No
+  current test consumed these exports, so the bug had been latent.
 
 - **Heatmap and Volcano charts had no accessibility attributes.** Both
   SVGs now declare `role="img"`, an `aria-label` (the user's plot title
