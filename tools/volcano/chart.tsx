@@ -11,7 +11,7 @@
 // The standard ambient globals (React, makeTicks, svgSafeId) come from
 // tools/shared.bundle.js — same pattern as every other plot tool.
 
-import { VolcanoClass } from "./helpers";
+import { VolcanoClass, summarize } from "./helpers";
 import type { VolcanoChartProps } from "./helpers";
 import {
   DEFAULT_VBW,
@@ -184,13 +184,22 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
     const refXRight = fcCutoff;
     const refY = -Math.log10(pCutoff);
 
+    const summary = useMemo(
+      () => summarize(points, fcCutoff, pCutoff),
+      [points, fcCutoff, pCutoff]
+    );
+
     return (
       <svg
         ref={ref}
         viewBox={`0 0 ${VBW} ${VBH}`}
         style={{ width: "100%", height: "auto", display: "block" }}
         xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label={title || "Volcano plot"}
       >
+        <title>{title || "Volcano plot"}</title>
+        <desc>{`Volcano plot of ${summary.total} point${summary.total !== 1 ? "s" : ""}: ${summary.up} up, ${summary.down} down, ${summary.ns} not significant${summary.discarded > 0 ? `, ${summary.discarded} discarded` : ""}`}</desc>
         <g id="background">
           <rect x={0} y={0} width={VBW} height={VBH} fill={plotBg || "#fff"} />
         </g>
