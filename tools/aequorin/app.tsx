@@ -16,6 +16,11 @@ import {
   calibrateGeneralized,
   computeAutoYRange,
   detectConditions,
+  AequorinSeriesStats,
+  Condition,
+  PlotPanelHandle,
+  RepSum,
+  ReplicateSumsRow,
 } from "./helpers";
 import type { CalibrationFormula } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
@@ -1334,32 +1339,39 @@ export function App() {
   // edits. Renames in particular become cheap: each keystroke on the label
   // input only re-runs the light metadata merge, not the numerics.
   const conditionsNumericKey = conditions
-    .map((c: any) => `${c.prefix}:${(c.activeColIndices || c.colIndices).join(",")}`)
+    .map((c) => `${c.prefix}:${(c.activeColIndices || c.colIndices).join(",")}`)
     .join("|");
+
+  interface NumericStats {
+    means: Array<number | null>;
+    sds: Array<number | null>;
+  }
 
   // Heavy pass: per-timepoint mean + sd per condition. Keyed on the numeric
   // signature so label/color edits skip it entirely.
-  const numericStatsByPrefix = useMemo(() => {
-    if (!calData || !parsed || conditions.length === 0) return {} as Record<string, any>;
+  const numericStatsByPrefix = useMemo<Record<string, NumericStats>>(() => {
+    if (!calData || !parsed || conditions.length === 0) return {};
     const nRows = calData.length;
-    const out: Record<string, any> = {};
+    const out: Record<string, NumericStats> = {};
     for (const cond of conditions) {
-      const idxs = cond.activeColIndices || cond.colIndices;
-      const means: any[] = [];
-      const sds: any[] = [];
+      const idxs: number[] = cond.activeColIndices || cond.colIndices;
+      const means: Array<number | null> = [];
+      const sds: Array<number | null> = [];
       for (let r = 0; r < nRows; r++) {
-        const vals = idxs.map((i: any) => calData[r][i]).filter((v: any) => v != null);
+        const vals: number[] = idxs.map((i) => calData[r][i]).filter((v): v is number => v != null);
         if (vals.length === 0) {
           means.push(null);
           sds.push(null);
           continue;
         }
-        const m = vals.reduce((a: any, b: any) => a + b, 0) / vals.length;
+        const m = vals.reduce((a: number, b: number) => a + b, 0) / vals.length;
         means.push(m);
         sds.push(
           vals.length < 2
             ? 0
-            : Math.sqrt(vals.reduce((a: any, v: any) => a + (v - m) ** 2, 0) / (vals.length - 1))
+            : Math.sqrt(
+                vals.reduce((a: number, v: number) => a + (v - m) ** 2, 0) / (vals.length - 1)
+              )
         );
       }
       out[cond.prefix] = { means, sds };
@@ -1373,9 +1385,9 @@ export function App() {
   // Cheap pass: merge the per-condition metadata (label, color, enabled, …)
   // with the cached numerics. Runs on every `conditions` change, but does
   // not touch `calData` rows.
-  const stats = useMemo(
+  const stats = useMemo<AequorinSeriesStats[]>(
     () =>
-      conditions.map((cond: any) => ({
+      conditions.map((cond) => ({
         ...cond,
         ...(numericStatsByPrefix[cond.prefix] || { means: [], sds: [] }),
       })),
@@ -1386,23 +1398,25 @@ export function App() {
   // reflect variability across biological replicates, not across time points.
   // Split the same way as above: heavy loops are keyed on the numeric
   // signature + x-window, the cheap merge attaches the current label.
-  const replicateSumsByPrefix = useMemo(() => {
+  const replicateSumsByPrefix = useMemo<Record<string, RepSum[]>>(() => {
     if (!calData || conditions.length === 0) return {};
     const r0 = Math.max(0, Math.floor(vis.xStart));
     const r1 = Math.min(calData.length - 1, Math.ceil(vis.xEnd));
-    const out: Record<string, any> = {};
+    const out: Record<string, RepSum[]> = {};
     for (const cond of conditions) {
-      const repSums = (cond.activeColIndices || cond.colIndices).map((ci: any) => {
-        const vals: any[] = [];
-        for (let r = r0; r <= r1; r++) {
-          const v = calData[r] ? calData[r][ci] : null;
-          if (v != null) vals.push(v);
+      const repSums: RepSum[] = (cond.activeColIndices || cond.colIndices).map(
+        (ci: number): RepSum => {
+          const vals: number[] = [];
+          for (let r = r0; r <= r1; r++) {
+            const v = calData[r] ? calData[r][ci] : null;
+            if (v != null) vals.push(v);
+          }
+          const rawSum = vals.reduce((a, b) => a + b, 0);
+          const minVal = vals.length > 0 ? Math.min(...vals) : 0;
+          const corrSum = rawSum - vals.length * minVal;
+          return { colIndex: ci, rawSum, corrSum };
         }
-        const rawSum = vals.reduce((a: any, b: any) => a + b, 0);
-        const minVal = vals.length > 0 ? Math.min(...vals) : 0;
-        const corrSum = rawSum - vals.length * minVal;
-        return { rawSum, corrSum };
-      });
+      );
       out[cond.prefix] = repSums;
     }
     return out;
@@ -1412,9 +1426,9 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calData, conditionsNumericKey, vis.xStart, vis.xEnd]);
 
-  const replicateSums = useMemo(
+  const replicateSums = useMemo<ReplicateSumsRow[]>(
     () =>
-      stats.map((s: any) => ({
+      stats.map((s) => ({
         prefix: s.prefix,
         label: s.label,
         repSums: replicateSumsByPrefix[s.prefix] || [],
@@ -1453,13 +1467,9 @@ export function App() {
 
   const csvText = useMemo(() => {
     if (!calData || !parsed) return "";
-    const enabledIdx = parsed.headers
-      .map((_: any, i: number) => i)
-      .filter((i: any) => columnEnabled[i] !== false);
-    const rows = [enabledIdx.map((i: any) => parsed.headers[i]).join(",")];
-    calData.forEach((r: any) =>
-      rows.push(enabledIdx.map((i: any) => (r[i] != null ? r[i] : "")).join(","))
-    );
+    const enabledIdx = parsed.headers.map((_, i) => i).filter((i) => columnEnabled[i] !== false);
+    const rows = [enabledIdx.map((i) => parsed.headers[i]).join(",")];
+    calData.forEach((r) => rows.push(enabledIdx.map((i) => (r[i] != null ? r[i] : "")).join(",")));
     return rows.join("\n");
   }, [calData, parsed, columnEnabled]);
 
@@ -1468,18 +1478,18 @@ export function App() {
     if (!parsed) return [];
     const nameOcc: Record<string, number> = {};
     const nameCount: Record<string, number> = {};
-    parsed.headers.forEach((h: any) => {
+    parsed.headers.forEach((h) => {
       nameCount[h] = (nameCount[h] || 0) + 1;
     });
-    return parsed.headers.map((h: any, i: number) => {
+    return parsed.headers.map((h, i) => {
       nameOcc[h] = (nameOcc[h] || 0) + 1;
       return { h, i, rep: nameOcc[h], isDup: nameCount[h] > 1 };
     });
   }, [parsed]);
 
-  const applyGrouping = (pool: any, ce: any, prevConds: any) => {
-    const prevMap: Record<string, any> = Object.fromEntries(
-      prevConds.map((c: any) => [c.prefix, c])
+  const applyGrouping = (pool: boolean, ce: Record<number, boolean>, prevConds: Condition[]) => {
+    const prevMap: Record<string, Condition> = Object.fromEntries(
+      prevConds.map((c) => [c.prefix, c])
     );
     // Build conditions from ALL columns, then mark enabled based on columnEnabled
     const allConds = detectConditions(
@@ -1487,8 +1497,8 @@ export function App() {
       pool,
       null,
       vis.discretePalette || "okabe-ito"
-    ).map((c: any) => {
-      const activeCols = c.colIndices.filter((ci: any) => ce[ci] !== false);
+    ).map((c) => {
+      const activeCols = c.colIndices.filter((ci) => ce[ci] !== false);
       const prev = prevMap[c.prefix];
       // If the previous condition had no active columns, its `enabled=false` was
       // forced by the sample selector rather than a user toggle on the control
@@ -1507,23 +1517,23 @@ export function App() {
     setConditions(allConds);
   };
 
-  const handlePoolChange = (pool: any) => {
+  const handlePoolChange = (pool: boolean) => {
     setPoolReplicates(pool);
     applyGrouping(pool, columnEnabled, conditions);
   };
-  const handleColumnToggle = (i: any, val: any) => {
+  const handleColumnToggle = (i: number, val: boolean) => {
     const ce = { ...columnEnabled, [i]: val };
     setColumnEnabled(ce);
     applyGrouping(poolReplicates, ce, conditions);
   };
-  const handleConditionsChange = (newConds: any) => {
+  const handleConditionsChange = (newConds: Condition[]) => {
     const ce = { ...columnEnabled };
-    const updated = newConds.map((c: any, idx: number) => {
+    const updated = newConds.map((c, idx) => {
       const prev = conditions[idx];
       // Only sync columnEnabled for conditions whose enabled state actually changed
       if (prev && c.enabled !== prev.enabled) {
-        c.colIndices.forEach((ci: any) => {
-          ce[ci] = c.enabled;
+        c.colIndices.forEach((ci) => {
+          ce[ci] = !!c.enabled;
         });
         return { ...c, activeColIndices: c.enabled ? c.colIndices : [] };
       }
@@ -1533,10 +1543,10 @@ export function App() {
     setColumnEnabled(ce);
   };
 
-  const plotPanelRef = useRef<any>(null);
+  const plotPanelRef = useRef<PlotPanelHandle | null>(null);
 
   const doParse = useCallback(
-    (text: any, sep: any) => {
+    (text: string, sep: string) => {
       const dc = fixDecimalCommas(text, sep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
@@ -1559,7 +1569,7 @@ export function App() {
       // Check how much of the data is numeric
       const totalCells = data.length * headers.length;
       const numericCells = data.reduce(
-        (n: any, row: any) => n + row.filter((v: any) => v != null).length,
+        (n: number, row: Array<number | null>) => n + row.filter((v) => v != null).length,
         0
       );
       const numericRatio = totalCells > 0 ? numericCells / totalCells : 0;
@@ -1570,21 +1580,19 @@ export function App() {
         return;
       }
       // Warn if the file looks like long format (few columns, one text + one numeric pattern)
-      const colTypes = headers.map((_: any, ci: number) => {
-        const nums = data.filter((r: any) => r[ci] != null).length;
+      const colTypes = headers.map((_, ci) => {
+        const nums = data.filter((r) => r[ci] != null).length;
         return nums / data.length > 0.8 ? "num" : "text";
       });
-      const numCols = colTypes.filter((t: any) => t === "num").length;
-      const textCols = colTypes.filter((t: any) => t === "text").length;
-      const warnings: any[] = [];
+      const numCols = colTypes.filter((t) => t === "num").length;
+      const textCols = colTypes.filter((t) => t === "text").length;
+      const warnings: string[] = [];
       if (headers.length <= 3 && textCols >= 1 && numCols >= 1)
         warnings.push(
           "⚠️ This looks like it could be long-format data (few columns, mix of text and numbers). This tool expects wide format — one column per sample, one row per time-point."
         );
       // Detect ragged columns (different number of valid values per column)
-      const colLengths = headers.map(
-        (_: any, ci: number) => data.filter((r: any) => r[ci] != null).length
-      );
+      const colLengths = headers.map((_, ci) => data.filter((r) => r[ci] != null).length);
       const maxLen = Math.max(...colLengths);
       const minLen = Math.min(...colLengths);
       if (maxLen > 0 && minLen < maxLen) {
@@ -1593,8 +1601,8 @@ export function App() {
         );
       }
       setParseMessage(warnings.length > 0 ? warnings.join("\n") : null);
-      const ce: Record<string, any> = {};
-      headers.forEach((_: any, i: number) => {
+      const ce: Record<number, boolean> = {};
+      headers.forEach((_, i) => {
         ce[i] = true;
       });
       setColumnEnabled(ce);
@@ -1604,7 +1612,7 @@ export function App() {
         true,
         ce,
         vis.discretePalette || "okabe-ito"
-      ).map((c: any) => ({
+      ).map((c) => ({
         ...c,
         enabled: true,
       }));
@@ -1620,7 +1628,7 @@ export function App() {
     [setCommaFixed, setCommaFixCount, setInjectionWarning, setStep, updVis, vis.discretePalette]
   );
   const handleFileLoad = useCallback(
-    (text: any, name: any) => {
+    (text: string, name: string) => {
       setFileName(name);
       doParse(text, sepOverride);
     },
@@ -1657,7 +1665,7 @@ export function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const canNavigate = (s: any) => s === "upload" || (!!parsed && s !== "upload");
+  const canNavigate = (s: string) => s === "upload" || (!!parsed && s !== "upload");
 
   return (
     <PlotToolShell
@@ -1905,7 +1913,7 @@ export function App() {
               >
                 <SampleSelectionOverlay
                   showColumnOverlay={vis.showColumnOverlay}
-                  setShowColumnOverlay={(v: any) => updVis({ showColumnOverlay: v })}
+                  setShowColumnOverlay={(v: boolean) => updVis({ showColumnOverlay: v })}
                   poolReplicates={poolReplicates}
                   colInfo={colInfo}
                   columnEnabled={columnEnabled}

@@ -6,6 +6,7 @@
 // steps.tsx, controls.tsx, index.tsx).
 
 import { CHART_MARGIN, buildLineD } from "../_shell/chart-layout";
+import type { TestResult } from "../_shell/stats-dispatch";
 export { buildLineD };
 
 // ── Calibration defaults ─────────────────────────────────────────────────────
@@ -65,10 +66,18 @@ export const TO_SECONDS: Record<string, number> = {
   yr: 31557600,
 };
 
-export function convertTime(value: any, fromUnit: any, toUnit: any) {
+export function convertTime(value: number, fromUnit: string, toUnit: string): number {
   if (fromUnit === toUnit) return value;
   return (value * TO_SECONDS[fromUnit]) / TO_SECONDS[toUnit];
 }
+
+// `DataMatrix` — the shape of `parsed.data` for the aequorin tool: rows
+// keyed by time index, columns keyed by sample. Cells are `null` when the
+// raw cell parsed to a non-numeric value (empty / missing / non-numeric
+// string), `number` otherwise. Calibration helpers preserve this shape:
+// out-of-domain calibration outputs (e.g. division by zero, log of a
+// non-positive) become `null` instead of NaN/Infinity.
+export type DataMatrix = Array<Array<number | null>>;
 
 // ── Formula labels / equations ───────────────────────────────────────────────
 
@@ -104,15 +113,23 @@ export const FORMULA_DEFS = {
 //     injected frog cardiac muscle." Nature 273(5663): 509-513.
 //
 // Defaults: Kr = 7, Ktr = 118 (DEFAULT_KR / DEFAULT_KTR above).
-export function calibrate(headers: any, data: any, Kr: any, Ktr: any) {
+export function calibrate(
+  headers: string[],
+  data: DataMatrix,
+  Kr: number,
+  Ktr: number
+): DataMatrix {
   const nCols = headers.length,
     nRows = data.length;
-  const totals = new Array(nCols).fill(0);
+  const totals = new Array<number>(nCols).fill(0);
   for (let r = 0; r < nRows; r++)
-    for (let c = 0; c < nCols; c++) if (data[r][c] != null) totals[c] += data[r][c];
-  const cal: any[] = [];
+    for (let c = 0; c < nCols; c++) {
+      const v = data[r][c];
+      if (v != null) totals[c] += v;
+    }
+  const cal: DataMatrix = [];
   for (let r = 0; r < nRows; r++) {
-    const row: any[] = [];
+    const row: Array<number | null> = [];
     for (let c = 0; c < nCols; c++) {
       const v = data[r][c];
       if (v == null || v === 0 || totals[c] === 0) {
@@ -145,15 +162,18 @@ export function calibrate(headers: any, data: any, Kr: any, Ktr: any) {
 // Default: Kd = 7 (DEFAULT_KD above). Note: published Kd values for plant
 // aequorin vary between groups; this default is what plant-science papers
 // most commonly report — change it if your reference uses a different value.
-export function calibrateHill(headers: any, data: any, Kd: any) {
+export function calibrateHill(headers: string[], data: DataMatrix, Kd: number): DataMatrix {
   const nCols = headers.length,
     nRows = data.length;
-  const totals = new Array(nCols).fill(0);
+  const totals = new Array<number>(nCols).fill(0);
   for (let r = 0; r < nRows; r++)
-    for (let c = 0; c < nCols; c++) if (data[r][c] != null) totals[c] += data[r][c];
-  const cal: any[] = [];
+    for (let c = 0; c < nCols; c++) {
+      const v = data[r][c];
+      if (v != null) totals[c] += v;
+    }
+  const cal: DataMatrix = [];
   for (let r = 0; r < nRows; r++) {
-    const row: any[] = [];
+    const row: Array<number | null> = [];
     for (let c = 0; c < nCols; c++) {
       const v = data[r][c];
       if (v == null || v === 0 || totals[c] === 0) {
@@ -184,15 +204,24 @@ export function calibrateHill(headers: any, data: any, Kd: any) {
 //     Biology 323: 307-327.
 //
 // Defaults: Kr = 7, Ktr = 118, n = 3 (DEFAULT_KR / DEFAULT_KTR / DEFAULT_HILL_N).
-export function calibrateGeneralized(headers: any, data: any, Kr: any, Ktr: any, n: any) {
+export function calibrateGeneralized(
+  headers: string[],
+  data: DataMatrix,
+  Kr: number,
+  Ktr: number,
+  n: number
+): DataMatrix {
   const nCols = headers.length,
     nRows = data.length;
-  const totals = new Array(nCols).fill(0);
+  const totals = new Array<number>(nCols).fill(0);
   for (let r = 0; r < nRows; r++)
-    for (let c = 0; c < nCols; c++) if (data[r][c] != null) totals[c] += data[r][c];
-  const cal: any[] = [];
+    for (let c = 0; c < nCols; c++) {
+      const v = data[r][c];
+      if (v != null) totals[c] += v;
+    }
+  const cal: DataMatrix = [];
   for (let r = 0; r < nRows; r++) {
-    const row: any[] = [];
+    const row: Array<number | null> = [];
     for (let c = 0; c < nCols; c++) {
       const v = data[r][c];
       if (v == null || v === 0 || totals[c] === 0) {
@@ -209,19 +238,19 @@ export function calibrateGeneralized(headers: any, data: any, Kr: any, Ktr: any,
 }
 
 export function detectConditions(
-  headers: any,
+  headers: string[],
   poolReplicates = true,
-  columnEnabled: any = null,
+  columnEnabled: Record<number, boolean> | null = null,
   paletteName: string = "okabe-ito"
-) {
+): Condition[] {
   const nameOcc: Record<string, number> = {};
-  const repNums = headers.map((h: any) => {
+  const repNums = headers.map((h) => {
     nameOcc[h] = (nameOcc[h] || 0) + 1;
     return nameOcc[h];
   });
   if (poolReplicates) {
     const pm: Record<string, number[]> = {};
-    headers.forEach((h: any, i: number) => {
+    headers.forEach((h, i) => {
       if (columnEnabled && columnEnabled[i] === false) return;
       if (!pm[h]) pm[h] = [];
       pm[h].push(i);
@@ -236,10 +265,10 @@ export function detectConditions(
     }));
   } else {
     const items = headers
-      .map((h: any, i: number) => ({ h, i, rep: repNums[i] }))
-      .filter(({ i }: any) => !columnEnabled || columnEnabled[i] !== false);
+      .map((h, i) => ({ h, i, rep: repNums[i] }))
+      .filter(({ i }) => !columnEnabled || columnEnabled[i] !== false);
     const seed = resolveDiscretePalette(paletteName, items.length);
-    return items.map(({ h, i, rep }: any, ci: number) => ({
+    return items.map(({ h, i, rep }, ci) => ({
       prefix: `${h}__col${i}`,
       label: `${h}_rep${rep}`,
       color: seed[ci % Math.max(1, seed.length)] || PALETTE[ci % PALETTE.length],
@@ -248,14 +277,15 @@ export function detectConditions(
   }
 }
 
-export function smooth(arr: any, w: any) {
+export function smooth(arr: Array<number | null>, w: number): Array<number | null> {
   if (w <= 0) return arr;
-  return arr.map((_: any, i: number) => {
+  return arr.map((_, i) => {
     let sum = 0,
       n = 0;
     for (let j = Math.max(0, i - w); j <= Math.min(arr.length - 1, i + w); j++) {
-      if (arr[j] != null) {
-        sum += arr[j];
+      const v = arr[j];
+      if (v != null) {
+        sum += v;
         n++;
       }
     }
@@ -265,14 +295,26 @@ export function smooth(arr: any, w: any) {
 
 // ── SVG path builders ────────────────────────────────────────────────────────
 
-export function buildAreaD(pts: any) {
-  const valid = pts.filter((p: any) => p.yHi != null && p.yLo != null);
+// Each input point is one (x, yLo, yHi) sample of the ribbon's lower / upper
+// edge; null on either edge means a missing replicate at that x and is
+// dropped before the path is built. Returns the empty string when fewer
+// than 2 valid points remain (callers render no <path> for an empty `d`).
+export interface RibbonPoint {
+  x: number;
+  yLo: number | null;
+  yHi: number | null;
+}
+
+export function buildAreaD(pts: RibbonPoint[]): string {
+  const valid = pts.filter(
+    (p): p is { x: number; yLo: number; yHi: number } => p.yHi != null && p.yLo != null
+  );
   if (valid.length < 2) return "";
-  const fwd = valid.map((p: any) => `${p.x.toFixed(2)},${p.yHi.toFixed(2)}`);
+  const fwd = valid.map((p) => `${p.x.toFixed(2)},${p.yHi.toFixed(2)}`);
   const rev = valid
     .slice()
     .reverse()
-    .map((p: any) => `${p.x.toFixed(2)},${p.yLo.toFixed(2)}`);
+    .map((p) => `${p.x.toFixed(2)},${p.yLo.toFixed(2)}`);
   return "M" + fwd.join("L") + "L" + rev.join("L") + "Z";
 }
 
@@ -292,7 +334,11 @@ export const MARGIN = CHART_MARGIN;
 // vis.* (e.g. rehydrated from auto-prefs of a previous session) are
 // irrelevant — this function is keyed only on the actual data, so the
 // chart never paints with a stale persisted range.
-export function computeAutoYRange(calData: any, xStart: any, xEnd: any) {
+export function computeAutoYRange(
+  calData: DataMatrix | null,
+  xStart: number,
+  xEnd: number
+): { yMin: number; yMax: number } | null {
   if (!calData || calData.length === 0) return null;
   const r0 = Math.max(0, Math.floor(xStart));
   const r1 = Math.min(calData.length - 1, Math.ceil(xEnd));
@@ -310,7 +356,7 @@ export function computeAutoYRange(calData: any, xStart: any, xEnd: any) {
     }
   }
   if (!isFinite(lo) || !isFinite(hi)) return null;
-  const round2 = (v: any) => Math.round(v * 100) / 100;
+  const round2 = (v: number) => Math.round(v * 100) / 100;
   return { yMin: round2(Math.max(0, lo * 0.9)), yMax: round2(hi * 1.1) };
 }
 
@@ -415,10 +461,285 @@ export interface PlotPanelHandle {
 
 export interface PlotControlsProps {
   conditions: Condition[];
-  setConditions: (next: Condition[] | ((prev: Condition[]) => Condition[])) => void;
+  // Aequorin only ever passes a fresh array (no functional updaters);
+  // narrower than the React setState signature.
+  setConditions: (next: Condition[]) => void;
   vis: AequorinVis;
   updVis: UpdVis;
   plotPanelRef: React.RefObject<PlotPanelHandle | null>;
   downloadCalibrated: () => void;
   resetAll: () => void;
+}
+
+// ── Series + chart prop interfaces ──────────────────────────────────────────
+//
+// `AequorinSeriesStats` is the shape produced by the per-condition stats
+// useMemo in app.tsx — it spreads a `Condition` and adds the time-aligned
+// `means` and `sds` arrays (one entry per row in calData). PlotPanel
+// receives `stats: AequorinSeriesStats[]`, filters to enabled, and turns it
+// into the `series` array the chart consumes (smoothed + windowed).
+
+export interface AequorinSeriesStats extends Condition {
+  means: Array<number | null>;
+  sds: Array<number | null>;
+}
+
+export interface SeriesRow {
+  t: number;
+  mean: number | null;
+  sd: number | null;
+}
+
+export interface SeriesItem {
+  prefix: string;
+  label: string;
+  color: string;
+  n: number;
+  rows: SeriesRow[];
+}
+
+// ReplicateSums — per-condition row of per-replicate Σ luminescence values
+// for the inset barplot. `repSums[i].rawSum` is the raw integral; `corrSum`
+// is the calibration-corrected integral. Computed in app.tsx from calData.
+
+export interface RepSum {
+  colIndex: number;
+  rawSum: number;
+  corrSum: number;
+}
+
+export interface ReplicateSumsRow {
+  prefix: string;
+  label: string;
+  // Optional — `replicateSums` in app.tsx tracks only `prefix`, `label`,
+  // `repSums`; consumers don't read `color` off this shape (they look it
+  // up via `activeStats[…].color` instead). Keep optional for forward
+  // compatibility with future per-row tinted bars.
+  color?: string;
+  enabled?: boolean;
+  repSums: RepSum[];
+}
+
+// ── Chart props ─────────────────────────────────────────────────────────────
+
+export interface ChartProps {
+  series: SeriesItem[];
+  xStart: number;
+  xEnd: number;
+  yMin: number;
+  yMax: number;
+  vbW: number;
+  vbH: number;
+  xLabel: string;
+  yLabel: string;
+  plotBg: string;
+  showGrid: boolean;
+  lineWidth: number;
+  ribbonOpacity: number;
+  gridColor: string;
+  svgLegend: LegendBlock[] | null;
+  // Both nullable — the facet view passes `s.label || null` and the main
+  // combined chart passes title / subtitle which can be empty strings.
+  plotTitle: string | null;
+  plotSubtitle?: string | null;
+}
+
+export interface InsetBarplotProps {
+  series: SeriesItem[];
+  insetFillOpacity: number;
+  insetBarWidth: number;
+  insetBarGap: number;
+  insetYMin: number | null;
+  insetYMax: number | null;
+  insetW: number;
+  insetH: number;
+  insetErrorType: string;
+  insetShowBarOutline: boolean;
+  insetBarOutlineColor: string;
+  insetBarStrokeWidth: number;
+  insetShowGrid: boolean;
+  insetGridColor: string;
+  insetErrorStrokeWidth: number;
+  insetXFontSize: number;
+  insetYFontSize: number;
+  insetXLabelAngle: number;
+  plotBg: string;
+  plotTitle: string | null;
+  plotSubtitle: string | null;
+  corrected: boolean;
+  replicateSums?: ReplicateSumsRow[] | null;
+  annotations?: AnnotationSpec | null;
+  statsSummary?: string | null;
+  showPoints: boolean;
+  pointSize: number;
+  pointColor: string;
+}
+
+export interface FacetChartItemProps {
+  // The faceted chart consumes the per-series `SeriesItem` (label + n + rows),
+  // not the full `AequorinSeriesStats` — `displaySeries` in plot-area.tsx is
+  // the time-windowed projection of `series`, not `stats`.
+  s: SeriesItem;
+  facetRefs: React.MutableRefObject<Record<string, SVGSVGElement | null>>;
+  // chartProps already contains the `series` slot for this single facet, so
+  // `Pick` keeps the per-facet override list explicit instead of using `Omit`
+  // which would require a `series` field that's already filled in.
+  chartProps: ChartProps;
+}
+
+// ── Stats annotation spec (shared with boxplot's spec shape) ───────────────
+
+export interface AnnotationSpecBracket {
+  i: number;
+  j: number;
+  p: number;
+  label: string;
+}
+
+export type AnnotationSpec =
+  | { kind: "brackets"; pairs: AnnotationSpecBracket[]; groupNames: string[] }
+  | { kind: "cld"; labels: string[]; groupNames: string[] };
+
+// ── Stats panel prop interfaces ─────────────────────────────────────────────
+//
+// AequorinStatsPanel receives the inset stats groups (`{ name, values }[]`)
+// + display controls and emits the annotation spec + summary text via
+// callbacks. AequorinStatsDetail expands a single row's decision trace.
+
+export type SelectTestResult = ReturnType<typeof selectTest> & {
+  suggestion?: {
+    test: RecommendedTest;
+    postHoc?: RecommendedPostHoc;
+    why?: string;
+  };
+};
+
+export interface PostHocPair {
+  i: number;
+  j: number;
+  p: number;
+  pAdj?: number | null;
+  diff?: number;
+  z?: number;
+  se?: number;
+  q?: number;
+  lwr?: number;
+  upr?: number;
+  df?: number;
+}
+
+export interface PostHocResult {
+  pairs: PostHocPair[];
+  k?: number;
+  df?: number;
+  mse?: number;
+  method?: string;
+  error?: string;
+}
+
+export interface StatsGroup {
+  name: string;
+  values: number[];
+}
+
+export interface EnrichedAequorinStatsRow {
+  k: number;
+  names: string[];
+  values: number[][];
+  rec: SelectTestResult;
+  chosenTest: RecommendedTest | null;
+  testResult: TestResult | null;
+  postHocName: Exclude<RecommendedPostHoc, null> | null;
+  postHocResult: PostHocResult | null;
+  powerResult: PowerFromDataResult | null;
+  skip?: boolean;
+}
+
+export interface AequorinStatsDetailProps {
+  row: EnrichedAequorinStatsRow;
+  onOverrideTest: (test: RecommendedTest | null) => void;
+  isOverridden: boolean;
+}
+
+export interface AequorinStatsPanelProps {
+  groups: StatsGroup[];
+  fileStem: string;
+  errorBarLabel: string;
+  onAnnotationChange: (spec: AnnotationSpec | null) => void;
+  onSummaryChange: (text: string | null) => void;
+}
+
+// ── ConditionEditor + SampleSelectionOverlay ───────────────────────────────
+
+export interface ConditionEditorProps {
+  conditions: Condition[];
+  onChange: (next: Condition[]) => void;
+}
+
+export interface ColInfo {
+  h: string;
+  i: number;
+  rep: number;
+  isDup: boolean;
+}
+
+export interface SampleSelectionOverlayProps {
+  showColumnOverlay: boolean;
+  setShowColumnOverlay: (b: boolean) => void;
+  poolReplicates: boolean;
+  colInfo: ColInfo[];
+  columnEnabled: Record<number, boolean>;
+  handleColumnToggle: (i: number, enabled: boolean) => void;
+  conditions: Condition[];
+}
+
+// SampleSelectionOverlay used to also accept a `setConditions` prop in some
+// drafts; keep `SetConditionsDispatch` available as the type alias for any
+// future narrower wiring (no current consumer).
+export type SetConditionsDispatch = (next: Condition[]) => void;
+
+// ── PlotPanel props ─────────────────────────────────────────────────────────
+
+export interface PlotPanelProps {
+  stats: AequorinSeriesStats[];
+  xStart: number;
+  xEnd: number;
+  yMin: number;
+  yMax: number;
+  faceted: boolean;
+  title: string;
+  subtitle: string;
+  smoothWidth: number;
+  plotBg: string;
+  showGrid: boolean;
+  lineWidth: number;
+  ribbonOpacity: number;
+  gridColor: string;
+  timeStep: number;
+  baseUnit: string;
+  displayUnit: string;
+  showInset: boolean;
+  insetFillOpacity: number;
+  insetBarWidth: number;
+  insetBarGap: number;
+  insetYMin: number | null;
+  insetYMax: number | null;
+  insetW: number;
+  insetH: number;
+  insetErrorType: string;
+  insetShowBarOutline: boolean;
+  insetBarOutlineColor: string;
+  insetBarStrokeWidth: number;
+  insetShowGrid: boolean;
+  insetGridColor: string;
+  insetErrorStrokeWidth: number;
+  insetXFontSize: number;
+  insetYFontSize: number;
+  insetXLabelAngle: number;
+  insetShowPoints: boolean;
+  insetPointSize: number;
+  insetPointColor: string;
+  formula: CalibrationFormula;
+  replicateSums?: ReplicateSumsRow[] | null;
+  fileName: string;
 }

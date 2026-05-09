@@ -10,13 +10,25 @@
 import { Chart, InsetBarplot, FacetChartItem } from "./chart";
 import { AequorinStatsPanel } from "./stats-panel";
 import { AQ_ERROR_BAR_LABELS } from "./reports";
-import { convertTime, smooth } from "./helpers";
+import {
+  convertTime,
+  smooth,
+  AnnotationSpec,
+  ColInfo,
+  Condition,
+  ConditionEditorProps,
+  PlotPanelHandle,
+  PlotPanelProps,
+  SampleSelectionOverlayProps,
+  SeriesItem,
+  SeriesRow,
+} from "./helpers";
 
 const { useState, useMemo, useRef, useEffect } = React;
 
 // ── PlotPanel ────────────────────────────────────────────────────────────────
 
-export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
+export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(function PlotPanel(
   {
     stats,
     xStart,
@@ -62,11 +74,11 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
   },
   ref
 ) {
-  const activeStats = stats.filter((s: any) => s.enabled);
-  const combinedRef = useRef<any>(null);
-  const facetRefs = useRef<Record<string, any>>({});
+  const activeStats = stats.filter((s) => s.enabled);
+  const combinedRef = useRef<SVGSVGElement | null>(null);
+  const facetRefs = useRef<Record<string, SVGSVGElement | null>>({});
   const [statsDataMode, setStatsDataMode] = useState<"raw" | "corrected">("corrected");
-  const [statsAnnotations, setStatsAnnotations] = useState<any>(null);
+  const [statsAnnotations, setStatsAnnotations] = useState<AnnotationSpec | null>(null);
   const [statsSummary, setStatsSummary] = useState<string | null>(null);
   const [chartOpen, setChartOpen] = useState(true);
   const [replicateTableOpen, setReplicateTableOpen] = useState(false);
@@ -74,17 +86,17 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
   useEffect(() => {
     if (showInset) setInsetOpen(true);
   }, [showInset]);
-  const barRef = useRef<any>(null);
+  const barRef = useRef<SVGSVGElement | null>(null);
 
   const statsGroups = useMemo(() => {
     if (!showInset || !replicateSums || replicateSums.length < 2) return null;
     // Only include conditions that are enabled (match activeStats)
-    const activeLabels = new Set(activeStats.map((s: any) => s.prefix));
-    const filtered = replicateSums.filter((rs: any) => activeLabels.has(rs.prefix));
+    const activeLabels = new Set(activeStats.map((s) => s.prefix));
+    const filtered = replicateSums.filter((rs) => activeLabels.has(rs.prefix));
     if (filtered.length < 2) return null;
-    return filtered.map((rs: any) => ({
+    return filtered.map((rs) => ({
       name: rs.label,
-      values: rs.repSums.map((rep: any) => (statsDataMode === "raw" ? rep.rawSum : rep.corrSum)),
+      values: rs.repSums.map((rep) => (statsDataMode === "raw" ? rep.rawSum : rep.corrSum)),
     }));
   }, [showInset, replicateSums, activeStats, statsDataMode]);
 
@@ -94,7 +106,7 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
   // "complex expression in dependency array" check).
   const activeStatsKey = activeStats
     .map(
-      (s: any) =>
+      (s) =>
         s.prefix +
         "|" +
         s.label +
@@ -107,12 +119,12 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
     )
     .join(",");
 
-  const series = useMemo(() => {
+  const series = useMemo<SeriesItem[]>(() => {
     if (activeStats.length === 0) return [];
-    return activeStats.map((cond: any) => {
+    return activeStats.map((cond) => {
       const sm = smooth(cond.means, smoothWidth);
       const ssd = smooth(cond.sds, smoothWidth);
-      const rows: any[] = [];
+      const rows: SeriesRow[] = [];
       for (let r = xStart; r <= xEnd && r < cond.means.length; r++) {
         rows.push({ t: r, mean: sm[r], sd: ssd[r] });
       }
@@ -139,9 +151,9 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
   const displayXEnd = xEnd * ts * convFactor;
 
   const displaySeries = useMemo(() => {
-    return series.map((s: any) => ({
+    return series.map((s) => ({
       ...s,
-      rows: s.rows.map((r: any) => ({ ...r, t: r.t * ts * convFactor })),
+      rows: s.rows.map((r: SeriesRow) => ({ ...r, t: r.t * ts * convFactor })),
     }));
   }, [series, ts, convFactor]);
 
@@ -152,7 +164,7 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
     () => ({
       downloadMain: () => {
         if (faceted) {
-          displaySeries.forEach((s: any) =>
+          displaySeries.forEach((s) =>
             downloadSvg(facetRefs.current[s.prefix], `${baseName}_${s.label}.svg`)
           );
         } else {
@@ -165,7 +177,7 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
       },
       downloadMainPng: () => {
         if (faceted) {
-          displaySeries.forEach((s: any) =>
+          displaySeries.forEach((s) =>
             downloadPng(facetRefs.current[s.prefix], `${baseName}_${s.label}.png`)
           );
         } else {
@@ -233,7 +245,7 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
       }}
     >
       <button
-        onClick={() => setInsetOpen((o: any) => !o)}
+        onClick={() => setInsetOpen((o) => !o)}
         style={{
           width: "100%",
           display: "flex",
@@ -350,7 +362,7 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                 }}
               >
                 <div
-                  onClick={() => setReplicateTableOpen((o: any) => !o)}
+                  onClick={() => setReplicateTableOpen((o) => !o)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -395,17 +407,17 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      const rows = replicateSums.flatMap((rs: any) =>
-                        rs.repSums.map((rep: any) => [
+                      const rows = replicateSums.flatMap((rs) =>
+                        rs.repSums.map((rep) => [
                           rs.prefix,
                           rep[sumKey] != null ? rep[sumKey].toFixed(6) : "",
                         ])
                       );
                       const header = ["Condition", sumLabel];
                       const csv = [header, ...rows]
-                        .map((r: any) =>
+                        .map((r) =>
                           r
-                            .map((c: any) =>
+                            .map((c) =>
                               /[",\n]/.test(String(c)) ? `"${c.replace(/"/g, '""')}"` : c
                             )
                             .join(",")
@@ -448,8 +460,8 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      const rows = replicateSums.flatMap((rs: any) =>
-                        rs.repSums.map((rep: any, ri: number) => [
+                      const rows = replicateSums.flatMap((rs) =>
+                        rs.repSums.map((rep, ri) => [
                           rs.prefix,
                           `Rep ${ri + 1}`,
                           rep[sumKey] != null ? rep[sumKey].toFixed(6) : "",
@@ -471,7 +483,7 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                 >
                   <thead>
                     <tr style={{ borderBottom: "2px solid var(--border-strong)" }}>
-                      {["Condition", "Replicate", sumLabel].map((h: any) => (
+                      {["Condition", "Replicate", sumLabel].map((h) => (
                         <th
                           key={h}
                           style={{
@@ -487,8 +499,8 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
                     </tr>
                   </thead>
                   <tbody>
-                    {replicateSums.map((rs: any) =>
-                      rs.repSums.map((rep: any, ri: number) => (
+                    {replicateSums.map((rs) =>
+                      rs.repSums.map((rep, ri) => (
                         <tr
                           key={`${rs.prefix}-${ri}`}
                           style={{ borderBottom: "1px solid var(--border)" }}
@@ -538,7 +550,7 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
   // Same two-level theming as IntegralTile: outer is themed chrome (goes
   // dark in dark mode), inner wraps the chart SVG in a .dv-plot-card so
   // the plot canvas stays white-and-dimmed for export consistency.
-  const ChartTile = (chartContent: any) => (
+  const ChartTile = (chartContent: React.ReactNode) => (
     <div
       style={{
         borderRadius: 10,
@@ -609,7 +621,7 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
               alignItems: "stretch",
             }}
           >
-            {displaySeries.map((s: any) => {
+            {displaySeries.map((s) => {
               const chartProps = {
                 series: [s],
                 xStart: displayXStart,
@@ -670,7 +682,7 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
               {
                 id: "legend-samples",
                 title: null,
-                items: displaySeries.map((s: any) => ({
+                items: displaySeries.map((s) => ({
                   label: `${s.label} (n=${s.n})`,
                   color: s.color,
                   shape: "line",
@@ -689,14 +701,14 @@ export const PlotPanel = React.forwardRef<any, any>(function PlotPanel(
 // Sidebar "Conditions" tile editor — toggle per-condition enable, edit
 // label/color. Rendered inside PlotControls' ControlSection.
 
-export function ConditionEditor({ conditions, onChange }: any) {
-  const update = (i: any, key: any, val: any) =>
-    onChange(conditions.map((c: any, j: number) => (j === i ? { ...c, [key]: val } : c)));
-  const toggle = (i: any) =>
-    onChange(conditions.map((c: any, j: number) => (j === i ? { ...c, enabled: !c.enabled } : c)));
+export function ConditionEditor({ conditions, onChange }: ConditionEditorProps) {
+  const update = (i: number, key: keyof Condition, val: unknown) =>
+    onChange(conditions.map((c, j) => (j === i ? { ...c, [key]: val } : c)));
+  const toggle = (i: number) =>
+    onChange(conditions.map((c, j) => (j === i ? { ...c, enabled: !c.enabled } : c)));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      {conditions.map((c: any, i: number) => (
+      {conditions.map((c, i) => (
         <div
           key={c.prefix}
           style={{
@@ -754,9 +766,9 @@ export function SampleSelectionOverlay({
   columnEnabled,
   handleColumnToggle,
   conditions,
-}: any) {
-  const labelByPrefix: Record<string, any> = {};
-  (conditions || []).forEach((c: any) => {
+}: SampleSelectionOverlayProps) {
+  const labelByPrefix: Record<string, string> = {};
+  (conditions || []).forEach((c) => {
     if (c && c.prefix != null) labelByPrefix[c.prefix] = c.label ?? c.prefix;
   });
   return (
@@ -819,16 +831,20 @@ export function SampleSelectionOverlay({
               }}
             >
               {(() => {
-                const groups: any[] = [];
-                const seen: Record<string, any> = {};
-                colInfo.forEach((c: any) => {
+                interface SampleGroup {
+                  name: string;
+                  cols: ColInfo[];
+                }
+                const groups: SampleGroup[] = [];
+                const seen: Record<string, SampleGroup> = {};
+                colInfo.forEach((c) => {
                   if (!seen[c.h]) {
                     seen[c.h] = { name: c.h, cols: [] };
                     groups.push(seen[c.h]);
                   }
                   seen[c.h].cols.push(c);
                 });
-                return groups.map((g: any) => {
+                return groups.map((g) => {
                   const headerLabel = poolReplicates ? (labelByPrefix[g.name] ?? g.name) : g.name;
                   return (
                     <div
@@ -855,7 +871,7 @@ export function SampleSelectionOverlay({
                         {headerLabel}
                       </div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                        {g.cols.map(({ h, i, rep }: any) => {
+                        {g.cols.map(({ h, i, rep }) => {
                           const enabled = columnEnabled[i] !== false;
                           const showRep = g.cols.length > 1 || !poolReplicates;
                           return (

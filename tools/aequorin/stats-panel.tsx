@@ -22,20 +22,38 @@ import {
   buildAqAggregateReport,
   buildAqAggregateRScript,
 } from "./reports";
-import { runTest, runPostHoc, postHocForTest } from "../_shell/stats-dispatch";
+import { runTest, runPostHoc, postHocForTest, TestResult } from "../_shell/stats-dispatch";
+import {
+  AequorinStatsDetailProps,
+  AequorinStatsPanelProps,
+  AnnotationSpec,
+  EnrichedAequorinStatsRow,
+  PostHocPair,
+  PostHocResult,
+  SelectTestResult,
+  StatsGroup,
+} from "./helpers";
 
 const { useState, useMemo, useEffect, useRef } = React;
 
-export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) {
+export function AequorinStatsDetail({
+  row,
+  onOverrideTest,
+  isOverridden,
+}: AequorinStatsDetailProps) {
   const names = row.names;
   const values = row.values;
   const k = names.length;
-  const res = row.testResult || {};
-  const rec = row.rec || {};
-  const recReason = rec.recommendation && rec.recommendation.reason;
-  const recTest = rec.recommendation && rec.recommendation.test;
-  const suggestion = rec.suggestion || null;
+  const res = row.testResult ?? ({} as TestResult);
+  const rec = (row.rec ?? {}) as SelectTestResult;
+  const recReason = rec.recommendation?.reason;
+  const recTest = rec.recommendation?.test ?? null;
+  const suggestion = rec.suggestion ?? null;
   const testOptions = k === 2 ? TEST_OPTIONS_AQ_2 : TEST_OPTIONS_AQ_K;
+  // Hoist nullable conditionally-rendered fields into local consts so the
+  // JSX `{x && (…)}` narrowing survives into closure-captured .map callbacks.
+  const postHoc = row.postHocResult;
+  const power = row.powerResult;
 
   const subhead: React.CSSProperties = {
     margin: "10px 0 6px",
@@ -82,8 +100,8 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) 
     background: "var(--neutral-bg)",
     color: "var(--neutral-text)",
   };
-  const norm = rec.normality || [];
-  const lev = rec.levene || {};
+  const norm = rec.normality ?? [];
+  const lev = rec.levene ?? {};
 
   return (
     <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>
@@ -100,7 +118,7 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) 
           </tr>
         </thead>
         <tbody>
-          {names.map((name: any, i: number) => {
+          {names.map((name, i) => {
             const vs = values[i];
             const n = vs.length;
             const m = sampleMean(vs);
@@ -130,7 +148,7 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) 
             Shapiro-Wilk (normality)
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {norm.map((r: any, i: number) => {
+            {norm.map((r, i) => {
               const label = names[r.group] || `g${r.group}`;
               const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
               const verdict =
@@ -166,14 +184,15 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) 
       >
         <select
           value={row.chosenTest || ""}
-          onChange={(e) =>
-            onOverrideTest && onOverrideTest(e.target.value === recTest ? null : e.target.value)
-          }
+          onChange={(e) => {
+            const next = e.target.value === "" ? null : (e.target.value as RecommendedTest);
+            if (onOverrideTest) onOverrideTest(next === recTest ? null : next);
+          }}
           className="dv-select"
           style={{ fontSize: 11, padding: "2px 6px", minWidth: 180 }}
           onClick={(e) => e.stopPropagation()}
         >
-          {testOptions.map((t: any) => (
+          {testOptions.map((t) => (
             <option key={t} value={t}>
               {TEST_LABELS_AQ[t]}
               {t === recTest ? "  (recommended)" : ""}
@@ -253,7 +272,7 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) 
             : "—"}
       </div>
 
-      {k >= 3 && row.postHocResult && !row.postHocResult.error && (
+      {k >= 3 && postHoc && !postHoc.error && row.postHocName && (
         <>
           <div style={subhead}>
             Post-hoc — {POSTHOC_LABELS_AQ[row.postHocName] || row.postHocName}
@@ -268,7 +287,7 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) 
               </tr>
             </thead>
             <tbody>
-              {row.postHocResult.pairs.map((pr: any, i: number) => {
+              {postHoc.pairs.map((pr: PostHocPair, i: number) => {
                 const p = pr.pAdj != null ? pr.pAdj : pr.p;
                 const diff =
                   pr.diff != null
@@ -299,7 +318,7 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) 
           </table>
         </>
       )}
-      {row.powerResult && (
+      {power && (
         <>
           <div style={subhead}>Power analysis (target 80%)</div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -312,11 +331,11 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) 
               </tr>
             </thead>
             <tbody>
-              {row.powerResult.rows.map((pr: any, i: number) => (
+              {power.rows.map((pr, i) => (
                 <tr key={i}>
                   {i === 0 ? (
-                    <td style={tdS} rowSpan={row.powerResult.rows.length}>
-                      {row.powerResult.effectLabel} = {row.powerResult.effect.toFixed(3)}
+                    <td style={tdS} rowSpan={power.rows.length}>
+                      {power.effectLabel} = {power.effect.toFixed(3)}
                     </td>
                   ) : null}
                   <td style={tdS}>{String(pr.alpha)}</td>
@@ -330,15 +349,13 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) 
                     {(pr.achieved * 100).toFixed(1)}%
                   </td>
                   <td style={tdS}>
-                    {pr.nForTarget != null
-                      ? `${pr.nForTarget} ${row.powerResult.nLabel}`
-                      : "> 5000"}
+                    {pr.nForTarget != null ? `${pr.nForTarget} ${power.nLabel}` : "> 5000"}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {row.powerResult.approximate && (
+          {power.approximate && (
             <div
               style={{
                 fontSize: 10,
@@ -356,36 +373,43 @@ export function AequorinStatsDetail({ row, onOverrideTest, isOverridden }: any) 
   );
 }
 
+// Internal "skip" sentinel used when fewer than 2 groups have ≥2 values
+// each — the panel renders nothing in that case.
+type EnrichedOrSkip =
+  | (EnrichedAequorinStatsRow & { key: string; name: string })
+  | { key: string; name: string; names: string[]; values: number[][]; k: number; skip: true };
+
 export function AequorinStatsPanel({
   groups,
   fileStem,
   onAnnotationChange,
   onSummaryChange,
   errorBarLabel,
-}: any) {
+}: AequorinStatsPanelProps) {
   const singleKey = "_global";
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ [singleKey]: true });
   const [hovered, setHovered] = useState<string | null>(null);
-  const [override, setOverride] = useState<string | null>(null);
+  const [override, setOverride] = useState<RecommendedTest | null>(null);
   const [displayMode, setDisplayMode] = useState<"none" | "cld" | "brackets">("none");
   const [showNs, setShowNs] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
 
-  const enriched = useMemo(() => {
+  const enriched = useMemo<EnrichedOrSkip>(() => {
     const validGroups = (groups || []).filter(
-      (g: any) => g && Array.isArray(g.values) && g.values.length >= 2
+      (g): g is StatsGroup => !!g && Array.isArray(g.values) && g.values.length >= 2
     );
-    const names = validGroups.map((g: any) => g.name);
-    const values = validGroups.map((g: any) => g.values.slice());
+    const names = validGroups.map((g) => g.name);
+    const values = validGroups.map((g) => g.values.slice());
     const k = names.length;
     if (k < 2) return { key: singleKey, name: "", names, values, k, skip: true };
-    const rec = selectTest(values);
-    const recTest =
-      rec && rec.recommendation && rec.recommendation.test ? rec.recommendation.test : null;
+    const rec = selectTest(values) as SelectTestResult;
+    const recTest = rec.recommendation?.test ?? null;
     const chosenTest = override || recTest || null;
     const testResult = chosenTest ? runTest(chosenTest, values) : null;
     const postHocName = postHocForTest(chosenTest);
-    const postHocResult = k > 2 && postHocName ? runPostHoc(postHocName, values) : null;
+    const postHocResult = (
+      k > 2 && postHocName ? runPostHoc(postHocName, values) : null
+    ) as PostHocResult | null;
     const powerResult = chosenTest ? computePowerFromData(chosenTest, values) : null;
     return {
       key: singleKey,
@@ -394,7 +418,6 @@ export function AequorinStatsPanel({
       values,
       k,
       rec,
-      recTest,
       chosenTest,
       testResult,
       postHocName,
@@ -403,8 +426,14 @@ export function AequorinStatsPanel({
     };
   }, [groups, override]);
 
+  // computeAqAnnotationSpec is typed loosely in reports.ts (returns a
+  // structural shape); cast here to the strict AnnotationSpec union the
+  // chart consumer expects.
   const annotSpec = useMemo(
-    () => (enriched.skip ? null : computeAqAnnotationSpec(enriched, displayMode, showNs)),
+    () =>
+      enriched.skip
+        ? null
+        : (computeAqAnnotationSpec(enriched, displayMode, showNs) as AnnotationSpec | null),
     [enriched, displayMode, showNs]
   );
   const annotKey = JSON.stringify(annotSpec);
@@ -434,11 +463,11 @@ export function AequorinStatsPanel({
     typeof fileStem === "string" && fileStem.trim()
       ? (typeof svgSafeId === "function" ? svgSafeId(fileStem) : fileStem).replace(/^-+|-+$/g, "")
       : "rlu_timecourse_stats";
-  const downloadReport = (e: any) => {
+  const downloadReport = (e: React.MouseEvent<HTMLElement>) => {
     downloadText(buildAqAggregateReport([enriched]), `${stem}.txt`);
     flashSaved(e.currentTarget);
   };
-  const downloadR = (e: any) => {
+  const downloadR = (e: React.MouseEvent<HTMLElement>) => {
     downloadText(buildAqAggregateRScript([enriched]), `${stem}.R`);
     flashSaved(e.currentTarget);
   };
@@ -622,9 +651,9 @@ export function AequorinStatsPanel({
         </thead>
         <tbody>
           <tr
-            onClick={() => setExpanded((prev: any) => ({ ...prev, [singleKey]: !isOpen }))}
+            onClick={() => setExpanded((prev) => ({ ...prev, [singleKey]: !isOpen }))}
             onMouseEnter={() => setHovered(singleKey)}
-            onMouseLeave={() => setHovered((h: any) => (h === singleKey ? null : h))}
+            onMouseLeave={() => setHovered((h) => (h === singleKey ? null : h))}
             style={{
               cursor: "pointer",
               background: isOpen
@@ -671,7 +700,7 @@ export function AequorinStatsPanel({
                 <AequorinStatsDetail
                   row={enriched}
                   isOverridden={!!override}
-                  onOverrideTest={(t: string | null) => setOverride(t)}
+                  onOverrideTest={(t) => setOverride(t)}
                 />
               </td>
             </tr>

@@ -5,14 +5,23 @@
 // (computeLegendHeight, renderSvgLegend, makeTicks, svgSafeId,
 // assignBracketLevels, seededRandom, tinv) resolved through shared.bundle.js.
 
-import { MARGIN, buildAreaD, buildLineD } from "./helpers";
+import {
+  MARGIN,
+  buildAreaD,
+  buildLineD,
+  ChartProps,
+  InsetBarplotProps,
+  FacetChartItemProps,
+  RepSum,
+  SeriesRow,
+} from "./helpers";
 import { SignificanceBrackets, CldLabels } from "../_shell/chart-annotations";
 
 const { forwardRef, useRef, useEffect, memo } = React;
 
 // ── Chart ────────────────────────────────────────────────────────────────────
 
-export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
+export const Chart = forwardRef<SVGSVGElement, ChartProps>(function Chart(
   {
     series,
     xStart,
@@ -34,8 +43,8 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
   },
   ref
 ) {
-  const aequorinItemW = (b: any) => {
-    const maxLen = Math.max(0, ...(b.items || []).map((i: any) => (i.label || "").length));
+  const aequorinItemW = (b: LegendBlock): number => {
+    const maxLen = Math.max(0, ...(b.items || []).map((i) => (i.label || "").length));
     return Math.max(110, maxLen * 6 + 28);
   };
   const legendH = computeLegendHeight(svgLegend, vbW - MARGIN.left - MARGIN.right, aequorinItemW);
@@ -44,20 +53,20 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
   const h = vbH - MARGIN.top - MARGIN.bottom;
   const xRange = xEnd - xStart || 1;
   const yRange = yMax - yMin || 1;
-  const sx = (v: any) => MARGIN.left + ((v - xStart) / xRange) * w;
-  const sy = (v: any) => MARGIN.top + (1 - (v - yMin) / yRange) * h;
-  const clamp = (v: any) => Math.max(yMin, Math.min(yMax, v));
+  const sx = (v: number): number => MARGIN.left + ((v - xStart) / xRange) * w;
+  const sy = (v: number): number => MARGIN.top + (1 - (v - yMin) / yRange) * h;
+  const clamp = (v: number): number => Math.max(yMin, Math.min(yMax, v));
 
   const xTicks = makeTicks(xStart, xEnd, 8);
   const yTicks = makeTicks(yMin, yMax, 6);
 
-  const paths = series.map((s: any) => {
-    const areaPts = s.rows.map((r: any) => ({
+  const paths = series.map((s) => {
+    const areaPts = s.rows.map((r: SeriesRow) => ({
       x: sx(r.t),
       yHi: r.mean != null && r.sd != null ? sy(clamp(r.mean + r.sd)) : null,
       yLo: r.mean != null && r.sd != null ? sy(clamp(r.mean - r.sd)) : null,
     }));
-    const linePts = s.rows.map((r: any) => ({
+    const linePts = s.rows.map((r: SeriesRow) => ({
       x: sx(r.t),
       y: r.mean != null ? sy(r.mean) : null,
     }));
@@ -120,7 +129,7 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
         />
         {showGrid && (
           <g id="grid">
-            {yTicks.map((t: any) => (
+            {yTicks.map((t) => (
               <line
                 key={`gy-${t}`}
                 x1={MARGIN.left}
@@ -131,7 +140,7 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
                 strokeWidth="0.5"
               />
             ))}
-            {xTicks.map((t: any) => (
+            {xTicks.map((t) => (
               <line
                 key={`gx-${t}`}
                 x1={sx(t)}
@@ -145,7 +154,7 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
           </g>
         )}
         <g id="ribbons">
-          {paths.map((p: any) =>
+          {paths.map((p) =>
             p.areaD ? (
               <path
                 key={`area-${p.prefix}`}
@@ -161,7 +170,7 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
           )}
         </g>
         <g id="traces">
-          {paths.map((p: any) =>
+          {paths.map((p) =>
             p.lineD ? (
               <path
                 key={`line-${p.prefix}`}
@@ -205,7 +214,7 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
           />
         </g>
         <g id="axis-x">
-          {xTicks.map((t: any) => (
+          {xTicks.map((t) => (
             <g key={t}>
               <line
                 x1={sx(t)}
@@ -229,7 +238,7 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
           ))}
         </g>
         <g id="axis-y">
-          {yTicks.map((t: any) => (
+          {yTicks.map((t) => (
             <g key={t}>
               <line
                 x1={MARGIN.left - 5}
@@ -294,7 +303,7 @@ export const Chart = forwardRef<SVGSVGElement, any>(function Chart(
 
 // ── InsetBarplot ─────────────────────────────────────────────────────────────
 
-export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot(
+export const InsetBarplot = forwardRef<SVGSVGElement, InsetBarplotProps>(function InsetBarplot(
   {
     series,
     insetFillOpacity,
@@ -338,7 +347,7 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
     annotations && annotations.kind === "brackets"
       ? assignBracketLevels(annotations.pairs || [])
       : [];
-  const annotMaxLevel = annotPairs.reduce((m: any, pr: any) => Math.max(m, pr._level || 0), 0);
+  const annotMaxLevel = annotPairs.reduce((m, pr) => Math.max(m, pr._level || 0), 0);
   const annotTopPad =
     annotations && annotations.kind === "cld"
       ? 22
@@ -366,16 +375,15 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
   const h = iH - M.top - M.bottom;
   const totalH = iH + summaryH;
 
-  const bars = series.map((s: any) => {
-    const repData = replicateSums ? replicateSums.find((r: any) => r.prefix === s.prefix) : null;
-    const vals =
+  const bars = series.map((s) => {
+    const repData = replicateSums ? replicateSums.find((r) => r.prefix === s.prefix) : null;
+    const vals: number[] | null =
       repData && repData.repSums.length > 0
-        ? repData.repSums.map((r: any) => (corrected ? r.corrSum : r.rawSum))
+        ? repData.repSums.map((r: RepSum) => (corrected ? r.corrSum : r.rawSum))
         : null;
     const n = vals ? vals.length : 0;
-    const barMean = n > 0 ? vals.reduce((a: any, b: any) => a + b, 0) / n : 0;
-    const variance =
-      n > 1 ? vals.reduce((a: any, v: any) => a + (v - barMean) ** 2, 0) / (n - 1) : 0;
+    const barMean = vals && n > 0 ? vals.reduce((a, b) => a + b, 0) / n : 0;
+    const variance = vals && n > 1 ? vals.reduce((a, v) => a + (v - barMean) ** 2, 0) / (n - 1) : 0;
     const sd = Math.sqrt(variance);
     const sem = n > 1 ? sd / Math.sqrt(n) : 0;
     const ci95 = n > 1 && typeof tinv === "function" ? tinv(0.975, n - 1) * sem : 0;
@@ -392,17 +400,14 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
     };
   });
 
-  const errBars = bars.map((b: any) => {
+  const errBars = bars.map((b) => {
     if (insetErrorType === "sd") return b.sd;
     if (insetErrorType === "sem") return b.sem;
     if (insetErrorType === "ci95") return b.ci95;
     return 0;
   });
 
-  const dataMax = Math.max(
-    ...bars.map((b: any, i: number) => b.barMean + (errBars[i] || 0)),
-    0.001
-  );
+  const dataMax = Math.max(...bars.map((b, i) => b.barMean + (errBars[i] || 0)), 0.001);
   const yMin2 = insetYMin != null ? insetYMin : 0;
   let yMax2 = insetYMax != null ? insetYMax : dataMax * 1.15;
   // Reserve headroom inside the plot frame for annotations (same approach as boxplot)
@@ -412,8 +417,8 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
   const yRange = yMax2 - yMin2 || 1;
 
   const bandW = w / bars.length;
-  const bx = (i: any) => M.left + i * bandW + bandW / 2;
-  const sy = (v: any) => M.top + (1 - (v - yMin2) / yRange) * h;
+  const bx = (i: number): number => M.left + i * bandW + bandW / 2;
+  const sy = (v: number): number => M.top + (1 - (v - yMin2) / yRange) * h;
   const yTicks = makeTicks(yMin2, yMax2, 8);
   const halfBar = (insetBarWidth != null ? insetBarWidth / 100 : 0.7) * bandW * 0.5;
   const fOp = insetFillOpacity != null ? insetFillOpacity : 0.7;
@@ -468,7 +473,7 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
         />
         {insetShowGrid && (
           <g id="grid">
-            {yTicks.map((t: any) => (
+            {yTicks.map((t) => (
               <line
                 key={t}
                 x1={M.left}
@@ -482,7 +487,7 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
           </g>
         )}
         <g id="axis-y">
-          {yTicks.map((t: any) => (
+          {yTicks.map((t) => (
             <g key={t}>
               <line
                 x1={M.left - 3}
@@ -506,7 +511,7 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
           ))}
         </g>
         <g id="bars">
-          {bars.map((b: any, i: number) => {
+          {bars.map((b, i) => {
             const val = b.barMean;
             const barTop = sy(Math.min(val, yMax2));
             const baseline = sy(Math.max(0, yMin2));
@@ -566,7 +571,7 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
                 )}
                 {showPoints &&
                   b.vals &&
-                  b.vals.map((v: any, vi: number) => {
+                  b.vals.map((v, vi) => {
                     const rng = seededRandom(i * 1000 + vi + 42);
                     const jitter = (rng() - 0.5) * halfBar * 1.2;
                     return (
@@ -622,7 +627,7 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
         </g>
         {annotations && annotations.kind === "cld" && annotations.labels && (
           <CldLabels
-            labels={(annotations.labels as (string | null)[]).map((lbl: any, i: number) =>
+            labels={(annotations.labels as (string | null)[]).map((lbl, i) =>
               i >= bars.length ? null : lbl
             )}
             axisCoord={bx}
@@ -652,7 +657,7 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
       </g>
       {summaryLines.length > 0 && (
         <g id="stats-summary">
-          {summaryLines.map((line: any, i: number) => (
+          {summaryLines.map((line, i) => (
             <text
               key={`ss-${i}`}
               x={M.left}
@@ -672,7 +677,11 @@ export const InsetBarplot = forwardRef<SVGSVGElement, any>(function InsetBarplot
 
 // ── FacetChartItem ───────────────────────────────────────────────────────────
 
-export const FacetChartItem = memo(function FacetChartItem({ s, facetRefs, chartProps }: any) {
+export const FacetChartItem = memo(function FacetChartItem({
+  s,
+  facetRefs,
+  chartProps,
+}: FacetChartItemProps) {
   const localRef = useRef<any>(null);
   useEffect(() => {
     // See boxplot/plot-area.tsx — capture facetRefs.current locally so the

@@ -232,7 +232,7 @@ export function PlotControls({
             className="dv-select"
             style={{ width: "100%" }}
           >
-            {TIME_UNITS.map((u: any) => (
+            {TIME_UNITS.map((u) => (
               <option key={u.key} value={u.key}>
                 {u.label}
               </option>
@@ -305,7 +305,7 @@ export function PlotControls({
             }}
             title="Barplot of the sum (Σ) of plotted values per condition"
           >
-            {(["off", "on"] as const).map((mode: any) => {
+            {(["off", "on"] as const).map((mode) => {
               const active = mode === "on" ? vis.showInset : !vis.showInset;
               return (
                 <button
@@ -365,7 +365,7 @@ export function PlotControls({
                     border: "1px solid var(--border-strong)",
                   }}
                 >
-                  {(["off", "on"] as const).map((mode: any) => {
+                  {(["off", "on"] as const).map((mode) => {
                     const active = mode === "on" ? vis.insetShowGrid : !vis.insetShowGrid;
                     return (
                       <button
@@ -449,7 +449,7 @@ export function PlotControls({
                   border: "1px solid var(--border-strong)",
                 }}
               >
-                {(["off", "on"] as const).map((mode: any) => {
+                {(["off", "on"] as const).map((mode) => {
                   const active = mode === "on" ? vis.insetShowBarOutline : !vis.insetShowBarOutline;
                   return (
                     <button
@@ -502,7 +502,7 @@ export function PlotControls({
               <div>
                 <span className="dv-label">Type</span>
                 <div className="dv-seg" role="group" aria-label="Error bars">
-                  {(["none", "sem", "sd", "ci95"] as const).map((mode: any) => {
+                  {(["none", "sem", "sd", "ci95"] as const).map((mode) => {
                     const active = vis.insetErrorType === mode;
                     const label =
                       mode === "none"
@@ -549,7 +549,7 @@ export function PlotControls({
                     border: "1px solid var(--border-strong)",
                   }}
                 >
-                  {(["off", "on"] as const).map((mode: any) => {
+                  {(["off", "on"] as const).map((mode) => {
                     const active = mode === "on" ? vis.insetShowPoints : !vis.insetShowPoints;
                     return (
                       <button
