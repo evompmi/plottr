@@ -1,32 +1,16 @@
-// Loads tools/shared.js into a Node vm context so its pure functions can be tested.
-// Browser-only functions (flashSaved, downloadSvg, downloadCsv) are excluded from exports
-// because they require DOM APIs — they are tested separately via integration tests.
+// Loads `tools/shared.js` into a Node vm context so its pure functions
+// can be tested. Browser-only functions (flashSaved, downloadSvg,
+// downloadCsv) are excluded from exports because they require DOM APIs —
+// they are tested separately via integration tests.
 
-const fs = require("fs");
 const vm = require("vm");
+const fs = require("fs");
 const path = require("path");
+const { TOOLS_DIR, builtins, makeDomStubs } = require("./_shell-test-utils");
 
-const src = fs.readFileSync(path.join(__dirname, "../../tools/shared.js"), "utf8");
+const src = fs.readFileSync(path.join(TOOLS_DIR, "shared.js"), "utf8");
 
-const ctx = {
-  Math,
-  parseInt,
-  parseFloat,
-  isNaN,
-  Number,
-  String,
-  Array,
-  Object,
-  // Stub out DOM APIs so the file loads without crashing
-  setTimeout: () => {},
-  document: { createElement: () => ({}), body: { appendChild: () => {}, removeChild: () => {} } },
-  URL: { createObjectURL: () => "", revokeObjectURL: () => {} },
-  Blob: function () {},
-  XMLSerializer: function () {
-    this.serializeToString = () => "";
-  },
-};
-
+const ctx = { ...builtins(), ...makeDomStubs() };
 vm.createContext(ctx);
 vm.runInContext(src, ctx);
 

@@ -1,92 +1,58 @@
-// Loads the lineplot pure helpers (tools/lineplot/helpers.ts) and their
-// shared dependencies (tools/shared.js, tools/stats.js, the stats
-// registry) for fuzz / unit / property / mutation tests.
+// Loads the lineplot pure helpers (`tools/lineplot/helpers.ts`) and
+// their shared dependencies (`tools/shared.js`, `tools/stats.js`, the
+// stats registry) for fuzz / unit / property / mutation tests.
 //
-// Hybrid pattern, deliberately:
+// Hybrid pattern (vm + require + globalThis bridge):
 //
-//   1. shared.js + stats.js + shared-stats-registry.js → loaded into a
-//      Node vm context. They use script-mode top-level `const` /
-//      `function` declarations and are consumed as globals across the
-//      codebase, so vm.runInContext is the right harness.
+//   1. shared.js + stats.js + _shell/stats-registry.ts → loaded into
+//      a Node vm context. Plain-JS sources use script-mode top-level
+//      declarations and are consumed as globals; the registry CJS
+//      bundle threads its exports through a fresh `module.exports`
+//      slot.
 //
-//   2. lineplot/helpers.ts → bundled to CommonJS with esbuild
-//      (inlining `_shell/stats-dispatch.ts` and `_shell/chart-layout.ts`)
-//      and `require()`d via a stable temp path under `tests/.tmp/`.
-//      This makes the file part of Node's module dependency graph, so
-//      Stryker's per-test coverage instrumentation can trace
-//      property-test → helpers.ts links — without this, the
-//      vm.runInContext path hides the link and Stryker reports the
-//      property tests as having zero coverage of the mutated source.
+//   2. lineplot/helpers.ts → bundled (inlines `_shell/stats-dispatch.ts`
+//      and `_shell/chart-layout.ts`) and `require()`d via a stable temp
+//      path. `requireViaTmpFile` lets Stryker's per-test coverage
+//      instrumentation see the mutated source — vm.runInContext would
+//      hide it.
 //
-//      Caveat — helpers.ts uses several shared-globals as *free
-//      variables* (sampleMean / sampleSD / tinv / selectTest /
-//      bhAdjust, plus STATS_TEST_REGISTRY consumed indirectly via the
-//      bundled stats-dispatch). require()'d code runs in its own
-//      module scope where those globals aren't visible. Bridge them
-//      onto `globalThis` from the vm ctx before requiring, so the free
-//      references resolve. Slightly leaky (the assignments persist for
-//      the test process lifetime), but Plöttr's stats globals are
-//      stable across loaders so cross-test interference is a non-issue.
+//   3. globalThis bridge — helpers.ts and the bundled stats-dispatch
+//      reference shared globals (sampleMean / selectTest / bhAdjust /
+//      STATS_TEST_REGISTRY / …) as *free variables*. require()'d code
+//      resolves those against the test process's globalThis, not the
+//      vm ctx, so we copy the names across before requiring. Slightly
+//      leaky but Plöttr's stats globals are stable across loaders so
+//      cross-test interference is a non-issue.
 
-const fs = require("fs");
 const vm = require("vm");
+const fs = require("fs");
 const path = require("path");
-const esbuild = require("esbuild");
 const { readStatsSource } = require("./stats-source");
+const {
+  TOOLS_DIR,
+  builtins,
+  bundleShell,
+  requireViaTmpFile,
+  runCjs,
+} = require("./_shell-test-utils");
 
-const toolsDir = path.join(__dirname, "../../tools");
-const sharedSrc = fs.readFileSync(path.join(toolsDir, "shared.js"), "utf8");
+const sharedSrc = fs.readFileSync(path.join(TOOLS_DIR, "shared.js"), "utf8");
 const statsSrc = readStatsSource();
-// Stats-registry moved from tools/shared-stats-registry.js to
-// tools/_shell/stats-registry.ts in the 2026-05 cluster-C migration.
-// Bundle it via esbuild so its const exports can be lifted onto the
-// vm ctx the same way the old plain-JS file's globals were.
-const registryCjs = esbuild.buildSync({
-  entryPoints: [path.join(toolsDir, "_shell/stats-registry.ts")],
-  bundle: true,
-  format: "cjs",
-  platform: "neutral",
-  write: false,
-}).outputFiles[0].text;
+const registryCjs = bundleShell("_shell/stats-registry.ts");
 
-// ── Path 1: shared.js + stats.js + registry via vm.runInContext ────────
-
-const registryModule = { exports: {} };
-const ctx = {
-  Math,
-  parseInt,
-  parseFloat,
-  isNaN,
-  isFinite,
-  Number,
-  String,
-  Array,
-  Object,
-  Infinity,
-  NaN,
-  Set,
-  Map,
-  module: registryModule,
-  exports: registryModule.exports,
-};
-
+const ctx = builtins();
 vm.createContext(ctx);
 vm.runInContext(sharedSrc, ctx);
 vm.runInContext(statsSrc, ctx);
-vm.runInContext(registryCjs, ctx);
-// Lift the registry exports onto ctx so the rest of the loader (and the
-// `NEEDED_GLOBALS` bridge below) can pick them up by name.
-ctx.STATS_TEST_REGISTRY = registryModule.exports.STATS_TEST_REGISTRY;
-ctx.STATS_POSTHOC_REGISTRY = registryModule.exports.STATS_POSTHOC_REGISTRY;
-ctx.STATS_TESTS_FOR_K2 = registryModule.exports.STATS_TESTS_FOR_K2;
-ctx.STATS_TESTS_FOR_K = registryModule.exports.STATS_TESTS_FOR_K;
+const registry = runCjs(ctx, registryCjs);
 
-// ── Bridge globals from ctx onto globalThis ───────────────────────────
-//
-// The require()'d helpers below resolve free-variable references against
-// the test process's global scope (`globalThis`), not against `ctx`.
-// Copy the names helpers.ts and the bundled `_shell/stats-dispatch`
-// reference at runtime.
+// Lift the registry exports onto ctx so the rest of the loader (and
+// the globalThis bridge below) can pick them up by name.
+ctx.STATS_TEST_REGISTRY = registry.STATS_TEST_REGISTRY;
+ctx.STATS_POSTHOC_REGISTRY = registry.STATS_POSTHOC_REGISTRY;
+ctx.STATS_TESTS_FOR_K2 = registry.STATS_TESTS_FOR_K2;
+ctx.STATS_TESTS_FOR_K = registry.STATS_TESTS_FOR_K;
+
 const NEEDED_GLOBALS = [
   "sampleMean",
   "sampleSD",
@@ -110,26 +76,7 @@ for (const name of NEEDED_GLOBALS) {
   }
 }
 
-// ── Path 2: lineplot/helpers.ts via require() (Stryker-visible) ───────
-
-const tmpDir = path.join(__dirname, "../.tmp");
-fs.mkdirSync(tmpDir, { recursive: true });
-const tmpHelpersFile = path.join(tmpDir, "lineplot-helpers.cjs");
-
-const helpersCjs = esbuild.buildSync({
-  entryPoints: [path.join(toolsDir, "lineplot/helpers.ts")],
-  bundle: true,
-  format: "cjs",
-  platform: "neutral",
-  write: false,
-}).outputFiles[0].text;
-fs.writeFileSync(tmpHelpersFile, helpersCjs);
-
-// Bust Node's require cache — Stryker mutates `tools/lineplot/helpers.ts`
-// on disk in its sandbox, so each test-runner cold-start should see a
-// freshly-transformed copy.
-delete require.cache[tmpHelpersFile];
-const lineplotHelpers = require(tmpHelpersFile);
+const lineplotHelpers = requireViaTmpFile("lineplot-helpers", bundleShell("lineplot/helpers.ts"));
 
 module.exports = {
   parseRaw: ctx.parseRaw,
