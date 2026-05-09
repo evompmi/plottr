@@ -256,7 +256,12 @@ export const ScatterChart = forwardRef<SVGSVGElement, ChartProps>(function Scatt
       </g>
 
       {regression && regression.on && regressionStats && regressionStats.valid && (
-        <g id="regression-line" clipPath="url(#sc-clip)">
+        <g
+          id="regression-line"
+          clipPath="url(#sc-clip)"
+          role="img"
+          aria-label={`Linear regression: slope ${regressionStats.slope.toFixed(3)}, intercept ${regressionStats.intercept.toFixed(3)}, R² ${regressionStats.r2.toFixed(3)}, n=${regressionStats.n}`}
+        >
           <line
             x1={sx(xMin)}
             y1={sy(regressionStats.slope * xMin + regressionStats.intercept)}

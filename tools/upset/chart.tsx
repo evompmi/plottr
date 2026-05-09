@@ -4,7 +4,7 @@
 // intersections, set sizes, and the optional intersection-test cache
 // from the parent App.
 
-import { intersectionIdKey, buildBarTicks } from "./helpers";
+import { intersectionIdKey, intersectionLabel, buildBarTicks } from "./helpers";
 import type { Intersection, UpsetChartProps } from "./helpers";
 
 const { forwardRef } = React;
@@ -317,6 +317,8 @@ export const UpsetChart = forwardRef<SVGSVGElement, UpsetChartProps>(function Up
               id={`intersection-bar-${idKey}`}
               style={{ cursor: "pointer" }}
               onClick={() => onColumnClick && onColumnClick(isSelected ? null : inter.mask)}
+              role="img"
+              aria-label={`${intersectionLabel(inter.setIndices, setNames)}: ${inter.size} element${inter.size !== 1 ? "s" : ""}`}
             >
               <rect
                 x={barX}

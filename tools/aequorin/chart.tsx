@@ -185,6 +185,8 @@ export const Chart = forwardRef<SVGSVGElement, ChartProps>(function Chart(
                 fill="none"
                 stroke={p.color}
                 strokeWidth={lineWidth}
+                role="img"
+                aria-label={`Trace: ${p.prefix}`}
               />
             ) : null
           )}

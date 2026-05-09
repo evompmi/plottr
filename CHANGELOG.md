@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   six other charts already had. Aequorin's inset bar plot also gained
   the `<desc>` it was missing.
 
+- **Per-element a11y enrichment for the four sparse charts.** Lineplot
+  trace paths gain `aria-label="${name}: ${N} x-points"`; Aequorin
+  timecourse traces gain `aria-label="Trace: ${prefix}"`; UpSet
+  intersection bars gain `aria-label="${intersectionLabel}: ${size}
+elements"` (using the existing `intersectionLabel` helper); Scatter's
+  regression-line group gains `aria-label="Linear regression: slope X,
+intercept Y, R² Z, n=N"` when the regression overlay is active.
+  Boxplot already had per-rect labels; this round closes the four gaps
+  to match.
+
 ## [1.4.0] - 2026-05-09
 
 > Long-form release notes — what shipped, why, and how — live in
