@@ -21,6 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`prefers-reduced-motion` was only partially honoured.** `PlotToolShell.tsx`'s
+  step-change opacity fade already checked the media query and skipped
+  the fade for users who set "reduce motion" in their OS — but the
+  chrome's CSS-side transitions (button hovers, segmented controls,
+  disclosure-arrow rotation, landing-page tile scale, prefetch-bar
+  width slide, theme/language toggle hovers — 9 transition declarations
+  across `tools/components.css` + `index.html`) ran unconditionally.
+  Added a universal `@media (prefers-reduced-motion: reduce)` block in
+  `components.css` that zeros animation/transition durations
+  site-wide; `PlotToolShell`'s JS check is unchanged.
+
 - **Volcano "not significant" default colour was below WCAG 3:1.**
   `VOLCANO_DEFAULT_COLORS.ns` was `#999999` (2.85:1 against white),
   failing WCAG 2.1 SC 1.4.11 by 0.15. Bumped to `#737373` (3.27:1) —
