@@ -61,7 +61,7 @@ const FacetBoxplotItem = memo(function FacetBoxplotItem({
             width: 10,
             height: 10,
             borderRadius: "50%",
-            background: categoryColors[fd.category] || "#999",
+            background: categoryColors[fd.category] || "var(--text-faint)",
           }}
         />
         <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
@@ -144,7 +144,7 @@ export function PlotArea({
                   width: 10,
                   height: 10,
                   borderRadius: "50%",
-                  background: categoryColors[cat] || "#999",
+                  background: categoryColors[cat] || "var(--text-faint)",
                 }}
               />
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{cat}</span>
@@ -367,7 +367,7 @@ export function FacetPlotList({
                   width: 10,
                   height: 10,
                   borderRadius: "50%",
-                  background: categoryColors[cat] || "#999",
+                  background: categoryColors[cat] || "var(--text-faint)",
                 }}
               />
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{cat}</span>

@@ -11,8 +11,14 @@
 // linter error, instead of silently breaking dark mode.
 //
 // Forbidden literal forms (outside SVG subtree):
-//   - hex literals: `"#abc"`, `"#abcd"`, `"#aabbcc"`, `"#aabbccdd"`
-//   - named colors: `"white"`, `"black"`, `"slategray"`, etc. (closed list)
+//   - hex literals anywhere in the string: `"#abc"`, `"#abcd"`, `"#aabbcc"`,
+//     `"#aabbccdd"` — caught both as a bare value AND when buried inside a
+//     multi-token shorthand like `border: "1px solid #0072B2"` or
+//     `borderBottom: "1px solid #eee"`. The 2026-05-04 audit only checked
+//     the bare-value form; the 2026-05-09 widening added the substring case.
+//   - named colors: `"white"`, `"black"`, `"slategray"`, etc. (closed list,
+//     bare-value match only — substring-matching named colours produces
+//     false positives like CSS property names that mention "white-space").
 //   - functional notations anywhere in the string: `rgba(...)`, `rgb(...)`,
 //     `hsl(...)`, `hsla(...)` — catches both bare colour values and
 //     literals buried inside multi-token strings like
@@ -24,15 +30,22 @@
 // match one of the forbidden forms.
 //
 // Scope: only flags inline object expressions — `style={{ k: "#fff" }}`.
-// Identifier refs (`style={someStyle}`) and spread cases get a pass
-// since chasing indirection reliably across modules is out of scope.
+// The rule recurses into ternary (`k: cond ? "#abc" : "..."`), `&&` / `||`,
+// and template-literal static fragments so that dynamic-but-still-literal
+// values are caught. Identifier refs (`style={someStyle}`, `k: someVar`),
+// spreads, and the interpolated parts of template literals (`${expr}`) pass
+// through unchecked — chasing indirection across modules is out of scope.
 
 "use strict";
 
-// Match hex literal colors only — three-, four-, six-, or eight-digit
-// forms. We do not match things like `#abc-123`; those aren't hex
-// literals.
-const HEX = /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+// Match hex literal colors anywhere in the string — three-, four-, six-,
+// or eight-digit forms. The leading `(?:^|[^0-9a-fA-F#])` and trailing
+// `(?![0-9a-fA-F])` guards keep us from falsely matching the prefix of a
+// longer hex/word run (e.g. `#abc1` is matched as 4-digit, not as 3-digit
+// `#abc` followed by `1`). Substring matching is what catches the
+// `border: "1px solid #0072B2"` case.
+const HEX =
+  /(?:^|[^0-9a-fA-F#])(#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8}))(?![0-9a-fA-F])/;
 
 // Functional-notation colour literals can appear ANYWHERE in a string
 // value (a multi-token boxShadow or a linear-gradient, not just at the
@@ -187,6 +200,75 @@ module.exports = {
   },
 
   create(context) {
+    // Inspect a single string value (the `cooked` text of a Literal or
+    // template-literal quasi) and report once if it contains a forbidden
+    // colour form. Returns true if a violation was reported so callers
+    // can stop walking sibling forms (HEX > FN_NOTATION > named is the
+    // priority; one violation per value is enough).
+    function reportIfFragile(reportNode, key, v) {
+      if (typeof v !== "string") return false;
+      if (HEX.test(v)) {
+        context.report({
+          node: reportNode,
+          messageId: "hex",
+          data: { key: String(key), value: v },
+        });
+        return true;
+      }
+      if (FN_NOTATION.test(v)) {
+        context.report({
+          node: reportNode,
+          messageId: "functional",
+          data: { key: String(key), value: v },
+        });
+        return true;
+      }
+      const trimmed = v.trim();
+      if (NAMED_COLORS.has(trimmed.toLowerCase())) {
+        context.report({
+          node: reportNode,
+          messageId: "named",
+          data: { key: String(key), value: v },
+        });
+        return true;
+      }
+      return false;
+    }
+
+    // Recursively walk an ObjectExpression property's value node,
+    // descending through ternaries, &&/||, and template-literal pieces
+    // so that dynamic-but-still-literal colour values get caught. Each
+    // string-bearing leaf is fed to reportIfFragile; non-string leaves
+    // and unknown shapes are silently ignored.
+    function walkValue(valNode, key) {
+      if (!valNode) return;
+      switch (valNode.type) {
+        case "Literal":
+          reportIfFragile(valNode, key, valNode.value);
+          return;
+        case "ConditionalExpression":
+          walkValue(valNode.consequent, key);
+          walkValue(valNode.alternate, key);
+          return;
+        case "LogicalExpression":
+          walkValue(valNode.left, key);
+          walkValue(valNode.right, key);
+          return;
+        case "TemplateLiteral":
+          for (const q of valNode.quasis) {
+            const cooked =
+              q.value && q.value.cooked != null ? q.value.cooked : q.value && q.value.raw;
+            reportIfFragile(q, key, cooked);
+          }
+          for (const ex of valNode.expressions) walkValue(ex, key);
+          return;
+        default:
+          // Identifier refs, member expressions, function calls, etc. —
+          // out of scope for static analysis.
+          return;
+      }
+    }
+
     return {
       JSXAttribute(node) {
         if (!node.name || node.name.name !== "style") return;
@@ -197,46 +279,8 @@ module.exports = {
 
         for (const prop of expr.properties) {
           if (prop.type !== "Property") continue;
-          if (!prop.value || prop.value.type !== "Literal") continue;
-          const v = prop.value.value;
-          if (typeof v !== "string") continue;
-          const trimmed = v.trim();
           const k = (prop.key && (prop.key.name || prop.key.value)) || "(unknown)";
-
-          // Hex literals — exact match on the trimmed value.
-          if (HEX.test(trimmed)) {
-            context.report({
-              node: prop.value,
-              messageId: "hex",
-              data: { key: String(k), value: v },
-            });
-            continue;
-          }
-
-          // Functional notation — substring match anywhere in the value
-          // so multi-token strings (boxShadow, linear-gradient, …) are
-          // also caught.
-          if (FN_NOTATION.test(v)) {
-            context.report({
-              node: prop.value,
-              messageId: "functional",
-              data: { key: String(k), value: v },
-            });
-            continue;
-          }
-
-          // Named colours — exact match on the trimmed, lower-cased
-          // value. Avoids false-positives on multi-token strings (a
-          // gradient that happens to mention "white" as part of an
-          // argument is already caught by the FN_NOTATION rule).
-          if (NAMED_COLORS.has(trimmed.toLowerCase())) {
-            context.report({
-              node: prop.value,
-              messageId: "named",
-              data: { key: String(k), value: v },
-            });
-            continue;
-          }
+          walkValue(prop.value, k);
         }
       },
     };

@@ -25,7 +25,7 @@ export function PaletteStrip({
         height,
         borderRadius: 3,
         overflow: "hidden",
-        border: "1px solid #ddd",
+        border: "1px solid var(--border)",
       }}
     >
       {Array.from({ length: n }, (_, i) => (

@@ -869,7 +869,7 @@ export function App() {
         </div>
         <div
           className="dv-panel power-top-desc"
-          style={{ padding: "12px 16px", borderLeft: "4px solid #0072B2" }}
+          style={{ padding: "12px 16px", borderLeft: "4px solid var(--accent-blue)" }}
         >
           <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>{test.question}</div>
         </div>
@@ -1119,7 +1119,7 @@ export function App() {
                       ? "var(--danger-text)"
                       : solveFor === "power" && result < 0.8
                         ? "var(--accent-warning)"
-                        : "#0072B2",
+                        : "var(--accent-blue)",
                 fontFamily: "monospace",
               }}
             >

@@ -20,7 +20,7 @@ export function IntersectionTable({
     <div style={{ overflowX: "auto" }}>
       <table style={{ borderCollapse: "collapse", fontSize: 12, width: "100%" }}>
         <thead>
-          <tr style={{ borderBottom: "2px solid #ddd" }}>
+          <tr style={{ borderBottom: "2px solid var(--border)" }}>
             <th
               style={{
                 padding: "6px 10px",

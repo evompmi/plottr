@@ -62,7 +62,7 @@ function ColumnRoleEditor(props) {
               padding: "2px 8px",
               borderRadius: 4,
               background: c,
-              color: r === "ignore" ? "var(--text-muted)" : "#fff",
+              color: r === "ignore" ? "var(--text-muted)" : "var(--on-accent)",
               fontWeight: 600,
             },
           },
