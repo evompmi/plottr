@@ -105,6 +105,33 @@ function ToolTopbar({ currentKey }: { currentKey: string }) {
   );
 }
 
+// Fallback shown while a tool's lazy chunk is fetching from the
+// network. Sized to fill the route slot so the topbar doesn't reflow
+// when the chunk resolves and the real tool renders. Uses themed
+// CSS variables for the surface / text so light + dark match.
+function ChunkLoadingFallback({ label }: { label: string }) {
+  return React.createElement(
+    "div",
+    {
+      role: "status",
+      "aria-live": "polite",
+      style: {
+        minHeight: "60vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
+        color: "var(--text-muted)",
+        fontFamily: "monospace",
+        fontSize: 13,
+      },
+    },
+    React.createElement("div", { className: "dv-chunk-spinner", "aria-hidden": "true" }),
+    React.createElement("div", null, "Loading ", label, "…")
+  );
+}
+
 // Phase-1 placeholder landing view. The full tile grid lives in
 // `index.html` for now (still owned by the iframe shell); Phase 5
 // migrates that markup into a proper `LandingView` component here.
@@ -194,7 +221,10 @@ export function App() {
   // Render every visited tool unconditionally so React keeps their
   // sub-trees mounted across route changes. Each tool sits inside its
   // own ErrorBoundary so a crashed tool doesn't take the whole SPA
-  // down. The active route renders normally; everything else hides
+  // down, and inside its own Suspense so the per-tool chunk load
+  // (`React.lazy` in `tool-registry.ts`) shows a fallback only in
+  // that tool's slot — already-resolved tools alongside it stay
+  // visible. The active route renders normally; everything else hides
   // under display:none.
   const mountedTools = TOOL_REGISTRY.filter((t) => visitedKeys.has(t.key)).map((t) =>
     React.createElement(
@@ -205,7 +235,15 @@ export function App() {
           display: entry && entry.key === t.key ? "block" : "none",
         },
       },
-      React.createElement(ErrorBoundary, { toolName: t.label }, React.createElement(t.Component))
+      React.createElement(
+        ErrorBoundary,
+        { toolName: t.label },
+        React.createElement(
+          React.Suspense,
+          { fallback: React.createElement(ChunkLoadingFallback, { label: t.label }) },
+          React.createElement(t.Component)
+        )
+      )
     )
   );
 

@@ -930,9 +930,16 @@
       crossorigin="anonymous"
     ></script>
     <script src="tools/shared.bundle.js"></script>
-    <script src="tools/_app/index.js"></script>
-
     <script src="tools/version.js"></script>
+    <!-- The SPA entry is loaded as `type="module"` so esbuild's
+         code-splitting (one chunk per `React.lazy(() => import(…))`
+         site in `tools/_app/tool-registry.ts`) resolves natively.
+         Module scripts are deferred — they execute after every classic
+         script above (React, ReactDOM, shared.bundle.js, version.js)
+         and after DOM parsing, so all the globals the SPA reads at
+         boot are already on `window` and the inline IIFEs below have
+         already wired up theme + route reflection. -->
+    <script type="module" src="tools/_app/index.js"></script>
     <script>
       // ── Display the real git tag in the header ──
       (function () {

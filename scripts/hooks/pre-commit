@@ -85,9 +85,17 @@ npm run --silent build >/dev/null
 # already shows working tree vs index — exactly what we want. Pre-existing
 # unstaged drift would have been stashed away above, so anything surfacing
 # here is a genuine consequence of the rebuild on the staged source.
+#
+# `tools/_app/chunks/*` covers the per-tool lazy chunks emitted by
+# `--splitting --chunk-names=chunks/[name]-[hash]`. The `[hash]` is
+# content-derived (deterministic across rebuilds from the same source),
+# so a stale chunk left behind by a now-removed tool will surface here
+# and need to be staged-or-deleted in the same commit.
 REBUILT=$(git diff --name-only --diff-filter=ACMR -- \
   'tools/*.js' 'tools/*.js.map' \
   'tools/*/index.js' 'tools/*/index.js.map' \
+  'tools/_app/index.js' 'tools/_app/index.js.map' \
+  'tools/_app/chunks/*.js' 'tools/_app/chunks/*.js.map' \
   'tools/shared.bundle.js' 'tools/shared.bundle.js.map' \
   'tools/version.js' \
   'tools/*.html' \

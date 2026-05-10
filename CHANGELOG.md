@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Tool bundles are now lazy — first-visit download cuts ~60–95% by
+  route.** The SPA used to ship a single ~740 KB monolith with every
+  tool inlined, so a mobile user opening only the molarity calculator
+  paid the full cost up front. Each tool's `App` is now wrapped in
+  `React.lazy(() => import("..."))` in `tools/_app/tool-registry.ts`,
+  esbuild's `--splitting` flag emits one chunk per tool plus a shared
+  `_shell` chunk, and `index.html` loads the SPA entry as a module
+  script. A calculator-only first visit drops from ~1042 KB to
+  ~403 KB (~61% smaller); a plot-tool visit fetches only that tool's
+  chunk on navigation behind a themed Suspense fallback.
+
 ### Added
 
 - **`npm run audit:contrast` — palette contrast audit script.** Walks
