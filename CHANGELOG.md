@@ -21,6 +21,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Power Analysis: question banner now spans the full row beneath the
+  test / solve-for pickers.** The banner's flex sizing was lost in the
+  iframe→SPA migration along with the deleted `power.html` (its layout
+  CSS lived there); the tile rendered at content width and either
+  squeezed in beside the pickers or wrapped to a narrow second-line
+  fragment. Restored the original "full-width below" layout via
+  `flex: 1 1 100%` on the banner.
+
+- **Power Analysis: tile-to-tile spacing matched the rest of the app.**
+  Power's top row and main row used `gap: 20`; every other tool (plot-
+  scaffold sidebars, molarity, shared upload panels) uses `gap: 10`, so
+  the calculator visibly drifted apart from the canonical chrome.
+  Brought both gaps down to 10.
+
 - **`prefers-reduced-motion` was only partially honoured.** `PlotToolShell.tsx`'s
   step-change opacity fade already checked the media query and skipped
   the fade for users who set "reduce motion" in their OS — but the

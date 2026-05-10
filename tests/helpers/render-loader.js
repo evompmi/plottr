@@ -155,7 +155,6 @@ function ensureSharedBundleLoaded() {
         "sanitizeRComment",
         "sanitizeRString",
         "scrollDisclosureIntoView",
-        "scrollIntoViewWithinAncestor",
       ],
     },
   ];

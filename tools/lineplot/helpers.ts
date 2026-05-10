@@ -3,14 +3,16 @@
 // lineplot-loader.js loads this file directly). Keep render-layer code and
 // UI-specific components out — they belong in tools/lineplot.tsx.
 
-import { CHART_MARGIN, TestResult, buildLineD, runTest } from "../_shell";
+import { CHART_MARGIN, TestResult, buildLineD, round2, round4, runTest } from "../_shell";
 import type { LegendBlock, PowerFromDataResult } from "../_shell";
 // ── Constants ──────────────────────────────────────────────────────────────
 // `MARGIN` used to live here as a byte-identical twin of aequorin's. Lifted
 // into `_shell/chart-layout.ts` (audit M7); re-export here so the existing
-// `import { MARGIN } from "./helpers"` call sites keep working.
+// `import { MARGIN } from "./helpers"` call sites keep working. Same story
+// for `round2`/`round4` — single-line numeric helpers, lifted to
+// `_shell/round.ts` once aequorin started reaching for the same shape.
 export const MARGIN = CHART_MARGIN;
-export { buildLineD };
+export { buildLineD, round2, round4 };
 export const STAR_ROW_H = 18;
 
 export type ErrorKind = "none" | "sem" | "sd" | "ci95";
@@ -23,9 +25,6 @@ export const ERROR_KINDS: ReadonlyArray<{ value: ErrorKind; label: string }> = [
 ];
 
 // ── Small helpers ──────────────────────────────────────────────────────────
-
-export const round4 = (v: number) => Math.round(v * 10000) / 10000;
-export const round2 = (v: number) => Math.round(v * 100) / 100;
 
 export function formatX(x: number | null | undefined): string {
   if (x == null || !Number.isFinite(x)) return String(x);

@@ -1,11 +1,13 @@
-// `scrollIntoViewWithinAncestor` + `scrollDisclosureIntoView` — scroll-
-// affordance helpers used by ControlSection / collapsible disclosures
-// across plot tools. Picks one scrollable ancestor (typically a sticky
-// sidebar with its own overflow-y) and only moves that one — does NOT
-// use Element.scrollIntoView() because that bubbles up and scrolls
-// every scrollable ancestor including the page.
+// `scrollDisclosureIntoView` — scroll-affordance helper used by
+// ControlSection / collapsible disclosures across plot tools. Picks one
+// scrollable ancestor (typically a sticky sidebar with its own
+// overflow-y) and only moves that one — does NOT use
+// Element.scrollIntoView() because that bubbles up and scrolls every
+// scrollable ancestor including the page. The lower-level
+// `scrollIntoViewWithinAncestor` is kept module-internal; the
+// disclosure-specific wrapper is the only public consumer.
 
-export function scrollIntoViewWithinAncestor(
+function scrollIntoViewWithinAncestor(
   el: Element | null,
   pad?: number,
   extraBottom?: number

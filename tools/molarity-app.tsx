@@ -1,18 +1,8 @@
 // molarity.jsx — editable source. Run `npm run build` to compile to molarity.js
 // Do NOT edit the .js file directly.
 
-import { PageHeader } from "./_shell";
-const { useState, useMemo, useCallback, useEffect } = React;
-
-function useIsMobile(breakpoint = 600) {
-  const [mobile, setMobile] = useState(window.innerWidth < breakpoint);
-  useEffect(() => {
-    const handler = () => setMobile(window.innerWidth < breakpoint);
-    window.addEventListener("resize", handler);
-    return () => window.removeEventListener("resize", handler);
-  }, [breakpoint]);
-  return mobile;
-}
+import { PageHeader, useIsMobile } from "./_shell";
+const { useState, useMemo, useCallback } = React;
 
 // ── Unit definitions & conversions ──────────────────────────────────────────
 
