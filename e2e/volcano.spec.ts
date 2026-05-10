@@ -39,8 +39,9 @@ test.describe("volcano — colorNs stays neutral grey across palette picks", () 
   // VOLCANO_DEFAULT_COLORS.ns from helpers.ts. Hard-coded here so the
   // test would fail loudly if anyone tries to "fix" the regression by
   // changing the default colour — we want a separate, intentional
-  // change.
-  const NS_GREY = "#999999";
+  // change. Was #999999 pre-1.4.0; bumped to #737373 in commit 40ad9f9
+  // for WCAG 2.1 SC 1.4.11 (3:1 against the white plot background).
+  const NS_GREY = "#737373";
 
   test("default palette: ns class is grey", async ({ page }) => {
     await loadVolcanoExample(page);
