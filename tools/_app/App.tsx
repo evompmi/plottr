@@ -105,11 +105,79 @@ function ToolTopbar({ currentKey }: { currentKey: string }) {
   );
 }
 
+// How long we wait before deciding a chunk fetch is stuck. The
+// retry wrapper in `tool-registry.ts` re-attempts on rejection
+// (CDN flake, dropped connection), but a hung promise — the
+// browser fetched the chunk URL once, the request never
+// completes, and the module map dedupes subsequent `import()`
+// calls onto the same in-flight fetch — leaves Suspense in the
+// fallback state forever. After this timeout we morph the
+// spinner into a "Reload page" prompt so the user can recover
+// without copying the URL into a fresh tab. 6 s is long enough
+// for any plot chunk (≤ 116 KB) to finish on a 50 kb/s phone
+// connection but short enough that a genuinely stuck fetch
+// doesn't burn the user's patience.
+const CHUNK_LOAD_STUCK_MS = 6000;
+
 // Fallback shown while a tool's lazy chunk is fetching from the
 // network. Sized to fill the route slot so the topbar doesn't reflow
 // when the chunk resolves and the real tool renders. Uses themed
 // CSS variables for the surface / text so light + dark match.
+//
+// After `CHUNK_LOAD_STUCK_MS` we swap to a "Reload page" prompt —
+// covers stalled fetches that neither resolve nor reject (browser
+// throttling on a backgrounded tab, transient CDN tarpit) where the
+// user's only recourse is otherwise a manual reload.
 function ChunkLoadingFallback({ label }: { label: string }) {
+  const [stuck, setStuck] = React.useState(false);
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => setStuck(true), CHUNK_LOAD_STUCK_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (stuck) {
+    return React.createElement(
+      "div",
+      {
+        role: "alert",
+        style: {
+          minHeight: "60vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 16,
+          color: "var(--text)",
+          fontFamily: "monospace",
+          fontSize: 13,
+          padding: 24,
+          textAlign: "center",
+        },
+      },
+      React.createElement(
+        "div",
+        { style: { color: "var(--text-muted)" } },
+        "Loading ",
+        label,
+        " is taking longer than expected."
+      ),
+      React.createElement(
+        "button",
+        {
+          type: "button",
+          className: "dv-btn dv-btn-primary",
+          onClick: () => window.location.reload(),
+        },
+        "Reload page"
+      ),
+      React.createElement(
+        "div",
+        { style: { color: "var(--text-faint)", fontSize: 11 } },
+        "Your data, settings, and theme stay in browser storage."
+      )
+    );
+  }
+
   return React.createElement(
     "div",
     {

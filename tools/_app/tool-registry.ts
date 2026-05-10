@@ -21,8 +21,36 @@
 // bundle + the `_app` shell + the molarity chunk, instead of the
 // ~740 KB monolith the pre-splitting build shipped.
 
+// Re-attempt a failed dynamic import a couple of times before
+// surfacing the rejection to React. Catches transient flakes —
+// chunk request that 5xx'd, connection dropped mid-fetch, GH Pages
+// CDN hiccup — without bothering the user. Does NOT help with
+// promises that hang forever (the browser's module map dedupes
+// `import("...")` calls to the same URL, so a re-call awaits the
+// same in-flight fetch); the `ChunkLoadingFallback` in App.tsx
+// owns the stuck-state safety net for that case.
+const importWithRetry = <T>(
+  loader: () => Promise<T>,
+  { attempts = 3, baseDelayMs = 400 }: { attempts?: number; baseDelayMs?: number } = {}
+): Promise<T> => {
+  let attempt = 0;
+  const tryOnce = (): Promise<T> =>
+    loader().catch((err) => {
+      attempt += 1;
+      if (attempt >= attempts) throw err;
+      // Linear backoff: 400 ms, 800 ms, 1200 ms. Short enough that a
+      // user with a real network glitch sees recovery before they'd
+      // think to reload, long enough that a flapping CDN gets a
+      // chance to settle.
+      return new Promise<void>((resolve) => setTimeout(resolve, baseDelayMs * attempt)).then(() =>
+        tryOnce()
+      );
+    });
+  return tryOnce();
+};
+
 const lazyApp = (loader: () => Promise<{ App: React.ComponentType }>): React.ComponentType =>
-  React.lazy(() => loader().then((m) => ({ default: m.App })));
+  React.lazy(() => importWithRetry(loader).then((m) => ({ default: m.App })));
 
 export interface ToolEntry {
   key: string;

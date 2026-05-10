@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Stuck chunk-loading spinner now self-recovers.** A flaky network or
+  a backgrounded tab could leave a tool's `import()` promise pending
+  forever; Suspense kept showing the spinner and the only fix was a
+  manual page reload. Two layers of recovery: (a) the dynamic-import
+  loader retries up to 3 times with linear backoff before surfacing
+  a rejection, so transient CDN flakes self-heal; (b) the Suspense
+  fallback morphs after 6 s into a "Loading is taking longer than
+  expected" prompt with a Reload-page button, so genuinely hung
+  fetches no longer trap the user behind an infinite spinner.
+
 ### Changed
 
 - **Tool bundles are now lazy — first-visit download cuts ~60–95% by
