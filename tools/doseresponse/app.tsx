@@ -17,13 +17,13 @@ import {
   fitMulti,
   fTestSharedParam,
 } from "./helpers";
-import { UploadStep } from "./steps";
+import { ConfigureStep, UploadStep } from "./steps";
 import { PlotStep } from "./plot-area";
 
 const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
 // Synthetic 4PL dose–response with two conditions. Control: logEC50 = −7
-// (EC50 = 100 nM), Top = 100, Bottom = 0, Hill = 1. +Antagonist: logEC50 = −6
+// (EC50 = 100 nM), Top = 100, Bottom = 0, Hill = 1. Antagonist: logEC50 = −6
 // (EC50 = 1 µM) — a one-decade rightward shift that the F-test on shared
 // EC50 cleanly rejects. Replicate values include a small deterministic
 // perturbation so confidence intervals are non-degenerate and the fit
@@ -45,22 +45,22 @@ const EXAMPLE_CSV = `dose,response,replicate,condition
 1e-4,100.2,R2,Control
 1e-3,100.1,R1,Control
 1e-3,99.7,R2,Control
-1e-10,0.0,R1,+Antagonist
-1e-10,0.1,R2,+Antagonist
-1e-9,0.3,R1,+Antagonist
-1e-9,-0.2,R2,+Antagonist
-1e-8,1.2,R1,+Antagonist
-1e-8,0.8,R2,+Antagonist
-1e-7,9.7,R1,+Antagonist
-1e-7,8.4,R2,+Antagonist
-1e-6,50.5,R1,+Antagonist
-1e-6,48.9,R2,+Antagonist
-1e-5,90.6,R1,+Antagonist
-1e-5,91.7,R2,+Antagonist
-1e-4,98.9,R1,+Antagonist
-1e-4,99.4,R2,+Antagonist
-1e-3,100.2,R1,+Antagonist
-1e-3,99.6,R2,+Antagonist`;
+1e-10,0.0,R1,Antagonist
+1e-10,0.1,R2,Antagonist
+1e-9,0.3,R1,Antagonist
+1e-9,-0.2,R2,Antagonist
+1e-8,1.2,R1,Antagonist
+1e-8,0.8,R2,Antagonist
+1e-7,9.7,R1,Antagonist
+1e-7,8.4,R2,Antagonist
+1e-6,50.5,R1,Antagonist
+1e-6,48.9,R2,Antagonist
+1e-5,90.6,R1,Antagonist
+1e-5,91.7,R2,Antagonist
+1e-4,98.9,R1,Antagonist
+1e-4,99.4,R2,Antagonist
+1e-3,100.2,R1,Antagonist
+1e-3,99.6,R2,Antagonist`;
 
 const FALLBACK_X_RANGE: [number, number] = [-10, -3];
 const FALLBACK_Y_RANGE: [number, number] = [0, 100];
@@ -332,7 +332,7 @@ export function App() {
         fresh[c] = vis.conditionColors[c] || CURVE_PALETTE[i % CURVE_PALETTE.length];
       });
       updVis({ conditionColors: { ...vis.conditionColors, ...fresh } });
-      setStep("plot");
+      setStep("configure");
     },
     [
       setCommaFixed,
@@ -356,7 +356,7 @@ export function App() {
   const loadExample = useCallback(() => {
     setSepOverride(",");
     setFileName("dose-response-example.csv");
-    updVis({ conditionColors: autoConditionColors(["Control", "+Antagonist"]) });
+    updVis({ conditionColors: autoConditionColors(["Control", "Antagonist"]) });
     doParse(EXAMPLE_CSV, ",");
   }, [doParse, setFileName, setSepOverride, updVis]);
 
@@ -369,6 +369,7 @@ export function App() {
 
   const canNavigate = (s: string) => {
     if (s === "upload") return true;
+    if (s === "configure") return !!parsed;
     if (s === "plot") return !!parsed;
     return false;
   };
@@ -379,7 +380,7 @@ export function App() {
       toolName="doseresponse"
       title="EC50 / IC50 (Dose–Response)"
       visInit={VIS_INIT_DOSERESPONSE}
-      steps={["upload", "plot"]}
+      steps={["upload", "configure", "plot"]}
       canNavigate={canNavigate}
     >
       {step === "upload" && (
@@ -390,6 +391,18 @@ export function App() {
           doParse={doParse}
           handleFileLoad={handleFileLoad}
           onLoadExample={loadExample}
+        />
+      )}
+      {step === "configure" && parsed && (
+        <ConfigureStep
+          parsed={parsed}
+          numericCols={numericCols}
+          textCols={textCols}
+          roles={roles}
+          setRoles={setRoles}
+          vis={vis}
+          updVis={updVis}
+          onContinue={() => setStep("plot")}
         />
       )}
       {step === "plot" && parsed && (

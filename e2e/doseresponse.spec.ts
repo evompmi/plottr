@@ -7,7 +7,9 @@ import { test, expect } from "@playwright/test";
 test("doseresponse: load example → curves and parameter table render", async ({ page }) => {
   await page.goto("/index.html#/doseresponse");
   await page.getByTestId("load-example").click();
-  await page.getByTestId("step-plot").click();
+  // Configure step gates the transition to plot — assert the continue
+  // button is reachable, then walk through it.
+  await page.getByTestId("continue-to-plot").click();
 
   // Two conditions in the example → two fitted curves rendered as <path>
   // children of #dose-response-curve. Use lenient `>= 1` since the curve

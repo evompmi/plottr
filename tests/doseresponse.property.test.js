@@ -211,12 +211,21 @@ test("EC50 back-transform identity: 10^logEC50 === ec50 exactly", () => {
 });
 
 test("fitted EC50 lies within the (extended) observed dose range", () => {
+  // EC50 is unidentified when the response is effectively flat — no
+  // dose-dependent signal for the fitter to anchor to. Restrict the
+  // property to inputs with meaningful y-variance (output-precondition
+  // pattern from tests/CLAUDE.md). The 1e-6 floor lets through datasets
+  // with tiny but real signal while skipping all-zero / all-equal y.
   check(
     fc.property(arbObs, (obs) => {
       const fit = fit4PL(obs);
       if (!fit.valid) return true;
       const xs = obs.filter((o) => !o.isZeroDose).map((o) => o.x);
+      const ys = obs.filter((o) => !o.isZeroDose).map((o) => o.y);
       if (xs.length === 0) return true;
+      const yMin = Math.min(...ys);
+      const yMax = Math.max(...ys);
+      if (yMax - yMin < 1e-6) return true;
       const xMin = Math.min(...xs);
       const xMax = Math.max(...xs);
       const span = xMax - xMin;
