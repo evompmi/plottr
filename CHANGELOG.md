@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Mobile topbar inside a tool now hides plot-tool jump icons again.**
+  The `@media (max-width: 900px)` rule in `index.html` strips the
+  in-tool topbar to "just the two calculators + theme toggle" via
+  `[data-back]` / `[data-tool="power"]` / `[data-tool="molarity"]`
+  selectors — but the SPA migration of the topbar into a React
+  component (`tools/_app/App.tsx`) dropped those attributes, so the
+  selector matched nothing and every tool icon stayed visible on
+  phones (an invitation to open a plot tool that won't render
+  usefully at that width). Restored by passing `extraAttrs` through
+  the `IconButton` factory.
+
 - **Stuck chunk-loading spinner now self-recovers.** A flaky network or
   a backgrounded tab could leave a tool's `import()` promise pending
   forever; Suspense kept showing the spinner and the only fix was a
