@@ -92,6 +92,14 @@ function ToolTopbar({ currentKey }: { currentKey: string }) {
       title: "Home",
       svg: HOME_SVG,
       onClick: () => navigate(null),
+      // `data-back` + `data-tool` are read by the @media (max-width: 900px)
+      // rule in index.html that strips the topbar to "just the two
+      // calculators + theme toggle" on phones (plot tools want a wider
+      // canvas than mobile gives them, so a user mid-calculator
+      // shouldn't be invited into one). The attributes were on the
+      // pre-SPA per-tool HTML topbar; the React migration dropped them
+      // and the selector silently matched nothing.
+      extraAttrs: { "data-back": "true" },
     }),
     React.createElement("div", { className: "tb-sep" }),
     ...others.map((t) =>
@@ -100,6 +108,7 @@ function ToolTopbar({ currentKey }: { currentKey: string }) {
         title: t.label,
         svg: t.iconSvg,
         onClick: () => navigate(t.key),
+        extraAttrs: { "data-tool": t.key },
       })
     )
   );
