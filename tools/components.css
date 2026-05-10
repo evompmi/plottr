@@ -532,6 +532,27 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
+/* ── Chunk-load spinner ──────────────────────────────────────────────
+   Shown by the SPA's <Suspense> fallback while a per-tool chunk is
+   fetching (each tool's `App` is wrapped in `React.lazy(() => import(…))`
+   in `tools/_app/tool-registry.ts`). Themed via the same accent colour
+   the rest of the chrome uses; the universal `prefers-reduced-motion`
+   block below caps the spin to ~zero so vestibular-sensitive users
+   see a static ring instead of an animated one. */
+.dv-chunk-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--accent-primary);
+  animation: dv-chunk-spinner-spin 0.9s linear infinite;
+}
+@keyframes dv-chunk-spinner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ── prefers-reduced-motion ──────────────────────────────────────────
    Honour the user's OS-level "reduce motion" preference (vestibular
    disorders, motion-triggered nausea). Sets transitions / animations

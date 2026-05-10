@@ -17,14 +17,20 @@
 const { spawn } = require("child_process");
 const path = require("path");
 
-// Single SPA entry — esbuild's `--bundle` inlines every tool's
-// `app.tsx` (and the rest of `tools/_app/`) into one output.
+// Single SPA entry — `--bundle` walks the import graph from
+// `tools/_app/index.tsx`; `--splitting` breaks it into one chunk per
+// `React.lazy(() => import("..."))` call site in `tool-registry.ts`,
+// so a navigation to one tool fetches only that tool's chunk plus
+// any shared-by-2+-tools chunks. Pre-splitting this was a single
+// ~740 KB monolith every visitor downloaded up front.
 const ESBUILD_ENTRYPOINTS = ["tools/_app/index.tsx"];
 
 const ESBUILD_FLAGS = [
   "--bundle",
+  "--splitting",
   "--format=esm",
-  "--outfile=tools/_app/index.js",
+  "--outdir=tools/_app",
+  "--chunk-names=chunks/[name]-[hash]",
   "--jsx=transform",
   "--minify-syntax",
   "--minify-whitespace",

@@ -16,7 +16,10 @@ const plottrLocal = {
   },
 };
 
-const compiledTools = ["tools/_app/index.js", "tools/version.js"];
+// Generated outputs that lint never has anything useful to say about.
+// `tools/_app/chunks/**` covers the per-tool lazy chunks emitted by
+// esbuild's `--splitting --chunk-names=chunks/[name]-[hash]`.
+const compiledTools = ["tools/_app/index.js", "tools/_app/chunks/**", "tools/version.js"];
 
 // Names declared at top-level of tools/shared.js, the tools/stats-*.js files,
 // and the tools/shared-*.js component files, consumed by tool .tsx files via
