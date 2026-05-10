@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **EC50 / IC50 dose–response tool — new plot.** 4-parameter logistic
+  (variable-slope Hill) fit with hand-rolled Levenberg–Marquardt, Wald
+  confidence intervals, and an extra-sum-of-squares F-test for shared
+  EC50 / shared Hill across conditions. 95% CI ribbon, residuals
+  diagnostic strip, and an in-SVG parameter table render alongside the
+  curves so exported figures are slide-ready. Long and wide CSV shapes
+  both supported; explicit warnings on poor identifiability and
+  non-convergence — no silent fallbacks. (regression: 55 tests)
+
 - **`npm run audit:contrast` — palette contrast audit script.** Walks
   every stop in the discrete + sequential + diverging palette
   catalogues plus the volcano default colours, computes WCAG 2.1 SC

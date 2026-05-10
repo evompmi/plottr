@@ -26,6 +26,7 @@ import { App as LineplotApp } from "../lineplot/app";
 import { App as AequorinApp } from "../aequorin/app";
 import { App as HeatmapApp } from "../heatmap/app";
 import { App as VolcanoApp } from "../volcano/app";
+import { App as DoseResponseApp } from "../doseresponse/app";
 import { App as PowerApp } from "../power-app";
 import { App as MolarityApp } from "../molarity-app";
 
@@ -96,6 +97,13 @@ export const TOOL_REGISTRY: ToolEntry[] = [
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="22" cy="38" r="1.4" fill-opacity="0.4"/><circle cx="20" cy="36" r="1.2" fill-opacity="0.4"/><circle cx="24" cy="36" r="1.2" fill-opacity="0.4"/><circle cx="18" cy="38" r="1" fill-opacity="0.4"/><circle cx="26" cy="38" r="1" fill-opacity="0.4"/><circle cx="22" cy="34" r="1" fill-opacity="0.4"/><circle cx="17" cy="28" r="1.6"/><circle cx="13" cy="22" r="2"/><circle cx="9" cy="16" r="2.4"/><circle cx="5" cy="10" r="2.6"/><circle cx="27" cy="28" r="1.6"/><circle cx="31" cy="22" r="2"/><circle cx="35" cy="16" r="2.4"/><circle cx="39" cy="10" r="2.6"/></svg>',
     Component: VolcanoApp,
+  },
+  {
+    key: "doseresponse",
+    label: "EC50 / IC50 (Dose–Response)",
+    iconSvg:
+      '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="38" x2="38" y2="38" opacity="0.4"/><line x1="6" y1="6" x2="6" y2="38" opacity="0.4"/><path d="M6 34 C13 33.5, 17 33, 20 28 C23 22, 24 14, 28 10 C32 7, 36 7, 38 6.5"/><circle cx="20" cy="22" r="2" fill="currentColor" stroke="none"/><line x1="20" y1="22" x2="20" y2="38" stroke-dasharray="3,3" stroke-width="1" opacity="0.55"/><line x1="6" y1="22" x2="20" y2="22" stroke-dasharray="3,3" stroke-width="1" opacity="0.55"/></svg>',
+    Component: DoseResponseApp,
   },
   {
     key: "power",
