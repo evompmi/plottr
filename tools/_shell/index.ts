@@ -81,7 +81,9 @@ export {
   sanitizeRString,
 } from "./r-export";
 export type { BuildRScriptCtx, PowerScriptState } from "./r-export";
-export { scrollDisclosureIntoView, scrollIntoViewWithinAncestor } from "./scroll-helpers";
+export { scrollDisclosureIntoView } from "./scroll-helpers";
+export { round2, round4 } from "./round";
+export { useIsMobile } from "./use-is-mobile";
 export {
   STATS_POSTHOC_REGISTRY,
   STATS_TESTS_FOR_K,

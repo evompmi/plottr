@@ -1,23 +1,8 @@
 // power.jsx — editable source. Run `npm run build` to compile to power.js
 // Do NOT edit the .js file directly.
 
-import { NumberInput, PageHeader, buildRScriptForPower } from "./_shell";
+import { NumberInput, PageHeader, buildRScriptForPower, useIsMobile } from "./_shell";
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
-
-// Narrow-viewport detection — mirrors molarity-app's `useIsMobile`. Power
-// collapses to a single-column layout below 900 px and drops the plot card
-// entirely (the SVG is unreadable that small, and computing it is wasted
-// work when the user is on a phone). Plot tools are desktop-first by
-// design; this responsive treatment is calculator-specific.
-function useIsMobile(breakpoint = 900) {
-  const [mobile, setMobile] = useState(window.innerWidth < breakpoint);
-  useEffect(() => {
-    const handler = () => setMobile(window.innerWidth < breakpoint);
-    window.addEventListener("resize", handler);
-    return () => window.removeEventListener("resize", handler);
-  }, [breakpoint]);
-  return mobile;
-}
 
 // Distribution functions, noncentral distributions, `bisect`,
 // Shapiro-Wilk, power functions (powerTwoSample / powerPaired /
@@ -814,20 +799,13 @@ export function App() {
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 32px" }}>
       <PageHeader toolName="power" title="Power Analysis" />
 
-      {/* ── Top group: test + solve + question banner. CSS order + flex-wrap
-          rules in power.html position them differently per viewport:
-            Desktop (row, wrap):   [Test] [Solve-for]
-                                   [Question banner full-width below]
-            Mobile  (column):      [Test]
-                                   [Question banner]
-                                   [Solve-for]
-          — the descriptor sits between the two pickers on phones (so it's
-          read right after choosing a test) but below both on wide screens. */}
-      <div
-        className="power-top-row"
-        style={{ display: "flex", flexWrap: "wrap", gap: 20, marginBottom: 16 }}
-      >
-        <div className="dv-panel power-top-test" style={{ padding: 12, flex: 1, minWidth: 200 }}>
+      {/* ── Top group: test picker + solve-for picker share the first row;
+          question banner takes its own full-width row beneath them. The
+          banner uses `flex: 1 1 100%` rather than a separate sibling
+          `<div>` so it participates in the same flex-wrap container as the
+          two pickers (avoids an extra wrapper just to break a row). */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+        <div className="dv-panel" style={{ padding: 12, flex: 1, minWidth: 200 }}>
           <div className="dv-label">Statistical test</div>
           <select
             value={testKey}
@@ -842,7 +820,7 @@ export function App() {
             ))}
           </select>
         </div>
-        <div className="dv-panel power-top-solve" style={{ padding: 12, flex: 1, minWidth: 200 }}>
+        <div className="dv-panel" style={{ padding: 12, flex: 1, minWidth: 200 }}>
           <div className="dv-label" style={{ marginBottom: 6 }}>
             What do you need to find?
           </div>
@@ -869,8 +847,12 @@ export function App() {
           </div>
         </div>
         <div
-          className="dv-panel power-top-desc"
-          style={{ padding: "12px 16px", borderLeft: "4px solid var(--accent-blue)" }}
+          className="dv-panel"
+          style={{
+            padding: "12px 16px",
+            borderLeft: "4px solid var(--accent-blue)",
+            flex: "1 1 100%",
+          }}
         >
           <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>{test.question}</div>
         </div>
@@ -886,7 +868,7 @@ export function App() {
         style={{
           display: "flex",
           flexDirection: isMobile ? "column" : "row",
-          gap: 20,
+          gap: 10,
           alignItems: "stretch",
         }}
       >

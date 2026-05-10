@@ -5,7 +5,7 @@
 // tools/aequorin/ (chart.tsx, stats-panel.tsx, reports.ts, plot-area.tsx,
 // steps.tsx, controls.tsx, index.tsx).
 
-import { CHART_MARGIN, buildLineD, resolveDiscretePalette } from "../_shell";
+import { CHART_MARGIN, buildLineD, resolveDiscretePalette, round2 } from "../_shell";
 import type { LegendBlock, PowerFromDataResult, TestResult } from "../_shell";
 export { buildLineD };
 
@@ -356,7 +356,6 @@ export function computeAutoYRange(
     }
   }
   if (!isFinite(lo) || !isFinite(hi)) return null;
-  const round2 = (v: number) => Math.round(v * 100) / 100;
   return { yMin: round2(Math.max(0, lo * 0.9)), yMax: round2(hi * 1.1) };
 }
 
