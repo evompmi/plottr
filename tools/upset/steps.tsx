@@ -27,6 +27,7 @@ export function UploadStep({
   format,
   setFormat,
   handleFileLoad,
+  handleTextPaste,
   onLoadExample,
 }: UploadStepProps) {
   return (
@@ -78,8 +79,15 @@ export function UploadStep({
         sepOverride={sepOverride}
         onSepChange={setSepOverride}
         onFileLoad={handleFileLoad}
+        onTextPaste={handleTextPaste}
+        autoDetect
         onLoadExample={onLoadExample}
-        exampleLabel="Arabidopsis abiotic stress genes (5-set DEG lists)"
+        exampleSummary={{
+          icon: "🧬",
+          title: "Arabidopsis stress-response DEGs",
+          subtitle: "5 sets — Drought · Heat · Salt · Cold · ABA",
+          buttonLabel: "Plot this example →",
+        }}
         hint={
           format === "wide"
             ? "CSV · TSV · TXT — one column per set (2+), items in rows · 2 MB max"

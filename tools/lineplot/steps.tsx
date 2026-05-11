@@ -65,6 +65,7 @@ export function UploadStep({
   rawText,
   doParse,
   handleFileLoad,
+  handleTextPaste,
   onLoadExample,
 }: UploadStepProps) {
   return (
@@ -76,8 +77,15 @@ export function UploadStep({
           if (rawText) doParse(rawText, v);
         }}
         onFileLoad={handleFileLoad}
+        onTextPaste={handleTextPaste}
+        autoDetect
         onLoadExample={onLoadExample}
-        exampleLabel="Bacterial growth curves (3 strains × 5 timepoints × 3 reps)"
+        exampleSummary={{
+          icon: "📈",
+          title: "Bacterial growth curves",
+          subtitle: "3 strains × 5 timepoints × 3 replicates",
+          buttonLabel: "Plot this example →",
+        }}
         hint="CSV · TSV · TXT — one row per observation, columns for X, Y, and grouping · 2 MB max"
       />
       <HowTo {...LINEPLOT_HOWTO} />

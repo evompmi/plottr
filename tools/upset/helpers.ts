@@ -163,6 +163,7 @@ export interface UploadStepProps {
   format: "wide" | "long";
   setFormat: (f: "wide" | "long") => void;
   handleFileLoad: (text: string, name: string) => void;
+  handleTextPaste: (text: string, name: string) => void;
   onLoadExample: () => void;
 }
 

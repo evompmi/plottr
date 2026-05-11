@@ -305,10 +305,16 @@ export function App() {
 
   const doParse = useCallback(
     (text: string, sep: string) => {
-      const dc = fixDecimalCommas(text, sep);
+      // Resolve "auto" (sep === "") before fixDecimalCommas so European
+      // semicolon-delimited matrices still get their decimal commas
+      // fixed — `fixDecimalCommas` short-circuits on sep === "". Same
+      // pattern as boxplot/app.tsx.
+      const resolved = autoDetectSep(text, sep);
+      const effectiveSep = typeof resolved === "string" ? resolved : "";
+      const dc = fixDecimalCommas(text, effectiveSep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
-      const parsed = parseWideMatrix(dc.text, sep);
+      const parsed = parseWideMatrix(dc.text, effectiveSep);
       setInjectionWarning(parsed.injectionWarnings);
       if (!parsed.rowLabels.length || !parsed.colLabels.length) {
         setParseError(
@@ -342,6 +348,18 @@ export function App() {
       doParse(text, sepOverride);
     },
     [sepOverride, doParse, setFileName]
+  );
+
+  // Paste-data path. UploadPanel hands raw text + a synthetic filename;
+  // size is gated in the panel against FILE_LIMIT_BYTES. Force
+  // sepOverride="" so auto-detect kicks in for Excel/Sheets paste.
+  const handleTextPaste = useCallback(
+    (text: string, name: string) => {
+      setFileName(name);
+      setSepOverride("");
+      doParse(text, "");
+    },
+    [doParse, setFileName, setSepOverride]
   );
 
   const loadExample = useCallback(() => {
@@ -388,6 +406,7 @@ export function App() {
           sepOverride={sepOverride}
           setSepOverride={setSepOverride}
           handleFileLoad={handleFileLoad}
+          handleTextPaste={handleTextPaste}
           onLoadExample={loadExample}
         />
       )}

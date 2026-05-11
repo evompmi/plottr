@@ -150,6 +150,7 @@ export interface UploadStepProps {
   rawText: string | null;
   doParse: (text: string, sep: string) => void;
   handleFileLoad: (text: string, name: string) => void;
+  handleTextPaste: (text: string, name: string) => void;
   onLoadExample: () => void;
 }
 

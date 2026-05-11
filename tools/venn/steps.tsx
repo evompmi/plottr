@@ -10,6 +10,7 @@ export function UploadStep({
   sepOverride,
   setSepOverride,
   handleFileLoad,
+  handleTextPaste,
   onLoadExample,
 }: UploadStepProps) {
   return (
@@ -18,8 +19,15 @@ export function UploadStep({
         sepOverride={sepOverride}
         onSepChange={setSepOverride}
         onFileLoad={handleFileLoad}
+        onTextPaste={handleTextPaste}
+        autoDetect
         onLoadExample={onLoadExample}
-        exampleLabel="Arabidopsis abiotic stress genes (Drought / Heat / Salt)"
+        exampleSummary={{
+          icon: "🧬",
+          title: "Arabidopsis stress-response DEGs",
+          subtitle: "3 sets — Drought · Heat · Salt",
+          buttonLabel: "Plot this example →",
+        }}
         hint="CSV · TSV · TXT — wide (one column per set, 2–3) or long (item, set) · 2 MB max"
       />
       <HowTo {...VENN_HOWTO} />

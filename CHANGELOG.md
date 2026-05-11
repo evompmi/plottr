@@ -9,21 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Group Plot upload step rebuilt: auto-detect, paste, prominent
-  sample.** Three changes that travel together. (1) The separator
-  picker is no longer required upfront — the drop zone is enabled
-  immediately and the picker collapses behind a small "Override ▾"
-  disclosure (`parseRaw` already routes through `autoDetectSep`, so
-  this was UI friction, not a parser requirement). The detected
-  separator is surfaced on the Configure step ("detected:
-  tab-separated"). (2) A "Paste data" card sits next to "Drop a
-  file" as an equally-prominent side-by-side card, gated on the same
-  `FILE_LIMIT_BYTES` (2 MB) policy. (3) The "Try sample data"
-  affordance — previously a tiny secondary button buried beneath the
-  upload zone — is now a prominent green banner at the top of the
-  step, with icon, title, dataset description, and primary CTA.
-  Other plot tools are unchanged: the new flow is opt-in via the
-  `autoDetect` + `onTextPaste` + `exampleSummary` props.
+- **Every plot tool's upload step rebuilt: auto-detect, paste,
+  prominent sample.** Three changes that travel together, applied
+  to all 8 plot tools (Aequorin, Group Plot, Heatmap, Line Plot,
+  Scatter, UpSet, Venn, Volcano). (1) The separator picker is no
+  longer required upfront — the drop zone is enabled immediately
+  and the picker collapses behind a small "Override ▾" disclosure
+  (`parseRaw` / `parseData` / `parseWideMatrix` already route
+  through `autoDetectSep`, so this was UI friction, not a parser
+  requirement). On Group Plot, the detected separator is surfaced
+  on the Configure step ("detected: tab-separated"). (2) A "Paste
+  data" card sits next to "Drop a file" as an equally-prominent
+  side-by-side card, gated on the same `FILE_LIMIT_BYTES` (2 MB)
+  policy — closes the "save as CSV first" tax for users working
+  out of Excel / Sheets. (3) The "Try sample data" affordance —
+  previously a tiny secondary button buried beneath the upload
+  zone — is now a prominent green banner at the top of the step,
+  with icon, dataset title + subtitle, and primary CTA. Per-tool
+  copy: 🌱 plant biomass (Group Plot), 💡 aequorin Ca²⁺ time-course,
+  🧬 gene-expression matrix (Heatmap), 📈 bacterial growth curves
+  (Line Plot), 🌸 Fisher's Iris (Scatter), 🧬 Arabidopsis stress
+  DEGs (Venn 3-set / UpSet 5-set), 🌋 mock DESeq2 (Volcano). The
+  calculators (`molarity-app`, `power-app`) are unaffected — they
+  don't use `UploadPanel`. New `UploadPanel` props are still opt-in
+  (`autoDetect`, `onTextPaste`, `exampleSummary`) so a future
+  caller can keep the legacy gated UX if they want.
 
 - **Benchmark page reorders the two reference panels so each summary
   sits next to its own collapsible.** Was: R summary → SciPy summary →
