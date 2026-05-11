@@ -72,19 +72,12 @@ export function HowToCard(props: HowToCardProps) {
           color: "inherit",
         },
       },
-      toolIcon(toolName, 24, { circle: true }),
-      h(
-        "div",
-        { style: { flex: 1, minWidth: 0 } },
-        h("div", { style: { color: "var(--on-accent)", fontWeight: 700, fontSize: 15 } }, title),
-        subtitle
-          ? h(
-              "div",
-              { style: { color: "var(--on-accent-muted)", fontSize: 11, marginTop: 2 } },
-              subtitle
-            )
-          : null
-      ),
+      // Leading chevron — moved from the trailing slot (where it used to
+      // sit after the tool icon) into the position the icon used to
+      // occupy. Tool identity is already carried by the topbar + the
+      // sample-dataset banner on the upload step, so the icon was
+      // appearing three times on a single screen; the chevron alone
+      // reads more clearly as "click to expand" anyway.
       h(
         "span",
         {
@@ -111,6 +104,18 @@ export function HowToCard(props: HowToCardProps) {
             strokeLinejoin: "round",
           })
         )
+      ),
+      h(
+        "div",
+        { style: { flex: 1, minWidth: 0 } },
+        h("div", { style: { color: "var(--on-accent)", fontWeight: 700, fontSize: 15 } }, title),
+        subtitle
+          ? h(
+              "div",
+              { style: { color: "var(--on-accent-muted)", fontSize: 11, marginTop: 2 } },
+              subtitle
+            )
+          : null
       )
     ),
     open

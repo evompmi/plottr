@@ -23,6 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **How-to card now leads with an expand/collapse chevron instead
+  of the tool icon.** The topbar + the sample-dataset banner already
+  carry the tool icon on the upload step, so the third repetition in
+  the How-to header was redundant. Moving the chevron from the
+  trailing slot to the leading slot also reads more directly as
+  "click to expand" — a single affordance instead of icon + chevron.
+  `toolName` stays on `HowToCard` props because it still drives the
+  collapsible's localStorage key (`dv-howto-<toolName>`).
+
 - **Sample-dataset banners now use each tool's polished SVG icon
   instead of the emoji placeholder.** The earlier 🌱 / 💡 / 🧬 / 📈 /
   🌸 / 🌋 set read as playful next to the chart-tool quality;
