@@ -23,6 +23,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Sample-dataset banners now use each tool's polished SVG icon
+  instead of the emoji placeholder.** The earlier 🌱 / 💡 / 🧬 / 📈 /
+  🌸 / 🌋 set read as playful next to the chart-tool quality;
+  reusing each tool's existing `TOOL_ICONS` SVG (the same monoline
+  art the topbar carries) keeps the banner visually distinct
+  per-tool while matching the chrome aesthetic. Rendered via
+  `toolIcon(<key>, 32, { circle: true })` so each icon sits on a
+  small white disc that pops against the green success-bg.
+  `ExampleSummary.icon` widened from `string` to `React.ReactNode`;
+  legacy emoji strings still render correctly.
+
 - **UpSet retired its upfront Wide/Long data-format picker.** The
   toggle was vestigial: 3+ column input is unambiguously wide (one
   column per set), and 2-column input can be auto-classified by the

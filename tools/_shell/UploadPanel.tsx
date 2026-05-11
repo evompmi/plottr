@@ -23,14 +23,17 @@ const h = React.createElement;
 const { useState } = React;
 
 // Structured payload for the prominent sample-dataset banner in
-// auto-detect mode. `icon` defaults to a leaf emoji so callers can
-// omit it; `subtitle` is optional. When this prop is missing, the
-// banner falls back to a generic "Try a sample dataset" pitch with
-// `exampleLabel` as the subtitle (legacy compat).
+// auto-detect mode. `icon` accepts any React node so callers can pass
+// the polished per-tool SVG via `toolIcon(<key>, 32, { circle: true })`
+// from `shared.js` — that's the canonical pro-looking choice and what
+// every plot tool currently uses. Legacy emoji strings still render
+// fine (React treats them as text children). When this prop is
+// missing, the banner falls back to a generic "Try a sample dataset"
+// pitch with `exampleLabel` as the subtitle (legacy compat).
 export interface ExampleSummary {
   title: string;
   subtitle?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   buttonLabel?: string;
 }
 
@@ -212,8 +215,16 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
         }}
         data-testid="sample-promo"
       >
-        <span style={{ fontSize: 32, lineHeight: 1 }} aria-hidden="true">
-          {summary.icon ?? "🌱"}
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            lineHeight: 1,
+            flexShrink: 0,
+          }}
+          aria-hidden="true"
+        >
+          {summary.icon ?? <span style={{ fontSize: 32 }}>🌱</span>}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
