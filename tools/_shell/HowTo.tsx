@@ -1,13 +1,19 @@
 // Shared "How to use" tile for the upload step of every plot tool.
 //
-// Wraps the existing `HowToCard` (collapsible header + tool icon, lives
-// in shared-ui.js) and renders a uniform body — three required sub-
-// cards (Purpose / Data layout / Display) plus an optional Tips card —
-// driven by a `HowToContent` object passed by the caller. That moves
-// per-tool prose out of long `steps.tsx` / `index.tsx` files and into
-// tiny per-tool `howto.tsx` constants, and keeps the visual depth
-// consistent across tools (no more wall-of-text in one place + one-
-// liner in another).
+// Wraps the existing `HowToCard` (collapsible header with a leading
+// expand/collapse chevron) and renders a uniform body — three required
+// sub-cards (Purpose / Data layout / Display) plus an optional Tips
+// card — driven by a `HowToContent` object passed by the caller. That
+// moves per-tool prose out of long `steps.tsx` / `index.tsx` files
+// and into tiny per-tool `howto.tsx` constants, and keeps the visual
+// depth consistent across tools (no more wall-of-text in one place +
+// one-liner in another).
+//
+// The tool icon used to appear in the header too but was retired
+// 2026-05 because the topbar + the sample-dataset banner on the same
+// page already carry it twice — three repetitions felt redundant. The
+// `toolName` field stays on `HowToContent` because `HowToCard` still
+// uses it for the localStorage key (`dv-howto-<toolName>`).
 //
 // The rendering layer (sub-card header style, grid layout, pill list)
 // lives here. Tool-specific content lives in `tools/<tool>/howto.tsx`.
