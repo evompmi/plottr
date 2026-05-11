@@ -7,153 +7,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [1.4.2] - "Paste" - 2026-05-11
 
-- **Group Plot Y-axis label now defaults to the selected value
-  column's name** (e.g. "Biomass_mg" instead of the generic
-  "Value"). Tracks the current value column and re-syncs whenever
-  the user picks a different value column or renames the existing
-  one — but only while the label is still in its default state
-  (empty, the legacy "Value" placeholder, or the previous
-  auto-applied column name). The moment the user types anything
-  custom in the Label control tile, the label diverges from all
-  three sentinels and the auto-sync stops touching it, so
-  customisations survive subsequent column changes and renames.
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md). The
+> entries below are summary bullets that link there.
 
 ### Added
 
-- **`<DetectedSeparatorBadge sep={detectedSep} />` surfaces the
-  auto-detected delimiter on every plot tool's post-upload step.**
-  Inline trailing fragment ("· detected: tab-separated") on each
-  tool's file-info line — Configure step for tools that have one
-  (Aequorin, Group Plot, Heatmap, Line Plot, UpSet, Venn, Volcano)
-  and the top of the Plot step for Scatter (which skips Configure).
-  The badge renders nothing when the detector hits the empty-string
-  whitespace fallback, so it never gets in the way. Maps `","` →
-  "comma", `";"` → "semicolon", `"\t"` → "tab", `" "` → "space",
-  anything else → "whitespace". Component + `describeSeparator()`
-  helper live in `_shell/DetectedSeparatorBadge.tsx`.
+- **Paste-from-clipboard ingest path on every plot tool.** A "Paste data"
+  card sits side-by-side with "Drop a file" — Excel/Sheets selections feed
+  the same `doParse` pipeline as a dropped file, gated on the same
+  `FILE_LIMIT_BYTES` (2 MB) policy. See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-added).
+
+- **Prominent sample-dataset banner at the top of every upload step.**
+  Green panel with hand-drawn datasheet icon, dataset title + subtitle, and
+  primary "Plot this example →" CTA. Promotes the legacy buried "Try sample
+  data" button into a first-class affordance. See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-added).
+
+- **`<DetectedSeparatorBadge />` surfaces the auto-detected delimiter on
+  every plot tool's post-upload step** as an inline trailing fragment
+  (`· detected: tab-separated`). Component + `describeSeparator()` helper
+  live in `_shell/DetectedSeparatorBadge.tsx`. See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-added).
+
+- **`<DatasheetIcon />` — single shared hand-drawn notepad icon.** Dog-eared
+  page outline with four hand-drawn rows; inherits `currentColor` so dark
+  mode themes automatically. Replaces both the legacy emoji and the
+  intermediate per-tool icons that briefly occupied the banner slot. See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-added).
 
 ### Changed
 
-- **Topbar tool icon a touch bigger (22 → 28).** The per-tool art
-  next to the H1 title now slightly exceeds the cap-height,
-  reinforcing "which tool am I in" without inflating the header
-  block. Title font-size stays at 22.
+- **The Column-Separator picker is no longer required upfront.** The drop
+  zone is enabled immediately; the dropdown collapses behind an "Override
+  ▾" disclosure and `autoDetectSep` resolves the delimiter from the data.
+  See [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-changed).
 
-- **Sample-dataset banner now uses a single shared hand-drawn
-  datasheet icon, no white-disc background.** The per-tool
-  `TOOL_ICONS` art that briefly occupied this slot read as a
-  duplicate of the topbar badge; a neutral notepad-with-rows sketch
-  signals "this is sample data" without competing for visual
-  centre. New `<DatasheetIcon />` lives in
-  `tools/_shell/DatasheetIcon.tsx`, inherits `currentColor` from
-  the banner text so dark mode themes automatically, and renders
-  at 70 % opacity in the banner so it supports the title without
-  pulling focus. `ExampleSummary.icon` is still an opt-in override —
-  none of the 8 plot tools sets it now, all fall through to the
-  shared default.
+- **UpSet retired its upfront Wide/Long data-format picker.** 3+ columns
+  is unambiguously wide; 2-column input runs through the shared
+  `detectLongFormat` heuristic Venn already used (lifted to
+  `tools/_shell/long-format-detect.ts`). See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-changed).
 
-- **How-to card now leads with an expand/collapse chevron instead
-  of the tool icon.** The topbar + the sample-dataset banner already
-  carry the tool icon on the upload step, so the third repetition in
-  the How-to header was redundant. Moving the chevron from the
-  trailing slot to the leading slot also reads more directly as
-  "click to expand" — a single affordance instead of icon + chevron.
-  `toolName` stays on `HowToCard` props because it still drives the
-  collapsible's localStorage key (`dv-howto-<toolName>`).
+- **Group Plot Y-axis label defaults to the selected value column's name**
+  (e.g. "Biomass_mg" instead of the generic "Value"). Auto-syncs on column
+  pick / rename while in default state; the moment the user types anything
+  custom, the sync stops touching it. See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-changed).
 
-- **Sample-dataset banners now use each tool's polished SVG icon
-  instead of the emoji placeholder.** The earlier 🌱 / 💡 / 🧬 / 📈 /
-  🌸 / 🌋 set read as playful next to the chart-tool quality;
-  reusing each tool's existing `TOOL_ICONS` SVG (the same monoline
-  art the topbar carries) keeps the banner visually distinct
-  per-tool while matching the chrome aesthetic. Rendered via
-  `toolIcon(<key>, 32, { circle: true })` so each icon sits on a
-  small white disc that pops against the green success-bg.
-  `ExampleSummary.icon` widened from `string` to `React.ReactNode`;
-  legacy emoji strings still render correctly.
+- **How-to card now leads with the expand/collapse chevron instead of the
+  tool icon.** The topbar + the sample-dataset banner already carry the
+  tool icon — a third repetition felt redundant. See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-changed).
 
-- **UpSet retired its upfront Wide/Long data-format picker.** The
-  toggle was vestigial: 3+ column input is unambiguously wide (one
-  column per set), and 2-column input can be auto-classified by the
-  same `detectLongFormat` heuristic Venn has used since the audit-M2
-  pass (≥ 3 col-2 rows, 2–20 distinct values, ≥ 50 % col-2
-  repetition, ≥ 70 % col-1 uniqueness). The helper moved from
-  `tools/venn/long-format-detect.ts` to
-  `tools/_shell/long-format-detect.ts` so both tools share the same
-  source of truth; venn keeps the re-export so its test loader and
-  existing 13 `detectLongFormat` tests are unchanged. UpSet's
-  `doParse` runs the detector on 2-column input and flips `format`
-  to `"long"` automatically; the cross-tool handoff still respects
-  an explicit `format` field on the incoming payload.
+- **Topbar tool icon a touch bigger (22 → 28 px).** Slightly exceeds the
+  H1 cap-height now, reinforcing "which tool am I in". See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-changed).
 
-- **Every plot tool's upload step rebuilt: auto-detect, paste,
-  prominent sample.** Three changes that travel together, applied
-  to all 8 plot tools (Aequorin, Group Plot, Heatmap, Line Plot,
-  Scatter, UpSet, Venn, Volcano). (1) The separator picker is no
-  longer required upfront — the drop zone is enabled immediately
-  and the picker collapses behind a small "Override ▾" disclosure
-  (`parseRaw` / `parseData` / `parseWideMatrix` already route
-  through `autoDetectSep`, so this was UI friction, not a parser
-  requirement). On Group Plot, the detected separator is surfaced
-  on the Configure step ("detected: tab-separated"). (2) A "Paste
-  data" card sits next to "Drop a file" as an equally-prominent
-  side-by-side card, gated on the same `FILE_LIMIT_BYTES` (2 MB)
-  policy — closes the "save as CSV first" tax for users working
-  out of Excel / Sheets. (3) The "Try sample data" affordance —
-  previously a tiny secondary button buried beneath the upload
-  zone — is now a prominent green banner at the top of the step,
-  with icon, dataset title + subtitle, and primary CTA. Per-tool
-  copy: 🌱 plant biomass (Group Plot), 💡 aequorin Ca²⁺ time-course,
-  🧬 gene-expression matrix (Heatmap), 📈 bacterial growth curves
-  (Line Plot), 🌸 Fisher's Iris (Scatter), 🧬 Arabidopsis stress
-  DEGs (Venn 3-set / UpSet 5-set), 🌋 mock DESeq2 (Volcano). The
-  calculators (`molarity-app`, `power-app`) are unaffected — they
-  don't use `UploadPanel`. New `UploadPanel` props are still opt-in
-  (`autoDetect`, `onTextPaste`, `exampleSummary`) so a future
-  caller can keep the legacy gated UX if they want.
-
-- **Benchmark page reorders the two reference panels so each summary
-  sits next to its own collapsible.** Was: R summary → SciPy summary →
-  SciPy collapsible → R per-category tables. Now: SciPy summary →
-  SciPy collapsible → R summary → R per-category tables, so each
-  reference's headline number is read alongside its own breakdown
-  instead of interleaving. Edit lives in `benchmark/run.js`;
-  `benchmark.html` regenerated.
+- **Benchmark page reorders the two reference panels so each summary sits
+  next to its own collapsible.** SciPy summary → SciPy collapsible → R
+  summary → R per-category tables (was interleaved). See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-changed).
 
 ### Fixed
 
 - **Override disclosure no longer pops open after loading the sample
-  dataset and navigating back to upload.** Cause: each tool's
-  `loadExample` and Group Plot's cross-tool handoff effect were
-  still calling `setSepOverride(",")` / `setSepOverride("\t")` from
-  the pre-`autoDetect` era (when the picker had to be unlocked
-  manually to enable the drop zone). Auto-detect doesn't need that
-  value — but `AutoDetectUploadPanel`'s
-  `useState(sepOverride !== "")` initializer treated any non-empty
-  value as "user explicitly picked an override" and opened the
-  disclosure with that separator forced. Every loader now passes
-  `""` and relies on `autoDetectSep` to resolve the delimiter from
-  the data — autoDetect already handled this; only the UI state
-  was leaking. Two new regression tests pin the closed-vs-open
-  semantics ("disclosure closed when sepOverride is empty",
-  "disclosure open only when user-set").
+  dataset and navigating back to upload.** Every loader / handoff path now
+  passes `""` for `sepOverride` instead of a literal delimiter; only the
+  UI-state leak got closed, autoDetect already handled the parsing. Two
+  new regression tests pin the closed-vs-open semantics. See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-fixed).
 
-- **Landing-page "How it works" step 1 now reads "Upload CSV".** The
-  pill said "Paste CSV" but no plot tool exposes a paste textarea —
-  the only ingest surface is `FileDropZone` (drag-drop or file
-  picker). The copy was misleading from day one.
+- **Landing-page "How it works" step 1 reads "Upload CSV"** (was the
+  misleading "Paste CSV" from before paste existed; left as "Upload" now
+  that paste does, since one verb covers both paths). See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-fixed).
 
-- **Scatter regression r² now stays inside [0, 1].** The two-pass
-  formula `(n·Σxy − Σx·Σy)² / (denomX · denomY)` suffers catastrophic
-  cancellation when either denominator collapses to FP-noise scale
-  (x-values 1e-160 apart, y-values at subnormal magnitudes), which
-  lifted the raw ratio to ~1.04 or pushed it slightly negative on
-  pathological inputs. Clamping the FP overshoot in
-  `tools/scatter/helpers.ts` restores the mathematical invariant the
-  property test pins. Surfaced by a fast-check seed on CI; real-data
-  regressions stay well inside the interval and are unaffected.
+- **Scatter regression r² now stays inside [0, 1].** Catastrophic
+  cancellation in the two-pass formula could lift the raw ratio to ~1.04
+  on FP-degenerate inputs; clamping in `tools/scatter/helpers.ts` restores
+  the invariant. See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-fixed).
+
+- **Boxplot quartile property tolerates 1-ULP rounding near the edges of
+  its arbitrary's range.** Output-precondition adds an
+  `8 × Number.EPSILON` magnitude-scaled tolerance rather than tightening
+  the input filter. See
+  [`docs/release-notes/v1.4.2.md`](docs/release-notes/v1.4.2.md#-fixed).
 
 ## [1.4.1] - 2026-05-11
 
