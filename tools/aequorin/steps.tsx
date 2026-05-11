@@ -20,6 +20,7 @@ export function UploadStep({
   rawText,
   doParse,
   handleFileLoad,
+  handleTextPaste,
   onLoadExample,
 }: UploadStepProps) {
   return (
@@ -31,7 +32,15 @@ export function UploadStep({
           if (rawText) doParse(rawText, v);
         }}
         onFileLoad={handleFileLoad}
+        onTextPaste={handleTextPaste}
+        autoDetect
         onLoadExample={onLoadExample}
+        exampleSummary={{
+          icon: "💡",
+          title: "Aequorin Ca²⁺ time-course",
+          subtitle: "Mutant vs WT response to a CO7 elicitor pulse",
+          buttonLabel: "Plot this example →",
+        }}
         hint="CSV · TSV · TXT · DAT — one column per sample, one row per time-point · 2 MB max"
       />
       <HowToSection />

@@ -69,6 +69,7 @@ export interface UploadStepProps {
   sepOverride: string;
   setSepOverride: (s: string) => void;
   handleFileLoad: (text: string, name: string) => void;
+  handleTextPaste: (text: string, name: string) => void;
   onLoadExample: () => void;
 }
 

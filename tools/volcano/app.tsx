@@ -417,12 +417,18 @@ export function App() {
 
   const doParse = useCallback(
     (text: string, sep: string) => {
-      sepRef.current = sep;
-      const dc = fixDecimalCommas(text, sep);
+      // Resolve "auto" (sep === "") before fixDecimalCommas so European
+      // semicolon-delimited input still gets its decimal commas fixed
+      // — `fixDecimalCommas` short-circuits on sep === "". Same pattern
+      // as boxplot/app.tsx.
+      const resolved = autoDetectSep(text, sep);
+      const effectiveSep = typeof resolved === "string" ? resolved : "";
+      sepRef.current = effectiveSep;
+      const dc = fixDecimalCommas(text, effectiveSep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
       const fixed = dc.text;
-      const out = parseData(fixed, sep);
+      const out = parseData(fixed, effectiveSep);
       setInjectionWarning(out.injectionWarnings);
       if (out.headers.length < 2 || out.data.length === 0) {
         setParseError(
@@ -456,6 +462,18 @@ export function App() {
       doParse(text, sepOverride);
     },
     [doParse, setFileName, sepOverride]
+  );
+
+  // Paste-data path. UploadPanel hands raw text + a synthetic filename;
+  // size is gated in the panel against FILE_LIMIT_BYTES. Force
+  // sepOverride="" so auto-detect kicks in for Excel/Sheets paste.
+  const handleTextPaste = useCallback(
+    (text: string, name: string) => {
+      setFileName(name);
+      setSepOverride("");
+      doParse(text, "");
+    },
+    [doParse, setFileName, setSepOverride]
   );
 
   const onLoadExample = useCallback(() => {
@@ -626,8 +644,15 @@ export function App() {
               if (rawText) doParse(rawText, v);
             }}
             onFileLoad={handleFileLoad}
+            onTextPaste={handleTextPaste}
+            autoDetect
             onLoadExample={onLoadExample}
-            exampleLabel="Synthetic DESeq2 output (200 features, mock plant transcriptomics)"
+            exampleSummary={{
+              icon: "🌋",
+              title: "Mock DESeq2 results",
+              subtitle: "200 features · plant circadian transcriptomics",
+              buttonLabel: "Plot this example →",
+            }}
             hint="CSV · TSV · TXT · one row per feature · expects log2FC + p-value columns · 2 MB max"
           />
           <HowTo {...VOLCANO_HOWTO} />

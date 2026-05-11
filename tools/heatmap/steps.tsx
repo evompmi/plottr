@@ -11,6 +11,7 @@ export function UploadStep({
   sepOverride,
   setSepOverride,
   handleFileLoad,
+  handleTextPaste,
   onLoadExample,
 }: UploadStepProps) {
   return (
@@ -19,8 +20,15 @@ export function UploadStep({
         sepOverride={sepOverride}
         onSepChange={setSepOverride}
         onFileLoad={handleFileLoad}
+        onTextPaste={handleTextPaste}
+        autoDetect
         onLoadExample={onLoadExample}
-        exampleLabel="Example gene-expression matrix (500 genes × 6 samples)"
+        exampleSummary={{
+          icon: "🧬",
+          title: "Gene-expression matrix",
+          subtitle: "500 genes × 6 samples (3 Control · 3 Stress) · clustered demo",
+          buttonLabel: "Plot this example →",
+        }}
         hint="CSV · TSV · TXT — first column = row labels, first row = column labels, rest numeric · 2 MB max"
       />
       <HowTo {...HEATMAP_HOWTO} />
