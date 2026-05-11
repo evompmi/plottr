@@ -117,7 +117,19 @@ test("quartiles satisfies q1 ≤ med ≤ q3 (when q is finite)", () => {
       const q = quartiles(group);
       if (!q) return true;
       if (!Number.isFinite(q.q1) || !Number.isFinite(q.med) || !Number.isFinite(q.q3)) return true;
-      return q.q1 <= q.med && q.med <= q.q3;
+      // FP tolerance: when two values near the upper end of the
+      // [-1000, 1000] arbitrary differ by 1 ULP (e.g. 999.9999999999993
+      // vs 999.9999999999994, ~1.13e-13 apart), linear interpolation
+      // between them at the 25/50/75 percentile points produces deltas
+      // below the ULP of the operands themselves. The rounding direction
+      // for each percentile can disagree by a ULP, breaking q3 ≥ q1 by
+      // an amount that is numerically meaningless. The 8 × EPSILON scale
+      // factor is the conventional loose-but-tight tolerance for FP
+      // comparisons; tight enough that an implementation bug producing
+      // genuine non-monotonicity (off by 1 % of the spread or more)
+      // still fails.
+      const eps = Math.max(Math.abs(q.q1), Math.abs(q.q3)) * 8 * Number.EPSILON;
+      return q.q1 <= q.med + eps && q.med <= q.q3 + eps;
     })
   );
 });
