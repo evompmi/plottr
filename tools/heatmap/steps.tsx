@@ -24,7 +24,6 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          icon: toolIcon("heatmap", 32, { circle: true }),
           title: "Gene-expression matrix",
           subtitle: "500 genes × 6 samples (3 Control · 3 Stress) · clustered demo",
           buttonLabel: "Plot this example →",

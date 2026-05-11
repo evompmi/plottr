@@ -138,7 +138,6 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          icon: toolIcon("scatter", 32, { circle: true }),
           title: "Fisher's Iris dataset",
           subtitle: "150 flowers × 4 measurements · 3 species",
           buttonLabel: "Plot this example →",

@@ -17,6 +17,7 @@
 // tools keep their existing UX untouched while we evaluate the
 // auto-detect + paste + prominent-sample flow on boxplot.
 
+import { DatasheetIcon } from "./DatasheetIcon";
 import { FILE_LIMIT_BYTES, FILE_WARN_BYTES, FileDropZone } from "./FileDropZone";
 
 const h = React.createElement;
@@ -221,10 +222,14 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
             alignItems: "center",
             lineHeight: 1,
             flexShrink: 0,
+            // Slight dim so the icon supports the title without competing.
+            // The previous per-tool `toolIcon` art with a white circle was
+            // too visually central — feedback was "too attractive".
+            opacity: 0.7,
           }}
           aria-hidden="true"
         >
-          {summary.icon ?? <span style={{ fontSize: 32 }}>🌱</span>}
+          {summary.icon ?? <DatasheetIcon size={36} />}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div

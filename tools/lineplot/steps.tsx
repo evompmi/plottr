@@ -87,7 +87,6 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          icon: toolIcon("lineplot", 32, { circle: true }),
           title: "Bacterial growth curves",
           subtitle: "3 strains × 5 timepoints × 3 replicates",
           buttonLabel: "Plot this example →",

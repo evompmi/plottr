@@ -214,7 +214,6 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          icon: toolIcon("boxplot", 32, { circle: true }),
           title: "Plant biomass under drought & salt",
           subtitle: "3 genotypes × 3 treatments × 8 replicates · 72 rows",
           buttonLabel: "Plot this example →",
