@@ -819,18 +819,9 @@ const html = `<!doctype html>
     </ul>
   </header>
 
-  <h2 class="ref-heading">vs R ${escapeHtml(data.meta.r_version.replace(/^R version /, "").split(" ")[0])} on real built-in datasets</h2>
-  <div class="summary ${summaryClass}">
-    <div><span class="k">comparisons</span><span class="v">${total}</span></div>
-    <div><span class="k">passing</span><span class="v v-pass">${passed} (${passPct}%)</span></div>
-    <div><span class="k">failing</span><span class="v ${failed === 0 ? "v-pass" : "v-fail"}">${failed}</span></div>
-    <div><span class="k">past R's floor</span><span class="v v-rsat">${rSaturatedRows}</span></div>
-    <div><span class="k">max |Δ|</span><span class="v">${fmtDelta(maxDelta)}</span></div>
-  </div>${
+  ${
     scipy
-      ? `
-
-  <h2 class="ref-heading">vs SciPy ${escapeHtml(scipy.meta.scipy_version)} on targeted (df, λ) grids</h2>
+      ? `<h2 class="ref-heading">vs SciPy ${escapeHtml(scipy.meta.scipy_version)} on targeted (df, λ) grids</h2>
   <div class="summary ${scipyClass}">
     <div><span class="k">comparisons</span><span class="v">${scipy.totals.total.toLocaleString()}</span></div>
     <div><span class="k">passing</span><span class="v v-pass">${scipy.totals.pass.toLocaleString()} (${(
@@ -865,9 +856,18 @@ const html = `<!doctype html>
         )
         .join("")}</tbody>
     </table>
-  </details>`
+  </details>
+
+  `
       : ""
-  }
+  }<h2 class="ref-heading">vs R ${escapeHtml(data.meta.r_version.replace(/^R version /, "").split(" ")[0])} on real built-in datasets</h2>
+  <div class="summary ${summaryClass}">
+    <div><span class="k">comparisons</span><span class="v">${total}</span></div>
+    <div><span class="k">passing</span><span class="v v-pass">${passed} (${passPct}%)</span></div>
+    <div><span class="k">failing</span><span class="v ${failed === 0 ? "v-pass" : "v-fail"}">${failed}</span></div>
+    <div><span class="k">past R's floor</span><span class="v v-rsat">${rSaturatedRows}</span></div>
+    <div><span class="k">max |Δ|</span><span class="v">${fmtDelta(maxDelta)}</span></div>
+  </div>
 
   <button type="button" class="toggle-all" data-toggle-all aria-expanded="true">Collapse all</button>
 
