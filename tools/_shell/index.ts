@@ -18,6 +18,7 @@ export { ColorInput, normalizeHexColor } from "./ColorInput";
 export { ColumnRoleEditor } from "./ColumnRoleEditor";
 export { CommaFixBanner } from "./CommaFixBanner";
 export { DataPreview } from "./DataPreview";
+export { DetectedSeparatorBadge, describeSeparator } from "./DetectedSeparatorBadge";
 export { DiscretePaletteRow } from "./DiscretePaletteRow";
 export { DownloadTiles } from "./DownloadTiles";
 export { ErrorBoundary } from "./ErrorBoundary";

@@ -335,6 +335,10 @@ export function App() {
     updVis({ regression: { ...regression, ...patch } });
   const svgRef = useRef<SVGSVGElement>(null);
   const sepRef = useRef("");
+  // Separator the auto-detector resolved on the most recent parse. Surfaced
+  // inline on the Plot step's file-info line — Scatter has no configure step
+  // so the badge lives directly above the controls / chart row.
+  const [detectedSep, setDetectedSep] = useState<string>("");
 
   const parsed = useMemo(() => (rawText ? parseData(rawText, sepRef.current) : null), [rawText]);
 
@@ -661,6 +665,7 @@ export function App() {
       const resolved = autoDetectSep(text, sep);
       const effectiveSep = typeof resolved === "string" ? resolved : "";
       sepRef.current = effectiveSep;
+      setDetectedSep(effectiveSep);
       const dc = fixDecimalCommas(text, effectiveSep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
@@ -728,9 +733,11 @@ export function App() {
   const loadExample = useCallback(() => {
     const text = EXAMPLE_CSV;
     if (!text) return;
-    setSepOverride(",");
+    // Leave sepOverride empty so the Override disclosure stays closed on
+    // back-nav; autoDetectSep resolves "," from the bundled CSV.
+    setSepOverride("");
     setFileName("iris.csv");
-    doParse(text, ",");
+    doParse(text, "");
   }, [doParse, setFileName, setSepOverride]);
 
   const resetAll = () => {
@@ -790,6 +797,7 @@ export function App() {
         <PlotStep
           parsed={parsed}
           fileName={fileName}
+          detectedSep={detectedSep}
           filteredData={filteredData}
           filteredRawRows={filteredRawRows}
           activeColIdxs={activeColIdxs}

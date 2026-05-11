@@ -99,6 +99,9 @@ export function App() {
   } = shell;
 
   const [format, setFormat] = useState<"wide" | "long">("wide");
+  // Separator the auto-detector resolved on the most recent parse. Surfaced
+  // inline on the Configure step's file-info line.
+  const [detectedSep, setDetectedSep] = useState<string>("");
   const [setNames, setSetNames] = useState<string[]>([]);
   const [sets, setSets] = useState<Map<string, Set<string>>>(new Map());
   const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);
@@ -399,6 +402,7 @@ export function App() {
       // as boxplot/app.tsx.
       const resolved = autoDetectSep(text, sep);
       const effectiveSep = typeof resolved === "string" ? resolved : "";
+      setDetectedSep(effectiveSep);
       const dc = fixDecimalCommas(text, effectiveSep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
@@ -461,10 +465,14 @@ export function App() {
   const loadExample = useCallback(() => {
     const text = EXAMPLE_CSV;
     if (!text) return;
-    setSepOverride(",");
+    // Leave sepOverride empty so the Override disclosure stays closed on
+    // back-nav; autoDetectSep resolves "," from the bundled CSV. Format
+    // (wide vs long) is independent of sep and gets pinned to wide here
+    // because the example always ships in wide shape.
+    setSepOverride("");
     setFormat("wide");
     setFileName("arabidopsis_stress_5set.csv");
-    doParse(text, ",", "wide");
+    doParse(text, "", "wide");
   }, [doParse, setFileName, setSepOverride]);
 
   // Hand-off from the Venn tool's "Open in UpSet" nudge: replaces whatever
@@ -586,6 +594,7 @@ export function App() {
       {step === "configure" && allColumnNames.length >= 2 && (
         <ConfigureStep
           fileName={fileName}
+          detectedSep={detectedSep}
           parsedHeaders={parsedHeaders}
           parsedRows={parsedRows}
           allColumnNames={allColumnNames}

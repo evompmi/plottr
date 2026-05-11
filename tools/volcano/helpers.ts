@@ -1389,6 +1389,8 @@ export interface SummaryTileProps {
 export interface ConfigureStepProps {
   parsed: ParseDataResult;
   fileName: string;
+  // Separator the auto-detector resolved. Empty string until first parse.
+  detectedSep: string;
   xCol: number;
   yCol: number;
   labelCol: number;

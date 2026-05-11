@@ -157,6 +157,8 @@ export interface UploadStepProps {
 export interface ConfigureStepProps {
   parsed: ParseDataResult;
   fileName: string;
+  // Separator the auto-detector resolved. Empty string until first parse.
+  detectedSep: string;
   xCol: number;
   setXCol: (i: number) => void;
   yCol: number;

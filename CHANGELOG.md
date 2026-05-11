@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`<DetectedSeparatorBadge sep={detectedSep} />` surfaces the
+  auto-detected delimiter on every plot tool's post-upload step.**
+  Inline trailing fragment ("· detected: tab-separated") on each
+  tool's file-info line — Configure step for tools that have one
+  (Aequorin, Group Plot, Heatmap, Line Plot, UpSet, Venn, Volcano)
+  and the top of the Plot step for Scatter (which skips Configure).
+  The badge renders nothing when the detector hits the empty-string
+  whitespace fallback, so it never gets in the way. Maps `","` →
+  "comma", `";"` → "semicolon", `"\t"` → "tab", `" "` → "space",
+  anything else → "whitespace". Component + `describeSeparator()`
+  helper live in `_shell/DetectedSeparatorBadge.tsx`.
+
 ### Changed
 
 - **Every plot tool's upload step rebuilt: auto-detect, paste,
@@ -44,6 +58,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `benchmark.html` regenerated.
 
 ### Fixed
+
+- **Override disclosure no longer pops open after loading the sample
+  dataset and navigating back to upload.** Cause: each tool's
+  `loadExample` and Group Plot's cross-tool handoff effect were
+  still calling `setSepOverride(",")` / `setSepOverride("\t")` from
+  the pre-`autoDetect` era (when the picker had to be unlocked
+  manually to enable the drop zone). Auto-detect doesn't need that
+  value — but `AutoDetectUploadPanel`'s
+  `useState(sepOverride !== "")` initializer treated any non-empty
+  value as "user explicitly picked an override" and opened the
+  disclosure with that separator forced. Every loader now passes
+  `""` and relies on `autoDetectSep` to resolve the delimiter from
+  the data — autoDetect already handled this; only the UI state
+  was leaking. Two new regression tests pin the closed-vs-open
+  semantics ("disclosure closed when sepOverride is empty",
+  "disclosure open only when user-set").
 
 - **Landing-page "How it works" step 1 now reads "Upload CSV".** The
   pill said "Paste CSV" but no plot tool exposes a paste textarea —

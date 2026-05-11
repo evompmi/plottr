@@ -169,6 +169,8 @@ export interface UploadStepProps {
 
 export interface ConfigureStepProps {
   fileName: string;
+  // Separator the auto-detector resolved. Empty string until first parse.
+  detectedSep: string;
   parsedHeaders: string[];
   parsedRows: string[][];
   allColumnNames: string[];

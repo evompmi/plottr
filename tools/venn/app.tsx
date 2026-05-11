@@ -59,6 +59,11 @@ export function App() {
     updVis,
   } = shell;
 
+  // Separator the auto-detector resolved on the most recent parse. Surfaced
+  // inline on the Configure step's file-info line (≤3-set datasets bypass
+  // the configure step and don't show this — acceptable for the simpler
+  // path; the user can always pop "Override ▾" on upload to verify).
+  const [detectedSep, setDetectedSep] = useState<string>("");
   const [setNames, setSetNames] = useState<string[]>([]);
   const [sets, setSets] = useState<Map<string, Set<string>>>(new Map());
   // setColors lives in `vis` (was local useState before the discrete-palette
@@ -168,6 +173,7 @@ export function App() {
       // as boxplot/app.tsx.
       const resolved = autoDetectSep(text, sep);
       const effectiveSep = typeof resolved === "string" ? resolved : "";
+      setDetectedSep(effectiveSep);
       const dc = fixDecimalCommas(text, effectiveSep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
@@ -260,9 +266,11 @@ export function App() {
   const loadExample = useCallback(() => {
     const text = EXAMPLE_CSV;
     if (!text) return;
-    setSepOverride(",");
+    // Leave sepOverride empty so the Override disclosure stays closed on
+    // back-nav; autoDetectSep resolves "," from the bundled CSV.
+    setSepOverride("");
     setFileName("arabidopsis_stress.csv");
-    doParse(text, ",");
+    doParse(text, "");
   }, [doParse, setFileName, setSepOverride]);
 
   const handleColorChange = (name: string, color: string) => {
@@ -349,6 +357,7 @@ export function App() {
       {step === "configure" && allColumnNames.length >= 2 && (
         <ConfigureStep
           fileName={fileName}
+          detectedSep={detectedSep}
           parsedHeaders={parsedHeaders}
           parsedRows={parsedRows}
           allColumnNames={allColumnNames}

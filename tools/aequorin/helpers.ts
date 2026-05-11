@@ -447,6 +447,9 @@ export interface ConfigureStepProps {
   vis: AequorinVis;
   updVis: UpdVis;
   fileName: string;
+  // Empty string until first parse. Surfaced inline on the Configure step
+  // file-info line via `<DetectedSeparatorBadge />`.
+  detectedSep: string;
   calData: Array<Array<number | null>> | null;
   columnEnabled: Record<number, boolean>;
   downloadCalibrated: () => void;

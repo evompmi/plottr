@@ -3,7 +3,13 @@
 // and the LpAesBox themed wrapper used in the configure-step grid.
 
 import type { UploadStepProps, ConfigureStepProps } from "./helpers";
-import { DataPreview, HowTo, UploadPanel, scrollDisclosureIntoView } from "../_shell";
+import {
+  DataPreview,
+  DetectedSeparatorBadge,
+  HowTo,
+  UploadPanel,
+  scrollDisclosureIntoView,
+} from "../_shell";
 import { LINEPLOT_HOWTO } from "./howto";
 
 const { useState, useRef, useEffect } = React;
@@ -149,6 +155,7 @@ function LpAesBox({ theme, children }: { theme: "x" | "y" | "group"; children?: 
 export function ConfigureStep({
   parsed,
   fileName,
+  detectedSep,
   xCol,
   setXCol,
   yCol,
@@ -231,6 +238,7 @@ export function ConfigureStep({
         <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--text-muted)" }}>
           Loaded <strong style={{ color: "var(--text)" }}>{fileName || "pasted data"}</strong> —{" "}
           {parsed.rawData.length} rows × {parsed.headers.length} columns
+          <DetectedSeparatorBadge sep={detectedSep} />
         </p>
         <DataPreview headers={parsed.headers} rows={parsed.rawData} maxRows={10} />
       </div>

@@ -125,6 +125,9 @@ export function App() {
 
   const svgRef = useRef<SVGSVGElement>(null);
   const sepRef = useRef("");
+  // Separator the auto-detector resolved on the most recent parse. Surfaced
+  // inline on the Configure step's file-info line.
+  const [detectedSep, setDetectedSep] = useState<string>("");
 
   const parsed = useMemo(() => (rawText ? parseData(rawText, sepRef.current) : null), [rawText]);
 
@@ -263,6 +266,7 @@ export function App() {
       const resolved = autoDetectSep(text, sep);
       const effectiveSep = typeof resolved === "string" ? resolved : "";
       sepRef.current = effectiveSep;
+      setDetectedSep(effectiveSep);
       const dc = fixDecimalCommas(text, effectiveSep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
@@ -316,9 +320,11 @@ export function App() {
   const loadExample = useCallback(() => {
     const text = EXAMPLE_CSV;
     if (!text) return;
-    setSepOverride(",");
+    // Leave sepOverride empty so the Override disclosure stays closed on
+    // back-nav; autoDetectSep resolves "," from the bundled CSV.
+    setSepOverride("");
     setFileName("bacterial_growth.csv");
-    doParse(text, ",");
+    doParse(text, "");
   }, [doParse, setFileName, setSepOverride]);
 
   const resetAll = () => {
@@ -360,6 +366,7 @@ export function App() {
         <ConfigureStep
           parsed={parsed}
           fileName={fileName}
+          detectedSep={detectedSep}
           xCol={xCol}
           setXCol={setXCol}
           yCol={yCol}

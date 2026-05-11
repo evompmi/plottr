@@ -1311,6 +1311,9 @@ export function App() {
   // future edit that reaches for the shell's parseError API will produce a
   // linter "unused import" rather than silently double-rendering.
   const [parseMessage, setParseMessage] = useState<string | null>(null);
+  // Separator the auto-detector resolved on the most recent parse. Surfaced
+  // on the Configure step's file-info line via `<DetectedSeparatorBadge />`.
+  const [detectedSep, setDetectedSep] = useState<string>("");
 
   const [rawText, setRawText] = useState<any>(null);
   const [formula, setFormula] = useState<CalibrationFormula>("none");
@@ -1553,6 +1556,7 @@ export function App() {
       // unchanged when non-empty, or its best guess otherwise.
       const resolved = autoDetectSep(text, sep);
       const effectiveSep = typeof resolved === "string" ? resolved : "";
+      setDetectedSep(effectiveSep);
       const dc = fixDecimalCommas(text, effectiveSep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
@@ -1657,9 +1661,11 @@ export function App() {
       setParseMessage("Example dataset not loaded. Please try uploading a file instead.");
       return;
     }
-    setSepOverride("\t");
+    // Leave sepOverride empty so the Override disclosure stays closed on
+    // back-nav; autoDetectSep resolves "\t" from the bundled TSV.
+    setSepOverride("");
     setFileName("rlu_timecourse_example.tsv");
-    doParse(text, "\t");
+    doParse(text, "");
   }, [doParse, setFileName, setSepOverride]);
   const resetAll = () => {
     setRawText(null);
@@ -1748,6 +1754,7 @@ export function App() {
           vis={vis}
           updVis={updVis}
           fileName={fileName}
+          detectedSep={detectedSep}
           calData={calData}
           columnEnabled={columnEnabled}
           downloadCalibrated={downloadCalibrated}
