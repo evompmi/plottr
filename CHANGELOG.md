@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Landing-page "How it works" step 1 now reads "Upload CSV".** The
+  pill said "Paste CSV" but no plot tool exposes a paste textarea —
+  the only ingest surface is `FileDropZone` (drag-drop or file
+  picker). The copy was misleading from day one.
+
 - **Scatter regression r² now stays inside [0, 1].** The two-pass
   formula `(n·Σxy − Σx·Σy)² / (denomX · denomY)` suffers catastrophic
   cancellation when either denominator collapses to FP-noise scale
