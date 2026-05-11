@@ -193,6 +193,7 @@ export function UploadStep({
   rawText,
   doParse,
   handleFileLoad,
+  handleTextPaste,
   setStep,
   onLoadExample,
 }: UploadStepProps) {
@@ -208,13 +209,31 @@ export function UploadStep({
           }
         }}
         onFileLoad={handleFileLoad}
+        onTextPaste={handleTextPaste}
+        autoDetect
         onLoadExample={onLoadExample}
-        exampleLabel="Plant biomass under drought / salt (3 genotypes × 3 treatments × 8 reps)"
+        exampleSummary={{
+          icon: "🌱",
+          title: "Plant biomass under drought & salt",
+          subtitle: "3 genotypes × 3 treatments × 8 replicates · 72 rows",
+          buttonLabel: "Plot this example →",
+        }}
         hint="CSV · TSV · TXT · DAT — one row per observation · 2 MB max"
       />
       <HowTo {...BOXPLOT_HOWTO} />
     </div>
   );
+}
+
+// Human-readable label for the resolved separator, surfaced on the Configure
+// step so the user can verify what auto-detect picked. Empty string means
+// the detector hit the whitespace fallback (autoDetectSep returned /\s+/).
+function describeSeparator(sep: string): string {
+  if (sep === ",") return "comma";
+  if (sep === ";") return "semicolon";
+  if (sep === "\t") return "tab";
+  if (sep === " ") return "space";
+  return "whitespace";
 }
 
 export function ConfigureStep({
@@ -226,6 +245,7 @@ export function ConfigureStep({
   colNames,
   valueColIdx,
   valueColIsNumeric,
+  detectedSep,
   onRoleChange,
   onNameChange,
 }: ConfigureStepProps) {
@@ -367,6 +387,11 @@ export function ConfigureStep({
         <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-muted)" }}>
           <strong style={{ color: "var(--text)" }}>{fileName}</strong> — {parsedHeaders.length} cols
           × {parsedRows.length} rows{hasHeader ? "" : " (no header)"}
+          {detectedSep && (
+            <span style={{ marginLeft: 8, color: "var(--text-faint)", fontWeight: 400 }}>
+              · detected: <strong>{describeSeparator(detectedSep)}</strong>-separated
+            </span>
+          )}
         </p>
         <p style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>
           Preview (first 8 rows):

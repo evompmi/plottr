@@ -177,6 +177,10 @@ test("renders with no separator selected (disabled state)", function () {
     onFileLoad: noop,
   });
   assert(html.length > 0, "should render");
+  assert(
+    html.indexOf("Pick a column separator") !== -1,
+    "legacy path should still gate the drop zone"
+  );
 });
 
 test("renders with separator selected (enabled state)", function () {
@@ -186,6 +190,113 @@ test("renders with separator selected (enabled state)", function () {
     onFileLoad: noop,
   });
   assert(html.length > 0, "should render");
+});
+
+test("autoDetect mode hides the gate and offers an Override disclosure", function () {
+  const html = renderHtml(sc.UploadPanel, {
+    sepOverride: "",
+    onSepChange: noop,
+    onFileLoad: noop,
+    autoDetect: true,
+  });
+  assert(
+    html.indexOf("Pick a column separator") === -1,
+    "the legacy 🚫 gate must not render under autoDetect"
+  );
+  assert(html.indexOf("auto-detects") !== -1, "should explain auto-detect to the user");
+  assert(html.indexOf("Override") !== -1, "should expose an override affordance");
+});
+
+test("autoDetect + onTextPaste renders Drop and Paste side-by-side", function () {
+  const html = renderHtml(sc.UploadPanel, {
+    sepOverride: "",
+    onSepChange: noop,
+    onFileLoad: noop,
+    onTextPaste: noop,
+    autoDetect: true,
+  });
+  assert(html.indexOf("Drop a file") !== -1, "drop card should render");
+  assert(html.indexOf("Paste data") !== -1, "paste card should render");
+  assert(html.indexOf("Parse pasted data") !== -1, "paste submit button should render");
+  assert(
+    html.indexOf("Excel") !== -1 && html.indexOf("Sheets") !== -1,
+    "placeholder should call out Excel / Sheets as the common paste sources"
+  );
+});
+
+test("autoDetect without onTextPaste renders only the Drop card", function () {
+  const html = renderHtml(sc.UploadPanel, {
+    sepOverride: "",
+    onSepChange: noop,
+    onFileLoad: noop,
+    autoDetect: true,
+  });
+  assert(html.indexOf("Drop a file") !== -1, "drop card should still render");
+  assert(html.indexOf("Paste data") === -1, "paste card must be absent without onTextPaste");
+});
+
+test("autoDetect + exampleSummary renders the prominent sample banner", function () {
+  const html = renderHtml(sc.UploadPanel, {
+    sepOverride: "",
+    onSepChange: noop,
+    onFileLoad: noop,
+    autoDetect: true,
+    onLoadExample: noop,
+    exampleSummary: {
+      icon: "🌱",
+      title: "Plant biomass under drought & salt",
+      subtitle: "3 genotypes × 3 treatments × 8 replicates · 72 rows",
+      buttonLabel: "Plot this example →",
+    },
+  });
+  assert(html.indexOf("sample-promo") !== -1, "banner test-id should be present");
+  assert(
+    html.indexOf("Plant biomass under drought") !== -1,
+    "banner should render the structured title"
+  );
+  assert(html.indexOf("3 genotypes") !== -1, "banner should render the structured subtitle");
+  assert(html.indexOf("Plot this example") !== -1, "banner should use the custom button label");
+  // Should NOT render a redundant bottom 'Try sample data:' affordance.
+  assert(
+    html.indexOf("Try sample data:") === -1,
+    "buried bottom-of-card affordance must not coexist with the banner"
+  );
+});
+
+test("autoDetect promotes the sample CTA when only the legacy exampleLabel is provided", function () {
+  const html = renderHtml(sc.UploadPanel, {
+    sepOverride: "",
+    onSepChange: noop,
+    onFileLoad: noop,
+    autoDetect: true,
+    onLoadExample: noop,
+    exampleLabel: "Generic legacy label string",
+  });
+  assert(html.indexOf("sample-promo") !== -1, "fallback banner should still render");
+  assert(
+    html.indexOf("Try a sample dataset") !== -1,
+    "fallback title should be used when exampleSummary is absent"
+  );
+  assert(
+    html.indexOf("Generic legacy label string") !== -1,
+    "legacy exampleLabel string should surface as the subtitle"
+  );
+});
+
+test("legacy (non-autoDetect) mode keeps the buried sample button", function () {
+  // Sanity check that the 7 other tools' existing behaviour is untouched.
+  const html = renderHtml(sc.UploadPanel, {
+    sepOverride: ",",
+    onSepChange: noop,
+    onFileLoad: noop,
+    onLoadExample: noop,
+    exampleLabel: "Load example →",
+  });
+  assert(html.indexOf("sample-promo") === -1, "legacy mode must not surface the new banner");
+  assert(
+    html.indexOf("Try sample data:") !== -1,
+    "legacy mode keeps the original caption + button affordance"
+  );
 });
 
 suite("ActionsPanel");
