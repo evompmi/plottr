@@ -43,7 +43,6 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          icon: toolIcon("upset", 32, { circle: true }),
           title: "Arabidopsis stress-response DEGs",
           subtitle: "5 sets — Drought · Heat · Salt · Cold · ABA",
           buttonLabel: "Plot this example →",

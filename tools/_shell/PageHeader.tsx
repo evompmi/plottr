@@ -39,7 +39,12 @@ export function PageHeader(props: PageHeaderProps) {
           alignItems: "center",
         },
       },
-      toolIcon(props.toolName),
+      // Bumped from the toolIcon default (22) to give the per-tool art
+      // a bit more presence next to the H1 — the topbar is the canonical
+      // place to see "which tool am I in" and a heftier icon reads more
+      // confidently. Title font-size stays at 22 so the icon now slightly
+      // exceeds the cap-height (intentional visual hierarchy).
+      toolIcon(props.toolName, 28),
       props.title
     ),
   ];

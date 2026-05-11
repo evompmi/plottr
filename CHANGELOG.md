@@ -23,6 +23,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Topbar tool icon a touch bigger (22 → 28).** The per-tool art
+  next to the H1 title now slightly exceeds the cap-height,
+  reinforcing "which tool am I in" without inflating the header
+  block. Title font-size stays at 22.
+
+- **Sample-dataset banner now uses a single shared hand-drawn
+  datasheet icon, no white-disc background.** The per-tool
+  `TOOL_ICONS` art that briefly occupied this slot read as a
+  duplicate of the topbar badge; a neutral notepad-with-rows sketch
+  signals "this is sample data" without competing for visual
+  centre. New `<DatasheetIcon />` lives in
+  `tools/_shell/DatasheetIcon.tsx`, inherits `currentColor` from
+  the banner text so dark mode themes automatically, and renders
+  at 70 % opacity in the banner so it supports the title without
+  pulling focus. `ExampleSummary.icon` is still an opt-in override —
+  none of the 8 plot tools sets it now, all fall through to the
+  shared default.
+
 - **How-to card now leads with an expand/collapse chevron instead
   of the tool icon.** The topbar + the sample-dataset banner already
   carry the tool icon on the upload step, so the third repetition in

@@ -114,6 +114,7 @@ function ensureSharedBundleLoaded() {
         "ColumnRoleEditor",
         "CommaFixBanner",
         "DataPreview",
+        "DatasheetIcon",
         "DetectedSeparatorBadge",
         "DiscretePaletteRow",
         "DownloadTiles",

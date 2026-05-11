@@ -335,6 +335,23 @@ test("legacy (non-autoDetect) mode keeps the buried sample button", function () 
   );
 });
 
+suite("DatasheetIcon");
+
+test("renders an SVG at the given size with the dog-ear path", function () {
+  const html = renderHtml(sc.DatasheetIcon, { size: 36 });
+  assert(html.indexOf("<svg") !== -1, "should render an SVG element");
+  assert(html.indexOf('width="36"') !== -1, "should honor size prop on width");
+  assert(html.indexOf('height="36"') !== -1, "should honor size prop on height");
+  // The dog-ear corner path is the visual hook that says "this is paper,
+  // not a generic rectangle" — assert it survives any future refactor.
+  assert(html.indexOf("M29 6 L29 14 L37 14") !== -1, "should draw the dog-ear fold path");
+});
+
+test("defaults to a 36 px box when size is omitted", function () {
+  const html = renderHtml(sc.DatasheetIcon, {});
+  assert(html.indexOf('width="36"') !== -1, "default width should be 36");
+});
+
 suite("DetectedSeparatorBadge");
 
 test("renders nothing when sep is empty", function () {

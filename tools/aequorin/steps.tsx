@@ -36,7 +36,6 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          icon: toolIcon("aequorin", 32, { circle: true }),
           title: "Aequorin Ca²⁺ time-course",
           subtitle: "Mutant vs WT response to a CO7 elicitor pulse",
           buttonLabel: "Plot this example →",
