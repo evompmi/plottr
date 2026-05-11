@@ -367,9 +367,11 @@ export function App() {
   );
 
   const loadExample = useCallback(() => {
-    setSepOverride(",");
+    // Leave sepOverride empty so the Override disclosure stays closed on
+    // back-nav; autoDetectSep resolves "," from the bundled CSV.
+    setSepOverride("");
     setFileName("stress_response_genes.csv");
-    doParse(EXAMPLE_CSV, ",");
+    doParse(EXAMPLE_CSV, "");
   }, [doParse, setFileName, setSepOverride]);
 
   const resetAll = () => {

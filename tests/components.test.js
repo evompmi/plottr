@@ -207,6 +207,42 @@ test("autoDetect mode hides the gate and offers an Override disclosure", functio
   assert(html.indexOf("Override") !== -1, "should expose an override affordance");
 });
 
+test("autoDetect disclosure is closed on mount when sepOverride is empty", function () {
+  // Regression: previously, `loadExample` / cross-tool handoff set
+  // sepOverride to a literal value (',' or '\t') even though autoDetect
+  // mode doesn't need it; navigating back to upload then remounted
+  // AutoDetectUploadPanel and the `useState(sepOverride !== "")`
+  // initializer popped the Override disclosure open with that value
+  // forced. With sepOverride empty the disclosure must stay collapsed.
+  const html = renderHtml(sc.UploadPanel, {
+    sepOverride: "",
+    onSepChange: noop,
+    onFileLoad: noop,
+    autoDetect: true,
+  });
+  assert(
+    html.indexOf("Force separator") === -1,
+    "Force separator picker should not render until the disclosure is opened"
+  );
+});
+
+test("autoDetect disclosure starts open only when sepOverride is user-set", function () {
+  // The flip side of the regression check above: when the user *has*
+  // explicitly picked an override (or a returning visitor's sepOverride
+  // is persisted as e.g. ';'), the disclosure should restore that state
+  // on mount so they can see what's active.
+  const html = renderHtml(sc.UploadPanel, {
+    sepOverride: ";",
+    onSepChange: noop,
+    onFileLoad: noop,
+    autoDetect: true,
+  });
+  assert(
+    html.indexOf("Force separator") !== -1,
+    "Force separator picker should render when sepOverride was user-set"
+  );
+});
+
 test("autoDetect + onTextPaste renders Drop and Paste side-by-side", function () {
   const html = renderHtml(sc.UploadPanel, {
     sepOverride: "",

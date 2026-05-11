@@ -483,9 +483,11 @@ export function App() {
   const onLoadExample = useCallback(() => {
     const ex = EXAMPLE_TSV;
     if (!ex) return;
-    setSepOverride("\t");
+    // Leave sepOverride empty so the Override disclosure stays closed on
+    // back-nav; autoDetectSep resolves "\t" from the bundled TSV.
+    setSepOverride("");
     setFileName("volcano_example.tsv");
-    doParse(ex, "\t");
+    doParse(ex, "");
   }, [doParse, setFileName, setSepOverride]);
 
   const resetAll = useCallback(() => {

@@ -347,9 +347,14 @@ export function App() {
     [sepOverride, doParse, setFileName]
   );
   const loadExample = useCallback(() => {
-    setSepOverride(",");
+    // sepOverride is intentionally cleared so the Override disclosure in
+    // AutoDetectUploadPanel stays closed when the user navigates back to
+    // the upload step — the auto-detector will resolve "," from the
+    // bundled example just as well as a hard-coded value. Skipping the
+    // reset would leak the legacy gated-mode default into the new flow.
+    setSepOverride("");
     setFileName("example_plant_growth.csv");
-    doParse(EXAMPLE_CSV, ",");
+    doParse(EXAMPLE_CSV, "");
   }, [doParse, setFileName, setSepOverride]);
 
   // Paste-data ingestion path. UploadPanel hands us raw text + a synthetic
@@ -394,9 +399,13 @@ export function App() {
     }
     const apply = (payload: HandoffPayload | null | undefined) => {
       if (!payload || !payload.csv) return;
-      setSepOverride(",");
+      // Same reasoning as `loadExample`: leave sepOverride empty so the
+      // Override disclosure doesn't pop open if the user backtracks to
+      // upload. Handoff payloads are always emitted as comma-separated by
+      // the source tool, so `autoDetectSep` resolves correctly.
+      setSepOverride("");
       setFileName(payload.fileName || "from_handoff.csv");
-      doParse(payload.csv, ",");
+      doParse(payload.csv, "");
       setStep("plot");
     };
     apply(consumeHandoff("boxplot"));

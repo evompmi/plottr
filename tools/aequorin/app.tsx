@@ -1661,9 +1661,11 @@ export function App() {
       setParseMessage("Example dataset not loaded. Please try uploading a file instead.");
       return;
     }
-    setSepOverride("\t");
+    // Leave sepOverride empty so the Override disclosure stays closed on
+    // back-nav; autoDetectSep resolves "\t" from the bundled TSV.
+    setSepOverride("");
     setFileName("rlu_timecourse_example.tsv");
-    doParse(text, "\t");
+    doParse(text, "");
   }, [doParse, setFileName, setSepOverride]);
   const resetAll = () => {
     setRawText(null);

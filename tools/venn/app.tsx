@@ -266,9 +266,11 @@ export function App() {
   const loadExample = useCallback(() => {
     const text = EXAMPLE_CSV;
     if (!text) return;
-    setSepOverride(",");
+    // Leave sepOverride empty so the Override disclosure stays closed on
+    // back-nav; autoDetectSep resolves "," from the bundled CSV.
+    setSepOverride("");
     setFileName("arabidopsis_stress.csv");
-    doParse(text, ",");
+    doParse(text, "");
   }, [doParse, setFileName, setSepOverride]);
 
   const handleColorChange = (name: string, color: string) => {
