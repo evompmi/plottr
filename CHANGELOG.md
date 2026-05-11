@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Group Plot Y-axis label now defaults to the selected value
+  column's name** (e.g. "Biomass_mg" instead of the generic
+  "Value"). Tracks the current value column and re-syncs whenever
+  the user picks a different value column or renames the existing
+  one — but only while the label is still in its default state
+  (empty, the legacy "Value" placeholder, or the previous
+  auto-applied column name). The moment the user types anything
+  custom in the Label control tile, the label diverges from all
+  three sentinels and the auto-sync stops touching it, so
+  customisations survive subsequent column changes and renames.
+
 ### Added
 
 - **`<DetectedSeparatorBadge sep={detectedSep} />` surfaces the

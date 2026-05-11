@@ -476,6 +476,33 @@ export function App() {
   const groupColIdx = colRoles.indexOf("group");
   const valueColIdx = colRoles.indexOf("value");
 
+  // Auto-default the Y-axis label to the selected value column's name.
+  // The label is considered "auto" — and gets resynced when the value
+  // column changes or is renamed — as long as it still equals the
+  // baseline placeholder ("Value"), the empty string, or the previous
+  // column name we'd set it to ourselves. The moment the user types
+  // anything else into the label control tile, the label diverges from
+  // all three sentinels and we stop touching it, so customisations
+  // survive subsequent column picks and renames.
+  const valueColName = valueColIdx >= 0 ? colNames[valueColIdx] || "" : "";
+  const prevAutoYLabel = useRef<string>(VIS_INIT_BOXPLOT.yLabel);
+  React.useEffect(() => {
+    if (!valueColName) return;
+    const current = vis.yLabel || "";
+    const isAuto =
+      current === "" || current === VIS_INIT_BOXPLOT.yLabel || current === prevAutoYLabel.current;
+    if (isAuto && current !== valueColName) {
+      updVis({ yLabel: valueColName });
+    }
+    prevAutoYLabel.current = valueColName;
+    // Intentionally narrow deps: re-run only when the selected value
+    // column (index or name) changes. Including `vis.yLabel` or
+    // `updVis` would re-fire on every user keystroke inside the label
+    // control tile and risk a feedback loop where user input gets
+    // overwritten by its own auto-sync.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valueColName]);
+
   const groupedData = useMemo(() => {
     if (groupColIdx < 0 || valueColIdx < 0) return {};
     const g: Record<string, any> = {};
