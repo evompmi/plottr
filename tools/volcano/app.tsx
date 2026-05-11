@@ -654,7 +654,7 @@ export function App() {
             autoDetect
             onLoadExample={onLoadExample}
             exampleSummary={{
-              icon: "🌋",
+              icon: toolIcon("volcano", 32, { circle: true }),
               title: "Mock DESeq2 results",
               subtitle: "200 features · plant circadian transcriptomics",
               buttonLabel: "Plot this example →",
