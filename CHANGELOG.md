@@ -45,6 +45,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`Plöttr v<version>` attribution mark on every chart export.** Every
+  SVG (and the PNG rasterised from it) now carries a small italic
+  `Plöttr v<version>` stamp in a reserved 14 px band at the bottom of
+  the canvas, sourced from `window.__APP_VERSION__` so a version bump
+  propagates without code changes. Implemented as a single shared
+  `appendPlottrAttribution()` helper in `tools/shared.js` that runs on
+  the export clone only, so the plot area, axes and existing margins
+  stay pixel-identical — only the canvas grows downward. Wrapped in
+  `<g id="plottr-attribution" data-plottr-version="…">` so journals
+  that strip branding can remove it with one selector.
+
 - **`npm run audit:contrast` — palette contrast audit script.** Walks
   every stop in the discrete + sequential + diverging palette
   catalogues plus the volcano default colours, computes WCAG 2.1 SC

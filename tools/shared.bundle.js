@@ -1093,9 +1093,20 @@ function flashSaved(btn) {
   }, 1500);
 }
 
-// Produce a standalone SVG string suitable for a file export.
+// Height of the reserved bottom band added to every export so the
+// `Plöttr v…` attribution sits outside the plot area. Used by both
+// `appendPlottrAttribution` (which extends the viewBox) and
+// `downloadPng` (which sizes its raster canvas to the post-watermark
+// dimensions, since the live SVG element still has the pre-watermark
+// viewBox).
+const PLOTTR_ATTRIBUTION_PAD = 14;
+
+// Build a clone of `svgEl` ready for export and append the permanent
+// `Plöttr v<VERSION>` attribution band at the bottom. Returns the
+// cloned <svg> element — callers can serialize it to a string or read
+// its updated `viewBox` / `width` / `height` attributes.
 //
-// Two transformations vs the live DOM, both Inkscape workarounds:
+// Two pre-watermark transformations, both Inkscape workarounds:
 //
 //   1. Strip the root <svg> inline `style="max-width:100%;height:auto;..."`
 //      (responsive-layout sugar that only makes sense inside an HTML flow;
@@ -1111,13 +1122,86 @@ function flashSaved(btn) {
 //      integer pixel coordinates via Math.round in the layout code, so
 //      crispEdges is redundant for seam avoidance in the exported file — we
 //      just drop it on export.
-function serializeSvgForExport(svgEl) {
+//
+// The watermark itself extends the viewBox (and `height` attribute, if
+// present) downward by PLOTTR_ATTRIBUTION_PAD px so the plot area, axes
+// and existing margins stay pixel-identical — only the canvas grows.
+function buildExportSvg(svgEl) {
   const clone = svgEl.cloneNode(true);
   clone.removeAttribute("style");
   clone.querySelectorAll("[shape-rendering]").forEach((el) => {
     el.removeAttribute("shape-rendering");
   });
-  return new XMLSerializer().serializeToString(clone);
+  appendPlottrAttribution(clone);
+  return clone;
+}
+
+function serializeSvgForExport(svgEl) {
+  return new XMLSerializer().serializeToString(buildExportSvg(svgEl));
+}
+
+// Append the `<g id="plottr-attribution">` wrapper containing a small
+// italic `Plöttr v<VERSION>` text to the bottom-right of the SVG
+// canvas. Mutates the passed-in element — pass a clone, not the live
+// DOM node. Idempotent: a second call removes the prior attribution
+// before re-appending, so the canvas can't grow twice.
+function appendPlottrAttribution(svgEl) {
+  if (!svgEl || typeof svgEl.setAttribute !== "function") return;
+  // Idempotency — if a prior attribution exists, strip both the group
+  // and the canvas pad it added before recomputing so repeated calls
+  // don't stack the band.
+  const prior = svgEl.querySelector("#plottr-attribution");
+  const hadPrior = !!(prior && prior.parentNode === svgEl);
+  if (hadPrior) prior.parentNode.removeChild(prior);
+
+  const vbParts = (svgEl.getAttribute("viewBox") || "").split(/[\s,]+/).map(parseFloat);
+  let vbX = 0;
+  let vbY = 0;
+  let vbW = 0;
+  let vbH = 0;
+  if (vbParts.length >= 4 && vbParts.every((n) => Number.isFinite(n))) {
+    vbX = vbParts[0];
+    vbY = vbParts[1];
+    vbW = vbParts[2];
+    vbH = vbParts[3];
+  } else {
+    const wAttr = parseFloat(svgEl.getAttribute("width"));
+    const hAttr = parseFloat(svgEl.getAttribute("height"));
+    vbW = Number.isFinite(wAttr) ? wAttr : 0;
+    vbH = Number.isFinite(hAttr) ? hAttr : 0;
+  }
+  if (hadPrior) vbH -= PLOTTR_ATTRIBUTION_PAD;
+  if (!(vbW > 0) || !(vbH > 0)) return;
+
+  const newH = vbH + PLOTTR_ATTRIBUTION_PAD;
+  svgEl.setAttribute("viewBox", `${vbX} ${vbY} ${vbW} ${newH}`);
+  const heightAttr = parseFloat(svgEl.getAttribute("height"));
+  if (Number.isFinite(heightAttr)) {
+    const baseHeight = hadPrior ? heightAttr - PLOTTR_ATTRIBUTION_PAD : heightAttr;
+    svgEl.setAttribute("height", String(baseHeight + PLOTTR_ATTRIBUTION_PAD));
+  }
+
+  const version =
+    (typeof window !== "undefined" && typeof window.__APP_VERSION__ === "string"
+      ? window.__APP_VERSION__
+      : null) || "v?";
+  const doc = svgEl.ownerDocument || (typeof document !== "undefined" ? document : null);
+  if (!doc || typeof doc.createElementNS !== "function") return;
+  const NS = "http://www.w3.org/2000/svg";
+  const g = doc.createElementNS(NS, "g");
+  g.setAttribute("id", "plottr-attribution");
+  g.setAttribute("data-plottr-version", version);
+  const text = doc.createElementNS(NS, "text");
+  text.setAttribute("x", String(vbX + vbW - 5));
+  text.setAttribute("y", String(vbY + newH - 4));
+  text.setAttribute("font-size", "8");
+  text.setAttribute("font-style", "italic");
+  text.setAttribute("fill", "#999");
+  text.setAttribute("text-anchor", "end");
+  text.setAttribute("font-family", "system-ui, -apple-system, sans-serif");
+  text.textContent = `Plöttr ${version}`;
+  g.appendChild(text);
+  svgEl.appendChild(g);
 }
 
 // MIME + accept-extension lookup keyed by filename extension. Drives
@@ -1195,11 +1279,16 @@ function downloadSvg(svgEl, filename) {
 function downloadPng(svgEl, filename, scale) {
   if (!svgEl) return;
   scale = scale || 2;
-  const svgStr = serializeSvgForExport(svgEl);
-  const vb = svgEl.getAttribute("viewBox");
+  // Build the export clone once so the raster canvas matches the
+  // watermarked viewBox — the live element still has the pre-attribution
+  // dimensions, but the SVG we rasterise has the extra bottom band.
+  const exportSvg = buildExportSvg(svgEl);
+  const svgStr = new XMLSerializer().serializeToString(exportSvg);
+  const vb = exportSvg.getAttribute("viewBox");
   const parts = vb ? vb.split(/[\s,]+/) : [];
   const w = parts.length >= 4 ? parseFloat(parts[2]) : svgEl.clientWidth || 800;
-  const h = parts.length >= 4 ? parseFloat(parts[3]) : svgEl.clientHeight || 600;
+  const h =
+    parts.length >= 4 ? parseFloat(parts[3]) : (svgEl.clientHeight || 600) + PLOTTR_ATTRIBUTION_PAD;
   const canvas = document.createElement("canvas");
   canvas.width = w * scale;
   canvas.height = h * scale;
