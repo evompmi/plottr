@@ -22,6 +22,19 @@ const SUN_SVG =
   '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="3.2"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg>';
 const MOON_SVG =
   '<svg viewBox="0 0 20 20" fill="currentColor" stroke="none" aria-hidden="true"><path d="M16.5 12.8A6.5 6.5 0 0 1 7.2 3.5a.6.6 0 0 0-.8-.78 8 8 0 1 0 10.86 10.86.6.6 0 0 0-.78-.78z"/></svg>';
+// Speech-bubble (chat) icon for the "Send feedback" affordance. Same
+// monoline aesthetic the other topbar SVGs use (20×20 viewBox, 1.8
+// stroke, currentColor, round caps + joins). Rounded-rect bubble with
+// a small tail dropping down-left so the glyph reads as "message"
+// rather than generic rectangle at icon-button scale.
+const FEEDBACK_SVG =
+  '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5 a2 2 0 0 1 2-2 h10 a2 2 0 0 1 2 2 v7 a2 2 0 0 1-2 2 h-6 l-3 3 v-3 h-1 a2 2 0 0 1-2-2 z"/></svg>';
+
+// "Send feedback" delivery address. Email rather than GitHub Issues
+// because most internal wet-lab users don't have a GitHub account, and
+// "create a free account" is enough friction to lose them. Living at
+// module scope so a fork can swap it without touching the callsite.
+const FEEDBACK_EMAIL = "plottrproject@gmail.com";
 
 // Tiny helper for inline-SVG icon buttons. Same pattern the pre-SPA
 // landing topbar used (`tb-icon-btn` class declared in the existing
@@ -46,6 +59,77 @@ function IconButton({
     onClick,
     dangerouslySetInnerHTML: { __html: svg },
     ...(extraAttrs || {}),
+  });
+}
+
+// "Send feedback" affordance. Opt-in by design: clicking it opens a
+// mailto: draft in the user's default mail client; Plöttr itself sends
+// nothing. The prefilled body carries (a) two empty prompt sections
+// the user fills in, (b) the current tool key, Plöttr version, browser
+// UA and timestamp so we can reproduce — all visible in the draft
+// *before* the user clicks Send and editable / strippable in their
+// email client. No tracking, no telemetry, no fetches. Distinct visual
+// region from the tool buttons (separated by a `tb-sep`, pushed to the
+// right edge of the topbar via `margin-left: auto`) so it reads as
+// chrome rather than another nav target.
+//
+// Note: `URLSearchParams` would encode spaces as `+`, which some mail
+// clients (Outlook desktop in particular) take literally rather than
+// decoding back to spaces. Using `encodeURIComponent` on each field
+// yields `%20` for spaces, which every client handles correctly.
+function FeedbackButton({ currentKey }: { currentKey: string | null }) {
+  const onClick = () => {
+    const tool = currentKey || "landing";
+    const version =
+      (typeof window !== "undefined" && (window as { __APP_VERSION__?: string }).__APP_VERSION__) ||
+      "v?";
+    const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "unknown";
+    const body = [
+      "Thanks for sending feedback! This is a draft in your mail client —",
+      "Plöttr itself sends nothing. The lines below were filled in",
+      "client-side so we can reproduce; edit or strip any of them before",
+      "clicking Send if you'd rather not share that detail.",
+      "",
+      "What happened",
+      "-------------",
+      "(describe what you saw)",
+      "",
+      "What you expected",
+      "-----------------",
+      "(describe what you thought would happen, or what you'd like to see instead)",
+      "",
+      "---",
+      "- Tool:     " + tool,
+      "- Plöttr:   " + version,
+      "- Browser:  " + ua,
+      "- Reported: " + new Date().toISOString(),
+    ].join("\n");
+    const subject = "[Plöttr feedback] " + tool;
+    const url =
+      "mailto:" +
+      encodeURIComponent(FEEDBACK_EMAIL) +
+      "?subject=" +
+      encodeURIComponent(subject) +
+      "&body=" +
+      encodeURIComponent(body);
+    // `window.location.href = url` is the canonical mailto-open path;
+    // `window.open` with `mailto:` is blocked by some browsers as a
+    // popup. Same-tab navigation triggers the OS mail-handler dialog
+    // without leaving Plöttr (the mail client opens alongside).
+    window.location.href = url;
+  };
+  return React.createElement("button", {
+    type: "button",
+    className: "tb-icon-btn",
+    title: "Send feedback (opens an email draft — nothing is sent automatically)",
+    "aria-label": "Send feedback",
+    onClick,
+    dangerouslySetInnerHTML: { __html: FEEDBACK_SVG },
+    // `data-feedback` is a no-op for the existing mobile-strip CSS rule
+    // (which targets `[data-back]` / `[data-tool]` / `.tb-sep` only) —
+    // here only so the feedback button has a queryable hook if a future
+    // selector needs it.
+    "data-feedback": "true",
   });
 }
 
@@ -110,7 +194,18 @@ function ToolTopbar({ currentKey }: { currentKey: string }) {
         onClick: () => navigate(t.key),
         extraAttrs: { "data-tool": t.key },
       })
-    )
+    ),
+    // "Send feedback" sits on the right edge of the topbar, separated
+    // from the tool quick-jumps by a `tb-sep` so it reads as chrome
+    // (like the Home / theme buttons on the left) rather than another
+    // tool affordance. `margin-left: auto` on the separator pushes the
+    // whole right-cluster to the trailing edge of the flex row.
+    React.createElement("div", {
+      key: "feedback-sep",
+      className: "tb-sep",
+      style: { marginLeft: "auto" },
+    }),
+    React.createElement(FeedbackButton, { key: "feedback", currentKey })
   );
 }
 

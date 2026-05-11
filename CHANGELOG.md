@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **"Send feedback" button on the right edge of every tool's topbar.**
+  Opens a `mailto:` draft (to `plottrproject@gmail.com`) in the
+  user's default mail client with a prefilled subject and a body
+  that includes (a) two empty prompt sections — _What happened_ /
+  _What you expected_ — for the user to fill in, and (b) a metadata
+  footer carrying the current tool key, Plöttr version, browser UA
+  and timestamp so we can reproduce. Opt-in by design: Plöttr itself
+  performs no fetches and the metadata is visible to the user in
+  the draft _before_ they hit Send. Separated from the tool
+  quick-jumps by a `tb-sep`, right-pinned via `margin-left: auto`,
+  speech-bubble icon matching the existing monoline topbar style.
+  Mailto was preferred over a GitHub Issues URL because most
+  internal wet-lab users don't have a GitHub account; the
+  destination address lives at module scope so a fork can swap it
+  without touching the callsite.
+
 ## [1.4.2] - "Paste" - 2026-05-11
 
 > Long-form release notes — what shipped, why, and how — live in
