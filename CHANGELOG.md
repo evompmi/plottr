@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Benchmark page reorders the two reference panels so each summary
+  sits next to its own collapsible.** Was: R summary → SciPy summary →
+  SciPy collapsible → R per-category tables. Now: SciPy summary →
+  SciPy collapsible → R summary → R per-category tables, so each
+  reference's headline number is read alongside its own breakdown
+  instead of interleaving. Edit lives in `benchmark/run.js`;
+  `benchmark.html` regenerated.
+
 ### Fixed
 
 - **Landing-page "How it works" step 1 now reads "Upload CSV".** The
