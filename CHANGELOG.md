@@ -7,41 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
+## [1.4.1] - 2026-05-11
 
-- **Mobile topbar inside a tool now hides plot-tool jump icons again.**
-  The `@media (max-width: 900px)` rule in `index.html` strips the
-  in-tool topbar to "just the two calculators + theme toggle" via
-  `[data-back]` / `[data-tool="power"]` / `[data-tool="molarity"]`
-  selectors — but the SPA migration of the topbar into a React
-  component (`tools/_app/App.tsx`) dropped those attributes, so the
-  selector matched nothing and every tool icon stayed visible on
-  phones (an invitation to open a plot tool that won't render
-  usefully at that width). Restored by passing `extraAttrs` through
-  the `IconButton` factory.
-
-- **Stuck chunk-loading spinner now self-recovers.** A flaky network or
-  a backgrounded tab could leave a tool's `import()` promise pending
-  forever; Suspense kept showing the spinner and the only fix was a
-  manual page reload. Two layers of recovery: (a) the dynamic-import
-  loader retries up to 3 times with linear backoff before surfacing
-  a rejection, so transient CDN flakes self-heal; (b) the Suspense
-  fallback morphs after 6 s into a "Loading is taking longer than
-  expected" prompt with a Reload-page button, so genuinely hung
-  fetches no longer trap the user behind an infinite spinner.
-
-### Changed
-
-- **Tool bundles are now lazy — first-visit download cuts ~60–95% by
-  route.** The SPA used to ship a single ~740 KB monolith with every
-  tool inlined, so a mobile user opening only the molarity calculator
-  paid the full cost up front. Each tool's `App` is now wrapped in
-  `React.lazy(() => import("..."))` in `tools/_app/tool-registry.ts`,
-  esbuild's `--splitting` flag emits one chunk per tool plus a shared
-  `_shell` chunk, and `index.html` loads the SPA entry as a module
-  script. A calculator-only first visit drops from ~1042 KB to
-  ~403 KB (~61% smaller); a plot-tool visit fetches only that tool's
-  chunk on navigation behind a themed Suspense fallback.
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md). The
+> entries below are summary bullets that link there.
 
 ### Added
 
@@ -49,85 +19,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   SVG (and the PNG rasterised from it) now carries a small italic
   `Plöttr v<version>` stamp in a reserved 14 px band at the bottom of
   the canvas, sourced from `window.__APP_VERSION__` so a version bump
-  propagates without code changes. Implemented as a single shared
-  `appendPlottrAttribution()` helper in `tools/shared.js` that runs on
-  the export clone only, so the plot area, axes and existing margins
-  stay pixel-identical — only the canvas grows downward. Wrapped in
+  propagates without code changes. Wrapped in
   `<g id="plottr-attribution" data-plottr-version="…">` so journals
-  that strip branding can remove it with one selector.
+  that strip branding can remove it with one selector. See
+  [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md#-added).
 
 - **`npm run audit:contrast` — palette contrast audit script.** Walks
   every stop in the discrete + sequential + diverging palette
   catalogues plus the volcano default colours, computes WCAG 2.1 SC
   1.4.11 contrast (3:1) against the chart's white background, and
-  emits a markdown report classifying each palette as
-  discrete / sequential / diverging (so the by-design pale endpoints
-  of viridis / blues / etc. don't get flagged as bugs). Static —
-  pure arithmetic, no Playwright / axe-core dependency. Informational,
-  not a CI gate.
+  emits a classification-aware markdown report. Informational, not a
+  CI gate. See
+  [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md#-added).
+
+### Changed
+
+- **Tool bundles are now lazy — first-visit download cuts ~60–95 % by
+  route.** Each tool's `App` is now wrapped in
+  `React.lazy(() => import("..."))` in `tools/_app/tool-registry.ts`;
+  esbuild's `--splitting` flag emits one chunk per tool plus a shared
+  `_shell` chunk. A calculator-only first visit drops from ~1042 KB to
+  ~403 KB. See
+  [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md#-changed).
 
 ### Fixed
 
-- **Power Analysis: question banner now spans the full row beneath the
-  test / solve-for pickers.** The banner's flex sizing was lost in the
-  iframe→SPA migration along with the deleted `power.html` (its layout
-  CSS lived there); the tile rendered at content width and either
-  squeezed in beside the pickers or wrapped to a narrow second-line
-  fragment. Restored the original "full-width below" layout via
-  `flex: 1 1 100%` on the banner.
+- **Mobile topbar inside a tool now hides plot-tool jump icons again.**
+  The SPA migration of the topbar into a React component dropped the
+  `data-back` / `data-tool` attributes the `@media (max-width: 900px)`
+  selector relied on, so every tool icon stayed visible on phones.
+  Restored via `IconButton`'s `extraAttrs`. See
+  [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md#-fixed).
 
-- **Power Analysis: tile-to-tile spacing matched the rest of the app.**
-  Power's top row and main row used `gap: 20`; every other tool (plot-
-  scaffold sidebars, molarity, shared upload panels) uses `gap: 10`, so
-  the calculator visibly drifted apart from the canonical chrome.
-  Brought both gaps down to 10.
+- **Stuck chunk-loading spinner now self-recovers.** Two layers of
+  recovery for hung dynamic imports: the loader retries 3× with linear
+  backoff; the Suspense fallback morphs after 6 s into a "Loading is
+  taking longer than expected" prompt with a Reload-page button. See
+  [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md#-fixed).
 
-- **`prefers-reduced-motion` was only partially honoured.** `PlotToolShell.tsx`'s
-  step-change opacity fade already checked the media query and skipped
-  the fade for users who set "reduce motion" in their OS — but the
-  chrome's CSS-side transitions (button hovers, segmented controls,
-  disclosure-arrow rotation, landing-page tile scale, prefetch-bar
-  width slide, theme/language toggle hovers — 9 transition declarations
-  across `tools/components.css` + `index.html`) ran unconditionally.
-  Added a universal `@media (prefers-reduced-motion: reduce)` block in
-  `components.css` that zeros animation/transition durations
-  site-wide; `PlotToolShell`'s JS check is unchanged.
+- **Power Analysis: question banner spans the full row again** beneath
+  the test / solve-for pickers. The flex sizing (`flex: 1 1 100%`)
+  was lost in the iframe→SPA migration along with the deleted
+  `power.html`. See
+  [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md#-fixed).
 
-- **Volcano "not significant" default colour was below WCAG 3:1.**
-  `VOLCANO_DEFAULT_COLORS.ns` was `#999999` (2.85:1 against white),
-  failing WCAG 2.1 SC 1.4.11 by 0.15. Bumped to `#737373` (3.27:1) —
-  same neutral character, a hair darker, comfortably over the bar. NS
-  dots typically dominate the chart (~80–95 % of points); the smallest
-  crossing-the-line change is the right one.
+- **Power Analysis: tile-to-tile spacing matches the rest of the app.**
+  Power's top row and main row used `gap: 20`; every other tool uses
+  `gap: 10`. Brought both gaps down to 10. See
+  [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md#-fixed).
 
-- **`tests/helpers/shared-loader.js` was silently exporting `undefined`
-  for `COLOR_PALETTES` and `DIVERGING_PALETTES`.** `const` bindings
-  inside `vm.runInContext` stay script-scoped and don't become
-  properties of the context object — `ctx.COLOR_PALETTES` was reading
-  back `undefined` even though the declarations succeeded. Switched to
-  `vm.runInContext("COLOR_PALETTES", ctx)` (mirroring the volcano +
-  discrete-palette loaders, which already had the right pattern). No
-  current test consumed these exports, so the bug had been latent.
+- **`prefers-reduced-motion` now honoured site-wide.** A universal
+  `@media (prefers-reduced-motion: reduce)` block in `components.css`
+  zeros `animation-duration` / `transition-duration` across the nine
+  transition declarations the JS check in `PlotToolShell` couldn't
+  reach. See
+  [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md#-fixed).
 
-- **Heatmap and Volcano charts had no accessibility attributes.** Both
-  SVGs now declare `role="img"`, an `aria-label` (the user's plot title
-  or a default), an SVG `<title>` (renders as hover tooltip on supporting
-  browsers), and an SVG `<desc>` that screen readers read out — for
-  Heatmap, the row × column dimensions and whether clustering is
-  enabled; for Volcano, the up / down / not-significant counts via the
-  existing `summarize()` helper. Brings them up to the same baseline the
-  six other charts already had. Aequorin's inset bar plot also gained
-  the `<desc>` it was missing.
+- **Volcano "not significant" default colour now passes WCAG 3:1.**
+  `VOLCANO_DEFAULT_COLORS.ns` bumped from `#999999` (2.85:1) to
+  `#737373` (3.27:1). E2e spec updated. See
+  [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md#-fixed).
 
-- **Per-element a11y enrichment for the four sparse charts.** Lineplot
-  trace paths gain `aria-label="${name}: ${N} x-points"`; Aequorin
-  timecourse traces gain `aria-label="Trace: ${prefix}"`; UpSet
-  intersection bars gain `aria-label="${intersectionLabel}: ${size}
-elements"` (using the existing `intersectionLabel` helper); Scatter's
-  regression-line group gains `aria-label="Linear regression: slope X,
-intercept Y, R² Z, n=N"` when the regression overlay is active.
-  Boxplot already had per-rect labels; this round closes the four gaps
-  to match.
+- **`tests/helpers/shared-loader.js` was silently exporting `undefined`**
+  for `COLOR_PALETTES` and `DIVERGING_PALETTES` — `const` bindings
+  inside `vm.runInContext` stay script-scoped. Switched to
+  `vm.runInContext("COLOR_PALETTES", ctx)`. Latent — no test currently
+  consumed them. See
+  [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md#-fixed).
+
+- **Heatmap and Volcano charts gained `role="img"` + `aria-label` +
+  `<title>` + `<desc>`** to match the baseline the six other charts
+  already had. Aequorin's inset bar plot also gained the `<desc>` it
+  was missing. See
+  [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md#-fixed).
+
+- **Per-element a11y enrichment for lineplot / aequorin / upset /
+  scatter.** Trace paths, timecourse traces, intersection bars, and
+  the regression-line group all gain `aria-label`s describing their
+  payload. Boxplot already had per-rect labels; this round closes the
+  four gaps to match. See
+  [`docs/release-notes/v1.4.1.md`](docs/release-notes/v1.4.1.md#-fixed).
 
 ## [1.4.0] - 2026-05-09
 
