@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Scatter regression r² now stays inside [0, 1].** The two-pass
+  formula `(n·Σxy − Σx·Σy)² / (denomX · denomY)` suffers catastrophic
+  cancellation when either denominator collapses to FP-noise scale
+  (x-values 1e-160 apart, y-values at subnormal magnitudes), which
+  lifted the raw ratio to ~1.04 or pushed it slightly negative on
+  pathological inputs. Clamping the FP overshoot in
+  `tools/scatter/helpers.ts` restores the mathematical invariant the
+  property test pins. Surfaced by a fast-check seed on CI; real-data
+  regressions stay well inside the interval and are unaffected.
+
 ## [1.4.1] - 2026-05-11
 
 > Long-form release notes — what shipped, why, and how — live in

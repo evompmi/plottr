@@ -70,7 +70,14 @@ export function computeLinearRegression(
   const slope = (n * sxy - sx * sy) / denomX;
   const intercept = (sy - slope * sx) / n;
   const denomY = n * syy - sy * sy;
-  const r2 = denomY === 0 ? NaN : Math.pow(n * sxy - sx * sy, 2) / (denomX * denomY);
+  const r2Raw = denomY === 0 ? NaN : Math.pow(n * sxy - sx * sy, 2) / (denomX * denomY);
+  // Clamp to the mathematical invariant r² ∈ [0, 1]. The two-pass formula
+  // suffers catastrophic cancellation when denomX or denomY collapses to
+  // FP-noise scale (e.g. x-values 1e-160 apart, or y-values at subnormal
+  // magnitudes), which can lift the raw ratio to ~1.04 or push it slightly
+  // negative. Real-data regressions stay well inside the interval; clamping
+  // the FP overshoot is the cheapest way to keep the published contract.
+  const r2 = Number.isFinite(r2Raw) ? Math.min(1, Math.max(0, r2Raw)) : r2Raw;
   return { valid: true, slope, intercept, r2, n };
 }
 
