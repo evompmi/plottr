@@ -14,40 +14,126 @@ import {
   resolveDiscretePalette,
 } from "./discrete-palette";
 
+const { useState } = React;
+
+// Sensible swatch count for the runtime-generated palettes ("ggplot2-hue",
+// "viridis-d") whose `DISCRETE_PALETTES` entry is a single "*" sentinel.
+// 10 stops is enough to read as a continuous-ish gradient and still leaves
+// each swatch clickable at sidebar widths.
+const RUNTIME_PALETTE_PREVIEW_N = 10;
+
+// "Natural length" of a palette — what the swatch strip renders. For static
+// palettes this is the catalogue length (10 for okabe-ito, 12 for set3,
+// etc.); for the runtime "*" palettes we sample `RUNTIME_PALETTE_PREVIEW_N`
+// evenly-spaced stops.
+function naturalPaletteLength(name: string): number {
+  const def = DISCRETE_PALETTES[name];
+  if (!def || def.length === 0) return RUNTIME_PALETTE_PREVIEW_N;
+  if (def.length === 1 && def[0] === "*") return RUNTIME_PALETTE_PREVIEW_N;
+  return def.length;
+}
+
 interface DiscreteSwatchStripProps {
   palette: string;
+  // Optional override; defaults to the palette's natural length so the
+  // strip always shows the full catalogue and users can copy any hex,
+  // not just the ones currently bound to a group / category.
   n?: number;
   height?: number;
   width?: number | string;
 }
 
-// n side-by-side coloured rects — discrete analogue of PaletteStrip. Default
-// preview length = 8 (covers most real-world group counts).
+// Full-palette swatch strip with click-to-copy. Each swatch is a real
+// `<button>` so it gets keyboard focus + Enter activation for free;
+// clicking copies its hex to the clipboard and surfaces a brief
+// "✓ Copied #ABC123" caption below the strip so the user knows the value
+// is on their clipboard (paste into any of the tool's hex inputs to
+// override a single group's colour).
+//
+// Previously rendered only `n` cells where `n` was clamped 4..12 — so a
+// 3-group plot showed only 3-4 swatches even though the palette catalogues
+// most-often hold 8-12 stops. Users couldn't see (let alone pick) colours
+// past their group count without manually peeking at
+// `tools/_shell/discrete-palette.ts`. The full-spectrum band makes every
+// hex in the catalogue copyable directly from the sidebar.
 export function DiscreteSwatchStrip({
   palette,
-  n = 8,
-  height = 12,
+  n,
+  height = 18,
   width = "100%",
 }: DiscreteSwatchStripProps) {
-  const colours = resolveDiscretePalette(palette, n);
-  const cells: React.ReactNode[] = [];
-  for (let i = 0; i < n; i++) {
-    // colours[i] is always defined: resolveDiscretePalette returns exactly n
-    // entries when n > 0, and `n = props.n || 8` is always > 0.
-    cells.push(<div key={i} style={{ flex: 1, background: colours[i] }} />);
-  }
+  const count = typeof n === "number" && n > 0 ? n : naturalPaletteLength(palette);
+  const colours = resolveDiscretePalette(palette, count);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const handleCopy = (hex: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(hex).then(
+        () => {
+          setCopied(hex);
+          setTimeout(() => setCopied(null), 1500);
+        },
+        () => {
+          // Clipboard permission denied (rare; some browsers gate
+          // writeText behind a transient user-gesture check that
+          // fails when the page was navigated by a router). Surface
+          // the hex in the caption anyway so the user can copy it
+          // manually from there.
+          setCopied(hex);
+          setTimeout(() => setCopied(null), 2500);
+        }
+      );
+    } else {
+      // Browser without a clipboard API (older Safari, non-HTTPS
+      // contexts). Showing the hex still gives the user something to
+      // type by hand.
+      setCopied(hex);
+      setTimeout(() => setCopied(null), 2500);
+    }
+  };
+
   return (
-    <div
-      style={{
-        display: "flex",
-        width,
-        height,
-        borderRadius: 3,
-        overflow: "hidden",
-        border: "1px solid var(--border-strong)",
-      }}
-    >
-      {cells}
+    <div>
+      <div
+        style={{
+          display: "flex",
+          width,
+          height,
+          borderRadius: 3,
+          overflow: "hidden",
+          border: "1px solid var(--border-strong)",
+        }}
+      >
+        {colours.map((hex, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => handleCopy(hex)}
+            title={hex + " — click to copy"}
+            aria-label={"Copy " + hex + " to clipboard"}
+            style={{
+              flex: 1,
+              background: hex,
+              border: "none",
+              padding: 0,
+              margin: 0,
+              cursor: "pointer",
+              minWidth: 0,
+            }}
+          />
+        ))}
+      </div>
+      <div
+        aria-live="polite"
+        style={{
+          fontSize: 10,
+          lineHeight: 1.4,
+          marginTop: 3,
+          color: copied ? "var(--success-text)" : "var(--text-faint)",
+        }}
+      >
+        {copied ? "✓ Copied " + copied : "Click a swatch to copy its hex"}
+      </div>
     </div>
   );
 }
@@ -55,7 +141,6 @@ export function DiscreteSwatchStrip({
 interface DiscretePaletteSelectProps {
   value: string;
   onChange: (next: string) => void;
-  n?: number;
 }
 
 // Dropdown of palette keys with an inline preview strip below.
@@ -63,7 +148,7 @@ interface DiscretePaletteSelectProps {
 // theme-aware styling (background, border, text colour) as every other
 // select in the codebase — without it, the browser's default select chrome
 // shows up white-on-white in dark mode.
-export function DiscretePaletteSelect({ value, onChange, n = 8 }: DiscretePaletteSelectProps) {
+export function DiscretePaletteSelect({ value, onChange }: DiscretePaletteSelectProps) {
   const keys = Object.keys(DISCRETE_PALETTES);
   return (
     <div>
@@ -80,7 +165,7 @@ export function DiscretePaletteSelect({ value, onChange, n = 8 }: DiscretePalett
           </option>
         ))}
       </select>
-      <DiscreteSwatchStrip palette={value} n={n} />
+      <DiscreteSwatchStrip palette={value} />
     </div>
   );
 }
@@ -88,9 +173,10 @@ export function DiscretePaletteSelect({ value, onChange, n = 8 }: DiscretePalett
 interface DiscretePaletteRowProps {
   value: string;
   onChange: (next: string) => void;
-  // Optional list of group/category names. Used to size the preview strip
-  // (clamped 4..12) and to seed `applyColors` with a correctly-sized hex
-  // array when the user picks a palette.
+  // Optional list of group/category names. Only used to seed `applyColors`
+  // with a correctly-sized hex array when the user picks a palette — the
+  // preview strip itself always renders the full catalogue so users can
+  // copy any hex, not just the ones currently bound to a group.
   names?: string[];
   // High-level adapter: when the user picks a palette, the resolved hex
   // array is pushed back to the parent so it can clobber every group's
@@ -122,11 +208,7 @@ export function DiscretePaletteRow({
       <div className="dv-label" style={{ fontSize: 11, marginBottom: 2 }}>
         Palette
       </div>
-      <DiscretePaletteSelect
-        value={value}
-        onChange={handle}
-        n={Math.max(4, Math.min(12, list.length || 8))}
-      />
+      <DiscretePaletteSelect value={value} onChange={handle} />
     </div>
   );
 }

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Discrete-palette swatch strip now shows the full palette and each
+  swatch is click-to-copy.** Was: the strip rendered `clamp(4, 12,
+groupCount)` swatches, so a 3-group plot showed only the first 3-4
+  hexes of an 8–12-entry catalogue — users couldn't see (let alone
+  copy) any of the remaining colours without manually opening
+  `discrete-palette.ts`. Now the strip renders the catalogue's natural
+  length (10 for runtime-generated `ggplot2-hue` / `viridis-d`,
+  whatever the static array says for the rest); each swatch is a real
+  `<button>` that copies its hex to the clipboard on click / Enter
+  and surfaces a brief `✓ Copied #ABC123` caption below. Manual hex
+  entry in the existing per-group colour inputs still overrides
+  whatever the palette assigned. Height bumped 12 → 18 px so the
+  swatches are comfortable click targets. Gracefully degrades to
+  "show the hex for manual copy" on browsers without
+  `navigator.clipboard` (older Safari, non-HTTPS contexts).
+
 ### Added
 
 - **"Send feedback" button on the right edge of every tool's topbar.**
