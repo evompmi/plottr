@@ -459,6 +459,7 @@ export interface UploadStepProps {
   rawText: string | null;
   doParse: (text: string, sep: string) => void;
   handleFileLoad: (text: string, name: string) => void;
+  handleTextPaste: (text: string, name: string) => void;
   setStep: (s: string) => void;
   onLoadExample: () => void;
 }
@@ -468,6 +469,10 @@ export interface ConfigureStepProps extends FilterStateCommonProps {
   hasHeader: boolean;
   valueColIdx: number;
   valueColIsNumeric: boolean;
+  // Empty string until the first parse has resolved a separator.
+  // Surfaced next to the file-info line on the Configure step so the
+  // user can sanity-check what auto-detect picked ("(detected: tab)").
+  detectedSep: string;
   onRoleChange: (i: number, role: ColumnRole) => void;
   onNameChange: (i: number, name: string) => void;
 }

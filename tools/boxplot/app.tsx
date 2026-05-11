@@ -253,15 +253,29 @@ export function App() {
     return f;
   };
 
+  // Detected separator from the most recent parse, surfaced to the user on
+  // the Configure step ("(detected: tab)") so they can sanity-check what
+  // auto-detect picked. Stays empty until the first successful parse.
+  const [detectedSep, setDetectedSep] = useState<string>("");
+
   const doParse = useCallback(
     (text: string, sep: string) => {
-      const dc = fixDecimalCommas(text, sep);
+      // Resolve "auto" (sep === "") before fixDecimalCommas so European
+      // semicolon-CSVs ("1,5;2,3") still get their decimal commas fixed
+      // — `fixDecimalCommas` short-circuits on sep === "". The shared
+      // detector returns the override unchanged when non-empty, or its
+      // best guess (string for known delimiters, RegExp /\s+/ as the
+      // whitespace fallback) when empty.
+      const resolved = autoDetectSep(text, sep);
+      const effectiveSep = typeof resolved === "string" ? resolved : "";
+      setDetectedSep(effectiveSep);
+      const dc = fixDecimalCommas(text, effectiveSep);
       const fixedText = dc.text;
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
       setRawText(fixedText);
 
-      const { headers, rows, hasHeader: hh, injectionWarnings } = parseRaw(fixedText, sep);
+      const { headers, rows, hasHeader: hh, injectionWarnings } = parseRaw(fixedText, effectiveSep);
       setInjectionWarning(injectionWarnings);
       if (!headers.length || !rows.length) {
         setParseError(
@@ -337,6 +351,19 @@ export function App() {
     setFileName("example_plant_growth.csv");
     doParse(EXAMPLE_CSV, ",");
   }, [doParse, setFileName, setSepOverride]);
+
+  // Paste-data ingestion path. UploadPanel hands us raw text + a synthetic
+  // file name ("pasted_data.csv"); size has already been gated against
+  // FILE_LIMIT_BYTES inside the panel. We funnel through the same doParse
+  // pipeline as a dropped file with sep="" so auto-detect kicks in.
+  const handleTextPaste = useCallback(
+    (text: string, name: string) => {
+      setFileName(name);
+      setSepOverride("");
+      doParse(text, "");
+    },
+    [doParse, setFileName, setSepOverride]
+  );
 
   // Inter-tool hand-off consumer. When the user clicks "↗ Open in Boxplot"
   // in another tool (e.g. RLU timecourse's Σ barplot tile), that tool
@@ -1053,6 +1080,7 @@ export function App() {
           rawText={rawText}
           doParse={doParse}
           handleFileLoad={handleFileLoad}
+          handleTextPaste={handleTextPaste}
           setStep={setStep}
           onLoadExample={loadExample}
         />
@@ -1068,6 +1096,7 @@ export function App() {
           colNames={colNames}
           valueColIdx={valueColIdx}
           valueColIsNumeric={valueColIsNumeric}
+          detectedSep={detectedSep}
           onRoleChange={updateRole}
           onNameChange={updateColName}
         />
