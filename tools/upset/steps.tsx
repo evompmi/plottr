@@ -2,7 +2,7 @@
 // ConfigureStep (rename / colour / include + degree window), and
 // ItemListPanel (the per-intersection items table + CSV download).
 
-import { DataPreview, HowTo, NumberInput, UploadPanel } from "../_shell";
+import { DataPreview, DetectedSeparatorBadge, HowTo, NumberInput, UploadPanel } from "../_shell";
 import {
   intersectionLabel,
   intersectionFilenamePart,
@@ -104,6 +104,7 @@ export function UploadStep({
 
 export function ConfigureStep({
   fileName,
+  detectedSep,
   parsedHeaders,
   parsedRows,
   allColumnNames,
@@ -283,6 +284,7 @@ export function ConfigureStep({
         <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-muted)" }}>
           <strong style={{ color: "var(--text)" }}>{fileName}</strong> — {parsedHeaders.length} cols
           × {parsedRows.length} rows
+          <DetectedSeparatorBadge sep={detectedSep} />
         </p>
         <p style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>
           Preview (first 8 rows):

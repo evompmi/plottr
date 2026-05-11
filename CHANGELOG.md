@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`<DetectedSeparatorBadge sep={detectedSep} />` surfaces the
+  auto-detected delimiter on every plot tool's post-upload step.**
+  Inline trailing fragment ("· detected: tab-separated") on each
+  tool's file-info line — Configure step for tools that have one
+  (Aequorin, Group Plot, Heatmap, Line Plot, UpSet, Venn, Volcano)
+  and the top of the Plot step for Scatter (which skips Configure).
+  The badge renders nothing when the detector hits the empty-string
+  whitespace fallback, so it never gets in the way. Maps `","` →
+  "comma", `";"` → "semicolon", `"\t"` → "tab", `" "` → "space",
+  anything else → "whitespace". Component + `describeSeparator()`
+  helper live in `_shell/DetectedSeparatorBadge.tsx`.
+
 ### Changed
 
 - **Every plot tool's upload step rebuilt: auto-detect, paste,

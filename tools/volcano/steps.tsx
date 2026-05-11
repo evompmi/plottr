@@ -5,7 +5,7 @@
 // AesBox / sidebar tiles come from ./controls.tsx; the SVG renderer
 // comes from ./chart.tsx.
 
-import { DataPreview, DownloadTiles, PlotSidebar } from "../_shell";
+import { DataPreview, DetectedSeparatorBadge, DownloadTiles, PlotSidebar } from "../_shell";
 import {
   VolcanoAesBox,
   ThresholdsTile,
@@ -31,6 +31,7 @@ import { VolcanoChart } from "./chart";
 export function ConfigureStep({
   parsed,
   fileName,
+  detectedSep,
   xCol,
   yCol,
   labelCol,
@@ -165,6 +166,7 @@ export function ConfigureStep({
         <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-muted)" }}>
           <strong style={{ color: "var(--text)" }}>{fileName || "(pasted data)"}</strong> —{" "}
           {parsed.headers.length} cols × {parsed.rawData.length} rows
+          <DetectedSeparatorBadge sep={detectedSep} />
         </p>
         <p style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>
           Preview (first 8 rows):

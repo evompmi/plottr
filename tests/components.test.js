@@ -299,6 +299,38 @@ test("legacy (non-autoDetect) mode keeps the buried sample button", function () 
   );
 });
 
+suite("DetectedSeparatorBadge");
+
+test("renders nothing when sep is empty", function () {
+  const html = renderHtml(sc.DetectedSeparatorBadge, { sep: "" });
+  eq(html, "");
+});
+
+test("labels each known separator with a human-readable word", function () {
+  const cases = {
+    ",": "comma",
+    ";": "semicolon",
+    "\t": "tab",
+    " ": "space",
+  };
+  for (const sep of Object.keys(cases)) {
+    const html = renderHtml(sc.DetectedSeparatorBadge, { sep });
+    assert(
+      html.indexOf("detected:") !== -1,
+      `should render the 'detected:' prefix for ${JSON.stringify(sep)}`
+    );
+    assert(
+      html.indexOf(cases[sep]) !== -1,
+      `should label ${JSON.stringify(sep)} as '${cases[sep]}'`
+    );
+  }
+});
+
+test("falls back to 'whitespace' for unrecognised separators", function () {
+  const html = renderHtml(sc.DetectedSeparatorBadge, { sep: "|" });
+  assert(html.indexOf("whitespace") !== -1, "unknown sep should fall back to whitespace label");
+});
+
 suite("ActionsPanel");
 
 test("renders with download and reset", function () {

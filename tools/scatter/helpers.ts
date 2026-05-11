@@ -216,6 +216,8 @@ export interface ChartProps {
 export interface PlotStepProps {
   parsed: ParseDataResult;
   fileName: string;
+  // Separator the auto-detector resolved. Empty string until first parse.
+  detectedSep: string;
   filteredData: Array<Array<number | null>>;
   filteredRawRows: string[][];
   activeColIdxs: number[];

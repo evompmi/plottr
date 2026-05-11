@@ -351,6 +351,9 @@ export function App() {
   const [yIsAdjusted, setYIsAdjusted] = useState(false);
   const [rawText, setRawText] = useState<string | null>(null);
   const sepRef = useRef("");
+  // Separator the auto-detector resolved on the most recent parse. Surfaced
+  // inline on the Configure step's file-info line.
+  const [detectedSep, setDetectedSep] = useState<string>("");
 
   // Self-healing guard for the non-significant slot. The palette picker
   // (in ColorsTile) commits `colorNs = VOLCANO_DEFAULT_COLORS.ns` every
@@ -424,6 +427,7 @@ export function App() {
       const resolved = autoDetectSep(text, sep);
       const effectiveSep = typeof resolved === "string" ? resolved : "";
       sepRef.current = effectiveSep;
+      setDetectedSep(effectiveSep);
       const dc = fixDecimalCommas(text, effectiveSep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
@@ -663,6 +667,7 @@ export function App() {
         <ConfigureStep
           parsed={parsed}
           fileName={fileName}
+          detectedSep={detectedSep}
           xCol={xCol}
           yCol={yCol}
           labelCol={labelCol}

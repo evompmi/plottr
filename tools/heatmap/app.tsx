@@ -4,7 +4,7 @@
 // detail view, reports, and pure helpers all live in sibling modules under
 // tools/heatmap/.
 
-import { DataPreview, PlotToolShell, usePlotToolState } from "../_shell";
+import { DataPreview, DetectedSeparatorBadge, PlotToolShell, usePlotToolState } from "../_shell";
 import { normalizeMatrix, autoRange } from "./helpers";
 import type {
   AxisClusterMeta,
@@ -109,6 +109,9 @@ export function App() {
     matrix: number[][];
   }>({ rowLabels: [], colLabels: [], matrix: [] });
   const [warnings, setWarnings] = useState({ nonNumeric: 0 });
+  // Separator the auto-detector resolved on the most recent parse. Surfaced
+  // inline on the Import check step's file-info line.
+  const [detectedSep, setDetectedSep] = useState<string>("");
 
   const [normalization, setNormalization] = useState<Normalization>("none");
   const [rowMode, setRowMode] = useState<ClusterMode>("hierarchical");
@@ -311,6 +314,7 @@ export function App() {
       // pattern as boxplot/app.tsx.
       const resolved = autoDetectSep(text, sep);
       const effectiveSep = typeof resolved === "string" ? resolved : "";
+      setDetectedSep(effectiveSep);
       const dc = fixDecimalCommas(text, effectiveSep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
@@ -421,6 +425,7 @@ export function App() {
             }}
           >
             <strong>{fileName || "Pasted data"}</strong> — parsed {nRows} rows × {nCols} columns
+            <DetectedSeparatorBadge sep={detectedSep} />
             {warnings.nonNumeric > 0 && (
               <>
                 {" "}

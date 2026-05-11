@@ -13,6 +13,7 @@ import type {
 } from "./helpers";
 import {
   DataPreview,
+  DetectedSeparatorBadge,
   FilterCheckboxPanel,
   HowTo,
   RenameReorderPanel,
@@ -225,16 +226,9 @@ export function UploadStep({
   );
 }
 
-// Human-readable label for the resolved separator, surfaced on the Configure
-// step so the user can verify what auto-detect picked. Empty string means
-// the detector hit the whitespace fallback (autoDetectSep returned /\s+/).
-function describeSeparator(sep: string): string {
-  if (sep === ",") return "comma";
-  if (sep === ";") return "semicolon";
-  if (sep === "\t") return "tab";
-  if (sep === " ") return "space";
-  return "whitespace";
-}
+// Detected-separator surface now lives in the shared
+// `_shell/DetectedSeparatorBadge` component so every tool renders the
+// same affordance with the same labelling.
 
 export function ConfigureStep({
   fileName,
@@ -387,11 +381,7 @@ export function ConfigureStep({
         <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-muted)" }}>
           <strong style={{ color: "var(--text)" }}>{fileName}</strong> — {parsedHeaders.length} cols
           × {parsedRows.length} rows{hasHeader ? "" : " (no header)"}
-          {detectedSep && (
-            <span style={{ marginLeft: 8, color: "var(--text-faint)", fontWeight: 400 }}>
-              · detected: <strong>{describeSeparator(detectedSep)}</strong>-separated
-            </span>
-          )}
+          <DetectedSeparatorBadge sep={detectedSep} />
         </p>
         <p style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>
           Preview (first 8 rows):

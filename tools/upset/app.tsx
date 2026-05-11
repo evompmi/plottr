@@ -99,6 +99,9 @@ export function App() {
   } = shell;
 
   const [format, setFormat] = useState<"wide" | "long">("wide");
+  // Separator the auto-detector resolved on the most recent parse. Surfaced
+  // inline on the Configure step's file-info line.
+  const [detectedSep, setDetectedSep] = useState<string>("");
   const [setNames, setSetNames] = useState<string[]>([]);
   const [sets, setSets] = useState<Map<string, Set<string>>>(new Map());
   const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);
@@ -399,6 +402,7 @@ export function App() {
       // as boxplot/app.tsx.
       const resolved = autoDetectSep(text, sep);
       const effectiveSep = typeof resolved === "string" ? resolved : "";
+      setDetectedSep(effectiveSep);
       const dc = fixDecimalCommas(text, effectiveSep);
       setCommaFixed(dc.commaFixed);
       setCommaFixCount(dc.count);
@@ -586,6 +590,7 @@ export function App() {
       {step === "configure" && allColumnNames.length >= 2 && (
         <ConfigureStep
           fileName={fileName}
+          detectedSep={detectedSep}
           parsedHeaders={parsedHeaders}
           parsedRows={parsedRows}
           allColumnNames={allColumnNames}

@@ -7,7 +7,7 @@
 
 import { TIME_UNITS } from "./helpers";
 import type { ConfigureStepProps, UploadStepProps } from "./helpers";
-import { DataPreview, HowTo, NumberInput, UploadPanel } from "../_shell";
+import { DataPreview, DetectedSeparatorBadge, HowTo, NumberInput, UploadPanel } from "../_shell";
 import { AEQUORIN_HOWTO } from "./howto";
 
 export function HowToSection() {
@@ -123,6 +123,7 @@ export function ConfigureStep({
   vis,
   updVis,
   fileName,
+  detectedSep,
   calData,
   columnEnabled,
   downloadCalibrated,
@@ -235,6 +236,7 @@ export function ConfigureStep({
           <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>
             Loaded <strong style={{ color: "var(--text)" }}>{fileName}</strong> —{" "}
             {parsed.headers.length} samples × {parsed.data.length} time-points
+            <DetectedSeparatorBadge sep={detectedSep} />
           </p>
           <button
             onClick={(e) => {
