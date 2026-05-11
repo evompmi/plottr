@@ -24,57 +24,17 @@ const { useEffect, useMemo } = React;
 export function UploadStep({
   sepOverride,
   setSepOverride,
-  format,
-  setFormat,
   handleFileLoad,
   handleTextPaste,
   onLoadExample,
 }: UploadStepProps) {
+  // The previous "Data format" wide/long picker is gone — `doParse` in
+  // app.tsx auto-detects via `detectLongFormat` for 2-column inputs and
+  // always treats 3+ columns as wide. The hint covers both shapes so a
+  // first-time user knows what the tool accepts without having to make
+  // an upfront choice.
   return (
     <div>
-      <div className="dv-panel" style={{ marginBottom: 12 }}>
-        <p className="dv-tile-title" style={{ margin: "0 0 6px" }}>
-          Data format
-        </p>
-        <div
-          style={{
-            display: "flex",
-            borderRadius: 6,
-            overflow: "hidden",
-            border: "1px solid var(--border-strong)",
-            width: "fit-content",
-          }}
-        >
-          {(["wide", "long"] as const).map((f) => {
-            const active = format === f;
-            return (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setFormat(f)}
-                style={{
-                  padding: "6px 18px",
-                  fontSize: 12,
-                  fontWeight: active ? 700 : 400,
-                  fontFamily: "inherit",
-                  cursor: "pointer",
-                  border: "none",
-                  background: active ? "var(--accent-primary)" : "var(--surface)",
-                  color: active ? "var(--on-accent)" : "var(--text-muted)",
-                }}
-              >
-                {f === "wide" ? "Wide" : "Long"}
-              </button>
-            );
-          })}
-        </div>
-        <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
-          {format === "wide"
-            ? "One column per set. Cells are item ids; empty cells are ignored."
-            : "Two columns: item id, set name. Each row is one (item, set) pair."}
-        </p>
-      </div>
-
       <UploadPanel
         sepOverride={sepOverride}
         onSepChange={setSepOverride}
@@ -88,11 +48,7 @@ export function UploadStep({
           subtitle: "5 sets — Drought · Heat · Salt · Cold · ABA",
           buttonLabel: "Plot this example →",
         }}
-        hint={
-          format === "wide"
-            ? "CSV · TSV · TXT — one column per set (2+), items in rows · 2 MB max"
-            : "CSV · TSV · TXT — two columns (item, set), one per row · 2 MB max"
-        }
+        hint="CSV · TSV · TXT — wide (one column per set, 2+) or long (item, set) · 2 MB max"
       />
 
       <HowTo {...UPSET_HOWTO} />

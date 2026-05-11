@@ -23,6 +23,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **UpSet retired its upfront Wide/Long data-format picker.** The
+  toggle was vestigial: 3+ column input is unambiguously wide (one
+  column per set), and 2-column input can be auto-classified by the
+  same `detectLongFormat` heuristic Venn has used since the audit-M2
+  pass (≥ 3 col-2 rows, 2–20 distinct values, ≥ 50 % col-2
+  repetition, ≥ 70 % col-1 uniqueness). The helper moved from
+  `tools/venn/long-format-detect.ts` to
+  `tools/_shell/long-format-detect.ts` so both tools share the same
+  source of truth; venn keeps the re-export so its test loader and
+  existing 13 `detectLongFormat` tests are unchanged. UpSet's
+  `doParse` runs the detector on 2-column input and flips `format`
+  to `"long"` automatically; the cross-tool handoff still respects
+  an explicit `format` field on the incoming payload.
+
 - **Every plot tool's upload step rebuilt: auto-detect, paste,
   prominent sample.** Three changes that travel together, applied
   to all 8 plot tools (Aequorin, Group Plot, Heatmap, Line Plot,

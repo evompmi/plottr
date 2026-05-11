@@ -47,8 +47,12 @@ export {
   buildVenn3LayoutClassic,
 } from "./layout";
 export { computeRegionCentroids } from "./centroids";
-export { detectLongFormat } from "./long-format-detect";
-export type { LongFormatDetection } from "./long-format-detect";
+// `detectLongFormat` lifted to `_shell/long-format-detect.ts` 2026-05
+// (UpSet shares the same logic — see tools/upset/app.tsx). Re-exported
+// here so the venn test loader (tests/helpers/venn-loader.js) keeps
+// pulling it through the venn/helpers barrel without changes.
+export { detectLongFormat } from "../_shell/long-format-detect";
+export type { LongFormatDetection } from "../_shell/long-format-detect";
 export type { Region, SetMap } from "./set-math";
 
 import type { Region, SetMap } from "./set-math";

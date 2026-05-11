@@ -160,8 +160,11 @@ export type UpdVis = (patch: Partial<UpsetVis> | { _reset: true }) => void;
 export interface UploadStepProps {
   sepOverride: string;
   setSepOverride: (s: string) => void;
-  format: "wide" | "long";
-  setFormat: (f: "wide" | "long") => void;
+  // `format` / `setFormat` were retired 2026-05 when UpSet's upfront
+  // wide/long picker came out. The parent App still owns the format
+  // state internally (the cross-tool handoff payload carries an
+  // explicit `format` and `doParse` syncs `setFormat` on auto-detect),
+  // it's just no longer surfaced as an upload-step choice.
   handleFileLoad: (text: string, name: string) => void;
   handleTextPaste: (text: string, name: string) => void;
   onLoadExample: () => void;

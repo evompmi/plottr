@@ -3,7 +3,13 @@
 // panels, sidebar controls, intersection-stats panel, and item list
 // live in sibling modules under tools/upset/.
 
-import { FILE_LIMIT_BYTES, PlotToolShell, ScrollablePlotCard, usePlotToolState } from "../_shell";
+import {
+  FILE_LIMIT_BYTES,
+  PlotToolShell,
+  ScrollablePlotCard,
+  detectLongFormat,
+  usePlotToolState,
+} from "../_shell";
 import {
   computeMemberships,
   enumerateIntersections,
@@ -412,9 +418,25 @@ export function App() {
         setParseError("The file appears to be empty or has no data rows.");
         return;
       }
+      // Auto-detect long format for 2-column input. 3+ columns are
+      // unambiguously wide (one column per set). Mirrors the venn pattern
+      // — the wide/long upfront picker UpSet used to expose was vestigial
+      // friction once `detectLongFormat` could resolve both cases from
+      // shape + heuristics. The cross-tool handoff still passes an
+      // explicit `fmt` and that wins over auto-detect for parity with the
+      // source tool's choice; in practice the detector and the payload
+      // agree on every venn → upset payload.
+      let effectiveFmt = fmt;
+      if (fmt !== "long" && headers.length === 2 && detectLongFormat(headers, rows).isLong) {
+        effectiveFmt = "long";
+        setFormat("long");
+      }
       let parsed;
       try {
-        parsed = fmt === "long" ? parseLongFormatSets(headers, rows) : parseSetData(headers, rows);
+        parsed =
+          effectiveFmt === "long"
+            ? parseLongFormatSets(headers, rows)
+            : parseSetData(headers, rows);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "";
         setParseError(msg || "Unable to parse set membership.");
@@ -423,7 +445,7 @@ export function App() {
       const { setNames: sn, sets: ss } = parsed;
       if (sn.length < 2) {
         setParseError(
-          fmt === "long"
+          effectiveFmt === "long"
             ? "Need at least 2 distinct set names in the second column."
             : "Need at least 2 non-empty set columns."
         );
@@ -583,8 +605,6 @@ export function App() {
         <UploadStep
           sepOverride={sepOverride}
           setSepOverride={setSepOverride}
-          format={format}
-          setFormat={setFormat}
           handleFileLoad={handleFileLoad}
           handleTextPaste={handleTextPaste}
           onLoadExample={loadExample}

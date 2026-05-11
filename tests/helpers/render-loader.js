@@ -150,6 +150,7 @@ function ensureSharedBundleLoaded() {
         "buildRScriptForPower",
         "computePowerFromData",
         "describeSeparator",
+        "detectLongFormat",
         "formatRNumber",
         "formatRVector",
         "normalizeHexColor",
