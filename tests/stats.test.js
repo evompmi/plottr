@@ -549,17 +549,26 @@ const shapiroCases = [
 for (const c of shapiroCases) {
   const { W, p } = shapiroWilk(c.x);
   test(`${c.label} — W ≈ ${c.W}`, () => {
-    // Relative tolerance 0.5% on W
+    // Tight tolerance on W: the actual JS-vs-R agreement is rel ~5e-7,
+    // far inside the 6-sig-fig precision of the R reference values
+    // themselves. The previous 5e-3 ceiling was 10,000× looser than the
+    // genuine FP agreement, leaving room for a polynomial-coefficient
+    // mutation to shift the result without failing the assertion.
     const rel = Math.abs(W - c.W) / c.W;
-    assert(rel < 5e-3, `W=${W.toFixed(5)} vs R=${c.W} (rel diff ${rel.toExponential(2)})`);
+    assert(rel < 5e-6, `W=${W.toFixed(7)} vs R=${c.W} (rel diff ${rel.toExponential(2)})`);
   });
   test(`${c.label} — p ≈ ${c.p}`, () => {
-    // For very small p values use absolute tolerance, otherwise relative.
+    // Tight tolerance on p: actual JS-vs-R agreement is rel ~6e-6
+    // (limited by R's 6-sig-fig reference precision, not by the JS
+    // implementation). 5e-4 leaves ~80× headroom over real noise.
+    // The Royston μ / σ polynomial coefficients at stats-tests.js:191-192
+    // produce the p-value via normal-tail; a coefficient mutation that
+    // shifts μ by even 1% moves p by orders of magnitude in this band.
     if (c.p < 0.001) {
-      assert(Math.abs(p - c.p) < 5e-4, `p=${p.toExponential(3)} vs R=${c.p}`);
+      assert(Math.abs(p - c.p) < 5e-7, `p=${p.toExponential(3)} vs R=${c.p}`);
     } else {
       const rel = Math.abs(p - c.p) / c.p;
-      assert(rel < 5e-2, `p=${p.toFixed(5)} vs R=${c.p} (rel diff ${rel.toExponential(2)})`);
+      assert(rel < 5e-4, `p=${p.toFixed(7)} vs R=${c.p} (rel diff ${rel.toExponential(2)})`);
     }
   });
 }
@@ -1757,6 +1766,110 @@ test("all-NaN distance matrix still returns a complete leaf permutation", () => 
   assert(res.order.length === n, `order length ${res.order.length} === ${n}`);
   const unique = new Set(res.order);
   assert(unique.size === n, `order is a permutation of all ${n} leaves`);
+});
+
+// ── hclust merge-height fixtures (Lance-Williams update pins) ─────────────
+//
+// The structural tests above pin leaf permutation and adjacency only — they
+// don't catch mutations on the Lance-Williams update formula itself or on
+// the min-pair search. The following fixtures pin every merge height to
+// floating-point precision against a hand-traced 5-point matrix with no
+// ties, so a coefficient flip in the update step or an off-by-one in the
+// min search fails the assertion immediately.
+//
+// Distance matrix (no ties, every linkage produces the same leaf order):
+//   A  0    0.5  2.3  5.1  6.2
+//   B  0.5  0    3.1  5.4  6.5
+//   C  2.3  3.1  0    4.2  5.3
+//   D  5.1  5.4  4.2  0    1.1
+//   E  6.2  6.5  5.3  1.1  0
+//
+// Hand-traced merge sequence (UPGMA / average linkage):
+//   1. A-B at 0.5                        (smallest in raw matrix)
+//   2. D-E at 1.1                        (next smallest after step 1)
+//   3. AB-C at (2.3+3.1)/2 = 2.7         (UPGMA: weighted avg)
+//   4. ABC-DE at (2·5.8 + 1·4.75)/3 = 5.45 where
+//        5.8  = (5.25+6.35)/2 = avg(d(AB,D), d(AB,E)) [AB-DE distance]
+//        4.75 = (4.2+5.3)/2 = avg(d(C,D), d(C,E))    [C-DE distance]
+//
+// Single linkage uses min, complete uses max in the update step — the
+// merge heights diverge at steps 3/4 while step 1/2 (single-leaf
+// merges) are identical across all three linkages.
+
+const HCLUST_FIXTURE_D = [
+  [0, 0.5, 2.3, 5.1, 6.2],
+  [0.5, 0, 3.1, 5.4, 6.5],
+  [2.3, 3.1, 0, 4.2, 5.3],
+  [5.1, 5.4, 4.2, 0, 1.1],
+  [6.2, 6.5, 5.3, 1.1, 0],
+];
+
+// Walk a tree and return its merges in chronological order (heights
+// non-decreasing, so this is a sort by height with stable insertion).
+function _flattenMerges(node) {
+  const merges = [];
+  function visit(n) {
+    if (!n || (n.left === null && n.right === null)) return;
+    visit(n.left);
+    visit(n.right);
+    merges.push({ height: n.height, size: n.size });
+  }
+  visit(node);
+  return merges.sort((a, b) => a.height - b.height);
+}
+
+test("UPGMA on 5-point fixture — merge heights match hand-traced reference", () => {
+  const res = hclust(HCLUST_FIXTURE_D, "average");
+  assert(JSON.stringify(res.order) === JSON.stringify([0, 1, 2, 3, 4]), `order ${res.order}`);
+  const merges = _flattenMerges(res.tree);
+  const expected = [
+    { height: 0.5, size: 2 }, // A-B
+    { height: 1.1, size: 2 }, // D-E
+    { height: 2.7, size: 3 }, // AB-C
+    { height: 5.45, size: 5 }, // ABC-DE
+  ];
+  assert(
+    merges.length === expected.length,
+    `expected ${expected.length} merges, got ${merges.length}`
+  );
+  for (let i = 0; i < expected.length; i++) {
+    assert(
+      Math.abs(merges[i].height - expected[i].height) < 1e-9,
+      `merge ${i}: h=${merges[i].height} vs ${expected[i].height}`
+    );
+    assert(
+      merges[i].size === expected[i].size,
+      `merge ${i}: size=${merges[i].size} vs ${expected[i].size}`
+    );
+  }
+});
+
+test("single linkage on 5-point fixture — uses MIN in update", () => {
+  // Single linkage step 3: d(AB, C) = min(d(A,C), d(B,C)) = min(2.3, 3.1) = 2.3
+  // Step 4: d(ABC, DE) = min over all cross-pairs = min(5.1, 5.4, 4.2) = 4.2
+  const res = hclust(HCLUST_FIXTURE_D, "single");
+  const merges = _flattenMerges(res.tree);
+  const expected = [0.5, 1.1, 2.3, 4.2];
+  for (let i = 0; i < expected.length; i++) {
+    assert(
+      Math.abs(merges[i].height - expected[i]) < 1e-9,
+      `single merge ${i}: ${merges[i].height} vs ${expected[i]}`
+    );
+  }
+});
+
+test("complete linkage on 5-point fixture — uses MAX in update", () => {
+  // Complete linkage step 3: d(AB, C) = max(2.3, 3.1) = 3.1
+  // Step 4: d(ABC, DE) = max over all cross-pairs = max(5.1, 5.4, 4.2, 6.2, 6.5, 5.3) = 6.5
+  const res = hclust(HCLUST_FIXTURE_D, "complete");
+  const merges = _flattenMerges(res.tree);
+  const expected = [0.5, 1.1, 3.1, 6.5];
+  for (let i = 0; i < expected.length; i++) {
+    assert(
+      Math.abs(merges[i].height - expected[i]) < 1e-9,
+      `complete merge ${i}: ${merges[i].height} vs ${expected[i]}`
+    );
+  }
 });
 
 suite("dendrogramLayout — SVG segments");
