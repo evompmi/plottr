@@ -8,16 +8,16 @@ Generator: `scripts/perf-spike.mjs`. Reproducible with `node scripts/perf-spike.
 
 | Tool       | Navigate | Ingest + render | Total  |
 | ---------- | -------- | --------------- | ------ |
-| `boxplot`  | 100 ms   | 185 ms          | 285 ms |
-| `scatter`  | 19 ms    | 216 ms          | 235 ms |
-| `venn`     | 29 ms    | 127 ms          | 156 ms |
-| `upset`    | 33 ms    | 129 ms          | 162 ms |
-| `lineplot` | 30 ms    | 81 ms           | 111 ms |
-| `aequorin` | 29 ms    | 136 ms          | 165 ms |
-| `heatmap`  | 30 ms    | 166 ms          | 196 ms |
-| `volcano`  | 31 ms    | 123 ms          | 154 ms |
-| `power`    | 53 ms    | 42 ms           | —      |
-| `molarity` | 34 ms    | 19 ms           | —      |
+| `boxplot`  | 101 ms   | 175 ms          | 276 ms |
+| `scatter`  | 30 ms    | 190 ms          | 220 ms |
+| `venn`     | 30 ms    | 110 ms          | 140 ms |
+| `upset`    | 16 ms    | 119 ms          | 135 ms |
+| `lineplot` | 16 ms    | 97 ms           | 113 ms |
+| `aequorin` | 29 ms    | 130 ms          | 159 ms |
+| `heatmap`  | 29 ms    | 189 ms          | 218 ms |
+| `volcano`  | 16 ms    | 82 ms           | 98 ms  |
+| `power`    | 15 ms    | 50 ms           | —      |
+| `molarity` | 16 ms    | 22 ms           | —      |
 
 _Navigate_ is `page.goto` → load event (cold cache the first time, primed for subsequent tools as the SPA chunk for `_shell` is shared). _Ingest + render_ is from clicking the example button to the chart's data layer being visible in the DOM.
 
@@ -25,9 +25,9 @@ _Navigate_ is `page.goto` → load event (cold cache the first time, primed for 
 
 | Tool      | Payload              | Size     | Textarea fill | Parse + render |
 | --------- | -------------------- | -------- | ------------- | -------------- |
-| `volcano` | 20,000 points        | 430.5 KB | 23 ms         | 1.23 s         |
-| `scatter` | 5,000 points         | 67.6 KB  | 14 ms         | 292 ms         |
-| `heatmap` | 1,000 rows × 30 cols | 195.3 KB | 9 ms          | 550 ms         |
+| `volcano` | 20,000 points        | 430.5 KB | 21 ms         | 1.04 s         |
+| `scatter` | 5,000 points         | 67.6 KB  | 14 ms         | 346 ms         |
+| `heatmap` | 1,000 rows × 30 cols | 195.3 KB | 8 ms          | 538 ms         |
 
 _Textarea fill_ is Playwright's synchronous string assignment to the paste field — mostly a measure of CDP throughput. _Parse + render_ is the interesting number: `Parse pasted data` click → chart visible.
 
@@ -39,29 +39,30 @@ _Textarea fill_ is Playwright's synchronous string assignment to the paste field
 
 ## Findings
 
-**The default workflows are fast.** Every tool's example dataset paints in well under 300 ms, and the calculators are essentially instant (19–42 ms). No tool has a baseline perf problem; the typical wet-lab user dragging a small CSV in won't notice latency anywhere.
+**The default workflows are fast.** Every tool's example dataset paints in well under 300 ms, and the calculators are essentially instant (≲ 50 ms). No tool has a baseline perf problem; the typical wet-lab user dragging a small CSV in won't notice latency anywhere.
 
-**Volcano at transcriptomics scale is the one real cliff.** 20,000 points → 1.23 s. The example baseline is 123 ms for ~200 points; the stress is ~100× that, in ~10× the time. So volcano scales linearly with N, no O(n²) explosion — but the absolute number matters: a whole-transcriptome volcano (≥ 20k genes is the typical RNA-seq scale) makes the user wait over a second on every paint, and the exported SVG is ~10 MB of `<circle>` markup. This is the highest-leverage target.
+**Volcano at transcriptomics scale (20 k points) is the one real cliff** — and the only place rasterisation paid off. Pre-rasterisation the SVG path took ~1.23 s + ~3.5 MB of `<circle>` markup; post-fix it's ~1.0 s + ~0.6 MB. See the post-fix section below for the A/B numbers and what's still on the critical path.
 
-**Scatter at 5,000 points isn't a cliff yet.** Iris (150 pts) ingest+render is 216 ms; 5k pts is 292 ms — 1.35× longer for 33× the data. The per-point DOM cost is amortised by parse + axis layout + React mount overhead. Scatter would only become a cliff well above 10–20 k points, which is a less common workflow than transcriptomics-scale volcano.
+**Scatter at 5,000 points isn't a cliff yet.** Iris (150 pts) ingest+render is ~210 ms; 5 k pts is ~360 ms — 1.7× longer for 33× the data. Per-point DOM cost is amortised by parse + axis layout + React mount overhead. Scatter only becomes a cliff well above 10–20 k points, a less common workflow than transcriptomics-scale volcano. (Scatter shares the rasterisation threshold trivially if a future workload needs it.)
 
-**Heatmap at 1,000 × 30 cells renders in 550 ms** — the v1.4.0 canvas rasterisation of the cell grid is doing its job. (Caveat: the stress test pastes raw CSV and walks through configure; the default-clustering pathway may not have engaged. Properly stressing `hclust` at 1 k rows needs a follow-up that explicitly enables hierarchical clustering on the configure step.)
+**Heatmap at 1,000 × 30 cells renders in ~530 ms** — the v1.4.0 canvas rasterisation of the cell grid is doing its job. (Caveat: the stress test pastes raw CSV and walks through configure; the default-clustering pathway may not have engaged. Properly stressing `hclust` at 1 k rows needs a follow-up that explicitly enables hierarchical clustering on the configure step.)
 
-**Limits of this spike.** Single-run wall-clock; no JIT warmup pass; the dev machine's other processes contend. Numbers within 2× of each other are noise. The `Parse + render` figure conflates CSV parse, React mount, and SVG paint — to attribute the volcano 1.23 s precisely you'd need a Chrome DevTools Performance recording with the rendering flame chart. Likely split: ~100 ms parse, ~150 ms React reconciliation, ~900 ms paint of 20 k `<circle>` + `<title>` nodes.
+**Limits of this spike.** Single-run wall-clock; no JIT warmup pass; the dev machine's other processes contend. Numbers within 2× of each other are noise. The `Parse + render` figure conflates CSV parse, React mount, label layout, canvas paint, and SVG paint — to attribute each phase precisely you'd need a Chrome DevTools Performance recording.
 
-## Recommendation
+## Post-fix — volcano rasterisation (committed)
 
-**Rasterise volcano's data layer above ~2,000 points.** Same pattern as the heatmap v1.4.0 fix — paint the points to a `<canvas>` off-screen, embed as `<image>` inside `<g id="data-points">`, fall back to bounding-box hit testing for click-to-label and hover tooltips. Below the threshold, keep SVG circles for crisp small-N exports. Expected: drop the 1.23 s render to ~50–100 ms, shrink the exported SVG by ~50×, smoother hover. The migration playbook (hover, brush, dendrogram overlays) already exists in the heatmap codepath.
+Volcano's data layer rasterises above `POINT_RASTERIZE_THRESHOLD = 2000` points (same pattern as heatmap v1.4.0 cells). All points paint to one off-screen canvas in class-order, exported as a single `<image>` inside `<g id="data-points">`. Per-class wrappers stay as empty `<g>` elements carrying `aria-label`s so the screen-reader structure is preserved; click-to-label survives via a transparent overlay `<rect>` that finds the nearest point at the click coord.
 
-**`hclust` rewrite (naive O(n³) → NN-chain O(n²))** is a defensible second slice, but its payoff only matters at 1,000+ row heatmaps, which is at the edge of "browser-only viable" anyway. Defer until a user reports it being slow, or until the volcano work is done and we have spare cycles.
+A/B run at 20,000 points (threshold toggled between 2,000 and 99,999), averaged over 2 cold runs each:
 
-**Scatter rasterisation** is a free side-effect of the volcano work (same code structure). Apply the same threshold and ship both in the same commit.
+| Mode            | Parse + render       | DOM at `data-points`            | `innerHTML` size     |
+| --------------- | -------------------- | ------------------------------- | -------------------- |
+| SVG (forced)    | **1,232 ms**         | 20,000 `<circle>` + 0 `<image>` | 3.55 MB              |
+| Raster (active) | **1,033 ms**         | 0 `<circle>` + 1 `<image>`      | **628 KB**           |
+| Δ               | **−16 % wall clock** | —                               | **5.7× smaller DOM** |
 
-## Reproducing
+Honest interpretation: **17 % render speedup** is smaller than the initial 10× prediction — because the dominant cost at 20 k points isn't DOM construction or SVG paint, it's CSV state-machine parsing + `buildLabelLayout`'s collision check (both O(N)). Rasterisation cuts the ~200 ms of DOM + paint cost, replaces it with ~200 ms of canvas + PNG-encode, and yields a real but modest end-to-end win.
 
-```bash
-node scripts/perf-spike.mjs
-# → writes docs/perf-spike-<date>.md
-```
+The DOM-shrink is the qualitative win: **5.7× smaller live DOM** → less browser memory + GC pressure on subsequent interactions (palette toggles, label edits). **5.7× smaller exported SVG** — a saved `.svg` for a transcriptomics-scale volcano drops from ~3.5 MB to ~600 KB, submission-friendly. Trade-off: per-point `<title>` tooltips are dropped above the threshold (the canvas has no per-point structure); the per-class `aria-label`s still describe the chart for screen readers.
 
-Requires `python3` on PATH (for the local file server, mirrors the e2e suite). Each tool runs in a fresh Chromium context so the SPA's tab-style keep-alive (v1.3.0) doesn't pollute measurements with previously-mounted tools.
+Further levers if pushing wall-clock matters in a future session: (1) profile `parseRaw` on 20 k rows — the biggest remaining chunk; (2) spatially-index points before `buildLabelLayout`'s collision check; (3) switch `canvas.toDataURL` to async `convertToBlob` + `URL.createObjectURL`. None urgent at 1 s end-to-end.
