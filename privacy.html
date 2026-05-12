@@ -224,13 +224,13 @@
           <desc id="diagram-desc">
             A static-file host (e.g. GitHub Pages) sends the Plöttr HTML, CSS, and JavaScript once
             to your browser at page load. From then on, the trust boundary is your own computer: you
-            drop a CSV file in, Plöttr runs the analysis locally, and the resulting SVG / PNG / CSV
-            / R-script files download to the same machine. No outbound connection ever carries your
-            data. Two security guards sit on the data path itself: every uploaded file is scanned
-            for hostile cells (CSV / Excel formula injection, hostile column names targeting the
-            R-script export) and surfaced in a warning banner; every downloaded CSV / R-script is
-            sanitised so that any leftover trigger characters stay inert when re-opened in Excel or
-            RStudio.
+            drop a CSV file in or paste table cells from Excel / Sheets, Plöttr runs the analysis
+            locally, and the resulting SVG / PNG / CSV / R-script files download to the same
+            machine. No outbound connection ever carries your data. Two security guards sit on the
+            data path itself: every ingested payload is scanned for hostile cells (CSV / Excel
+            formula injection, hostile column names targeting the R-script export) and surfaced in a
+            warning banner; every downloaded CSV / R-script is sanitised so that any leftover
+            trigger characters stay inert when re-opened in Excel or RStudio.
           </desc>
 
           <defs>
@@ -386,7 +386,7 @@
               fill="var(--text-muted)"
               font-family="ui-monospace, Menlo, monospace"
             >
-              from your local disk
+              local disk or clipboard
             </text>
           </g>
 
@@ -409,7 +409,7 @@
               fill="var(--text-muted)"
               font-family="ui-monospace, Menlo, monospace"
             >
-              you drop a file
+              drop or paste
             </text>
           </g>
 
@@ -640,8 +640,8 @@
             Your data is safe
           </h3>
           <p>
-            When you drop a file in, the chart and the statistics are built right there, inside your
-            browser tab. Plöttr has no servers.
+            When you drop a file in or paste table cells, the chart and the statistics are built
+            right there, inside your browser tab. Plöttr has no servers.
           </p>
         </div>
 
