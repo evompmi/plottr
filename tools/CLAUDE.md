@@ -65,7 +65,7 @@ Source files live side-by-side in `tools/` and stay the editable units:
 - `tools/shared.js` — plain JS globals: color helpers, numeric detection, seeded random, axis tick generation, separator detection, CSV parsing, statistics, download helpers, `roleColors` (chrome styling lives in `tools/components.css` via `dv-*` classes; see the Theming section)
 - Shared UI split into focused plain-JS files (all `React.createElement`, NOT JSX):
   - (`tools/shared-color-input.js` retired 2026-05; `ColorInput` + `normalizeHexColor` live in `tools/_shell/color-input.tsx`)
-  - (`tools/shared-file-drop.js` retired 2026-05; `FileDropZone` + `FILE_LIMIT_BYTES` / `FILE_WARN_BYTES` live in `tools/_shell/file-drop.tsx`)
+  - (`tools/shared-file-drop.js` retired 2026-05; `FileDropZone` + `FILE_LIMIT_BYTES` / `FILE_WARN_BYTES` live in `tools/_shell/FileDropZone.tsx`)
   - (`tools/shared-svg-legend.js` retired 2026-05; `computeLegendHeight` + `renderSvgLegend` live in `tools/_shell/svg-legend.ts`)
   - (`tools/shared-discrete-palette.js` retired 2026-05; the catalogue + helpers live in `tools/_shell/discrete-palette.ts` and the dropdown component in `tools/_shell/DiscretePaletteRow.tsx`)
   - (`tools/shared-core.js` retired 2026-05; `DataPreview` + `ErrorBoundary` live in `tools/_shell/core.tsx`)
@@ -122,7 +122,7 @@ Common variables: `--page-bg`, `--surface`, `--surface-subtle`, `--surface-sunke
 
 File upload/paste -> `autoDetectSep` + `fixDecimalCommas` + `parseRaw` -> `DataPreview` table -> user assigns column roles -> `computeStats`/`quartiles` -> React SVG rendering -> SVG/CSV export
 
-**Ingest size policy:** any new ingest surface (paste textarea, URL fetch, clipboard handler, …) must gate on `FILE_LIMIT_BYTES` (2 MB hard reject) and `FILE_WARN_BYTES` (1 MB warn) from `tools/_shell/file-drop.tsx` and surface the same red-banner UX `FileDropZone` uses. Import both names from `_shell/file-drop` — don't redeclare a local 2-MB number.
+**Ingest size policy:** any new ingest surface (paste textarea, URL fetch, clipboard handler, …) must gate on `FILE_LIMIT_BYTES` (2 MB hard reject) and `FILE_WARN_BYTES` (1 MB warn) from `tools/_shell/FileDropZone.tsx` and surface the same red-banner UX `FileDropZone` uses. Import both names from `_shell/FileDropZone` (or the `_shell` barrel) — don't redeclare a local 2-MB number.
 
 ## Per-tool palettes
 
