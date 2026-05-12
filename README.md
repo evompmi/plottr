@@ -141,9 +141,9 @@ No runtime dependencies from external CDNs — `vendor/` ships React + ReactDOM 
 
 ## Citing
 
-If you use Plöttr in published research, cite the repository. Suggested citation:
+If you use Plöttr in published research, please cite the repository. Suggested citation:
 
-> Plöttr — a browser-only data-analysis toolbox for wet-lab scientists. EVO team, LRSV Toulouse. <https://github.com/evompmi/plottr>
+> Plöttr — a browser-only data-analysis toolbox for wet-lab scientists. <https://github.com/evompmi/plottr>. Evolution of Plant-Microbe Interactions, Laboratoire de Recherche en Sciences Végétales (LRSV), Université de Toulouse, CNRS, UPS, Toulouse INP, Castanet-Tolosan, France.
 
 ## License
 
@@ -151,4 +151,4 @@ Plöttr is released under the [MIT License](LICENSE). Vendored copies of React +
 
 ## Acknowledgements
 
-Implementation assisted by Anthropic's Claude via Claude Code, under human direction. Statistical outputs are cross-validated against R 4.5 to keep accountability checkable rather than nominal.
+Implementation assisted by Anthropic's Claude via Claude Code, under human direction. Statistical outputs are cross-validated against R 4.5.3 and SciPy 1.17.1.
