@@ -63,6 +63,16 @@
         if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
       } catch (e) {}
     </script>
+    <script>
+      // Detect file:// (cloned-and-double-clicked use). Modern browsers block
+      // <script type="module"> loading from file:// origins, so the SPA shell
+      // (tools/_app/index.js) silently fails to start and clicking a tool
+      // tile produces a white page. We swap the landing for an instructional
+      // banner — see the #file-protocol-warning element + CSS below.
+      if (location.protocol === "file:") {
+        document.documentElement.setAttribute("data-file-protocol", "1");
+      }
+    </script>
     <title>Plöttr — Toolbox</title>
     <link
       rel="icon"
@@ -115,6 +125,82 @@
         display: flex;
         flex-direction: column;
         min-height: 100vh;
+      }
+
+      /* file:// fallback banner — see the inline detection script at the top
+         of <head>. The banner replaces both the landing and the SPA mount so
+         users see a clear, instructional message instead of a white page. */
+      #file-protocol-warning {
+        display: none;
+      }
+      html[data-file-protocol="1"] #landing,
+      html[data-file-protocol="1"] #landing-theme-toggle,
+      html[data-file-protocol="1"] #root {
+        display: none !important;
+      }
+      html[data-file-protocol="1"] #file-protocol-warning {
+        display: block;
+        max-width: 720px;
+        margin: 4rem auto;
+        padding: 2rem 2.5rem;
+        background: var(--warning-bg);
+        border: 1px solid var(--warning-border);
+        border-radius: 12px;
+        color: var(--warning-text);
+        font-family: ui-monospace, Menlo, monospace;
+        line-height: 1.55;
+      }
+      #file-protocol-warning h1 {
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin: 0 0 0.7rem;
+      }
+      #file-protocol-warning h2 {
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        color: var(--text);
+        margin: 1.6rem 0 0.6rem;
+      }
+      #file-protocol-warning p {
+        margin: 0.6rem 0;
+      }
+      #file-protocol-warning code {
+        background: var(--surface-sunken);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-size: 0.9em;
+        color: var(--text);
+      }
+      #file-protocol-warning kbd {
+        background: var(--surface);
+        border: 1px solid var(--border-strong);
+        border-radius: 3px;
+        padding: 0 5px;
+        font-size: 0.85em;
+        font-family: inherit;
+      }
+      #file-protocol-warning a {
+        color: var(--accent-primary);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      #file-protocol-warning a:hover {
+        text-decoration: underline;
+      }
+      #file-protocol-warning ol {
+        margin: 0.6rem 0 0;
+        padding-left: 1.4rem;
+      }
+      #file-protocol-warning ol li {
+        margin: 0.7rem 0;
+      }
+      #file-protocol-warning .alt {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 1.2rem;
       }
       .landing-header {
         text-align: center;
@@ -578,6 +664,57 @@
     </style>
   </head>
   <body>
+    <!-- Shown only when the page was opened from a `file://` URL — see
+         the detection script at the top of <head> and the CSS rules
+         in the inline <style> block. Hidden by default. -->
+    <div id="file-protocol-warning" role="alert">
+      <h1>⚠ Plöttr needs a local web server</h1>
+      <p>
+        You opened this page directly from your filesystem (the URL starts with
+        <code>file://</code>). Modern browsers block JavaScript modules from
+        <code>file://</code> for security reasons, so Plöttr's tools can't load.
+      </p>
+
+      <h2>Easiest fix — use the hosted version</h2>
+      <p>
+        Identical code, hosted on GitHub Pages, nothing to install:
+        <br />
+        <a href="https://evompmi.github.io/plottr">https://evompmi.github.io/plottr</a>
+      </p>
+
+      <h2>To run it 100 % offline from your clone</h2>
+      <p>
+        You need a tiny local web server. On macOS or Linux, Python 3 is already installed and one
+        command does it:
+      </p>
+      <ol>
+        <li>
+          Open <strong>Terminal</strong>. On macOS: press <kbd>⌘</kbd> + <kbd>Space</kbd>, type
+          <code>Terminal</code>, hit <kbd>Enter</kbd>.
+        </li>
+        <li>
+          Move into the Plöttr folder you cloned. Quick way: type
+          <code>cd&nbsp;</code> (note the trailing space), then drag the Plöttr folder onto the
+          Terminal window — the path fills in automatically. Press <kbd>Enter</kbd>.
+        </li>
+        <li>Run <code>python3 -m http.server</code></li>
+        <li>
+          Open <a href="http://localhost:8000">http://localhost:8000</a> in any browser. Plöttr
+          loads there.
+        </li>
+      </ol>
+      <p>
+        Leave the Terminal window open while you use Plöttr — closing it stops the local server.
+        <kbd>Ctrl</kbd> + <kbd>C</kbd> in Terminal shuts it down cleanly.
+      </p>
+
+      <p class="alt">
+        No Python? Any static-file server works: <code>npx serve</code> (if you have Node.js
+        installed), VS Code's "Live Server" extension, or simply upload the folder to any static
+        host.
+      </p>
+    </div>
+
     <button
       class="theme-toggle-btn"
       data-theme-toggle
