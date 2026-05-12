@@ -57,6 +57,10 @@ const {
   hclust,
   multisetIntersectionPExact,
   multisetIntersectionPPoisson,
+  cohenD,
+  cohenDCI,
+  sampleMean,
+  sampleSD,
 } = ctx;
 
 // ── Load R reference output ────────────────────────────────────────────────
@@ -300,6 +304,60 @@ for (const t of data.tests) {
         r: t.r.p,
         js: j.p,
         ...cmpP(j.p, t.r.p),
+      });
+    } else if (cat === "Cohen's d (pooled)") {
+      // d, CI95.lo, CI95.hi via Plöttr's cohenD + cohenDCI (Cumming &
+      // Finch 2001 noncentral-t pivot). R reference is the canonical
+      // effectsize::cohens_d with pooled_sd = TRUE — same pivot,
+      // independent implementation. Agreement at 1e-6 / 1e-7 absolute
+      // on real-dataset fixtures.
+      const jd = cohenD(t.inputs.a, t.inputs.b);
+      const ci = cohenDCI(jd, t.inputs.a.length, t.inputs.b.length);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "d",
+        r: t.r.d,
+        js: jd,
+        ...cmp(jd, t.r.d),
+      });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "CI95.lo",
+        r: t.r.ci_lo,
+        js: ci.lo,
+        ...cmp(ci.lo, t.r.ci_lo),
+      });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "CI95.hi",
+        r: t.r.ci_hi,
+        js: ci.hi,
+        ...cmp(ci.hi, t.r.ci_hi),
+      });
+    } else if (cat === "Cohen's d_av") {
+      // d_av = (mean(x) − mean(y)) / ((sd(x) + sd(y))/2). Lakens 2013
+      // formula, computed directly in R since effectsize doesn't ship
+      // a d_av-specific function. The Welch-branch denominator inside
+      // computePowerFromData uses the same expression.
+      const m1 = sampleMean(t.inputs.a);
+      const m2 = sampleMean(t.inputs.b);
+      const s1 = sampleSD(t.inputs.a);
+      const s2 = sampleSD(t.inputs.b);
+      const jdav = (m1 - m2) / ((s1 + s2) / 2);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "d_av",
+        r: t.r.d,
+        js: jdav,
+        ...cmp(jdav, t.r.d),
       });
     } else if (cat === "pairwise distance") {
       const mat = t.inputs.matrix.map((row) => row.slice());

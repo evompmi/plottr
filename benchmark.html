@@ -272,8 +272,8 @@
 
   <h2 class="ref-heading">vs R 4.5.3 on real built-in datasets</h2>
   <div class="summary summary-pass">
-    <div><span class="k">comparisons</span><span class="v">303</span></div>
-    <div><span class="k">passing</span><span class="v v-pass">299 (100.0%)</span></div>
+    <div><span class="k">comparisons</span><span class="v">327</span></div>
+    <div><span class="k">passing</span><span class="v v-pass">323 (100.0%)</span></div>
     <div><span class="k">failing</span><span class="v v-pass">0</span></div>
     <div><span class="k">past R's floor</span><span class="v v-rsat">4</span></div>
     <div><span class="k">max |Δ|</span><span class="v">3.16e-2</span></div>
@@ -3145,6 +3145,276 @@
     </details>
 
     <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Cohen's d (pooled)</span> <span class="badge badge-pass">18/18 pass</span></summary>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Plöttr</th>
+            <th class="num">|Δ|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>sleep extra: group 1 vs group 2</td>
+        <td class="num">20</td>
+        <td>d</td>
+        <td class="num">-0.832181</td>
+        <td class="num">-0.832181</td>
+        <td class="num">4.61e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>sleep extra: group 1 vs group 2</td>
+        <td class="num">20</td>
+        <td>CI95.lo</td>
+        <td class="num">-1.73882</td>
+        <td class="num">-1.73882</td>
+        <td class="num">4.70e-7</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>sleep extra: group 1 vs group 2</td>
+        <td class="num">20</td>
+        <td>CI95.hi</td>
+        <td class="num">0.0954504</td>
+        <td class="num">0.09545</td>
+        <td class="num">4.33e-7</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length: setosa vs versicolor</td>
+        <td class="num">100</td>
+        <td>d</td>
+        <td class="num">-2.1042</td>
+        <td class="num">-2.1042</td>
+        <td class="num">9.82e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length: setosa vs versicolor</td>
+        <td class="num">100</td>
+        <td>CI95.lo</td>
+        <td class="num">-2.59079</td>
+        <td class="num">-2.59079</td>
+        <td class="num">6.71e-8</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length: setosa vs versicolor</td>
+        <td class="num">100</td>
+        <td>CI95.hi</td>
+        <td class="num">-1.61057</td>
+        <td class="num">-1.61057</td>
+        <td class="num">6.15e-8</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length: versicolor vs virginica</td>
+        <td class="num">100</td>
+        <td>d</td>
+        <td class="num">-1.12583</td>
+        <td class="num">-1.12583</td>
+        <td class="num">4.40e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length: versicolor vs virginica</td>
+        <td class="num">100</td>
+        <td>CI95.lo</td>
+        <td class="num">-1.54576</td>
+        <td class="num">-1.54576</td>
+        <td class="num">8.51e-9</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length: versicolor vs virginica</td>
+        <td class="num">100</td>
+        <td>CI95.hi</td>
+        <td class="num">-0.700927</td>
+        <td class="num">-0.700927</td>
+        <td class="num">9.76e-8</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>ChickWeight@21: Diet 1 vs Diet 4 (unequal SD)</td>
+        <td class="num">25</td>
+        <td>d</td>
+        <td class="num">-1.12895</td>
+        <td class="num">-1.12895</td>
+        <td class="num">2.66e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>ChickWeight@21: Diet 1 vs Diet 4 (unequal SD)</td>
+        <td class="num">25</td>
+        <td>CI95.lo</td>
+        <td class="num">-1.9971</td>
+        <td class="num">-1.9971</td>
+        <td class="num">1.49e-7</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>ChickWeight@21: Diet 1 vs Diet 4 (unequal SD)</td>
+        <td class="num">25</td>
+        <td>CI95.hi</td>
+        <td class="num">-0.239638</td>
+        <td class="num">-0.239638</td>
+        <td class="num">3.31e-7</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>swiss Fertility: high vs low Catholic (unequal SD)</td>
+        <td class="num">47</td>
+        <td>d</td>
+        <td class="num">0.885867</td>
+        <td class="num">0.885867</td>
+        <td class="num">4.79e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>swiss Fertility: high vs low Catholic (unequal SD)</td>
+        <td class="num">47</td>
+        <td>CI95.lo</td>
+        <td class="num">0.265593</td>
+        <td class="num">0.265594</td>
+        <td class="num">2.84e-7</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>swiss Fertility: high vs low Catholic (unequal SD)</td>
+        <td class="num">47</td>
+        <td>CI95.hi</td>
+        <td class="num">1.49715</td>
+        <td class="num">1.49715</td>
+        <td class="num">1.60e-7</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>morley Speed: Expt 1 vs Expt 5</td>
+        <td class="num">40</td>
+        <td>d</td>
+        <td class="num">0.927987</td>
+        <td class="num">0.927987</td>
+        <td class="num">2.00e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>morley Speed: Expt 1 vs Expt 5</td>
+        <td class="num">40</td>
+        <td>CI95.lo</td>
+        <td class="num">0.26875</td>
+        <td class="num">0.26875</td>
+        <td class="num">1.47e-7</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>morley Speed: Expt 1 vs Expt 5</td>
+        <td class="num">40</td>
+        <td>CI95.hi</td>
+        <td class="num">1.57624</td>
+        <td class="num">1.57624</td>
+        <td class="num">9.81e-8</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </details>
+
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Cohen's d_av</span> <span class="badge badge-pass">6/6 pass</span></summary>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Plöttr</th>
+            <th class="num">|Δ|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>sleep extra: group 1 vs group 2</td>
+        <td class="num">20</td>
+        <td>d_av</td>
+        <td class="num">-0.833496</td>
+        <td class="num">-0.833496</td>
+        <td class="num">2.70e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length: setosa vs versicolor</td>
+        <td class="num">100</td>
+        <td>d_av</td>
+        <td class="num">-2.14123</td>
+        <td class="num">-2.14123</td>
+        <td class="num">3.48e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length: versicolor vs virginica</td>
+        <td class="num">100</td>
+        <td>d_av</td>
+        <td class="num">-1.13189</td>
+        <td class="num">-1.13189</td>
+        <td class="num">4.24e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>ChickWeight@21: Diet 1 vs Diet 4 (unequal SD)</td>
+        <td class="num">25</td>
+        <td>d_av</td>
+        <td class="num">-1.19168</td>
+        <td class="num">-1.19168</td>
+        <td class="num">8.79e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>swiss Fertility: high vs low Catholic (unequal SD)</td>
+        <td class="num">47</td>
+        <td>d_av</td>
+        <td class="num">0.860229</td>
+        <td class="num">0.860229</td>
+        <td class="num">1.67e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>morley Speed: Expt 1 vs Expt 5</td>
+        <td class="num">40</td>
+        <td>d_av</td>
+        <td class="num">0.973952</td>
+        <td class="num">0.973952</td>
+        <td class="num">2.44e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </details>
+
+    <details class="category" open>
       <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">pairwise distance</span> <span class="badge badge-pass">3/3 pass</span></summary>
       <table>
         <colgroup>
@@ -3388,7 +3658,7 @@
     </details>
 
   <footer>
-    R reference generated 2026-05-08 20:04:05 UTC.
+    R reference generated 2026-05-12 23:30:29 UTC.
     Tolerance 0.005. Tool source: <code>tools/stats-*.js</code>.
   </footer>
 </div>
