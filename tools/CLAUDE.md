@@ -49,7 +49,7 @@ Each plot folder owns roughly:
 
 Both calculators export `function App()` exactly the way the plot tools' `app.tsx` files do; `tools/_app/tool-registry.ts` imports them via `import { App as PowerApp } from "../power-app"` etc.
 
-**Build**: `npm run build` runs `esbuild tools/_app/index.tsx --bundle --format=esm --outfile=tools/_app/index.js …`. Single entry point, single output bundle (~580 KB minified). esbuild's `--bundle` flag inlines every tool's `app.tsx` (and the rest of `tools/_app/`) via static cross-file analysis. Pre-iframe→SPA there were 10 separate entry points producing 10 separate per-tool bundles; the migration collapsed them into one.
+**Build**: `npm run build` runs `esbuild tools/_app/index.tsx --bundle --splitting --format=esm --outdir=tools/_app --chunk-names=chunks/[name]-[hash] --jsx=transform --minify-syntax --minify-whitespace --sourcemap`. Single entry point, code-split output: `tools/_app/index.js` plus one lazy chunk per tool under `tools/_app/chunks/`. Each tool's `App` is wrapped in `React.lazy` inside `tool-registry.ts`, so the user only downloads the chunk for the route they visit. Pre-iframe→SPA there were 10 separate entry points producing 10 separate per-tool bundles; the migration collapsed them into one entry, and v1.4.1 re-split the per-tool work into lazy chunks under that entry.
 
 ## Shared code
 
@@ -122,7 +122,7 @@ Common variables: `--page-bg`, `--surface`, `--surface-subtle`, `--surface-sunke
 
 File upload/paste -> `autoDetectSep` + `fixDecimalCommas` + `parseRaw` -> `DataPreview` table -> user assigns column roles -> `computeStats`/`quartiles` -> React SVG rendering -> SVG/CSV export
 
-**Ingest size policy:** any new ingest surface (paste textarea, URL fetch, clipboard handler, …) must gate on `FILE_LIMIT_BYTES` (2 MB hard reject) and `FILE_WARN_BYTES` (1 MB warn) from `tools/shared-file-drop.js` and surface the same red-banner UX `FileDropZone` uses. Both names are script-scope globals via the shared bundle — don't redeclare a local 2-MB number.
+**Ingest size policy:** any new ingest surface (paste textarea, URL fetch, clipboard handler, …) must gate on `FILE_LIMIT_BYTES` (2 MB hard reject) and `FILE_WARN_BYTES` (1 MB warn) from `tools/_shell/file-drop.tsx` and surface the same red-banner UX `FileDropZone` uses. Import both names from `_shell/file-drop` — don't redeclare a local 2-MB number.
 
 ## Per-tool palettes
 
@@ -189,7 +189,7 @@ Key conventions:
 - Tool-specific state (parsed rows, selection, tool-only reducers like boxplot's `statsUi` or heatmap's `cellBorder`) stays inline in `App()` — the scaffold intentionally does not become a kitchen sink.
 - If a tool needs a dual-variant parse banner (e.g. aequorin's yellow "⚠️" warning vs. red error), keep `parseError` as **local** state and render the custom banner as `PlotToolShell` children; the shared `ParseErrorBanner` only renders the red error variant.
 
-**esbuild flags matter.** The build command in `package.json` uses `--bundle --format=esm --minify-syntax --minify-whitespace --sourcemap`. `--bundle` inlines `_shell/*` imports so the tool loads from a classic `<script>` tag; `--format=esm` avoids IIFE wrapping (which would hide chart consts like `BoxplotChart` from render-smoke tests); `--minify-syntax --minify-whitespace` (not `--minify`) preserves top-level identifier names so the render harness can find them. Do not change these without also updating the render-smoke test harness.
+**esbuild flags matter.** The build command in `package.json` uses `--bundle --splitting --format=esm --outdir=tools/_app --chunk-names=chunks/[name]-[hash] --jsx=transform --minify-syntax --minify-whitespace --sourcemap`. `--bundle` inlines `_shell/*` imports into the entry / per-tool chunks; `--splitting` + `--format=esm` peels each `React.lazy(() => import("../<tool>/app"))` into its own lazy-loaded chunk under `tools/_app/chunks/` (also avoids the IIFE wrapping that would hide chart consts like `BoxplotChart` from render-smoke tests); `--minify-syntax --minify-whitespace` (not `--minify`) preserves top-level identifier names so the render harness can find them. Do not change these without also updating the render-smoke test harness.
 
 **Test-loader pattern.** Per-tool test loaders (`tests/helpers/<tool>-loader.js`) transform `tools/<tool>/helpers.ts` to CommonJS with `esbuild.transformSync` (or `esbuild.buildSync` with `bundle: true` when the tool's `helpers.ts` is a barrel that re-exports from sibling files — see `tests/helpers/venn-loader.js`), then evaluate the result under `vm.runInContext` with the shared globals (`tools/shared.js`, sometimes the `tools/stats-*.js` files via `tests/helpers/stats-source.js`) pre-loaded into the context. Exports are read off a `module.exports` object threaded into the vm context via `ctx.module`. **If you add a new pure helper to a tool**, put it in `tools/<tool>/helpers.ts`, and add it to the `module.exports` block at the bottom of the matching loader — that's the only step; no slicing, no regex stripping.
 

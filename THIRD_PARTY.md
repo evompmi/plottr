@@ -7,8 +7,9 @@ entry names what's used, where it's used, and the licensing posture.
 
 The intent is one-stop transparency: a peer reviewer should be able to read
 this page and verify that nothing in the repo is an unattributed copy of
-licensed code. Inline citations exist throughout `tools/stats.js` and
-`tools/shared.js` — this file consolidates them.
+licensed code. Inline citations exist throughout `tools/stats-dist.js`,
+`tools/stats-tests.js`, `tools/stats-posthoc.js`, `tools/stats-cluster.js`,
+`tools/stats-msi.js`, and `tools/shared.js` — this file consolidates them.
 
 ## Vendored binaries
 
@@ -23,13 +24,13 @@ runtime CDN dependency.
 
 ## Ports with public-domain provenance
 
-| Component                                                                  | Where             | Source                                                                                                                                                | Provenance                                                                                         |
-| -------------------------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `betacf` (continued fraction for the regularized incomplete beta)          | `tools/stats.js`  | Cephes Mathematical Library, `incbet.c` (`incbcf` form), Stephen L. Moshier, "Cephes Math Library Release 2.8" (2000), https://www.netlib.org/cephes/ | Public domain (author dedication).                                                                 |
-| `gammainc` (regularized lower incomplete gamma — series form)              | `tools/stats.js`  | Cephes Mathematical Library, `igam.c`                                                                                                                 | Public domain (author dedication).                                                                 |
-| `gammainc_upper` (regularized upper incomplete gamma — continued fraction) | `tools/stats.js`  | Cephes Mathematical Library, `igam.c` (`igamc` form)                                                                                                  | Public domain (author dedication).                                                                 |
-| `seededRandom` (Park-Miller minimal-standard LCG)                          | `tools/shared.js` | S. K. Park & K. W. Miller, "Random number generators: Good ones are hard to find" (CACM, 1988); algorithm originated with D. H. Lehmer, 1951.         | Public-domain algorithm; constants 16807 / 2147483647 are the algorithm.                           |
-| `gammaln` Lanczos coefficients (g = 7)                                     | `tools/stats.js`  | Paul Godfrey, "A note on the computation of the convergent Lanczos complex Gamma approximation" (2001)                                                | Coefficients are public-domain in spirit; widely circulated as the standard g = 7 reference table. |
+| Component                                                                  | Where                 | Source                                                                                                                                                | Provenance                                                                                         |
+| -------------------------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `betacf` (continued fraction for the regularized incomplete beta)          | `tools/stats-dist.js` | Cephes Mathematical Library, `incbet.c` (`incbcf` form), Stephen L. Moshier, "Cephes Math Library Release 2.8" (2000), https://www.netlib.org/cephes/ | Public domain (author dedication).                                                                 |
+| `gammainc` (regularized lower incomplete gamma — series form)              | `tools/stats-dist.js` | Cephes Mathematical Library, `igam.c`                                                                                                                 | Public domain (author dedication).                                                                 |
+| `gammainc_upper` (regularized upper incomplete gamma — continued fraction) | `tools/stats-dist.js` | Cephes Mathematical Library, `igam.c` (`igamc` form)                                                                                                  | Public domain (author dedication).                                                                 |
+| `seededRandom` (Park-Miller minimal-standard LCG)                          | `tools/shared.js`     | S. K. Park & K. W. Miller, "Random number generators: Good ones are hard to find" (CACM, 1988); algorithm originated with D. H. Lehmer, 1951.         | Public-domain algorithm; constants 16807 / 2147483647 are the algorithm.                           |
+| `gammaln` Lanczos coefficients (g = 7)                                     | `tools/stats-dist.js` | Paul Godfrey, "A note on the computation of the convergent Lanczos complex Gamma approximation" (2001)                                                | Coefficients are public-domain in spirit; widely circulated as the standard g = 7 reference table. |
 
 The Cephes ports use a three-term recurrence (`pkm/qkm` with periodic
 big/biginv rescaling). Plöttr-specific polish — log-space final
@@ -37,7 +38,8 @@ exponentiation in `gammainc` / `gammainc_upper`, and a √a-scaled iteration
 cap so `chi2cdf` and `ptukey` stay accurate at huge df — is layered on top of
 the Cephes recurrence. Constants (`CEPHES_BIG = 2^52`, `CEPHES_BIGINV =
 2^-52`, `CEPHES_MACHEP = 1.11e-16`) match Cephes' `incbet.c` / `igam.c`
-literally. See `tools/stats.js` lines ~169–305 for the attribution block.
+literally. See `tools/stats-dist.js` lines ~170–340 for the attribution block
+(header comment plus the `betacf` / `gammainc` / `gammainc_upper` bodies).
 
 ## Algorithmic references (algorithm-only — no code copied)
 
@@ -63,7 +65,7 @@ independently coded.
   uses Gauss-Hermite tables from AS 190, Copenhaver & Holland 1988); the
   algebraic factorisation `a^(k−1) − b^(k−1) = (a−b)·Σ a^(k−2−j)·b^j` for
   the upper tail is documented in the source comments at
-  `tools/stats.js` ~line 1244.
+  `tools/stats-posthoc.js` ~line 35.
 - **Noncentral t / F / χ² (`nctcdf`, `ncf_sf`, `ncchi2cdf`)** — textbook
   Poisson-mixture and chi²-mixture forms, mode-centred enumeration. The
   closed-form normal-approximation short-circuit (`if halfLam > 500 && d2 >
