@@ -23,6 +23,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Tukey HSD now surfaces a methodological warning when (1−α, k, df)
+  lies in qtukey's pathological design envelope** (df ≤ 2 ∧ k ≥ 10 at
+  1−α ≥ 0.95). Plöttr's bracket-doubling `qtukey` still returns a
+  finite root in that corner, but cross-validation against SciPy's
+  `studentized_range.ppf` shows up-to-5 % relative disagreement —
+  the R / SciPy references diverge there too. The new `result.warning`
+  field tells consumers the per-pair lwr/upr are approximate while the
+  p-values (computed via `ptukey_upper`, which doesn't share the
+  inverse's bracket-expansion limit) remain reliable. Suggests
+  Games-Howell as an alternative for callers who actually land in
+  that regime. Belt-and-suspenders: the same channel reports the
+  (currently unreachable in practice) NaN-from-bracket case. Source
+  comment on `qtukey` itself now spells out the precise envelope
+  rather than the prior "anything larger is pathological".
+
 - **Post-hoc Cohen's f now uses the η²-based formula** matching R's
   `effectsize::cohens_f`. The "n for 80% power" rows in the stats panel
   (k≥3 ANOVA / Kruskal-Wallis) previously fed `fFromGroupMeans(means, sp)`

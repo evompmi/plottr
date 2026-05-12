@@ -93,6 +93,11 @@ export interface PostHocResult {
   mse?: number;
   method?: string;
   error?: string;
+  // Soft warning — the result is still usable, but one or more derived
+  // quantities (typically Tukey HSD CI bounds at small df with large k
+  // and 1−α ≥ 0.95) were silently NaN. See `qtukey`'s design-envelope
+  // comment in `tools/stats-posthoc.js`.
+  warning?: string;
 }
 
 export function runTest(name: RecommendedTest | string, values: GroupValues): TestResult {
