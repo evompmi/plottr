@@ -688,18 +688,17 @@
       <!-- ── Inspect / clone block ─────────────────────────────────────── -->
       <div class="inspect-block">
         <strong>Want zero network at all?</strong>
-        Plöttr is a static site, so you can clone it once and run it forever offline:
+        Plöttr is a static site, so you can clone it once and serve it locally for the rest of its
+        lifetime — every request stays on your machine:
         <br /><br />
         <code>git clone https://github.com/evompmi/plottr.git</code><br />
-        <code>cd plottr &amp;&amp; open index.html</code> &nbsp;·&nbsp;
+        <code>cd plottr &amp;&amp; python3 -m http.server</code> &nbsp;·&nbsp;
         <span style="color: var(--text-faint)"
-          >(or any
-          <code>file://</code>
-          opener)</span
+          >then open <code>http://localhost:8000</code> in any browser</span
         >
         <br /><br />
-        That's it. No build step, no install. Every plot tool works the same way running from your
-        own filesystem as it does from a server.
+        Any static-file server works (Python, <code>npx serve</code>, nginx, …); the compiled JS is
+        checked into <code>tools/</code> so there's no build step.
       </div>
 
       <footer>

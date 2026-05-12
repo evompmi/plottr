@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **README + privacy.html no longer claim Plöttr runs from `file://`.**
+  Since v1.3.0 the SPA shell loads `tools/_app/index.js` as a
+  `<script type="module">` and browsers block module loading from
+  `file://` origins (cross-origin policy on local files). Docs now
+  recommend `python3 -m http.server` (or any static-file server) and
+  `http://localhost:8000`. The behaviour change has been live for
+  months; only the install instructions were stale.
+
 - **Volcano and Heatmap charts now carry per-element `aria-label`s** to
   match the per-element a11y coverage the six other plot tools already
   had. Volcano: each significance class (`points-up` / `points-down` /

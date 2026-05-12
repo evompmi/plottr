@@ -8,7 +8,7 @@ Originally built for the "Evolution of plant-microbes interactions" team members
 
 ## Design goals
 
-- **Zero infrastructure.** Static HTML/CSS/JS. Runs from GitHub Pages, any static host, or directly off the filesystem.
+- **Zero infrastructure.** Static HTML/CSS/JS. Runs from GitHub Pages or any static-file server (`python3 -m http.server`, `npx serve`, nginx, …) — no backend.
 - **Privacy by construction.** All parsing and computation happens in-browser. Works offline once loaded.
 - **Paste-and-plot.** Each tool auto-detects separators (`,` / `\t`) and decimal convention (`,` / `.`), then walks through column roles → filter → plot → export.
 - **Publication-ready output.** SVG (named `<g>` groups for Inkscape/Illustrator), PNG (2×), CSV of processed data.
@@ -112,8 +112,11 @@ To run offline or modify the source:
 ```bash
 git clone https://github.com/evompmi/plottr.git
 cd plottr
-# Open index.html in any modern browser — no server required.
+python3 -m http.server     # or `npx serve` — any static-file server works
+# Then open http://localhost:8000 in any modern browser.
 ```
+
+(Direct `file://` no longer works as of v1.3.0: the SPA shell loads `tools/_app/index.js` as a JavaScript module, and browsers block module loading from `file://` origins.)
 
 ## Development
 
