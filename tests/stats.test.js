@@ -79,6 +79,9 @@ const {
   oneWayANOVA,
   welchANOVA,
   kruskalWallis,
+  nctcdf,
+  ncf_sf,
+  ncchi2cdf,
   etaSquared,
   epsilonSquared,
   ptukey,
@@ -2147,6 +2150,93 @@ test("very-large DP cost routes to Poisson without hanging", () => {
   const routed = ctx.multisetIntersectionP(50, [10000, 10000, 10000, 10000, 10000], 100000);
   const poisson = ctx.multisetIntersectionPPoisson(50, [10000, 10000, 10000, 10000, 10000], 100000);
   approx(routed, poisson, 1e-15);
+});
+
+// ── Non-central distribution fixtures vs SciPy 1.17 ────────────────────────
+//
+// The non-central CDFs (`nctcdf`, `ncf_sf`, `ncchi2cdf`) are reached only
+// through the power calculator + the SciPy benchmark — neither path pins
+// the *numerical* output tightly enough to catch precision-shifting
+// mutations on the A&S / Gauss-Legendre coefficients (per docs/testing-
+// 2026-05-08.md, the bulk of mutation survivors live in these branches).
+//
+// Each row below is a SciPy 1.17.1 reference value lifted from
+// `benchmark/results-scipy.json`, hand-picked to stay in the regime where
+// the JS implementation agrees with SciPy at FP precision (rel ≲ 1e-9).
+// Tolerances are set just above the observed agreement: a real precision
+// shift would move the output by ≥ 1e-4 and fail the assertion, while
+// legitimate FP-level disagreement passes.
+//
+// Adding more rows is cheap — pick from `npm run benchmark:scipy`'s
+// "pass"-classified output, drop anything in `deep-tail` / `underflow` /
+// `pathological` buckets.
+
+suite("stats.js — nctcdf vs SciPy 1.17 reference fixtures");
+
+test("central regime (delta=0) — agreement at FP precision", () => {
+  // delta=0 reduces nctcdf to central tcdf via Gauss-Legendre quadrature
+  // of the chi-mixture; FP-level agreement (rel ≲ 1e-13).
+  const FIX = [
+    { t: -5, df: 30, delta: 0, scipy: 0.000011648342733503901 },
+    { t: -1, df: 30, delta: 0, scipy: 0.162654307713015 },
+    { t: 1, df: 100, delta: 0, scipy: 0.8401379221079384 },
+    { t: -1, df: 100, delta: 0, scipy: 0.1598620778920617 },
+  ];
+  for (const { t, df, delta, scipy } of FIX) {
+    approx(nctcdf(t, df, delta), scipy, 1e-12, `nctcdf(${t}, ${df}, ${delta})`);
+  }
+});
+
+test("non-central regime (|delta| ≤ 5, df ≥ 5) — agreement to 1e-7 relative", () => {
+  // Hand-picked from SciPy 1.17 fixtures in the regime where JS's Gauss-
+  // Legendre quadrature stays accurate. A relative-tolerance check rather
+  // than absolute so values near 0 or 1 are pinned as tightly as mid-range
+  // outputs.
+  const FIX = [
+    { t: 1, df: 5, delta: 1, scipy: 0.4809261412421052 },
+    { t: 1, df: 30, delta: 1, scipy: 0.49669879455361443 },
+    { t: 5, df: 100, delta: 5, scipy: 0.49512918850821674 },
+    { t: 10, df: 5, delta: 1, scipy: 0.9993313223580297 },
+    { t: 10, df: 30, delta: 5, scipy: 0.9990895029688033 },
+    { t: 10, df: 100, delta: 5, scipy: 0.9999793684618338 },
+  ];
+  for (const { t, df, delta, scipy } of FIX) {
+    const got = nctcdf(t, df, delta);
+    const rel = Math.abs(got - scipy) / Math.max(1e-300, Math.abs(scipy));
+    assert(rel < 1e-7, `nctcdf(${t}, ${df}, ${delta}): got ${got}, scipy ${scipy} (rel ${rel})`);
+  }
+});
+
+suite("stats.js — ncf_sf vs SciPy 1.17 reference fixtures");
+
+test("ncf_sf at d1=1 / d2=30 / lambda ∈ {0, 1} — FP-precision agreement", () => {
+  const FIX = [
+    { f: 0.5, d1: 1, d2: 30, lambda: 0, scipy: 0.4849569686830381 },
+    { f: 2, d1: 1, d2: 30, lambda: 0, scipy: 0.167594108019346 },
+    { f: 10, d1: 1, d2: 30, lambda: 0, scipy: 0.0035685233088176825 },
+    { f: 0.5, d1: 1, d2: 30, lambda: 1, scipy: 0.6620816209044876 },
+    { f: 2, d1: 1, d2: 30, lambda: 1, scipy: 0.35512751989132135 },
+    { f: 10, d1: 1, d2: 30, lambda: 1, scipy: 0.02378631056588776 },
+  ];
+  for (const { f, d1, d2, lambda, scipy } of FIX) {
+    approx(ncf_sf(f, d1, d2, lambda), scipy, 1e-12, `ncf_sf(${f}, ${d1}, ${d2}, ${lambda})`);
+  }
+});
+
+suite("stats.js — ncchi2cdf vs SciPy 1.17 reference fixtures");
+
+test("ncchi2cdf at k=5 / lambda ∈ {0, 1} — FP-precision agreement", () => {
+  const FIX = [
+    { x: 0.1, k: 5, lambda: 0, scipy: 0.0001623166119226152 },
+    { x: 1, k: 5, lambda: 0, scipy: 0.03743422675270362 },
+    { x: 10, k: 5, lambda: 0, scipy: 0.9247647538534879 },
+    { x: 0.1, k: 5, lambda: 1, scipy: 0.0000991529210363362 },
+    { x: 1, k: 5, lambda: 1, scipy: 0.02431662113720006 },
+    { x: 10, k: 5, lambda: 1, scipy: 0.8626668135599576 },
+  ];
+  for (const { x, k, lambda, scipy } of FIX) {
+    approx(ncchi2cdf(x, k, lambda), scipy, 1e-12, `ncchi2cdf(${x}, ${k}, ${lambda})`);
+  }
 });
 
 summary();
