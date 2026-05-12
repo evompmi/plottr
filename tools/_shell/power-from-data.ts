@@ -1,14 +1,23 @@
-// `computePowerFromData` — achieved power + n-needed-for-80%-power from
-// observed data, dispatched per test family (t-tests / ANOVA / KW). For
-// rank-based tests (Mann-Whitney / Kruskal-Wallis) we report the
-// parametric analog as an approximation — flagged in the returned
-// `approximate` flag.
+// `computePowerFromData` — n-needed-for-80%-power from observed data,
+// dispatched per test family (t-tests / ANOVA / KW). Forward-looking
+// replication planning: given the effect size we just saw, how many
+// samples per group would a future study need to reach 80% power at
+// each α? For rank-based tests (Mann-Whitney / Kruskal-Wallis) we
+// report the parametric analog as an approximation — flagged in the
+// returned `approximate` flag.
 //
-// Computed at α = 0.05, 0.01, 0.001; target power = 0.80.
-//
-// Pre-2026-05 lived in `_shell/stats-tile.tsx`; split here so per-tool
-// stats panels (lineplot/aequorin/boxplot) can import the math without
-// pulling in the full StatsTile component.
+// The pre-2026-05-13 version of this module also returned an `achieved`
+// power per row (computed by feeding the observed effect size back
+// through powerTwoSample / powerAnova at the OBSERVED sample size).
+// That is the classic Hoenig & Heisey 2001 anti-pattern: post-hoc /
+// observed power is a deterministic transformation of the p-value, so
+// it adds zero information beyond what p already tells the reader.
+// Worse, presented as a coloured "% achieved" cell, it nudges users
+// toward interpreting non-significant tests as "underpowered" when
+// the more honest framing is "we observed effect size X; for that
+// effect, a replication would need n=Y." That's what this module now
+// returns. See conversation history 2026-05-13 + the H&H 2001 paper
+// for the methodology pivot.
 
 declare const sampleMean: (xs: number[]) => number;
 declare const sampleSD: (xs: number[]) => number;
@@ -18,7 +27,6 @@ declare const powerAnova: (f: number, n: number, alpha: number, k: number) => nu
 
 export interface PowerFromDataRow {
   alpha: number;
-  achieved: number;
   nForTarget: number | null;
 }
 
@@ -51,10 +59,7 @@ export function computePowerFromData(
     const s2 = sampleSD(y);
     const sp = Math.sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2));
     const d = sp > 0 ? Math.abs(m1 - m2) / sp : 0;
-    const nh = 2 / (1 / n1 + 1 / n2);
-    const nEff = Math.max(2, Math.round(nh));
     const rows = alphas.map((alpha) => {
-      const achieved = powerTwoSample(d, nEff, alpha, 2);
       let needed: number | null = null;
       if (d > 0) {
         for (let n = 2; n <= 5000; n++) {
@@ -64,7 +69,7 @@ export function computePowerFromData(
           }
         }
       }
-      return { alpha, achieved, nForTarget: needed };
+      return { alpha, nForTarget: needed };
     });
     return {
       effectLabel: "Cohen's d",
@@ -95,10 +100,7 @@ export function computePowerFromData(
     }
     const sp = dfW > 0 ? Math.sqrt(ssW / dfW) : 0;
     const f = fFromGroupMeans(means, sp);
-    const nh = kk / ns.reduce((a, b) => a + 1 / b, 0);
-    const nEff = Math.max(2, Math.round(nh));
     const rows = alphas.map((alpha) => {
-      const achieved = powerAnova(f, nEff, alpha, kk);
       let needed: number | null = null;
       if (f > 0) {
         for (let n = 2; n <= 5000; n++) {
@@ -108,7 +110,7 @@ export function computePowerFromData(
           }
         }
       }
-      return { alpha, achieved, nForTarget: needed };
+      return { alpha, nForTarget: needed };
     });
     return {
       effectLabel: "Cohen's f",

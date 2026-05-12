@@ -103,7 +103,7 @@ interface StatsReportCtx {
   powerResult: {
     effectLabel: string;
     effect: number;
-    rows: Array<{ alpha: number; achieved: number; nForTarget: number | null }>;
+    rows: Array<{ alpha: number; nForTarget: number | null }>;
     targetPower: number;
     nLabel: string;
     approximate: boolean;
@@ -230,29 +230,34 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
 
   if (powerResult) {
     lines.push(sep);
-    lines.push("POWER ANALYSIS (target = 80%)");
+    lines.push("REPLICATION PLANNING (target 80% power)");
     lines.push(sep);
     lines.push("");
     lines.push(
       "Effect size:       " + powerResult.effectLabel + " = " + powerResult.effect.toFixed(3)
     );
     lines.push("");
+    lines.push("For a future study at the observed effect size:");
+    lines.push("");
     const aW = 8;
-    const pW = 16;
-    const nW = 16;
-    lines.push(_padR("alpha", aW) + _padR("Achieved power", pW) + "n for 80% power");
-    lines.push("-".repeat(aW + pW + nW));
+    const nW = 24;
+    lines.push(_padR("alpha", aW) + "n for 80% power");
+    lines.push("-".repeat(aW + nW));
     for (let ri = 0; ri < powerResult.rows.length; ri++) {
       const row = powerResult.rows[ri];
       const aStr = String(row.alpha);
-      const pStr = (row.achieved * 100).toFixed(1) + "%";
       const nStr = row.nForTarget != null ? row.nForTarget + " " + powerResult.nLabel : "> 5000";
-      lines.push(_padR(aStr, aW) + _padR(pStr, pW) + nStr);
+      lines.push(_padR(aStr, aW) + nStr);
     }
     if (powerResult.approximate) {
       lines.push("");
       lines.push("  Note: rank-based test — power estimated from its parametric analog.");
     }
+    lines.push("");
+    lines.push("  Why not 'achieved power'? Post-hoc / observed power is a");
+    lines.push("  deterministic transformation of p (Hoenig & Heisey 2001),");
+    lines.push("  so it adds no information beyond p itself. The forward-");
+    lines.push("  looking n-needed estimates above are the actionable signal.");
     lines.push("");
   }
 
@@ -953,17 +958,30 @@ export function StatsTile({
     );
   }
 
-  // ── Power analysis ────────────────────────────────────────────────────
+  // ── Replication planning ──────────────────────────────────────────────
+  //
+  // Pre-2026-05-13 this section was "Power analysis" with an "Achieved
+  // power" coloured column, where the cell turned green at ≥ 80% and red
+  // below. Methodologically: post-hoc / observed power is a deterministic
+  // transformation of p (Hoenig & Heisey 2001), so the cell duplicated p
+  // and the colouring nudged readers toward an incorrect interpretation
+  // ("low achieved power means underpowered"). The forward-looking
+  // "n for 80% power" column is the actually-useful output — it tells the
+  // user how to plan a future replication. We now show only that.
   let powerBlock: React.ReactNode = null;
   if (powerResult) {
-    const fmtPct = (p: number) => (p * 100).toFixed(1) + "%";
     const fmtAlpha = (a: number) => String(a);
     const nNeededText = (r: PowerFromDataRow) =>
       r.nForTarget != null ? r.nForTarget + " " + powerResult.nLabel : "> 5000";
     powerBlock = h(
       "div",
       null,
-      h("div", { style: subhead }, "Power analysis (target 80%)"),
+      h("div", { style: subhead }, "Replication planning (n for 80% power)"),
+      h(
+        "div",
+        { style: { fontSize: 11, color: "var(--text-muted)", marginBottom: 6 } },
+        "Given the observed effect size, sample size a future study would need to detect this effect at 80% power."
+      ),
       h(
         "table",
         { style: table },
@@ -975,7 +993,6 @@ export function StatsTile({
             null,
             h("th", { style: th }, "Effect size"),
             h("th", { style: th }, "α"),
-            h("th", { style: th }, "Achieved power"),
             h("th", { style: th }, "n for 80% power")
           )
         ),
@@ -994,17 +1011,6 @@ export function StatsTile({
                   )
                 : null,
               h("td", { style: td }, fmtAlpha(rrow.alpha)),
-              h(
-                "td",
-                {
-                  style: {
-                    ...td,
-                    fontWeight: 700,
-                    color: rrow.achieved >= 0.8 ? "var(--step-ready)" : "var(--warning-text)",
-                  },
-                },
-                fmtPct(rrow.achieved)
-              ),
               h("td", { style: td }, nNeededText(rrow))
             )
           )

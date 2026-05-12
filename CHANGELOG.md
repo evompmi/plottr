@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Stats panel: "Power analysis" → "Replication planning" — the
+  "Achieved power" column is gone.** Post-hoc / observed power
+  (Hoenig & Heisey 2001) is a deterministic transformation of the
+  p-value: it adds no information beyond what p already tells the
+  reader, and presented as a coloured "% achieved" cell it nudges
+  users toward an incorrect "low achieved power means underpowered"
+  reading. The forward-looking "n for 80 % power" column is the
+  actually-useful output; the panel now shows that alone, with a
+  one-line subtitle explaining what the n means. Affects Group
+  Plot (`StatsTile`), the per-tool boxplot / aequorin / lineplot
+  stats panels, the Stats CSV download, and the R-script export
+  header. No change to the underlying tests or test selection.
+
 ### Added
 
 - **`file://`-protocol detection banner on the landing page.** If a
