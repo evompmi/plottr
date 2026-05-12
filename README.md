@@ -152,6 +152,10 @@ If you use Plöttr in published research, please cite the repository. Suggested 
 
 Plöttr is released under the [MIT License](LICENSE). Vendored copies of React + ReactDOM (`vendor/`) keep their upstream MIT license — see [`vendor/LICENSE-react.txt`](vendor/LICENSE-react.txt). Continued-fraction primitives (`betacf`, `gammainc`, `gammainc_upper` in `tools/stats-dist.js`) are ported from the public-domain [Cephes Mathematical Library](https://www.netlib.org/cephes/). All algorithmic references and third-party attributions are consolidated in [`THIRD_PARTY.md`](THIRD_PARTY.md).
 
-## Acknowledgements
+## AI Usage
 
-Implementation assisted by Anthropic's Claude via Claude Code, under human direction. Statistical outputs are cross-validated against R 4.5.3 and SciPy 1.17.1.
+Plöttr was built collaboratively with Anthropic's Claude (via Claude Code) under researcher direction. The bulk of the JavaScript, tests, and documentation is Claude-written; the researcher specifies needs, reviews proposals, picks scope, sets methodology, and approves every commit before it lands. Architectural conventions are encoded in folder-level `CLAUDE.md` files so the workflow is reproducible.
+
+**What is independently verified.** Every statistical function is cross-validated against R 4.5.3 (303 comparisons) and SciPy 1.17.1 (1,083 comparisons) on each `npm run benchmark`. Mutation testing (`npm run mutation`, Stryker) probes whether the test suite catches regressions. These checks exist precisely because the implementation is AI-generated.
+
+**What is _not_ independently verified** and rests on researcher review alone: UI / UX choices, accessibility labels, the prose in this README and the in-app How-to panels, the chart aesthetics. Bug reports there are especially welcome — the "Send feedback" button in every tool opens a mailto draft.
