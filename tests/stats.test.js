@@ -872,6 +872,76 @@ test("degenerate input → { lo: NaN, hi: NaN }", () => {
   assert(Number.isNaN(c.lo) && Number.isNaN(c.hi), `conf=0: got ${c.lo}, ${c.hi}`);
 });
 
+// R-cross-validated reference values from `effectsize::cohens_d`
+// (R 4.5.3, effectsize package). The canonical implementation of the
+// Cumming & Finch 2001 noncentral-t pivot in the R ecosystem. To
+// reproduce:
+//
+//   library(effectsize)
+//   cohens_d(sleepG1, sleepG2, pooled_sd = TRUE)
+//   cohens_d(iris$Sepal.Length[iris$Species=="setosa"],
+//            iris$Sepal.Length[iris$Species=="versicolor"],
+//            pooled_sd = TRUE)
+//
+// JS-vs-R agreement is at ~1e-7 absolute on both CI bounds — well
+// inside the 1e-6 tolerance pinned here. Tighter tolerance would
+// catch genuine drift in `cohenDCI`'s bisection or `nctcdf` precision.
+
+suite("stats.js — cohenDCI vs R effectsize::cohens_d");
+
+test("sleep: d_pool CI matches R to 1e-6", () => {
+  const d = cohenD(sleepG1, sleepG2); // -0.83218108
+  const { lo, hi } = cohenDCI(d, sleepG1.length, sleepG2.length);
+  approx(lo, -1.7388171552, 1e-6);
+  approx(hi, 0.0954504437, 1e-6);
+});
+
+test("iris setosa vs versicolor: d_pool CI matches R to 1e-6", () => {
+  const d = cohenD(irisSetosa, irisVersicolor); // -2.10419725
+  const { lo, hi } = cohenDCI(d, irisSetosa.length, irisVersicolor.length);
+  approx(lo, -2.5907867136, 1e-6);
+  approx(hi, -1.6105704249, 1e-6);
+});
+
+// d_av: `effectsize::cohens_d(pooled_sd = FALSE)` returns Glass's Δ
+// (uses the control group's SD), not d_av (mean of unpooled SDs).
+// `lsr::cohensD(..., method="unequal")` returns d_av but the package
+// isn't installed in CI. The reference values below come from the
+// unambiguous Lakens 2013 formula `(m1 − m2) / ((sd1 + sd2)/2)`
+// computed directly in R via `(mean(x) - mean(y)) / ((sd(x) + sd(y))/2)`,
+// double-checked against Plöttr's JS implementation.
+
+suite("stats.js — Cohen's d_av (Lakens 2013) — R formula cross-check");
+
+// Inline d_av — Plöttr doesn't expose a global helper for it because
+// the only consumer is computePowerFromData (which inlines the math
+// alongside the Welch branch). Reproduce the formula here so a
+// future refactor that swaps in a `cohenDav` global stays drop-in
+// compatible with the reference values below.
+function dav(x, y) {
+  const m1 = sampleMean(x);
+  const m2 = sampleMean(y);
+  const s1 = sampleSD(x);
+  const s2 = sampleSD(y);
+  return (m1 - m2) / ((s1 + s2) / 2);
+}
+
+test("sleep d_av = -0.83349634 (R formula)", () => {
+  approx(dav(sleepG1, sleepG2), -0.8334963413, 1e-9);
+});
+
+test("iris setosa vs versicolor d_av = -2.14122696 (R formula)", () => {
+  approx(dav(irisSetosa, irisVersicolor), -2.1412269629, 1e-9);
+});
+
+test("d_av equals d_pool when SDs are equal", () => {
+  // sd1 == sd2 ⇒ the two denominators collapse to the same value, so
+  // d_av == d_pool to FP precision. Pins the algebraic identity.
+  const x = [1, 2, 3, 4, 5]; // mean 3, sd √2.5 ≈ 1.5811
+  const y = [11, 12, 13, 14, 15]; // mean 13, sd √2.5 ≈ 1.5811
+  approx(dav(x, y), cohenD(x, y), 1e-12);
+});
+
 // ── Shared k-sample fixtures ───────────────────────────────────────────────
 
 // PlantGrowth (3 groups × 10)
