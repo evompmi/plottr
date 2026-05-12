@@ -135,7 +135,7 @@ Architecture, shared-code constraints, and conventions for adding tools are in [
 
 ## Technical stack
 
-React 18 (vendored under `vendor/`, no CDN) + esbuild (TSX → JS, ~5 ms incremental) + custom SVG rendering (no charting library) + in-house stats cross-validated against R 4.5 + SciPy 1.17. Tests via Vitest 3 with a thin compat shim that preserves the project's house vocabulary. Hosted on GitHub Pages as a single-page app (hash-routed; one esbuild entry point).
+React 18 (vendored under `vendor/`, no CDN) + esbuild (TSX → JS, ~5 ms incremental) + custom SVG rendering (no charting library) + in-house stats cross-validated against R 4.5 + SciPy 1.17. Plot tools share a typed TypeScript scaffold under `tools/_shell/` (step navigator, upload + paste handlers, style-prefs persistence, stats dispatch); each tool's `App` ships as a lazy chunk, so the SPA only downloads the route you visit. Tests via Vitest 3 with a thin compat shim that preserves the project's house vocabulary. Hosted on GitHub Pages as a single-page app (hash-routed; one esbuild entry plus per-tool code-split chunks).
 
 No runtime dependencies from external CDNs — `vendor/` ships React + ReactDOM so a cloned copy works without network access.
 
