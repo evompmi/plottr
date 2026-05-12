@@ -7,23 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- **Volcano data layer rasterises above 2,000 points.** Mirrors the
-  v1.4.0 heatmap cell-grid migration: at large N, the per-point
-  `<circle>` elements are replaced with a single canvas-encoded
-  PNG `<image>` inside `<g id="data-points">`. Click-to-label
-  survives via a transparent overlay rect that finds the nearest
-  point at the click coordinate; per-class `aria-label`s on the
-  empty `<g id="points-{up,down,ns}">` wrappers keep the screen-
-  reader structure. Trade-off: per-point `<title>` tooltips are
-  dropped above the threshold (the canvas image has no per-point
-  structure). Measured at 20,000 points: 17 % faster end-to-end
-  render (1.23 s → 1.03 s) and a 5.7× smaller live DOM tree —
-  exported SVGs drop from ~3.5 MB to ~600 KB, submission-friendly
-  for transcriptomics workflows. See `docs/perf-spike-2026-05-12.md`
-  for the A/B measurements and remaining bottlenecks.
-
 ### Added
 
 - **`file://`-protocol detection banner on the landing page.** If a

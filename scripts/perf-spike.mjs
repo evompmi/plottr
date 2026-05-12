@@ -102,25 +102,13 @@ async function startServer() {
 
 const TOOLS = [
   { slug: "boxplot", chart: "svg g#groups > g", needsStepPlot: true },
-  {
-    slug: "scatter",
-    chart: "svg g#data-points circle, svg g#data-points image",
-    needsStepPlot: true,
-  },
+  { slug: "scatter", chart: "svg g#data-points circle", needsStepPlot: true },
   { slug: "venn", chart: 'svg g[id^="set-circles"] circle', needsStepPlot: true },
   { slug: "upset", chart: "svg g#intersection-bars rect, svg g#bars rect", needsStepPlot: true },
   { slug: "lineplot", chart: "svg g#traces path", needsStepPlot: true },
   { slug: "aequorin", chart: "svg g#axis-y", needsStepPlot: true },
   { slug: "heatmap", chart: "svg g#cells image", needsStepPlot: true },
-  // Volcano switches the data-points group to canvas-rasterised <image>
-  // elements above `POINT_RASTERIZE_THRESHOLD` (2,000 points). Below the
-  // threshold it stays on <circle>s. The selector covers both modes so
-  // the spike runs cleanly at either scale.
-  {
-    slug: "volcano",
-    chart: "svg g#data-points circle, svg g#data-points image",
-    needsStepPlot: true,
-  },
+  { slug: "volcano", chart: "svg g#data-points circle", needsStepPlot: true },
   // Calculators: no upload step. Scope the h1 selector to `#root` —
   // an unscoped `h1` lookup hits the (hidden) file:// warning banner
   // and the (hidden) landing-page h1 first.
@@ -266,58 +254,6 @@ function buildReport(baselines, stress) {
   lines.push(
     "- A tool that scales faster than linearly on the stress test points at an O(n²)-or-worse hot spot worth chasing. A tool that's already a multi-second baseline is a different signal — even the default user feels it."
   );
-  lines.push("");
-
-  lines.push("## Findings");
-  lines.push("");
-  lines.push(
-    "**The default workflows are fast.** Every tool's example dataset paints in well under 300 ms, and the calculators are essentially instant (≲ 50 ms). No tool has a baseline perf problem; the typical wet-lab user dragging a small CSV in won't notice latency anywhere."
-  );
-  lines.push("");
-  lines.push(
-    "**Volcano at transcriptomics scale (20 k points) is the one real cliff** — and the only place rasterisation paid off. Pre-rasterisation the SVG path took ~1.23 s + ~3.5 MB of `<circle>` markup; post-fix it's ~1.0 s + ~0.6 MB. See the post-fix section below for the A/B numbers and what's still on the critical path."
-  );
-  lines.push("");
-  lines.push(
-    "**Scatter at 5,000 points isn't a cliff yet.** Iris (150 pts) ingest+render is ~210 ms; 5 k pts is ~360 ms — 1.7× longer for 33× the data. Per-point DOM cost is amortised by parse + axis layout + React mount overhead. Scatter only becomes a cliff well above 10–20 k points, a less common workflow than transcriptomics-scale volcano. (Scatter shares the rasterisation threshold trivially if a future workload needs it.)"
-  );
-  lines.push("");
-  lines.push(
-    "**Heatmap at 1,000 × 30 cells renders in ~530 ms** — the v1.4.0 canvas rasterisation of the cell grid is doing its job. (Caveat: the stress test pastes raw CSV and walks through configure; the default-clustering pathway may not have engaged. Properly stressing `hclust` at 1 k rows needs a follow-up that explicitly enables hierarchical clustering on the configure step.)"
-  );
-  lines.push("");
-  lines.push(
-    "**Limits of this spike.** Single-run wall-clock; no JIT warmup pass; the dev machine's other processes contend. Numbers within 2× of each other are noise. The `Parse + render` figure conflates CSV parse, React mount, label layout, canvas paint, and SVG paint — to attribute each phase precisely you'd need a Chrome DevTools Performance recording."
-  );
-  lines.push("");
-
-  lines.push("## Post-fix — volcano rasterisation (committed)");
-  lines.push("");
-  lines.push(
-    'Volcano\'s data layer rasterises above `POINT_RASTERIZE_THRESHOLD = 2000` points (same pattern as heatmap v1.4.0 cells). All points paint to one off-screen canvas in class-order, exported as a single `<image>` inside `<g id="data-points">`. Per-class wrappers stay as empty `<g>` elements carrying `aria-label`s so the screen-reader structure is preserved; click-to-label survives via a transparent overlay `<rect>` that finds the nearest point at the click coord.'
-  );
-  lines.push("");
-  lines.push(
-    "A/B run at 20,000 points (threshold toggled between 2,000 and 99,999), averaged over 2 cold runs each:"
-  );
-  lines.push("");
-  lines.push(row(["Mode", "Parse + render", "DOM at `data-points`", "`innerHTML` size"]));
-  lines.push(row(["---", "---", "---", "---"]));
-  lines.push(row(["SVG (forced)", "**1,232 ms**", "20,000 `<circle>` + 0 `<image>`", "3.55 MB"]));
-  lines.push(row(["Raster (active)", "**1,033 ms**", "0 `<circle>` + 1 `<image>`", "**628 KB**"]));
-  lines.push(row(["Δ", "**−16 % wall clock**", "—", "**5.7× smaller DOM**"]));
-  lines.push("");
-  lines.push(
-    "Honest interpretation: **17 % render speedup** is smaller than the initial 10× prediction — because the dominant cost at 20 k points isn't DOM construction or SVG paint, it's CSV state-machine parsing + `buildLabelLayout`'s collision check (both O(N)). Rasterisation cuts the ~200 ms of DOM + paint cost, replaces it with ~200 ms of canvas + PNG-encode, and yields a real but modest end-to-end win."
-  );
-  lines.push("");
-  lines.push(
-    "The DOM-shrink is the qualitative win: **5.7× smaller live DOM** → less browser memory + GC pressure on subsequent interactions (palette toggles, label edits). **5.7× smaller exported SVG** — a saved `.svg` for a transcriptomics-scale volcano drops from ~3.5 MB to ~600 KB, submission-friendly. Trade-off: per-point `<title>` tooltips are dropped above the threshold (the canvas has no per-point structure); the per-class `aria-label`s still describe the chart for screen readers."
-  );
-  lines.push("");
-  lines.push(
-    "Further levers if pushing wall-clock matters in a future session: (1) profile `parseRaw` on 20 k rows — the biggest remaining chunk; (2) spatially-index points before `buildLabelLayout`'s collision check; (3) switch `canvas.toDataURL` to async `convertToBlob` + `URL.createObjectURL`. None urgent at 1 s end-to-end."
-  );
   return lines.join("\n") + "\n";
 }
 
@@ -363,13 +299,13 @@ async function main() {
       slug: "volcano",
       label: "20,000 points",
       payload: () => genVolcano(20000),
-      chart: "svg g#data-points circle, svg g#data-points image",
+      chart: "svg g#data-points circle",
     },
     {
       slug: "scatter",
       label: "5,000 points",
       payload: () => genScatter(5000),
-      chart: "svg g#data-points circle, svg g#data-points image",
+      chart: "svg g#data-points circle",
     },
     {
       slug: "heatmap",
