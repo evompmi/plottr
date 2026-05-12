@@ -339,6 +339,9 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
                   {i === 0 ? (
                     <td style={tdS} rowSpan={power.rows.length}>
                       {power.effectLabel} = {power.effect.toFixed(3)}
+                      {power.effectCI
+                        ? `, 95% CI [${power.effectCI.lo.toFixed(3)}, ${power.effectCI.hi.toFixed(3)}]`
+                        : ""}
                     </td>
                   ) : null}
                   <td style={tdS}>{String(pr.alpha)}</td>

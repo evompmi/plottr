@@ -74,6 +74,7 @@ const {
   tTest,
   mannWhitneyU,
   cohenD,
+  cohenDCI,
   hedgesG,
   rankBiserial,
   oneWayANOVA,
@@ -805,6 +806,70 @@ test("rankBiserial — extreme separation → ±1", () => {
   // x all below y → U1 = 0 → r = 1
   const { U1 } = mannWhitneyU([1, 2, 3], [10, 20, 30]);
   approx(rankBiserial(U1, 3, 3), 1, 1e-12);
+});
+
+// ── 95 % CI on Cohen's d (Cumming & Finch 2001 noncentral-t pivot) ────────
+
+suite("stats.js — cohenDCI: 95 % CI on Cohen's d via noncentral t");
+
+test("CI brackets the point estimate", () => {
+  // For any well-defined d on n ≥ 3, the CI must enclose d itself.
+  const d = cohenD(sleepG1, sleepG2); // ≈ −0.83
+  const { lo, hi } = cohenDCI(d, sleepG1.length, sleepG2.length);
+  assert(Number.isFinite(lo) && Number.isFinite(hi), `lo=${lo}, hi=${hi}`);
+  assert(lo <= d && d <= hi, `d=${d} not in [${lo}, ${hi}]`);
+});
+
+test("CI is roughly symmetric around d when |d| is small", () => {
+  // d close to 0 → noncentral t is near central → CI nearly symmetric.
+  // For equal-n with d ≈ 0, the half-widths on each side should match
+  // within ~5% (small departures from symmetry are real because the
+  // ncp-based CI isn't exactly central even at d=0, but the gap is
+  // tiny compared to the half-width itself).
+  const x = [4.9, 5.0, 5.1, 4.8, 5.2, 5.0, 4.95, 5.05, 4.9, 5.1];
+  const y = [5.0, 5.1, 4.9, 5.05, 4.95, 5.0, 5.0, 4.92, 5.08, 5.1];
+  const d = cohenD(x, y);
+  const { lo, hi } = cohenDCI(d, x.length, y.length);
+  const widthLo = d - lo;
+  const widthHi = hi - d;
+  const rel = Math.abs(widthLo - widthHi) / Math.max(widthLo, widthHi);
+  assert(rel < 0.05, `asymmetry rel=${rel.toExponential(2)}, lo=${lo}, hi=${hi}, d=${d}`);
+});
+
+test("CI widens as sample size shrinks", () => {
+  // Same d, smaller n → wider CI. Pin the monotonic relationship.
+  const d = 0.5;
+  const wide = cohenDCI(d, 5, 5);
+  const narrow = cohenDCI(d, 50, 50);
+  const widthWide = wide.hi - wide.lo;
+  const widthNarrow = narrow.hi - narrow.lo;
+  assert(widthWide > 2 * widthNarrow, `n=5 width=${widthWide}, n=50 width=${widthNarrow}`);
+});
+
+test("sleep extra: d ≈ −0.832, CI contains 0 (matches the well-known borderline result)", () => {
+  // The R `sleep` dataset is the classic Student 1908 example. With
+  // n=10 per group, d ≈ −0.83. The 95 % CI from MBESS::ci.smd is
+  // approximately [−1.75, 0.10] — wide enough to span 0, which is why
+  // the paired-design original analysis was needed to reach significance.
+  const d = cohenD(sleepG1, sleepG2);
+  const { lo, hi } = cohenDCI(d, sleepG1.length, sleepG2.length);
+  // Sanity: CI half-widths in the right ballpark for n=10/10. Don't
+  // pin against external software at high precision since `effsize`
+  // (default) uses an asymptotic SE while we use the exact noncentral-t
+  // pivot — they agree to ~10 % at this n, diverge more at small n.
+  assert(lo < 0, `expected lo < 0 (CI spans 0), got lo=${lo}`);
+  assert(hi > 0, `expected hi > 0 (CI spans 0), got hi=${hi}`);
+  assert(lo > -2 && hi < 0.5, `CI [${lo}, ${hi}] outside expected MBESS-ish range`);
+});
+
+test("degenerate input → { lo: NaN, hi: NaN }", () => {
+  // n < 2 on either side, or non-finite d, returns NaN bounds (not throws).
+  const a = cohenDCI(0.5, 1, 10);
+  assert(Number.isNaN(a.lo) && Number.isNaN(a.hi), `n1=1: got ${a.lo}, ${a.hi}`);
+  const b = cohenDCI(NaN, 10, 10);
+  assert(Number.isNaN(b.lo) && Number.isNaN(b.hi), `NaN d: got ${b.lo}, ${b.hi}`);
+  const c = cohenDCI(0.5, 10, 10, 0); // invalid conf
+  assert(Number.isNaN(c.lo) && Number.isNaN(c.hi), `conf=0: got ${c.lo}, ${c.hi}`);
 });
 
 // ── Shared k-sample fixtures ───────────────────────────────────────────────

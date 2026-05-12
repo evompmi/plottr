@@ -103,6 +103,7 @@ interface StatsReportCtx {
   powerResult: {
     effectLabel: string;
     effect: number;
+    effectCI: { lo: number; hi: number } | null;
     rows: Array<{ alpha: number; nForTarget: number | null }>;
     targetPower: number;
     nLabel: string;
@@ -233,8 +234,15 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
     lines.push("REPLICATION PLANNING (target 80% power)");
     lines.push(sep);
     lines.push("");
+    const ciStr = powerResult.effectCI
+      ? `, 95% CI [${powerResult.effectCI.lo.toFixed(3)}, ${powerResult.effectCI.hi.toFixed(3)}]`
+      : "";
     lines.push(
-      "Effect size:       " + powerResult.effectLabel + " = " + powerResult.effect.toFixed(3)
+      "Effect size:       " +
+        powerResult.effectLabel +
+        " = " +
+        powerResult.effect.toFixed(3) +
+        ciStr
     );
     lines.push("");
     lines.push("For a future study at the observed effect size:");
@@ -1007,7 +1015,12 @@ export function StatsTile({
                 ? h(
                     "td",
                     { style: td, rowSpan: powerResult.rows.length },
-                    powerResult.effectLabel + " = " + powerResult.effect.toFixed(3)
+                    powerResult.effectLabel +
+                      " = " +
+                      powerResult.effect.toFixed(3) +
+                      (powerResult.effectCI
+                        ? `, 95% CI [${powerResult.effectCI.lo.toFixed(3)}, ${powerResult.effectCI.hi.toFixed(3)}]`
+                        : "")
                   )
                 : null,
               h("td", { style: td }, fmtAlpha(rrow.alpha)),

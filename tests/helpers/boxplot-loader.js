@@ -87,6 +87,7 @@ module.exports = {
   leveneTest: ctx.leveneTest,
   compactLetterDisplay: ctx.compactLetterDisplay,
   assignBracketLevels: ctx.assignBracketLevels,
+  computePowerFromData: ctx.computePowerFromData,
   // Boxplot-specific pure helpers.
   formatBpStatShort: helpers.formatBpStatShort,
   formatBpResultLine: helpers.formatBpResultLine,

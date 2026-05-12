@@ -24,15 +24,27 @@ declare const sampleSD: (xs: number[]) => number;
 declare const fFromGroupMeans: (means: number[], pooledSD: number) => number;
 declare const powerTwoSample: (d: number, n: number, alpha: number, tails: number) => number;
 declare const powerAnova: (f: number, n: number, alpha: number, k: number) => number;
+declare const cohenDCI: (
+  d: number,
+  n1: number,
+  n2: number,
+  conf?: number
+) => { lo: number; hi: number };
 
 export interface PowerFromDataRow {
   alpha: number;
   nForTarget: number | null;
 }
 
+// 95 % CI on the effect size (Cohen's d / d_av). Present for two-group
+// parametric tests (Student / Welch), null for ANOVA k≥3 and rank-based
+// tests where a single closed-form CI on the effect isn't as clean —
+// callers can either bootstrap or rely on the existing point estimate
+// for those cases.
 export interface PowerFromDataResult {
   effectLabel: string;
   effect: number;
+  effectCI: { lo: number; hi: number } | null;
   rows: PowerFromDataRow[];
   targetPower: number;
   nLabel: string;
@@ -57,13 +69,41 @@ export function computePowerFromData(
     const m2 = sampleMean(y);
     const s1 = sampleSD(x);
     const s2 = sampleSD(y);
-    const sp = Math.sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2));
-    const d = sp > 0 ? Math.abs(m1 - m2) / sp : 0;
+    // Effect-size denominator picks based on the chosen test's
+    // variance assumption (Lakens 2013):
+    //   - Student's t / Mann-Whitney: pooled SD (d_s). Both assume
+    //     a single common variance; the pooled estimator is the
+    //     maximum-likelihood denominator consistent with that.
+    //   - Welch's t: mean of unpooled SDs (d_av). Welch denies the
+    //     equal-variance assumption; the pooled denominator embeds
+    //     it back and is methodologically inconsistent. d_av takes
+    //     each group's SD on its own merits, symmetric in both.
+    // Label changes too so users can tell which denominator was used.
+    let denom: number;
+    let label: string;
+    if (chosenTest === "welchT") {
+      denom = (s1 + s2) / 2;
+      label = "Cohen's d_av";
+    } else {
+      denom = Math.sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2));
+      label = "Cohen's d";
+    }
+    // d / d_av return the absolute magnitude here for the power-curve
+    // input. The CI is computed on the *signed* d (so direction is
+    // preserved when the panel displays "d = -2.05, 95% CI [-2.50, -1.58]").
+    const dAbs = denom > 0 ? Math.abs(m1 - m2) / denom : 0;
+    const dSigned = denom > 0 ? (m1 - m2) / denom : 0;
+    const effectCI =
+      chosenTest === "mannWhitney"
+        ? null // MWU is rank-based; the d analog has no clean closed-form CI
+        : denom > 0
+          ? cohenDCI(dSigned, n1, n2)
+          : null;
     const rows = alphas.map((alpha) => {
       let needed: number | null = null;
-      if (d > 0) {
+      if (dAbs > 0) {
         for (let n = 2; n <= 5000; n++) {
-          if (powerTwoSample(d, n, alpha, 2) >= target) {
+          if (powerTwoSample(dAbs, n, alpha, 2) >= target) {
             needed = n;
             break;
           }
@@ -72,8 +112,9 @@ export function computePowerFromData(
       return { alpha, nForTarget: needed };
     });
     return {
-      effectLabel: "Cohen's d",
-      effect: d,
+      effectLabel: label,
+      effect: dSigned,
+      effectCI,
       rows,
       targetPower: target,
       nLabel: "per group",
@@ -115,6 +156,7 @@ export function computePowerFromData(
     return {
       effectLabel: "Cohen's f",
       effect: f,
+      effectCI: null,
       rows,
       targetPower: target,
       nLabel: "per group",

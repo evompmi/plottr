@@ -239,7 +239,10 @@ export function buildAqSetTextBlock(row: EnrichedAequorinStatsRow): string {
   const power = row.powerResult;
   if (power) {
     lines.push("");
-    lines.push(`Replication planning: ${power.effectLabel} = ${power.effect.toFixed(3)}`);
+    const ciStr = power.effectCI
+      ? `, 95% CI [${power.effectCI.lo.toFixed(3)}, ${power.effectCI.hi.toFixed(3)}]`
+      : "";
+    lines.push(`Replication planning: ${power.effectLabel} = ${power.effect.toFixed(3)}${ciStr}`);
     for (const pr of power.rows) {
       const nStr = pr.nForTarget != null ? `${pr.nForTarget} ${power.nLabel}` : "> 5000";
       lines.push(`  α=${pr.alpha}: n for 80% power = ${nStr}`);
