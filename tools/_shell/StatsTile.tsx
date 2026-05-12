@@ -329,12 +329,6 @@ export function StatsTile({
   const [showSummaryOnPlot, setShowSummaryOnPlot] = React.useState(false);
   const [annotKind, setAnnotKind] = React.useState<"cld" | "brackets">("cld");
   const [showNs, setShowNs] = React.useState(false);
-  // Unique name for the annotation-kind radio group so multiple StatsTiles
-  // (one per facet in Group Plot) don't collapse into a single HTML radio
-  // group, which would cause the browser to clear checked state across tiles
-  // and make the radios flicker on unrelated re-renders.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const annotKindName = "stats-annot-kind-" + React.useId();
 
   const values = React.useMemo(() => validGroups.map((g) => g.values.slice()), [validGroups]);
   const names = React.useMemo(() => validGroups.map((g) => g.name), [validGroups]);
