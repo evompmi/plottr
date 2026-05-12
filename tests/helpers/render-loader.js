@@ -53,7 +53,12 @@ const esbuild = require("esbuild");
 const React = require("react");
 const ReactDOMServer = require("react-dom/server");
 const ReactDOMClient = require("react-dom/client");
-const TestUtils = require("react-dom/test-utils");
+
+// Tell React 18+ that this is a test environment so `act()` doesn't log
+// "The current testing environment is not configured to support act(...)"
+// on every call. Has to be set before any React render — declaring it
+// here at module load happens before `renderWithEffects` runs.
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const toolsDir = path.join(__dirname, "../../tools");
 
@@ -305,15 +310,16 @@ function renderHtml(Component, props) {
 // actually firing. Returns the live container (a real Element with
 // querySelector, textContent, etc.) plus the root handle for unmounting.
 //
-// `act` from react-dom/test-utils flushes scheduled effects before
-// returning, so subsequent assertions see the post-effect state. The
-// `act` API logs a deprecation notice on Node 22+ but still works
-// correctly; switching to React 19's `act` is a future cleanup.
+// `act` flushes scheduled effects before returning, so subsequent
+// assertions see the post-effect state. React 18.3+ ships a stable
+// `React.act` — preferred over the older `react-dom/test-utils.act`
+// (which logs `ReactDOMTestUtils.act is deprecated in favor of
+// React.act` on Node 22+).
 function renderWithEffects(Component, props) {
   const container = globalThis.document.createElement("div");
   globalThis.document.body.appendChild(container);
   const root = ReactDOMClient.createRoot(container);
-  TestUtils.act(() => {
+  React.act(() => {
     root.render(React.createElement(Component, props || {}));
   });
   return { container, root, html: container.innerHTML };
