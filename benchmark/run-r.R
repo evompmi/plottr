@@ -535,6 +535,47 @@ for (c in cohens_cases) {
   )
 }
 
+# ── 10c. Cohen's f (effectsize::cohens_f) ──────────────────────────────────
+# Cross-checks Plöttr's η²-based Cohen's f (computed in
+# `tools/_shell/power-from-data.ts`'s ANOVA branch as `sqrt(ssB/ssW)`
+# where ssB is weighted by group sizes) against R's canonical
+# `effectsize::cohens_f`. Plöttr's *other* f-helper, the
+# `fFromGroupMeans(means, sd)` global, uses an unweighted SD_means /
+# SD_pooled form — fine for the a-priori power calculator (assumes
+# equal n) but off by ~10 % at unequal n, which is why post-hoc
+# replication-planning uses the η²-based form instead. The benchmark
+# replicates that calculation client-side and compares it to R.
+#
+# Real-data fixtures (mix of equal-n and unequal-n designs):
+
+cohens_f_cases <- list(
+  list(label = "iris Sepal.Length by Species (equal n=50/50/50)",
+       values = iris$Sepal.Length, groups = as.character(iris$Species)),
+  list(label = "PlantGrowth weight by group (equal n=10)",
+       values = PlantGrowth$weight, groups = as.character(PlantGrowth$group)),
+  list(label = "ToothGrowth len by dose (equal n=20)",
+       values = ToothGrowth$len, groups = as.character(ToothGrowth$dose)),
+  list(label = "ChickWeight@21 weight by Diet (unequal n=16,10,10,9)",
+       values = cw21$weight, groups = as.character(cw21$Diet)),
+  list(label = "morley Speed by Expt (equal n=20)",
+       values = morley$Speed, groups = as.character(morley$Expt)),
+  list(label = "OrchardSprays decrease by treatment (unequal)",
+       values = OrchardSprays$decrease, groups = as.character(OrchardSprays$treatment))
+)
+
+for (c in cohens_f_cases) {
+  fit <- aov(values ~ groups,
+             data = data.frame(values = c$values, groups = c$groups))
+  ef <- cohens_f(fit, verbose = FALSE)
+  add(
+    category = "Cohen's f (ANOVA)",
+    label    = c$label,
+    n        = length(c$values),
+    inputs   = list(groups = split_by(as.numeric(c$values), c$groups)),
+    r        = list(f = unname(ef$Cohens_f))
+  )
+}
+
 # ── 10. Pairwise distance + hierarchical clustering ───────────────────────
 # Cross-checks the heatmap tool's clustering primitives against R's dist() and
 # hclust(). A random 100 × 15 matrix (fixed seed) is big enough to shake out

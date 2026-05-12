@@ -272,8 +272,8 @@
 
   <h2 class="ref-heading">vs R 4.5.3 on real built-in datasets</h2>
   <div class="summary summary-pass">
-    <div><span class="k">comparisons</span><span class="v">327</span></div>
-    <div><span class="k">passing</span><span class="v v-pass">323 (100.0%)</span></div>
+    <div><span class="k">comparisons</span><span class="v">333</span></div>
+    <div><span class="k">passing</span><span class="v v-pass">329 (100.0%)</span></div>
     <div><span class="k">failing</span><span class="v v-pass">0</span></div>
     <div><span class="k">past R's floor</span><span class="v v-rsat">4</span></div>
     <div><span class="k">max |Δ|</span><span class="v">3.16e-2</span></div>
@@ -3415,6 +3415,87 @@
     </details>
 
     <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Cohen's f (ANOVA)</span> <span class="badge badge-pass">6/6 pass</span></summary>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Plöttr</th>
+            <th class="num">|Δ|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>iris Sepal.Length by Species (equal n=50/50/50)</td>
+        <td class="num">150</td>
+        <td>f</td>
+        <td class="num">1.27383</td>
+        <td class="num">1.27383</td>
+        <td class="num">4.25e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>PlantGrowth weight by group (equal n=10)</td>
+        <td class="num">30</td>
+        <td>f</td>
+        <td class="num">0.599141</td>
+        <td class="num">0.599141</td>
+        <td class="num">4.42e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>ToothGrowth len by dose (equal n=20)</td>
+        <td class="num">60</td>
+        <td>f</td>
+        <td class="num">1.53801</td>
+        <td class="num">1.53801</td>
+        <td class="num">9.32e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>ChickWeight@21 weight by Diet (unequal n=16,10,10,9)</td>
+        <td class="num">45</td>
+        <td>f</td>
+        <td class="num">0.5836</td>
+        <td class="num">0.5836</td>
+        <td class="num">1.79e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>morley Speed by Expt (equal n=20)</td>
+        <td class="num">100</td>
+        <td>f</td>
+        <td class="num">0.424899</td>
+        <td class="num">0.424899</td>
+        <td class="num">6.86e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>OrchardSprays decrease by treatment (unequal)</td>
+        <td class="num">64</td>
+        <td>f</td>
+        <td class="num">1.54361</td>
+        <td class="num">1.54361</td>
+        <td class="num">3.32e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </details>
+
+    <details class="category" open>
       <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">pairwise distance</span> <span class="badge badge-pass">3/3 pass</span></summary>
       <table>
         <colgroup>
@@ -3658,7 +3739,7 @@
     </details>
 
   <footer>
-    R reference generated 2026-05-12 23:30:29 UTC.
+    R reference generated 2026-05-12 23:42:28 UTC.
     Tolerance 0.005. Tool source: <code>tools/stats-*.js</code>.
   </footer>
 </div>

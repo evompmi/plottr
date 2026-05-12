@@ -359,6 +359,40 @@ for (const t of data.tests) {
         js: jdav,
         ...cmp(jdav, t.r.d),
       });
+    } else if (cat === "Cohen's f (ANOVA)") {
+      // Reproduce computePowerFromData's ANOVA-branch math here so the
+      // benchmark validates the *same* f Plöttr uses for replication
+      // planning, not a separate inline calculation. η²-based:
+      // f = sqrt(ssB / ssW) where ssB weights by group n around the
+      // weighted grand mean.
+      const { arrays } = groupsToArrays(t.inputs.groups);
+      const kk = arrays.length;
+      const means = arrays.map((v) => sampleMean(v));
+      let ssW = 0;
+      let totalN = 0;
+      let weightedSum = 0;
+      for (let i = 0; i < kk; i++) {
+        const m = means[i];
+        const ni = arrays[i].length;
+        for (let j = 0; j < ni; j++) ssW += (arrays[i][j] - m) * (arrays[i][j] - m);
+        totalN += ni;
+        weightedSum += ni * m;
+      }
+      const grandMean = totalN > 0 ? weightedSum / totalN : 0;
+      let ssB = 0;
+      for (let i = 0; i < kk; i++) {
+        ssB += arrays[i].length * (means[i] - grandMean) * (means[i] - grandMean);
+      }
+      const jf = ssW > 0 ? Math.sqrt(ssB / ssW) : 0;
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "f",
+        r: t.r.f,
+        js: jf,
+        ...cmp(jf, t.r.f),
+      });
     } else if (cat === "pairwise distance") {
       const mat = t.inputs.matrix.map((row) => row.slice());
       const metric = t.inputs.metric;
