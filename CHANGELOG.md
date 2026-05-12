@@ -7,7 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`file://`-protocol detection banner on the landing page.** If a
+  user double-clicks `index.html` after cloning, they previously got a
+  silent white page (the SPA module fails to load on `file://` due to
+  browser cross-origin policy). The landing now detects
+  `location.protocol === "file:"` in a top-of-`<head>` inline script
+  and swaps in a `#file-protocol-warning` panel with step-by-step
+  recovery instructions: the hosted version's URL first, then
+  `python3 -m http.server` (preinstalled on macOS / Linux) with the
+  drag-folder-onto-Terminal shortcut for non-CLI users, plus
+  fallback alternatives (`npx serve`, VS Code Live Server).
+
 ### Fixed
+
+- **README + privacy.html no longer claim Plöttr runs from `file://`.**
+  Since v1.3.0 the SPA shell loads `tools/_app/index.js` as a
+  `<script type="module">` and browsers block module loading from
+  `file://` origins (cross-origin policy on local files). Docs now
+  recommend `python3 -m http.server` (or any static-file server) and
+  `http://localhost:8000`. The behaviour change has been live for
+  months; only the install instructions were stale.
 
 - **Volcano and Heatmap charts now carry per-element `aria-label`s** to
   match the per-element a11y coverage the six other plot tools already
