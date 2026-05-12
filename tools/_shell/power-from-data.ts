@@ -1,30 +1,50 @@
-// `computePowerFromData` — achieved power + n-needed-for-80%-power from
-// observed data, dispatched per test family (t-tests / ANOVA / KW). For
-// rank-based tests (Mann-Whitney / Kruskal-Wallis) we report the
-// parametric analog as an approximation — flagged in the returned
-// `approximate` flag.
+// `computePowerFromData` — n-needed-for-80%-power from observed data,
+// dispatched per test family (t-tests / ANOVA / KW). Forward-looking
+// replication planning: given the effect size we just saw, how many
+// samples per group would a future study need to reach 80% power at
+// each α? For rank-based tests (Mann-Whitney / Kruskal-Wallis) we
+// report the parametric analog as an approximation — flagged in the
+// returned `approximate` flag.
 //
-// Computed at α = 0.05, 0.01, 0.001; target power = 0.80.
-//
-// Pre-2026-05 lived in `_shell/stats-tile.tsx`; split here so per-tool
-// stats panels (lineplot/aequorin/boxplot) can import the math without
-// pulling in the full StatsTile component.
+// The pre-2026-05-13 version of this module also returned an `achieved`
+// power per row (computed by feeding the observed effect size back
+// through powerTwoSample / powerAnova at the OBSERVED sample size).
+// That is the classic Hoenig & Heisey 2001 anti-pattern: post-hoc /
+// observed power is a deterministic transformation of the p-value, so
+// it adds zero information beyond what p already tells the reader.
+// Worse, presented as a coloured "% achieved" cell, it nudges users
+// toward interpreting non-significant tests as "underpowered" when
+// the more honest framing is "we observed effect size X; for that
+// effect, a replication would need n=Y." That's what this module now
+// returns. See conversation history 2026-05-13 + the H&H 2001 paper
+// for the methodology pivot.
 
 declare const sampleMean: (xs: number[]) => number;
 declare const sampleSD: (xs: number[]) => number;
 declare const fFromGroupMeans: (means: number[], pooledSD: number) => number;
 declare const powerTwoSample: (d: number, n: number, alpha: number, tails: number) => number;
 declare const powerAnova: (f: number, n: number, alpha: number, k: number) => number;
+declare const cohenDCI: (
+  d: number,
+  n1: number,
+  n2: number,
+  conf?: number
+) => { lo: number; hi: number };
 
 export interface PowerFromDataRow {
   alpha: number;
-  achieved: number;
   nForTarget: number | null;
 }
 
+// 95 % CI on the effect size (Cohen's d / d_av). Present for two-group
+// parametric tests (Student / Welch), null for ANOVA k≥3 and rank-based
+// tests where a single closed-form CI on the effect isn't as clean —
+// callers can either bootstrap or rely on the existing point estimate
+// for those cases.
 export interface PowerFromDataResult {
   effectLabel: string;
   effect: number;
+  effectCI: { lo: number; hi: number } | null;
   rows: PowerFromDataRow[];
   targetPower: number;
   nLabel: string;
@@ -49,26 +69,52 @@ export function computePowerFromData(
     const m2 = sampleMean(y);
     const s1 = sampleSD(x);
     const s2 = sampleSD(y);
-    const sp = Math.sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2));
-    const d = sp > 0 ? Math.abs(m1 - m2) / sp : 0;
-    const nh = 2 / (1 / n1 + 1 / n2);
-    const nEff = Math.max(2, Math.round(nh));
+    // Effect-size denominator picks based on the chosen test's
+    // variance assumption (Lakens 2013):
+    //   - Student's t / Mann-Whitney: pooled SD (d_s). Both assume
+    //     a single common variance; the pooled estimator is the
+    //     maximum-likelihood denominator consistent with that.
+    //   - Welch's t: mean of unpooled SDs (d_av). Welch denies the
+    //     equal-variance assumption; the pooled denominator embeds
+    //     it back and is methodologically inconsistent. d_av takes
+    //     each group's SD on its own merits, symmetric in both.
+    // Label changes too so users can tell which denominator was used.
+    let denom: number;
+    let label: string;
+    if (chosenTest === "welchT") {
+      denom = (s1 + s2) / 2;
+      label = "Cohen's d_av";
+    } else {
+      denom = Math.sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2));
+      label = "Cohen's d";
+    }
+    // d / d_av return the absolute magnitude here for the power-curve
+    // input. The CI is computed on the *signed* d (so direction is
+    // preserved when the panel displays "d = -2.05, 95% CI [-2.50, -1.58]").
+    const dAbs = denom > 0 ? Math.abs(m1 - m2) / denom : 0;
+    const dSigned = denom > 0 ? (m1 - m2) / denom : 0;
+    const effectCI =
+      chosenTest === "mannWhitney"
+        ? null // MWU is rank-based; the d analog has no clean closed-form CI
+        : denom > 0
+          ? cohenDCI(dSigned, n1, n2)
+          : null;
     const rows = alphas.map((alpha) => {
-      const achieved = powerTwoSample(d, nEff, alpha, 2);
       let needed: number | null = null;
-      if (d > 0) {
+      if (dAbs > 0) {
         for (let n = 2; n <= 5000; n++) {
-          if (powerTwoSample(d, n, alpha, 2) >= target) {
+          if (powerTwoSample(dAbs, n, alpha, 2) >= target) {
             needed = n;
             break;
           }
         }
       }
-      return { alpha, achieved, nForTarget: needed };
+      return { alpha, nForTarget: needed };
     });
     return {
-      effectLabel: "Cohen's d",
-      effect: d,
+      effectLabel: label,
+      effect: dSigned,
+      effectCI,
       rows,
       targetPower: target,
       nLabel: "per group",
@@ -95,10 +141,7 @@ export function computePowerFromData(
     }
     const sp = dfW > 0 ? Math.sqrt(ssW / dfW) : 0;
     const f = fFromGroupMeans(means, sp);
-    const nh = kk / ns.reduce((a, b) => a + 1 / b, 0);
-    const nEff = Math.max(2, Math.round(nh));
     const rows = alphas.map((alpha) => {
-      const achieved = powerAnova(f, nEff, alpha, kk);
       let needed: number | null = null;
       if (f > 0) {
         for (let n = 2; n <= 5000; n++) {
@@ -108,11 +151,12 @@ export function computePowerFromData(
           }
         }
       }
-      return { alpha, achieved, nForTarget: needed };
+      return { alpha, nForTarget: needed };
     });
     return {
       effectLabel: "Cohen's f",
       effect: f,
+      effectCI: null,
       rows,
       targetPower: target,
       nLabel: "per group",

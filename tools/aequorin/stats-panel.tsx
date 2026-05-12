@@ -327,13 +327,16 @@ export function AequorinStatsDetail({
       )}
       {power && (
         <>
-          <div style={subhead}>Power analysis (target 80%)</div>
+          <div style={subhead}>Replication planning (n for 80% power)</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>
+            Given the observed effect size, sample size a future study would need to detect this
+            effect at 80% power.
+          </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 <th style={thS}>Effect size</th>
                 <th style={thS}>α</th>
-                <th style={thS}>Achieved power</th>
                 <th style={thS}>n for 80% power</th>
               </tr>
             </thead>
@@ -343,18 +346,12 @@ export function AequorinStatsDetail({
                   {i === 0 ? (
                     <td style={tdS} rowSpan={power.rows.length}>
                       {power.effectLabel} = {power.effect.toFixed(3)}
+                      {power.effectCI
+                        ? `, 95% CI [${power.effectCI.lo.toFixed(3)}, ${power.effectCI.hi.toFixed(3)}]`
+                        : ""}
                     </td>
                   ) : null}
                   <td style={tdS}>{String(pr.alpha)}</td>
-                  <td
-                    style={{
-                      ...tdS,
-                      fontWeight: 700,
-                      color: pr.achieved >= 0.8 ? "var(--step-ready)" : "var(--warning-text)",
-                    }}
-                  >
-                    {(pr.achieved * 100).toFixed(1)}%
-                  </td>
                   <td style={tdS}>
                     {pr.nForTarget != null ? `${pr.nForTarget} ${power.nLabel}` : "> 5000"}
                   </td>

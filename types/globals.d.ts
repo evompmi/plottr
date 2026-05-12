@@ -326,6 +326,9 @@ declare global {
   function cohenD(x: number[], y: number[]): number;
   function hedgesG(x: number[], y: number[]): number;
   function rankBiserial(U1: number, n1: number, n2: number): number;
+  // 95 % CI on Cohen's d via noncentral-t pivot (Cumming & Finch 2001).
+  // Returns { lo: NaN, hi: NaN } on degenerate input (n < 2 or non-finite d).
+  function cohenDCI(d: number, n1: number, n2: number, conf?: number): { lo: number; hi: number };
   function oneWayANOVA(groups: number[][]): {
     F: number;
     df1: number;

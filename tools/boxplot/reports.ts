@@ -78,10 +78,13 @@ export function buildBpSetTextBlock(row: BpReportRow, setLabel: string): string 
   const power = row.powerResult;
   if (power) {
     lines.push("");
-    lines.push(`Power (target 80%): ${power.effectLabel} = ${power.effect.toFixed(3)}`);
+    const ciStr = power.effectCI
+      ? `, 95% CI [${power.effectCI.lo.toFixed(3)}, ${power.effectCI.hi.toFixed(3)}]`
+      : "";
+    lines.push(`Replication planning: ${power.effectLabel} = ${power.effect.toFixed(3)}${ciStr}`);
     for (const pr of power.rows) {
       const nStr = pr.nForTarget != null ? `${pr.nForTarget} ${power.nLabel}` : "> 5000";
-      lines.push(`  α=${pr.alpha}: achieved ${(pr.achieved * 100).toFixed(1)}%, need n = ${nStr}`);
+      lines.push(`  α=${pr.alpha}: n for 80% power = ${nStr}`);
     }
     if (power.approximate) lines.push("  (rank-based test — estimated from parametric analog)");
   }

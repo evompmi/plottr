@@ -2571,6 +2571,51 @@ function rankBiserial(U1, n1, n2) {
   return 1 - (2 * U1) / (n1 * n2);
 }
 
+// 95 % confidence interval for Cohen's d (or d_av) on two independent
+// samples, using the noncentral-t pivot of Cumming & Finch 2001 ("A
+// primer on the understanding, use, and calculation of confidence
+// intervals that are based on central and noncentral distributions",
+// Educational and Psychological Measurement 61(4)):
+//
+//   t_obs  = d / √(1/n1 + 1/n2)          observed t-statistic
+//   df     = n1 + n2 − 2                 (Student-pooled df; we use the
+//                                         same df for d_av as a working
+//                                         approximation — Welch-Satterthwaite
+//                                         df differs slightly but the CI
+//                                         on d is dominated by t-quantile
+//                                         scale, not by the df shift)
+//
+// Then bisect over the noncentrality parameter λ to find:
+//   λ_lo such that P(T ≤ t_obs | df, ncp = λ_lo) = 1 − α/2
+//   λ_hi such that P(T ≤ t_obs | df, ncp = λ_hi) = α/2
+//
+// `nctcdf(t, df, ncp)` is monotonically *decreasing* in ncp, so we
+// bisect against `-nctcdf(...)` (monotone increasing — what `bisect`
+// expects).
+//
+// Returns `{ lo, hi }` on success, `{ lo: NaN, hi: NaN }` when the
+// inputs are degenerate (n < 2 or non-finite d). Default confidence
+// 0.95; explicit `conf` parameter overrides.
+function cohenDCI(d, n1, n2, conf) {
+  const c = conf == null ? 0.95 : conf;
+  if (!Number.isFinite(d) || n1 < 2 || n2 < 2 || c <= 0 || c >= 1) {
+    return { lo: NaN, hi: NaN };
+  }
+  const alpha = 1 - c;
+  const seFactor = Math.sqrt(1 / n1 + 1 / n2);
+  const tObs = d / seFactor;
+  const df = n1 + n2 - 2;
+  // Bracket: ±|tObs| + 20 covers all practical d values (|d| up to ~10).
+  const halfRange = Math.abs(tObs) + 20;
+  const negNct = (lam) => -nctcdf(tObs, df, lam);
+  const lambdaLo = bisect(negNct, -(1 - alpha / 2), -halfRange, halfRange);
+  const lambdaHi = bisect(negNct, -alpha / 2, -halfRange, halfRange);
+  if (!Number.isFinite(lambdaLo) || !Number.isFinite(lambdaHi)) {
+    return { lo: NaN, hi: NaN };
+  }
+  return { lo: lambdaLo * seFactor, hi: lambdaHi * seFactor };
+}
+
 // ── 8. k-sample location tests ──────────────────────────────────────────────
 //
 // Input for all three is `groups` — an array of numeric arrays.

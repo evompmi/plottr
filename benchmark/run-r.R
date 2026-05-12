@@ -14,6 +14,7 @@
 suppressPackageStartupMessages(library(jsonlite))
 suppressPackageStartupMessages(library(datasets))
 suppressPackageStartupMessages(library(PMCMRplus))
+suppressPackageStartupMessages(library(effectsize))
 
 # ── Inline Brown-Forsythe Levene (single aov call on |x - median|) ────────
 
@@ -463,6 +464,74 @@ for (c in dunn_cases) {
     n        = length(c$values),
     inputs   = list(groups = split_by(as.numeric(c$values), c$groups)),
     r        = list(pairs = d)
+  )
+}
+
+# ── 10b. Cohen's d + 95 % CI (effectsize::cohens_d) ───────────────────────
+# Cross-checks Plöttr's `cohenD` + `cohenDCI` (Cumming & Finch 2001
+# noncentral-t pivot) against R's effectsize::cohens_d, which is the
+# canonical implementation of the same pivot in the R ecosystem. Six
+# real-dataset fixtures, three with similar SDs (where d_av ≈ d_pool)
+# and three with materially-different SDs (where the Welch d_av choice
+# starts to matter). For d_av the reference is the unambiguous Lakens
+# 2013 formula `(mean(x) − mean(y)) / ((sd(x) + sd(y))/2)` computed
+# directly — effectsize doesn't ship a d_av CI, so we cross-check only
+# the point estimate for the d_av rows.
+
+cw21 <- ChickWeight[ChickWeight$Time == 21, ]
+
+cohens_cases <- list(
+  list(label = "sleep extra: group 1 vs group 2",
+       x = sleep$extra[sleep$group == 1],
+       y = sleep$extra[sleep$group == 2]),
+  list(label = "iris Sepal.Length: setosa vs versicolor",
+       x = iris$Sepal.Length[iris$Species == "setosa"],
+       y = iris$Sepal.Length[iris$Species == "versicolor"]),
+  list(label = "iris Sepal.Length: versicolor vs virginica",
+       x = iris$Sepal.Length[iris$Species == "versicolor"],
+       y = iris$Sepal.Length[iris$Species == "virginica"]),
+  list(label = "ChickWeight@21: Diet 1 vs Diet 4 (unequal SD)",
+       x = cw21$weight[cw21$Diet == 1],
+       y = cw21$weight[cw21$Diet == 4]),
+  list(label = "swiss Fertility: high vs low Catholic (unequal SD)",
+       x = swiss$Fertility[swiss$Catholic >= 50],
+       y = swiss$Fertility[swiss$Catholic <  50]),
+  list(label = "morley Speed: Expt 1 vs Expt 5",
+       x = morley$Speed[morley$Expt == 1],
+       y = morley$Speed[morley$Expt == 5])
+)
+
+for (c in cohens_cases) {
+  # Cohen's d (pooled) — full point + CI cross-check.
+  es <- cohens_d(c$x, c$y, pooled_sd = TRUE)
+  add(
+    category = "Cohen's d (pooled)",
+    label    = c$label,
+    n        = length(c$x) + length(c$y),
+    inputs   = list(
+      a = as.list(unname(as.numeric(c$x))),
+      b = as.list(unname(as.numeric(c$y)))
+    ),
+    r        = list(
+      d      = unname(es$Cohens_d),
+      ci_lo  = unname(es$CI_low),
+      ci_hi  = unname(es$CI_high)
+    )
+  )
+  # Cohen's d_av (Lakens 2013) — point estimate via direct formula.
+  # effectsize::cohens_d(pooled_sd = FALSE) returns Glass's Δ (control-
+  # group SD), not d_av (mean of unpooled SDs); compute manually so the
+  # reference matches Plöttr's Welch-branch definition.
+  d_av <- (mean(c$x) - mean(c$y)) / ((sd(c$x) + sd(c$y)) / 2)
+  add(
+    category = "Cohen's d_av",
+    label    = c$label,
+    n        = length(c$x) + length(c$y),
+    inputs   = list(
+      a = as.list(unname(as.numeric(c$x))),
+      b = as.list(unname(as.numeric(c$y)))
+    ),
+    r        = list(d = d_av)
   )
 }
 
