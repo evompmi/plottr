@@ -546,14 +546,21 @@ const shapiroCases = [
   },
 ];
 
+// The shapiroWilk call deliberately lives inside each test body, not at
+// module-load time in the for-loop. Stryker's per-test coverage map only
+// records line hits during test-body execution; computing W/p in the loop
+// and capturing them in closures attributes the hits on stats-tests.js's
+// Royston polynomials to "module load" rather than to specific tests, so
+// the per-test map shows zero coverage and Stryker doesn't run these tests
+// against polynomial mutants. See docs/testing-2026-05-08.md.
 for (const c of shapiroCases) {
-  const { W, p } = shapiroWilk(c.x);
   test(`${c.label} — W ≈ ${c.W}`, () => {
     // Tight tolerance on W: the actual JS-vs-R agreement is rel ~5e-7,
     // far inside the 6-sig-fig precision of the R reference values
     // themselves. The previous 5e-3 ceiling was 10,000× looser than the
     // genuine FP agreement, leaving room for a polynomial-coefficient
     // mutation to shift the result without failing the assertion.
+    const { W } = shapiroWilk(c.x);
     const rel = Math.abs(W - c.W) / c.W;
     assert(rel < 5e-6, `W=${W.toFixed(7)} vs R=${c.W} (rel diff ${rel.toExponential(2)})`);
   });
@@ -564,6 +571,7 @@ for (const c of shapiroCases) {
     // The Royston μ / σ polynomial coefficients at stats-tests.js:191-192
     // produce the p-value via normal-tail; a coefficient mutation that
     // shifts μ by even 1% moves p by orders of magnitude in this band.
+    const { p } = shapiroWilk(c.x);
     if (c.p < 0.001) {
       assert(Math.abs(p - c.p) < 5e-7, `p=${p.toExponential(3)} vs R=${c.p}`);
     } else {

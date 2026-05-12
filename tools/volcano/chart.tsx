@@ -35,7 +35,16 @@ import { ColorLegend, SizeLegend } from "./chart-legends";
 // chart-layout split.
 export { DEFAULT_VBW, VBH, MARGIN } from "./chart-layout";
 
-const { forwardRef, useMemo, useEffect } = React;
+const { forwardRef, useMemo, useEffect, useRef } = React;
+
+// Above this many visible points, the data layer rasterises to an
+// off-screen canvas + a single PNG `<image>` per class instead of N
+// individual `<circle>` elements. Below the threshold we keep SVG
+// circles so small-N exports stay crisp and per-point `<title>` tooltips
+// keep working. 2,000 was picked from the 2026-05-12 perf spike (see
+// `docs/perf-spike-2026-05-12.md`): at 20,000 points the SVG path took
+// ~1.2 s + ~10 MB of markup; the canvas path drops both by ~10–50×.
+const POINT_RASTERIZE_THRESHOLD = 2000;
 
 // `VolcanoChartProps` is the type-canonical home in helpers.ts; this
 // file imports it so chart-internal consumers (e.g. tests stubbing
@@ -188,6 +197,87 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
       () => summarize(points, fcCutoff, pCutoff),
       [points, fcCutoff, pCutoff]
     );
+
+    // ── Canvas-rasterised data layer (large N) ────────────────────────
+    // Above POINT_RASTERIZE_THRESHOLD, paint each significance class to
+    // an off-screen canvas and ship the result as a single PNG `<image>`
+    // per class. Same pattern as the heatmap v1.4.0 cell-grid migration.
+    // The exported SVG embeds the data URLs literally, so the rasterised
+    // points survive into downloaded `.svg` files unchanged.
+    const useRasterize = rendered.length >= POINT_RASTERIZE_THRESHOLD;
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    if (canvasRef.current === null && typeof document !== "undefined") {
+      canvasRef.current = document.createElement("canvas");
+    }
+    const pointsImageHref = useMemo(
+      () => {
+        if (!useRasterize) return "";
+        const canvas = canvasRef.current;
+        if (!canvas) return "";
+        const dpr = (typeof window !== "undefined" && window.devicePixelRatio) || 1;
+        canvas.width = Math.max(1, Math.round(VBW * dpr));
+        canvas.height = Math.max(1, Math.round(VBH * dpr));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return "";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, VBW, VBH);
+        ctx.globalAlpha = pointAlpha;
+        // Paint class-by-class so the canvas preserves the SVG z-order
+        // (`up` points draw on top of `down` on top of `ns`, matching
+        // the per-class `<g>` order in the non-raster path). One
+        // canvas, one `toDataURL` — three was the bottleneck pre-fix.
+        for (const cls of ["ns", "down", "up"] as VolcanoClass[]) {
+          for (const r of rendered) {
+            if (r.cls !== cls) continue;
+            ctx.fillStyle = fillFor(r.pt.idx, cls);
+            ctx.beginPath();
+            ctx.arc(r.px.x, r.px.y, radiusFor(r.pt.idx), 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        }
+        return canvas.toDataURL("image/png");
+      },
+      // The fillFor / radiusFor closures are recreated each render but
+      // only read colors / colorMap / pointRadius / sizeMap (already
+      // listed). Same constraint as the existing labelLayout memo above;
+      // listing the closures themselves would re-fire on every render.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [useRasterize, rendered, pointAlpha, VBW, colors, colorMap, pointRadius, sizeMap]
+    );
+
+    // Hit testing for the rasterised path: a transparent overlay rect
+    // covers the data area and finds the nearest point on click. Uses
+    // the same `rendered` records the canvas paints from, so the click
+    // target matches what the user sees pixel-for-pixel.
+    const handleRasterClick = (e: React.MouseEvent<SVGRectElement>) => {
+      if (!onPointClick) return;
+      e.stopPropagation();
+      const svg = e.currentTarget.ownerSVGElement;
+      if (!svg) return;
+      const screenCTM = svg.getScreenCTM();
+      if (!screenCTM) return;
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const local = pt.matrixTransform(screenCTM.inverse());
+      let bestD2 = Infinity;
+      let bestIdx = -1;
+      let bestRadius = 0;
+      for (const r of rendered) {
+        const dx = r.px.x - local.x;
+        const dy = r.px.y - local.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < bestD2) {
+          bestD2 = d2;
+          bestIdx = r.pt.idx;
+          bestRadius = radiusFor(r.pt.idx);
+        }
+      }
+      // Generous click radius: the canvas-painted disc + a few px of
+      // forgiveness, since the user can't see anti-aliasing edges.
+      const tol = bestRadius + 4;
+      if (bestIdx >= 0 && bestD2 <= tol * tol) onPointClick(bestIdx);
+    };
 
     return (
       <svg
@@ -398,51 +488,114 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
           id="data-points"
           aria-label={`${summary.total} point${summary.total !== 1 ? "s" : ""} total`}
         >
-          {(["ns", "down", "up"] as VolcanoClass[]).map((cls) => {
-            const count = cls === "up" ? summary.up : cls === "down" ? summary.down : summary.ns;
-            const classLabel =
-              cls === "up" ? "upregulated" : cls === "down" ? "downregulated" : "not significant";
-            return (
-              <g
-                key={cls}
-                id={`points-${cls}`}
-                fillOpacity={pointAlpha}
-                aria-label={`${count} ${classLabel} point${count !== 1 ? "s" : ""}`}
-              >
-                {rendered
-                  .filter((r) => r.cls === cls)
-                  .map((r, i) => (
-                    <circle
-                      key={i}
-                      cx={r.px.x}
-                      cy={r.px.y}
-                      r={radiusFor(r.pt.idx)}
-                      fill={fillFor(r.pt.idx, cls)}
-                      style={onPointClick ? { cursor: "pointer" } : undefined}
-                      onClick={
-                        onPointClick
-                          ? (e) => {
-                              e.stopPropagation();
-                              onPointClick(r.pt.idx);
-                            }
-                          : undefined
-                      }
-                    >
-                      <title>
-                        {(r.pt.label ? r.pt.label + " · " : "") +
-                          "log2FC=" +
-                          r.pt.log2fc.toFixed(3) +
-                          ", p=" +
-                          (r.pt.p === 0 ? "0 (clamped)" : r.pt.p.toExponential(2)) +
-                          ", " +
-                          cls +
-                          (onPointClick ? " — click to label" : "")}
-                      </title>
-                    </circle>
-                  ))}
-              </g>
-            );
-          })}
+          {useRasterize ? (
+            <>
+              {/* Single canvas-rasterised PNG of every point. Painted
+                   class-by-class for z-order, but exported as one image
+                   to keep the canvas → dataURL pass single-shot. */}
+              {pointsImageHref && (
+                <image
+                  x={0}
+                  y={0}
+                  width={VBW}
+                  height={VBH}
+                  href={pointsImageHref}
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                />
+              )}
+              {/* Empty per-class groups keep the SVG document structure
+                   stable for screen-readers + downstream Inkscape users
+                   even though the visible content lives in the image. */}
+              {(["ns", "down", "up"] as VolcanoClass[]).map((cls) => {
+                const count =
+                  cls === "up" ? summary.up : cls === "down" ? summary.down : summary.ns;
+                const classLabel =
+                  cls === "up"
+                    ? "upregulated"
+                    : cls === "down"
+                      ? "downregulated"
+                      : "not significant";
+                return (
+                  <g
+                    key={cls}
+                    id={`points-${cls}`}
+                    aria-label={`${count} ${classLabel} point${count !== 1 ? "s" : ""}`}
+                  />
+                );
+              })}
+              {onPointClick && (
+                // `fill="none"` (SVG spec for "no paint") instead of
+                // `fill="transparent"`. The latter is a CSS keyword that
+                // browsers render correctly in the live SVG (alpha 0), but
+                // strict SVG-1.1 renderers (Inkscape ≤ 0.92, macOS
+                // Preview / Quick Look, some image-library pipelines)
+                // don't recognise it as a paint value and fall back to
+                // `fill="black"` — producing a solid black rectangle that
+                // covers the entire plot area in the exported file.
+                // `pointer-events="all"` keeps the click capture working
+                // even though there's no painted area now (the default
+                // `visiblePainted` would skip events on an unpainted rect).
+                <rect
+                  x={MARGIN.left}
+                  y={MARGIN.top}
+                  width={w}
+                  height={h}
+                  fill="none"
+                  pointerEvents="all"
+                  style={{ cursor: "pointer" }}
+                  onClick={handleRasterClick}
+                  aria-hidden="true"
+                />
+              )}
+            </>
+          ) : (
+            (["ns", "down", "up"] as VolcanoClass[]).map((cls) => {
+              const count = cls === "up" ? summary.up : cls === "down" ? summary.down : summary.ns;
+              const classLabel =
+                cls === "up" ? "upregulated" : cls === "down" ? "downregulated" : "not significant";
+              return (
+                <g
+                  key={cls}
+                  id={`points-${cls}`}
+                  fillOpacity={pointAlpha}
+                  aria-label={`${count} ${classLabel} point${count !== 1 ? "s" : ""}`}
+                >
+                  {rendered
+                    .filter((r) => r.cls === cls)
+                    .map((r, i) => (
+                      <circle
+                        key={i}
+                        cx={r.px.x}
+                        cy={r.px.y}
+                        r={radiusFor(r.pt.idx)}
+                        fill={fillFor(r.pt.idx, cls)}
+                        style={onPointClick ? { cursor: "pointer" } : undefined}
+                        onClick={
+                          onPointClick
+                            ? (e) => {
+                                e.stopPropagation();
+                                onPointClick(r.pt.idx);
+                              }
+                            : undefined
+                        }
+                      >
+                        <title>
+                          {(r.pt.label ? r.pt.label + " · " : "") +
+                            "log2FC=" +
+                            r.pt.log2fc.toFixed(3) +
+                            ", p=" +
+                            (r.pt.p === 0 ? "0 (clamped)" : r.pt.p.toExponential(2)) +
+                            ", " +
+                            cls +
+                            (onPointClick ? " — click to label" : "")}
+                        </title>
+                      </circle>
+                    ))}
+                </g>
+              );
+            })
+          )}
         </g>
 
         {/* ── Selected-point rings ──────────────────────────────────────
