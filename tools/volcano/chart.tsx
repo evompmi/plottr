@@ -525,12 +525,24 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
                 );
               })}
               {onPointClick && (
+                // `fill="none"` (SVG spec for "no paint") instead of
+                // `fill="transparent"`. The latter is a CSS keyword that
+                // browsers render correctly in the live SVG (alpha 0), but
+                // strict SVG-1.1 renderers (Inkscape ≤ 0.92, macOS
+                // Preview / Quick Look, some image-library pipelines)
+                // don't recognise it as a paint value and fall back to
+                // `fill="black"` — producing a solid black rectangle that
+                // covers the entire plot area in the exported file.
+                // `pointer-events="all"` keeps the click capture working
+                // even though there's no painted area now (the default
+                // `visiblePainted` would skip events on an unpainted rect).
                 <rect
                   x={MARGIN.left}
                   y={MARGIN.top}
                   width={w}
                   height={h}
-                  fill="transparent"
+                  fill="none"
+                  pointerEvents="all"
                   style={{ cursor: "pointer" }}
                   onClick={handleRasterClick}
                   aria-hidden="true"
