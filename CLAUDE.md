@@ -62,7 +62,7 @@ Run them locally in this order before committing to catch issues early.
 ```bash
 npm run build          # compile every entry in package.json → tools/<…>.js (one-shot)
 npm run watch          # recompile on save (~5 ms)
-npm test               # run every tests/*.test.js (35 deterministic suites, 1,495 tests)
+npm test               # run every tests/*.test.js (35 deterministic suites, 1,505 tests)
 npm run typecheck      # tsc --noEmit (TypeScript type checking, no emit)
 npm run lint           # ESLint
 npm run format:check   # Prettier dry-run (used in CI)
