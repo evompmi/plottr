@@ -21,6 +21,12 @@ import {
 } from "./stats-registry";
 import { buildRScript } from "./r-export";
 import { computePowerFromData, type PowerFromDataRow } from "./power-from-data";
+import type { PostHocPair, PostHocResult, TestResult } from "./stats-dispatch";
+
+// Return shape of `selectTest()` — declared globally in `types/globals.d.ts`.
+// Aliased here so component code reads as `SelectTestResult | null` instead
+// of an inlined ReturnType pull.
+type SelectTestResult = ReturnType<typeof selectTest>;
 
 // Globals consumed at runtime (resolved through `tools/shared.bundle.js`):
 //   sampleMean, sampleSD, fFromGroupMeans, powerTwoSample, powerAnova,
@@ -40,22 +46,17 @@ const POSTHOC_LABELS: Record<string, string> = Object.fromEntries(
   Object.entries(STATS_POSTHOC_REGISTRY).map((entry) => [entry[0], entry[1].label])
 );
 
-function _runTest(
-  name: string | null | undefined,
-  values: number[][]
-): Record<string, unknown> | null {
+function _runTest(name: string | null | undefined, values: number[][]): TestResult | null {
   if (!name) return null;
   const entry = STATS_TEST_REGISTRY[name as RecommendedTest];
-  return entry ? entry.run(values) : null;
+  return entry ? (entry.run(values) as TestResult) : null;
 }
 
-function _runPostHoc(
-  name: string | null | undefined,
-  values: number[][]
-): Record<string, unknown> | null {
+function _runPostHoc(name: string | null | undefined, values: number[][]): PostHocResult | null {
   if (!name) return null;
   const entry = STATS_POSTHOC_REGISTRY[name as Exclude<RecommendedPostHoc, null>];
-  return entry ? entry.run(values) : null;
+  // Cast via unknown — see comment in stats-dispatch.ts `runPostHoc`.
+  return entry ? (entry.run(values) as unknown as PostHocResult) : null;
 }
 
 function _postHocFor(
@@ -70,20 +71,19 @@ function _postHocFor(
 // fields (t/df/p for t-tests, F/df1/df2/p for ANOVA, U/z/p for MWU, etc.).
 function _formatTestLine(
   name: string | null | undefined,
-  res: Record<string, unknown> | null | undefined
+  res: TestResult | null | undefined
 ): string {
-  if (!res || res.error) return res && res.error ? "⚠ " + (res.error as string) : "—";
-  const num = (v: unknown) => v as number;
-  if (name === "studentT" || name === "welchT")
-    return `t(${num(res.df).toFixed(2)}) = ${num(res.t).toFixed(3)},  p = ${formatP(res.p as number)}`;
-  if (name === "mannWhitney")
-    return `U = ${num(res.U).toFixed(1)},  z = ${num(res.z).toFixed(3)},  p = ${formatP(res.p as number)}`;
-  if (name === "oneWayANOVA" || name === "welchANOVA") {
+  if (!res || res.error) return res && res.error ? "⚠ " + res.error : "—";
+  if ((name === "studentT" || name === "welchT") && res.t != null && res.df != null)
+    return `t(${res.df.toFixed(2)}) = ${res.t.toFixed(3)},  p = ${formatP(res.p)}`;
+  if (name === "mannWhitney" && res.U != null && res.z != null)
+    return `U = ${res.U.toFixed(1)},  z = ${res.z.toFixed(3)},  p = ${formatP(res.p)}`;
+  if ((name === "oneWayANOVA" || name === "welchANOVA") && res.F != null) {
     const df2 = typeof res.df2 === "number" ? res.df2.toFixed(2) : res.df2;
-    return `F(${res.df1}, ${df2}) = ${num(res.F).toFixed(3)},  p = ${formatP(res.p as number)}`;
+    return `F(${res.df1}, ${df2}) = ${res.F.toFixed(3)},  p = ${formatP(res.p)}`;
   }
-  if (name === "kruskalWallis")
-    return `H(${num(res.df)}) = ${num(res.H).toFixed(3)},  p = ${formatP(res.p as number)}`;
+  if (name === "kruskalWallis" && res.H != null && res.df != null)
+    return `H(${res.df}) = ${res.H.toFixed(3)},  p = ${formatP(res.p)}`;
   return "—";
 }
 
@@ -95,21 +95,11 @@ function _padR(s: unknown, n: number): string {
 interface StatsReportCtx {
   names: string[];
   values: number[][];
-  recommendation: Record<string, any> | null;
+  recommendation: SelectTestResult | null;
   chosenTest: string | null;
-  testResult: Record<string, unknown> | null;
+  testResult: TestResult | null;
   postHocName: string | null;
-  postHocResult: {
-    error?: string;
-    pairs: Array<{
-      i: number;
-      j: number;
-      pAdj?: number | null;
-      p: number;
-      diff?: number;
-      z?: number;
-    }>;
-  } | null;
+  postHocResult: PostHocResult | null;
   powerResult: {
     effectLabel: string;
     effect: number;
@@ -170,14 +160,7 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
   lines.push(sep);
   lines.push("");
   lines.push("Shapiro-Wilk test for normality");
-  const norm: Array<{
-    group: number;
-    n: number;
-    W: number | null;
-    p: number | null;
-    normal: boolean | null;
-    note?: string;
-  }> = (recommendation && (recommendation.normality as Array<any>)) || [];
+  const norm = (recommendation && recommendation.normality) || [];
   lines.push(
     "  " +
       _padR("Group", nameW) +
@@ -208,14 +191,7 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
   }
   lines.push("");
 
-  const lev: {
-    error?: string;
-    F?: number;
-    df1?: number;
-    df2?: number;
-    p?: number;
-    equalVar?: boolean;
-  } = (recommendation && (recommendation.levene as any)) || {};
+  const lev = (recommendation && recommendation.levene) || {};
   lines.push("Levene (Brown-Forsythe) test for equal variance");
   if (lev.error) {
     lines.push("  error: " + lev.error);
@@ -242,13 +218,9 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
   lines.push(sep);
   lines.push("");
   const recTest =
-    recommendation &&
-    (recommendation.recommendation as any) &&
-    (recommendation.recommendation as any).test;
+    recommendation && recommendation.recommendation && recommendation.recommendation.test;
   const recReason =
-    recommendation &&
-    (recommendation.recommendation as any) &&
-    (recommendation.recommendation as any).reason;
+    recommendation && recommendation.recommendation && recommendation.recommendation.reason;
   lines.push("Recommended: " + (recTest ? STATS_LABELS[recTest] : "—"));
   if (recReason) lines.push("Reason:      " + recReason);
   lines.push("Chosen:      " + (chosenTest ? STATS_LABELS[chosenTest] : "—"));
@@ -367,9 +339,9 @@ export function StatsTile({
   const values = React.useMemo(() => validGroups.map((g) => g.values.slice()), [validGroups]);
   const names = React.useMemo(() => validGroups.map((g) => g.name), [validGroups]);
 
-  const recommendation = React.useMemo<Record<string, any> | null>(() => {
+  const recommendation = React.useMemo<SelectTestResult | null>(() => {
     if (k < 2) return null;
-    return selectTest(values) as Record<string, any>;
+    return selectTest(values);
   }, [values, k]);
 
   const chosenTest =
@@ -377,14 +349,14 @@ export function StatsTile({
     (recommendation && recommendation.recommendation && recommendation.recommendation.test) ||
     null;
 
-  const testResult = React.useMemo(
+  const testResult = React.useMemo<TestResult | null>(
     () => (chosenTest ? _runTest(chosenTest, values) : null),
     [chosenTest, values]
   );
 
   const postHocName = _postHocFor(chosenTest);
-  const postHocResult = React.useMemo(
-    () => (k > 2 && postHocName ? (_runPostHoc(postHocName, values) as any) : null),
+  const postHocResult = React.useMemo<PostHocResult | null>(
+    () => (k > 2 && postHocName ? _runPostHoc(postHocName, values) : null),
     [postHocName, values, k]
   );
   const powerResult = React.useMemo(
@@ -396,7 +368,7 @@ export function StatsTile({
   const annotationSpec = React.useMemo(() => {
     if (!showOnPlot || k < 2) return null;
     if (k === 2) {
-      const p = testResult && !testResult.error ? (testResult.p as number) : null;
+      const p = testResult && !testResult.error && testResult.p != null ? testResult.p : null;
       if (p == null) return null;
       if (!showNs && p >= 0.05) return null;
       return {
@@ -411,13 +383,13 @@ export function StatsTile({
       return { kind: "cld", labels, groupNames: names };
     }
     const all = postHocResult.pairs
-      .map((pr: any) => ({
+      .map((pr: PostHocPair) => ({
         i: pr.i,
         j: pr.j,
         p: pr.pAdj != null ? pr.pAdj : pr.p,
       }))
-      .map((pr: any) => ({ ...pr, label: pStars(pr.p) }))
-      .filter((pr: any) => showNs || pr.p < 0.05);
+      .map((pr) => ({ ...pr, label: pStars(pr.p) }))
+      .filter((pr) => showNs || pr.p < 0.05);
     if (all.length === 0) return null;
     return { kind: "brackets", pairs: all, groupNames: names };
   }, [showOnPlot, annotKind, showNs, k, testResult, postHocResult, names]);
@@ -433,7 +405,7 @@ export function StatsTile({
     if (k > 2 && postHocResult && !postHocResult.error && postHocName) {
       const phLabel = POSTHOC_LABELS[postHocName] || postHocName;
       parts.push("Post-hoc: " + phLabel);
-      postHocResult.pairs.forEach((pr: any) => {
+      postHocResult.pairs.forEach((pr) => {
         const p = pr.pAdj != null ? pr.pAdj : pr.p;
         parts.push(
           "  " + names[pr.i] + " vs " + names[pr.j] + ": p = " + formatP(p) + " " + pStars(p)
@@ -737,22 +709,8 @@ export function StatsTile({
   }
 
   // ── Assumptions section ───────────────────────────────────────────────
-  const norm: Array<{
-    group: number;
-    n: number;
-    W: number | null;
-    p: number | null;
-    normal: boolean | null;
-    note?: string;
-  }> = (recommendation && (recommendation.normality as any)) || [];
-  const lev: {
-    error?: string;
-    F?: number;
-    df1?: number;
-    df2?: number;
-    p?: number;
-    equalVar?: boolean;
-  } = (recommendation && (recommendation.levene as any)) || {};
+  const norm = (recommendation && recommendation.normality) || [];
+  const lev = (recommendation && recommendation.levene) || {};
   const normalityRows = norm.map((r) =>
     h(
       "tr",
@@ -848,14 +806,10 @@ export function StatsTile({
   // ── Test picker ───────────────────────────────────────────────────────
   const testOptions = k === 2 ? STATS_TESTS_FOR_K2 : STATS_TESTS_FOR_K;
   const recTest =
-    recommendation &&
-    (recommendation.recommendation as any) &&
-    (recommendation.recommendation as any).test;
+    recommendation && recommendation.recommendation && recommendation.recommendation.test;
   const recReason =
-    recommendation &&
-    (recommendation.recommendation as any) &&
-    (recommendation.recommendation as any).reason;
-  const suggestion = recommendation && (recommendation.suggestion as any);
+    recommendation && recommendation.recommendation && recommendation.recommendation.reason;
+  const suggestion = recommendation && recommendation.suggestion;
   const testPicker = h(
     "div",
     { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } },
@@ -956,7 +910,7 @@ export function StatsTile({
   // ── Post-hoc table (k ≥ 3) ────────────────────────────────────────────
   let postHocBlock: React.ReactNode = null;
   if (k > 2 && postHocResult && !postHocResult.error && postHocName) {
-    const rows = postHocResult.pairs.map((pr: any, idx: number) => {
+    const rows = postHocResult.pairs.map((pr, idx) => {
       const pVal = pr.pAdj != null ? pr.pAdj : pr.p;
       return h(
         "tr",

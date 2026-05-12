@@ -11,6 +11,7 @@ import {
   PlotSidebar,
   SliderControl,
   applyDiscretePalette,
+  testStatistic,
 } from "../_shell";
 import { ERROR_KINDS, formatX, round2 } from "./helpers";
 import type { PerXRow, PlotControlsProps, Series } from "./helpers";
@@ -38,26 +39,18 @@ export function PlotControls({
   svgRef,
   resetAll,
 }: PlotControlsProps) {
-  const sv = (k: keyof typeof vis) => (v: unknown) => updVis({ [k]: v } as any);
+  // Dynamic key reducer dispatch. The cast narrows to `Partial<typeof vis>`
+  // rather than `any` — `v: unknown` from SliderControl's onChange can't be
+  // statically associated with `vis[k]`'s value type.
+  const sv = (k: keyof typeof vis) => (v: unknown) => updVis({ [k]: v } as Partial<typeof vis>);
 
   const downloadStatsCsv = () => {
     const headers = ["x", "test", "statistic", "p", "p_adj", "stars"];
-    const rows = statsRows.map((r: PerXRow) => {
+    const rows = statsRows.map((r: PerXRow): Array<string | number> => {
       const res = r.result;
-      const stat =
-        res && !res.error
-          ? (res as any).t != null
-            ? (res as any).t
-            : (res as any).U != null
-              ? (res as any).U
-              : (res as any).F != null
-                ? (res as any).F
-                : (res as any).H != null
-                  ? (res as any).H
-                  : ""
-          : "";
-      const p = res && !res.error ? res.p : "";
-      const pAdj = r.pAdj != null ? r.pAdj : "";
+      const stat: number | "" = testStatistic(res) ?? "";
+      const p: number | "" = res && !res.error && res.p != null ? res.p : "";
+      const pAdj: number | "" = r.pAdj != null ? r.pAdj : "";
       const stars = r.pAdj != null ? pStars(r.pAdj) : "";
       return [formatX(r.x), r.chosenTest || "", stat, p, pAdj, stars];
     });

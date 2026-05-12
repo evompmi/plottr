@@ -94,8 +94,8 @@ export {
   STATS_TESTS_FOR_K2,
   STATS_TEST_REGISTRY,
 } from "./stats-registry";
-export { postHocForTest, runPostHoc, runTest } from "./stats-dispatch";
-export type { TestResult } from "./stats-dispatch";
+export { postHocForTest, runPostHoc, runTest, testStatistic } from "./stats-dispatch";
+export type { PostHocPair, PostHocResult, TestResult } from "./stats-dispatch";
 export { computeLegendHeight, renderSvgLegend } from "./svg-legend";
 export type { LegendBlock, LegendItemWidth } from "./svg-legend";
 export { usePlotToolState } from "./usePlotToolState";
