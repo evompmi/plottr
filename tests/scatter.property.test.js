@@ -296,6 +296,44 @@ test("y = a·x + b recovers (a, b) within FP tolerance", () => {
   );
 });
 
+test("slope + r² are invariant under translation of every (x, y) pair", () => {
+  // Translating every point by (dx, dy) preserves the slope (same
+  // covariance / x-variance ratio) and r² (correlation is
+  // translation-invariant). Only the intercept shifts — by exactly
+  // `dy − slope·dx`. A naïve covariance loop using uncentred sums
+  // (Σxy / Σx² instead of Σ(x−x̄)(y−ȳ) / Σ(x−x̄)²) would fail this
+  // when the dataset is far from the origin — exactly the kind of
+  // catastrophic-cancellation regression that hit scatter at v1.4.2
+  // (r² > 1 on FP-degenerate inputs).
+  check(
+    fc.property(
+      fc
+        .array(fc.tuple(fc.integer({ min: -50, max: 50 }), fc.integer({ min: -50, max: 50 })), {
+          minLength: 3,
+          maxLength: 20,
+        })
+        .filter((rows) => new Set(rows.map((r) => r[0])).size >= 2),
+      fc.integer({ min: -1000, max: 1000 }),
+      fc.integer({ min: -1000, max: 1000 }),
+      (pairs, dx, dy) => {
+        const a = computeLinearRegression(pairs, 0, 1);
+        const shifted = pairs.map(([x, y]) => [x + dx, y + dy]);
+        const b = computeLinearRegression(shifted, 0, 1);
+        if (!a.valid || !b.valid) return true;
+        const slopeTol = 1e-6 + Math.abs(a.slope) * 1e-9;
+        const interceptTol = 1e-3 + (Math.abs(a.slope * dx) + Math.abs(dy)) * 1e-9;
+        if (Math.abs(a.slope - b.slope) > slopeTol) return false;
+        const expectedIntercept = a.intercept + dy - a.slope * dx;
+        if (Math.abs(b.intercept - expectedIntercept) > interceptTol) return false;
+        if (Number.isFinite(a.r2) && Number.isFinite(b.r2)) {
+          if (Math.abs(a.r2 - b.r2) > 1e-6) return false;
+        }
+        return true;
+      }
+    )
+  );
+});
+
 test("zero-y-variance with non-zero-x-variance gives r² = NaN", () => {
   check(
     fc.property(

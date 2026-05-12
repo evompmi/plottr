@@ -162,6 +162,53 @@ test("off-diagonal distances are non-negative when finite", () => {
   );
 });
 
+test("euclidean / manhattan satisfy the triangle inequality on clean matrices", () => {
+  // Both Euclidean (L2) and Manhattan (L1) are true metrics, so
+  // D[i][j] ≤ D[i][k] + D[k][j] within FP tolerance for every triple.
+  // Catches the kind of bug where someone returns squared-Euclidean
+  // by accident — squared distances do NOT satisfy triangle inequality.
+  //
+  // The property only holds when every pair (i, j, k) uses the same
+  // feature subset to compute its distance. `pairwiseDistance` ignores
+  // NaN cells pairwise (per stats-cluster.js:13), so a matrix with any
+  // NaN cell can yield different feature subsets per pair and violate
+  // triangle inequality legitimately. We build a clean numeric matrix
+  // directly rather than parsing CSV — keeps the property focused on
+  // the metric contract, not the NaN-skipping policy.
+  //
+  // `correlation` is omitted because 1 − ρ isn't a true metric (no
+  // triangle inequality for arbitrary ρ).
+  const arbCleanRow = (cols) =>
+    fc.array(fc.double({ min: -100, max: 100, noNaN: true, noDefaultInfinity: true }), {
+      minLength: cols,
+      maxLength: cols,
+    });
+  const arbCleanMatrix = fc
+    .integer({ min: 2, max: 6 })
+    .chain((cols) => fc.array(arbCleanRow(cols), { minLength: 3, maxLength: 8 }));
+  check(
+    fc.property(arbCleanMatrix, fc.constantFrom("euclidean", "manhattan"), (m, metric) => {
+      const D = pairwiseDistance(m, metric);
+      for (let i = 0; i < D.length; i++) {
+        for (let j = 0; j < D.length; j++) {
+          for (let k = 0; k < D.length; k++) {
+            const a = D[i][j],
+              b = D[i][k],
+              c = D[k][j];
+            if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(c)) continue;
+            // Scale tolerance with the size of the triangle to absorb FP
+            // accumulation in the inner sum (Euclidean takes sqrt of a sum
+            // of squares; rounding budget grows with the operands).
+            const tol = 1e-9 + (Math.abs(b) + Math.abs(c)) * 1e-12;
+            if (a > b + c + tol) return false;
+          }
+        }
+      }
+      return true;
+    })
+  );
+});
+
 // ── hclust ─────────────────────────────────────────────────────────────
 
 suite("heatmap property — hclust");
