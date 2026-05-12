@@ -403,9 +403,18 @@ for (c in tukey_cases) {
   pairs <- list()
   for (nm in rownames(th)) {
     halves <- strsplit(nm, "-", fixed = TRUE)[[1]]
-    # order by levels so it matches JS output regardless of factor order
+    # R names rows "later-earlier" in factor-level order and reports
+    # diff = mean(later) − mean(earlier). For character→factor coercion
+    # the level order is alphabetical, so halves[1] is the alphabetically
+    # later level. Plöttr's tukeyHSD() loops i<j on the sorted-key arrays
+    # and computes diff = means[j] - means[i] with j alphabetically later
+    # — same sign convention, so no flip needed here.
     pairs[[length(pairs) + 1]] <- list(
-      i = halves[2], j = halves[1], pAdj = unname(th[nm, "p adj"])
+      i    = halves[2], j    = halves[1],
+      diff = unname(th[nm, "diff"]),
+      lwr  = unname(th[nm, "lwr"]),
+      upr  = unname(th[nm, "upr"]),
+      pAdj = unname(th[nm, "p adj"])
     )
   }
   add(

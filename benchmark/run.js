@@ -475,6 +475,28 @@ for (const t of data.tests) {
           ...cmpResult,
           rSaturated,
         });
+        // Tukey HSD also reports per-pair CI bounds; cross-check those
+        // against R's `TukeyHSD()$groups[, c("diff","lwr","upr")]`.
+        // Games-Howell uses Welch-Satterthwaite df per pair and a different
+        // SE; R's userfriendlyscience / rstatix versions don't ship CI
+        // bounds in a single canonical form, so we keep the GH benchmark
+        // p-only for now. Dunn (BH) is rank-based and has no scalar diff.
+        if (cat === "Tukey HSD" && jp != null) {
+          for (const metric of ["diff", "lwr", "upr"]) {
+            const rv = rp[metric];
+            const jv = jp[metric];
+            if (rv == null) continue;
+            pushRow({
+              category: cat,
+              label: `${lbl} [${rp.i} vs ${rp.j}]`,
+              n,
+              metric,
+              r: rv,
+              js: jv,
+              ...cmp(jv, rv),
+            });
+          }
+        }
       }
     } else if (cat === "Multi-set intersection (cpsets)") {
       // Only benchmark the exact path against R. The Poisson path is an

@@ -23,6 +23,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Post-hoc Cohen's f now uses the η²-based formula** matching R's
+  `effectsize::cohens_f`. The "n for 80% power" rows in the stats panel
+  (k≥3 ANOVA / Kruskal-Wallis) previously fed `fFromGroupMeans(means, sp)`
+  into `powerAnova`, which is correct under Cohen 1988 for equal n but
+  drifts up to ~10 % at unequal n (e.g. ChickWeight@21 by Diet). The new
+  branch computes `f = √(ssB / ssW)` with `ssB` weighted by group sizes
+  around the weighted grand mean — agrees with `effectsize::cohens_f`
+  to FP precision on iris, PlantGrowth, ToothGrowth, ChickWeight@21,
+  morley, OrchardSprays. `fFromGroupMeans` is unchanged (it remains the
+  correct a-priori-equal-n input for `power-app.tsx`).
+
+- **Benchmark now cross-validates Tukey HSD's `diff`/`lwr`/`upr` CI
+  bounds**, not just `pAdj`. R's `TukeyHSD()$groups` row carries all four
+  columns; the benchmark previously only emitted `p adj` and the JS side
+  only checked p-values, leaving the per-pair point estimate and 95 % CI
+  bounds Plöttr already returns silently un-cross-validated. Adds 3
+  metrics × 23 pairs = 69 new comparisons across 6 datasets (iris,
+  PlantGrowth, ToothGrowth, chickwts, ChickWeight@21, morley); all pass
+  within 5e-3. Games-Howell stays p-only (R's userfriendlyscience /
+  rstatix CI conventions diverge; not a single canonical reference).
+
 - **Cohen's d denominator now respects the chosen test's variance
   assumption.** Student's t / Mann-Whitney still use the pooled SD
   (`d_s` — `√(((n₁−1)·v₁ + (n₂−1)·v₂)/(n₁+n₂−2))`). Welch's t now
