@@ -394,42 +394,55 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
              aesthetic-mapping props (colorByIdx / radiusByIdx) — falls
              back to the class palette + uniform radius when no mapping
              is active. */}
-        <g id="data-points">
-          {(["ns", "down", "up"] as VolcanoClass[]).map((cls) => (
-            <g key={cls} id={`points-${cls}`} fillOpacity={pointAlpha}>
-              {rendered
-                .filter((r) => r.cls === cls)
-                .map((r, i) => (
-                  <circle
-                    key={i}
-                    cx={r.px.x}
-                    cy={r.px.y}
-                    r={radiusFor(r.pt.idx)}
-                    fill={fillFor(r.pt.idx, cls)}
-                    style={onPointClick ? { cursor: "pointer" } : undefined}
-                    onClick={
-                      onPointClick
-                        ? (e) => {
-                            e.stopPropagation();
-                            onPointClick(r.pt.idx);
-                          }
-                        : undefined
-                    }
-                  >
-                    <title>
-                      {(r.pt.label ? r.pt.label + " · " : "") +
-                        "log2FC=" +
-                        r.pt.log2fc.toFixed(3) +
-                        ", p=" +
-                        (r.pt.p === 0 ? "0 (clamped)" : r.pt.p.toExponential(2)) +
-                        ", " +
-                        cls +
-                        (onPointClick ? " — click to label" : "")}
-                    </title>
-                  </circle>
-                ))}
-            </g>
-          ))}
+        <g
+          id="data-points"
+          aria-label={`${summary.total} point${summary.total !== 1 ? "s" : ""} total`}
+        >
+          {(["ns", "down", "up"] as VolcanoClass[]).map((cls) => {
+            const count = cls === "up" ? summary.up : cls === "down" ? summary.down : summary.ns;
+            const classLabel =
+              cls === "up" ? "upregulated" : cls === "down" ? "downregulated" : "not significant";
+            return (
+              <g
+                key={cls}
+                id={`points-${cls}`}
+                fillOpacity={pointAlpha}
+                aria-label={`${count} ${classLabel} point${count !== 1 ? "s" : ""}`}
+              >
+                {rendered
+                  .filter((r) => r.cls === cls)
+                  .map((r, i) => (
+                    <circle
+                      key={i}
+                      cx={r.px.x}
+                      cy={r.px.y}
+                      r={radiusFor(r.pt.idx)}
+                      fill={fillFor(r.pt.idx, cls)}
+                      style={onPointClick ? { cursor: "pointer" } : undefined}
+                      onClick={
+                        onPointClick
+                          ? (e) => {
+                              e.stopPropagation();
+                              onPointClick(r.pt.idx);
+                            }
+                          : undefined
+                      }
+                    >
+                      <title>
+                        {(r.pt.label ? r.pt.label + " · " : "") +
+                          "log2FC=" +
+                          r.pt.log2fc.toFixed(3) +
+                          ", p=" +
+                          (r.pt.p === 0 ? "0 (clamped)" : r.pt.p.toExponential(2)) +
+                          ", " +
+                          cls +
+                          (onPointClick ? " — click to label" : "")}
+                      </title>
+                    </circle>
+                  ))}
+              </g>
+            );
+          })}
         </g>
 
         {/* ── Selected-point rings ──────────────────────────────────────

@@ -146,6 +146,40 @@ test("quartiles min ≤ q1 and q3 ≤ max", () => {
   );
 });
 
+test("quartiles are invariant under input permutation", () => {
+  // q1 / med / q3 depend on the *sorted* values, so any permutation
+  // of the input should produce identical quartiles. A mutation that
+  // sampled the unsorted array at indices ⌊n/4⌋ / ⌊n/2⌋ / ⌊3n/4⌋
+  // (instead of sorting first) would satisfy the min/max bound test
+  // above but fail this one.
+  check(
+    fc.property(arbNumericGroup, fc.integer({ min: 1, max: 1000 }), (group, seed) => {
+      const a = quartiles(group);
+      // Park-Miller LCG shuffle keyed off the fc-supplied seed so each
+      // input gets a different but deterministic permutation.
+      const shuffled = group.slice();
+      let s = seed;
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        s = (s * 16807) % 2147483647;
+        const j = s % (i + 1);
+        const tmp = shuffled[i];
+        shuffled[i] = shuffled[j];
+        shuffled[j] = tmp;
+      }
+      const b = quartiles(shuffled);
+      if (!a || !b) return a === b;
+      const finite = (v) => Number.isFinite(v);
+      if (!finite(a.q1) || !finite(a.med) || !finite(a.q3)) return true;
+      if (!finite(b.q1) || !finite(b.med) || !finite(b.q3)) return true;
+      return (
+        Math.abs(a.q1 - b.q1) < 1e-9 &&
+        Math.abs(a.med - b.med) < 1e-9 &&
+        Math.abs(a.q3 - b.q3) < 1e-9
+      );
+    })
+  );
+});
+
 test("computeStats: n equals input length, mean is finite", () => {
   check(
     fc.property(arbNumericGroup, (group) => {

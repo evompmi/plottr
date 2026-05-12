@@ -1082,7 +1082,10 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
           <g id="plot-area-background">
             <rect x={0} y={0} width={plotW} height={plotH} fill="#ffffff" />
           </g>
-          <g id="cells">
+          <g
+            id="cells"
+            aria-label={`Matrix of ${nRows} row${nRows !== 1 ? "s" : ""} × ${nCols} column${nCols !== 1 ? "s" : ""}, values from ${vmin.toPrecision(3)} to ${vmax.toPrecision(3)}`}
+          >
             {cellsImageHref && (
               <image
                 x={0}
@@ -1091,6 +1094,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
                 height={plotH}
                 href={cellsImageHref}
                 preserveAspectRatio="none"
+                aria-hidden="true"
               />
             )}
           </g>
@@ -1098,7 +1102,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
 
         {/* Column labels */}
         {showColLabels && (
-          <g id="col-labels">
+          <g id="col-labels" aria-label={`${nCols} column label${nCols !== 1 ? "s" : ""}`}>
             {colOrder.map((origCi: number, ci: number) => {
               const cx = MARGIN.left + cellX(ci) + cellW / 2;
               const cy = MARGIN.top - LABEL_GAP;
@@ -1122,7 +1126,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
 
         {/* Row labels */}
         {showRowLabels && (
-          <g id="row-labels">
+          <g id="row-labels" aria-label={`${nRows} row label${nRows !== 1 ? "s" : ""}`}>
             {rowOrder.map((origRi: number, ri: number) => (
               <text
                 key={ri}
@@ -1140,7 +1144,10 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
         )}
 
         {/* Colourbar — vertical, high values on top. */}
-        <g id="colorbar">
+        <g
+          id="colorbar"
+          aria-label={`Colourbar: values range from ${vmin.toPrecision(3)} to ${vmax.toPrecision(3)}`}
+        >
           <defs>
             <linearGradient id={cbGradId} x1="0%" y1="100%" x2="0%" y2="0%">
               {cbStops}

@@ -65,7 +65,7 @@ Source files live side-by-side in `tools/` and stay the editable units:
 - `tools/shared.js` — plain JS globals: color helpers, numeric detection, seeded random, axis tick generation, separator detection, CSV parsing, statistics, download helpers, `roleColors` (chrome styling lives in `tools/components.css` via `dv-*` classes; see the Theming section)
 - Shared UI split into focused plain-JS files (all `React.createElement`, NOT JSX):
   - (`tools/shared-color-input.js` retired 2026-05; `ColorInput` + `normalizeHexColor` live in `tools/_shell/color-input.tsx`)
-  - (`tools/shared-file-drop.js` retired 2026-05; `FileDropZone` + `FILE_LIMIT_BYTES` / `FILE_WARN_BYTES` live in `tools/_shell/file-drop.tsx`)
+  - (`tools/shared-file-drop.js` retired 2026-05; `FileDropZone` + `FILE_LIMIT_BYTES` / `FILE_WARN_BYTES` live in `tools/_shell/FileDropZone.tsx`)
   - (`tools/shared-svg-legend.js` retired 2026-05; `computeLegendHeight` + `renderSvgLegend` live in `tools/_shell/svg-legend.ts`)
   - (`tools/shared-discrete-palette.js` retired 2026-05; the catalogue + helpers live in `tools/_shell/discrete-palette.ts` and the dropdown component in `tools/_shell/DiscretePaletteRow.tsx`)
   - (`tools/shared-core.js` retired 2026-05; `DataPreview` + `ErrorBoundary` live in `tools/_shell/core.tsx`)
@@ -122,7 +122,7 @@ Common variables: `--page-bg`, `--surface`, `--surface-subtle`, `--surface-sunke
 
 File upload/paste -> `autoDetectSep` + `fixDecimalCommas` + `parseRaw` -> `DataPreview` table -> user assigns column roles -> `computeStats`/`quartiles` -> React SVG rendering -> SVG/CSV export
 
-**Ingest size policy:** any new ingest surface (paste textarea, URL fetch, clipboard handler, …) must gate on `FILE_LIMIT_BYTES` (2 MB hard reject) and `FILE_WARN_BYTES` (1 MB warn) from `tools/_shell/file-drop.tsx` and surface the same red-banner UX `FileDropZone` uses. Import both names from `_shell/file-drop` — don't redeclare a local 2-MB number.
+**Ingest size policy:** any new ingest surface (paste textarea, URL fetch, clipboard handler, …) must gate on `FILE_LIMIT_BYTES` (2 MB hard reject) and `FILE_WARN_BYTES` (1 MB warn) from `tools/_shell/FileDropZone.tsx` and surface the same red-banner UX `FileDropZone` uses. Import both names from `_shell/FileDropZone` (or the `_shell` barrel) — don't redeclare a local 2-MB number.
 
 ## Per-tool palettes
 
@@ -137,6 +137,13 @@ Plot tools live as folders (`tools/<tool>/`); calculators live as single files (
 3. **Sidebar / tile components** in `controls.tsx`.
 4. **Pure helpers** (math / layout / label disambiguation) in `helpers.ts`. These are what the test loader picks up; if they get sprawling, split into a `helpers/` folder and re-export from `helpers.ts` as a barrel (see `tools/venn/`).
 5. **App()** in `app.tsx` — orchestrator holding state and routing between steps. **`app.tsx` exports `App` and does NOT call `ReactDOM.createRoot`** (the single mount lives in `tools/_app/index.tsx`). Keep `app.tsx` slim: module-scope `VIS_INIT_<TOOL>`, the `EXAMPLE_CSV` / `EXAMPLE_TSV` sample-data const (see below), `function App()`, and `export { App };`. Tile / control / chart / step components belong in their own files.
+6. **Plot-step composition** in `plot-area.tsx` (where applicable) — composes the chart, the sidebar (`PlotSidebar` with the tiles from `controls.tsx`), the stats panel, and any chart-adjacent overlays into the final plot view. Imported by the `PlotStep` JSX in `steps.tsx`.
+
+**Layout exceptions** — three tools intentionally deviate from the 1–6 layout; each divergence is stable and not a regression. Use the canonical layout for new tools, but don't treat these as cleanup targets without a concrete reason:
+
+- **`tools/scatter/`** has no `controls.tsx`. The sidebar tiles live inline inside `scatter/plot-area.tsx` (~1,165 lines, the largest single tool file). Scatter's controls grew up alongside the plot-area composition and the tile bodies share several closures with the chart-coupled state; splitting them out is a real refactor with regression risk. Leave the inline structure when editing scatter.
+- **`tools/upset/`** has no `plot-area.tsx`. The chart + sidebar composition lives in `upset/steps.tsx` under the same `ConfigureStep` that handles upload + role-pick → configure → plot, because UpSet's "configure" and "plot" steps share a single mounted chart (you tune intersections by clicking the chart, not by toggling a separate plot step).
+- **`tools/volcano/`** has no `plot-area.tsx`. The composition lives in `volcano/steps.tsx` as `PlotStep`. Volcano's plot step is short enough (~90 lines from the `PlotStep` entry through the `</PlotSidebar>` close) that a separate plot-area module would only add an import indirection.
 
 **Sample-data convention — "all-(C)" / inline at module scope.** Every plot tool's `app.tsx` exposes a "Try sample data" button. The dataset that powers it lives as a ``const EXAMPLE_CSV = `…`;`` (or `EXAMPLE_TSV` for tab-separated, or `(() => { … })()` if procedurally generated) at the **top of `app.tsx`**, immediately after the imports and before `App()`. The button's handler is a `useCallback` named `loadExample` that calls `setSepOverride(",")`, `setFileName("…")`, and `doParse(EXAMPLE_CSV, ",")`. This convention is non-negotiable and applies everywhere — `aequorin`, `boxplot`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`. Why it matters:
 

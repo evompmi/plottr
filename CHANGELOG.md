@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Volcano and Heatmap charts now carry per-element `aria-label`s** to
+  match the per-element a11y coverage the six other plot tools already
+  had. Volcano: each significance class (`points-up` / `points-down` /
+  `points-ns`) is labelled with its count + class name; the
+  `data-points` root carries the total. Heatmap: the rasterised `cells`
+  image, the colourbar, and the row / column label groups all carry
+  labels naming row/column counts and the value range. The image
+  element itself is now `aria-hidden` (the enclosing `<g>` carries the
+  accessible name). Closes the last per-element gap surfaced in the
+  2026-05-12 audit.
+
 ### Changed
 
 - **Discrete-palette swatch strip now shows the full palette and each

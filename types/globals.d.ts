@@ -468,6 +468,15 @@ declare global {
       postHoc: RecommendedPostHoc;
       reason: string;
     };
+    // Present only when Shapiro-Wilk flagged at least one group as non-normal.
+    // The stats panel surfaces this as an info banner with a "Use suggestion"
+    // override. Same shape as `recommendation` — see `tools/stats-posthoc.js`
+    // around line 553.
+    suggestion?: {
+      test: RecommendedTest;
+      postHoc: RecommendedPostHoc;
+      reason: string;
+    };
     error?: string;
   };
   function pStars(p: number): string;
