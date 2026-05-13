@@ -178,14 +178,35 @@ function ptukey_upper(q, k, df) {
 // regardless of the answer's magnitude. Returns NaN when the expansion
 // cannot bracket p — matches R qtukey's NaN-with-warning behavior at
 // pathological inputs rather than returning a stale bracket boundary.
+//
+// Design envelope (verified against SciPy `studentized_range.ppf` in
+// `benchmark/run-scipy.py` and tracked by `isQtukeyPathological` in
+// `benchmark/run-scipy.js`):
+//
+//   Pass-band  — df ≥ 3, or (df ∈ {1, 2} with p < 0.95) or k < 10.
+//                Within 5 % relative of SciPy across the (p, k, df) grid.
+//   Pathological — df ≤ 2 ∧ p ≥ 0.95 ∧ k ≥ 10.
+//                The R / SciPy reference itself diverges from
+//                Monte-Carlo by single-digit percent in this regime,
+//                so cross-validation falls back to a "documented
+//                disagreement" bucket rather than a CI-fail.
+//
+// Caller responsibility: when (1−α, k, df) lies in the pathological
+// envelope, downstream consumers (`tukeyHSD`'s CI bounds, …) should
+// surface a methodological warning so users know the derived CI is
+// only accurate to ~5 %. See the `warning` field on `tukeyHSD`'s
+// return for the canonical pattern. NaN is a separate (currently
+// unreachable in practice) failure mode for k / df with p so close
+// to 1 that even 20 doublings don't cover it — also handled by the
+// same `warning` channel.
 function qtukey(p, k, df) {
   if (p <= 0) return 0;
   if (p >= 1) return Infinity;
   if (k < 2 || df < 1) return NaN;
   let lo = 0.01,
     hi = 100;
-  // 20 doublings cap hi at ~10⁸ — more than enough for any realistic
-  // (k, df, α) combo; anything larger is pathological and deserves NaN.
+  // 20 doublings cap hi at ~10⁸ — beyond any realistic (k, df, α) combo;
+  // anything that doesn't fit is in the pathological envelope above.
   for (let i = 0; i < 20 && ptukey(hi, k, df) < p; i++) {
     lo = hi;
     hi *= 2;
@@ -230,6 +251,24 @@ function tukeyHSD(groups, opts = {}) {
   const means = groups.map(sampleMean);
   const ns = groups.map((g) => g.length);
   const qCrit = qtukey(1 - alpha, k, dfErr);
+  // Surface a methodological warning when (1−α, k, dfErr) sits inside
+  // qtukey's documented pathological envelope (df ≤ 2 ∧ 1−α ≥ 0.95 ∧
+  // k ≥ 10). The bracket-doubling expansion still finds a finite root,
+  // but `benchmark/run-scipy.py` cross-checks against SciPy's
+  // `studentized_range.ppf` and treats up to 5 % relative disagreement
+  // there as expected — see `isQtukeyPathological` in
+  // `benchmark/run-scipy.js`. p-values use `ptukey_upper` (no bracket
+  // expansion involved) and stay reliable; only the per-pair lwr / upr
+  // are approximate in that corner. The `qCrit` NaN check is a
+  // belt-and-suspenders fallback for the (currently unreachable in
+  // practice) case where even 20 doublings of hi don't cover p.
+  const inPathologicalEnvelope = dfErr <= 2 && 1 - alpha >= 0.95 && k >= 10;
+  let qCritWarning = null;
+  if (!Number.isFinite(qCrit)) {
+    qCritWarning = `Tukey HSD CI bounds unavailable — qtukey(${1 - alpha}, k=${k}, df=${dfErr}) returned NaN (outside the bracket-expansion envelope). p-values are still reliable; the per-pair lwr / upr are NaN.`;
+  } else if (inPathologicalEnvelope) {
+    qCritWarning = `Tukey HSD CI bounds approximate — qtukey(${1 - alpha}, k=${k}, df=${dfErr}) lies in the studentized-range design envelope (df ≤ 2 with k ≥ 10 at 1−α ≥ 0.95), where the reference (R, SciPy) disagree by ~5 % with each other. p-values stay reliable; the per-pair lwr / upr are accurate to within ~5 %. Consider Games-Howell (Welch-aware, less sensitive to small df) if this matches your real data.`;
+  }
   const pairs = [];
   for (let i = 0; i < k - 1; i++) {
     for (let j = i + 1; j < k; j++) {
@@ -250,7 +289,9 @@ function tukeyHSD(groups, opts = {}) {
       });
     }
   }
-  return { pairs, k, df: dfErr, mse };
+  const result = { pairs, k, df: dfErr, mse };
+  if (qCritWarning) result.warning = qCritWarning;
+  return result;
 }
 
 // Games-Howell — post-hoc for Welch's ANOVA. Uses Welch-Satterthwaite df

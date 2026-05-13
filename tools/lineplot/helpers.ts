@@ -276,6 +276,10 @@ export interface PostHocResult {
   mse?: number;
   method?: string;
   error?: string;
+  // Soft warning surfaced by `tukeyHSD` when (1−α, k, df) lies in the
+  // qtukey design-envelope (df ≤ 2 ∧ p ≥ 0.95 ∧ k ≥ 10) — see the source
+  // comment on `qtukey` in `tools/stats-posthoc.js`.
+  warning?: string;
 }
 
 // PerXRow + the override-derived fields PerXStatsPanel attaches to it.

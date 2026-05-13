@@ -4,27 +4,22 @@
 #
 # Run with: Rscript benchmark/run-r.R
 #
-# Brown-Forsythe Levene is implemented inline because `car::leveneTest` uses
-# the same aov(|x - median|) formulation and adding car just for one test
-# would dwarf the cost. Games-Howell and Dunn-BH use PMCMRplus (the canonical
-# package for non-parametric multiple comparisons). Prior versions of this
-# script hand-ported those two tests and compared against that same hand-port
-# in JS — a self-referential cross-check that silently passed any shared bug.
+# Brown-Forsythe Levene now uses `car::leveneTest(..., center = median)`,
+# the canonical R reference. Earlier revisions hand-ported the same
+# aov(|x − median|) formulation inline to avoid adding `car` as a
+# dependency, but a self-port-vs-self-port cross-check silently passes
+# any shared bug — verified 2026-05-13 the inline helper produced
+# byte-identical F / p to `car::leveneTest` on iris but the structural
+# self-referentiality was the audit gap. Games-Howell and Dunn-BH use
+# PMCMRplus (the canonical package for non-parametric multiple
+# comparisons); same rationale applies — call the reference package,
+# not a re-port.
 
 suppressPackageStartupMessages(library(jsonlite))
 suppressPackageStartupMessages(library(datasets))
 suppressPackageStartupMessages(library(PMCMRplus))
 suppressPackageStartupMessages(library(effectsize))
-
-# ── Inline Brown-Forsythe Levene (single aov call on |x - median|) ────────
-
-brown_forsythe <- function(values, groups) {
-  groups <- as.factor(groups)
-  meds <- tapply(values, groups, median)
-  z <- abs(values - meds[as.character(groups)])
-  a <- summary(aov(z ~ groups))[[1]]
-  list(statistic = unname(a[["F value"]][1]), p = unname(a[["Pr(>F)"]][1]))
-}
+suppressPackageStartupMessages(library(car))
 
 # ── Games-Howell via PMCMRplus ─────────────────────────────────────────────
 # gamesHowellTest returns a PMCMR object with a lower-triangular p.value
@@ -117,7 +112,15 @@ shapiro_cases <- list(
   list(label = "CO2 uptake",         x = CO2$uptake),
   list(label = "LakeHuron",          x = as.numeric(LakeHuron)),
   list(label = "attitude rating",    x = attitude$rating),
-  list(label = "precip",             x = as.numeric(precip))
+  list(label = "precip",             x = as.numeric(precip)),
+  # n=3 closed-form path. Plöttr's `shapiroWilk` branches on n=3 for
+  # both the projection coefficients (a₁ = √½, a₂ = 0, a₃ = −√½) and
+  # the p-value (`p = 6·(asin(√W) − asin(√¾)) / π`, the exact null
+  # distribution at n=3). Three fixtures span the W range so any
+  # regression in the branch shows up:
+  list(label = "n=3 evenly spaced (W=1)",        x = c(1, 2, 3)),
+  list(label = "n=3 one outlier",                 x = c(1, 2, 10)),
+  list(label = "n=3 clustered low + far high",    x = c(0.1, 0.2, 5))
 )
 
 for (c in shapiro_cases) {
@@ -166,13 +169,15 @@ levene_cases <- list(
 )
 
 for (c in levene_cases) {
-  bf <- brown_forsythe(c$values, c$groups)
+  bf <- car::leveneTest(as.numeric(c$values) ~ as.factor(c$groups),
+                        center = median)
   add(
     category = "Levene (Brown-Forsythe)",
     label    = c$label,
     n        = length(c$values),
     inputs   = list(groups = split_by(as.numeric(c$values), c$groups)),
-    r        = list(statistic = bf$statistic, p = bf$p)
+    r        = list(statistic = unname(bf[["F value"]][1]),
+                    p         = unname(bf[["Pr(>F)"]][1]))
   )
 }
 
@@ -403,9 +408,18 @@ for (c in tukey_cases) {
   pairs <- list()
   for (nm in rownames(th)) {
     halves <- strsplit(nm, "-", fixed = TRUE)[[1]]
-    # order by levels so it matches JS output regardless of factor order
+    # R names rows "later-earlier" in factor-level order and reports
+    # diff = mean(later) − mean(earlier). For character→factor coercion
+    # the level order is alphabetical, so halves[1] is the alphabetically
+    # later level. Plöttr's tukeyHSD() loops i<j on the sorted-key arrays
+    # and computes diff = means[j] - means[i] with j alphabetically later
+    # — same sign convention, so no flip needed here.
     pairs[[length(pairs) + 1]] <- list(
-      i = halves[2], j = halves[1], pAdj = unname(th[nm, "p adj"])
+      i    = halves[2], j    = halves[1],
+      diff = unname(th[nm, "diff"]),
+      lwr  = unname(th[nm, "lwr"]),
+      upr  = unname(th[nm, "upr"]),
+      pAdj = unname(th[nm, "p adj"])
     )
   }
   add(
@@ -532,6 +546,63 @@ for (c in cohens_cases) {
       b = as.list(unname(as.numeric(c$y)))
     ),
     r        = list(d = d_av)
+  )
+  # Hedges' g — small-sample bias-corrected Cohen's d. Plöttr computes
+  # the exact J(df) factor via gammaln (`Γ(df/2) / (Γ((df-1)/2)·√(df/2))`,
+  # see the comment on `hedgesG` in tools/stats-tests.js). The reference
+  # is `effectsize::hedges_g(pooled_sd = TRUE)`, which uses the same
+  # exact correction.
+  g <- hedges_g(c$x, c$y, pooled_sd = TRUE)
+  add(
+    category = "Hedges' g",
+    label    = c$label,
+    n        = length(c$x) + length(c$y),
+    inputs   = list(
+      a = as.list(unname(as.numeric(c$x))),
+      b = as.list(unname(as.numeric(c$y)))
+    ),
+    r        = list(g = unname(g$Hedges_g))
+  )
+}
+
+# ── 10c. Cohen's f (effectsize::cohens_f) ──────────────────────────────────
+# Cross-checks Plöttr's η²-based Cohen's f (computed in
+# `tools/_shell/power-from-data.ts`'s ANOVA branch as `sqrt(ssB/ssW)`
+# where ssB is weighted by group sizes) against R's canonical
+# `effectsize::cohens_f`. Plöttr's *other* f-helper, the
+# `fFromGroupMeans(means, sd)` global, uses an unweighted SD_means /
+# SD_pooled form — fine for the a-priori power calculator (assumes
+# equal n) but off by ~10 % at unequal n, which is why post-hoc
+# replication-planning uses the η²-based form instead. The benchmark
+# replicates that calculation client-side and compares it to R.
+#
+# Real-data fixtures (mix of equal-n and unequal-n designs):
+
+cohens_f_cases <- list(
+  list(label = "iris Sepal.Length by Species (equal n=50/50/50)",
+       values = iris$Sepal.Length, groups = as.character(iris$Species)),
+  list(label = "PlantGrowth weight by group (equal n=10)",
+       values = PlantGrowth$weight, groups = as.character(PlantGrowth$group)),
+  list(label = "ToothGrowth len by dose (equal n=20)",
+       values = ToothGrowth$len, groups = as.character(ToothGrowth$dose)),
+  list(label = "ChickWeight@21 weight by Diet (unequal n=16,10,10,9)",
+       values = cw21$weight, groups = as.character(cw21$Diet)),
+  list(label = "morley Speed by Expt (equal n=20)",
+       values = morley$Speed, groups = as.character(morley$Expt)),
+  list(label = "OrchardSprays decrease by treatment (unequal)",
+       values = OrchardSprays$decrease, groups = as.character(OrchardSprays$treatment))
+)
+
+for (c in cohens_f_cases) {
+  fit <- aov(values ~ groups,
+             data = data.frame(values = c$values, groups = c$groups))
+  ef <- cohens_f(fit, verbose = FALSE)
+  add(
+    category = "Cohen's f (ANOVA)",
+    label    = c$label,
+    n        = length(c$values),
+    inputs   = list(groups = split_by(as.numeric(c$values), c$groups)),
+    r        = list(f = unname(ef$Cohens_f))
   )
 }
 

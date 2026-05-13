@@ -21,7 +21,6 @@
 
 declare const sampleMean: (xs: number[]) => number;
 declare const sampleSD: (xs: number[]) => number;
-declare const fFromGroupMeans: (means: number[], pooledSD: number) => number;
 declare const powerTwoSample: (d: number, n: number, alpha: number, tails: number) => number;
 declare const powerAnova: (f: number, n: number, alpha: number, k: number) => number;
 declare const cohenDCI: (
@@ -130,17 +129,35 @@ export function computePowerFromData(
     const kk = values.length;
     if (kk < 2) return null;
     const means = values.map(sampleMean);
-    const ns = values.map((v) => v.length);
-    if (ns.some((n) => n < 2)) return null;
+    if (values.some((v) => v.length < 2)) return null;
     let ssW = 0;
-    let dfW = 0;
+    let totalN = 0;
+    let weightedSum = 0;
     for (let i = 0; i < kk; i++) {
       const m = means[i];
-      for (let j = 0; j < values[i].length; j++) ssW += (values[i][j] - m) * (values[i][j] - m);
-      dfW += values[i].length - 1;
+      const ni = values[i].length;
+      for (let j = 0; j < ni; j++) ssW += (values[i][j] - m) * (values[i][j] - m);
+      totalN += ni;
+      weightedSum += ni * m;
     }
-    const sp = dfW > 0 ? Math.sqrt(ssW / dfW) : 0;
-    const f = fFromGroupMeans(means, sp);
+    // Cohen's f via η²-based formula (the canonical noncentrality
+    // input for powerAnova, equivalent to `effectsize::cohens_f` in R):
+    //   f = sqrt(η² / (1 - η²)) = sqrt(ssB / ssW)
+    // where ssB is weighted by group sizes around the *weighted* grand
+    // mean. Plöttr's `fFromGroupMeans(means, sd)` global uses an
+    // unweighted SD_means / SD_pooled form that's equivalent at equal n
+    // but diverges by ~10 % at unequal n (e.g. ChickWeight Diet 1–4
+    // post-hoc). Doing the computation inline here keeps the global
+    // backward-compatible for `power-app.tsx`'s a-priori calculator
+    // (which assumes equal n by design) while ensuring post-hoc
+    // replication-planning matches R `effectsize::cohens_f` to FP
+    // precision on real observed data.
+    const grandMean = totalN > 0 ? weightedSum / totalN : 0;
+    let ssB = 0;
+    for (let i = 0; i < kk; i++) {
+      ssB += values[i].length * (means[i] - grandMean) * (means[i] - grandMean);
+    }
+    const f = ssW > 0 ? Math.sqrt(ssB / ssW) : 0;
     const rows = alphas.map((alpha) => {
       let needed: number | null = null;
       if (f > 0) {

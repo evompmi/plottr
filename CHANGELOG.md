@@ -23,6 +23,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Benchmark now exercises `shapiroWilk`'s n=3 closed-form path.**
+  Three new Shapiro-Wilk fixtures (n=3 evenly-spaced / one outlier /
+  clustered-low + far-high) span the W range and pin both the exact
+  projection coefficients (`a₁ = √½, a₂ = 0, a₃ = −√½`) and the
+  closed-form p-value (`p = 6·(asin(√W) − asin(√¾)) / π`) against R's
+  `shapiro.test`. Previously the smallest fixture was n=20 (sleep
+  extra), so the n=3 branch had unit-test coverage only.
+
+- **Benchmark now cross-validates Hedges' g** against R's
+  `effectsize::hedges_g(pooled_sd = TRUE)`, the canonical reference for
+  the small-sample bias-corrected Cohen's d. Plöttr's `hedgesG` uses the
+  exact `J(df) = Γ(df/2) / (Γ((df−1)/2)·√(df/2))` correction (no
+  `3/(4n−9)` shortcut) — verified to FP precision on the six fixtures
+  already used by the Cohen's d / d_av cross-check (sleep, iris setosa
+  vs versicolor, iris versicolor vs virginica, ChickWeight@21 Diet 1 vs
+  4, swiss Catholic split, morley Expt 1 vs 5).
+
+- **Benchmark now validates Brown-Forsythe Levene against `car::leveneTest(center=median)`** instead
+  of a hand-ported inline `brown_forsythe()` helper. The inline port produced byte-identical F / p
+  to `car` on every fixture, but a self-port-vs-self-port cross-check silently passes any shared
+  bug — calling the canonical reference closes that gap. Adds `car` (3.x) to the bench's R-package
+  dependency list alongside `PMCMRplus`, `effectsize`, `SuperExactTest`.
+
+- **Tukey HSD now surfaces a methodological warning when (1−α, k, df)
+  lies in qtukey's pathological design envelope** (df ≤ 2 ∧ k ≥ 10 at
+  1−α ≥ 0.95). Plöttr's bracket-doubling `qtukey` still returns a
+  finite root in that corner, but cross-validation against SciPy's
+  `studentized_range.ppf` shows up-to-5 % relative disagreement —
+  the R / SciPy references diverge there too. The new `result.warning`
+  field tells consumers the per-pair lwr/upr are approximate while the
+  p-values (computed via `ptukey_upper`, which doesn't share the
+  inverse's bracket-expansion limit) remain reliable. Suggests
+  Games-Howell as an alternative for callers who actually land in
+  that regime. Belt-and-suspenders: the same channel reports the
+  (currently unreachable in practice) NaN-from-bracket case. Source
+  comment on `qtukey` itself now spells out the precise envelope
+  rather than the prior "anything larger is pathological".
+
+- **Post-hoc Cohen's f now uses the η²-based formula** matching R's
+  `effectsize::cohens_f`. The "n for 80% power" rows in the stats panel
+  (k≥3 ANOVA / Kruskal-Wallis) previously fed `fFromGroupMeans(means, sp)`
+  into `powerAnova`, which is correct under Cohen 1988 for equal n but
+  drifts up to ~10 % at unequal n (e.g. ChickWeight@21 by Diet). The new
+  branch computes `f = √(ssB / ssW)` with `ssB` weighted by group sizes
+  around the weighted grand mean — agrees with `effectsize::cohens_f`
+  to FP precision on iris, PlantGrowth, ToothGrowth, ChickWeight@21,
+  morley, OrchardSprays. `fFromGroupMeans` is unchanged (it remains the
+  correct a-priori-equal-n input for `power-app.tsx`).
+
+- **Benchmark now cross-validates Tukey HSD's `diff`/`lwr`/`upr` CI
+  bounds**, not just `pAdj`. R's `TukeyHSD()$groups` row carries all four
+  columns; the benchmark previously only emitted `p adj` and the JS side
+  only checked p-values, leaving the per-pair point estimate and 95 % CI
+  bounds Plöttr already returns silently un-cross-validated. Adds 3
+  metrics × 23 pairs = 69 new comparisons across 6 datasets (iris,
+  PlantGrowth, ToothGrowth, chickwts, ChickWeight@21, morley); all pass
+  within 5e-3. Games-Howell stays p-only (R's userfriendlyscience /
+  rstatix CI conventions diverge; not a single canonical reference).
+
 - **Cohen's d denominator now respects the chosen test's variance
   assumption.** Student's t / Mann-Whitney still use the pooled SD
   (`d_s` — `√(((n₁−1)·v₁ + (n₂−1)·v₂)/(n₁+n₂−2))`). Welch's t now
