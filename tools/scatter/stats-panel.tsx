@@ -341,10 +341,7 @@ export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterSta
   const downloadR = (e: React.MouseEvent<HTMLElement>) => {
     if (eligible.length === 0) return;
     if (eligible.length === 1) {
-      downloadText(
-        buildScatterAggregateRScript(eligible, xLabel, yLabel),
-        `${stem}_correlation.R`
-      );
+      downloadText(buildScatterAggregateRScript(eligible, xLabel, yLabel), `${stem}_correlation.R`);
     } else {
       eligible.forEach((row, i) => {
         const content = buildScatterAggregateRScript([row], xLabel, yLabel);

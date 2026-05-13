@@ -44,8 +44,7 @@ export function buildScatterSetTextBlock(
     const parts = normality.map((r) => {
       const axisLabel = r.axis === "x" ? xLabel || "x" : yLabel || "y";
       const verdict = r.normal === true ? "normal" : r.normal === false ? "not normal" : "—";
-      const wpStr =
-        r.W != null && r.p != null ? ` (W=${r.W.toFixed(3)}, p=${formatP(r.p)})` : "";
+      const wpStr = r.W != null && r.p != null ? ` (W=${r.W.toFixed(3)}, p=${formatP(r.p)})` : "";
       return `${axisLabel}: ${verdict}${wpStr}`;
     });
     lines.push(`Shapiro-Wilk: ${parts.join("; ")}`);

@@ -1188,7 +1188,9 @@ if (failed > 0) {
   }
 }
 if (rSaturatedRows > 0) {
-  console.log(`  past R's floor (boundary regime — neither side reliable below this; not a JS failure):`);
+  console.log(
+    `  past R's floor (boundary regime — neither side reliable below this; not a JS failure):`
+  );
   for (const r of rows.filter((r) => !r.pass && r.rSaturated)) {
     console.log(`    [${r.category}] ${r.label} (${r.metric}): R=${fmt(r.r)} JS=${fmt(r.js)}`);
   }

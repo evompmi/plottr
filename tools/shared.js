@@ -895,8 +895,7 @@ const PLOTTR_ATTRIBUTION_PAD = 14;
 // the optional explicit `unregisterSvgExportMutator` lets a chart that
 // transitions out of raster mode (drops below threshold) clear its
 // registration immediately rather than wait for GC.
-const _svgExportMutators =
-  typeof WeakMap === "function" ? new WeakMap() : null;
+const _svgExportMutators = typeof WeakMap === "function" ? new WeakMap() : null;
 
 function registerSvgExportMutator(svgEl, mutator) {
   if (!_svgExportMutators || !svgEl || typeof mutator !== "function") return;
