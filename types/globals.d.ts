@@ -354,6 +354,68 @@ declare global {
   };
   function etaSquared(groups: number[][]): number;
   function epsilonSquared(groups: number[][]): number;
+
+  // ── Correlation (stats-tests.js, section 9) ────────────────────────────────
+  // Paired bivariate correlation tests used by the scatter tool's stats panel.
+  // Each picks complete pairs (drops rows with non-finite x or y) before
+  // computing — matches R's `cor.test(use = "complete.obs")` default.
+  interface PearsonCorrResult {
+    r: number;
+    t: number;
+    df: number;
+    p: number;
+    n: number;
+    ci: { lo: number; hi: number };
+    error?: string;
+  }
+  interface SpearmanCorrResult {
+    rho: number;
+    t: number;
+    df: number;
+    p: number;
+    n: number;
+    ci: { lo: number; hi: number };
+    error?: string;
+  }
+  interface KendallTauResult {
+    tau: number;
+    z: number;
+    p: number;
+    n: number;
+    S: number;
+    error?: string;
+  }
+  function pearsonCorrelation(
+    x: number[],
+    y: number[],
+    opts?: { conf?: number }
+  ): PearsonCorrResult;
+  function spearmanCorrelation(
+    x: number[],
+    y: number[],
+    opts?: { conf?: number }
+  ): SpearmanCorrResult;
+  function kendallTau(x: number[], y: number[], opts?: Record<string, unknown>): KendallTauResult;
+  interface CorrNormalityResult {
+    axis: "x" | "y";
+    n: number;
+    W: number | null;
+    p: number | null;
+    normal: boolean | null;
+    note?: string;
+  }
+  type CorrTest = "pearson" | "spearman" | "kendall";
+  function selectCorrelation(
+    x: number[],
+    y: number[],
+    opts?: { alphaNormality?: number }
+  ): {
+    n: number;
+    normality: CorrNormalityResult[];
+    allNormal: boolean;
+    recommendation: { test: CorrTest; reason: string };
+    suggestion?: { test: CorrTest; reason: string };
+  };
   function ptukey(q: number, k: number, df: number): number;
   function qtukey(p: number, k: number, df: number): number;
   interface TukeyPair {

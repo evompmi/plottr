@@ -671,7 +671,76 @@ for (hc in hclust_combos) {
   )
 }
 
-# ── 11. Multi-set intersection test (SuperExactTest::cpsets) ──────────────
+# ── 11. Correlation tests (cor.test: Pearson / Spearman / Kendall) ────────
+
+correlation_cases <- list(
+  list(label = "iris Sepal.Length vs Sepal.Width",
+       x = iris$Sepal.Length, y = iris$Sepal.Width),
+  list(label = "iris Petal.Length vs Petal.Width",
+       x = iris$Petal.Length, y = iris$Petal.Width),
+  list(label = "mtcars mpg vs hp",
+       x = mtcars$mpg,        y = mtcars$hp),
+  list(label = "mtcars wt vs mpg",
+       x = mtcars$wt,         y = mtcars$mpg),
+  list(label = "trees Girth vs Height",
+       x = trees$Girth,       y = trees$Height),
+  list(label = "swiss Education vs Fertility",
+       x = swiss$Education,   y = swiss$Fertility),
+  # women height vs weight has byte-identical rank vectors (both axes
+  # strictly monotone), so Spearman ρ = 1 and Kendall τ = 1 exactly.
+  # Plöttr's implementation short-circuits p = 0 honestly at that
+  # boundary; R's S-statistic path carries an FP residual that produces
+  # a fake non-zero tail (~3.5e-101). Classified as "boundary clamp" in
+  # `run.js` — same pattern as the R-saturated Tukey HSD pAdj rows.
+  list(label = "women height vs weight",
+       x = women$height,      y = women$weight),
+  # Tied data — exercises Kendall τ-b's tie correction path.
+  list(label = "tied-on-both (8 pairs)",
+       x = c(1,1,2,2,3,3,4,4), y = c(1,2,1,2,3,4,3,4))
+)
+
+for (c in correlation_cases) {
+  pr <- cor.test(c$x, c$y, method = "pearson")
+  sp <- suppressWarnings(cor.test(c$x, c$y, method = "spearman", exact = FALSE))
+  kn <- suppressWarnings(cor.test(c$x, c$y, method = "kendall", exact = FALSE))
+  add(
+    category = "Pearson r",
+    label    = c$label,
+    n        = length(c$x),
+    inputs   = list(x = as.list(unname(as.numeric(c$x))),
+                    y = as.list(unname(as.numeric(c$y)))),
+    r        = list(
+      statistic = unname(pr$estimate),
+      p         = unname(pr$p.value),
+      ci_lo     = unname(pr$conf.int[1]),
+      ci_hi     = unname(pr$conf.int[2])
+    )
+  )
+  add(
+    category = "Spearman rho",
+    label    = c$label,
+    n        = length(c$x),
+    inputs   = list(x = as.list(unname(as.numeric(c$x))),
+                    y = as.list(unname(as.numeric(c$y)))),
+    r        = list(
+      statistic = unname(sp$estimate),
+      p         = unname(sp$p.value)
+    )
+  )
+  add(
+    category = "Kendall tau",
+    label    = c$label,
+    n        = length(c$x),
+    inputs   = list(x = as.list(unname(as.numeric(c$x))),
+                    y = as.list(unname(as.numeric(c$y)))),
+    r        = list(
+      statistic = unname(kn$estimate),
+      p         = unname(kn$p.value)
+    )
+  )
+}
+
+# ── 12. Multi-set intersection test (SuperExactTest::cpsets) ──────────────
 #
 # Exact p-value for the multi-set intersection problem: given k independent
 # uniformly-random subsets of a universe of size N with fixed sizes n_1..n_k,

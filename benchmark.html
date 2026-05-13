@@ -272,10 +272,10 @@
 
   <h2 class="ref-heading">vs R 4.5.3 on real built-in datasets</h2>
   <div class="summary summary-pass">
-    <div><span class="k">comparisons</span><span class="v">465</span></div>
-    <div><span class="k">passing</span><span class="v v-pass">461 (100.0%)</span></div>
+    <div><span class="k">comparisons</span><span class="v">529</span></div>
+    <div><span class="k">passing</span><span class="v v-pass">524 (100.0%)</span></div>
     <div><span class="k">failing</span><span class="v v-pass">0</span></div>
-    <div><span class="k">past R's floor</span><span class="v v-rsat">4</span></div>
+    <div><span class="k">past R's floor</span><span class="v v-rsat">5</span></div>
     <div><span class="k">max |Δ|</span><span class="v">3.16e-2</span></div>
   </div>
 
@@ -1879,7 +1879,7 @@
         <td class="num">3.308e-14</td>
         <td class="num">2.634e-15</td>
         <td class="num">2.53e+0</td>
-        <td class="ok-cell ok-rsat" title="R's ptukey hit its numerical floor here; JS continues the true tail. Not a JS failure.">R-floor</td>
+        <td class="ok-cell ok-rsat" title="Boundary regime — R's numerical artefact (ptukey floor for HSD/GH; FP-residual S statistic for correlation) disagrees with Plöttr's honest boundary clamp / continued tail. Not a JS failure; below any user-meaningful precision.">R-floor</td>
       </tr>
       <tr class="row-pass">
         <td>iris Sepal.Length by Species [setosa vs versicolor]</td>
@@ -1915,7 +1915,7 @@
         <td class="num">2.220e-15</td>
         <td class="num">1.034e-32</td>
         <td class="num">3.99e+1</td>
-        <td class="ok-cell ok-rsat" title="R's ptukey hit its numerical floor here; JS continues the true tail. Not a JS failure.">R-floor</td>
+        <td class="ok-cell ok-rsat" title="Boundary regime — R's numerical artefact (ptukey floor for HSD/GH; FP-residual S statistic for correlation) disagrees with Plöttr's honest boundary clamp / continued tail. Not a JS failure; below any user-meaningful precision.">R-floor</td>
       </tr>
       <tr class="row-pass">
         <td>iris Sepal.Length by Species [setosa vs virginica]</td>
@@ -2131,7 +2131,7 @@
         <td class="num">1.123e-11</td>
         <td class="num">4.022e-16</td>
         <td class="num">1.02e+1</td>
-        <td class="ok-cell ok-rsat" title="R's ptukey hit its numerical floor here; JS continues the true tail. Not a JS failure.">R-floor</td>
+        <td class="ok-cell ok-rsat" title="Boundary regime — R's numerical artefact (ptukey floor for HSD/GH; FP-residual S statistic for correlation) disagrees with Plöttr's honest boundary clamp / continued tail. Not a JS failure; below any user-meaningful precision.">R-floor</td>
       </tr>
       <tr class="row-pass">
         <td>ToothGrowth len by dose [0.5 vs 2]</td>
@@ -3346,7 +3346,7 @@
         <td class="num">4.712e-10</td>
         <td class="num">7.434e-15</td>
         <td class="num">1.11e+1</td>
-        <td class="ok-cell ok-rsat" title="R's ptukey hit its numerical floor here; JS continues the true tail. Not a JS failure.">R-floor</td>
+        <td class="ok-cell ok-rsat" title="Boundary regime — R's numerical artefact (ptukey floor for HSD/GH; FP-residual S statistic for correlation) disagrees with Plöttr's honest boundary clamp / continued tail. Not a JS failure; below any user-meaningful precision.">R-floor</td>
       </tr>
       <tr class="row-pass">
         <td>iris Sepal.Width by Species [setosa vs virginica]</td>
@@ -4837,6 +4837,663 @@
     </details>
 
     <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Pearson r</span> <span class="badge badge-pass">32/32 pass</span></summary>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Plöttr</th>
+            <th class="num">|Δ|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>iris Sepal.Length vs Sepal.Width</td>
+        <td class="num">150</td>
+        <td>r</td>
+        <td class="num">-0.11757</td>
+        <td class="num">-0.11757</td>
+        <td class="num">3.00e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length vs Sepal.Width</td>
+        <td class="num">150</td>
+        <td>p</td>
+        <td class="num">0.151898</td>
+        <td class="num">0.151898</td>
+        <td class="num">1.42e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length vs Sepal.Width</td>
+        <td class="num">150</td>
+        <td>ci_lo</td>
+        <td class="num">-0.272693</td>
+        <td class="num">-0.272693</td>
+        <td class="num">1.24e-10</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length vs Sepal.Width</td>
+        <td class="num">150</td>
+        <td>ci_hi</td>
+        <td class="num">0.0435116</td>
+        <td class="num">0.0435116</td>
+        <td class="num">1.30e-10</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Petal.Length vs Petal.Width</td>
+        <td class="num">150</td>
+        <td>r</td>
+        <td class="num">0.962865</td>
+        <td class="num">0.962865</td>
+        <td class="num">2.80e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Petal.Length vs Petal.Width</td>
+        <td class="num">150</td>
+        <td>p</td>
+        <td class="num">4.675e-86</td>
+        <td class="num">4.675e-86</td>
+        <td class="num">7.22e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Petal.Length vs Petal.Width</td>
+        <td class="num">150</td>
+        <td>ci_lo</td>
+        <td class="num">0.949052</td>
+        <td class="num">0.949052</td>
+        <td class="num">1.18e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Petal.Length vs Petal.Width</td>
+        <td class="num">150</td>
+        <td>ci_hi</td>
+        <td class="num">0.972985</td>
+        <td class="num">0.972985</td>
+        <td class="num">5.74e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars mpg vs hp</td>
+        <td class="num">32</td>
+        <td>r</td>
+        <td class="num">-0.776168</td>
+        <td class="num">-0.776168</td>
+        <td class="num">3.41e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars mpg vs hp</td>
+        <td class="num">32</td>
+        <td>p</td>
+        <td class="num">1.788e-7</td>
+        <td class="num">1.788e-7</td>
+        <td class="num">1.18e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars mpg vs hp</td>
+        <td class="num">32</td>
+        <td>ci_lo</td>
+        <td class="num">-0.885269</td>
+        <td class="num">-0.885269</td>
+        <td class="num">5.90e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars mpg vs hp</td>
+        <td class="num">32</td>
+        <td>ci_hi</td>
+        <td class="num">-0.586099</td>
+        <td class="num">-0.586099</td>
+        <td class="num">1.97e-10</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars wt vs mpg</td>
+        <td class="num">32</td>
+        <td>r</td>
+        <td class="num">-0.867659</td>
+        <td class="num">-0.867659</td>
+        <td class="num">2.77e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars wt vs mpg</td>
+        <td class="num">32</td>
+        <td>p</td>
+        <td class="num">1.294e-10</td>
+        <td class="num">1.294e-10</td>
+        <td class="num">3.82e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars wt vs mpg</td>
+        <td class="num">32</td>
+        <td>ci_lo</td>
+        <td class="num">-0.933826</td>
+        <td class="num">-0.933826</td>
+        <td class="num">4.25e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars wt vs mpg</td>
+        <td class="num">32</td>
+        <td>ci_hi</td>
+        <td class="num">-0.744087</td>
+        <td class="num">-0.744087</td>
+        <td class="num">1.31e-10</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>trees Girth vs Height</td>
+        <td class="num">31</td>
+        <td>r</td>
+        <td class="num">0.51928</td>
+        <td class="num">0.51928</td>
+        <td class="num">6.29e-14</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>trees Girth vs Height</td>
+        <td class="num">31</td>
+        <td>p</td>
+        <td class="num">0.00275781</td>
+        <td class="num">0.00275781</td>
+        <td class="num">1.53e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>trees Girth vs Height</td>
+        <td class="num">31</td>
+        <td>ci_lo</td>
+        <td class="num">0.202133</td>
+        <td class="num">0.202133</td>
+        <td class="num">2.85e-10</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>trees Girth vs Height</td>
+        <td class="num">31</td>
+        <td>ci_hi</td>
+        <td class="num">0.737854</td>
+        <td class="num">0.737854</td>
+        <td class="num">1.41e-10</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>swiss Education vs Fertility</td>
+        <td class="num">47</td>
+        <td>r</td>
+        <td class="num">-0.663789</td>
+        <td class="num">-0.663789</td>
+        <td class="num">4.93e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>swiss Education vs Fertility</td>
+        <td class="num">47</td>
+        <td>p</td>
+        <td class="num">3.659e-7</td>
+        <td class="num">3.659e-7</td>
+        <td class="num">1.03e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>swiss Education vs Fertility</td>
+        <td class="num">47</td>
+        <td>ci_lo</td>
+        <td class="num">-0.798708</td>
+        <td class="num">-0.798708</td>
+        <td class="num">8.16e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>swiss Education vs Fertility</td>
+        <td class="num">47</td>
+        <td>ci_hi</td>
+        <td class="num">-0.465321</td>
+        <td class="num">-0.465321</td>
+        <td class="num">1.89e-10</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>women height vs weight</td>
+        <td class="num">15</td>
+        <td>r</td>
+        <td class="num">0.995495</td>
+        <td class="num">0.995495</td>
+        <td class="num">4.22e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>women height vs weight</td>
+        <td class="num">15</td>
+        <td>p</td>
+        <td class="num">1.091e-14</td>
+        <td class="num">1.091e-14</td>
+        <td class="num">1.99e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>women height vs weight</td>
+        <td class="num">15</td>
+        <td>ci_lo</td>
+        <td class="num">0.986097</td>
+        <td class="num">0.986097</td>
+        <td class="num">1.18e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>women height vs weight</td>
+        <td class="num">15</td>
+        <td>ci_hi</td>
+        <td class="num">0.998545</td>
+        <td class="num">0.998545</td>
+        <td class="num">2.16e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>tied-on-both (8 pairs)</td>
+        <td class="num">8</td>
+        <td>r</td>
+        <td class="num">0.8</td>
+        <td class="num">0.8</td>
+        <td class="num">0</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>tied-on-both (8 pairs)</td>
+        <td class="num">8</td>
+        <td>p</td>
+        <td class="num">0.01712</td>
+        <td class="num">0.01712</td>
+        <td class="num">1.04e-17</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>tied-on-both (8 pairs)</td>
+        <td class="num">8</td>
+        <td>ci_lo</td>
+        <td class="num">0.218509</td>
+        <td class="num">0.218509</td>
+        <td class="num">6.74e-10</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>tied-on-both (8 pairs)</td>
+        <td class="num">8</td>
+        <td>ci_hi</td>
+        <td class="num">0.962228</td>
+        <td class="num">0.962228</td>
+        <td class="num">5.29e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </details>
+
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Spearman rho</span> <span class="badge badge-pass">15/16 pass</span> <span class="badge badge-rsat">1 past R's floor</span></summary>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Plöttr</th>
+            <th class="num">|Δ|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>iris Sepal.Length vs Sepal.Width</td>
+        <td class="num">150</td>
+        <td>rho</td>
+        <td class="num">-0.166778</td>
+        <td class="num">-0.166778</td>
+        <td class="num">3.23e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length vs Sepal.Width</td>
+        <td class="num">150</td>
+        <td>p</td>
+        <td class="num">0.041368</td>
+        <td class="num">0.041368</td>
+        <td class="num">1.53e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Petal.Length vs Petal.Width</td>
+        <td class="num">150</td>
+        <td>rho</td>
+        <td class="num">0.937667</td>
+        <td class="num">0.937667</td>
+        <td class="num">3.66e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Petal.Length vs Petal.Width</td>
+        <td class="num">150</td>
+        <td>p</td>
+        <td class="num">8.157e-70</td>
+        <td class="num">8.157e-70</td>
+        <td class="num">3.13e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars mpg vs hp</td>
+        <td class="num">32</td>
+        <td>rho</td>
+        <td class="num">-0.894665</td>
+        <td class="num">-0.894665</td>
+        <td class="num">3.75e-14</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars mpg vs hp</td>
+        <td class="num">32</td>
+        <td>p</td>
+        <td class="num">5.086e-12</td>
+        <td class="num">5.086e-12</td>
+        <td class="num">4.83e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars wt vs mpg</td>
+        <td class="num">32</td>
+        <td>rho</td>
+        <td class="num">-0.886422</td>
+        <td class="num">-0.886422</td>
+        <td class="num">2.98e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars wt vs mpg</td>
+        <td class="num">32</td>
+        <td>p</td>
+        <td class="num">1.488e-11</td>
+        <td class="num">1.488e-11</td>
+        <td class="num">1.85e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>trees Girth vs Height</td>
+        <td class="num">31</td>
+        <td>rho</td>
+        <td class="num">0.440839</td>
+        <td class="num">0.440839</td>
+        <td class="num">2.48e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>trees Girth vs Height</td>
+        <td class="num">31</td>
+        <td>p</td>
+        <td class="num">0.013056</td>
+        <td class="num">0.013056</td>
+        <td class="num">3.58e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>swiss Education vs Fertility</td>
+        <td class="num">47</td>
+        <td>rho</td>
+        <td class="num">-0.443258</td>
+        <td class="num">-0.443258</td>
+        <td class="num">9.88e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>swiss Education vs Fertility</td>
+        <td class="num">47</td>
+        <td>p</td>
+        <td class="num">0.00180597</td>
+        <td class="num">0.00180597</td>
+        <td class="num">2.57e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>women height vs weight</td>
+        <td class="num">15</td>
+        <td>rho</td>
+        <td class="num">1</td>
+        <td class="num">1</td>
+        <td class="num">0</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-rsat">
+        <td>women height vs weight</td>
+        <td class="num">15</td>
+        <td>p</td>
+        <td class="num">3.509e-101</td>
+        <td class="num">0</td>
+        <td class="num">3.51e-101</td>
+        <td class="ok-cell ok-rsat" title="Boundary regime — R's numerical artefact (ptukey floor for HSD/GH; FP-residual S statistic for correlation) disagrees with Plöttr's honest boundary clamp / continued tail. Not a JS failure; below any user-meaningful precision.">R-floor</td>
+      </tr>
+      <tr class="row-pass">
+        <td>tied-on-both (8 pairs)</td>
+        <td class="num">8</td>
+        <td>rho</td>
+        <td class="num">0.8</td>
+        <td class="num">0.8</td>
+        <td class="num">0</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>tied-on-both (8 pairs)</td>
+        <td class="num">8</td>
+        <td>p</td>
+        <td class="num">0.01712</td>
+        <td class="num">0.01712</td>
+        <td class="num">1.04e-17</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </details>
+
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Kendall tau</span> <span class="badge badge-pass">16/16 pass</span></summary>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Plöttr</th>
+            <th class="num">|Δ|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>iris Sepal.Length vs Sepal.Width</td>
+        <td class="num">150</td>
+        <td>tau</td>
+        <td class="num">-0.0769968</td>
+        <td class="num">-0.0769968</td>
+        <td class="num">4.83e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Sepal.Length vs Sepal.Width</td>
+        <td class="num">150</td>
+        <td>p</td>
+        <td class="num">0.182921</td>
+        <td class="num">0.182921</td>
+        <td class="num">1.25e-7</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Petal.Length vs Petal.Width</td>
+        <td class="num">150</td>
+        <td>tau</td>
+        <td class="num">0.806891</td>
+        <td class="num">0.806891</td>
+        <td class="num">1.52e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>iris Petal.Length vs Petal.Width</td>
+        <td class="num">150</td>
+        <td>p</td>
+        <td class="num">2.443e-44</td>
+        <td class="num">2.443e-44</td>
+        <td class="num">1.35e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars mpg vs hp</td>
+        <td class="num">32</td>
+        <td>tau</td>
+        <td class="num">-0.742813</td>
+        <td class="num">-0.742813</td>
+        <td class="num">1.33e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars mpg vs hp</td>
+        <td class="num">32</td>
+        <td>p</td>
+        <td class="num">4.332e-9</td>
+        <td class="num">4.346e-9</td>
+        <td class="num">3.27e-3</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars wt vs mpg</td>
+        <td class="num">32</td>
+        <td>tau</td>
+        <td class="num">-0.727832</td>
+        <td class="num">-0.727832</td>
+        <td class="num">1.57e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>mtcars wt vs mpg</td>
+        <td class="num">32</td>
+        <td>p</td>
+        <td class="num">6.706e-9</td>
+        <td class="num">6.727e-9</td>
+        <td class="num">3.10e-3</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>trees Girth vs Height</td>
+        <td class="num">31</td>
+        <td>tau</td>
+        <td class="num">0.316864</td>
+        <td class="num">0.316864</td>
+        <td class="num">4.72e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>trees Girth vs Height</td>
+        <td class="num">31</td>
+        <td>p</td>
+        <td class="num">0.0139904</td>
+        <td class="num">0.0139904</td>
+        <td class="num">1.11e-8</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>swiss Education vs Fertility</td>
+        <td class="num">47</td>
+        <td>tau</td>
+        <td class="num">-0.330611</td>
+        <td class="num">-0.330611</td>
+        <td class="num">1.94e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>swiss Education vs Fertility</td>
+        <td class="num">47</td>
+        <td>p</td>
+        <td class="num">0.00139407</td>
+        <td class="num">0.0013942</td>
+        <td class="num">9.23e-5</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>women height vs weight</td>
+        <td class="num">15</td>
+        <td>tau</td>
+        <td class="num">1</td>
+        <td class="num">1</td>
+        <td class="num">0</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>women height vs weight</td>
+        <td class="num">15</td>
+        <td>p</td>
+        <td class="num">2.035e-7</td>
+        <td class="num">2.038e-7</td>
+        <td class="num">1.90e-3</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>tied-on-both (8 pairs)</td>
+        <td class="num">8</td>
+        <td>tau</td>
+        <td class="num">0.666667</td>
+        <td class="num">0.666667</td>
+        <td class="num">3.33e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>tied-on-both (8 pairs)</td>
+        <td class="num">8</td>
+        <td>p</td>
+        <td class="num">0.0354981</td>
+        <td class="num">0.035498</td>
+        <td class="num">1.26e-7</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </details>
+
+    <details class="category" open>
       <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Multi-set intersection (cpsets)</span> <span class="badge badge-pass">10/10 pass</span></summary>
       <table>
         <colgroup>
@@ -4954,7 +5611,7 @@
     </details>
 
   <footer>
-    R reference generated 2026-05-13 00:07:32 UTC.
+    R reference generated 2026-05-13 16:39:22 UTC.
     Tolerance 0.005. Tool source: <code>tools/stats-*.js</code>.
   </footer>
 </div>

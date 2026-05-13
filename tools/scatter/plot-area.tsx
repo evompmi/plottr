@@ -5,6 +5,7 @@ import { ScatterChart } from "./chart";
 import { PaletteStrip, ShapePreview } from "./shapes";
 import { AesBox, ControlSection } from "./steps";
 import { fmtTick, SHAPES, PlotStepProps, RefLine } from "./helpers";
+import { ScatterStatsPanel } from "./stats-panel";
 import {
   BaseStyleControls,
   ColorInput,
@@ -86,6 +87,8 @@ export function PlotStep({
   resetAll,
   svgRef,
   svgLegend,
+  statsSets,
+  fileStem,
 }: PlotStepProps) {
   const hasColorMap = colorMapCol != null;
   const hasSizeMap = sizeMapCol != null;
@@ -1158,6 +1161,16 @@ export function PlotStep({
               svgLegend={svgLegend}
             />
           </div>
+          {statsSets.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <ScatterStatsPanel
+                sets={statsSets}
+                fileStem={fileStem}
+                xLabel={vis.xLabel || parsed.headers[xCol] || "x"}
+                yLabel={vis.yLabel || parsed.headers[yCol] || "y"}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

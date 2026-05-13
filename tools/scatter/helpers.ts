@@ -83,6 +83,118 @@ export function computeLinearRegression(
 
 export type RegressionStats = ReturnType<typeof computeLinearRegression>;
 
+// ── Correlation (scatter stats panel) ──────────────────────────────────────
+//
+// The scatter stats panel runs pure-text helpers off these types. Runtime
+// results come from the `pearsonCorrelation` / `spearmanCorrelation` /
+// `kendallTau` / `selectCorrelation` globals declared in
+// `types/globals.d.ts`.
+
+export const CORR_TEST_LABELS: Record<CorrTest, string> = {
+  pearson: "Pearson r",
+  spearman: "Spearman ρ",
+  kendall: "Kendall τ",
+};
+
+export const CORR_TEST_OPTIONS: CorrTest[] = ["pearson", "spearman", "kendall"];
+
+// Discriminated union of the three correlation-result shapes. The panel
+// branches on `kind` to pull the right coefficient field; downstream
+// formatters narrow via the same tag.
+export type CorrResult =
+  | ({ kind: "pearson" } & PearsonCorrResult)
+  | ({ kind: "spearman" } & SpearmanCorrResult)
+  | ({ kind: "kendall" } & KendallTauResult);
+
+// Run the named test on a paired (x, y) array. Drops rows where either
+// value is non-finite before delegating to the stats global. Returns
+// `{ ... , error }`-shaped results on failure so callers don't have to
+// branch on the test name themselves.
+export function runCorrelation(
+  test: CorrTest,
+  xs: number[],
+  ys: number[],
+  opts?: { conf?: number }
+): CorrResult {
+  if (test === "spearman") {
+    return { kind: "spearman", ...spearmanCorrelation(xs, ys, opts) };
+  }
+  if (test === "kendall") {
+    return { kind: "kendall", ...kendallTau(xs, ys, opts) };
+  }
+  return { kind: "pearson", ...pearsonCorrelation(xs, ys, opts) };
+}
+
+// Pull the coefficient (`r` / `rho` / `tau`) from a CorrResult.
+export function correlationCoef(res: CorrResult): number {
+  if (res.kind === "spearman") return res.rho;
+  if (res.kind === "kendall") return res.tau;
+  return res.r;
+}
+
+// Compact "stat = value" string for the table row. Pearson / Spearman ship
+// a t-statistic + df; Kendall ships a z. Format mirrors boxplot's
+// formatBpStatShort.
+export function formatCorrStatShort(res: CorrResult | null | undefined): string {
+  if (!res || res.error) return "—";
+  if (res.kind === "pearson")
+    return `r = ${res.r.toFixed(3)}, t(${res.df}) = ${res.t.toFixed(3)}`;
+  if (res.kind === "spearman")
+    return `ρ = ${res.rho.toFixed(3)}, t(${res.df}) = ${res.t.toFixed(3)}`;
+  return `τ = ${res.tau.toFixed(3)}, z = ${res.z.toFixed(3)}`;
+}
+
+// Full-precision human-readable line used in the expanded detail and the
+// TXT export.
+export function formatCorrResultLine(res: CorrResult | null | undefined): string {
+  if (!res) return "—";
+  if (res.error) return "⚠ " + res.error;
+  if (res.kind === "pearson") {
+    const ci = res.ci;
+    const ciStr = Number.isFinite(ci.lo)
+      ? `, 95% CI [${ci.lo.toFixed(3)}, ${ci.hi.toFixed(3)}]`
+      : "";
+    return `r = ${res.r.toFixed(3)}${ciStr}, t(${res.df}) = ${res.t.toFixed(3)}, p = ${formatP(res.p)}`;
+  }
+  if (res.kind === "spearman") {
+    const ci = res.ci;
+    const ciStr = Number.isFinite(ci.lo)
+      ? `, 95% CI [${ci.lo.toFixed(3)}, ${ci.hi.toFixed(3)}]`
+      : "";
+    return `ρ = ${res.rho.toFixed(3)}${ciStr}, t(${res.df}) = ${res.t.toFixed(3)}, p = ${formatP(res.p)}`;
+  }
+  return `τ = ${res.tau.toFixed(3)}, z = ${res.z.toFixed(3)}, p = ${formatP(res.p)}`;
+}
+
+// One row in the scatter stats panel — the unfiltered "all rows" set plus
+// one per category when a discrete colour aesthetic is mapped.
+export interface ScatterStatsSet {
+  // Stable key for keyed React renders + per-row override storage.
+  key: string;
+  // Human-readable label for the row ("All", "setosa", "versicolor", …).
+  name: string;
+  // Optional swatch colour so per-group rows can carry the colour-map dot.
+  color?: string;
+  // Paired complete x / y values for this row (NaN/null already stripped).
+  xs: number[];
+  ys: number[];
+}
+
+// Enriched row after the panel runs selectCorrelation + the chosen test.
+// Mirrors the boxplot enriched-row pattern.
+export interface EnrichedScatterStatsRow extends ScatterStatsSet {
+  n: number;
+  rec: ReturnType<typeof selectCorrelation> | null;
+  recTest: CorrTest | null;
+  chosenTest: CorrTest;
+  testResult: CorrResult | null;
+  skip?: false;
+}
+
+export type EnrichedOrSkip =
+  | EnrichedScatterStatsRow
+  | (ScatterStatsSet & { n: number; skip: true });
+
 // ── Vis state + reference-line / regression sub-types ──────────────────────
 //
 // `ScatterVis` mirrors the runtime shape of `VIS_INIT_SCATTER` in app.tsx.
@@ -285,4 +397,9 @@ export interface PlotStepProps {
   resetAll: () => void;
   svgRef: React.RefObject<SVGSVGElement>;
   svgLegend: LegendBlock[] | null;
+  // Pre-assembled "All" + per-colour-category sets for the stats panel.
+  // Empty when fewer than 3 complete pairs are available.
+  statsSets: ScatterStatsSet[];
+  // File stem (e.g. "iris_scatter") used to name downloaded reports.
+  fileStem: string;
 }

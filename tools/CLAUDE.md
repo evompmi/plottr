@@ -83,6 +83,7 @@ Source files live side-by-side in `tools/` and stay the editable units:
   - **`stats-tests.js`** — descriptive helpers + parametric / nonparametric tests + effect sizes (depends on `stats-dist.js`).
     - Descriptive: `sampleMean`, `sampleVariance`, `sampleSD`, `rankWithTies`
     - Tests: `shapiroWilk`, `leveneTest`, `tTest`, `mannWhitneyU`, `oneWayANOVA`, `welchANOVA`, `kruskalWallis`
+    - Correlation: `pearsonCorrelation`, `spearmanCorrelation`, `kendallTau`, `selectCorrelation`
     - Effect sizes: `cohenD`, `hedgesG`, `rankBiserial`, `etaSquared`, `epsilonSquared`
   - **`stats-posthoc.js`** — studentized-range distribution + post-hocs + p-adjust + CLD + auto-picker (depends on `stats-tests.js`).
     - Studentized range: `ptukey`, `qtukey` (plus internal `_wprob`, `_wprob_upper`, `ptukey_upper`)

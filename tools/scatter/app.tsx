@@ -4,7 +4,14 @@
 // under tools/scatter/.
 
 import { PlotToolShell, resolveDiscretePalette, usePlotToolState } from "../_shell";
-import { SHAPES, computeLinearRegression, ScatterVis, RefLine, ScatterRegression } from "./helpers";
+import {
+  SHAPES,
+  ScatterStatsSet,
+  computeLinearRegression,
+  ScatterVis,
+  RefLine,
+  ScatterRegression,
+} from "./helpers";
 import { UploadStep } from "./steps";
 import { PlotStep } from "./plot-area";
 
@@ -557,6 +564,72 @@ export function App() {
     [filteredData, xCol, yCol]
   );
 
+  // Stats panel sets: one "All" row over every visible point, plus one row
+  // per category when a discrete colour aesthetic is mapped. Drops rows
+  // where either axis is non-finite before assembling — runCorrelation
+  // would do the same drop internally, but stripping here keeps the n
+  // counts and per-axis Shapiro inputs honest.
+  const statsSets = useMemo<ScatterStatsSet[]>(() => {
+    if (!parsed || xCol == null || yCol == null) return [];
+    const xs: number[] = [];
+    const ys: number[] = [];
+    const rowCats: (string | null)[] = [];
+    const discreteColorMap =
+      colorMapCol != null && colorMapType === "discrete" && parsed.rawData
+        ? colorMapCol
+        : null;
+    for (let i = 0; i < filteredData.length; i++) {
+      const row = filteredData[i];
+      const xv = row[xCol];
+      const yv = row[yCol];
+      if (xv == null || yv == null || !Number.isFinite(xv) || !Number.isFinite(yv)) continue;
+      xs.push(xv);
+      ys.push(yv);
+      if (discreteColorMap != null) {
+        const raw = filteredRawRows[i]?.[discreteColorMap];
+        rowCats.push(raw != null && raw !== "" ? String(raw) : null);
+      } else {
+        rowCats.push(null);
+      }
+    }
+    if (xs.length === 0) return [];
+    const sets: ScatterStatsSet[] = [
+      { key: "__all__", name: "All", xs, ys },
+    ];
+    if (discreteColorMap != null && colorMapCategories.length > 0) {
+      for (const cat of colorMapCategories) {
+        const sx: number[] = [];
+        const sy: number[] = [];
+        for (let i = 0; i < rowCats.length; i++) {
+          if (rowCats[i] === cat) {
+            sx.push(xs[i]);
+            sy.push(ys[i]);
+          }
+        }
+        sets.push({
+          key: `cat:${cat}`,
+          name: cat,
+          color: colorMapDiscrete[cat] || PALETTE[0],
+          xs: sx,
+          ys: sy,
+        });
+      }
+    }
+    return sets;
+  }, [
+    parsed,
+    filteredData,
+    filteredRawRows,
+    xCol,
+    yCol,
+    colorMapCol,
+    colorMapType,
+    colorMapCategories,
+    colorMapDiscrete,
+  ]);
+
+  const fileStem = useMemo(() => fileBaseName(fileName, "scatter") + "_scatter", [fileName]);
+
   // Effective axis values: user override or auto
   const effAxis = {
     xMin: vis.xMin != null ? vis.xMin : autoAxis.xMin,
@@ -861,6 +934,8 @@ export function App() {
           resetAll={resetAll}
           svgRef={svgRef}
           svgLegend={svgLegend}
+          statsSets={statsSets}
+          fileStem={fileStem}
         />
       )}
     </PlotToolShell>

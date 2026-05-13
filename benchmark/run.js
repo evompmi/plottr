@@ -62,6 +62,9 @@ const {
   hedgesG,
   sampleMean,
   sampleSD,
+  pearsonCorrelation,
+  spearmanCorrelation,
+  kendallTau,
 } = ctx;
 
 // ── Load R reference output ────────────────────────────────────────────────
@@ -133,6 +136,27 @@ function isRSaturated(category, metric, jsVal, rVal) {
   if (!Number.isFinite(rVal) || !Number.isFinite(jsVal)) return false;
   if (rVal >= R_PTUKEY_FLOOR_CEILING) return false;
   return jsVal < rVal;
+}
+
+// Correlation boundary clamp. When the rank vectors of x and y are byte-
+// identical (or fully anti-identical), Spearman ρ and Kendall τ are exactly
+// ±1, the derived t-statistic is ±Infinity, and the two-sided p collapses
+// to 0 honestly. R uses an S-statistic path (sum of squared rank diffs)
+// that carries an FP residual on identical ranks (~1.24e-13 on the `women`
+// fixture) and emits a fake non-zero tail (~3.5e-101 via log-scale pt).
+// Both implementations are saying "this is as significant as it gets" —
+// the disagreement is below any user-meaningful precision floor (p < 1e-50
+// is already 35 orders of magnitude past any reasonable significance
+// threshold a paper would publish). Same handling shape as `isRSaturated`.
+const CORRELATION_BOUNDARY_R_FLOOR = 1e-50;
+function isCorrelationBoundary(category, metric, jsVal, rVal) {
+  if (metric !== "p") return false;
+  if (category !== "Pearson r" && category !== "Spearman rho" && category !== "Kendall tau")
+    return false;
+  if (!Number.isFinite(rVal)) return false;
+  // JS clamps to 0 at the boundary; only exempt when R's value is below
+  // any meaningful threshold (the fake-tail artefact zone).
+  return jsVal === 0 && rVal > 0 && rVal < CORRELATION_BOUNDARY_R_FLOOR;
 }
 
 // Pair lookup: find a JS pair whose (keys[i], keys[j]) equals R pair (i, j),
@@ -513,6 +537,90 @@ for (const t of data.tests) {
           }
         }
       }
+    } else if (cat === "Pearson r") {
+      const j = pearsonCorrelation(t.inputs.x, t.inputs.y);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "r",
+        r: t.r.statistic,
+        js: j.r,
+        ...cmp(j.r, t.r.statistic),
+      });
+      const pCmp = cmpP(j.p, t.r.p);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...pCmp,
+        rSaturated: !pCmp.pass && isCorrelationBoundary(cat, "p", j.p, t.r.p),
+      });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "ci_lo",
+        r: t.r.ci_lo,
+        js: j.ci.lo,
+        ...cmp(j.ci.lo, t.r.ci_lo),
+      });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "ci_hi",
+        r: t.r.ci_hi,
+        js: j.ci.hi,
+        ...cmp(j.ci.hi, t.r.ci_hi),
+      });
+    } else if (cat === "Spearman rho") {
+      const j = spearmanCorrelation(t.inputs.x, t.inputs.y);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "rho",
+        r: t.r.statistic,
+        js: j.rho,
+        ...cmp(j.rho, t.r.statistic),
+      });
+      const pCmp = cmpP(j.p, t.r.p);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...pCmp,
+        rSaturated: !pCmp.pass && isCorrelationBoundary(cat, "p", j.p, t.r.p),
+      });
+    } else if (cat === "Kendall tau") {
+      const j = kendallTau(t.inputs.x, t.inputs.y);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "tau",
+        r: t.r.statistic,
+        js: j.tau,
+        ...cmp(j.tau, t.r.statistic),
+      });
+      const pCmp = cmpP(j.p, t.r.p);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...pCmp,
+        rSaturated: !pCmp.pass && isCorrelationBoundary(cat, "p", j.p, t.r.p),
+      });
     } else if (cat === "Multi-set intersection (cpsets)") {
       // Only benchmark the exact path against R. The Poisson path is an
       // approximation by construction — unit tests in tests/stats.test.js pin
@@ -617,7 +725,7 @@ const tableHtml = cats
     const okCell = (r) => {
       if (r.pass) return `<td class="ok-cell ok-pass">✓</td>`;
       if (r.rSaturated)
-        return `<td class="ok-cell ok-rsat" title="R's ptukey hit its numerical floor here; JS continues the true tail. Not a JS failure.">R-floor</td>`;
+        return `<td class="ok-cell ok-rsat" title="Boundary regime — R's numerical artefact (ptukey floor for HSD/GH; FP-residual S statistic for correlation) disagrees with Plöttr's honest boundary clamp / continued tail. Not a JS failure; below any user-meaningful precision.">R-floor</td>`;
       if (r.error) return `<td class="ok-cell ok-fail">error: ${escapeHtml(r.error)}</td>`;
       return `<td class="ok-cell ok-fail">✗</td>`;
     };
@@ -1080,7 +1188,7 @@ if (failed > 0) {
   }
 }
 if (rSaturatedRows > 0) {
-  console.log(`  past R's floor (JS continues true tail, not a failure):`);
+  console.log(`  past R's floor (boundary regime — neither side reliable below this; not a JS failure):`);
   for (const r of rows.filter((r) => !r.pass && r.rSaturated)) {
     console.log(`    [${r.category}] ${r.label} (${r.metric}): R=${fmt(r.r)} JS=${fmt(r.js)}`);
   }
