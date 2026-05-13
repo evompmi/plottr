@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Heatmap: on-screen canvas density bumped, downloads vector when
+  cell count permits.** The live heatmap canvas now oversamples
+  `devicePixelRatio × 2` (capped at 6×, same approach as the volcano
+  raster fix) so cells stay crisp at any zoom on Retina + 4×-DPR
+  screens. Downloads branch by cell count: ≤ 2,000 cells emits one
+  `<rect>` per cell in the export clone (infinitely scalable SVG,
+  Inkscape-friendly per-cell selection); above the threshold the export
+  re-rasterises at the higher EXPORT density (`devicePixelRatio × 4`,
+  capped at 8×) so PNGs survive print-size zoom even though they aren't
+  true vector. Re-uses the same `registerSvgExportMutator` hook the
+  volcano work introduced. Regression: 3 new tests covering both
+  branches + the borders-ON vector path.
+
 - **Volcano: data layer rasterises to canvas above 1,000 points on
   screen but downloads stay vector-perfect.** The 2026-05-12 raster
   experiment was reverted because the embedded `<image>` made downloaded

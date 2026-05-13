@@ -20,7 +20,35 @@ import {
   type DendroLayoutSegment,
 } from "./helpers";
 
-const { useState, useMemo, useCallback, useRef, forwardRef } = React;
+const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
+
+// ── Cell-grid rasterisation tuning ─────────────────────────────────────────
+//
+// The cell grid always rasterises to canvas + `<image>` because at 100k+
+// cells a per-rect SVG path blows DOM construction past ~700 ms (Firefox
+// in particular collapses past ~20k SVG rects). What's parametrised here:
+//
+//   1. ON-SCREEN density — oversample DPR by 2× so the live `<image>`
+//      reads as crisp at any zoom users hit on their monitor. Cap at 6×
+//      to keep the off-screen canvas allocation bounded on dense
+//      displays (4×-DPR phones, zoomed-in browsers).
+//
+//   2. EXPORT density — at download time we re-rasterise at a higher
+//      density (4× DPR, cap 8×) because the user's likely target is a
+//      print page or a poster, where each pixel of the source PNG
+//      stretches to multiple paper-pixels. Slower (one extra canvas
+//      paint inside the click handler) but a one-shot cost.
+//
+//   3. VECTOR-EXPORT threshold — below 2,000 cells the export mutator
+//      replaces the `<image>` with one `<rect>` per cell so the
+//      downloaded SVG is infinitely scalable. Above the threshold the
+//      `<rect>` count would balloon the file past ~10 MB and stall
+//      Inkscape, so we stay raster (at the higher EXPORT density).
+const CELL_RASTER_ONSCREEN_DPR_MULT = 2;
+const CELL_RASTER_ONSCREEN_MAX_DPR = 6;
+const CELL_RASTER_EXPORT_DPR_MULT = 4;
+const CELL_RASTER_EXPORT_MAX_DPR = 8;
+const CELL_VECTOR_EXPORT_LIMIT = 2000;
 
 // ── Palette strip (same shape as scatter.tsx's local helper) ─────────────────
 
@@ -925,39 +953,57 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
     cellCanvasRef.current = document.createElement("canvas");
   }
 
-  const cellsImageHref = useMemo(
-    () => {
-      const canvas = cellCanvasRef.current;
-      if (!canvas || plotW <= 0 || plotH <= 0) return "";
-      const dpr = (typeof window !== "undefined" && window.devicePixelRatio) || 1;
-      canvas.width = Math.max(1, Math.round(plotW * dpr));
-      canvas.height = Math.max(1, Math.round(plotH * dpr));
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return "";
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, plotW, plotH);
+  // Paint every cell to `canvas` at the requested oversample density.
+  // Shared between the on-screen `cellsImageHref` memo and the export
+  // mutator below — the only difference between the two paths is the
+  // density. Returns the resulting PNG data-URL string.
+  //
+  // `density` is the final canvas-pixel-per-SVG-pixel multiplier the
+  // 2D context's transform encodes. Callers pass in
+  // `min(CELL_RASTER_*_MAX_DPR, devicePixelRatio × CELL_RASTER_*_DPR_MULT)`.
+  const paintCellsToCanvas = (canvas: HTMLCanvasElement, density: number): string => {
+    if (plotW <= 0 || plotH <= 0) return "";
+    const d = Math.max(1, density);
+    canvas.width = Math.max(1, Math.round(plotW * d));
+    canvas.height = Math.max(1, Math.round(plotH * d));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    ctx.clearRect(0, 0, plotW, plotH);
+    for (let ri = 0; ri < nRows; ri++) {
+      const origRi = rowOrder[ri];
+      const y = cellY(ri);
+      const h = cellHPx(ri);
+      for (let ci = 0; ci < nCols; ci++) {
+        const origCi = colOrder[ci];
+        ctx.fillStyle = valueToColor(matrix[origRi][origCi]);
+        ctx.fillRect(cellX(ci), y, cellWPx(ci), h);
+      }
+    }
+    if (bordersOn) {
+      ctx.strokeStyle = cellBorder.color;
+      ctx.lineWidth = cellBorder.width;
       for (let ri = 0; ri < nRows; ri++) {
-        const origRi = rowOrder[ri];
         const y = cellY(ri);
         const h = cellHPx(ri);
         for (let ci = 0; ci < nCols; ci++) {
-          const origCi = colOrder[ci];
-          ctx.fillStyle = valueToColor(matrix[origRi][origCi]);
-          ctx.fillRect(cellX(ci), y, cellWPx(ci), h);
+          ctx.strokeRect(cellX(ci), y, cellWPx(ci), h);
         }
       }
-      if (bordersOn) {
-        ctx.strokeStyle = cellBorder.color;
-        ctx.lineWidth = cellBorder.width;
-        for (let ri = 0; ri < nRows; ri++) {
-          const y = cellY(ri);
-          const h = cellHPx(ri);
-          for (let ci = 0; ci < nCols; ci++) {
-            ctx.strokeRect(cellX(ci), y, cellWPx(ci), h);
-          }
-        }
-      }
-      return canvas.toDataURL("image/png");
+    }
+    return canvas.toDataURL("image/png");
+  };
+
+  const cellsImageHref = useMemo(
+    () => {
+      const canvas = cellCanvasRef.current;
+      if (!canvas) return "";
+      const baseDpr = (typeof window !== "undefined" && window.devicePixelRatio) || 1;
+      const density = Math.min(
+        CELL_RASTER_ONSCREEN_MAX_DPR,
+        baseDpr * CELL_RASTER_ONSCREEN_DPR_MULT
+      );
+      return paintCellsToCanvas(canvas, density);
     },
     // The cellX / cellY / cellWPx / cellHPx / valueToColor closures all
     // close over the primitives already listed (cellW, cellH, cellOffset*,
@@ -991,6 +1037,107 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
       nCols,
     ]
   );
+
+  // ── Vector-export mutator ────────────────────────────────────────────────
+  //
+  // Below CELL_VECTOR_EXPORT_LIMIT, swap the live `<image>` for one
+  // `<rect>` per cell so downloaded SVGs are infinitely scalable + open
+  // crisply in Inkscape. Above the limit, re-rasterise at the higher
+  // EXPORT density so the embedded PNG still survives a poster-size
+  // zoom even though it isn't a true vector. Mutator reads the latest
+  // render snapshot through `exportSnapshotRef` so we only register
+  // once (on mount); the captured closures inside the snapshot already
+  // close over the right data every render.
+  type CellsExportSnapshot = {
+    nRows: number;
+    nCols: number;
+    bordersOn: boolean;
+    cellBorder: typeof cellBorder;
+    rowOrder: number[];
+    colOrder: number[];
+    matrix: number[][];
+    cellX: (ci: number) => number;
+    cellY: (ri: number) => number;
+    cellWPx: (ci: number) => number;
+    cellHPx: (ri: number) => number;
+    valueToColor: (v: number) => string;
+    paint: (canvas: HTMLCanvasElement, density: number) => string;
+  };
+  const exportSnapshotRef = useRef<CellsExportSnapshot | null>(null);
+  exportSnapshotRef.current = {
+    nRows,
+    nCols,
+    bordersOn,
+    cellBorder,
+    rowOrder,
+    colOrder,
+    matrix,
+    cellX,
+    cellY,
+    cellWPx,
+    cellHPx,
+    valueToColor,
+    paint: paintCellsToCanvas,
+  };
+
+  useEffect(() => {
+    const el = svgLocalRef.current;
+    if (!el) return;
+    registerSvgExportMutator(el, (clone) => {
+      const snap = exportSnapshotRef.current;
+      if (!snap) return;
+      const cellsGroup = clone.querySelector("#cells");
+      if (!cellsGroup) return;
+      const doc = clone.ownerDocument;
+      if (!doc) return;
+      const NS = "http://www.w3.org/2000/svg";
+      const totalCells = snap.nRows * snap.nCols;
+      if (totalCells <= CELL_VECTOR_EXPORT_LIMIT) {
+        // Vector path: drop the raster <image>, emit one <rect> per cell.
+        cellsGroup
+          .querySelectorAll(":scope > image")
+          .forEach((node) => node.parentNode && node.parentNode.removeChild(node));
+        for (let ri = 0; ri < snap.nRows; ri++) {
+          const origRi = snap.rowOrder[ri];
+          const y = snap.cellY(ri);
+          const h = snap.cellHPx(ri);
+          for (let ci = 0; ci < snap.nCols; ci++) {
+            const origCi = snap.colOrder[ci];
+            const rect = doc.createElementNS(NS, "rect");
+            rect.setAttribute("x", String(snap.cellX(ci)));
+            rect.setAttribute("y", String(y));
+            rect.setAttribute("width", String(snap.cellWPx(ci)));
+            rect.setAttribute("height", String(h));
+            rect.setAttribute("fill", snap.valueToColor(snap.matrix[origRi][origCi]));
+            if (snap.bordersOn) {
+              rect.setAttribute("stroke", snap.cellBorder.color);
+              rect.setAttribute("stroke-width", String(snap.cellBorder.width));
+            }
+            cellsGroup.appendChild(rect);
+          }
+        }
+      } else {
+        // High-density raster path: replace the on-screen <image> href
+        // with a freshly-painted higher-DPR canvas. A separate canvas
+        // (not the on-screen `cellCanvasRef.current`) keeps live state
+        // safe against a concurrent on-screen re-render.
+        const image = cellsGroup.querySelector(":scope > image");
+        if (!image) return;
+        const exportCanvas = doc.createElement("canvas");
+        const baseDpr = (typeof window !== "undefined" && window.devicePixelRatio) || 1;
+        const density = Math.min(
+          CELL_RASTER_EXPORT_MAX_DPR,
+          baseDpr * CELL_RASTER_EXPORT_DPR_MULT
+        );
+        const href = snap.paint(exportCanvas, density);
+        if (href) image.setAttribute("href", href);
+      }
+    });
+    return () => unregisterSvgExportMutator(el);
+    // The mutator captures snapshot data through a ref that's updated
+    // every render, so re-registration on each render is unnecessary —
+    // mount-only is the correct cadence.
+  }, []);
 
   const hasClustering = rowIsHier || rowIsKmeans || colIsHier || colIsKmeans;
 
