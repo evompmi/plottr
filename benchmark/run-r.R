@@ -4,27 +4,22 @@
 #
 # Run with: Rscript benchmark/run-r.R
 #
-# Brown-Forsythe Levene is implemented inline because `car::leveneTest` uses
-# the same aov(|x - median|) formulation and adding car just for one test
-# would dwarf the cost. Games-Howell and Dunn-BH use PMCMRplus (the canonical
-# package for non-parametric multiple comparisons). Prior versions of this
-# script hand-ported those two tests and compared against that same hand-port
-# in JS — a self-referential cross-check that silently passed any shared bug.
+# Brown-Forsythe Levene now uses `car::leveneTest(..., center = median)`,
+# the canonical R reference. Earlier revisions hand-ported the same
+# aov(|x − median|) formulation inline to avoid adding `car` as a
+# dependency, but a self-port-vs-self-port cross-check silently passes
+# any shared bug — verified 2026-05-13 the inline helper produced
+# byte-identical F / p to `car::leveneTest` on iris but the structural
+# self-referentiality was the audit gap. Games-Howell and Dunn-BH use
+# PMCMRplus (the canonical package for non-parametric multiple
+# comparisons); same rationale applies — call the reference package,
+# not a re-port.
 
 suppressPackageStartupMessages(library(jsonlite))
 suppressPackageStartupMessages(library(datasets))
 suppressPackageStartupMessages(library(PMCMRplus))
 suppressPackageStartupMessages(library(effectsize))
-
-# ── Inline Brown-Forsythe Levene (single aov call on |x - median|) ────────
-
-brown_forsythe <- function(values, groups) {
-  groups <- as.factor(groups)
-  meds <- tapply(values, groups, median)
-  z <- abs(values - meds[as.character(groups)])
-  a <- summary(aov(z ~ groups))[[1]]
-  list(statistic = unname(a[["F value"]][1]), p = unname(a[["Pr(>F)"]][1]))
-}
+suppressPackageStartupMessages(library(car))
 
 # ── Games-Howell via PMCMRplus ─────────────────────────────────────────────
 # gamesHowellTest returns a PMCMR object with a lower-triangular p.value
@@ -166,13 +161,15 @@ levene_cases <- list(
 )
 
 for (c in levene_cases) {
-  bf <- brown_forsythe(c$values, c$groups)
+  bf <- car::leveneTest(as.numeric(c$values) ~ as.factor(c$groups),
+                        center = median)
   add(
     category = "Levene (Brown-Forsythe)",
     label    = c$label,
     n        = length(c$values),
     inputs   = list(groups = split_by(as.numeric(c$values), c$groups)),
-    r        = list(statistic = bf$statistic, p = bf$p)
+    r        = list(statistic = unname(bf[["F value"]][1]),
+                    p         = unname(bf[["Pr(>F)"]][1]))
   )
 }
 

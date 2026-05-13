@@ -920,7 +920,7 @@ const html = `<!doctype html>
       <li>Plöttr reruns every function in <code>tools/stats-*.js</code> against its R ${escapeHtml(data.meta.r_version.replace(/^R version /, "").split(" ")[0])} counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
       <li>Inputs are bit-identical between R and Plöttr.</li>
       <li>Tolerance: |Δ| ≤ ${TOL} on test statistics and on p-values ≥ ${P_ABS_CEILING}. Deep-tail p-values (&lt; ${P_ABS_CEILING}) are compared in log space, so the ratio between R's p and Plöttr's stays within [1/1.1, 1.1].</li>
-      <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons.</li>
+      <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons. Brown-Forsythe Levene is validated against <code>car::leveneTest(center = median)</code>, the canonical R reference for that test family.</li>
       <li><strong>R-floor rows (amber)</strong>: R's <code>ptukey</code> saturates at ~<code>2.2e-15</code> due to a <code>1 − ptukey(q)</code> cancellation. Plöttr's <code>ptukey_upper</code> computes the survival directly and continues the true tail past that floor (cross-checked against scipy and Monte Carlo). These rows are not JS failures — R is simply no longer ground truth there.</li>${
         scipy
           ? `

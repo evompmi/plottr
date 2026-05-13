@@ -241,7 +241,7 @@
       <li>Plöttr reruns every function in <code>tools/stats-*.js</code> against its R 4.5.3 counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
       <li>Inputs are bit-identical between R and Plöttr.</li>
       <li>Tolerance: |Δ| ≤ 0.005 on test statistics and on p-values ≥ 0.01. Deep-tail p-values (&lt; 0.01) are compared in log space, so the ratio between R's p and Plöttr's stays within [1/1.1, 1.1].</li>
-      <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons.</li>
+      <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons. Brown-Forsythe Levene is validated against <code>car::leveneTest(center = median)</code>, the canonical R reference for that test family.</li>
       <li><strong>R-floor rows (amber)</strong>: R's <code>ptukey</code> saturates at ~<code>2.2e-15</code> due to a <code>1 − ptukey(q)</code> cancellation. Plöttr's <code>ptukey_upper</code> computes the survival directly and continues the true tail past that floor (cross-checked against scipy and Monte Carlo). These rows are not JS failures — R is simply no longer ground truth there.</li>
       <li><strong>SciPy benchmark.</strong> 1,083 comparisons across 9 categories specifically targeting the noncentral distributions (<code>nctcdf</code>, <code>ncf_sf</code>, <code>ncchi2cdf</code>) and <code>qtukey</code> at the (df, λ) corners the R bench can't reach. Tolerances calibrated to each routine's design envelope: 1e-6 relative for central distributions, 5 % relative for noncentral / qtukey, factor-of-1.5 log-space in the deep tail. Underflow / deep-tail / pathological rows are bucketed separately (see panel below).</li>
       <li>Real failures are flagged in red and counted honestly.</li>
@@ -4819,7 +4819,7 @@
     </details>
 
   <footer>
-    R reference generated 2026-05-12 23:47:35 UTC.
+    R reference generated 2026-05-12 23:59:57 UTC.
     Tolerance 0.005. Tool source: <code>tools/stats-*.js</code>.
   </footer>
 </div>

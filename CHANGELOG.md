@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Benchmark now validates Brown-Forsythe Levene against `car::leveneTest(center=median)`** instead
+  of a hand-ported inline `brown_forsythe()` helper. The inline port produced byte-identical F / p
+  to `car` on every fixture, but a self-port-vs-self-port cross-check silently passes any shared
+  bug — calling the canonical reference closes that gap. Adds `car` (3.x) to the bench's R-package
+  dependency list alongside `PMCMRplus`, `effectsize`, `SuperExactTest`.
+
 - **Tukey HSD now surfaces a methodological warning when (1−α, k, df)
   lies in qtukey's pathological design envelope** (df ≤ 2 ∧ k ≥ 10 at
   1−α ≥ 0.95). Plöttr's bracket-doubling `qtukey` still returns a
