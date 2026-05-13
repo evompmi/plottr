@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-/* global appendPlottrAttribution, serializeSvgForExport */
+/* global appendPlottrAttribution, serializeSvgForExport, buildExportSvg, registerSvgExportMutator, unregisterSvgExportMutator */
 //
 // Tests for the SVG export pipeline in tools/shared.js — specifically
 // the permanent `Plöttr v<VERSION>` attribution mark appended to every
@@ -183,6 +183,123 @@ test("existing element coordinates are unchanged in the export", () => {
     out.includes('width="800"') && out.includes('height="500"'),
     "background rect dimensions preserved"
   );
+});
+
+// ── SVG export mutator hook ─────────────────────────────────────────────────
+//
+// Charts that paint to canvas for performance register a mutator
+// callback that swaps the raster <image> for vector primitives in the
+// export clone. Hook is opt-in per-element via registerSvgExportMutator;
+// missing registration falls through to the plain clone path.
+
+suite("registerSvgExportMutator");
+
+test("runs the registered mutator on the export clone, not the live SVG", () => {
+  const svg = makeSvg({ width: 800, height: 500 });
+  let cloneSeen = null;
+  let liveSeen = null;
+  registerSvgExportMutator(svg, (clone) => {
+    cloneSeen = clone;
+    liveSeen = svg;
+    const marker = clone.ownerDocument.createElementNS(SVG_NS, "g");
+    marker.setAttribute("id", "mutator-marker");
+    clone.appendChild(marker);
+  });
+  try {
+    const exported = buildExportSvg(svg);
+    assert(cloneSeen != null, "mutator received the clone");
+    assert(cloneSeen !== liveSeen, "mutator's clone is distinct from the live element");
+    assert(
+      exported.querySelector("#mutator-marker") != null,
+      "mutator's mutation lands in the export clone"
+    );
+    assert(
+      svg.querySelector("#mutator-marker") == null,
+      "live SVG remains untouched by the mutator"
+    );
+  } finally {
+    unregisterSvgExportMutator(svg);
+  }
+});
+
+test("mutator runs before attribution is appended (visible to attribution layout)", () => {
+  // The mutator should see a clone that already had `style` /
+  // `shape-rendering` scrubbed but NOT yet been resized by
+  // attribution — so it can replace a full-canvas <image> at the
+  // original viewBox dimensions and the attribution band gets added
+  // below without overlap.
+  const svg = makeSvg({ width: 800, height: 500 });
+  let viewBoxAtMutate = null;
+  let attributionPresent = null;
+  registerSvgExportMutator(svg, (clone) => {
+    viewBoxAtMutate = clone.getAttribute("viewBox");
+    attributionPresent = !!clone.querySelector("#plottr-attribution");
+  });
+  try {
+    buildExportSvg(svg);
+    eq(viewBoxAtMutate, "0 0 800 500");
+    eq(attributionPresent, false);
+  } finally {
+    unregisterSvgExportMutator(svg);
+  }
+});
+
+test("unregisterSvgExportMutator silences a previously-registered callback", () => {
+  const svg = makeSvg({ width: 400, height: 300 });
+  let calls = 0;
+  registerSvgExportMutator(svg, () => {
+    calls++;
+  });
+  buildExportSvg(svg);
+  eq(calls, 1);
+  unregisterSvgExportMutator(svg);
+  buildExportSvg(svg);
+  eq(calls, 1);
+});
+
+test("mutator exceptions surface to console but don't break the export", () => {
+  const svg = makeSvg({ width: 400, height: 300 });
+  registerSvgExportMutator(svg, () => {
+    throw new Error("boom");
+  });
+  const origError = console.error;
+  let captured = null;
+  console.error = (...args) => {
+    captured = args;
+  };
+  try {
+    const exported = buildExportSvg(svg);
+    // Export still produced a usable clone with attribution.
+    assert(exported.querySelector("#plottr-attribution") != null, "attribution still added");
+    assert(
+      captured != null && String(captured.join(" ")).includes("export mutator failed"),
+      "error logged via console.error"
+    );
+  } finally {
+    console.error = origError;
+    unregisterSvgExportMutator(svg);
+  }
+});
+
+test("registration is keyed per element — unrelated svg unaffected", () => {
+  const a = makeSvg({ width: 200, height: 100 });
+  const b = makeSvg({ width: 200, height: 100 });
+  let aCalls = 0;
+  let bCalls = 0;
+  registerSvgExportMutator(a, () => {
+    aCalls++;
+  });
+  registerSvgExportMutator(b, () => {
+    bCalls++;
+  });
+  buildExportSvg(a);
+  eq(aCalls, 1);
+  eq(bCalls, 0);
+  buildExportSvg(b);
+  eq(aCalls, 1);
+  eq(bCalls, 1);
+  unregisterSvgExportMutator(a);
+  unregisterSvgExportMutator(b);
 });
 
 summary();

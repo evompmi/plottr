@@ -1317,4 +1317,160 @@ test("useContext returns the default value when no Provider is mounted", functio
   assert(captured === "light", "useContext returns default outside any Provider");
 });
 
+// ── VolcanoChart raster / vector mode ──────────────────────────────────────
+//
+// The volcano data layer rasterises to an off-screen canvas above
+// POINT_RASTERIZE_THRESHOLD = 1000 points to keep the live DOM small at
+// transcriptomics scale. SVG downloads stay vector-perfect: the chart
+// registers an SVG export mutator that swaps the raster <image> for
+// vector <circle>s in the export clone. Both paths exercised below.
+
+suite("VolcanoChart (raster ↔ vector export)");
+
+(function () {
+  const tool = loadTool("volcano");
+  const VolcanoChart = tool.exports.VolcanoChart;
+
+  // happy-dom's canvas stub returns an empty string from toDataURL,
+  // which would skip the live <image> render (it's gated on a truthy
+  // href). Stub a stable fake dataURL so the rasterise path is fully
+  // exercised. The byte content doesn't matter — we only assert on
+  // the <image> element's presence + the export-clone substitution.
+  const origCanvasGetContext = HTMLCanvasElement.prototype.getContext;
+  const origCanvasToDataURL = HTMLCanvasElement.prototype.toDataURL;
+  const stubCtx = {
+    setTransform() {},
+    clearRect() {},
+    beginPath() {},
+    arc() {},
+    fill() {},
+    set globalAlpha(_v) {},
+    set fillStyle(_v) {},
+  };
+  HTMLCanvasElement.prototype.getContext = function () {
+    return stubCtx;
+  };
+  HTMLCanvasElement.prototype.toDataURL = function () {
+    return "data:image/png;base64,iVBORw0KGgo=";
+  };
+  // Restore after the suite — best-effort, the cache won't reuse the
+  // canvas across files.
+  void origCanvasGetContext;
+  void origCanvasToDataURL;
+
+  const baseProps = {
+    pFloor: 1e-300,
+    fcCutoff: 1,
+    pCutoff: 0.05,
+    xMin: null,
+    xMax: null,
+    yMin: null,
+    yMax: null,
+    xLabel: "log2 fold change",
+    yLabel: "-log10 p",
+    title: "Volcano Test",
+    subtitle: "",
+    colors: { up: "#dc2626", down: "#2563eb", ns: "#9ca3af" },
+    pointRadius: 3,
+    pointAlpha: 0.7,
+    showRefLines: true,
+    showLabels: false,
+    topNUp: 0,
+    topNDown: 0,
+    labelFontSize: 10,
+    showAxes: true,
+    plotBg: "#fff",
+  };
+
+  // Synthetic point cloud — count controls whether raster / vector path
+  // is exercised. Mix of up/down/ns by spread on log2fc + p.
+  function buildPoints(n) {
+    const out = new Array(n);
+    for (let i = 0; i < n; i++) {
+      // Spread log2fc in [-3, 3] and p in (0, 1] deterministically.
+      const t = i / Math.max(1, n - 1);
+      out[i] = {
+        idx: i,
+        log2fc: -3 + 6 * t,
+        p: 0.001 + (1 - 0.001) * (1 - Math.abs(2 * t - 1)),
+        label: null,
+      };
+    }
+    return out;
+  }
+
+  test("below threshold: data-points contains vector circles (live + export)", function () {
+    const points = buildPoints(200);
+    const html = renderHtml(VolcanoChart, { ...baseProps, points });
+    // Vector path: each point becomes a <circle> in the live DOM.
+    const circles = (html.match(/<circle\b/g) || []).length;
+    assert(circles >= 200, `expected ≥ 200 <circle>, got ${circles}`);
+    assert(!html.includes("<image"), "no <image> tag in vector path");
+  });
+
+  test("above threshold: live DOM uses <image>, export clone has vector circles", function () {
+    const points = buildPoints(1500);
+    const { container } = renderWithEffects(VolcanoChart, { ...baseProps, points });
+    const svg = container.querySelector("svg");
+    assert(svg != null, "svg mounted");
+    const dataPoints = svg.querySelector("#data-points");
+    assert(dataPoints != null, "data-points group present");
+    const liveImage = dataPoints.querySelector("image");
+    assert(liveImage != null, "live raster <image> present above threshold");
+    // The per-class groups are empty placeholders in raster mode.
+    const liveCircles = dataPoints.querySelectorAll("circle");
+    eq(liveCircles.length, 0);
+
+    // Now run the export path. The chart registered an export mutator
+    // in useEffect; buildExportSvg should swap the <image> for vector
+    // <circle> elements built from the same render snapshot.
+    const clone = globalThis.buildExportSvg(svg);
+    const cloneDataPoints = clone.querySelector("#data-points");
+    assert(cloneDataPoints != null, "clone preserves data-points group");
+    assert(
+      cloneDataPoints.querySelector("image") == null,
+      "raster <image> removed from export clone"
+    );
+    const cloneCircles = cloneDataPoints.querySelectorAll("circle");
+    assert(
+      cloneCircles.length >= 1500,
+      `expected ≥ 1500 <circle> in export clone, got ${cloneCircles.length}`
+    );
+    // Each significance class produces its own <g id="points-*">.
+    assert(cloneDataPoints.querySelector("#points-ns") != null, "ns group rebuilt");
+    assert(cloneDataPoints.querySelector("#points-up") != null, "up group rebuilt");
+    assert(cloneDataPoints.querySelector("#points-down") != null, "down group rebuilt");
+    // Live DOM stays rasterised — mutator only runs on the clone.
+    assert(svg.querySelector("#data-points image") != null, "live <image> untouched");
+  });
+
+  test("raster→vector transition unregisters the mutator on the live svg", function () {
+    const points = buildPoints(1500);
+    const { container, root } = renderWithEffects(VolcanoChart, { ...baseProps, points });
+    const svg = container.querySelector("svg");
+    // Above threshold, mutator should be registered → export clone is
+    // mutated.
+    let exported = globalThis.buildExportSvg(svg);
+    assert(exported.querySelector("#data-points image") == null, "mutator active above threshold");
+
+    // Re-render with fewer points (below threshold).
+    React.act(() => {
+      root.render(
+        React.createElement(VolcanoChart, { ...baseProps, points: buildPoints(100) })
+      );
+    });
+    const svg2 = container.querySelector("svg");
+    assert(svg2.querySelector("#data-points image") == null, "live SVG vector below threshold");
+    // The mutator effect cleanup ran → buildExportSvg now produces a
+    // plain clone (no mutation). The clone's data-points layer should
+    // already be vector because the live DOM is vector.
+    exported = globalThis.buildExportSvg(svg2);
+    assert(exported.querySelector("#data-points image") == null, "clone stays vector");
+    assert(
+      exported.querySelectorAll("#data-points circle").length > 0,
+      "vector circles preserved in clone"
+    );
+  });
+})();
+
 summary();

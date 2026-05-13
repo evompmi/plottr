@@ -216,6 +216,15 @@ declare global {
   function saveBlob(blob: Blob, filename: string): Promise<void>;
   function downloadSvg(svgEl: SVGSVGElement | null, filename: string): void;
   function downloadPng(svgEl: SVGSVGElement | null, filename: string, scale?: number): void;
+  // Register a callback that mutates an export-clone of `svgEl` in place
+  // before attribution is appended. Used by charts that paint to canvas
+  // for performance (e.g. volcano above the rasterise threshold) to
+  // swap the raster `<image>` for vector primitives in downloaded SVGs.
+  function registerSvgExportMutator(
+    svgEl: SVGSVGElement | null,
+    mutator: (clone: SVGSVGElement) => void
+  ): void;
+  function unregisterSvgExportMutator(svgEl: SVGSVGElement | null): void;
   function downloadCsv(
     headers: string[],
     rows: Array<Array<string | number>>,
