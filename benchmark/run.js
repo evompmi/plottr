@@ -59,6 +59,7 @@ const {
   multisetIntersectionPPoisson,
   cohenD,
   cohenDCI,
+  hedgesG,
   sampleMean,
   sampleSD,
 } = ctx;
@@ -358,6 +359,20 @@ for (const t of data.tests) {
         r: t.r.d,
         js: jdav,
         ...cmp(jdav, t.r.d),
+      });
+    } else if (cat === "Hedges' g") {
+      // g = d · J(df) where J(df) = Γ(df/2) / (Γ((df−1)/2)·√(df/2)).
+      // Plöttr's `hedgesG` computes the exact J via gammaln (no 3/(4n−9)
+      // shortcut); R reference is `effectsize::hedges_g(pooled_sd=TRUE)`.
+      const jg = hedgesG(t.inputs.a, t.inputs.b);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "g",
+        r: t.r.g,
+        js: jg,
+        ...cmp(jg, t.r.g),
       });
     } else if (cat === "Cohen's f (ANOVA)") {
       // Reproduce computePowerFromData's ANOVA-branch math here so the

@@ -23,6 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Benchmark now cross-validates Hedges' g** against R's
+  `effectsize::hedges_g(pooled_sd = TRUE)`, the canonical reference for
+  the small-sample bias-corrected Cohen's d. Plöttr's `hedgesG` uses the
+  exact `J(df) = Γ(df/2) / (Γ((df−1)/2)·√(df/2))` correction (no
+  `3/(4n−9)` shortcut) — verified to FP precision on the six fixtures
+  already used by the Cohen's d / d_av cross-check (sleep, iris setosa
+  vs versicolor, iris versicolor vs virginica, ChickWeight@21 Diet 1 vs
+  4, swiss Catholic split, morley Expt 1 vs 5).
+
 - **Benchmark now validates Brown-Forsythe Levene against `car::leveneTest(center=median)`** instead
   of a hand-ported inline `brown_forsythe()` helper. The inline port produced byte-identical F / p
   to `car` on every fixture, but a self-port-vs-self-port cross-check silently passes any shared

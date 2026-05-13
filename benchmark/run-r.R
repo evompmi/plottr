@@ -539,6 +539,22 @@ for (c in cohens_cases) {
     ),
     r        = list(d = d_av)
   )
+  # Hedges' g — small-sample bias-corrected Cohen's d. Plöttr computes
+  # the exact J(df) factor via gammaln (`Γ(df/2) / (Γ((df-1)/2)·√(df/2))`,
+  # see the comment on `hedgesG` in tools/stats-tests.js). The reference
+  # is `effectsize::hedges_g(pooled_sd = TRUE)`, which uses the same
+  # exact correction.
+  g <- hedges_g(c$x, c$y, pooled_sd = TRUE)
+  add(
+    category = "Hedges' g",
+    label    = c$label,
+    n        = length(c$x) + length(c$y),
+    inputs   = list(
+      a = as.list(unname(as.numeric(c$x))),
+      b = as.list(unname(as.numeric(c$y)))
+    ),
+    r        = list(g = unname(g$Hedges_g))
+  )
 }
 
 # ── 10c. Cohen's f (effectsize::cohens_f) ──────────────────────────────────
