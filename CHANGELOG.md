@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Volcano: data layer rasterises to canvas above 1,000 points on
+  screen but downloads stay vector-perfect.** The 2026-05-12 raster
+  experiment was reverted because the embedded `<image>` made downloaded
+  SVGs fuzzy. New path: when point count crosses the threshold (dropped
+  from 2,000 → 1,000), the chart paints to a high-DPR canvas
+  (devicePixelRatio × 2, capped at 6×) and ships a single PNG `<image>`
+  for live display, but registers an SVG export mutator (new shared
+  primitive `registerSvgExportMutator` in `tools/shared.js`) that swaps
+  the `<image>` back to per-class `<g>` of vector `<circle>` elements in
+  the export clone before attribution is appended. Both SVG and PNG
+  downloads benefit: SVG is fully scalable, PNG rasterises from the
+  vector tree (not from the already-rastered live image). Click-to-label
+  still works in raster mode via a transparent `fill="none"` overlay
+  rect with the same nearest-point lookup as before. Tests: 5 new tests
+  on the mutator hook + 3 render-smoke tests on the raster ↔ vector
+  transition.
+
 ### Added
 
 - **Correlation stats panel in the scatter tool.** A new tile under the

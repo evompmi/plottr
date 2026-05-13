@@ -877,12 +877,43 @@ function flashSaved(btn) {
 // viewBox).
 const PLOTTR_ATTRIBUTION_PAD = 14;
 
+// ── SVG export mutators ─────────────────────────────────────────────────
+//
+// Charts that paint to canvas for performance (currently only the
+// volcano data layer above POINT_RASTERIZE_THRESHOLD) need to substitute
+// a vector representation in the *exported* file, otherwise the user
+// downloads a fuzzy embedded PNG instead of a crisp SVG. The chart
+// registers a `mutator(clone)` callback against its live SVG element via
+// `registerSvgExportMutator`; `buildExportSvg` invokes it on the clone
+// before attribution is appended, after the standard style / shape-
+// rendering scrub. The mutator owns the swap (typically: remove the
+// raster <image>, append <circle> elements built from the same render
+// records the canvas painted from).
+//
+// The registry is a WeakMap so an unmounting chart whose SVG element
+// goes out of scope releases its entry without explicit cleanup — and
+// the optional explicit `unregisterSvgExportMutator` lets a chart that
+// transitions out of raster mode (drops below threshold) clear its
+// registration immediately rather than wait for GC.
+const _svgExportMutators =
+  typeof WeakMap === "function" ? new WeakMap() : null;
+
+function registerSvgExportMutator(svgEl, mutator) {
+  if (!_svgExportMutators || !svgEl || typeof mutator !== "function") return;
+  _svgExportMutators.set(svgEl, mutator);
+}
+
+function unregisterSvgExportMutator(svgEl) {
+  if (!_svgExportMutators || !svgEl) return;
+  _svgExportMutators.delete(svgEl);
+}
+
 // Build a clone of `svgEl` ready for export and append the permanent
 // `Plöttr v<VERSION>` attribution band at the bottom. Returns the
 // cloned <svg> element — callers can serialize it to a string or read
 // its updated `viewBox` / `width` / `height` attributes.
 //
-// Two pre-watermark transformations, both Inkscape workarounds:
+// Three pre-watermark transformations:
 //
 //   1. Strip the root <svg> inline `style="max-width:100%;height:auto;..."`
 //      (responsive-layout sugar that only makes sense inside an HTML flow;
@@ -899,6 +930,11 @@ const PLOTTR_ATTRIBUTION_PAD = 14;
 //      crispEdges is redundant for seam avoidance in the exported file — we
 //      just drop it on export.
 //
+//   3. Run any chart-registered export mutator (see the registry block
+//      above). Mutators replace canvas-rasterised layers with vector
+//      equivalents so downloaded SVGs are crisp regardless of the
+//      on-screen rendering path.
+//
 // The watermark itself extends the viewBox (and `height` attribute, if
 // present) downward by PLOTTR_ATTRIBUTION_PAD px so the plot area, axes
 // and existing margins stay pixel-identical — only the canvas grows.
@@ -908,6 +944,20 @@ function buildExportSvg(svgEl) {
   clone.querySelectorAll("[shape-rendering]").forEach((el) => {
     el.removeAttribute("shape-rendering");
   });
+  const mutator = _svgExportMutators ? _svgExportMutators.get(svgEl) : null;
+  if (typeof mutator === "function") {
+    try {
+      mutator(clone);
+    } catch (err) {
+      // A broken mutator must not silently swallow an export — surface
+      // the error to the console so users can report it, then fall
+      // through with the unmutated clone (which still renders, just
+      // with the rasterised <image> the live view shows).
+      if (typeof console !== "undefined" && console.error) {
+        console.error("[plottr] SVG export mutator failed:", err);
+      }
+    }
+  }
   appendPlottrAttribution(clone);
   return clone;
 }

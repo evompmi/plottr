@@ -35,7 +35,38 @@ import { ColorLegend, SizeLegend } from "./chart-legends";
 // chart-layout split.
 export { DEFAULT_VBW, VBH, MARGIN } from "./chart-layout";
 
-const { forwardRef, useMemo, useEffect } = React;
+const { forwardRef, useMemo, useEffect, useRef } = React;
+
+// Above this many visible points, the data layer rasterises to an
+// off-screen canvas + a single PNG `<image>` per chart instead of N
+// individual `<circle>` elements. Below the threshold we keep SVG
+// circles so small-N renderings stay crisp and per-point `<title>`
+// tooltips keep working.
+//
+// Why 1,000: the 2026-05-12 perf spike (docs/perf-spike-2026-05-12.md)
+// showed the SVG path crossing its "smooth interaction" budget around
+// 1–2k points on a typical workstation; pushing the threshold down to
+// 1k keeps interactive panning / re-render on slider drag responsive
+// for transcriptomics-scale data while still letting normal-sized
+// experiments (typical proteomics / RNA-seq summary tables ~ 200–500
+// rows) stay on the per-point SVG path.
+//
+// Downloads stay vector-perfect regardless of the on-screen path: the
+// chart registers an export mutator (see registerSvgExportMutator in
+// tools/shared.js) that substitutes the rasterised <image> for a fresh
+// <g> of <circle> elements in the export clone — so SVG downloads are
+// always crisp and PNG downloads rasterise from the vector tree, not
+// from the already-rasterised live image.
+const POINT_RASTERIZE_THRESHOLD = 1000;
+
+// Cap the canvas oversampling so a 4×-DPR phone or zoomed-in browser
+// doesn't push the off-screen canvas past ~12k × 7k px (where some
+// browsers refuse the allocation). 6 covers a Retina display at 3×
+// device-pixel-ratio with a 2× oversample on top — the canvas backing
+// the volcano `<image>` is then 4800 × 3000 for a default 800 × 500
+// viewBox, well within representable bounds and crisp enough that
+// users can't visually tell the on-screen layer is rasterised.
+const POINT_RASTERIZE_MAX_DPR = 6;
 
 // `VolcanoChartProps` is the type-canonical home in helpers.ts; this
 // file imports it so chart-internal consumers (e.g. tests stubbing
@@ -189,9 +220,187 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
       [points, fcCutoff, pCutoff]
     );
 
+    // ── Canvas-rasterised data layer (large N) ────────────────────────
+    // Above POINT_RASTERIZE_THRESHOLD, paint every visible point to a
+    // single off-screen canvas and embed it as one PNG `<image>` inside
+    // `<g id="data-points">`. Live interaction stays smooth (one image
+    // node vs. thousands of <circle>+<title>), and the chart registers
+    // an SVG export mutator below that swaps the <image> for the
+    // equivalent vector tree at download time — users see a fast view
+    // and download a crisp vector SVG. Same z-stacking convention as
+    // the per-class SVG path (`ns` → `down` → `up`).
+    const useRasterize = rendered.length >= POINT_RASTERIZE_THRESHOLD;
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    if (canvasRef.current === null && typeof document !== "undefined") {
+      canvasRef.current = document.createElement("canvas");
+    }
+    const pointsImageHref = useMemo(
+      () => {
+        if (!useRasterize) return "";
+        const canvas = canvasRef.current;
+        if (!canvas) return "";
+        // 2× oversample on top of devicePixelRatio so the canvas
+        // density exceeds the SVG's display resolution even when the
+        // user zooms the page. Capped at POINT_RASTERIZE_MAX_DPR to
+        // keep the canvas allocation bounded on dense screens.
+        const baseDpr = (typeof window !== "undefined" && window.devicePixelRatio) || 1;
+        const dpr = Math.min(POINT_RASTERIZE_MAX_DPR, baseDpr * 2);
+        canvas.width = Math.max(1, Math.round(VBW * dpr));
+        canvas.height = Math.max(1, Math.round(VBH * dpr));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return "";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, VBW, VBH);
+        ctx.globalAlpha = pointAlpha;
+        // Paint class-by-class so the canvas preserves the SVG z-order
+        // (`up` points draw on top of `down` on top of `ns`, matching
+        // the per-class `<g>` order in the non-raster path). One canvas,
+        // one toDataURL — three was the bottleneck pre-fix.
+        for (const cls of ["ns", "down", "up"] as VolcanoClass[]) {
+          for (const r of rendered) {
+            if (r.cls !== cls) continue;
+            ctx.fillStyle = fillFor(r.pt.idx, cls);
+            ctx.beginPath();
+            ctx.arc(r.px.x, r.px.y, radiusFor(r.pt.idx), 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        }
+        return canvas.toDataURL("image/png");
+      },
+      // `fillFor` / `radiusFor` are fresh closures each render but only
+      // read colors / colorMap / pointRadius / sizeMap (already listed
+      // transitively via `rendered`). Same memo-deps caveat as
+      // labelLayout above.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [useRasterize, rendered, pointAlpha, VBW, colors, colorMap, pointRadius, sizeMap]
+    );
+
+    // Click-to-label hit testing for the rasterised path: a transparent
+    // overlay <rect> covers the data area and finds the nearest point
+    // on click. Uses the same `rendered` records the canvas painted
+    // from, so the click target matches what the user sees pixel-for-
+    // pixel. Generous tolerance (radius + 4 px) compensates for the
+    // canvas anti-aliasing edges the user can't see distinct outlines
+    // of.
+    const handleRasterClick = (e: React.MouseEvent<SVGRectElement>) => {
+      if (!onPointClick) return;
+      e.stopPropagation();
+      const svg = e.currentTarget.ownerSVGElement;
+      if (!svg) return;
+      const screenCTM = svg.getScreenCTM();
+      if (!screenCTM) return;
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const local = pt.matrixTransform(screenCTM.inverse());
+      let bestD2 = Infinity;
+      let bestIdx = -1;
+      let bestRadius = 0;
+      for (const r of rendered) {
+        const dx = r.px.x - local.x;
+        const dy = r.px.y - local.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < bestD2) {
+          bestD2 = d2;
+          bestIdx = r.pt.idx;
+          bestRadius = radiusFor(r.pt.idx);
+        }
+      }
+      const tol = bestRadius + 4;
+      if (bestIdx >= 0 && bestD2 <= tol * tol) onPointClick(bestIdx);
+    };
+
+    // ── Vector-export mutator ─────────────────────────────────────────
+    // Keep a ref to the rendering snapshot used by the mutator so the
+    // registered callback always sees current values without forcing
+    // useEffect to re-register on every render. The mutator reads
+    // through the ref on each `downloadSvg` / `downloadPng` call.
+    const exportDataRef = useRef<{
+      rendered: typeof rendered;
+      pointAlpha: number;
+      summaryNs: number;
+      summaryDown: number;
+      summaryUp: number;
+      fillFor: typeof fillFor;
+      radiusFor: typeof radiusFor;
+    } | null>(null);
+    exportDataRef.current = useRasterize
+      ? {
+          rendered,
+          pointAlpha,
+          summaryNs: summary.ns,
+          summaryDown: summary.down,
+          summaryUp: summary.up,
+          fillFor,
+          radiusFor,
+        }
+      : null;
+
+    // Local ref to the live <svg> element. Combined-ref callback below
+    // sets both the forwarded `ref` (the parent uses it for downloads)
+    // and this local one (used here to register the export mutator).
+    const localSvgRef = useRef<SVGSVGElement | null>(null);
+    const setSvgRef = (el: SVGSVGElement | null) => {
+      localSvgRef.current = el;
+      if (typeof ref === "function") ref(el);
+      else if (ref) (ref as React.MutableRefObject<SVGSVGElement | null>).current = el;
+    };
+
+    useEffect(() => {
+      const el = localSvgRef.current;
+      if (!el) return;
+      if (!useRasterize) {
+        // Below threshold the live SVG is already vector — no mutator
+        // needed; clear any stale registration from a previous
+        // above-threshold render.
+        unregisterSvgExportMutator(el);
+        return;
+      }
+      registerSvgExportMutator(el, (clone) => {
+        const snapshot = exportDataRef.current;
+        if (!snapshot) return;
+        const dataPoints = clone.querySelector("#data-points");
+        if (!dataPoints) return;
+        const doc = clone.ownerDocument;
+        if (!doc) return;
+        const NS = "http://www.w3.org/2000/svg";
+        // Drop the raster <image>, the click-overlay <rect>, and any
+        // existing empty per-class group placeholders — we rebuild the
+        // per-class groups below with the full vector content.
+        dataPoints
+          .querySelectorAll(":scope > image, :scope > rect, :scope > g[id^='points-']")
+          .forEach((node) => node.parentNode && node.parentNode.removeChild(node));
+        const classMeta: { cls: VolcanoClass; count: number; label: string }[] = [
+          { cls: "ns", count: snapshot.summaryNs, label: "not significant" },
+          { cls: "down", count: snapshot.summaryDown, label: "downregulated" },
+          { cls: "up", count: snapshot.summaryUp, label: "upregulated" },
+        ];
+        for (const meta of classMeta) {
+          const g = doc.createElementNS(NS, "g");
+          g.setAttribute("id", `points-${meta.cls}`);
+          g.setAttribute("fill-opacity", String(snapshot.pointAlpha));
+          g.setAttribute(
+            "aria-label",
+            `${meta.count} ${meta.label} point${meta.count !== 1 ? "s" : ""}`
+          );
+          for (const r of snapshot.rendered) {
+            if (r.cls !== meta.cls) continue;
+            const c = doc.createElementNS(NS, "circle");
+            c.setAttribute("cx", String(r.px.x));
+            c.setAttribute("cy", String(r.px.y));
+            c.setAttribute("r", String(snapshot.radiusFor(r.pt.idx)));
+            c.setAttribute("fill", snapshot.fillFor(r.pt.idx, meta.cls));
+            g.appendChild(c);
+          }
+          dataPoints.appendChild(g);
+        }
+      });
+      return () => unregisterSvgExportMutator(el);
+    }, [useRasterize]);
+
     return (
       <svg
-        ref={ref}
+        ref={setSvgRef}
         viewBox={`0 0 ${VBW} ${VBH}`}
         style={{ width: "100%", height: "auto", display: "block" }}
         xmlns="http://www.w3.org/2000/svg"
@@ -398,51 +607,115 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
           id="data-points"
           aria-label={`${summary.total} point${summary.total !== 1 ? "s" : ""} total`}
         >
-          {(["ns", "down", "up"] as VolcanoClass[]).map((cls) => {
-            const count = cls === "up" ? summary.up : cls === "down" ? summary.down : summary.ns;
-            const classLabel =
-              cls === "up" ? "upregulated" : cls === "down" ? "downregulated" : "not significant";
-            return (
-              <g
-                key={cls}
-                id={`points-${cls}`}
-                fillOpacity={pointAlpha}
-                aria-label={`${count} ${classLabel} point${count !== 1 ? "s" : ""}`}
-              >
-                {rendered
-                  .filter((r) => r.cls === cls)
-                  .map((r, i) => (
-                    <circle
-                      key={i}
-                      cx={r.px.x}
-                      cy={r.px.y}
-                      r={radiusFor(r.pt.idx)}
-                      fill={fillFor(r.pt.idx, cls)}
-                      style={onPointClick ? { cursor: "pointer" } : undefined}
-                      onClick={
-                        onPointClick
-                          ? (e) => {
-                              e.stopPropagation();
-                              onPointClick(r.pt.idx);
-                            }
-                          : undefined
-                      }
-                    >
-                      <title>
-                        {(r.pt.label ? r.pt.label + " · " : "") +
-                          "log2FC=" +
-                          r.pt.log2fc.toFixed(3) +
-                          ", p=" +
-                          (r.pt.p === 0 ? "0 (clamped)" : r.pt.p.toExponential(2)) +
-                          ", " +
-                          cls +
-                          (onPointClick ? " — click to label" : "")}
-                      </title>
-                    </circle>
-                  ))}
-              </g>
-            );
-          })}
+          {useRasterize ? (
+            <>
+              {/* Single canvas-rasterised PNG of every point. Painted
+                   class-by-class for z-order, but exported as one image
+                   to keep the canvas → dataURL pass single-shot. The
+                   live DOM ships the raster; the export mutator (see
+                   useEffect above) swaps it for vector circles when
+                   downloadSvg / downloadPng walks the tree. */}
+              {pointsImageHref && (
+                <image
+                  x={0}
+                  y={0}
+                  width={VBW}
+                  height={VBH}
+                  href={pointsImageHref}
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                />
+              )}
+              {/* Empty per-class groups keep the SVG document structure
+                   stable for screen-readers + downstream Inkscape users
+                   when the live tree is serialised without going
+                   through buildExportSvg (an unusual path, but used by
+                   the render-smoke tests). */}
+              {(["ns", "down", "up"] as VolcanoClass[]).map((cls) => {
+                const count =
+                  cls === "up" ? summary.up : cls === "down" ? summary.down : summary.ns;
+                const classLabel =
+                  cls === "up"
+                    ? "upregulated"
+                    : cls === "down"
+                      ? "downregulated"
+                      : "not significant";
+                return (
+                  <g
+                    key={cls}
+                    id={`points-${cls}`}
+                    aria-label={`${count} ${classLabel} point${count !== 1 ? "s" : ""}`}
+                  />
+                );
+              })}
+              {onPointClick && (
+                // `fill="none"` (SVG-spec "no paint") instead of
+                // `fill="transparent"` — strict SVG-1.1 renderers
+                // (Inkscape ≤ 0.92, macOS Preview / Quick Look) render
+                // `transparent` as `black` and would otherwise cover
+                // the rasterised data layer with a solid rect in
+                // exported files. pointer-events="all" keeps clicks
+                // working on the unpainted rect.
+                <rect
+                  x={MARGIN.left}
+                  y={MARGIN.top}
+                  width={w}
+                  height={h}
+                  fill="none"
+                  pointerEvents="all"
+                  style={{ cursor: "pointer" }}
+                  onClick={handleRasterClick}
+                  aria-hidden="true"
+                />
+              )}
+            </>
+          ) : (
+            (["ns", "down", "up"] as VolcanoClass[]).map((cls) => {
+              const count = cls === "up" ? summary.up : cls === "down" ? summary.down : summary.ns;
+              const classLabel =
+                cls === "up" ? "upregulated" : cls === "down" ? "downregulated" : "not significant";
+              return (
+                <g
+                  key={cls}
+                  id={`points-${cls}`}
+                  fillOpacity={pointAlpha}
+                  aria-label={`${count} ${classLabel} point${count !== 1 ? "s" : ""}`}
+                >
+                  {rendered
+                    .filter((r) => r.cls === cls)
+                    .map((r, i) => (
+                      <circle
+                        key={i}
+                        cx={r.px.x}
+                        cy={r.px.y}
+                        r={radiusFor(r.pt.idx)}
+                        fill={fillFor(r.pt.idx, cls)}
+                        style={onPointClick ? { cursor: "pointer" } : undefined}
+                        onClick={
+                          onPointClick
+                            ? (e) => {
+                                e.stopPropagation();
+                                onPointClick(r.pt.idx);
+                              }
+                            : undefined
+                        }
+                      >
+                        <title>
+                          {(r.pt.label ? r.pt.label + " · " : "") +
+                            "log2FC=" +
+                            r.pt.log2fc.toFixed(3) +
+                            ", p=" +
+                            (r.pt.p === 0 ? "0 (clamped)" : r.pt.p.toExponential(2)) +
+                            ", " +
+                            cls +
+                            (onPointClick ? " — click to label" : "")}
+                        </title>
+                      </circle>
+                    ))}
+                </g>
+              );
+            })
+          )}
         </g>
 
         {/* ── Selected-point rings ──────────────────────────────────────
