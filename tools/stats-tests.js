@@ -705,7 +705,8 @@ function spearmanCorrelation(x, y, opts = {}) {
   const rho = pearsonOnRanks.r;
   const df = n - 2;
   const oneMinusRho2 = Math.max(0, 1 - rho * rho);
-  const t = oneMinusRho2 === 0 ? (rho > 0 ? Infinity : -Infinity) : rho * Math.sqrt(df / oneMinusRho2);
+  const t =
+    oneMinusRho2 === 0 ? (rho > 0 ? Infinity : -Infinity) : rho * Math.sqrt(df / oneMinusRho2);
   const p = oneMinusRho2 === 0 ? 0 : 2 * tcdf_upper(Math.abs(t), df);
   const conf = opts.conf == null ? 0.95 : opts.conf;
   const ci = { lo: NaN, hi: NaN };
@@ -880,7 +881,10 @@ function selectCorrelation(x, y, opts = {}) {
     n,
     normality,
     allNormal: allKnownNormal,
-    recommendation: { test, reason: `${baseDefault} ${swNarrative}${suggestionNarrative}${overrideHint}` },
+    recommendation: {
+      test,
+      reason: `${baseDefault} ${swNarrative}${suggestionNarrative}${overrideHint}`,
+    },
   };
   if (suggestion) out.suggestion = suggestion;
   return out;

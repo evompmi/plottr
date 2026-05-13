@@ -1125,10 +1125,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
         if (!image) return;
         const exportCanvas = doc.createElement("canvas");
         const baseDpr = (typeof window !== "undefined" && window.devicePixelRatio) || 1;
-        const density = Math.min(
-          CELL_RASTER_EXPORT_MAX_DPR,
-          baseDpr * CELL_RASTER_EXPORT_DPR_MULT
-        );
+        const density = Math.min(CELL_RASTER_EXPORT_MAX_DPR, baseDpr * CELL_RASTER_EXPORT_DPR_MULT);
         const href = snap.paint(exportCanvas, density);
         if (href) image.setAttribute("href", href);
       }

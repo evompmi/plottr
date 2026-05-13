@@ -137,8 +137,7 @@ export function correlationCoef(res: CorrResult): number {
 // formatBpStatShort.
 export function formatCorrStatShort(res: CorrResult | null | undefined): string {
   if (!res || res.error) return "—";
-  if (res.kind === "pearson")
-    return `r = ${res.r.toFixed(3)}, t(${res.df}) = ${res.t.toFixed(3)}`;
+  if (res.kind === "pearson") return `r = ${res.r.toFixed(3)}, t(${res.df}) = ${res.t.toFixed(3)}`;
   if (res.kind === "spearman")
     return `ρ = ${res.rho.toFixed(3)}, t(${res.df}) = ${res.t.toFixed(3)}`;
   return `τ = ${res.tau.toFixed(3)}, z = ${res.z.toFixed(3)}`;

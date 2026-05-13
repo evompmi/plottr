@@ -1473,14 +1473,20 @@ suite("HeatmapChart (raster ↔ vector / high-density export)");
       // black in SVG, which is exactly the regression we're guarding
       // against). Stroke is optional — only audited when present.
       if (!isInkscapeSafePaint(fill)) {
-        offenders.push(`fill=${JSON.stringify(fill)} on rect at (${r.getAttribute("x")},${r.getAttribute("y")})`);
+        offenders.push(
+          `fill=${JSON.stringify(fill)} on rect at (${r.getAttribute("x")},${r.getAttribute("y")})`
+        );
       }
       if (stroke != null && stroke !== "" && !isInkscapeSafePaint(stroke)) {
-        offenders.push(`stroke=${JSON.stringify(stroke)} on rect at (${r.getAttribute("x")},${r.getAttribute("y")})`);
+        offenders.push(
+          `stroke=${JSON.stringify(stroke)} on rect at (${r.getAttribute("x")},${r.getAttribute("y")})`
+        );
       }
     });
     if (offenders.length > 0) {
-      throw new Error(`${label}: ${offenders.length} Inkscape-unsafe rect(s):\n  ${offenders.join("\n  ")}`);
+      throw new Error(
+        `${label}: ${offenders.length} Inkscape-unsafe rect(s):\n  ${offenders.join("\n  ")}`
+      );
     }
   }
 
@@ -1665,7 +1671,9 @@ suite("VolcanoChart (raster ↔ vector export)");
       }
     });
     if (offenders.length > 0) {
-      throw new Error(`${label}: ${offenders.length} Inkscape-unsafe rect(s):\n  ${offenders.join("\n  ")}`);
+      throw new Error(
+        `${label}: ${offenders.length} Inkscape-unsafe rect(s):\n  ${offenders.join("\n  ")}`
+      );
     }
   }
 
@@ -1696,9 +1704,7 @@ suite("VolcanoChart (raster ↔ vector export)");
 
     // Re-render with fewer points (below threshold).
     React.act(() => {
-      root.render(
-        React.createElement(VolcanoChart, { ...baseProps, points: buildPoints(100) })
-      );
+      root.render(React.createElement(VolcanoChart, { ...baseProps, points: buildPoints(100) }));
     });
     const svg2 = container.querySelector("svg");
     assert(svg2.querySelector("#data-points image") == null, "live SVG vector below threshold");

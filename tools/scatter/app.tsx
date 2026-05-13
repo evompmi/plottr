@@ -575,9 +575,7 @@ export function App() {
     const ys: number[] = [];
     const rowCats: (string | null)[] = [];
     const discreteColorMap =
-      colorMapCol != null && colorMapType === "discrete" && parsed.rawData
-        ? colorMapCol
-        : null;
+      colorMapCol != null && colorMapType === "discrete" && parsed.rawData ? colorMapCol : null;
     for (let i = 0; i < filteredData.length; i++) {
       const row = filteredData[i];
       const xv = row[xCol];
@@ -593,9 +591,7 @@ export function App() {
       }
     }
     if (xs.length === 0) return [];
-    const sets: ScatterStatsSet[] = [
-      { key: "__all__", name: "All", xs, ys },
-    ];
+    const sets: ScatterStatsSet[] = [{ key: "__all__", name: "All", xs, ys }];
     if (discreteColorMap != null && colorMapCategories.length > 0) {
       for (const cat of colorMapCategories) {
         const sx: number[] = [];
