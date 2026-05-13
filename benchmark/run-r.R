@@ -112,7 +112,15 @@ shapiro_cases <- list(
   list(label = "CO2 uptake",         x = CO2$uptake),
   list(label = "LakeHuron",          x = as.numeric(LakeHuron)),
   list(label = "attitude rating",    x = attitude$rating),
-  list(label = "precip",             x = as.numeric(precip))
+  list(label = "precip",             x = as.numeric(precip)),
+  # n=3 closed-form path. Plöttr's `shapiroWilk` branches on n=3 for
+  # both the projection coefficients (a₁ = √½, a₂ = 0, a₃ = −√½) and
+  # the p-value (`p = 6·(asin(√W) − asin(√¾)) / π`, the exact null
+  # distribution at n=3). Three fixtures span the W range so any
+  # regression in the branch shows up:
+  list(label = "n=3 evenly spaced (W=1)",        x = c(1, 2, 3)),
+  list(label = "n=3 one outlier",                 x = c(1, 2, 10)),
+  list(label = "n=3 clustered low + far high",    x = c(0.1, 0.2, 5))
 )
 
 for (c in shapiro_cases) {

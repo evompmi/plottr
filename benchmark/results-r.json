@@ -1,8 +1,8 @@
 {
   "meta": {
     "r_version": "R version 4.5.3 (2026-03-11)",
-    "generated": "2026-05-13 00:06:17 UTC",
-    "n_tests": 129
+    "generated": "2026-05-13 00:07:32 UTC",
+    "n_tests": 132
   },
   "tests": [
     {
@@ -3285,6 +3285,54 @@
       "r": {
         "statistic": 0.96455916861,
         "p": 0.044925289483
+      }
+    },
+    {
+      "category": "Shapiro-Wilk",
+      "label": "n=3 evenly spaced (W=1)",
+      "n": 3,
+      "inputs": {
+        "x": [
+          1,
+          2,
+          3
+        ]
+      },
+      "r": {
+        "statistic": 1,
+        "p": 1
+      }
+    },
+    {
+      "category": "Shapiro-Wilk",
+      "label": "n=3 one outlier",
+      "n": 3,
+      "inputs": {
+        "x": [
+          1,
+          2,
+          10
+        ]
+      },
+      "r": {
+        "statistic": 0.83219178082,
+        "p": 0.19391752148
+      }
+    },
+    {
+      "category": "Shapiro-Wilk",
+      "label": "n=3 clustered low + far high",
+      "n": 3,
+      "inputs": {
+        "x": [
+          0.1,
+          0.2,
+          5
+        ]
+      },
+      "r": {
+        "statistic": 0.76529961751,
+        "p": 0.034099194478
       }
     },
     {

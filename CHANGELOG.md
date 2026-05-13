@@ -23,6 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Benchmark now exercises `shapiroWilk`'s n=3 closed-form path.**
+  Three new Shapiro-Wilk fixtures (n=3 evenly-spaced / one outlier /
+  clustered-low + far-high) span the W range and pin both the exact
+  projection coefficients (`a₁ = √½, a₂ = 0, a₃ = −√½`) and the
+  closed-form p-value (`p = 6·(asin(√W) − asin(√¾)) / π`) against R's
+  `shapiro.test`. Previously the smallest fixture was n=20 (sleep
+  extra), so the n=3 branch had unit-test coverage only.
+
 - **Benchmark now cross-validates Hedges' g** against R's
   `effectsize::hedges_g(pooled_sd = TRUE)`, the canonical reference for
   the small-sample bias-corrected Cohen's d. Plöttr's `hedgesG` uses the
