@@ -12,7 +12,9 @@
 //   6. Two-sample location     — t-test (Student / Welch), Mann-Whitney U
 //   7. Two-sample effect sizes — Cohen's d, Hedges' g, rank-biserial
 //   8. k-sample location       — one-way / Welch ANOVA, Kruskal-Wallis
-//   9. k-sample effect sizes   — η², ε²
+//   9. Correlation             — Pearson r, Spearman ρ, Kendall τ-b,
+//                                selectCorrelation auto-picker
+//  10. k-sample effect sizes   — η², ε²
 
 // ── 3. Sample helpers ───────────────────────────────────────────────────────
 
@@ -590,7 +592,301 @@ function kruskalWallis(groups) {
   return { H, df, p };
 }
 
-// ── 9. k-sample effect sizes ────────────────────────────────────────────────
+// ── 9. Correlation (paired bivariate) ──────────────────────────────────────
+//
+// Pearson r, Spearman ρ, Kendall τ-b. Used by the scatter tool's stats
+// panel.
+//
+// Each returns `{ <coef>, p, n, ci?, error? }` with `<coef>` named after the
+// estimator (`r` / `rho` / `tau`). Inputs are paired arrays of equal length;
+// rows where either value is non-finite are dropped (matches R's
+// `cor.test`'s `complete.obs` default).
+//
+// Notation: `S2x = Σ (x − x̄)²`, `S2y = Σ (y − ȳ)²`, `Sxy = Σ (x − x̄)(y − ȳ)`.
+
+// Drop rows with non-finite x or y; return the cleaned pair.
+function _pairwiseComplete(x, y) {
+  const n = Math.min(x.length, y.length);
+  const xs = [];
+  const ys = [];
+  for (let i = 0; i < n; i++) {
+    const xv = x[i],
+      yv = y[i];
+    if (Number.isFinite(xv) && Number.isFinite(yv)) {
+      xs.push(xv);
+      ys.push(yv);
+    }
+  }
+  return { xs, ys, n: xs.length };
+}
+
+// Pearson product-moment correlation. Two-sided p via t-distribution with
+// df = n−2. Fisher z transform CI: z = atanh(r); SE(z) = 1/√(n−3); back-
+// transform with tanh. Confidence level via `opts.conf` (default 0.95).
+//
+// Returns `{ r, t, df, p, n, ci: { lo, hi } }`. Degenerate cases:
+//   - n < 3                       → error "need ≥3 complete pairs"
+//   - either axis zero-variance   → error "data are essentially constant"
+//   - |r| = 1 (perfect fit)       → ci is { lo: ±1, hi: ±1 } and p is 0
+function pearsonCorrelation(x, y, opts = {}) {
+  const { xs, ys, n } = _pairwiseComplete(x, y);
+  if (n < 3) {
+    return { r: NaN, t: NaN, df: 0, p: NaN, n, error: "Need ≥3 complete pairs" };
+  }
+  const mx = sampleMean(xs);
+  const my = sampleMean(ys);
+  let S2x = 0,
+    S2y = 0,
+    Sxy = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = xs[i] - mx;
+    const dy = ys[i] - my;
+    S2x += dx * dx;
+    S2y += dy * dy;
+    Sxy += dx * dy;
+  }
+  if (S2x === 0 || S2y === 0) {
+    return {
+      r: NaN,
+      t: NaN,
+      df: n - 2,
+      p: NaN,
+      n,
+      error: "Data are essentially constant (zero variance in x or y)",
+    };
+  }
+  let r = Sxy / Math.sqrt(S2x * S2y);
+  // Clamp FP overshoot so atanh stays finite at the perfect-fit boundary.
+  if (r > 1) r = 1;
+  if (r < -1) r = -1;
+  const df = n - 2;
+  // Fisher z CI. At |r| = 1 atanh blows up to ±Inf — that's the right answer
+  // (the CI collapses to a point), and Math.tanh of ±Inf gives ±1.
+  const conf = opts.conf == null ? 0.95 : opts.conf;
+  const ci = { lo: NaN, hi: NaN };
+  if (n >= 4) {
+    const z = Math.atanh(r);
+    const se = 1 / Math.sqrt(n - 3);
+    const zcrit = norminv(1 - (1 - conf) / 2);
+    ci.lo = Math.tanh(z - zcrit * se);
+    ci.hi = Math.tanh(z + zcrit * se);
+  }
+  // t-statistic + two-sided p. |r| = 1 → t = ±Inf → p = 0 (via tcdf_upper).
+  const oneMinusR2 = Math.max(0, 1 - r * r);
+  const t = oneMinusR2 === 0 ? (r > 0 ? Infinity : -Infinity) : r * Math.sqrt(df / oneMinusR2);
+  const p = oneMinusR2 === 0 ? 0 : 2 * tcdf_upper(Math.abs(t), df);
+  return { r, t, df, p, n, ci };
+}
+
+// Spearman rank correlation. Pearson of the midranks of x and y (so ties
+// average their ranks — matches R's `cor(..., method = "spearman")` with
+// the default `use = "everything"` on complete cases).
+//
+// P-value: t-approximation with df = n − 2 (matches R's
+// `cor.test(..., method = "spearman", exact = FALSE)`).
+//
+// CI: Bonett & Wright (2000) Fisher-z variant —
+//     SE(z) = √((1 + ρ̂²/2) / (n − 3))
+//     z = atanh(ρ̂),  CI(ρ) = tanh(z ± z_{1−α/2} · SE(z))
+// More accurate than naïve Pearson Fisher-z when ρ ≠ 0 because the variance
+// of atanh(r_s) inflates with the magnitude of the underlying correlation.
+function spearmanCorrelation(x, y, opts = {}) {
+  const { xs, ys, n } = _pairwiseComplete(x, y);
+  if (n < 3) {
+    return { rho: NaN, t: NaN, df: 0, p: NaN, n, error: "Need ≥3 complete pairs" };
+  }
+  const { ranks: rx } = rankWithTies(xs);
+  const { ranks: ry } = rankWithTies(ys);
+  // Reuse the Pearson implementation on the rank vectors.
+  const pearsonOnRanks = pearsonCorrelation(rx, ry, opts);
+  if (pearsonOnRanks.error) {
+    return { rho: NaN, t: NaN, df: n - 2, p: NaN, n, error: pearsonOnRanks.error };
+  }
+  const rho = pearsonOnRanks.r;
+  const df = n - 2;
+  const oneMinusRho2 = Math.max(0, 1 - rho * rho);
+  const t = oneMinusRho2 === 0 ? (rho > 0 ? Infinity : -Infinity) : rho * Math.sqrt(df / oneMinusRho2);
+  const p = oneMinusRho2 === 0 ? 0 : 2 * tcdf_upper(Math.abs(t), df);
+  const conf = opts.conf == null ? 0.95 : opts.conf;
+  const ci = { lo: NaN, hi: NaN };
+  if (n >= 4) {
+    const z = Math.atanh(rho);
+    const se = Math.sqrt((1 + (rho * rho) / 2) / (n - 3));
+    const zcrit = norminv(1 - (1 - conf) / 2);
+    ci.lo = Math.tanh(z - zcrit * se);
+    ci.hi = Math.tanh(z + zcrit * se);
+  }
+  return { rho, t, df, p, n, ci };
+}
+
+// Kendall τ-b (the tie-corrected variant) — equivalent to R's
+// `cor.test(method = "kendall")` τ. Computed by direct O(n²) pair
+// enumeration:
+//
+//     S = Σ_{i<j} sign(x_j − x_i) · sign(y_j − y_i)
+//     τ = S / √((n0 − n1)(n0 − n2))
+//
+// where n0 = n(n−1)/2, n1 = Σ t_x·(t_x−1)/2 (pairs tied in x), and
+// n2 = Σ t_y·(t_y−1)/2 (pairs tied in y).
+//
+// P-value: large-sample normal approximation with continuity correction
+// (matches `cor.test(method = "kendall", exact = FALSE)`):
+//
+//     Var(S) = [n(n−1)(2n+5)
+//              − Σ t_x(t_x−1)(2t_x+5) − Σ t_y(t_y−1)(2t_y+5)] / 18
+//            + [Σ t_x(t_x−1)(t_x−2)] · [Σ t_y(t_y−1)(t_y−2)]
+//                / (9 n(n−1)(n−2))
+//            + [Σ t_x(t_x−1)] · [Σ t_y(t_y−1)] / (2 n(n−1))
+//     z = S / √Var(S)               (no continuity correction —
+//                                    matches R's cor.test source)
+//
+// No CI: an analytic CI on τ requires bootstrap or a Kendall-specific
+// large-sample variance approximation (Long & Cliff 1997) that's only
+// accurate when there are no ties. Stats panel surfaces τ + p + n.
+function kendallTau(x, y, opts = {}) {
+  // `opts` reserved for future use (e.g. an `exact: true` switch).
+  void opts;
+  const { xs, ys, n } = _pairwiseComplete(x, y);
+  if (n < 3) {
+    return { tau: NaN, z: NaN, p: NaN, n, S: 0, error: "Need ≥3 complete pairs" };
+  }
+  let S = 0;
+  for (let i = 0; i < n - 1; i++) {
+    const xi = xs[i],
+      yi = ys[i];
+    for (let j = i + 1; j < n; j++) {
+      const dx = xs[j] - xi;
+      const dy = ys[j] - yi;
+      if (dx === 0 || dy === 0) continue;
+      S += dx > 0 === dy > 0 ? 1 : -1;
+    }
+  }
+  // Tie group sizes on each axis.
+  const tieGroups = (arr) => {
+    const sorted = arr.slice().sort((a, b) => a - b);
+    const groups = [];
+    let i = 0;
+    while (i < n) {
+      let j = i;
+      while (j + 1 < n && sorted[j + 1] === sorted[i]) j++;
+      const t = j - i + 1;
+      if (t > 1) groups.push(t);
+      i = j + 1;
+    }
+    return groups;
+  };
+  const tx = tieGroups(xs);
+  const ty = tieGroups(ys);
+  const sumPairs = (g) => g.reduce((s, t) => s + (t * (t - 1)) / 2, 0);
+  const n0 = (n * (n - 1)) / 2;
+  const n1 = sumPairs(tx);
+  const n2 = sumPairs(ty);
+  if (n0 - n1 <= 0 || n0 - n2 <= 0) {
+    return {
+      tau: NaN,
+      z: NaN,
+      p: NaN,
+      n,
+      S,
+      error: "Data are essentially constant (all ties in x or y)",
+    };
+  }
+  const tau = S / Math.sqrt((n0 - n1) * (n0 - n2));
+  // Var(S) — three-term formula with tie corrections.
+  let varS = (n * (n - 1) * (2 * n + 5)) / 18;
+  for (const t of tx) varS -= (t * (t - 1) * (2 * t + 5)) / 18;
+  for (const t of ty) varS -= (t * (t - 1) * (2 * t + 5)) / 18;
+  if (tx.length && ty.length && n >= 3) {
+    const sx3 = tx.reduce((s, t) => s + t * (t - 1) * (t - 2), 0);
+    const sy3 = ty.reduce((s, t) => s + t * (t - 1) * (t - 2), 0);
+    varS += (sx3 * sy3) / (9 * n * (n - 1) * (n - 2));
+    const sx2 = tx.reduce((s, t) => s + t * (t - 1), 0);
+    const sy2 = ty.reduce((s, t) => s + t * (t - 1), 0);
+    varS += (sx2 * sy2) / (2 * n * (n - 1));
+  }
+  if (varS <= 0) {
+    return { tau, z: NaN, p: NaN, n, S };
+  }
+  const z = S / Math.sqrt(varS);
+  const p = 2 * normsf(Math.abs(z));
+  return { tau, z, p, n, S };
+}
+
+// Diagnostic + recommendation for a paired scatter dataset (analogue of
+// `selectTest` for k-group data). Returns:
+//
+//   { n, normality: [{ axis, n, W, p, normal, note? }, ...],
+//     allNormal, recommendation: { test, reason }, suggestion? }
+//
+// Default pick is Pearson. If Shapiro-Wilk on either axis flags non-normal
+// (alpha = 0.05) or n < 10, surface a Spearman suggestion; if the data are
+// also small (n ≤ 30) or heavily-tied, suggest Kendall τ as the secondary
+// alternative. The recommendation itself never changes — same UI contract
+// as `selectTest`: it's a default the user can override from the panel's
+// per-test dropdown.
+function selectCorrelation(x, y, opts = {}) {
+  const alphaN = opts.alphaNormality != null ? opts.alphaNormality : 0.05;
+  const { xs, ys, n } = _pairwiseComplete(x, y);
+  if (n < 3) {
+    return {
+      n,
+      normality: [],
+      allNormal: false,
+      recommendation: { test: "pearson", reason: "Need ≥3 complete pairs to test a correlation." },
+    };
+  }
+  const swCheck = (arr, axis) => {
+    if (arr.length < 3) {
+      return { axis, n: arr.length, W: null, p: null, normal: null, note: "n<3" };
+    }
+    const sw = shapiroWilk(arr);
+    if (sw.error) {
+      return { axis, n: arr.length, W: null, p: null, normal: null, note: sw.error };
+    }
+    return { axis, n: arr.length, W: sw.W, p: sw.p, normal: sw.p >= alphaN };
+  };
+  const normality = [swCheck(xs, "x"), swCheck(ys, "y")];
+  const allKnownNormal = normality.every((r) => r.normal === true);
+  const flagged = normality.filter((r) => r.normal === false);
+  const test = "pearson";
+  const baseDefault =
+    "Default pick: Pearson product-moment correlation. Pearson is the most powerful test when both axes are approximately normal; Spearman and Kendall stay available as rank-based alternatives.";
+  const swNarrative = (() => {
+    if (flagged.length === 0 && allKnownNormal) {
+      return `Shapiro-Wilk did not reject normality on x or y at α = ${alphaN}.`;
+    }
+    if (flagged.length > 0) {
+      const labels = flagged
+        .map((r) => `${r.axis} (W=${r.W.toFixed(3)}, p=${formatP(r.p)})`)
+        .join(", ");
+      return `Shapiro-Wilk flagged ${labels} as non-normal at α = ${alphaN}.`;
+    }
+    return "Shapiro-Wilk could not run on one or both axes (n < 3).";
+  })();
+  let suggestion = null;
+  let suggestionNarrative = "";
+  if (flagged.length > 0) {
+    suggestion = {
+      test: "spearman",
+      reason:
+        "Shapiro-Wilk flagged at least one axis as non-normal. Spearman ranks both axes before correlating, which is more robust to heavy tails and outliers than Pearson.",
+    };
+    suggestionNarrative =
+      " If the non-normality looks substantive (heavy tails, strong skew, ordinal data), consider switching to Spearman ρ from the test dropdown; for very small or heavily-tied samples Kendall τ-b is a further alternative.";
+  }
+  const overrideHint =
+    " You can override this pick from the stats panel's per-test dropdown; the trace below shows the diagnostics the recommendation is based on.";
+  const out = {
+    n,
+    normality,
+    allNormal: allKnownNormal,
+    recommendation: { test, reason: `${baseDefault} ${swNarrative}${suggestionNarrative}${overrideHint}` },
+  };
+  if (suggestion) out.suggestion = suggestion;
+  return out;
+}
+
+// ── 10. k-sample effect sizes ────────────────────────────────────────────────
 
 // η² = SSbetween / SStotal (ANOVA).
 function etaSquared(groups) {

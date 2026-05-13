@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Correlation stats panel in the scatter tool.** A new tile under the
+  scatter plot reports Pearson r, Spearman ρ, and Kendall τ-b with
+  per-test recommendation (Pearson by default, Spearman suggested when
+  Shapiro-Wilk flags either axis as non-normal). Click a row to inspect
+  variables, assumptions, and the full coefficient line — Pearson and
+  Spearman ship a 95 % CI (Fisher-z; Bonett-Wright variance for
+  Spearman). When a discrete color column is mapped, the panel adds one
+  row per category alongside the overall row. TXT and R-script
+  (`cor.test`) downloads cover every group. Independent of the existing
+  in-plot regression overlay — both can be on at once. Cross-validated
+  against R 4.5's `cor.test` to FP precision (8 fixtures × 3 methods).
+  New `pearsonCorrelation`, `spearmanCorrelation`, `kendallTau`, and
+  `selectCorrelation` globals in `tools/stats-tests.js`. Regression: 19
+  new tests in `tests/correlation.test.js`, 16 new benchmark rows.
+
 - **95 % CI on Cohen's d in the stats panel.** Two-group tests
   (Student / Welch) now report the effect size as `d = X, 95 % CI [Y, Z]`
   instead of a bare point estimate. CI computed via the noncentral-t
