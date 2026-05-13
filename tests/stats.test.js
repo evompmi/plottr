@@ -1206,6 +1206,36 @@ test("qtukey degenerate inputs return NaN", () => {
   assert(Number.isNaN(qtukey(0.95, 3, 0)), "df=0 must be NaN");
 });
 
+test("tukeyHSD warns when (1−α, k, dfErr) is in qtukey's pathological envelope", () => {
+  // dfErr = 14 − 12 = 2, k = 12, 1−α = 0.95 → envelope hit.
+  // One group with n=3 supplies 2 dof of within-group variance; 11
+  // singletons contribute nothing but pad k. Construction matches the
+  // SciPy-bench `isQtukeyPathological` criterion.
+  const groups = [[1, 2, 3]];
+  for (let i = 0; i < 11; i++) groups.push([10 + i]);
+  const r = tukeyHSD(groups);
+  assert(
+    typeof r.warning === "string" && r.warning.includes("approximate"),
+    `expected pathological-envelope warning, got ${JSON.stringify(r.warning)}`
+  );
+  // p-values still computable (ptukey_upper doesn't share the bracket-
+  // expansion limit) — the warning is about CI accuracy only.
+  assert(
+    r.pairs.every((p) => Number.isFinite(p.p)),
+    "p-values must remain finite in the envelope"
+  );
+});
+
+test("tukeyHSD has no warning in the pass band", () => {
+  // df = 27, k = 3, p = 0.95 → well inside the pass band.
+  const r = tukeyHSD([
+    [4.5, 5.1, 5.5, 4.9],
+    [6.2, 6.8, 6.3, 7.1, 6.7],
+    [3.1, 3.5, 3.9, 3.2],
+  ]);
+  assert(r.warning == null, `expected no warning, got ${JSON.stringify(r.warning)}`);
+});
+
 test("powerAnova at heavy-tail (df1=1, df2=1) no longer clamps", () => {
   // F(1, 1) only reaches 0.955 at x ≈ 200, so the old fixed upper bound
   // of 200 silently clamped fCrit for any α ≤ 0.045. With bracket
