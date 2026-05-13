@@ -1325,6 +1325,195 @@ test("useContext returns the default value when no Provider is mounted", functio
 // registers an SVG export mutator that swaps the raster <image> for
 // vector <circle>s in the export clone. Both paths exercised below.
 
+// ── HeatmapChart raster (live) ↔ vector / high-density raster (export) ────
+//
+// Heatmap cells always rasterise on screen (per-cell <rect> scaled past
+// ~20k cells in browsers). The export mutator branches by total cell
+// count: ≤ CELL_VECTOR_EXPORT_LIMIT (2,000) becomes vector <rect>s for
+// infinitely-scalable journal SVGs; above stays raster but at the
+// higher EXPORT density (~4× DPR) so PNGs still survive print zoom.
+
+suite("HeatmapChart (raster ↔ vector / high-density export)");
+
+(function () {
+  const tool = loadTool("heatmap");
+  const HeatmapChart = tool.exports.HeatmapChart;
+
+  // Canvas stubs are installed once at the top of the volcano suite
+  // (HTMLCanvasElement.prototype is a single realm-level object — both
+  // suites share it). The shared stub covers fillRect / strokeRect /
+  // setTransform / etc., enough for both the volcano and heatmap paint
+  // paths under happy-dom.
+
+  // Build a small matrix of the requested dimensions. Values are
+  // deterministic and span the [0, 1] range so the palette mapping
+  // produces real colour strings.
+  function buildMatrix(rows, cols) {
+    const m = new Array(rows);
+    for (let r = 0; r < rows; r++) {
+      m[r] = new Array(cols);
+      for (let c = 0; c < cols; c++) {
+        m[r][c] = ((r * cols + c) % 100) / 100;
+      }
+    }
+    return m;
+  }
+
+  function baseProps(rows, cols) {
+    return {
+      rowLabels: Array.from({ length: rows }, (_, i) => "r" + i),
+      colLabels: Array.from({ length: cols }, (_, i) => "c" + i),
+      matrix: buildMatrix(rows, cols),
+      rowOrder: Array.from({ length: rows }, (_, i) => i),
+      colOrder: Array.from({ length: cols }, (_, i) => i),
+      rowCluster: null,
+      colCluster: null,
+      vmin: 0,
+      vmax: 1,
+      palette: "viridis",
+      cellBorder: { on: false, color: "#000000", width: 0.5 },
+      showRowLabels: true,
+      showColLabels: true,
+      showRowDendrogram: false,
+      showColDendrogram: false,
+    };
+  }
+
+  test("≤ 2,000 cells: export mutator replaces <image> with one <rect> per cell", function () {
+    const props = baseProps(20, 20); // 400 cells, under the limit
+    const { container } = renderWithEffects(HeatmapChart, props);
+    const svg = container.querySelector("svg");
+    assert(svg != null, "svg mounted");
+    // Live DOM: rasterised <image> (heatmap always rasterises live).
+    const liveImage = svg.querySelector("#cells image");
+    assert(liveImage != null, "live <image> present");
+
+    const clone = globalThis.buildExportSvg(svg);
+    const cloneCells = clone.querySelector("#cells");
+    assert(cloneCells != null, "cells group preserved in export clone");
+    assert(
+      cloneCells.querySelector("image") == null,
+      "raster <image> removed for sub-threshold vector export"
+    );
+    const rects = cloneCells.querySelectorAll("rect");
+    eq(rects.length, 400);
+    // Live SVG stays rasterised — mutator only mutates the clone.
+    assert(svg.querySelector("#cells image") != null, "live <image> untouched");
+  });
+
+  test("> 2,000 cells: export mutator keeps <image> (raster path, no vector rects)", function () {
+    const props = baseProps(60, 60); // 3,600 cells, above the limit
+    const { container } = renderWithEffects(HeatmapChart, props);
+    const svg = container.querySelector("svg");
+    const liveImage = svg.querySelector("#cells image");
+    assert(liveImage != null, "live <image> present");
+
+    const clone = globalThis.buildExportSvg(svg);
+    const cloneCells = clone.querySelector("#cells");
+    const cloneImage = cloneCells.querySelector(":scope > image");
+    assert(cloneImage != null, "export keeps an <image> above the vector limit");
+    eq(cloneCells.querySelectorAll("rect").length, 0);
+    // The mutator runs `image.setAttribute("href", ...)` from a freshly
+    // painted canvas at EXPORT density. happy-dom's stub returns a
+    // fixed dataURL marker so both the live and export hrefs are
+    // strings; in a real browser the export href would encode a
+    // higher-DPR raster of the same cells.
+    eq(typeof cloneImage.getAttribute("href"), "string");
+    assert(
+      cloneImage.getAttribute("href").startsWith("data:image/png"),
+      "export image href is a PNG data URL"
+    );
+  });
+
+  test("borders ON: vector path emits stroke attributes per cell", function () {
+    const props = {
+      ...baseProps(10, 10),
+      cellBorder: { on: true, color: "#222222", width: 1 },
+    };
+    const { container } = renderWithEffects(HeatmapChart, props);
+    const svg = container.querySelector("svg");
+    const clone = globalThis.buildExportSvg(svg);
+    const rects = clone.querySelectorAll("#cells rect");
+    assert(rects.length === 100, "100 vector rects (10×10)");
+    const first = rects[0];
+    eq(first.getAttribute("stroke"), "#222222");
+    eq(first.getAttribute("stroke-width"), "1");
+  });
+
+  // Strict SVG-1.1 renderers (Inkscape ≤ 0.92, macOS Preview / Quick
+  // Look, several image-library pipelines) only accept SVG-spec paint
+  // values in `fill` / `stroke`: a hex / named colour, `none`, or a
+  // `url(#...)` paint server. CSS keywords like `transparent`, an
+  // unset attribute (defaults to `black`), or a `var(--…)` reference
+  // (no CSS context outside the browser) all render as solid black —
+  // which historically painted a giant black overlay over volcano
+  // exports above the rasterise threshold (commit 894911c).
+  //
+  // The property below is the standing contract for every export
+  // clone: every `<rect>` must carry a paint Inkscape can parse. The
+  // test sweeps the four heatmap configurations that exercise the
+  // distinct rect-producing code paths.
+  function isInkscapeSafePaint(value) {
+    if (value == null) return false;
+    const v = String(value).trim();
+    if (v === "none") return true;
+    // Hex literal — short (#rgb) or long (#rrggbb / #rrggbbaa).
+    if (/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3}([0-9a-fA-F]{2})?)?$/.test(v)) return true;
+    // url(#id) paint-server reference.
+    if (/^url\(#[^)]+\)$/.test(v)) return true;
+    return false;
+  }
+
+  function auditRects(clone, label) {
+    const offenders = [];
+    clone.querySelectorAll("rect").forEach((r) => {
+      const fill = r.getAttribute("fill");
+      const stroke = r.getAttribute("stroke");
+      // Fill MUST be set and Inkscape-safe (a missing fill defaults to
+      // black in SVG, which is exactly the regression we're guarding
+      // against). Stroke is optional — only audited when present.
+      if (!isInkscapeSafePaint(fill)) {
+        offenders.push(`fill=${JSON.stringify(fill)} on rect at (${r.getAttribute("x")},${r.getAttribute("y")})`);
+      }
+      if (stroke != null && stroke !== "" && !isInkscapeSafePaint(stroke)) {
+        offenders.push(`stroke=${JSON.stringify(stroke)} on rect at (${r.getAttribute("x")},${r.getAttribute("y")})`);
+      }
+    });
+    if (offenders.length > 0) {
+      throw new Error(`${label}: ${offenders.length} Inkscape-unsafe rect(s):\n  ${offenders.join("\n  ")}`);
+    }
+  }
+
+  test("Inkscape audit: every export rect has a spec-valid paint (vector path)", function () {
+    // Small heatmap with NaN cells (exercises NAN_FILL) and clustering
+    // OFF — runs the vector-export path.
+    const matrix = buildMatrix(15, 15);
+    matrix[3][7] = NaN;
+    matrix[10][2] = NaN;
+    const props = {
+      ...baseProps(15, 15),
+      matrix,
+      cellBorder: { on: true, color: "#333333", width: 0.5 },
+    };
+    const { container } = renderWithEffects(HeatmapChart, props);
+    const svg = container.querySelector("svg");
+    const clone = globalThis.buildExportSvg(svg);
+    auditRects(clone, "vector path");
+    // Sanity: NaN cells got the NAN_FILL hex (#e0e0e0).
+    const rects = Array.from(clone.querySelectorAll("#cells rect"));
+    const greyCount = rects.filter((r) => r.getAttribute("fill") === "#e0e0e0").length;
+    eq(greyCount, 2);
+  });
+
+  test("Inkscape audit: every export rect has a spec-valid paint (raster path, > 2k cells)", function () {
+    const props = baseProps(60, 60); // 3,600 cells — raster path
+    const { container } = renderWithEffects(HeatmapChart, props);
+    const svg = container.querySelector("svg");
+    const clone = globalThis.buildExportSvg(svg);
+    auditRects(clone, "raster path");
+  });
+})();
+
 suite("VolcanoChart (raster ↔ vector export)");
 
 (function () {
@@ -1338,14 +1527,21 @@ suite("VolcanoChart (raster ↔ vector export)");
   // the <image> element's presence + the export-clone substitution.
   const origCanvasGetContext = HTMLCanvasElement.prototype.getContext;
   const origCanvasToDataURL = HTMLCanvasElement.prototype.toDataURL;
+  // Union of the canvas 2D methods volcano + heatmap painting touch —
+  // both suites share the same realm's HTMLCanvasElement.prototype so
+  // whoever installs last wins; keep the API surface complete.
   const stubCtx = {
     setTransform() {},
     clearRect() {},
     beginPath() {},
     arc() {},
     fill() {},
+    fillRect() {},
+    strokeRect() {},
     set globalAlpha(_v) {},
     set fillStyle(_v) {},
+    set strokeStyle(_v) {},
+    set lineWidth(_v) {},
   };
   HTMLCanvasElement.prototype.getContext = function () {
     return stubCtx;
@@ -1442,6 +1638,51 @@ suite("VolcanoChart (raster ↔ vector export)");
     assert(cloneDataPoints.querySelector("#points-down") != null, "down group rebuilt");
     // Live DOM stays rasterised — mutator only runs on the clone.
     assert(svg.querySelector("#data-points image") != null, "live <image> untouched");
+  });
+
+  // Same Inkscape-safety contract as the heatmap audit above — every
+  // <rect> the export emits must carry an SVG-spec paint. Volcano has
+  // the historical `fill="transparent"` regression (commit 894911c)
+  // that motivated this whole property; pin it.
+  function isInkscapeSafePaint(value) {
+    if (value == null) return false;
+    const v = String(value).trim();
+    if (v === "none") return true;
+    if (/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3}([0-9a-fA-F]{2})?)?$/.test(v)) return true;
+    if (/^url\(#[^)]+\)$/.test(v)) return true;
+    return false;
+  }
+  function auditRects(clone, label) {
+    const offenders = [];
+    clone.querySelectorAll("rect").forEach((r) => {
+      const fill = r.getAttribute("fill");
+      const stroke = r.getAttribute("stroke");
+      if (!isInkscapeSafePaint(fill)) {
+        offenders.push(`fill=${JSON.stringify(fill)} on rect`);
+      }
+      if (stroke != null && stroke !== "" && !isInkscapeSafePaint(stroke)) {
+        offenders.push(`stroke=${JSON.stringify(stroke)} on rect`);
+      }
+    });
+    if (offenders.length > 0) {
+      throw new Error(`${label}: ${offenders.length} Inkscape-unsafe rect(s):\n  ${offenders.join("\n  ")}`);
+    }
+  }
+
+  test("Inkscape audit: every export rect has a spec-valid paint (raster path)", function () {
+    const points = buildPoints(1500);
+    const { container } = renderWithEffects(VolcanoChart, { ...baseProps, points });
+    const svg = container.querySelector("svg");
+    const clone = globalThis.buildExportSvg(svg);
+    auditRects(clone, "volcano raster path");
+  });
+
+  test("Inkscape audit: every export rect has a spec-valid paint (vector path)", function () {
+    const points = buildPoints(200);
+    const { container } = renderWithEffects(VolcanoChart, { ...baseProps, points });
+    const svg = container.querySelector("svg");
+    const clone = globalThis.buildExportSvg(svg);
+    auditRects(clone, "volcano vector path");
   });
 
   test("raster→vector transition unregisters the mutator on the live svg", function () {
