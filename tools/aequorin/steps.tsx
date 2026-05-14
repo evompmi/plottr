@@ -6,9 +6,195 @@
 // shared.bundle.js and ./helpers respectively.
 
 import { TIME_UNITS } from "./helpers";
-import type { ConfigureStepProps, UploadStepProps } from "./helpers";
+import type { CalibrationFormula, ConfigureStepProps, UploadStepProps } from "./helpers";
 import { DataPreview, DetectedSeparatorBadge, HowTo, NumberInput, UploadPanel } from "../_shell";
 import { AEQUORIN_HOWTO } from "./howto";
+
+// Render a coefficient as a clean numeric string for the formula
+// preview. Strips trailing zeros (so a default Kr of 7 reads as "7"
+// not "7.0000"); falls back to scientific notation for very small /
+// very large values so a typo like Kd = 1e9 doesn't blow out the
+// preview line. Non-finite inputs render as "?" so the preview
+// still produces a recognisable shape if the user types nonsense.
+function fmtCoef(v: number): string {
+  if (!Number.isFinite(v)) return "?";
+  if (v === 0) return "0";
+  const abs = Math.abs(v);
+  if (abs >= 1e6 || abs < 1e-3) return v.toExponential(2);
+  return parseFloat(v.toFixed(4)).toString();
+}
+
+// CSS-stacked fraction. `num` / `den` are inline React fragments; the
+// wrapper uses inline-flex so the fraction sits inside the surrounding
+// math-style text run alongside `=` and other operators. `currentColor`
+// on the divider keeps it themed without an extra prop.
+function Frac({ num, den }: { num: React.ReactNode; den: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        flexDirection: "column",
+        alignItems: "center",
+        verticalAlign: "middle",
+        margin: "0 4px",
+        lineHeight: 1.2,
+      }}
+    >
+      <span style={{ padding: "0 6px" }}>{num}</span>
+      <span
+        style={{
+          borderTop: "1px solid currentColor",
+          padding: "1px 6px 0",
+          width: "100%",
+          textAlign: "center",
+        }}
+      >
+        {den}
+      </span>
+    </span>
+  );
+}
+
+// Small italic-f used throughout the preview as the rundown-fraction
+// variable. Pulled into a constant so the JSX stays readable.
+const ITAL_F = <span style={{ fontStyle: "italic" }}>f</span>;
+
+// Render the chosen calibration formula with the user's current
+// parameter values substituted into the symbolic expression — e.g.
+// Allen & Blinks with Ktr=118 / Kr=7 renders as ((1 + 118)·f^(1/3) − 1)
+// over (7·(1 − f^(1/3))). The substituted form (rather than a fully-
+// evaluated `119`) keeps the connection between the K-inputs above
+// and where they land in the math visible.
+function CalibrationFormulaPreview({
+  formula,
+  Kr,
+  Ktr,
+  Kd,
+  hillN,
+}: {
+  formula: CalibrationFormula;
+  Kr: number;
+  Ktr: number;
+  Kd: number;
+  hillN: number;
+}) {
+  if (formula === "none") return null;
+
+  // Exponent denominator string — 1/3 for the fixed-cube-root forms,
+  // 1/n with the user's n for the generalised form. Non-integer n is
+  // formatted through fmtCoef so a Hill exponent of 2.5 reads as "1/2.5".
+  const expDen = formula === "generalized" ? fmtCoef(hillN) : "3";
+  const exp = <sup style={{ fontSize: "0.72em", lineHeight: 0 }}>1/{expDen}</sup>;
+
+  let body: React.ReactNode;
+  if (formula === "allen-blinks") {
+    body = (
+      <>
+        [Ca²⁺] =
+        <Frac
+          num={
+            <>
+              (1 + {fmtCoef(Ktr)})·{ITAL_F}
+              {exp} − 1
+            </>
+          }
+          den={
+            <>
+              {fmtCoef(Kr)}·(1 − {ITAL_F}
+              {exp})
+            </>
+          }
+        />
+      </>
+    );
+  } else if (formula === "hill") {
+    body = (
+      <>
+        [Ca²⁺] = {fmtCoef(Kd)} · (
+        <Frac num={ITAL_F} den={<>1 − {ITAL_F}</>} />)
+        <sup style={{ fontSize: "0.72em", lineHeight: 0 }}>1/3</sup>
+      </>
+    );
+  } else if (formula === "generalized") {
+    body = (
+      <>
+        [Ca²⁺] =
+        <Frac
+          num={
+            <>
+              (1 + {fmtCoef(Ktr)})·{ITAL_F}
+              {exp} − 1
+            </>
+          }
+          den={
+            <>
+              {fmtCoef(Kr)}·(1 − {ITAL_F}
+              {exp})
+            </>
+          }
+        />
+      </>
+    );
+  } else {
+    return null;
+  }
+
+  return (
+    <div
+      aria-label="Calibration formula with your parameter values substituted"
+      style={{
+        marginTop: 12,
+        padding: "10px 14px",
+        background: "var(--surface-subtle)",
+        border: "1px solid var(--border)",
+        borderRadius: 6,
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        flexWrap: "wrap",
+      }}
+    >
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.6px",
+          color: "var(--text-muted)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        With your values
+      </span>
+      <span
+        style={{
+          fontFamily: "ui-serif, Georgia, 'Times New Roman', serif",
+          fontSize: 15,
+          color: "var(--text)",
+          display: "inline-flex",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 4,
+        }}
+      >
+        {body}
+      </span>
+      <span
+        style={{
+          fontSize: 11,
+          color: "var(--text-faint)",
+          marginLeft: "auto",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <span style={{ fontStyle: "italic" }}>f</span> ={" "}
+        <span style={{ fontStyle: "italic" }}>L</span>(
+        <span style={{ fontStyle: "italic" }}>t</span>) / Σ
+        <span style={{ fontStyle: "italic" }}>L</span>
+      </span>
+    </div>
+  );
+}
 
 export function HowToSection() {
   return <HowTo {...AEQUORIN_HOWTO} />;
@@ -188,6 +374,7 @@ export function ConfigureStep({
               </div>
             )}
           </div>
+          <CalibrationFormulaPreview formula={formula} Kr={Kr} Ktr={Ktr} Kd={Kd} hillN={hillN} />
         </AqAesBox>
         <AqAesBox theme="time">
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
