@@ -98,6 +98,7 @@ const {
   chi2inv,
   chi2cdf,
   pairwiseDistance,
+  rowDistance,
   hclust,
   dendrogramLayout,
   kmeans,
@@ -1856,6 +1857,227 @@ test("reason text cites Welch-by-default rationale", () => {
 });
 
 // ── Hierarchical clustering ────────────────────────────────────────────────
+
+// ── rowDistance — direct, per-metric pins (mutation audit) ─────────────────
+//
+// Existing coverage exercised rowDistance only indirectly through
+// pairwiseDistance + hclust integration tests, which tolerate NaN distances
+// at the hclust level (see "disconnected components" fixture). Many
+// rowDistance mutants therefore survived: array-init mutations that emit
+// NaN-producing first cells, equality-boundary mutations on the
+// finite-pair filter, and the `xs.length === 0` / `xs.length < 2`
+// saturation guards. These tests pin specific per-metric outputs so a
+// distance-shifting mutation produces a value mismatch instead of just an
+// NaN propagation the integration tests ignore.
+
+suite("rowDistance — per-metric direct values");
+
+test("manhattan: |a-b| component sum", () => {
+  // |1-4| + |2-0| + |3-5| = 3 + 2 + 2 = 7
+  approx(rowDistance([1, 2, 3], [4, 0, 5], "manhattan"), 7, 1e-12);
+});
+
+test("manhattan: zero distance to self", () => {
+  eq(rowDistance([1.5, -2, 3], [1.5, -2, 3], "manhattan"), 0);
+});
+
+test("euclidean: 3-4-5 right triangle", () => {
+  approx(rowDistance([1, 1], [4, 5], "euclidean"), 5, 1e-12);
+});
+
+test("euclidean: zero distance to self", () => {
+  eq(rowDistance([1, 2, 3], [1, 2, 3], "euclidean"), 0);
+});
+
+test("correlation: perfectly positively correlated → 0 (= 1 - r)", () => {
+  // r(x, 10x) = 1 → distance = 1 - 1 = 0
+  approx(rowDistance([1, 2, 3, 4], [10, 20, 30, 40], "correlation"), 0, 1e-12);
+});
+
+test("correlation: perfectly negatively correlated → 2", () => {
+  // r(x, -x) = -1 → distance = 1 - (-1) = 2
+  approx(rowDistance([1, 2, 3], [3, 2, 1], "correlation"), 2, 1e-12);
+});
+
+suite("rowDistance — edge cases (saturation guards)");
+
+test("all-non-finite pairs → NaN (xs.length === 0 guard)", () => {
+  assert(Number.isNaN(rowDistance([NaN, NaN], [NaN, NaN], "euclidean")));
+  assert(Number.isNaN(rowDistance([NaN, NaN], [NaN, NaN], "manhattan")));
+  assert(Number.isNaN(rowDistance([NaN, NaN], [NaN, NaN], "correlation")));
+});
+
+test("empty arrays → NaN", () => {
+  assert(Number.isNaN(rowDistance([], [], "euclidean")));
+  assert(Number.isNaN(rowDistance([], [], "manhattan")));
+  assert(Number.isNaN(rowDistance([], [], "correlation")));
+});
+
+test("correlation with single finite pair → NaN (xs.length < 2 guard)", () => {
+  // Only k=0 contributes finite values → xs = [1], ys = [2] → length < 2.
+  // Pins the L48 saturation: correlation needs ≥ 2 paired points.
+  assert(Number.isNaN(rowDistance([1, NaN], [2, NaN], "correlation")));
+  assert(Number.isNaN(rowDistance([Infinity, 1, NaN], [-Infinity, 2, NaN], "correlation")));
+});
+
+test("correlation with constant first row → 1 (sxx === 0 saturation)", () => {
+  // r is undefined when one variance is zero; the kernel returns 1
+  // (maximally dissimilar by convention). Pins the L67 fallback.
+  eq(rowDistance([5, 5, 5], [1, 2, 3], "correlation"), 1);
+});
+
+test("correlation with constant second row → 1 (syy === 0 saturation)", () => {
+  eq(rowDistance([1, 2, 3], [5, 5, 5], "correlation"), 1);
+});
+
+test("correlation skips non-finite components (pairwise-complete)", () => {
+  // a = [1, NaN, 3], b = [10, 20, 30] → only pairs at k=0 and k=2 finite.
+  // xs = [1, 3], ys = [10, 30]. Both perfectly correlated → distance 0.
+  approx(rowDistance([1, NaN, 3], [10, 20, 30], "correlation"), 0, 1e-12);
+});
+
+// ── dendrogramLayout maxHeight + segment count pins (mutation audit) ───────
+//
+// Existing dendrogramLayout tests pin segment placement but not the
+// maxHeight tracking explicitly across multi-height trees. Adding a
+// specific multi-height pin so the `h > maxHeight` accumulator stays
+// constrained.
+
+suite("dendrogramLayout — maxHeight + segments");
+
+test("maxHeight equals the largest internal-node height across a multi-level tree", () => {
+  // Tree:
+  //   merge at h=1.5
+  //   ├── leaf 0
+  //   └── merge at h=0.5
+  //       ├── leaf 1
+  //       └── leaf 2
+  // maxHeight must be 1.5 — and stay 1.5 even though the recursion walks
+  // h=0.5 first (left subtree visited before parent height is seen).
+  const tree = {
+    index: -1,
+    height: 1.5,
+    size: 3,
+    left: { index: 0, left: null, right: null, height: 0, size: 1 },
+    right: {
+      index: -1,
+      height: 0.5,
+      size: 2,
+      left: { index: 1, left: null, right: null, height: 0, size: 1 },
+      right: { index: 2, left: null, right: null, height: 0, size: 1 },
+    },
+  };
+  const { maxHeight, segments } = dendrogramLayout(tree);
+  approx(maxHeight, 1.5, 1e-12);
+  // Two internal nodes × 3 segments per merge = 6 segments total.
+  eq(segments.length, 6);
+});
+
+test("dendrogramLayout(null) → empty layout (defensive guard)", () => {
+  const r = dendrogramLayout(null);
+  eq(r.segments.length, 0);
+  eq(r.maxHeight, 0);
+});
+
+// ── kmeans iteration + inertia pins (mutation audit) ───────────────────────
+//
+// Existing kmeans tests pin the clustering of 6 well-separated points but
+// don't explicitly assert iteration count or inertia minimisation. Mutants
+// that break the convergence-detection logic (`changed = true` →
+// `changed = false`, `!changed break` always-firing, etc.) survive when
+// the final cluster assignment happens to be the same regardless.
+
+suite("kmeans — iteration + inertia invariants");
+
+test("converges in < maxIter iterations on well-separated clusters", () => {
+  // Two well-separated clusters in 2D: 3 points near (0, 0) and 3 near
+  // (100, 100). k-means at k=2 must converge quickly. If the convergence-
+  // detection mutates (e.g., `changed` never set to true → break after
+  // iteration 1), iterations will read as 1 and the centroids may still
+  // happen to be correct after one assignment — but pinning iterations >
+  // 1 forces the full convergence path to fire.
+  const matrix = [
+    [0, 0],
+    [1, 1],
+    [-1, 0],
+    [100, 100],
+    [101, 99],
+    [99, 101],
+  ];
+  const res = kmeans(matrix, 2, { seed: 1, restarts: 1, maxIter: 50 });
+  assert(res.iterations >= 1 && res.iterations <= 50, "iterations in [1, maxIter]");
+  // For these inputs convergence happens in 2-4 iterations across most
+  // initialisations; pin a soft upper bound to catch "always runs to
+  // maxIter" mutants on `changed`.
+  assert(res.iterations < 50, "must converge before maxIter for well-separated input");
+});
+
+test("inertia is strictly less than picking centroids = first k rows", () => {
+  // kmeans++ + 8 restarts should find a partition with lower SSE than
+  // picking the first two points as centroids. Pins the inertia-
+  // minimisation logic (best-of-restarts comparison at L226 and
+  // assignment-step `dist < bestD` at L283). A mutant that always picks
+  // the first attempt regardless of inertia would yield a worse partition.
+  const matrix = [
+    [0, 0],
+    [1, 1],
+    [-1, 0],
+    [100, 100],
+    [101, 99],
+    [99, 101],
+  ];
+  const res = kmeans(matrix, 2, { seed: 1, restarts: 8 });
+  // Naïve baseline: take rows 0 and 1 as centroids; assign every point to
+  // its closer centroid; compute SSE.
+  const c0 = matrix[0];
+  const c1 = matrix[1];
+  const sqd = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
+  let baselineInertia = 0;
+  for (const row of matrix) {
+    baselineInertia += Math.min(sqd(row, c0), sqd(row, c1));
+  }
+  assert(
+    res.inertia < baselineInertia,
+    `kmeans inertia ${res.inertia} must beat naïve baseline ${baselineInertia}`
+  );
+});
+
+test("deterministic with same seed across runs", () => {
+  // Pins the seeded-RNG path through kmeansRng. A mutant that breaks
+  // determinism (e.g., RNG seed clamping at L381 misfiring) would
+  // produce different clusterings on identical seed inputs.
+  const matrix = [
+    [0, 0],
+    [10, 10],
+    [20, 20],
+    [30, 30],
+    [40, 40],
+    [50, 50],
+  ];
+  const r1 = kmeans(matrix, 3, { seed: 42, restarts: 3 });
+  const r2 = kmeans(matrix, 3, { seed: 42, restarts: 3 });
+  eq(JSON.stringify(r1.clusters), JSON.stringify(r2.clusters));
+  approx(r1.inertia, r2.inertia, 1e-15);
+});
+
+test("all centroids are populated (no NaN coordinates) for finite input", () => {
+  // Pins the centroid-update path. The `counts[c][j] > 0 ? sums / counts
+  // : NaN` ternary at L327 emits NaN only on empty clusters; the L319+
+  // empty-cluster reseed must repopulate centroids. A test on finite
+  // input with k ≤ n must never produce NaN centroid coordinates.
+  const matrix = [
+    [1, 2],
+    [3, 4],
+    [5, 6],
+    [7, 8],
+  ];
+  const res = kmeans(matrix, 2, { seed: 1, restarts: 4 });
+  for (const cent of res.centroids) {
+    for (const v of cent) {
+      assert(Number.isFinite(v), `centroid coordinate must be finite, got ${v}`);
+    }
+  }
+});
 
 suite("pairwiseDistance — metrics");
 
