@@ -7,233 +7,121 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-05-14
+
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md). The
+> entries below are summary bullets that link there.
+
 ### Added
+
+- **Correlation stats panel in the scatter tool** — Pearson r,
+  Spearman ρ, Kendall τ-b with per-test recommendation, 95 % CI for
+  Pearson + Spearman, TXT + R-script (`cor.test`) downloads, per-group
+  rows when a categorical colour column is mapped. Cross-validated
+  against R 4.5 `cor.test` (16 new benchmark rows). See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-added).
+
+- **95 % CI on Cohen's d in the Group Plot stats panel** via the
+  noncentral-t pivot of Cumming & Finch 2001. New
+  `cohenDCI(d, n1, n2, conf?)` global; surfaces through the panel,
+  Stats CSV download, and R-script export header. ANOVA k ≥ 3 and
+  Mann-Whitney remain point-estimate-only. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-added).
 
 - **Aequorin configure step shows the calibration formula with your
-  parameter values substituted in.** When the user picks a calibration
-  formula from the dropdown (Allen & Blinks, Hill equilibrium, or
-  generalised Allen & Blinks), a panel appears below the K-inputs row
-  rendering the chosen equation with Kr / Ktr / Kd / n substituted at
-  their current values — e.g. for Allen & Blinks with the defaults,
-  `[Ca²⁺] = ((1 + 118)·f^(1/3) − 1) / (7·(1 − f^(1/3)))`. The fraction
-  bar is a CSS-stacked layout (no SVG / MathML dependency) so the
-  rendering themes correctly in dark mode and survives a future
-  font-stack switch. Updates live as the user nudges any K-input;
-  hides on "None (raw data)".
+  parameter values substituted in.** For Allen & Blinks at defaults:
+  `[Ca²⁺] = ((1 + 118)·f^(1/3) − 1) / (7·(1 − f^(1/3)))`. Updates
+  live as the K-inputs change; hides on "None (raw data)". See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-added).
+
+- **Aequorin → Group Plot hand-off labels the destination y-axis
+  "A.U.C."** Generic `yLabel` field added to `HandoffPayload`; any
+  source tool can suggest a label when the auto-derived value-column
+  name is an implementation detail rather than the standard scientific
+  term. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-added).
+
+- **`file://`-protocol detection banner on the landing page** so a
+  user who double-clicks `index.html` gets recovery steps instead of a
+  silent white page. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-added).
+
+- **"Send feedback" button on the right edge of every tool's topbar.**
+  Opens a `mailto:` draft with prefilled subject + body (incl. tool
+  key, version, UA, timestamp). Opt-in: Plöttr itself does no fetches.
+  See [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-added).
 
 ### Changed
-
-- **Heatmap: on-screen canvas density bumped, downloads vector when
-  cell count permits.** The live heatmap canvas now oversamples
-  `devicePixelRatio × 2` (capped at 6×, same approach as the volcano
-  raster fix) so cells stay crisp at any zoom on Retina + 4×-DPR
-  screens. Downloads branch by cell count: ≤ 2,000 cells emits one
-  `<rect>` per cell in the export clone (infinitely scalable SVG,
-  Inkscape-friendly per-cell selection); above the threshold the export
-  re-rasterises at the higher EXPORT density (`devicePixelRatio × 4`,
-  capped at 8×) so PNGs survive print-size zoom even though they aren't
-  true vector. Re-uses the same `registerSvgExportMutator` hook the
-  volcano work introduced. Regression: 3 new tests covering both
-  branches + the borders-ON vector path.
 
 - **Volcano: data layer rasterises to canvas above 1,000 points on
-  screen but downloads stay vector-perfect.** The 2026-05-12 raster
-  experiment was reverted because the embedded `<image>` made downloaded
-  SVGs fuzzy. New path: when point count crosses the threshold (dropped
-  from 2,000 → 1,000), the chart paints to a high-DPR canvas
-  (devicePixelRatio × 2, capped at 6×) and ships a single PNG `<image>`
-  for live display, but registers an SVG export mutator (new shared
-  primitive `registerSvgExportMutator` in `tools/shared.js`) that swaps
-  the `<image>` back to per-class `<g>` of vector `<circle>` elements in
-  the export clone before attribution is appended. Both SVG and PNG
-  downloads benefit: SVG is fully scalable, PNG rasterises from the
-  vector tree (not from the already-rastered live image). Click-to-label
-  still works in raster mode via a transparent `fill="none"` overlay
-  rect with the same nearest-point lookup as before. Tests: 5 new tests
-  on the mutator hook + 3 render-smoke tests on the raster ↔ vector
-  transition.
+  screen but downloads stay vector-perfect.** New
+  `registerSvgExportMutator` hook in `tools/shared.js` swaps the
+  raster `<image>` for per-class `<g>` of vector `<circle>` elements
+  in the export clone. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-changed).
 
-### Added
-
-- **Correlation stats panel in the scatter tool.** A new tile under the
-  scatter plot reports Pearson r, Spearman ρ, and Kendall τ-b with
-  per-test recommendation (Pearson by default, Spearman suggested when
-  Shapiro-Wilk flags either axis as non-normal). Click a row to inspect
-  variables, assumptions, and the full coefficient line — Pearson and
-  Spearman ship a 95 % CI (Fisher-z; Bonett-Wright variance for
-  Spearman). When a discrete color column is mapped, the panel adds one
-  row per category alongside the overall row. TXT and R-script
-  (`cor.test`) downloads cover every group. Independent of the existing
-  in-plot regression overlay — both can be on at once. Cross-validated
-  against R 4.5's `cor.test` to FP precision (8 fixtures × 3 methods).
-  New `pearsonCorrelation`, `spearmanCorrelation`, `kendallTau`, and
-  `selectCorrelation` globals in `tools/stats-tests.js`. Regression: 19
-  new tests in `tests/correlation.test.js`, 16 new benchmark rows.
-
-- **95 % CI on Cohen's d in the stats panel.** Two-group tests
-  (Student / Welch) now report the effect size as `d = X, 95 % CI [Y, Z]`
-  instead of a bare point estimate. CI computed via the noncentral-t
-  pivot of Cumming & Finch 2001 (Educational and Psychological
-  Measurement 61(4)) — bisects the noncentrality parameter at the
-  2.5 / 97.5 percentiles of `nctcdf` and converts back to d using
-  the SE factor `√(1/n₁ + 1/n₂)`. New `cohenDCI(d, n1, n2, conf?)`
-  global in `tools/stats-tests.js`; surfaces through the stats panel,
-  the Stats CSV download, and the R-script export header. ANOVA k≥3
-  (Cohen's f) and Mann-Whitney remain point-estimate-only for now —
-  noncentral-F-based CI on η²/ω² is a future slice.
-
-### Changed
-
-- **Benchmark now exercises `shapiroWilk`'s n=3 closed-form path.**
-  Three new Shapiro-Wilk fixtures (n=3 evenly-spaced / one outlier /
-  clustered-low + far-high) span the W range and pin both the exact
-  projection coefficients (`a₁ = √½, a₂ = 0, a₃ = −√½`) and the
-  closed-form p-value (`p = 6·(asin(√W) − asin(√¾)) / π`) against R's
-  `shapiro.test`. Previously the smallest fixture was n=20 (sleep
-  extra), so the n=3 branch had unit-test coverage only.
-
-- **Benchmark now cross-validates Hedges' g** against R's
-  `effectsize::hedges_g(pooled_sd = TRUE)`, the canonical reference for
-  the small-sample bias-corrected Cohen's d. Plöttr's `hedgesG` uses the
-  exact `J(df) = Γ(df/2) / (Γ((df−1)/2)·√(df/2))` correction (no
-  `3/(4n−9)` shortcut) — verified to FP precision on the six fixtures
-  already used by the Cohen's d / d_av cross-check (sleep, iris setosa
-  vs versicolor, iris versicolor vs virginica, ChickWeight@21 Diet 1 vs
-  4, swiss Catholic split, morley Expt 1 vs 5).
-
-- **Benchmark now validates Brown-Forsythe Levene against `car::leveneTest(center=median)`** instead
-  of a hand-ported inline `brown_forsythe()` helper. The inline port produced byte-identical F / p
-  to `car` on every fixture, but a self-port-vs-self-port cross-check silently passes any shared
-  bug — calling the canonical reference closes that gap. Adds `car` (3.x) to the bench's R-package
-  dependency list alongside `PMCMRplus`, `effectsize`, `SuperExactTest`.
-
-- **Tukey HSD now surfaces a methodological warning when (1−α, k, df)
-  lies in qtukey's pathological design envelope** (df ≤ 2 ∧ k ≥ 10 at
-  1−α ≥ 0.95). Plöttr's bracket-doubling `qtukey` still returns a
-  finite root in that corner, but cross-validation against SciPy's
-  `studentized_range.ppf` shows up-to-5 % relative disagreement —
-  the R / SciPy references diverge there too. The new `result.warning`
-  field tells consumers the per-pair lwr/upr are approximate while the
-  p-values (computed via `ptukey_upper`, which doesn't share the
-  inverse's bracket-expansion limit) remain reliable. Suggests
-  Games-Howell as an alternative for callers who actually land in
-  that regime. Belt-and-suspenders: the same channel reports the
-  (currently unreachable in practice) NaN-from-bracket case. Source
-  comment on `qtukey` itself now spells out the precise envelope
-  rather than the prior "anything larger is pathological".
-
-- **Post-hoc Cohen's f now uses the η²-based formula** matching R's
-  `effectsize::cohens_f`. The "n for 80% power" rows in the stats panel
-  (k≥3 ANOVA / Kruskal-Wallis) previously fed `fFromGroupMeans(means, sp)`
-  into `powerAnova`, which is correct under Cohen 1988 for equal n but
-  drifts up to ~10 % at unequal n (e.g. ChickWeight@21 by Diet). The new
-  branch computes `f = √(ssB / ssW)` with `ssB` weighted by group sizes
-  around the weighted grand mean — agrees with `effectsize::cohens_f`
-  to FP precision on iris, PlantGrowth, ToothGrowth, ChickWeight@21,
-  morley, OrchardSprays. `fFromGroupMeans` is unchanged (it remains the
-  correct a-priori-equal-n input for `power-app.tsx`).
-
-- **Benchmark now cross-validates Tukey HSD's `diff`/`lwr`/`upr` CI
-  bounds**, not just `pAdj`. R's `TukeyHSD()$groups` row carries all four
-  columns; the benchmark previously only emitted `p adj` and the JS side
-  only checked p-values, leaving the per-pair point estimate and 95 % CI
-  bounds Plöttr already returns silently un-cross-validated. Adds 3
-  metrics × 23 pairs = 69 new comparisons across 6 datasets (iris,
-  PlantGrowth, ToothGrowth, chickwts, ChickWeight@21, morley); all pass
-  within 5e-3. Games-Howell stays p-only (R's userfriendlyscience /
-  rstatix CI conventions diverge; not a single canonical reference).
+- **Heatmap: on-screen canvas oversamples DPR × 2 (cap 6×); downloads
+  branch by cell count** — ≤ 2 k cells emits one `<rect>` per cell for
+  fully vector SVG, above re-rasterises at DPR × 4 (cap 8×) so PNG
+  survives print zoom. Inkscape-safe-paint contract pinned by a
+  property test. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-changed).
 
 - **Cohen's d denominator now respects the chosen test's variance
-  assumption.** Student's t / Mann-Whitney still use the pooled SD
-  (`d_s` — `√(((n₁−1)·v₁ + (n₂−1)·v₂)/(n₁+n₂−2))`). Welch's t now
-  uses the mean of unpooled SDs (`d_av` — `(sd₁ + sd₂)/2`, Lakens
-  2013), since the pooled denominator embeds the equal-variance
-  assumption that Welch denies. Label changes from "Cohen's d" to
-  "Cohen's d_av" in the panel so users can tell which denominator
-  was used. Effect-size CI uses the same SE factor for both.
+  assumption** — pooled SD (`d_s`) for Student / MWU, mean unpooled
+  SD (`d_av`, Lakens 2013) for Welch. Label changes to "Cohen's
+  d_av" on the Welch path. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-changed).
+
+- **Post-hoc Cohen's f now uses the η²-based formula** matching R's
+  `effectsize::cohens_f`. Closes a ~10 % drift at unequal n in the
+  k ≥ 3 "n for 80 % power" rows. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-changed).
+
+- **Tukey HSD warns when (1−α, k, df) is in qtukey's pathological
+  envelope** (df ≤ 2 ∧ k ≥ 10 ∧ 1−α ≥ 0.95). `result.warning` tells
+  consumers the per-pair lwr / upr are approximate; suggests
+  Games-Howell. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-changed).
 
 - **Stats panel: "Power analysis" → "Replication planning" — the
-  "Achieved power" column is gone.** Post-hoc / observed power
-  (Hoenig & Heisey 2001) is a deterministic transformation of the
-  p-value: it adds no information beyond what p already tells the
-  reader, and presented as a coloured "% achieved" cell it nudges
-  users toward an incorrect "low achieved power means underpowered"
-  reading. The forward-looking "n for 80 % power" column is the
-  actually-useful output; the panel now shows that alone, with a
-  one-line subtitle explaining what the n means. Affects Group
-  Plot (`StatsTile`), the per-tool boxplot / aequorin / lineplot
-  stats panels, the Stats CSV download, and the R-script export
-  header. No change to the underlying tests or test selection.
+  "Achieved power" column is gone.** Hoenig & Heisey 2001 says
+  post-hoc power is a deterministic transform of the p-value. The
+  forward-looking "n for 80 % power" column stays. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-changed).
 
-### Added
+- **Benchmark cross-validation grew from 303 → 529 R comparisons.**
+  New coverage: Tukey HSD's CI bounds (69 rows), correlation
+  cross-checks (16 rows), Hedges' g vs `effectsize::hedges_g`,
+  shapiroWilk n=3 closed form, Brown-Forsythe Levene via
+  `car::leveneTest`. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-changed).
 
-- **`file://`-protocol detection banner on the landing page.** If a
-  user double-clicks `index.html` after cloning, they previously got a
-  silent white page (the SPA module fails to load on `file://` due to
-  browser cross-origin policy). The landing now detects
-  `location.protocol === "file:"` in a top-of-`<head>` inline script
-  and swaps in a `#file-protocol-warning` panel with step-by-step
-  recovery instructions: the hosted version's URL first, then
-  `python3 -m http.server` (preinstalled on macOS / Linux) with the
-  drag-folder-onto-Terminal shortcut for non-CLI users, plus
-  fallback alternatives (`npx serve`, VS Code Live Server).
+- **Discrete-palette swatch strip shows the full palette and each
+  swatch is click-to-copy.** Was clamped to `(4, 12, groupCount)` so
+  small plots hid most of the catalogue. Height bumped 12 → 18 px;
+  graceful fallback when `navigator.clipboard` is unavailable. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-changed).
 
 ### Fixed
 
+- **Volcano and Heatmap charts now carry per-element `aria-label`s.**
+  Closes the last per-element a11y gap surfaced in the 2026-05-12
+  audit. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-fixed).
+
 - **README + privacy.html no longer claim Plöttr runs from `file://`.**
-  Since v1.3.0 the SPA shell loads `tools/_app/index.js` as a
-  `<script type="module">` and browsers block module loading from
-  `file://` origins (cross-origin policy on local files). Docs now
-  recommend `python3 -m http.server` (or any static-file server) and
-  `http://localhost:8000`. The behaviour change has been live for
-  months; only the install instructions were stale.
+  Since v1.3.0 the SPA shell needs `<script type="module">` which
+  browsers block on `file://` origins. Docs now point to `python3 -m
+http.server`. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-fixed).
 
-- **Volcano and Heatmap charts now carry per-element `aria-label`s** to
-  match the per-element a11y coverage the six other plot tools already
-  had. Volcano: each significance class (`points-up` / `points-down` /
-  `points-ns`) is labelled with its count + class name; the
-  `data-points` root carries the total. Heatmap: the rasterised `cells`
-  image, the colourbar, and the row / column label groups all carry
-  labels naming row/column counts and the value range. The image
-  element itself is now `aria-hidden` (the enclosing `<g>` carries the
-  accessible name). Closes the last per-element gap surfaced in the
-  2026-05-12 audit.
-
-### Changed
-
-- **Discrete-palette swatch strip now shows the full palette and each
-  swatch is click-to-copy.** Was: the strip rendered `clamp(4, 12,
-groupCount)` swatches, so a 3-group plot showed only the first 3-4
-  hexes of an 8–12-entry catalogue — users couldn't see (let alone
-  copy) any of the remaining colours without manually opening
-  `discrete-palette.ts`. Now the strip renders the catalogue's natural
-  length (10 for runtime-generated `ggplot2-hue` / `viridis-d`,
-  whatever the static array says for the rest); each swatch is a real
-  `<button>` that copies its hex to the clipboard on click / Enter
-  and surfaces a brief `✓ Copied #ABC123` caption below. Manual hex
-  entry in the existing per-group colour inputs still overrides
-  whatever the palette assigned. Height bumped 12 → 18 px so the
-  swatches are comfortable click targets. Gracefully degrades to
-  "show the hex for manual copy" on browsers without
-  `navigator.clipboard` (older Safari, non-HTTPS contexts).
-
-### Added
-
-- **"Send feedback" button on the right edge of every tool's topbar.**
-  Opens a `mailto:` draft (to `plottrproject@gmail.com`) in the
-  user's default mail client with a prefilled subject and a body
-  that includes (a) two empty prompt sections — _What happened_ /
-  _What you expected_ — for the user to fill in, and (b) a metadata
-  footer carrying the current tool key, Plöttr version, browser UA
-  and timestamp so we can reproduce. Opt-in by design: Plöttr itself
-  performs no fetches and the metadata is visible to the user in
-  the draft _before_ they hit Send. Separated from the tool
-  quick-jumps by a `tb-sep`, right-pinned via `margin-left: auto`,
-  speech-bubble icon matching the existing monoline topbar style.
-  Mailto was preferred over a GitHub Issues URL because most
-  internal wet-lab users don't have a GitHub account; the
-  destination address lives at module scope so a fork can swap it
-  without touching the callsite.
+- **Pre-commit hook now catches new + stale esbuild chunks correctly.**
+  Wipes `tools/_app/chunks/` before each rebuild, enumerates drift via
+  `git status --porcelain`, stages per path so a single no-match glob
+  can't abort the whole restage. Developer-only fix. See
+  [`docs/release-notes/v1.5.0.md`](docs/release-notes/v1.5.0.md#-fixed).
 
 ## [1.4.2] - "Paste" - 2026-05-11
 
