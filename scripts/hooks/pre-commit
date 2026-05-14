@@ -77,35 +77,69 @@ restore_stash() {
 }
 trap restore_stash EXIT
 
+# Clean the per-tool lazy chunks dir before rebuild. esbuild's
+# `--splitting --chunk-names=chunks/[name]-[hash]` is deterministic from
+# source content but doesn't garbage-collect: a tool whose hash changes
+# leaves its prior chunk on disk, tracked-but-unreferenced. Without this
+# wipe the hook can't tell stale-tracked from current — the file is
+# still on disk and `git diff` reports no drift. Wiping forces the
+# rebuild to re-emit only what the SPA currently imports; deletions land
+# in `git status` and `git add -A` below stages them. `tools/_app/index.js`
+# itself is excluded — only the content-hashed chunks under chunks/
+# need this treatment.
+rm -f tools/_app/chunks/*.js tools/_app/chunks/*.js.map
+
 # Rebuild. prebuild script also regenerates tools/version.js and
 # tools/shared.bundle.js, so we don't need separate invocations.
 npm run --silent build >/dev/null
 
-# Find compiled outputs that differ from the INDEX. `git diff` (no flags)
-# already shows working tree vs index — exactly what we want. Pre-existing
-# unstaged drift would have been stashed away above, so anything surfacing
-# here is a genuine consequence of the rebuild on the staged source.
+# Compiled-output pathspec — every glob below is a path whose content is
+# derived from source and should be kept in lock-step with what's about
+# to be committed. Kept as a bash array so it can be passed verbatim to
+# both `git status` (for the user-visible echo) and `git add -A` (for
+# the actual restage).
+COMPILED_PATHSPEC=(
+  'tools/*.js'
+  'tools/*.js.map'
+  'tools/*/index.js'
+  'tools/*/index.js.map'
+  'tools/_app/index.js'
+  'tools/_app/index.js.map'
+  'tools/_app/chunks/*.js'
+  'tools/_app/chunks/*.js.map'
+  'tools/shared.bundle.js'
+  'tools/shared.bundle.js.map'
+  'tools/version.js'
+  'tools/*.html'
+  'index.html'
+)
+
+# Enumerate everything in those paths that drifted from the index.
+# `git status --porcelain` covers all four cases the rebuild can produce:
 #
-# `tools/_app/chunks/*` covers the per-tool lazy chunks emitted by
-# `--splitting --chunk-names=chunks/[name]-[hash]`. The `[hash]` is
-# content-derived (deterministic across rebuilds from the same source),
-# so a stale chunk left behind by a now-removed tool will surface here
-# and need to be staged-or-deleted in the same commit.
-REBUILT=$(git diff --name-only --diff-filter=ACMR -- \
-  'tools/*.js' 'tools/*.js.map' \
-  'tools/*/index.js' 'tools/*/index.js.map' \
-  'tools/_app/index.js' 'tools/_app/index.js.map' \
-  'tools/_app/chunks/*.js' 'tools/_app/chunks/*.js.map' \
-  'tools/shared.bundle.js' 'tools/shared.bundle.js.map' \
-  'tools/version.js' \
-  'tools/*.html' \
-  'index.html' \
-  2>/dev/null || true)
+#   - ` M` / `MM` — existing tracked file the rebuild modified
+#   - `??`        — new content-hashed chunk esbuild emitted
+#   - ` D`        — chunk we wiped above that's still tracked (so it
+#                   was stale and the new build doesn't need it; the
+#                   deletion needs to be staged into this commit)
+#   - `R `        — renamed (rare here, but still in scope)
+#
+# `git diff` (the previous mechanism) only covers M and D; A/?? show up
+# only in `git status` because untracked files are not in the index.
+# Pre-existing unstaged drift was stashed at the top of the hook, so
+# anything surfacing here is a genuine consequence of this rebuild on
+# the staged source.
+REBUILT=$(git status --porcelain -- "${COMPILED_PATHSPEC[@]}" 2>/dev/null \
+  | awk 'NF { sub(/^.. /, ""); print }' || true)
 
 if [ -n "$REBUILT" ]; then
   echo "[pre-commit] Re-staging rebuilt outputs:"
   echo "$REBUILT" | sed 's/^/  /'
-  echo "$REBUILT" | xargs git add
+  # `git add -A` over the pathspec stages modifications, additions, AND
+  # deletions in one pass — needed because a stale chunk wipe surfaces
+  # as a delete and a fresh chunk emit surfaces as an add, both in the
+  # same commit.
+  git add -A -- "${COMPILED_PATHSPEC[@]}"
 fi
 
 exit 0
