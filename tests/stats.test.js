@@ -553,7 +553,7 @@ const shapiroCases = [
 // and capturing them in closures attributes the hits on stats-tests.js's
 // Royston polynomials to "module load" rather than to specific tests, so
 // the per-test map shows zero coverage and Stryker doesn't run these tests
-// against polynomial mutants. See docs/testing-2026-05-08.md.
+// against polynomial mutants.
 for (const c of shapiroCases) {
   test(`${c.label} — W ≈ ${c.W}`, () => {
     // Tight tolerance on W: the actual JS-vs-R agreement is rel ~5e-7,

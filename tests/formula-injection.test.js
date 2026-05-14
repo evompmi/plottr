@@ -1,12 +1,10 @@
-// Regression coverage for the security-audit Tier-A defences:
+// Regression coverage for two injection defences:
 //   1. CSV formula injection — leading =/+/-/@/TAB/CR cells get prefixed
 //      with `'` by buildCsvString and are flagged at ingest by
 //      scanForFormulaInjection.
 //   2. R-script comment injection — sanitizeRString and sanitizeRComment
 //      flatten every line terminator so a hostile column name / set name
 //      can't escape a `# ...` comment line.
-//
-// Source: docs/security_audit_02-05-2026.md items #1 and #2.
 
 const { suite, test, assert, eq, summary } = require("./harness");
 const {
@@ -240,10 +238,10 @@ test("leaves backslash and quotes alone (harmless inside #)", () => {
 suite("buildRScript — hostile dataNote stays inside the comment");
 
 test("CR-injected dataNote is flattened, can't escape the # line", () => {
-  // This is the exact attack scenario from docs/security_audit_02-05-2026.md
-  // item #2: a user-supplied label flows into `# ...` lines inside the R
-  // script, and a CR/LF would have ended the comment, letting the next byte
-  // become live R code. After the fix every line terminator is flattened.
+  // Attack scenario: a user-supplied label flows into `# ...` lines inside
+  // the R script, and a CR/LF would have ended the comment, letting the
+  // next byte become live R code. Every line terminator is flattened so
+  // the comment can't be closed early.
   const ctx = {
     names: ["A", "B"],
     values: [
