@@ -48,12 +48,18 @@ export default {
     //                  ties, single-step kmeans convergence). Surfaced
     //                  + fixed a real `approx` NaN-pass bug in
     //                  `tests/harness.js`.
-    "tools/_core/stats/cluster.ts",
+    //   - dist.ts    — 63.08% raw / 67.37% covered, 369 survivors +
+    //                  77 no-coverage. Adding direct power* + PDF +
+    //                  complementary-tail tests killed 91 mutants and
+    //                  halved no-coverage (145 → 77). Residual mostly
+    //                  in chi2inv / tinv Newton internals and GL
+    //                  quadrature. ~27 min wall-clock per run.
+    "tools/_core/stats/dist.ts",
     //
     // Pending — uncomment one at a time and re-run:
     // "tools/_core/stats/format.ts",
     // "tools/_core/stats/msi.ts",
-    // "tools/_core/stats/dist.ts",
+    // "tools/_core/stats/cluster.ts",
     // "tools/_core/stats/tests.ts",
     // "tools/_core/stats/posthoc.ts",
     // "tools/volcano/helpers.ts",
