@@ -102,6 +102,7 @@ const {
   dendrogramLayout,
   kmeans,
   formatP,
+  pStars,
   // `ctx` mirrors every export — kept for the few suites that reach in
   // for underscore-prefixed internals (`_wprob`, `_wprob_upper`) or
   // less-frequently-used names. Behaviourally identical to the prior
@@ -274,6 +275,80 @@ test("standard format ranges", () => {
   eq(formatP(1e-4), "1.00e-4"); // == 1e-4 boundary, NOT < 1e-4 — toExponential(2)
   eq(formatP(5e-5), "5.0e-5"); // strictly < 1e-4 — toExponential(1)
   eq(formatP(1e-9), "1.0e-9"); // deep tail — toExponential(1)
+});
+
+// ── pStars — significance-star contract ───────────────────────────────────
+//
+// pStars maps a p-value to the 4-level star scale used on plot annotations
+// ("****" / "***" / "**" / "*" / "ns") with an empty-string fallback for
+// non-finite p. No direct caller test existed until the post-1.5.0 mutation
+// audit — the function was only exercised through render-smoke tests, which
+// don't assert on chart text content, so every boundary mutant survived.
+// These tests pin the contract exhaustively: each of the four strict-`<`
+// thresholds is tested just-below and at-the-boundary, the non-finite
+// short-circuit is tested for each non-finite shape, and the "ns" tail is
+// tested for in-range and well-above values.
+
+suite("pStars — non-finite contract");
+
+test("null / undefined → ''", () => {
+  eq(pStars(null), "");
+  eq(pStars(undefined), "");
+});
+
+test("NaN, +Infinity, -Infinity → ''", () => {
+  eq(pStars(NaN), "");
+  eq(pStars(Infinity), "");
+  eq(pStars(-Infinity), "");
+});
+
+suite("pStars — boundary thresholds (strict <)");
+
+test("p just below 1e-4 → '****'", () => {
+  eq(pStars(9.99e-5), "****");
+  eq(pStars(1e-9), "****"); // deep tail still on this rung
+});
+
+test("p === 1e-4 → '***' (NOT '****'; boundary is strict <)", () => {
+  eq(pStars(1e-4), "***");
+});
+
+test("p just below 1e-3 → '***'", () => {
+  eq(pStars(9.99e-4), "***");
+  eq(pStars(5e-4), "***");
+});
+
+test("p === 1e-3 → '**' (NOT '***'; boundary is strict <)", () => {
+  eq(pStars(1e-3), "**");
+});
+
+test("p just below 1e-2 → '**'", () => {
+  eq(pStars(9.99e-3), "**");
+  eq(pStars(5e-3), "**");
+});
+
+test("p === 0.01 → '*' (NOT '**'; boundary is strict <)", () => {
+  eq(pStars(0.01), "*");
+});
+
+test("p just below 0.05 → '*'", () => {
+  eq(pStars(0.04999), "*");
+  eq(pStars(0.025), "*");
+});
+
+test("p === 0.05 → 'ns' (NOT '*'; boundary is strict <)", () => {
+  eq(pStars(0.05), "ns");
+});
+
+test("p >> 0.05 → 'ns'", () => {
+  eq(pStars(0.5), "ns");
+  eq(pStars(1), "ns");
+});
+
+test("p === 0 (underflow) → '****'", () => {
+  // 0 is finite, so it doesn't trip the non-finite gate; it then satisfies
+  // every strict-< check and lands on the smallest-p rung.
+  eq(pStars(0), "****");
 });
 
 test("fcdf + fcdf_upper sum to 1 in the central body", () => {
@@ -2438,13 +2513,127 @@ test("very-large DP cost routes to Poisson without hanging", () => {
   approx(routed, poisson, 1e-15);
 });
 
+// ── multisetExclusiveP — interior + at-boundary pins (mutation audit) ──────
+//
+// Existing property tests for `multisetExclusiveP` pin xObs=0 / xObs=N+1 /
+// xObs=-1 endpoints and a monotonicity invariant, but never assert that
+// interior probabilities are *non-trivial*. A mutant making the upper-tail
+// branch always return 0 (or 1) satisfies both: "output in [0, 1]" trivially,
+// "monotonic non-increasing" trivially (0 ≥ 0). These tests pin specific
+// interior values via R `pbinom()` cross-checks plus saturation behaviour at
+// the exact boundary (xObs == Nint for upper, xObs == 0 for lower), so a
+// branch-killing mutant produces a result that disagrees with R.
+
+suite("multisetExclusiveP — interior + at-boundary pins");
+
+// Both tails are inclusive: upper(xObs) = P(X ≥ xObs), lower(xObs) =
+// P(X ≤ xObs). The sum-to-1 invariant is therefore between adjacent xObs:
+// upper(k+1) + lower(k) = 1 (since P(X ≥ k+1) = 1 - P(X ≤ k)).
+
+test("upper-tail interior at the binomial mean is squarely in (0, 1)", () => {
+  // R: pbinom(29, 100, 0.3, lower.tail = FALSE) ≈ 0.53766
+  // (P(Binomial(100, 0.3) >= 30) via the betai/binomial-beta identity.)
+  // Pins a value that distinguishes a real (≈0.54) result from any mutant
+  // that collapses the branch to 0 or 1.
+  const p = ctx.multisetExclusiveP(30, [30], [], 100, { tail: "upper" });
+  approx(p, 0.5376602639846533, 1e-6);
+});
+
+test("lower-tail interior at the binomial mean is squarely in (0, 1)", () => {
+  // R: pbinom(30, 100, 0.3) ≈ 0.54912
+  // Lower-tail is inclusive: P(X <= 30) at the mean of Bin(100, 0.3).
+  const p = ctx.multisetExclusiveP(30, [30], [], 100, { tail: "lower" });
+  approx(p, 0.5491236007687557, 1e-6);
+});
+
+test("upper(k+1) + lower(k) = 1 (complementary-tail axiom)", () => {
+  // P(X >= k+1) + P(X <= k) = 1 for a discrete distribution. Pins the
+  // two tail branches against each other — a mutant flipping either
+  // branch's guard would break the sum.
+  const up = ctx.multisetExclusiveP(31, [30], [], 100, { tail: "upper" });
+  const lo = ctx.multisetExclusiveP(30, [30], [], 100, { tail: "lower" });
+  approx(up + lo, 1, 1e-12);
+});
+
+test("upper-tail at xObs == Nint is non-zero (kills 'xObs >= Nint' mutant)", () => {
+  // At equality the `xObs > Nint` guard is false; the branch falls through
+  // to betai(Nint, 1, p) = p^Nint. For inside=[30] / N=100 / p=0.3 that's
+  // 0.3^100 ≈ 5.15e-53 — tiny but strictly positive. A mutant turning the
+  // guard into `xObs >= Nint` would short-circuit here and return 0.
+  const p = ctx.multisetExclusiveP(100, [30], [], 100, { tail: "upper" });
+  assert(p > 0, "must be strictly positive at xObs == Nint");
+  approx(p, Math.pow(0.3, 100), 1e-60);
+});
+
+test("lower-tail at xObs == 0 is non-zero (kills 'xObs <= 0' mutant)", () => {
+  // At xObs = 0 the `xObs < 0` guard is false; falls through to
+  // betai(Nint, 1, 1 - p) = (1 - p)^Nint. For p=0.3 / Nint=100 that's
+  // 0.7^100 ≈ 3.23e-16 — tiny but strictly positive. A mutant turning the
+  // guard into `xObs <= 0` would short-circuit and return 0.
+  const p = ctx.multisetExclusiveP(0, [30], [], 100, { tail: "lower" });
+  assert(p > 0, "must be strictly positive at xObs == 0");
+  approx(p, Math.pow(0.7, 100), 1e-22);
+});
+
+test("upper-tail saturation: p == 1 (inside=[N]) → 1", () => {
+  eq(ctx.multisetExclusiveP(50, [100], [], 100, { tail: "upper" }), 1);
+});
+
+test("upper-tail saturation: p == 0 (inside=[0]) → 0", () => {
+  eq(ctx.multisetExclusiveP(50, [0], [], 100, { tail: "upper" }), 0);
+});
+
+test("lower-tail saturation: p == 1 → 0", () => {
+  eq(ctx.multisetExclusiveP(50, [100], [], 100, { tail: "lower" }), 0);
+});
+
+test("lower-tail saturation: p == 0 → 1", () => {
+  eq(ctx.multisetExclusiveP(50, [0], [], 100, { tail: "lower" }), 1);
+});
+
+// ── multisetIntersectionPExactLower — at-boundary pins (mutation audit) ────
+//
+// Mirror of the multisetExclusiveP audit above. Existing property tests
+// already pin xObs = minN endpoint (returns 1) and validate-arg NaN paths,
+// but the saturation guards at xObs == minN - 1 (just below the upper
+// endpoint, where the lower tail covers nearly the full distribution) and
+// xObs = 0 (the smallest sensible argument) are not pinned, and the
+// "always-1" / "always-0" mutants survive the existing monotonicity check.
+
+suite("multisetIntersectionPExactLower — interior pins");
+
+test("lower-tail (k=2) interior matches 1 - upper-tail at xObs+1", () => {
+  // P(|∩| <= xObs) = 1 - P(|∩| >= xObs + 1). Both sides are computed
+  // independently in the kernel (different code paths through the DP),
+  // so the round-trip pins the two tail branches against each other.
+  const lower = ctx.multisetIntersectionPExactLower(5, [20, 30], 100);
+  const upperAtNext = ctx.multisetIntersectionPExact(6, [20, 30], 100);
+  approx(lower + upperAtNext, 1, 1e-10);
+});
+
+test("lower-tail (k=3) interior matches 1 - upper-tail at xObs+1", () => {
+  const lower = ctx.multisetIntersectionPExactLower(3, [20, 30, 40], 100);
+  const upperAtNext = ctx.multisetIntersectionPExact(4, [20, 30, 40], 100);
+  approx(lower + upperAtNext, 1, 1e-10);
+});
+
+test("lower-tail at xObs = 0 is the P(|∩| == 0) mass (strictly positive)", () => {
+  // For valid inputs with non-zero set sizes, P(|∩| == 0) > 0 — the
+  // intersection can always be empty given finite probability of disjoint
+  // draws. Pins the at-boundary behaviour: the `xObs < 0` guard does not
+  // fire, the `xObs >= minN` guard does not fire, the DP runs and returns
+  // logP[0]'s exponential.
+  const p = ctx.multisetIntersectionPExactLower(0, [20, 30], 100);
+  assert(p > 0 && p < 1, "P(|∩| == 0) must be strictly in (0, 1)");
+});
+
 // ── Non-central distribution fixtures vs SciPy 1.17 ────────────────────────
 //
 // The non-central CDFs (`nctcdf`, `ncf_sf`, `ncchi2cdf`) are reached only
 // through the power calculator + the SciPy benchmark — neither path pins
 // the *numerical* output tightly enough to catch precision-shifting
-// mutations on the A&S / Gauss-Legendre coefficients (per docs/testing-
-// 2026-05-08.md, the bulk of mutation survivors live in these branches).
+// mutations on the A&S / Gauss-Legendre coefficients (the bulk of mutation
+// survivors live in these branches).
 //
 // Each row below is a SciPy 1.17.1 reference value lifted from
 // `benchmark/results-scipy.json`, hand-picked to stay in the regime where

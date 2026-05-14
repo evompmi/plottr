@@ -19,30 +19,37 @@ export default {
   // Files Stryker mutates. Start narrow (volcano + stats) so the first
   // run completes in minutes; widen once the workflow is proven.
   mutate: [
-    // Active scope. Mutation runs cover one helpers file at a time to
-    // keep wall-clock manageable; results land in CHANGELOG and git
-    // history, so the others can stay commented until they're up next.
+    // Active scope. Mutation runs cover one file (or one small set) at a
+    // time to keep wall-clock manageable; the others can stay commented
+    // until they're up next.
     //
-    // Already verified:
-    //   - tools/volcano/helpers.ts  (100%, 996 mutants, 932 killed + 64 timed out)
-    //   - tools/scatter/helpers.ts  (93.18% raw / 100% non-equivalent, 88 mutants)
-    //   - tools/lineplot/helpers.ts (79.20% raw / ~95% non-equivalent, 125 mutants)
-    //   - tools/stats.js            (65.27% raw / 67.34% covered, 3329 mutants;
-    //                                three passes — file-skip → selective skip →
-    //                                property tests for multiset/clustering + power-
-    //                                loader refactor + Stryker-disable annotations on
-    //                                equivalent-mutant validators. No-coverage dropped
-    //                                528 → 102. See docs/testing-2026-05-08.md.
-    //                                Pre-split — measured before stats.js was carved
-    //                                into stats-{dist,tests,posthoc,cluster,msi}.js.
-    //                                The glob below covers the same source.)
+    // Already verified (pre-migration scores — re-baseline pending):
+    //   - tools/volcano/helpers.ts   (100%, 996 mutants, 932 killed + 64 timed out)
+    //   - tools/scatter/helpers.ts   (93.18% raw / 100% non-equivalent, 88 mutants)
+    //   - tools/lineplot/helpers.ts  (79.20% raw / ~95% non-equivalent, 125 mutants)
+    //   - tools/stats.js             (legacy — 66.87% raw / 68.98% covered, 3329
+    //                                 mutants. Measured before the kernel was
+    //                                 migrated to tools/_core/stats/*.ts; the
+    //                                 _core/stats/*.ts entries below need a fresh
+    //                                 baseline pass.)
     //
-    // Active target (stays here so `npm run mutation` reproduces the
-    // most recent run; swap for one of the pending entries below to
-    // measure another file):
-    "tools/stats-*.js",
+    // Active target. Swap for one of the pending entries below to measure
+    // another module.
+    //
+    // format.ts pilot — 2026-05-14: 95.56% raw, 100% non-equivalent (45
+    // mutants, 43 killed, 2 surviving mutants both provably equivalent —
+    // `p == null || !Number.isFinite(p)` → `false || !Number.isFinite(p)`,
+    // observably identical because null/undefined fail Number.isFinite
+    // anyway). pStars went from zero direct coverage to comprehensive
+    // boundary tests in `tests/stats.test.js`.
+    "tools/_core/stats/msi.ts",
     //
     // Pending — uncomment one at a time and re-run:
+    // "tools/_core/stats/format.ts",
+    // "tools/_core/stats/dist.ts",
+    // "tools/_core/stats/tests.ts",
+    // "tools/_core/stats/posthoc.ts",
+    // "tools/_core/stats/cluster.ts",
     // "tools/volcano/helpers.ts",
     // "tools/scatter/helpers.ts",
     // "tools/lineplot/helpers.ts",
@@ -104,8 +111,9 @@ export default {
   // browsable per-mutant report. The dashboard reporter is included by
   // default and would attempt to upload to stryker.dashboard.io;
   // omitting it keeps the run local-only.
-  reporters: ["progress", "clear-text", "html"],
+  reporters: ["progress", "clear-text", "html", "json"],
   htmlReporter: { fileName: "reports/mutation/mutation.html" },
+  jsonReporter: { fileName: "reports/mutation/mutation.json" },
 
   // Don't clutter the repo with the sandbox dir between runs.
   cleanTempDir: true,
