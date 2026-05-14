@@ -5,18 +5,17 @@
 //   - The landing tile grid (route is null / unknown).
 //   - A topbar + the tool's `App` component (route is a known tool).
 //
-// The topbar mirrors what the iframe shell rendered inside each
-// tool's HTML page (back-to-home button + sibling tool quick-jump
-// icons + theme toggle). The landing tile grid is intentionally
-// minimal in Phase 1 — Phase 5 lifts the full landing markup out
-// of `index.html` once the iframe shell goes away.
+// The topbar carries the back-to-home button, sibling-tool quick-jump
+// icons, and the theme toggle. The landing tile grid here is a minimal
+// fallback — the real landing markup lives in `index.html` and is
+// hidden via CSS whenever the SPA hash route resolves to a tool.
 
 import { useRoute, navigate } from "./Router";
 import { TOOL_REGISTRY, findToolEntry } from "./tool-registry";
 import { ErrorBoundary } from "../_shell";
 import { toggleTheme, useThemeMode } from "../_core/theme";
-// Inline SVG icons reused across the SPA shell. Match the pre-SPA
-// markup in `index.html` for visual identity.
+// Inline SVG icons reused across the SPA shell. Visual identity mirrors
+// the landing markup in `index.html`.
 const HOME_SVG =
   '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 L10 3 L17 10"/><path d="M5 9 V17 H15 V9"/></svg>';
 const SUN_SVG =
@@ -37,10 +36,8 @@ const FEEDBACK_SVG =
 // module scope so a fork can swap it without touching the callsite.
 const FEEDBACK_EMAIL = "plottrproject@gmail.com";
 
-// Tiny helper for inline-SVG icon buttons. Same pattern the pre-SPA
-// landing topbar used (`tb-icon-btn` class declared in the existing
-// `index.html` style block; will move into `components.css` during
-// Phase 5).
+// Tiny helper for inline-SVG icon buttons. The `tb-icon-btn` class is
+// declared in `index.html`'s top-level style block.
 function IconButton({
   title,
   svg,
@@ -136,10 +133,10 @@ function FeedbackButton({ currentKey }: { currentKey: string | null }) {
 
 // Theme toggle for the SPA topbar. The inline IIFE in `index.html`
 // only walks `[data-theme-toggle]` once at load time, so React-rendered
-// buttons created later are never wired. We render our own button
-// against `useThemeMode()` / `toggleTheme()` from `tools/theme.js`
-// (script-scope globals via the shared bundle), kept visually
-// consistent with the rest of the topbar's `tb-icon-btn` siblings.
+// buttons created later are never wired by that path. We render our
+// own button against `useThemeMode()` / `toggleTheme()` from
+// `_core/theme`, kept visually consistent with the rest of the
+// topbar's `tb-icon-btn` siblings.
 function ThemeButton() {
   const mode = useThemeMode();
   const isDark = mode === "dark";
@@ -181,9 +178,8 @@ function ToolTopbar({ currentKey }: { currentKey: string }) {
       // rule in index.html that strips the topbar to "just the two
       // calculators + theme toggle" on phones (plot tools want a wider
       // canvas than mobile gives them, so a user mid-calculator
-      // shouldn't be invited into one). The attributes were on the
-      // pre-SPA per-tool HTML topbar; the React migration dropped them
-      // and the selector silently matched nothing.
+      // shouldn't be invited into one). Don't drop these attributes —
+      // the CSS selector silently matches nothing without them.
       extraAttrs: { "data-back": "true" },
     }),
     React.createElement("div", { className: "tb-sep" }),
@@ -305,9 +301,11 @@ function ChunkLoadingFallback({ label }: { label: string }) {
   );
 }
 
-// Phase-1 placeholder landing view. The full tile grid lives in
-// `index.html` for now (still owned by the iframe shell); Phase 5
-// migrates that markup into a proper `LandingView` component here.
+// Placeholder landing view. Normally never rendered — `index.html`'s
+// static landing markup is hidden / shown via the `data-spa-route`
+// attribute, so this component only appears if that CSS hide-rule
+// fails (e.g. a `?theme=` redirect to a tool route that wasn't
+// recognised).
 function LandingPlaceholder() {
   return React.createElement(
     "div",
@@ -322,15 +320,11 @@ function LandingPlaceholder() {
         textAlign: "center",
       },
     },
-    React.createElement(
-      "h2",
-      { style: { margin: "0 0 12px", color: "var(--text)" } },
-      "Plöttr SPA — Phase 1"
-    ),
+    React.createElement("h2", { style: { margin: "0 0 12px", color: "var(--text)" } }, "Plöttr"),
     React.createElement(
       "p",
       { style: { color: "var(--text-muted)", margin: "0 0 16px" } },
-      "Pick a tool from the registry. The landing tile grid moves here in Phase 5."
+      "Pick a tool from the registry."
     ),
     React.createElement(
       "ul",

@@ -47,10 +47,9 @@ ctx.STATS_POSTHOC_REGISTRY = registry.STATS_POSTHOC_REGISTRY;
 ctx.STATS_TESTS_FOR_K2 = registry.STATS_TESTS_FOR_K2;
 ctx.STATS_TESTS_FOR_K = registry.STATS_TESTS_FOR_K;
 
-// `assignBracketLevels` and `computePowerFromData` were extracted from
-// the StatsTile bundle into their own _shell modules in 2026-06; lift
-// each onto ctx so helpers.ts (which uses both via the barrel) resolves
-// them cleanly.
+// Lift `assignBracketLevels` and `computePowerFromData` onto ctx so
+// boxplot/helpers.ts (which consumes both via the _shell barrel)
+// resolves them in the vm sandbox.
 const bracketLevels = runCjs(ctx, bracketLevelsCjs);
 ctx.assignBracketLevels = bracketLevels.assignBracketLevels;
 

@@ -6,9 +6,9 @@
 // instead of running through the regular upload step.
 //
 // Why localStorage and not postMessage / URL fragments:
-//   • postMessage requires both pages to be alive simultaneously and a
-//     coordinator iframe; tools navigate top-level (separate HTML files
-//     pre-SPA, single SPA shell post-).
+//   • postMessage requires both pages to be alive simultaneously plus a
+//     coordinator iframe; tool navigation hops the top-level frame, so
+//     the source page is gone by the time the destination mounts.
 //   • URL fragments hit the ~2 KB browser limit on payloads and leak
 //     data into history / referers.
 //   • localStorage is per-origin, synchronous, and the payload lives only
@@ -103,12 +103,12 @@ export function consumeHandoff(targetTool: string): HandoffPayload | null {
 // SPA-aware tool navigation. Source tools (e.g. RLU timecourse →
 // Group Plot) call this after `setHandoff(...)` to switch the visible
 // view. Two paths:
-//   1. SPA mode: `window.__plottrSpaNavigate` is registered by
-//      `tools/_app/index.tsx` on boot. Calling it changes
+//   1. SPA mode (the production deploy): `window.__plottrSpaNavigate` is
+//      registered by `tools/_app/index.tsx` on boot. Calling it changes
 //      `location.hash` and the SPA router re-renders the new tool
 //      in-place. The destination tool's mount-time `consumeHandoff()`
 //      finds the localStorage payload we just wrote and applies it.
-//   2. Pre-SPA / iframe shell mode: `__plottrSpaNavigate` is undefined,
+//   2. Standalone-page fallback: `__plottrSpaNavigate` is undefined,
 //      so we fall back to a top-level navigation to `<key>.html`. The
 //      destination tool boots fresh and its mount-time `consumeHandoff()`
 //      does the same.
@@ -122,13 +122,9 @@ export function navigateToTool(toolKey: string): void {
       spaNav(toolKey);
       return;
     } catch (_e) {
-      // Fall through to legacy navigation if the SPA path errors.
+      // Fall through to standalone-page navigation if the SPA path errors.
     }
   }
-  // Legacy: full top-level navigation. The path stays `<key>.html` in
-  // iframe-shell deploys; in SPA-only deploys these files no longer
-  // exist (phase 6 of the SPA migration), so navigateToTool is
-  // effectively SPA-only there.
   try {
     window.location.assign(toolKey + ".html");
   } catch (_e) {

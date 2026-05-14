@@ -5,13 +5,9 @@
 // labels above the bars. Pure data helpers `computePowerFromData` and
 // `assignBracketLevels` live in sibling files (`./power-from-data`,
 // `./bracket-levels`) so per-tool stats panels can import them without
-// pulling in this whole component.
-//
-// Pre-2026-05 lived in `tools/shared-stats-tile.js` as a single
-// React.createElement bundle. Migration kept the createElement form
-// (full JSX conversion would balloon the diff for no behaviour change);
-// 2026-06 split out the public pure helpers per the per-component
-// _shell convention.
+// pulling in this whole component. Rendered via `React.createElement`
+// rather than JSX literals — the createElement form keeps the file
+// readable while still being type-checked.
 
 import {
   STATS_TEST_REGISTRY,
@@ -27,15 +23,10 @@ import { svgSafeId } from "../_core/svg-export";
 import { downloadText, flashSaved } from "../_core/download";
 import { compactLetterDisplay, selectTest } from "../_core/stats/posthoc";
 import { formatP, pStars } from "../_core/stats/format";
-// Return shape of `selectTest()` — declared globally in `types/globals.d.ts`.
-// Aliased here so component code reads as `SelectTestResult | null` instead
-// of an inlined ReturnType pull.
-type SelectTestResult = ReturnType<typeof selectTest>;
 
-// Globals consumed at runtime (resolved through `tools/shared.bundle.js`):
-//   sampleMean, sampleSD, fFromGroupMeans, powerTwoSample, powerAnova,
-//   compactLetterDisplay, selectTest, pStars, formatP, downloadText,
-//   flashSaved, svgSafeId. All declared in `types/globals.d.ts`.
+// Aliased here so component code reads as `SelectTestResult | null` instead
+// of an inlined `ReturnType<typeof selectTest>`.
+type SelectTestResult = ReturnType<typeof selectTest>;
 
 const h = React.createElement;
 
@@ -986,14 +977,11 @@ export function StatsTile({
 
   // ── Replication planning ──────────────────────────────────────────────
   //
-  // Pre-2026-05-13 this section was "Power analysis" with an "Achieved
-  // power" coloured column, where the cell turned green at ≥ 80% and red
-  // below. Methodologically: post-hoc / observed power is a deterministic
-  // transformation of p (Hoenig & Heisey 2001), so the cell duplicated p
-  // and the colouring nudged readers toward an incorrect interpretation
-  // ("low achieved power means underpowered"). The forward-looking
-  // "n for 80% power" column is the actually-useful output — it tells the
-  // user how to plan a future replication. We now show only that.
+  // Forward-looking "n for 80% power" only. Deliberately does NOT show
+  // achieved / observed power: it's a deterministic transformation of p
+  // (Hoenig & Heisey 2001), duplicating the p-value visually while
+  // nudging readers toward the incorrect "low achieved power means
+  // underpowered" interpretation.
   let powerBlock: React.ReactNode = null;
   if (powerResult) {
     const fmtAlpha = (a: number) => String(a);

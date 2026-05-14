@@ -35,13 +35,14 @@ const _R_POSTHOC_LABELS: Record<string, string> = Object.fromEntries(
 );
 
 export function sanitizeRString(s: unknown): string {
-  // Escape backslashes first, then double-quotes. All line terminators (LF,
-  // CR, NEL, LS, PS) are flattened to a single space — a multi-line factor
-  // level is almost certainly a paste accident and would break the one-line
-  // data.frame layout. The CR strip is also a security-relevant defence:
-  // R's lexer treats `\r` as a statement terminator inside source files,
-  // and previously a column name like `"foo\rsystem('cmd')"` could escape
-  // the surrounding R string in some contexts. Now everything stays inline.
+  // Escape backslashes first, then double-quotes. All line terminators
+  // (LF, CR, NEL, LS, PS) are flattened to a single space — a multi-line
+  // factor level is almost certainly a paste accident and would break
+  // the one-line data.frame layout. The CR strip is also a
+  // security-relevant defence: R's lexer treats `\r` as a statement
+  // terminator inside source files, so a column name like
+  // `"foo\rsystem('cmd')"` would otherwise escape the surrounding R
+  // string in some contexts.
   return String(s)
     .replace(/\\/g, "\\\\")
     .replace(/"/g, '\\"')

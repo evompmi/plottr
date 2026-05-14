@@ -8,12 +8,8 @@
 // careless user might paste: mixed delimiters, stray quotes, decimal
 // commas, extreme sizes, unicode, NaN/Inf, ragged rows, BOM, etc.
 //
-// Originally lived under `tests/fuzz/generators.js` and was driven by a
-// hand-written for-loop in each `tests/fuzz/<tool>.fuzz.js`. The fuzz
-// harnesses were retired in favour of fast-check property tests; this
-// corpus moved here and is now wrapped as a fast-check arbitrary by
-// `tests/helpers/csv-arbitraries.js` so the property suites still
-// exercise every pathology the corpus covers.
+// Wrapped as a fast-check arbitrary by `tests/helpers/csv-arbitraries.js`
+// so the property suites exercise every pathology the corpus covers.
 
 const SEPARATORS = [",", "\t", ";", " "];
 

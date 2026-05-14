@@ -1,11 +1,6 @@
 // stats/cluster.ts — distance metrics, hierarchical clustering (`hclust` /
 // `dendrogramLayout`), and k-means primitives used by tools/heatmap/.
-//
-// Migrated from `tools/stats-cluster.js`. No intra-stats dependencies —
-// distance + clustering use only built-ins. Lives alongside the other stats
-// modules by historical convention; could equally live as a top-level
-// _core/cluster.ts. The trailing globalThis block keeps legacy script-scope
-// callers alive until Phase-5 cleanup.
+// No intra-stats dependencies — distance + clustering use only built-ins.
 
 import type {
   DendrogramLayout,
@@ -405,11 +400,3 @@ function sqDistPartial(row: number[], centroid: number[]): number {
   }
   return any ? s : Infinity;
 }
-
-// ── Transitional global shim ───────────────────────────────────────────────
-const _g = globalThis as Record<string, unknown>;
-_g.pairwiseDistance = pairwiseDistance;
-_g.rowDistance = rowDistance;
-_g.hclust = hclust;
-_g.dendrogramLayout = dendrogramLayout;
-_g.kmeans = kmeans;

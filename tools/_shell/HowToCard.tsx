@@ -72,12 +72,9 @@ export function HowToCard(props: HowToCardProps) {
           color: "inherit",
         },
       },
-      // Leading chevron — moved from the trailing slot (where it used to
-      // sit after the tool icon) into the position the icon used to
-      // occupy. Tool identity is already carried by the topbar + the
-      // sample-dataset banner on the upload step, so the icon was
-      // appearing three times on a single screen; the chevron alone
-      // reads more clearly as "click to expand" anyway.
+      // Leading chevron — reads as "click to expand". Tool identity is
+      // carried by the topbar + the sample-dataset banner above, so the
+      // chevron alone keeps the header uncluttered.
       h(
         "span",
         {

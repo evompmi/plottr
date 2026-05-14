@@ -1,14 +1,11 @@
-// Shared state hook for every plot tool. Holds the boilerplate that was
-// previously re-derived in seven App() functions: upload-step state (step,
-// rawText/fileName, separator override, decimal-comma fix flags, parse error)
-// plus the `vis` reducer with auto-prefs persistence.
+// Shared state hook for every plot tool. Owns the upload-step state
+// (step, rawText/fileName, separator override, decimal-comma fix flags,
+// parse error) plus the `vis` reducer with auto-prefs persistence —
+// everything every plot tool's `App()` needs.
 //
 // Tool-specific state (selectedMask, parsed rows, pendingSelection, etc.)
-// stays outside this hook — the goal is to extract the common scaffold, not
-// to become a kitchen sink.
-//
-// Ambient names consumed (from tools/shared.bundle.js globals):
-//   - React (useState, useReducer, useEffect)
+// stays outside this hook — the goal is a common scaffold, not a kitchen
+// sink.
 
 import { loadAutoPrefs, saveAutoPrefs } from "./prefs-store";
 

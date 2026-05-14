@@ -192,9 +192,8 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
   const [pasteWarn, setPasteWarn] = useState<string | null>(null);
 
   // Prominent sample-dataset banner. Renders only when the tool provides
-  // `onLoadExample`; pulls structured title/subtitle/icon from
-  // `exampleSummary` and falls back to `exampleLabel` for tools that
-  // haven't migrated their callsite yet.
+  // `onLoadExample`; pulls structured title / subtitle / icon from
+  // `exampleSummary`, with `exampleLabel` as a plain-string fallback.
   const renderSamplePromo = () => {
     if (!onLoadExample) return null;
     const summary: ExampleSummary = exampleSummary ?? {

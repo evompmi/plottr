@@ -1,8 +1,5 @@
 // stats/msi.ts — multi-set intersection probability for the UpSet tool.
 //
-// Migrated from `tools/stats-msi.js`. Depends on `./dist` for gammaln, betai,
-// and gammainc.
-//
 // Reference: Wang, Zhao, Zhang, & Bhattacharya (2015). "Efficient Test and
 // Visualization of Multi-Set Intersections." Scientific Reports 5:16923.
 // (R package: SuperExactTest, function `cpsets`.)
@@ -192,13 +189,3 @@ export function multisetIntersectionP(xObs: number, ns: number[], N: number): nu
   if (cost <= 10_000_000) return multisetIntersectionPExact(xObs, ns, N);
   return multisetIntersectionPPoisson(xObs, ns, N);
 }
-
-// ── Transitional global shim ───────────────────────────────────────────────
-const _g = globalThis as Record<string, unknown>;
-_g.multisetIntersectionPExact = multisetIntersectionPExact;
-_g.multisetIntersectionPExactLower = multisetIntersectionPExactLower;
-_g.multisetIntersectionExpected = multisetIntersectionExpected;
-_g.multisetIntersectionPPoisson = multisetIntersectionPPoisson;
-_g.multisetIntersectionP = multisetIntersectionP;
-_g.multisetExclusiveExpected = multisetExclusiveExpected;
-_g.multisetExclusiveP = multisetExclusiveP;

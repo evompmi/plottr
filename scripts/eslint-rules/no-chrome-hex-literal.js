@@ -14,8 +14,7 @@
 //   - hex literals anywhere in the string: `"#abc"`, `"#abcd"`, `"#aabbcc"`,
 //     `"#aabbccdd"` — caught both as a bare value AND when buried inside a
 //     multi-token shorthand like `border: "1px solid #0072B2"` or
-//     `borderBottom: "1px solid #eee"`. The 2026-05-04 audit only checked
-//     the bare-value form; the 2026-05-09 widening added the substring case.
+//     `borderBottom: "1px solid #eee"`.
 //   - named colors: `"white"`, `"black"`, `"slategray"`, etc. (closed list,
 //     bare-value match only — substring-matching named colours produces
 //     false positives like CSS property names that mention "white-space").

@@ -2,9 +2,6 @@
 // Emits one `<text>` per group with the letter assignment from
 // `compactLetterDisplay` upstream. Pairs with `SignificanceBrackets` as
 // the two annotation primitives every chart uses.
-//
-// Pre-2026-05 lived in `_shell/chart-annotations.tsx`; split per the
-// per-component _shell convention.
 
 const CLD_DEFAULTS = {
   fontSize: 13,

@@ -1,15 +1,7 @@
-// Shared typed chart-layout helpers. `_shell/` is the canonical home for
-// helpers used by more than one tool — precedent set by
-// `_shell/stats-dispatch.ts` and `_shell/usePlotToolState.ts`. Only pure
-// functions + data shapes go here; anything with per-tool behaviour stays
-// in `tools/<tool>/helpers.ts`.
-//
-// Audit M7: `buildLineD` and the default chart-margin constant used to be
-// byte-identical in `tools/lineplot/helpers.ts` and `tools/aequorin/helpers.ts`.
-// Kept in each tool because a cross-tool extraction felt premature at the
-// time; once the duplication held across both tools and was confirmed
-// byte-identical, lifting the two items here became the obvious next step.
-// `lineplot/helpers.ts` and `aequorin/helpers.ts` now re-export from here.
+// Shared typed chart-layout helpers used by more than one tool — currently
+// `lineplot/helpers.ts` and `aequorin/helpers.ts`, both of which re-export
+// from here. Only pure functions and data shapes belong here; anything
+// with per-tool behaviour stays in `tools/<tool>/helpers.ts`.
 
 // Default chart-margin for line-trace charts (lineplot + aequorin). Matches
 // the axis-label / tick-label footprints both tools use.

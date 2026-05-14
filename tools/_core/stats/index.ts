@@ -1,12 +1,11 @@
-// stats/index.ts — barrel re-exporting the migrated stats kernels.
+// stats/index.ts — barrel re-exporting every named symbol from the
+// stats kernel modules.
 //
-// Importing this module from `tools/_app/index.tsx` (Phase-1 transition) is
-// what loads each sub-module's side-effect globalThis shim before any tool
-// component mounts, so the legacy ambient-global surface stays alive for
-// unmigrated callers until Phase-5 cleanup.
-//
-// Direct callers (e.g. `_shell/stats-registry.ts`) should import named
-// symbols straight from this barrel; the per-file shape stays internal.
+// Callers import the named symbols they need directly from this barrel —
+// `_shell/stats-registry.ts` consumes the test / post-hoc functions,
+// `_shell/power-from-data.ts` consumes the power family, scatter / volcano
+// / boxplot helpers import the descriptive stats and correlation tests
+// from here as well.
 
 export * from "./types";
 export * from "./format";

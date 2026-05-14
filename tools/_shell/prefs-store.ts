@@ -10,14 +10,15 @@
 // ARE written to and read from the exported JSON file (explicit user opt-in
 // via Save / Load to file in PrefsPanel).
 //
-// `downloadText` is read off the ambient browser globals (populated by the
-// `_core/download.ts` shim at runtime). Stays as an ambient reference (not
-// a direct import) so the test loader (`tests/helpers/prefs-loader.js`)
-// can stub it on the vm context for the exportPrefsFile capture asserts.
+// `downloadText` is imported directly from `_core/download` for the
+// production path (`PrefsPanel` calls `exportPrefsFile(tool, vis)`). The
+// test loader (`tests/helpers/prefs-loader.js`) passes an explicit capture
+// callback as the third argument to avoid relying on a global stub.
 // Browser globals (`setTimeout` / `clearTimeout` / `localStorage` /
-// `document` / `FileReader`) are stubbed by the same loader.
+// `document` / `FileReader`) are still stubbed by the test loader's
+// vm context.
 
-declare const downloadText: (text: string, filename: string) => void;
+import { downloadText as defaultDownloadText } from "../_core/download";
 
 const PREFS_LABEL_KEY_RE = /(?:Title|Subtitle|AxisLabel)$/;
 export function isLabelKey(key: string): boolean {
@@ -198,7 +199,16 @@ export function clearAutoPrefs(toolName: string): void {
 
 // Build the JSON payload and trigger a browser download. Includes label keys
 // because this is an explicit user action and the resulting file is portable.
-export function exportPrefsFile<T extends object>(toolName: string, vis: T): void {
+//
+// The optional `downloader` parameter exists so the prefs test loader can
+// inject a capture function without relying on a global stub. Production
+// callers (`PrefsPanel.tsx`) omit it and get the default `_core/download`
+// `downloadText`.
+export function exportPrefsFile<T extends object>(
+  toolName: string,
+  vis: T,
+  downloader: (text: string, filename: string) => void = defaultDownloadText
+): void {
   const payload = {
     tool: toolName,
     version: PREFS_SCHEMA_VERSION,
@@ -206,8 +216,7 @@ export function exportPrefsFile<T extends object>(toolName: string, vis: T): voi
     settings: { ...vis },
   };
   const text = JSON.stringify(payload, null, 2);
-  // `downloadText` is a global from tools/shared.js (still in the plain-JS bundle).
-  downloadText(text, toolName + "-settings.json");
+  downloader(text, toolName + "-settings.json");
 }
 
 export type ImportPrefsCallback<T extends object> = (

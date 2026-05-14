@@ -1,11 +1,5 @@
 // _core/descriptive.ts — sample-level descriptive stats (mean / SD / SEM /
 // CI95 / quartiles / kde) and the per-group convenience wrapper.
-//
-// Carved out of `_core/shared.ts` in v1.6.x. Depends on `_core/stats/dist`
-// for `tinv` (CI95 t-critical) and `_core/numeric` for the isNumeric guard
-// in `computeGroupStats`. The trailing `globalThis` shim keeps the legacy
-// ambient surface alive for callers that still consume these names as
-// globals; the shim retires when every caller imports directly.
 
 import { isNumericValue, toNumericValue } from "./numeric";
 import { tinv } from "./stats/dist";
@@ -131,10 +125,3 @@ export function computeGroupStats(groups: Record<string, unknown[]>): GroupStats
     return { name, ...stats };
   });
 }
-
-// ── Transitional global shim ───────────────────────────────────────────────
-const _g = globalThis as Record<string, unknown>;
-_g.computeStats = computeStats;
-_g.quartiles = quartiles;
-_g.kde = kde;
-_g.computeGroupStats = computeGroupStats;

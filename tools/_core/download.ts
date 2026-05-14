@@ -1,11 +1,5 @@
 // _core/download.ts — file-save helpers (save-picker + legacy anchor
 // fallback), CSV / SVG / PNG / text downloads, filename utilities.
-//
-// Carved out of `_core/shared.ts` in v1.6.x. Depends on `_core/csv` for
-// `buildCsvString` and `_core/svg-export` for the SVG serialisation
-// pipeline. The trailing `globalThis` shim keeps the legacy ambient
-// surface alive for callers that still consume these names as globals;
-// the shim retires when every caller imports directly.
 
 import { buildCsvString } from "./csv";
 import { buildExportSvg, PLOTTR_ATTRIBUTION_PAD, serializeSvgForExport } from "./svg-export";
@@ -155,13 +149,3 @@ export function downloadCsv(headers: unknown[], rows: unknown[][], filename: str
   const blob = new Blob([buildCsvString(headers, rows)], { type: "text/csv" });
   saveBlob(blob, filename);
 }
-
-// ── Transitional global shim ───────────────────────────────────────────────
-const _g = globalThis as Record<string, unknown>;
-_g.fileBaseName = fileBaseName;
-_g.flashSaved = flashSaved;
-_g.saveBlob = saveBlob;
-_g.downloadSvg = downloadSvg;
-_g.downloadPng = downloadPng;
-_g.downloadText = downloadText;
-_g.downloadCsv = downloadCsv;

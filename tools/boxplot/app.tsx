@@ -140,9 +140,9 @@ export function App() {
   // Upload & navigation
   const [rawText, setRawText] = useState<string | null>(null);
   const [dataFormat, setDataFormat] = useState<"long" | "wide">("long");
-  // Count of cells dropped by wideToLong on the last parse (audit-23 #10).
-  // 0 means clean reshape; >0 means the user should know about silent
-  // shrinkage from empty / non-numeric cells in their wide-format input.
+  // Count of cells dropped by wideToLong on the last parse. 0 means clean
+  // reshape; >0 means the user should know about silent shrinkage from
+  // empty / non-numeric cells in their wide-format input.
   const [wideSkipped, setWideSkipped] = useState(0);
 
   // Parsing
@@ -885,15 +885,14 @@ export function App() {
   // strings for missing dimensions guarantees a stable, unique key per cell.
   const FLAT_KEY = "flat";
   // JSON-encoded so a category named e.g. "S3::pGFP" cannot collide with a
-  // facet × subgroup combination of "S3" × "pGFP". Plant-science labels
-  // routinely contain "::" — separator collisions were the audit-23 #2
-  // finding.
+  // facet × subgroup combination of "S3" × "pGFP" — plant-science labels
+  // routinely contain "::".
   const cellKey = (facetCat: string, sgName: string) => JSON.stringify([facetCat, sgName]);
 
-  // Merge per-subgroup annotation specs (extracted from the unified
-  // cellAnnotations dict) into a single chart-level spec with offset
-  // indices. Used by both subgroup-only mode and (per-facet) facet+subgroup
-  // mode to project per-cell brackets / CLD letters onto the flat axis.
+  // Merge per-subgroup annotation specs (from the unified cellAnnotations
+  // dict) into a single chart-level spec with offset indices. Used by
+  // both subgroup-only mode and (per-facet) facet+subgroup mode to
+  // project per-cell brackets / CLD letters onto the flat axis.
   const mergeAnnotForSubgroups = useCallback(
     (subgroups: Subgroup[], flatGroups: BoxplotGroup[], facetCat: string) => {
       const renamedFlat = flatGroups.map((g) => ({

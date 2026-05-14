@@ -1,11 +1,6 @@
 // stats/tests.ts — descriptive helpers + parametric / nonparametric tests +
 // effect sizes.
 //
-// Migrated from `tools/stats-tests.js`. Depends on `./dist` for distributions
-// and special functions, and on `./format` for the small p-value formatter
-// used by selectCorrelation. The trailing globalThis block keeps legacy
-// script-scope callers alive until Phase-5 cleanup.
-//
 // Layout:
 //   3. Sample helpers          — mean, variance, sd, rank-with-ties
 //   4. Shapiro-Wilk normality  — Royston 1995, AS R94
@@ -793,27 +788,3 @@ export function epsilonSquared(groups: number[][]): number {
   for (const g of groups) N += g.length;
   return N > 1 ? kw.H / (N - 1) : NaN;
 }
-
-// ── Transitional global shim ───────────────────────────────────────────────
-const _g = globalThis as Record<string, unknown>;
-_g.sampleMean = sampleMean;
-_g.sampleVariance = sampleVariance;
-_g.sampleSD = sampleSD;
-_g.rankWithTies = rankWithTies;
-_g.shapiroWilk = shapiroWilk;
-_g.leveneTest = leveneTest;
-_g.tTest = tTest;
-_g.mannWhitneyU = mannWhitneyU;
-_g.cohenD = cohenD;
-_g.hedgesG = hedgesG;
-_g.rankBiserial = rankBiserial;
-_g.cohenDCI = cohenDCI;
-_g.oneWayANOVA = oneWayANOVA;
-_g.welchANOVA = welchANOVA;
-_g.kruskalWallis = kruskalWallis;
-_g.pearsonCorrelation = pearsonCorrelation;
-_g.spearmanCorrelation = spearmanCorrelation;
-_g.kendallTau = kendallTau;
-_g.selectCorrelation = selectCorrelation;
-_g.etaSquared = etaSquared;
-_g.epsilonSquared = epsilonSquared;

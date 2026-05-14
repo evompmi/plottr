@@ -1,11 +1,6 @@
 // _core/svg-export.ts — SVG export pipeline + `Plöttr v<VERSION>` attribution
 // band + `svgSafeId` NCName sanitiser.
 //
-// Carved out of `_core/shared.ts` in v1.6.x. The trailing `globalThis` shim
-// keeps the legacy ambient surface alive for callers that still consume
-// these names as globals; the shim retires when every caller imports
-// directly.
-
 // Sanitize an arbitrary string into an SVG-safe id fragment so exported
 // <g id="..."> values are valid NCNames and show up as readable group
 // names in Inkscape's Objects panel / XML editor. Non-alphanumerics
@@ -172,13 +167,3 @@ export function appendPlottrAttribution(svgEl: SVGElement): void {
   g.appendChild(text);
   svgEl.appendChild(g);
 }
-
-// ── Transitional global shim ───────────────────────────────────────────────
-const _g = globalThis as Record<string, unknown>;
-_g.svgSafeId = svgSafeId;
-_g.PLOTTR_ATTRIBUTION_PAD = PLOTTR_ATTRIBUTION_PAD;
-_g.registerSvgExportMutator = registerSvgExportMutator;
-_g.unregisterSvgExportMutator = unregisterSvgExportMutator;
-_g.buildExportSvg = buildExportSvg;
-_g.serializeSvgForExport = serializeSvgForExport;
-_g.appendPlottrAttribution = appendPlottrAttribution;

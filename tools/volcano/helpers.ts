@@ -21,12 +21,11 @@
 // non-significant majority. Chosen to (a) be colourblind-distinguishable
 // (Okabe-Ito is the canonical safe palette) and (b) match the
 // conventional volcano-plot signal direction (warm = up, cool = down).
-// `ns` previously sat at #999999 (2.85:1 against white) — fails WCAG 2.1
-// SC 1.4.11's 3:1 minimum for non-text graphical objects. Bumped to
-// #737373 (3.27:1) — same neutral character, a hair darker, comfortably
-// over the bar. NS dots typically dominate the chart (~80–95 % of all
-// points); going much darker would visually overwhelm the up/down dots,
-// so the smallest crossing-the-line change is the right one.
+// The `ns` grey is #737373 (3.27:1 against white) — just over WCAG 2.1
+// SC 1.4.11's 3:1 minimum for non-text graphical objects. NS dots
+// typically dominate the chart (~80–95 % of all points); going much
+// darker would visually overwhelm the up/down dots, so we sit just
+// over the contrast threshold rather than well above it.
 import { isNumericValue, toNumericValue } from "../_core/numeric";
 import type { ParseDataResult } from "../_core/csv";
 

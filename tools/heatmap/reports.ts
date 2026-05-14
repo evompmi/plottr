@@ -1,15 +1,9 @@
 // Pure string-builders for the Heatmap tool — no React / DOM dependency.
-// `buildHeatmapRScript` emits a self-contained .R file that reproduces the
-// currently plotted heatmap with pheatmap (matrix literal + normalisation +
-// clustering + palette all inlined). `buildCsvExport` turns the currently
-// plotted (post-normalisation, post-reordering) matrix into the headers +
-// rows arrays expected by `downloadCsv`.
-//
-// Imports the palette catalogue from `_core/color` and the R-string
-// formatters from `_shell/r-export`. Pre-migration these were script-scope
-// globals; the v1.6.x kernel migration moved them under proper modules and
-// the per-caller sweep replaced the ambient `declare const` block with
-// these explicit imports.
+// `buildHeatmapRScript` emits a self-contained .R file that reproduces
+// the currently plotted heatmap with pheatmap (matrix literal +
+// normalisation + clustering + palette all inlined). `buildCsvExport`
+// turns the currently plotted (post-normalisation, post-reordering)
+// matrix into the headers + rows arrays expected by `downloadCsv`.
 
 import { sanitizeRString, formatRNumber } from "../_shell/r-export";
 import { COLOR_PALETTES, DIVERGING_PALETTES } from "../_core/color";

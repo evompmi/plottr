@@ -36,11 +36,10 @@ const VIS_INIT_SCATTER: ScatterVis = {
   plotBg: "#ffffff",
   showGrid: false,
   gridColor: "#e0e0e0",
-  // Per-style + per-mapping prefs that used to live in local useState. They
-  // auto-persist to localStorage and round-trip through PrefsPanel save /
-  // load. Per-category dicts (colorMapDiscrete / sizeMapDiscrete /
-  // shapeMapDiscrete) are keyed by category NAME so they survive a
-  // dataset swap as long as names match.
+  // Per-style + per-mapping prefs auto-persist to localStorage and
+  // round-trip through PrefsPanel save / load. Per-category dicts
+  // (colorMapDiscrete / sizeMapDiscrete / shapeMapDiscrete) are keyed by
+  // category NAME so they survive a dataset swap as long as names match.
   pointColor: "#648FFF",
   pointSize: 5,
   pointOpacity: 0.8,
@@ -248,11 +247,11 @@ export function App() {
   const [xCol, setXCol] = useState(0);
   const [yCol, setYCol] = useState(1);
 
-  // Point defaults + style + mappings + refLines + regression: all migrated
-  // into `vis` so they auto-persist via PrefsPanel + localStorage. Read-
-  // through `const` for value access, useCallback setters that accept both
-  // direct values AND functional updaters so existing call sites (including
-  // setShape((prev) => ({...prev, [k]: v})) patterns) keep working unchanged.
+  // Point defaults + style + mappings + refLines + regression live in
+  // `vis` so they auto-persist via PrefsPanel + localStorage. Read-
+  // through `const` for value access, useCallback setters that accept
+  // both direct values AND functional updaters so call sites like
+  // `setShape((prev) => ({...prev, [k]: v}))` work unchanged.
   const pointColor = vis.pointColor ?? "#648FFF";
   const setPointColor = useCallback((v: string) => updVis({ pointColor: v }), [updVis]);
   const pointSize = vis.pointSize ?? 5;
@@ -764,15 +763,15 @@ export function App() {
       setYCol(nums[1] !== undefined ? nums[1] : nums[0] !== undefined ? nums[0] : 1);
 
       // Reset only dataset-tied state. Visual prefs (pointColor / pointSize /
-      // strokeColor / strokeWidth / pointOpacity / colorMapPalette / refLines /
-      // regression sub-object) persist across parses now that they live in
-      // `vis` — wiping them on every upload would defeat the audit-23 #1
-      // persistence fix. Per-category mapping dicts (colorMapDiscrete /
-      // sizeMapDiscrete / shapeMapDiscrete) ALSO persist by design: they're
-      // keyed by category NAME, so on a new dataset the orphaned keys are
-      // harmless and any matching category names retain the user's colour.
-      // Column indices reset because they refer to the previous dataset's
-      // column layout.
+      // strokeColor / strokeWidth / pointOpacity / colorMapPalette /
+      // refLines / regression sub-object) live in `vis` and persist
+      // across parses — wiping them on every upload would lose the
+      // user's saved style. Per-category mapping dicts (colorMapDiscrete
+      // / sizeMapDiscrete / shapeMapDiscrete) ALSO persist by design:
+      // they're keyed by category NAME, so on a new dataset orphaned
+      // keys are harmless and matching names keep the user's colour.
+      // Column indices reset because they refer to the previous
+      // dataset's column layout.
       setColorMapCol(null);
       setSizeMapCol(null);
       setShapeMapCol(null);
