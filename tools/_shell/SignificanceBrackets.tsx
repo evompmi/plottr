@@ -10,9 +10,6 @@
 // Orientation drives the layout fork:
 //   - "vertical-top": brackets arc above the data, levels stack upward
 //   - "horizontal-right": brackets arc to the right, levels stack rightward
-//
-// Pre-2026-05 lived in `_shell/chart-annotations.tsx` (paired with
-// `CldLabels`); split per the per-component _shell convention.
 
 const BRACKET_DEFAULTS = {
   stroke: "#333",

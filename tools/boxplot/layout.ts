@@ -2,12 +2,11 @@
 // band sizing, viewbox dimensions, cumulative subgroup-gap accumulator,
 // y-max expansion-for-annotations, and the subgroup-by-index lookup.
 //
-// No React, no SVG: every export takes plain values in and returns plain
-// values (or a closure of plain values) out, so each piece is independently
-// testable through `tests/helpers/boxplot-loader.js`. Carved out of
-// tools/boxplot/chart.tsx (which previously inlined ~225 LOC of layout
-// arithmetic before its JSX) to mirror the venn/ folder's areas / centroids /
-// geometry / layout split.
+// No React, no SVG: every export takes plain values in and returns
+// plain values (or a closure of plain values) out, so each piece is
+// independently testable through `tests/helpers/boxplot-loader.js`.
+// Mirrors the venn/ folder's areas / centroids / geometry / layout
+// split.
 
 import type { BoxplotGroup } from "./helpers";
 import { assignBracketLevels, computeLegendHeight } from "../_shell";

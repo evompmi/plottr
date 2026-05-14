@@ -1,7 +1,5 @@
 // _core/icons.tsx — `TOOL_ICONS` catalogue + the `toolIcon` React helper.
 //
-// Carved out of `_core/shared.ts` in v1.6.x.
-//
 // Lives as `.tsx` (not `.ts`) because `toolIcon` returns a ReactElement —
 // the call site uses `React.createElement` rather than JSX literals, but
 // the .tsx extension makes the React surface unambiguous to esbuild and

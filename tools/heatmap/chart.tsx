@@ -161,11 +161,11 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
     // k-means group colours carry over so each zoomed row/column still shows
     // which cluster it belongs to.
     showKmeansStrip = undefined,
-    // Stroke width for dendrogram lines in the default (non-hovered) state.
-    // The main plot uses the literal 1 that was previously hard-coded; the
-    // detail view bumps this up so the pruned subtree reads at a smaller
-    // tile. Hover stroke scales with it (hoverFactor * base) so the hover
-    // highlight stays visually distinct.
+    // Stroke width for dendrogram lines in the default (non-hovered)
+    // state. The main plot uses 1; the detail view bumps this up so the
+    // pruned subtree reads at a smaller tile. Hover stroke scales with
+    // it (hoverFactor * base) so the hover highlight stays visually
+    // distinct.
     dendrogramStrokeWidth = 1,
   },
   ref

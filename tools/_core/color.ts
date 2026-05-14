@@ -1,7 +1,5 @@
 // _core/color.ts — color helpers, palettes, and role colours.
 //
-// Carved out of `_core/shared.ts` in v1.6.x.
-
 // ── Color helpers ───────────────────────────────────────────────────────────
 
 export function hexToRgb(hex: string): [number, number, number] {

@@ -1,7 +1,5 @@
 // _core/scale.ts — axis tick generators (linear + log).
 //
-// Carved out of `_core/shared.ts` in v1.6.x.
-
 export function niceStep(range: number, approxN: number): number {
   const rough = range / approxN;
   const mag = Math.pow(10, Math.floor(Math.log10(rough)));

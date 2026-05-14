@@ -1,10 +1,5 @@
 // stats/dist.ts — probability distributions, special functions, and power calcs.
 //
-// Migrated from the legacy script-scope `tools/stats-dist.js` (1.5.x). Same
-// algorithms, same numerical envelopes — typed at the boundaries and importable
-// as ES modules. The trailing `globalThis` block keeps the legacy ambient
-// surface alive for unmigrated call sites until the Phase-5 cleanup.
-//
 // Layout:
 //   1.  Distribution functions  — normal, gamma, beta, t, F, chi-square,
 //                                 noncentral t/F/chi-square

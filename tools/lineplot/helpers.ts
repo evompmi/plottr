@@ -10,11 +10,10 @@ import { sampleMean, sampleSD } from "../_core/stats/tests";
 import { bhAdjust, selectTest } from "../_core/stats/posthoc";
 import type { ParseDataResult } from "../_core/csv";
 // ── Constants ──────────────────────────────────────────────────────────────
-// `MARGIN` used to live here as a byte-identical twin of aequorin's. Lifted
-// into `_shell/chart-layout.ts` (audit M7); re-export here so the existing
-// `import { MARGIN } from "./helpers"` call sites keep working. Same story
-// for `round2`/`round4` — single-line numeric helpers, lifted to
-// `_shell/round.ts` once aequorin started reaching for the same shape.
+// `MARGIN`, `buildLineD`, `round2`, `round4` are shared with aequorin
+// via `_shell/chart-layout.ts` and `_shell/round.ts`. Re-exported through
+// this barrel so existing `import … from "./helpers"` call sites stay
+// stable.
 export const MARGIN = CHART_MARGIN;
 export { buildLineD, round2, round4 };
 export const STAR_ROW_H = 18;

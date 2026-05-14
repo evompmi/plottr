@@ -1,10 +1,6 @@
 // stats/tests.ts — descriptive helpers + parametric / nonparametric tests +
 // effect sizes.
 //
-// Migrated from `tools/stats-tests.js`. Depends on `./dist` for distributions
-// and special functions, and on `./format` for the small p-value formatter
-// used by selectCorrelation.
-//
 // Layout:
 //   3. Sample helpers          — mean, variance, sd, rank-with-ties
 //   4. Shapiro-Wilk normality  — Royston 1995, AS R94

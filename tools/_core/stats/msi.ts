@@ -1,8 +1,5 @@
 // stats/msi.ts — multi-set intersection probability for the UpSet tool.
 //
-// Migrated from `tools/stats-msi.js`. Depends on `./dist` for gammaln, betai,
-// and gammainc.
-//
 // Reference: Wang, Zhao, Zhang, & Bhattacharya (2015). "Efficient Test and
 // Visualization of Multi-Set Intersections." Scientific Reports 5:16923.
 // (R package: SuperExactTest, function `cpsets`.)

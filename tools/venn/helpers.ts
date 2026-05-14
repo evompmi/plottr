@@ -9,9 +9,8 @@
 //   layout.ts    — proportional + classic layout builders, validator, refinement loop
 //   centroids.ts — visual-centroid finder for region labels
 //
-// The split replaces a single 965-line `helpers.ts` grab-bag with six files
-// keyed on what the code *does*, so navigation no longer depends on
-// remembering which section marker a symbol lives under.
+// Files are keyed on what the code *does*, so a symbol's home is
+// usually obvious from its responsibility.
 
 export { VENN_CONFIG, VIS_INIT_VENN } from "./constants";
 export {
@@ -47,10 +46,9 @@ export {
   buildVenn3LayoutClassic,
 } from "./layout";
 export { computeRegionCentroids } from "./centroids";
-// `detectLongFormat` lifted to `_shell/long-format-detect.ts` 2026-05
-// (UpSet shares the same logic — see tools/upset/app.tsx). Re-exported
-// here so the venn test loader (tests/helpers/venn-loader.js) keeps
-// pulling it through the venn/helpers barrel without changes.
+// `detectLongFormat` lives in `_shell/long-format-detect.ts` because
+// UpSet shares the same logic. Re-exported through the venn barrel so
+// the test loader (tests/helpers/venn-loader.js) finds it here.
 export { detectLongFormat } from "../_shell/long-format-detect";
 export type { LongFormatDetection } from "../_shell/long-format-detect";
 export type { Region, SetMap } from "./set-math";

@@ -1,9 +1,5 @@
 // _core/download.ts — file-save helpers (save-picker + legacy anchor
 // fallback), CSV / SVG / PNG / text downloads, filename utilities.
-//
-// Carved out of `_core/shared.ts` in v1.6.x. Depends on `_core/csv` for
-// `buildCsvString` and `_core/svg-export` for the SVG serialisation
-// pipeline.
 
 import { buildCsvString } from "./csv";
 import { buildExportSvg, PLOTTR_ATTRIBUTION_PAD, serializeSvgForExport } from "./svg-export";

@@ -4,14 +4,12 @@
 // and `npm run watch` before esbuild.
 //
 // Source of truth: the most recent `## [X.Y.Z] - DATE` heading in
-// CHANGELOG.md. This was previously read from `git describe --tags`,
-// which races the GitHub Pages deploy: the deploy workflow triggers on
-// `master` push, but the tag is a separate `git push origin <tag>`.
-// If the user pushes master first (release commit) and the tag a few
-// seconds later, CI's `git describe` still returns the *previous* tag,
-// overwrites the hand-set version in tools/version.js with the old
-// number, and ships stale chrome to gh-pages even though source is
-// correct. CHANGELOG is bumped synchronously with the release commit,
+// CHANGELOG.md. Don't reach for `git describe --tags` here — that
+// races the GitHub Pages deploy. The deploy workflow triggers on
+// `master` push, but the tag is a separate `git push origin <tag>`;
+// if master pushes first and the tag arrives a few seconds later,
+// CI's `git describe` returns the *previous* tag and gh-pages ships
+// stale chrome. CHANGELOG bumps land in the same commit as the release,
 // so reading it eliminates the race entirely.
 
 const { execSync } = require("child_process");

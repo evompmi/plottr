@@ -69,15 +69,11 @@ export function ConfigureStep({
       sep: "\t",
       format: isLongFormat ? "long" : "wide",
     };
-    // SPA + standalone-page path: stash in sessionStorage (UpSet's
-    // mount-time effect consumes the entry and clears it) and ask
-    // `navigateToTool` to switch the view. In SPA mode the helper
-    // calls the registered hash-router navigator and the same
-    // document just rerenders; in legacy / standalone-page mode it
-    // falls back to a top-level navigation to upset.html. The pre-SPA
-    // sibling-iframe postMessage path is gone — it relied on UpSet
-    // already being mounted next door, which only ever held inside
-    // the iframe shell.
+    // Stash in sessionStorage (UpSet's mount-time effect consumes the
+    // entry and clears it) and ask `navigateToTool` to switch the view.
+    // In SPA mode the helper calls the registered hash-router navigator
+    // and the same document just rerenders; in standalone-page mode it
+    // falls back to a top-level navigation to upset.html.
     try {
       sessionStorage.setItem("dataviz-upset-handoff", JSON.stringify(payload));
     } catch {

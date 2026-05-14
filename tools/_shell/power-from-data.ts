@@ -6,18 +6,13 @@
 // report the parametric analog as an approximation — flagged in the
 // returned `approximate` flag.
 //
-// The pre-2026-05-13 version of this module also returned an `achieved`
-// power per row (computed by feeding the observed effect size back
-// through powerTwoSample / powerAnova at the OBSERVED sample size).
-// That is the classic Hoenig & Heisey 2001 anti-pattern: post-hoc /
-// observed power is a deterministic transformation of the p-value, so
-// it adds zero information beyond what p already tells the reader.
-// Worse, presented as a coloured "% achieved" cell, it nudges users
-// toward interpreting non-significant tests as "underpowered" when
-// the more honest framing is "we observed effect size X; for that
-// effect, a replication would need n=Y." That's what this module now
-// returns. See conversation history 2026-05-13 + the H&H 2001 paper
-// for the methodology pivot.
+// Deliberately does NOT return "achieved" / observed power. Post-hoc
+// power is a deterministic transformation of the p-value (Hoenig &
+// Heisey 2001) — it adds zero information beyond what p already tells
+// the reader, and a coloured "% achieved" cell nudges users toward
+// interpreting non-significant tests as "underpowered" when the honest
+// framing is "we observed effect size X; for that effect, a replication
+// would need n=Y."
 
 import { powerAnova, powerTwoSample } from "../_core/stats/dist";
 import { cohenDCI, sampleMean, sampleSD } from "../_core/stats/tests";

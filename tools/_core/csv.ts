@@ -1,8 +1,6 @@
 // _core/csv.ts — CSV / TSV parsing, tokenizing, separator detection, format
 // reshaping, and formula-injection scanning.
 //
-// Carved out of `_core/shared.ts` in v1.6.x.
-
 import { isNumericValue, toNumericValue } from "./numeric";
 
 // ── Separator detection ────────────────────────────────────────────────────

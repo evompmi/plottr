@@ -19,11 +19,9 @@ import { buildCsvExport } from "./reports";
 import { downloadCsv, downloadPng, downloadSvg, fileBaseName, flashSaved } from "../_core/download";
 const { useMemo, useRef } = React;
 
-// Detail-view dendrogram stroke width. Was previously user-selectable via
-// a thin/medium/bold segment control; the control was retired because
-// the choice had no real workflow value (the detail plot's row pitch is
-// already enlarged for readability, so a thicker stroke didn't change
-// what users could see). 1.5 matches the prior "medium" default.
+// Detail-view dendrogram stroke width. Not user-selectable: the detail
+// plot's row pitch is already enlarged for readability, so a thicker
+// stroke doesn't change what users see.
 const DETAIL_DENDRO_STROKE_WIDTH = 1.5;
 
 export function DetailView({

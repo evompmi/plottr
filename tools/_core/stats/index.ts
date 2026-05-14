@@ -1,4 +1,5 @@
-// stats/index.ts — barrel re-exporting the migrated stats kernels.
+// stats/index.ts — barrel re-exporting every named symbol from the
+// stats kernel modules.
 //
 // Callers import the named symbols they need directly from this barrel —
 // `_shell/stats-registry.ts` consumes the test / post-hoc functions,

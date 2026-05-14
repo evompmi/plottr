@@ -3,10 +3,9 @@
 //
 // Each entry maps a route key (the segment after `#/`) to the tool's
 // human label, the inline SVG icon used in the topbar / landing tile,
-// and the React component to render. The 10 entries here mirror the
-// `TOOL_META` + `TOOL_ORDER` blocks that lived in `index.html` under
-// the iframe shell (lines 1032-1091 of the pre-SPA version) — kept
-// byte-identical for the icons so the visual identity carries across.
+// and the React component to render. Icons are byte-identical with the
+// landing tiles in `index.html` so the visual identity stays consistent
+// across the topbar and the home view.
 //
 // `Component` is intentionally typed as `React.ComponentType` so each
 // tool can be a plain function component or a `forwardRef`; the SPA
@@ -18,8 +17,7 @@
 // below as code-split points and emits one chunk per tool plus shared
 // chunks for code two or more tools touch. A first-visit mobile user
 // opening only the molarity calculator pays for React + the shared
-// bundle + the `_app` shell + the molarity chunk, instead of the
-// ~740 KB monolith the pre-splitting build shipped.
+// bundle + the `_app` shell + the molarity chunk, not the whole tree.
 
 // Re-attempt a failed dynamic import a couple of times before
 // surfacing the rejection to React. Catches transient flakes —
@@ -55,10 +53,9 @@ const lazyApp = (loader: () => Promise<{ App: React.ComponentType }>): React.Com
 export interface ToolEntry {
   key: string;
   label: string;
-  // Inline SVG markup for the topbar / landing tile icon. The actual
-  // tile + topbar markup is rendered by `App.tsx` via `dangerouslySetInnerHTML`
-  // (the icons are hand-authored static SVG strings — same pattern the
-  // pre-SPA `index.html` used).
+  // Inline SVG markup for the topbar / landing tile icon. Rendered by
+  // `App.tsx` via `dangerouslySetInnerHTML` (hand-authored static SVG
+  // strings — same approach as the landing tiles in `index.html`).
   iconSvg: string;
   Component: React.ComponentType;
 }

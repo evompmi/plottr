@@ -1,11 +1,9 @@
-// Pointer to the migrated `_core/stats/*` TS modules used by the test loaders.
-//
-// Pre-migration this concatenated five `stats-*.js` files into a single source
-// string the loaders evaluated via vm.runInContext. After the v1.6 migration
-// every stats kernel lives as an ES module under `tools/_core/stats/`; the
-// loader bundles the barrel module with esbuild and requires the resulting
-// CommonJS file. Keeping this thin helper alive (with its old export name)
-// minimises churn in the per-tool loaders that consume it.
+// Bundles the `_core/stats/*` barrel for the test loaders. Two output
+// formats: IIFE for the `vm.runInContext`-based loaders (the synthetic
+// `Object.assign(globalThis, __plottrStats)` footer spreads named
+// exports onto the vm context's globalThis), and CJS for the
+// Stryker-instrumented loaders that `require()` the result via a temp
+// file (see `tests/helpers/stats-loader.js`).
 
 const path = require("path");
 const esbuild = require("esbuild");
@@ -13,13 +11,9 @@ const esbuild = require("esbuild");
 const TOOLS_DIR = path.join(__dirname, "../../tools");
 const STATS_ENTRY = path.join(TOOLS_DIR, "_core/stats/index.ts");
 
-// Bundled IIFE source of the `_core/stats/*` barrel. The `_core/stats/*`
-// modules used to carry trailing `globalThis.X = X` shim blocks so this
-// test path's `vm.runInContext(...)` could read `ctx.tTest` etc. directly.
-// Those shims were retired in v1.6.x; the synthetic `Object.assign` footer
-// below reproduces the effect at test-bundling time. `globalName` collects
-// all the barrel's named exports into one object; the footer copies the
-// names onto the vm context's globalThis.
+// IIFE bundle for vm.runInContext consumers. `globalName` collects the
+// barrel's named exports into `__plottrStats`; the synthetic footer spreads
+// them onto the vm context's globalThis so callers can do `ctx.tTest(...)`.
 function readStatsSource() {
   const result = esbuild.buildSync({
     entryPoints: [STATS_ENTRY],

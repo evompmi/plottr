@@ -1,11 +1,10 @@
-// Loads `tools/_shell/discrete-palette.ts` on top of the migrated
-// `_core/shared.ts` (for `COLOR_PALETTES` / `interpolateColor` / `PALETTE`).
-// Pre-migration this read the concatenated shared.bundle.js for its
-// side-effecting top-level globals; the new TS module's trailing
-// globalThis-shim block does the same thing under the same vm semantics.
+// Loads `tools/_shell/discrete-palette.ts` on top of `_core/shared.ts`
+// (for `COLOR_PALETTES` / `interpolateColor` / `PALETTE`).
 //
-// Hybrid pattern: shared.ts is run for its side-effecting globals; the typed
-// discrete-palette module is run for its named exports.
+// Hybrid pattern: shared.ts is run for its globalThis-populating side
+// effects so the discrete-palette module's `import { COLOR_PALETTES, … }`
+// references resolve via the vm context; the discrete-palette bundle is
+// then run for its own named exports.
 
 const vm = require("vm");
 const {

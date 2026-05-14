@@ -1,16 +1,11 @@
 // `DataPreview` — compact table preview for parsed CSV/TSV data, used in
 // every tool's upload + configure steps. Renders the first `maxRows` rows
 // (default 10) plus a "… N more" footer when truncated.
-//
-// Pre-2026-05 lived in `tools/shared-core.js`; merged into `_shell/core.tsx`
-// during the shared-bundle shrink, then split here per the per-component
-// _shell convention.
 
 interface DataPreviewProps {
   headers: string[];
-  // Cell values are coerced to strings at render time, so accept the same
-  // permissive shape the pre-migration `DataPreview` ambient declaration had:
-  // strings, numbers, or null/empty for sparse rows.
+  // Cell values are coerced to strings at render time; accept strings,
+  // numbers, or null / empty for sparse rows.
   rows: Array<Array<string | number | null | "">>;
   // Maximum rows rendered before the "… N more" footer kicks in. Defaults to 10.
   maxRows?: number;

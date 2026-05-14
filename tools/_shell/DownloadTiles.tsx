@@ -1,9 +1,8 @@
 // _shell/DownloadTiles.tsx — typed wrapper around the shared ActionsPanel
 // that auto-builds the SVG and PNG download callbacks from a chart ref +
-// a file stem. Replaces the inline
+// a file stem. Saves every plot tool from repeating
 //   onDownloadSvg={() => downloadSvg(chartRef.current, `${stem}.svg`)}
 //   onDownloadPng={() => downloadPng(chartRef.current, `${stem}.png`, 2)}
-// boilerplate that every plot tool's controls / plot-area used to repeat.
 //
 // Tools with simple "one chart → one SVG + one PNG" semantics (lineplot,
 // scatter, upset, venn, volcano) consume this directly. Three plot tools

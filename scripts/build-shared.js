@@ -1,24 +1,21 @@
 #!/usr/bin/env node
-// Bundles `tools/_core/theme.ts` to a single IIFE script that every HTML page
-// loads via `<script src="tools/shared.bundle.js">`. Theme has to ship as a
-// plain-script-tag global because the inline no-FOUC IIFE in each HTML
-// `<head>` needs the `data-theme` attribute set synchronously before paint,
-// and the migrated TS module's event-listener side-effects must run before
-// the SPA's `<script type="module">` (which is implicitly deferred) loads.
-//
-// Pre-migration this script concatenated the script-scope `theme.js`,
-// `shared.js`, and `stats-*.js` files. After the v1.6 _core migration:
-//   - `shared.js` and `stats-*.js` live as TS modules under `tools/_core/`,
-//     bundled into the SPA's `_app/index.js` graph by esbuild.
-//   - `theme.js` was rewritten to `tools/_core/theme.ts` and is what this
-//     script now bundles — preserving the standalone HTML pages
-//     (`benchmark.html`, `privacy.html`) that load shared.bundle.js too.
+// Bundles `tools/_core/theme.ts` to a single IIFE script that every HTML
+// page loads via `<script src="tools/shared.bundle.js">`. Theme ships as
+// a plain script-tag global because:
+//   - the inline no-FOUC IIFE in each HTML `<head>` needs the `data-theme`
+//     attribute set synchronously before paint, and
+//   - the module's event-listener side-effects (BroadcastChannel,
+//     `storage`, `visibilitychange`) must run before the SPA's
+//     `<script type="module">` (which is implicitly deferred) parses.
 //
 // IIFE format keeps the bundle a plain script tag (no module / no
-// `module.exports`) so `vm.runInThisContext` and a `<script>` element both
-// evaluate it the same way. The trailing `globalThis.X = X` shim at the
-// bottom of `_core/theme.ts` populates the legacy global surface
-// (`ThemeToggle`, `setTheme`, `useThemeMode`, …) for unmigrated callers.
+// `module.exports`) so `vm.runInThisContext` and a `<script>` element
+// both evaluate it the same way. `globalName` collects `_core/theme.ts`'s
+// named exports into `__plottrTheme`; the synthetic
+// `Object.assign(globalThis, __plottrTheme)` footer (appended below)
+// makes `getTheme` / `setTheme` / `toggleTheme` reachable from inline
+// scripts in `benchmark.html` and `privacy.html` without each `_core/*`
+// module having to write to `globalThis` itself.
 
 const fs = require("fs");
 const path = require("path");
@@ -53,10 +50,11 @@ function buildBundle() {
     result.outputFiles[0].text +
     "\nObject.assign(globalThis, __plottrTheme);\n";
 
-  // Audit-23 #15: parse the bundle before writing. esbuild output is already
-  // syntactically valid (it parsed the TS to produce it), but the prepended
-  // header could in principle contain a stray comment delimiter that breaks
-  // the script. `new Function(bundle)` parses without executing.
+  // Parse the bundle before writing. esbuild output is already
+  // syntactically valid (it parsed the TS to produce it), but the
+  // prepended header could in principle carry a stray comment delimiter
+  // that breaks the script. `new Function(bundle)` parses without
+  // executing.
   try {
     new Function(bundle);
   } catch (err) {

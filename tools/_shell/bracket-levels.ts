@@ -5,10 +5,8 @@
 // `StatsTile` when it builds its own annotation specs.
 //
 // Generic over T to preserve any additional fields the caller threads
-// through (label, p, etc.).
-//
-// Pre-2026-05 lived in `_shell/stats-tile.tsx`; split here so consumers
-// that only need the layout math don't pull in the full StatsTile bundle.
+// through (label, p, etc.). Lives in its own module so consumers that
+// only need the layout math don't pull in the full StatsTile bundle.
 
 export function assignBracketLevels<T extends { i: number; j: number }>(
   pairs: T[]

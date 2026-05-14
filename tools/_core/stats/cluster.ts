@@ -1,10 +1,6 @@
 // stats/cluster.ts — distance metrics, hierarchical clustering (`hclust` /
 // `dendrogramLayout`), and k-means primitives used by tools/heatmap/.
-//
-// Migrated from `tools/stats-cluster.js`. No intra-stats dependencies —
-// distance + clustering use only built-ins. Lives alongside the other stats
-// modules by historical convention; could equally live as a top-level
-// _core/cluster.ts.
+// No intra-stats dependencies — distance + clustering use only built-ins.
 
 import type {
   DendrogramLayout,

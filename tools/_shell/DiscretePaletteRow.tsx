@@ -50,12 +50,9 @@ interface DiscreteSwatchStripProps {
 // is on their clipboard (paste into any of the tool's hex inputs to
 // override a single group's colour).
 //
-// Previously rendered only `n` cells where `n` was clamped 4..12 — so a
-// 3-group plot showed only 3-4 swatches even though the palette catalogues
-// most-often hold 8-12 stops. Users couldn't see (let alone pick) colours
-// past their group count without manually peeking at
-// `tools/_shell/discrete-palette.ts`. The full-spectrum band makes every
-// hex in the catalogue copyable directly from the sidebar.
+// Renders the full catalogue (every hex stop) rather than just the first
+// `n` swatches, so users can see and copy any colour from the picker
+// without having to peek at `tools/_shell/discrete-palette.ts`.
 export function DiscreteSwatchStrip({
   palette,
   n,

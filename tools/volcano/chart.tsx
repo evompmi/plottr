@@ -45,20 +45,18 @@ const { forwardRef, useMemo, useEffect, useRef } = React;
 // circles so small-N renderings stay crisp and per-point `<title>`
 // tooltips keep working.
 //
-// Why 1,000: the 2026-05-12 perf spike (docs/perf-spike-2026-05-12.md)
-// showed the SVG path crossing its "smooth interaction" budget around
-// 1–2k points on a typical workstation; pushing the threshold down to
-// 1k keeps interactive panning / re-render on slider drag responsive
-// for transcriptomics-scale data while still letting normal-sized
-// experiments (typical proteomics / RNA-seq summary tables ~ 200–500
-// rows) stay on the per-point SVG path.
+// 1,000 is the boundary where the SVG path crosses the "smooth
+// interaction" budget on a typical workstation. Keeps interactive
+// panning + slider-drag re-render responsive on transcriptomics-scale
+// data while letting normal-sized experiments (proteomics / RNA-seq
+// summary tables ~ 200–500 rows) stay on the per-point SVG path.
 //
 // Downloads stay vector-perfect regardless of the on-screen path: the
-// chart registers an export mutator (see registerSvgExportMutator in
-// tools/shared.js) that substitutes the rasterised <image> for a fresh
-// <g> of <circle> elements in the export clone — so SVG downloads are
-// always crisp and PNG downloads rasterise from the vector tree, not
-// from the already-rasterised live image.
+// chart registers an export mutator (see `registerSvgExportMutator` in
+// `_core/svg-export`) that substitutes the rasterised <image> for a
+// fresh <g> of <circle> elements in the export clone — so SVG downloads
+// are always crisp and PNG downloads rasterise from the vector tree,
+// not from the already-rasterised live image.
 const POINT_RASTERIZE_THRESHOLD = 1000;
 
 // Cap the canvas oversampling so a 4×-DPR phone or zoomed-in browser

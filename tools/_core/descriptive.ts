@@ -1,9 +1,5 @@
 // _core/descriptive.ts — sample-level descriptive stats (mean / SD / SEM /
 // CI95 / quartiles / kde) and the per-group convenience wrapper.
-//
-// Carved out of `_core/shared.ts` in v1.6.x. Depends on `_core/stats/dist`
-// for `tinv` (CI95 t-critical) and `_core/numeric` for the isNumeric guard
-// in `computeGroupStats`.
 
 import { isNumericValue, toNumericValue } from "./numeric";
 import { tinv } from "./stats/dist";

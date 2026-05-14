@@ -1,11 +1,8 @@
-// _core/shared.ts — barrel for the shared kernel.
-//
-// Was a single 1100-line module in the v1.6.0 cut; split along functional
-// seams into eight modules in v1.6.x to make the surface discoverable.
-// Each sub-module emits real `export` declarations and is imported
-// directly by its callers — the legacy `globalThis.X = X` transitional
-// shim layer was retired once every tool consumer switched to direct
-// imports.
+// _core/shared.ts — barrel for the shared kernel. Re-exports every named
+// symbol from the eight focused sub-modules so callers can either import
+// from the barrel (`import { parseRaw } from "../_core/shared"`) or from
+// the specific sub-module (`import { parseRaw } from "../_core/csv"`).
+// Direct sub-module imports are the more common idiom in the tree.
 
 export * from "./color";
 export * from "./icons";

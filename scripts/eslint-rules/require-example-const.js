@@ -9,10 +9,7 @@
 //     the codebase with `grep -nE "^const EXAMPLE_(CSV|TSV)" tools/*/app.tsx`.
 //   - Single failure mode. A typo in the const name (`EXMPLE_CSV`) trips
 //     the linter at edit time, instead of producing a "Try sample data"
-//     button that silently does nothing in production. (The historical
-//     bug class — sample-data buttons broken in the iframe→SPA migration
-//     because per-tool example scripts were no longer loaded — is the
-//     reason this convention exists.)
+//     button that silently does nothing in production.
 //
 // Scope: enabled only on `tools/*/app.tsx` via the eslint.config.js
 // `files:` glob. Calculator app files (`tools/<calc>-app.tsx`) are

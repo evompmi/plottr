@@ -699,9 +699,8 @@ export interface SampleSelectionOverlayProps {
   conditions: Condition[];
 }
 
-// SampleSelectionOverlay used to also accept a `setConditions` prop in some
-// drafts; keep `SetConditionsDispatch` available as the type alias for any
-// future narrower wiring (no current consumer).
+// Type alias kept available for any future SampleSelectionOverlay variant
+// that needs to dispatch a Condition[] write — no current consumer.
 export type SetConditionsDispatch = (next: Condition[]) => void;
 
 // ── PlotPanel props ─────────────────────────────────────────────────────────

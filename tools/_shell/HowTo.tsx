@@ -9,11 +9,8 @@
 // depth consistent across tools (no more wall-of-text in one place +
 // one-liner in another).
 //
-// The tool icon used to appear in the header too but was retired
-// 2026-05 because the topbar + the sample-dataset banner on the same
-// page already carry it twice — three repetitions felt redundant. The
-// `toolName` field stays on `HowToContent` because `HowToCard` still
-// uses it for the localStorage key (`dv-howto-<toolName>`).
+// The `toolName` field on `HowToContent` is used by `HowToCard` for the
+// localStorage collapse-state key (`dv-howto-<toolName>`).
 //
 // The rendering layer (sub-card header style, grid layout, pill list)
 // lives here. Tool-specific content lives in `tools/<tool>/howto.tsx`.

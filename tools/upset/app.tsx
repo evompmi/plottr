@@ -128,13 +128,13 @@ export function App() {
   const [pendingMinDegree, setPendingMinDegree] = useState(1);
   const [pendingMaxDegree, setPendingMaxDegree] = useState<number>(Infinity);
 
-  // Significance-test state for the selected intersection (Phase 2 of the
-  // SuperExactTest-style work). The universe size defaults to the number of
-  // distinct items across all uploaded sets but is user-overridable — a real
-  // analysis often needs a larger background (e.g. the full genome, not just
-  // the union of uploaded lists). The cache is keyed on `${mask}:${universe}`
-  // so a universe-size change invalidates previously computed p-values. BH
-  // adjustment runs across the cache every time a new entry is added.
+  // Significance-test state for the selected intersection (SuperExactTest-
+  // style). The universe size defaults to the number of distinct items
+  // across all uploaded sets but is user-overridable — a real analysis
+  // often needs a larger background (e.g. the full genome, not just the
+  // union of uploaded lists). The cache is keyed on `${mask}:${universe}`
+  // so a universe-size change invalidates previously computed p-values.
+  // BH adjustment runs across the cache every time a new entry is added.
   const [intersectionTests, setIntersectionTests] = useState(new Map());
   const [universeSize, setUniverseSize] = useState<number | "">("");
   const [universeOverridden, setUniverseOverridden] = useState(false);
@@ -381,7 +381,7 @@ export function App() {
   // this intercept the user's configure-step edits (set selection + degree
   // cutoffs) would be lost. Commit the pending selection if it differs from
   // the current one and patch vis with the pending min/max degree before
-  // navigating, matching what the old bottom "Plot →" button used to do.
+  // the step transition fires.
   const navigateStep = useCallback(
     (target: string) => {
       if (target === "plot" && step === "configure" && pendingSelection.length >= 2) {
@@ -428,13 +428,12 @@ export function App() {
         return;
       }
       // Auto-detect long format for 2-column input. 3+ columns are
-      // unambiguously wide (one column per set). Mirrors the venn pattern
-      // — the wide/long upfront picker UpSet used to expose was vestigial
-      // friction once `detectLongFormat` could resolve both cases from
-      // shape + heuristics. The cross-tool handoff still passes an
-      // explicit `fmt` and that wins over auto-detect for parity with the
-      // source tool's choice; in practice the detector and the payload
-      // agree on every venn → upset payload.
+      // unambiguously wide (one column per set). `detectLongFormat`
+      // resolves both cases from shape + heuristics — no upfront
+      // wide/long user picker needed. The cross-tool handoff passes an
+      // explicit `fmt` and that wins over auto-detect for parity with
+      // the source tool's choice; in practice the detector and the
+      // payload agree on every venn → upset payload.
       let effectiveFmt = fmt;
       if (fmt !== "long" && headers.length === 2 && detectLongFormat(headers, rows).isLong) {
         effectiveFmt = "long";
@@ -561,9 +560,9 @@ export function App() {
     // storage. Venn now dispatches `plottr-handoff` right after the
     // sessionStorage write so we can re-consume.
     const onSameTabHandoff = () => consume();
-    // Legacy iframe-shell path: kept defensively in case any old
-    // entry-point still postMessages the same payload shape. Inert in
-    // the SPA today.
+    // Defensive postMessage listener for any external embed that still
+    // sends a `dataviz-handoff` payload directly (no current in-tree
+    // sender). Same-origin only.
     const onMessage = (e: MessageEvent) => {
       if (!e || e.origin !== window.location.origin) return;
       const d = e.data;

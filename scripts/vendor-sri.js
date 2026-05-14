@@ -17,13 +17,12 @@
 // update regenerates the hashes automatically; a `--check` mode is
 // available for CI to fail when an HTML file is out of sync with disk.
 //
-// SPA-era simplification: pre-SPA this script walked all 11 HTMLs
-// (index.html + 10 tools/<tool>.html). After the iframe→SPA migration
-// only index.html loads vendored React, so the file list is one entry.
+// Only `index.html` loads vendored React, so `HTML_PAGES` is a single
+// entry — append more if a future standalone HTML starts pulling React.
 //
-// Why a leading anchor? Same-origin SRI does not strictly need
-// `crossorigin="anonymous"`, but the audit explicitly recommends it and
-// it costs nothing. We add it whenever we add `integrity`.
+// Same-origin SRI does not strictly need `crossorigin="anonymous"`, but
+// the audit explicitly recommends it and it costs nothing. We add it
+// whenever we add `integrity`.
 
 const fs = require("fs");
 const path = require("path");
@@ -59,9 +58,8 @@ function hashesForVendor() {
   return out;
 }
 
-// Returns the list of HTML files this script rewrites — repo-root
-// pages declared in `HTML_PAGES`. Pre-SPA this walked `tools/*.html`
-// too; the SPA migration deleted those files.
+// Returns the list of HTML files this script rewrites — repo-root pages
+// declared in `HTML_PAGES`, filtered to those that exist on disk.
 function listHtmlPages() {
   return HTML_PAGES.map((p) => path.join(repoRoot, p)).filter((p) => fs.existsSync(p));
 }
@@ -74,9 +72,9 @@ function listHtmlPages() {
 // are: (1) the leading indent (spaces / tabs at column 0 of the script
 // tag), (2) the attribute soup between `<script` and the closing `>`.
 //
-// The vendor path is `vendor/<file>` (relative to the repo root). Pre-
-// SPA the per-tool HTMLs lived under `tools/` and used `../vendor/<file>`;
-// that codepath went away with the iframe shell.
+// The vendor path is `vendor/<file>` (relative to the repo root) — only
+// `index.html` loads vendored React, so the only `<script src="vendor/…">`
+// references this script rewrites live at repo-root depth.
 function tagRegex(basename) {
   const escaped = basename.replace(/[.+?*^$()[\]{}|\\]/g, "\\$&");
   return new RegExp(

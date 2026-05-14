@@ -1,7 +1,5 @@
 // _core/numeric.ts — locale-aware numeric detection + seeded PRNG.
 //
-// Carved out of `_core/shared.ts` in v1.6.x.
-//
 // Unicode-aware normalisation before numeric parsing. Excel on macOS, PDFs,
 // Word docs, and statistical-paper copy-paste all routinely embed non-ASCII
 // minus-ish and whitespace-ish characters into number cells. These are

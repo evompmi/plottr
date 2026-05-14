@@ -1,13 +1,7 @@
 // tests/helpers/render-loader.js — real React 18 + happy-dom rendering
-// helpers for `tests/components.test.js`.
-//
-// Replaces the previous 354-line bespoke functional React mock. The
-// mock was written before Vitest was on the table; under Vitest +
-// happy-dom we can use the real React, the real react-dom/server, and
-// the real react-dom/client and let assertions read DOM / HTML
-// directly instead of reverse-engineering React-element-tree shapes
-// (`el.type === "div"`, `el.children.length === 3`,
-// `JSON.stringify(el).indexOf("X")`, etc.).
+// helpers for `tests/components.test.js`. Uses the actual `react`,
+// `react-dom/server` and `react-dom/client` packages plus happy-dom so
+// assertions read DOM / HTML directly.
 //
 // Required environment: the consuming test file must declare
 //   // @vitest-environment happy-dom
@@ -90,10 +84,12 @@ let _bundleLoaded = false;
 
 function ensureSharedBundleLoaded() {
   if (_bundleLoaded) return;
-  // shared.bundle.js still ships theme.js (the inline no-FOUC IIFE in each
-  // HTML calls `setTheme` synchronously before paint, so theme.js stays
-  // script-scope for now). The migrated `_core/*` modules are loaded
-  // through the IIFE-bundle helpers below.
+  // shared.bundle.js carries the IIFE-bundled `_core/theme.ts` so the
+  // inline no-FOUC `<script>` in each HTML can call `setTheme` /
+  // `getTheme` before first paint. Loaded into the test runner's realm
+  // via `runInThisContext` so the synthetic `Object.assign(globalThis,
+  // __plottrTheme)` footer (added by `scripts/build-shared.js`) puts the
+  // theme functions on the runner's globalThis.
   const bundlePath = path.join(toolsDir, "shared.bundle.js");
   if (!fs.existsSync(bundlePath)) {
     throw new Error(
@@ -103,39 +99,44 @@ function ensureSharedBundleLoaded() {
   const bundleSrc = fs.readFileSync(bundlePath, "utf8");
   vm.runInThisContext(bundleSrc, { filename: "tools/shared.bundle.js" });
 
-  // Load the migrated `_core/*` modules into the realm so their trailing
-  // `globalThis.X = X` shims populate the same global surface unmigrated
-  // call sites in tool .tsx files (parseRaw, PALETTE, isNumericValue, …)
-  // expect.
+  // Bundle and run `_core/stats/*` and `_core/shared.ts` with a synthetic
+  // `Object.assign(globalThis, …)` footer so the realm gets every named
+  // export on globalThis — the components tests (and a handful of
+  // chart-bundle paths) reach for `globalThis.parseRaw`,
+  // `globalThis.buildExportSvg`, `globalThis.PALETTE`, etc. without
+  // importing them. `globalName` collects the IIFE's exports into one
+  // object so a single `Object.assign` per bundle copies them across.
   const coreStats = esbuild.buildSync({
     entryPoints: [path.join(toolsDir, "_core/stats/index.ts")],
     bundle: true,
     format: "iife",
+    globalName: "__plottrStats",
     platform: "neutral",
     target: "es2022",
     write: false,
   }).outputFiles[0].text;
-  vm.runInThisContext(coreStats, { filename: "tools/_core/stats/index.ts" });
+  vm.runInThisContext(coreStats + "\nObject.assign(globalThis, __plottrStats);\n", {
+    filename: "tools/_core/stats/index.ts",
+  });
 
   const coreShared = esbuild.buildSync({
     entryPoints: [path.join(toolsDir, "_core/shared.ts")],
     bundle: true,
     format: "iife",
+    globalName: "__plottrShared",
     platform: "neutral",
     target: "es2022",
     write: false,
   }).outputFiles[0].text;
-  vm.runInThisContext(coreShared, { filename: "tools/_core/shared.ts" });
+  vm.runInThisContext(coreShared + "\nObject.assign(globalThis, __plottrShared);\n", {
+    filename: "tools/_core/shared.ts",
+  });
 
-  // Migrated _shell modules — bundle the barrel via esbuild and lift its
-  // named exports onto globalThis so existing `sc.DataPreview` / `sc.X`
-  // call sites in tests/components.test.js continue to resolve through
-  // the same surface that real consumers use.
-  //
-  // 2026-06: collapsed from a per-source-file array into a single barrel
-  // entry once `_shell/index.ts` became the public surface. Adding a new
-  // shared export means appending to this `names` list (and the barrel
-  // itself); no separate registration block.
+  // `_shell` modules — bundle the barrel via esbuild and lift its named
+  // exports onto globalThis so `sc.DataPreview` / `sc.X` call sites in
+  // tests/components.test.js resolve through the same surface that real
+  // consumers use. Adding a new shared export means appending to this
+  // `names` list (and the barrel itself); no separate registration block.
   const SHELL_GLOBALS = [
     {
       src: path.join(toolsDir, "_shell/index.ts"),
@@ -233,20 +234,13 @@ function buildContext() {
 }
 
 // ── Compiled-tool loading ──────────────────────────────────────────────
-// SPA-era version: pre-iframe→SPA migration each tool had a
-// standalone `tools/<tool>/index.js` build (one esbuild entry point
-// per tool) and `loadTool` just read that file. After the migration
-// only the SPA bundle (`tools/_app/index.js`) ships, and it's an ES
-// module that `vm.runInThisContext` can't parse.
-//
-// New approach: bundle each tool's `app.tsx` in-memory via
-// `esbuild.buildSync` with `format=iife`, so the chart components
-// declared at the top level of the tool's source become accessible
-// as IIFE-return values. Same pattern other test helpers use
-// (`tests/helpers/venn-loader.js` does the same for venn's
-// `helpers.ts` barrel). Build cost is ~50 ms per tool; the result is
-// memoised so repeated `loadTool("boxplot")` calls inside one test
-// run only build once.
+// Bundles each tool's `app.tsx` in-memory via `esbuild.buildSync` with
+// `format=iife`, so the chart components declared at the top level of
+// the tool's source become accessible as IIFE-return values. (Same
+// pattern as `tests/helpers/venn-loader.js` for venn's `helpers.ts`
+// barrel.) Build cost is ~50 ms per tool; the result is memoised so
+// repeated `loadTool("boxplot")` calls inside one test run only build
+// once.
 //
 // `typeof X !== 'undefined'` in the IIFE return keeps the wrapper
 // compatible with tools that don't declare a particular name (volcano

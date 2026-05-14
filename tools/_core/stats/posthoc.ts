@@ -1,10 +1,6 @@
 // stats/posthoc.ts — studentized-range distribution, all-pairs post-hocs,
 // p-adjust, compact-letter-display, and the auto test-picker (`selectTest`).
 //
-// Migrated from `tools/stats-posthoc.js`. Depends on `./dist` (gammaln,
-// chi2inv, normcdf / normsf, _gaussLegendre) and `./tests` (oneWayANOVA,
-// sampleMean, sampleVariance, rankWithTies, shapiroWilk, leveneTest).
-//
 // Layout:
 //   10. Studentized range distribution — _wprob, ptukey, qtukey
 //   11. Post-hoc tests                  — Tukey HSD, Games-Howell, Dunn, BH

@@ -1,21 +1,18 @@
 // Shared building blocks for the per-domain `*-loader.js` files. Every
-// recent migration added esbuild.buildSync + vm.runInContext + React-stub
-// boilerplate that was 80% identical across loaders; this module exposes
-// the small composable pieces (built-in globals, neutral DOM stubs, the
-// minimal React stub, esbuild bundling, in-memory localStorage, the
+// loader needs esbuild.buildSync + vm.runInContext + a React stub +
+// neutral DOM stubs in some combination; this module exposes the
+// composable pieces (built-in globals, neutral DOM stubs, the minimal
+// React stub, esbuild bundling, in-memory localStorage, the
 // "thread module.exports through a vm context" idiom) so each loader is
-// just declaration of what it actually needs.
+// just a declaration of what it actually needs.
 //
-// What does NOT live here:
+// Two helpers intentionally manage their own context outside this file:
 //
-//   - The render-loader's real-React + happy-dom plumbing. That uses
-//     `globalThis` rather than a vm.createContext sandbox; combining the
-//     two would muddy the abstraction.
+//   - `tests/helpers/render-loader.js` — real React + happy-dom plumbing,
+//     which uses `globalThis` rather than a vm.createContext sandbox.
 //   - Per-tool helpers loaders' Stryker-compatible require()-via-tmp-file
-//     trick. That's specific to tools whose helpers.ts goes through
-//     mutation testing; staying inline keeps the trick visible.
-//
-// Both of those continue to manage their own context.
+//     trick — specific to tools whose helpers.ts goes through mutation
+//     testing; staying inline keeps the trick visible at the call site.
 
 const fs = require("fs");
 const vm = require("vm");
@@ -199,15 +196,12 @@ function readSharedBundleSrc() {
   return fs.readFileSync(p, "utf8");
 }
 
-// Bundled IIFE source of the migrated `_core/shared.ts` module. The
-// `_core/*` modules used to carry a trailing `globalThis.X = X` shim
-// block specifically so this test path's `vm.runInContext(...)` could
-// read `ctx.parseRaw` etc. afterwards. That shim was retired in v1.6.x —
-// the synthetic `Object.assign(globalThis, __plottrShared)` footer below
-// reproduces the same effect at test-bundling time without polluting the
-// browser bundle. `globalName` tells esbuild to return the barrel's named
-// exports as a single object literal; the footer spreads them onto the vm
-// context's globalThis so callers like `ctx.parseRaw(...)` keep working.
+// Bundled IIFE source of the `_core/shared.ts` barrel for the
+// `vm.runInContext`-based loaders. `globalName` tells esbuild to expose
+// the barrel's named exports as a single object literal; the synthetic
+// `Object.assign(globalThis, __plottrShared)` footer spreads those onto
+// the vm context's globalThis so callers like `ctx.parseRaw(...)` resolve
+// without each `_core/*` module having to write to globalThis itself.
 function readCoreSharedSource() {
   const result = esbuild.buildSync({
     entryPoints: [path.join(TOOLS_DIR, "_core/shared.ts")],

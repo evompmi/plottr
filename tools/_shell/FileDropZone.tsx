@@ -3,9 +3,6 @@
 // (2 MB hard reject) and `FILE_WARN_BYTES` (1 MB warn) constants exported
 // here too — any new ingest surface (paste textarea, URL fetch, …) must
 // gate on the same constants and surface the same red-banner UX.
-//
-// 2026-05 migration from `tools/shared-file-drop.js`: converted to JSX,
-// `FILE_LIMIT_BYTES` / `FILE_WARN_BYTES` exported alongside.
 
 const { useState, useRef } = React;
 
@@ -55,9 +52,10 @@ export function FileDropZone({
       );
     }
     const reader = new FileReader();
-    // `onload` used to fire `onFileLoad` directly; `onerror` was never wired,
-    // so a corrupt file or blocked read silently did nothing and the user
-    // was left staring at the drop zone wondering what happened. Audit M3.
+    // Both `onload` and `onerror` must be wired — a corrupt file or blocked
+    // read would otherwise leave the user staring at the drop zone with no
+    // feedback. `setReading` gives the UI a "Reading…" affordance until one
+    // of the two callbacks fires.
     setReading(true);
     reader.onload = (e) => {
       setReading(false);

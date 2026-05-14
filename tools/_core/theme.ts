@@ -1,20 +1,19 @@
 // _core/theme.ts — theme toggle wiring + `ThemeToggle` React component.
+// Reads / writes `dataviz-theme` in localStorage, syncs across
+// same-origin tabs via BroadcastChannel (storage event as fallback),
+// and exposes a small `ThemeToggle` React component.
 //
-// Migrated from the legacy script-scope `tools/theme.js`. Reads / writes
-// `dataviz-theme` in localStorage, syncs across same-origin tabs via
-// BroadcastChannel (storage event as fallback), and exposes a small
-// `ThemeToggle` React component.
-//
-// First-visit / no-FOUC behaviour is unchanged: a tiny inline IIFE in each
-// HTML `<head>` reads `dataviz-theme` and applies the `data-theme` attribute
-// synchronously before paint, so the migration of this module to the SPA
-// bundle doesn't reintroduce theme flashing.
+// First-visit / no-FOUC behaviour: a tiny inline IIFE in each HTML
+// `<head>` reads `dataviz-theme` and applies the `data-theme` attribute
+// synchronously before paint, so the user never sees a flash of the
+// wrong theme before this module's listeners come up.
 //
 // The standalone HTML pages (`benchmark.html`, `privacy.html`) load the
 // bundled IIFE via `<script>` and reference `getTheme` / `setTheme` /
 // `toggleTheme` from inline scripts; `scripts/build-shared.js` appends a
-// synthetic `Object.assign(globalThis, …)` footer at bundling time so
-// those legacy consumers continue to resolve the names.
+// synthetic `Object.assign(globalThis, __plottrTheme)` footer at
+// bundling time so those inline scripts resolve the names without each
+// `_core/*` module having to write to globalThis itself.
 
 const THEME_STORAGE_KEY = "dataviz-theme";
 

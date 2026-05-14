@@ -228,10 +228,6 @@ export function UploadStep({
   );
 }
 
-// Detected-separator surface now lives in the shared
-// `_shell/DetectedSeparatorBadge` component so every tool renders the
-// same affordance with the same labelling.
-
 export function ConfigureStep({
   fileName,
   parsedHeaders,
