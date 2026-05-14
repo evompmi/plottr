@@ -396,6 +396,12 @@ export function App() {
     interface HandoffPayload {
       csv?: string;
       fileName?: string;
+      // Optional y-axis label override sent by the source tool when the
+      // auto-derived label (the value column's name) is an
+      // implementation detail rather than the standard scientific term.
+      // E.g. aequorin sends "A.U.C." instead of letting the boxplot
+      // read its CSV column header "Raw Sum" / "Corrected Sum".
+      yLabel?: string;
     }
     const apply = (payload: HandoffPayload | null | undefined) => {
       if (!payload || !payload.csv) return;
@@ -406,6 +412,17 @@ export function App() {
       setSepOverride("");
       setFileName(payload.fileName || "from_handoff.csv");
       doParse(payload.csv, "");
+      // Apply the source-tool-supplied y-axis label after doParse so the
+      // batched update lands before the next render's valueColName
+      // useEffect fires. That effect treats the label as "auto" only
+      // when current === "" || === VIS_INIT_BOXPLOT.yLabel ||
+      // === prevAutoYLabel.current — none of which match a
+      // source-supplied override, so the auto-sync silently leaves it
+      // alone. The user can still rename via the Labels tile; the
+      // override doesn't lock anything.
+      if (typeof payload.yLabel === "string" && payload.yLabel.trim() !== "") {
+        updVis({ yLabel: payload.yLabel.trim() });
+      }
       setStep("plot");
     };
     apply(consumeHandoff("boxplot"));

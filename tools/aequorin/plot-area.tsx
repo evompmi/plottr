@@ -430,6 +430,16 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                         mode: "long",
                         source: "RLU timecourse — Σ barplot",
                         fileName: csvFileName.replace(/\.csv$/i, "") + "_boxplot.csv",
+                        // Send the standard scientific label for what
+                        // Σ-of-luminescence represents (the discrete
+                        // integral over time-points, i.e. area under
+                        // the time-course curve up to a constant Δt
+                        // factor that's the same for every replicate).
+                        // Without this hint the boxplot would auto-
+                        // derive "Raw Sum" / "Corrected Sum" from the
+                        // CSV column header — an implementation detail
+                        // most users don't recognise.
+                        yLabel: "A.U.C.",
                       });
                       // Single shell-aware path: `navigateToTool` prefers
                       // the SPA router when registered

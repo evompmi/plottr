@@ -108,38 +108,65 @@ COMPILED_PATHSPEC=(
   'tools/_app/chunks/*.js'
   'tools/_app/chunks/*.js.map'
   'tools/shared.bundle.js'
-  'tools/shared.bundle.js.map'
   'tools/version.js'
   'tools/*.html'
   'index.html'
 )
+# shared.bundle.js.map intentionally omitted: scripts/build-shared.js
+# concatenates source files literally with no sourcemap output, so the
+# .map sibling never exists and including it would make
+# `git add -A -- <pathspec>` fail with "did not match any files" on
+# every pre-commit run.
 
-# Enumerate everything in those paths that drifted from the index.
-# `git status --porcelain` covers all four cases the rebuild can produce:
+# Enumerate post-rebuild drift between the working tree and the index
+# in the compiled-output paths. We care about Y-column changes (working-
+# tree-vs-index) since pre-rebuild staging is already correct; the
+# hook should only pick up new drift introduced by the rebuild itself.
 #
-#   - ` M` / `MM` — existing tracked file the rebuild modified
-#   - `??`        — new content-hashed chunk esbuild emitted
-#   - ` D`        — chunk we wiped above that's still tracked (so it
-#                   was stale and the new build doesn't need it; the
-#                   deletion needs to be staged into this commit)
-#   - `R `        — renamed (rare here, but still in scope)
+# `git status --porcelain` two-char status XY:
+#   X = index-vs-HEAD,  Y = worktree-vs-index
 #
-# `git diff` (the previous mechanism) only covers M and D; A/?? show up
-# only in `git status` because untracked files are not in the index.
-# Pre-existing unstaged drift was stashed at the top of the hook, so
-# anything surfacing here is a genuine consequence of this rebuild on
-# the staged source.
+# Lines we WANT to stage:
+#   - ` M` (worktree modified, not yet staged)            — rebuilt file
+#   - `MM` (both staged and unstaged modifications)       — rebuild diverged from pre-stage
+#   - ` D` (worktree deleted, not yet staged)             — stale-chunk wipe
+#   - `??` (untracked)                                    — new content-hashed chunk emit
+#
+# Lines we DON'T want to re-stage:
+#   - `M ` / `A ` / `D ` / `R ` (Y is space)              — already staged, no drift
+#
+# Rename rows (X=R) print as `R  old -> new`; when Y is space they're
+# already staged and we skip. If a rename's Y were non-space (rare),
+# the `-> ` arrow would confuse `git add` — parse out the new path.
 REBUILT=$(git status --porcelain -- "${COMPILED_PATHSPEC[@]}" 2>/dev/null \
-  | awk 'NF { sub(/^.. /, ""); print }' || true)
+  | awk '
+      {
+        x = substr($0, 1, 1);
+        y = substr($0, 2, 1);
+        # Untracked: XY = "??"; treat as a change to stage.
+        if (x == "?" && y == "?") {
+          print substr($0, 4);
+          next;
+        }
+        # Skip already-fully-staged lines (Y is a space).
+        if (y == " ") next;
+        path = substr($0, 4);
+        # Rename rows look like "old -> new"; keep only the new path.
+        if (match(path, / -> /)) path = substr(path, RSTART + 4);
+        print path;
+      }
+    ' || true)
 
 if [ -n "$REBUILT" ]; then
   echo "[pre-commit] Re-staging rebuilt outputs:"
   echo "$REBUILT" | sed 's/^/  /'
-  # `git add -A` over the pathspec stages modifications, additions, AND
-  # deletions in one pass — needed because a stale chunk wipe surfaces
-  # as a delete and a fresh chunk emit surfaces as an add, both in the
-  # same commit.
-  git add -A -- "${COMPILED_PATHSPEC[@]}"
+  # Stage the enumerated paths. Each came from `git status --porcelain`
+  # so git already recognises it; `git add -A -- <each>` handles
+  # modifications, new files, AND deletions consistently. xargs -I {}
+  # invokes git per path so a single bogus entry can't block the rest
+  # (which the previous flat `git add -A -- <pathspec>` couldn't —
+  # one no-match glob in the pathspec aborted the whole call).
+  printf '%s\n' "$REBUILT" | xargs -I {} git add -A -- "{}"
 fi
 
 exit 0

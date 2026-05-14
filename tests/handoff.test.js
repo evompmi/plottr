@@ -76,6 +76,25 @@ test("payload preserves arbitrary extra fields (loose schema)", () => {
   assert(out.custom && out.custom.whatever === 42);
 });
 
+test("payload preserves yLabel for downstream y-axis overrides", () => {
+  // Aequorin → boxplot sets `yLabel: "A.U.C."` so the destination
+  // plot reads the standard scientific label (area under the curve)
+  // rather than the implementation detail the boxplot would otherwise
+  // auto-derive from the value column header ("Raw Sum" / "Corrected
+  // Sum"). The handoff transport just round-trips the field; the
+  // consumer is responsible for applying it (covered in boxplot/app.tsx
+  // and pinned at the live-render level — not testable here without a
+  // full React mount).
+  const c = freshContext();
+  c.setHandoff({
+    tool: "boxplot",
+    csv: "Condition,Raw Sum\nA,1\nB,2",
+    yLabel: "A.U.C.",
+  });
+  const out = c.consumeHandoff("boxplot");
+  eq(out.yLabel, "A.U.C.");
+});
+
 test("setHandoff overwrites a prior unconsumed payload (last-write-wins)", () => {
   // Edge case: user rapidly clicks two source tools' "Open in Boxplot"
   // buttons before either consumption fires. Whoever wrote last wins;

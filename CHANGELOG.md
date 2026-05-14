@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Aequorin configure step shows the calibration formula with your
+  parameter values substituted in.** When the user picks a calibration
+  formula from the dropdown (Allen & Blinks, Hill equilibrium, or
+  generalised Allen & Blinks), a panel appears below the K-inputs row
+  rendering the chosen equation with Kr / Ktr / Kd / n substituted at
+  their current values — e.g. for Allen & Blinks with the defaults,
+  `[Ca²⁺] = ((1 + 118)·f^(1/3) − 1) / (7·(1 − f^(1/3)))`. The fraction
+  bar is a CSS-stacked layout (no SVG / MathML dependency) so the
+  rendering themes correctly in dark mode and survives a future
+  font-stack switch. Updates live as the user nudges any K-input;
+  hides on "None (raw data)".
+
 ### Changed
 
 - **Heatmap: on-screen canvas density bumped, downloads vector when

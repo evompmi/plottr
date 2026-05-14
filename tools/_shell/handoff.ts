@@ -32,6 +32,16 @@ export interface HandoffPayload {
   source?: string;
   // Suggested filename for download chrome on the destination.
   fileName?: string;
+  // Suggested y-axis label for the destination tool's plot view, used
+  // when the auto-derived label (typically the value column's name)
+  // is an implementation detail rather than the standard scientific
+  // term. Aequorin sends "A.U.C." when handing off Σ-of-luminescence
+  // data so the boxplot reads as area-under-curve, not "Raw Sum".
+  // Consumers should treat a present value as authoritative — apply
+  // it after their own auto-sync logic so it isn't immediately
+  // clobbered. Optional; the destination's own auto-derivation runs
+  // when this is absent.
+  yLabel?: string;
   // Pre-assigned column-role hints; optional.
   colRoles?: string[];
   // Tool-specific consumers extend with their own fields (e.g. upset's
