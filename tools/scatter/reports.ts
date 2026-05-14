@@ -9,6 +9,8 @@ import {
   formatCorrResultLine,
 } from "./helpers";
 import { formatRNumber, formatRVector, sanitizeRComment, sanitizeRString } from "../_shell";
+import { formatP } from "../_core/stats/format";
+import type { CorrTest } from "../_core/stats/types";
 
 const CORR_TO_R_METHOD: Record<CorrTest, "pearson" | "spearman" | "kendall"> = {
   pearson: "pearson",

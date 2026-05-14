@@ -10,6 +10,9 @@ import {
   buildRScript,
   sanitizeRComment,
 } from "../_shell";
+import { tinv } from "../_core/stats/dist";
+import { sampleMean, sampleSD } from "../_core/stats/tests";
+import { formatP, pStars } from "../_core/stats/format";
 //
 // One compact summary table: one row per eligible x. Click a row to expand
 // the decision trace + post-hoc inline. Aggregate TXT / R downloads at the
@@ -96,7 +99,18 @@ export function buildPerXTextBlock(row: EnrichedPerXRow, xLabel: string): string
     });
     lines.push(`Shapiro-Wilk: ${parts.join("; ")}`);
   }
-  const lev = rec.levene ?? {};
+  // Widen `rec.levene` from its `{ error } | { F, df1, df2, p, equalVar }`
+  // union to an optional-field shape so this block can index `.F` / `.df1`
+  // without per-access narrowing; the `lev.F != null` guard below covers
+  // the error / undefined cases at runtime.
+  const lev = (rec.levene ?? {}) as {
+    F?: number;
+    df1?: number;
+    df2?: number;
+    p?: number;
+    equalVar?: boolean | null;
+    error?: string;
+  };
   if (lev.F != null)
     lines.push(
       `Levene: F(${lev.df1},${lev.df2}) = ${lev.F.toFixed(3)}, p = ${formatP(lev.p)} → ${lev.equalVar ? "equal variance" : "unequal variance"}`

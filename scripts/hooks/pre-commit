@@ -8,10 +8,9 @@
 # sneaks in (we lived this during the tool-helpers-split merge to master).
 #
 # Strategy: if staged changes touch anything that affects the build
-# (tools/*.tsx, tools/*/*.ts(x), tools/_shell/*, tools/shared*.js,
-# tools/stats-*.js, tools/theme.js, scripts/build-shared.js,
-# scripts/write-version.js), rebuild and re-stage any compiled output
-# whose post-build content differs from the index.
+# (tools/*.tsx, tools/*/*.ts(x), tools/_shell/*, tools/_core/*,
+# scripts/build-shared.js, scripts/write-version.js), rebuild and re-stage
+# any compiled output whose post-build content differs from the index.
 #
 # Audit-23 #14: stash unstaged + untracked changes before rebuild so the
 # build reflects only the about-to-commit state. Re-stage paths whose diff
@@ -28,7 +27,7 @@ set -euo pipefail
 # Files whose edits invalidate compiled outputs.
 affects_build() {
   git diff --cached --name-only --diff-filter=ACMR | \
-    grep -E '^(tools/[^/]+\.(tsx|ts)$|tools/[^/]+/.*\.(ts|tsx)$|tools/(shared[^/]*|stats[^/]*|theme)\.js$|scripts/(build-shared|write-version|vendor-sri)\.js$|vendor/.*\.js$)' \
+    grep -E '^(tools/[^/]+\.(tsx|ts)$|tools/[^/]+/.*\.(ts|tsx)$|scripts/(build-shared|write-version|vendor-sri)\.js$|vendor/.*\.js$)' \
     || true
 }
 

@@ -29,6 +29,8 @@ import {
 } from "./chart-layout";
 import { ColorLegend, SizeLegend } from "./chart-legends";
 
+import { makeTicks } from "../_core/scale";
+import { registerSvgExportMutator, unregisterSvgExportMutator } from "../_core/svg-export";
 // Re-export a few constants the rest of the volcano tool reaches for
 // (reports.ts uses MARGIN; index.tsx uses DEFAULT_VBW for the slider's
 // initial / reset value). Keeps the import surface unchanged after the

@@ -11,6 +11,9 @@ import {
 } from "./helpers";
 import { buildRScript, sanitizeRComment } from "../_shell";
 import type { TestResult } from "../_shell";
+import { tinv } from "../_core/stats/dist";
+import { sampleMean, sampleSD } from "../_core/stats/tests";
+import { formatP, pStars } from "../_core/stats/format";
 // `BpReportRow` is just the EnrichedBoxplotStatsRow — re-exported as a
 // distinct alias because the report builders are intentionally permissive
 // about extra fields the panel might layer on top.
@@ -59,7 +62,14 @@ export function buildBpSetTextBlock(row: BpReportRow, setLabel: string): string 
     });
     lines.push(`Shapiro-Wilk: ${parts.join("; ")}`);
   }
-  const lev = rec.levene ?? {};
+  const lev = (rec.levene ?? {}) as {
+    F?: number;
+    df1?: number;
+    df2?: number;
+    p?: number;
+    equalVar?: boolean | null;
+    error?: string;
+  };
   if (lev.F != null)
     lines.push(
       `Levene: F(${lev.df1}, ${lev.df2}) = ${lev.F.toFixed(3)}, p = ${formatP(lev.p)} → ${lev.equalVar ? "equal variance" : "unequal variance"}`

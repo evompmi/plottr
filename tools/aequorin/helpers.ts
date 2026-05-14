@@ -7,6 +7,9 @@
 
 import { CHART_MARGIN, buildLineD, resolveDiscretePalette, round2 } from "../_shell";
 import type { LegendBlock, PowerFromDataResult, TestResult } from "../_shell";
+import { PALETTE } from "../_core/color";
+import { selectTest } from "../_core/stats/posthoc";
+import type { ParseDataResult } from "../_core/csv";
 export { buildLineD };
 
 // ── Calibration defaults ─────────────────────────────────────────────────────

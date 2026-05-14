@@ -14,6 +14,8 @@ import {
 } from "./helpers";
 import type { Region, VennChartProps } from "./helpers";
 
+import { PALETTE } from "../_core/color";
+import { svgSafeId } from "../_core/svg-export";
 const { useMemo, useEffect, forwardRef } = React;
 
 const VW = 600,

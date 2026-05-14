@@ -14,6 +14,7 @@
 import { useRoute, navigate } from "./Router";
 import { TOOL_REGISTRY, findToolEntry } from "./tool-registry";
 import { ErrorBoundary } from "../_shell";
+import { toggleTheme, useThemeMode } from "../_core/theme";
 // Inline SVG icons reused across the SPA shell. Match the pre-SPA
 // markup in `index.html` for visual identity.
 const HOME_SVG =

@@ -8,6 +8,8 @@ import { computeSeries, computePerXStats, round2, ErrorKind, LineplotVis } from 
 import { UploadStep, ConfigureStep } from "./steps";
 import { PlotStep } from "./plot-area";
 
+import { isNumericValue } from "../_core/numeric";
+import { autoDetectSep, fixDecimalCommas, parseData } from "../_core/csv";
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
 // Annotate the literal so TS widens `xMin: null` to `number | null` etc.,

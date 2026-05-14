@@ -15,6 +15,10 @@ import {
 import { UploadStep } from "./steps";
 import { PlotStep } from "./plot-area";
 
+import { COLOR_PALETTES, PALETTE } from "../_core/color";
+import { isNumericValue } from "../_core/numeric";
+import { autoDetectSep, fixDecimalCommas, parseData } from "../_core/csv";
+import { fileBaseName } from "../_core/download";
 const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
 // Module-scope counter for stable per-session refLine ids. Stays outside

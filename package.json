@@ -1,7 +1,14 @@
 {
   "name": "plottr",
   "private": true,
-  "sideEffects": false,
+  "sideEffects": [
+    "tools/_core/stats/*.ts",
+    "tools/_core/stats/index.ts",
+    "tools/_core/*.ts",
+    "tools/_core/*.tsx",
+    "tools/_core/shared.ts",
+    "tools/_core/theme.ts"
+  ],
   "license": "MIT",
   "scripts": {
     "prebuild": "node scripts/write-version.js && node scripts/build-shared.js && node scripts/vendor-sri.js",

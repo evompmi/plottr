@@ -18,6 +18,12 @@ import {
   sanitizeRComment,
 } from "../_shell";
 import type { TestResult } from "../_shell";
+import { tinv } from "../_core/stats/dist";
+import { sampleMean, sampleSD } from "../_core/stats/tests";
+import { compactLetterDisplay } from "../_core/stats/posthoc";
+import { pStars } from "../_core/stats/format";
+import { formatP } from "../_core/stats/format";
+import type { NormalityResult } from "../_core/stats/types";
 // Test/post-hoc labels + group-arity option lists derived from the
 // shared registry (`tools/shared-stats-registry.js`). Pre-registry these
 // were a verbatim copy of `STATS_LABELS` / `POSTHOC_LABELS` from
@@ -150,7 +156,8 @@ export function summariseAqNormality(norm: NormalityResult[] | null | undefined)
 export function summariseAqEqualVariance(
   lev: SelectTestResult["levene"] | null | undefined
 ): string {
-  if (!lev || lev.F == null) return "—";
+  if (!lev || "error" in lev) return "—";
+  if (lev.F == null) return "—";
   return lev.equalVar ? "yes" : "no";
 }
 
@@ -220,7 +227,16 @@ export function buildAqSetTextBlock(row: EnrichedAequorinStatsRow): string {
     });
     lines.push(`Shapiro-Wilk: ${parts.join("; ")}`);
   }
-  const lev = rec?.levene ?? {};
+  // Widen `rec.levene` so this block can index `.F` / `.df1` etc. without
+  // per-access narrowing; the guard below covers the error / undefined cases.
+  const lev = (rec?.levene ?? {}) as {
+    F?: number;
+    df1?: number;
+    df2?: number;
+    p?: number;
+    equalVar?: boolean | null;
+    error?: string;
+  };
   if (lev.F != null)
     lines.push(
       `Levene: F(${lev.df1}, ${lev.df2}) = ${lev.F.toFixed(3)}, p = ${formatP(lev.p)} → ${lev.equalVar ? "equal variance" : "unequal variance"}`

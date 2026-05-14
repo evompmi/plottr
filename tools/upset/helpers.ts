@@ -3,6 +3,9 @@
 // this file directly). Keep layout constants and render-layer code out —
 // they belong in tools/upset.tsx.
 
+import { niceStep } from "../_core/scale";
+import { svgSafeId } from "../_core/svg-export";
+
 export type Intersection = {
   mask: number;
   setIndices: number[];

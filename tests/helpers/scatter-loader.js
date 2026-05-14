@@ -20,12 +20,15 @@
 // variables from shared.js / stats.js (only Math and Number built-ins).
 
 const vm = require("vm");
-const fs = require("fs");
-const path = require("path");
 const { readStatsSource } = require("./stats-source");
-const { TOOLS_DIR, builtins, bundleShell, requireViaTmpFile } = require("./_shell-test-utils");
+const {
+  builtins,
+  bundleShell,
+  requireViaTmpFile,
+  readCoreSharedSource,
+} = require("./_shell-test-utils");
 
-const sharedSrc = fs.readFileSync(path.join(TOOLS_DIR, "shared.js"), "utf8");
+const sharedSrc = readCoreSharedSource();
 const statsSrc = readStatsSource();
 
 const ctx = builtins();
@@ -40,10 +43,7 @@ vm.runInContext(statsSrc, ctx);
 // they're hoisted to the global object.
 const COLOR_PALETTES = vm.runInContext("COLOR_PALETTES", ctx);
 
-const scatterHelpers = requireViaTmpFile(
-  "scatter-helpers",
-  bundleShell("scatter/helpers.ts", { transform: true })
-);
+const scatterHelpers = requireViaTmpFile("scatter-helpers", bundleShell("scatter/helpers.ts"));
 
 module.exports = {
   parseRaw: ctx.parseRaw,

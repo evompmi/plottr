@@ -1,3 +1,4 @@
+import type { HClustTreeNode as HClustNode } from "../_core/stats/types";
 // Pure helpers for the heatmap tool — normalisation, dendrogram layout/prune,
 // colorbar tick formatting, and dendrogram/selection colour constants. These
 // have no React / DOM dependency and are separately testable (tests/helpers/

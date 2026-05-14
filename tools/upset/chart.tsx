@@ -7,6 +7,8 @@
 import { intersectionIdKey, intersectionLabel, buildBarTicks } from "./helpers";
 import type { Intersection, UpsetChartProps } from "./helpers";
 
+import { formatP, pStars } from "../_core/stats/format";
+import { svgSafeId } from "../_core/svg-export";
 const { forwardRef } = React;
 
 // ── Layout constants ─────────────────────────────────────────────────────────

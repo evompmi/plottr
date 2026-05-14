@@ -10,6 +10,13 @@ import { UploadStep, ConfigureStep } from "./steps";
 import { PlotControls } from "./controls";
 import { PlotArea } from "./plot-area";
 
+import {
+  autoDetectSep,
+  fixDecimalCommas,
+  parseLongFormatSets,
+  parseRaw,
+  parseSetData,
+} from "../_core/csv";
 const { useState, useMemo, useCallback, useRef } = React;
 
 // parseSetData lives in tools/shared.js (shared with the UpSet tool).
@@ -221,7 +228,10 @@ export function App() {
       if (sn.length <= 3) {
         setPendingSelection(sn);
         commitSelection(sn, ss);
-        setStep("plot");
+        // Stop at the Configure step so the user always sees a data-preview
+        // pass — even when no picker is needed. The StepNavBar's Plot tab
+        // is reachable since canNavigate sees pendingSelection.length ∈ [2,3].
+        setStep("configure");
       } else {
         setPendingSelection([]);
         setSetNames([]);

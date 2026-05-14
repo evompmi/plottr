@@ -19,122 +19,26 @@ const plottrLocal = {
 // Generated outputs that lint never has anything useful to say about.
 // `tools/_app/chunks/**` covers the per-tool lazy chunks emitted by
 // esbuild's `--splitting --chunk-names=chunks/[name]-[hash]`.
-const compiledTools = ["tools/_app/index.js", "tools/_app/chunks/**", "tools/version.js"];
+const compiledTools = [
+  "tools/_app/index.js",
+  "tools/_app/chunks/**",
+  "tools/version.js",
+  "tools/shared.bundle.js",
+];
 
-// Names declared at top-level of tools/shared.js, the tools/stats-*.js files,
-// and the tools/shared-*.js component files, consumed by tool .tsx files via
-// <script>-tag globals.
-const sharedGlobals = {
-  // shared.js
-  hexToRgb: "readonly",
-  rgbToHex: "readonly",
-  shadeColor: "readonly",
-  getPointColors: "readonly",
-  PALETTE: "readonly",
-  TOOL_ICONS: "readonly",
-  toolIcon: "readonly",
-  roleColors: "readonly",
-  isNumericValue: "readonly",
-  seededRandom: "readonly",
-  makeTicks: "readonly",
-  makeLogTicks: "readonly",
-  autoDetectSep: "readonly",
-  fixDecimalCommas: "readonly",
-  parseRaw: "readonly",
-  guessColumnType: "readonly",
-  detectWideFormat: "readonly",
-  parseData: "readonly",
-  dataToColumns: "readonly",
-  wideToLong: "readonly",
-  reshapeWide: "readonly",
-  parseWideMatrix: "readonly",
-  parseSetData: "readonly",
-  parseLongFormatSets: "readonly",
-  COLOR_PALETTES: "readonly",
-  DIVERGING_PALETTES: "readonly",
-  interpolateColor: "readonly",
-  computeStats: "readonly",
-  quartiles: "readonly",
-  kde: "readonly",
-  computeGroupStats: "readonly",
-  fileBaseName: "readonly",
-  flashSaved: "readonly",
-  svgSafeId: "readonly",
-  downloadSvg: "readonly",
-  downloadPng: "readonly",
-  downloadCsv: "readonly",
-  downloadText: "readonly",
-  powerTwoSample: "readonly",
-  powerPaired: "readonly",
-  powerOneSample: "readonly",
-  powerAnova: "readonly",
-  powerCorrelation: "readonly",
-  powerChi2: "readonly",
-  fFromGroupMeans: "readonly",
-  // stats-*.js (carved from the original stats.js)
-  normcdf: "readonly",
-  normsf: "readonly",
-  norminv: "readonly",
-  gammaln: "readonly",
-  betai: "readonly",
-  betai_upper: "readonly",
-  betacf: "readonly",
-  gammainc: "readonly",
-  gammainc_upper: "readonly",
-  tcdf: "readonly",
-  tcdf_upper: "readonly",
-  tpdf: "readonly",
-  tinv: "readonly",
-  fcdf: "readonly",
-  fcdf_upper: "readonly",
-  chi2cdf: "readonly",
-  chi2pdf: "readonly",
-  chi2inv: "readonly",
-  nctcdf: "readonly",
-  ncf_sf: "readonly",
-  ncchi2cdf: "readonly",
-  _gaussLegendre: "readonly",
-  bisect: "readonly",
-  sampleMean: "readonly",
-  sampleVariance: "readonly",
-  sampleSD: "readonly",
-  rankWithTies: "readonly",
-  shapiroWilk: "readonly",
-  leveneTest: "readonly",
-  tTest: "readonly",
-  mannWhitneyU: "readonly",
-  cohenD: "readonly",
-  hedgesG: "readonly",
-  rankBiserial: "readonly",
-  oneWayANOVA: "readonly",
-  welchANOVA: "readonly",
-  kruskalWallis: "readonly",
-  etaSquared: "readonly",
-  epsilonSquared: "readonly",
-  ptukey: "readonly",
-  qtukey: "readonly",
-  tukeyHSD: "readonly",
-  gamesHowell: "readonly",
-  bhAdjust: "readonly",
-  dunnTest: "readonly",
-  compactLetterDisplay: "readonly",
-  selectTest: "readonly",
-  // pStars / formatP remain plain-JS in stats-posthoc.js. The
-  // STATS_*_REGISTRY / R-export / StatsTile / computePowerFromData /
-  // assignBracketLevels family all migrated to tools/_shell/ in 2026-05.
-  pStars: "readonly",
-  formatP: "readonly",
-  pairwiseDistance: "readonly",
-  hclust: "readonly",
-  dendrogramLayout: "readonly",
-  kmeans: "readonly",
-  // theme.js
-  ThemeToggle: "readonly",
-  useThemeMode: "readonly",
-  setTheme: "readonly",
-  getTheme: "readonly",
-  toggleTheme: "readonly",
-};
+// Pre-v1.6 this listed ~120 names from tools/shared.js / stats-*.js /
+// theme.js so tool .tsx files could consume them through script-tag
+// globals without TS / lint flagging undefined-variable. The v1.6 `_core/`
+// migration converted the entire shared kernel into ES modules with real
+// `export` declarations, and the per-caller import sweep replaced the
+// global references with `import { … } from "../_core/…"` lines.
+//
+// Two ambient names still remain in `_shell/prefs-store.ts` (`downloadText`
+// — kept ambient so the test loader's vm-context stub can intercept) and
+// in unmigrated `upset` references to `multiset*`. Those are declared
+// inline in the files themselves via `declare const`, so they don't need
+// to live here.
+const sharedGlobals = {};
 
 const browserPlus = {
   ...globals.browser,
@@ -241,6 +145,37 @@ module.exports = [
     },
   },
 
+  // `_core/*` modules are real ES modules with TS syntax. They legitimately
+  // *define* the names the rest of the codebase consumes as globals (via the
+  // trailing `globalThis.X = X` shims) — `no-redeclare` would otherwise flag
+  // every `export function toolIcon` against the `toolIcon` ambient in
+  // `sharedGlobals`. Use the TS parser so the .ts files parse, and turn off
+  // `no-redeclare` since the canonical source-of-truth for those names IS
+  // this folder.
+  {
+    files: ["tools/_core/**/*.ts", "tools/_core/**/*.tsx"],
+    plugins: {
+      "@typescript-eslint": tsPlugin,
+    },
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 2022,
+      sourceType: "module",
+      parserOptions: { ecmaFeatures: { jsx: true } },
+      globals: { ...browserPlus, ...sharedGlobals },
+    },
+    rules: {
+      "no-redeclare": "off",
+      "no-unused-vars": "off",
+      "no-undef": "off",
+      "no-empty": ["error", { allowEmptyCatch: true }],
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
+
   // Plot-tool app.tsx orchestrators (one per folder) must declare a
   // top-level `const EXAMPLE_CSV` / `EXAMPLE_TSV` for the "Try sample
   // data" button — see scripts/eslint-rules/require-example-const.js
@@ -256,13 +191,13 @@ module.exports = [
     },
   },
 
-  // Hand-written shared plain JS and browser-only helper scripts. These files
-  // BOTH define and consume shared globals (the shared-*.js files use styles
-  // from shared.js), so we list the shared globals, disable no-redeclare
-  // (self-declarations collide with the global list), and disable
-  // no-unused-vars (names are consumed via globals).
+  // Hand-written shared plain JS and browser-only helper scripts. Most of
+  // the legacy script-scope files (`shared.js`, `stats-*.js`, `theme.js`)
+  // were migrated to TS modules under `tools/_core/` in v1.6.x; the residual
+  // `tools/*.js` glob still catches any future leaf scripts that need the
+  // script-scope-globals environment.
   {
-    files: ["tools/shared.js", "tools/stats-*.js", "tools/*.js"],
+    files: ["tools/*.js"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "script",

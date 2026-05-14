@@ -5,6 +5,10 @@
 
 import { CHART_MARGIN, TestResult, buildLineD, round2, round4, runTest } from "../_shell";
 import type { LegendBlock, PowerFromDataResult } from "../_shell";
+import { tinv } from "../_core/stats/dist";
+import { sampleMean, sampleSD } from "../_core/stats/tests";
+import { bhAdjust, selectTest } from "../_core/stats/posthoc";
+import type { ParseDataResult } from "../_core/csv";
 // ── Constants ──────────────────────────────────────────────────────────────
 // `MARGIN` used to live here as a byte-identical twin of aequorin's. Lifted
 // into `_shell/chart-layout.ts` (audit M7); re-export here so the existing

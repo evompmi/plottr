@@ -7,6 +7,8 @@
 import { ColorMap, SizeMap } from "./helpers";
 import { fmtLegend } from "./chart-layout";
 
+import { interpolateColor } from "../_core/color";
+import { makeTicks } from "../_core/scale";
 export function ColorLegend({
   colorMap,
   title,

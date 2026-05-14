@@ -3,6 +3,8 @@
 // The landing page owns the theme toggle in its top bar — we don't
 // render a second one here.
 
+import { toolIcon } from "../_core/icons";
+
 const h = React.createElement;
 
 interface PageHeaderProps {

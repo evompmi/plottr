@@ -23,8 +23,7 @@
 // COLOR_PALETTES.viridis (continuous): the discrete form generates exactly
 // `n = names.length` colours via interpolateColor at runtime.
 
-declare const COLOR_PALETTES: Record<string, string[]>;
-declare const interpolateColor: (stops: string[], t: number) => string;
+import { COLOR_PALETTES, interpolateColor } from "../_core/color";
 
 export const DISCRETE_PALETTES: Record<string, string[]> = {
   // Okabe-Ito (Wong 2011) — colour-blind safe. Same as PALETTE in shared.js.

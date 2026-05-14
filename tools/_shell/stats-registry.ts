@@ -15,18 +15,8 @@
 // function. The registry is the only place that reconciles the
 // asymmetry; consumers don't need to know about it.
 
-declare const tTest: (
-  a: number[],
-  b: number[],
-  opts?: { equalVar?: boolean }
-) => Record<string, unknown>;
-declare const mannWhitneyU: (a: number[], b: number[]) => Record<string, unknown>;
-declare const oneWayANOVA: (values: number[][]) => Record<string, unknown>;
-declare const welchANOVA: (values: number[][]) => Record<string, unknown>;
-declare const kruskalWallis: (values: number[][]) => Record<string, unknown>;
-declare const tukeyHSD: (values: number[][]) => Record<string, unknown>;
-declare const gamesHowell: (values: number[][]) => Record<string, unknown>;
-declare const dunnTest: (values: number[][]) => Record<string, unknown>;
+import { dunnTest, gamesHowell, tukeyHSD } from "../_core/stats/posthoc";
+import { kruskalWallis, mannWhitneyU, oneWayANOVA, tTest, welchANOVA } from "../_core/stats/tests";
 
 // `RecommendedTest`, `RecommendedPostHoc`, `TestArity`, `StatsTestEntry`,
 // `StatsPostHocEntry` types stay declared in `types/globals.d.ts`

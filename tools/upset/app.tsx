@@ -22,6 +22,15 @@ import { UploadStep, ConfigureStep, ItemListPanel } from "./steps";
 import { PlotControls } from "./controls";
 import { IntersectionStatsPanel } from "./stats-panel";
 
+import {
+  autoDetectSep,
+  fixDecimalCommas,
+  parseLongFormatSets,
+  parseRaw,
+  parseSetData,
+} from "../_core/csv";
+import { bhAdjust } from "../_core/stats/posthoc";
+import { multisetExclusiveExpected, multisetExclusiveP } from "../_core/stats/msi";
 const { useState, useMemo, useCallback, useRef, useEffect } = React;
 
 // parseSetData and parseLongFormatSets live in tools/shared.js.

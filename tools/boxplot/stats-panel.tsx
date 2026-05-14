@@ -52,6 +52,12 @@ import {
 } from "./helpers";
 import { buildBpAggregateReport, buildBpAggregateRScript } from "./reports";
 
+import { svgSafeId } from "../_core/svg-export";
+import { downloadText, flashSaved } from "../_core/download";
+import { tinv } from "../_core/stats/dist";
+import { sampleMean, sampleSD } from "../_core/stats/tests";
+import { selectTest } from "../_core/stats/posthoc";
+import { formatP, pStars } from "../_core/stats/format";
 const { useState, useMemo, useRef, useEffect } = React;
 
 function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsDetailProps) {
@@ -113,7 +119,14 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
     color: "var(--neutral-text)",
   };
   const norm = rec.normality ?? [];
-  const lev = rec.levene ?? {};
+  const lev = (rec.levene ?? {}) as {
+    F?: number;
+    df1?: number;
+    df2?: number;
+    p?: number;
+    equalVar?: boolean | null;
+    error?: string;
+  };
 
   return (
     <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>

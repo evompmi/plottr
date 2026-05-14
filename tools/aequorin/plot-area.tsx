@@ -25,6 +25,8 @@ import {
   SeriesRow,
 } from "./helpers";
 
+import { downloadPng, downloadSvg, fileBaseName } from "../_core/download";
+import { downloadCsv, flashSaved } from "../_core/download";
 const { useState, useMemo, useRef, useEffect } = React;
 
 // ── PlotPanel ────────────────────────────────────────────────────────────────

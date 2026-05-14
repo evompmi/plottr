@@ -3,6 +3,9 @@
 //
 // `PALETTE` is read off the ambient browser globals.
 
+import { PALETTE } from "../_core/color";
+
+import type { GroupStats } from "../_core/descriptive";
 const h = React.createElement;
 
 interface StatsTableProps {

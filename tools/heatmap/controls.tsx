@@ -21,6 +21,8 @@ import type {
   PlotControlsProps,
 } from "./helpers";
 
+import { COLOR_PALETTES, DIVERGING_PALETTES } from "../_core/color";
+import { downloadCsv, downloadText, fileBaseName } from "../_core/download";
 const { useState, useRef, useEffect } = React;
 
 export function ClusterModeControl({ label, mode, setMode, k, setK }: ClusterModeControlProps) {

@@ -1,10 +1,11 @@
-// Loads `tools/_shell/discrete-palette.ts` on top of `shared.bundle.js`
-// (for `COLOR_PALETTES` / `interpolateColor` / `PALETTE` — still
-// plain-JS globals from shared.js) so the test suite sees the same
-// resolved palettes the browser does.
+// Loads `tools/_shell/discrete-palette.ts` on top of the migrated
+// `_core/shared.ts` (for `COLOR_PALETTES` / `interpolateColor` / `PALETTE`).
+// Pre-migration this read the concatenated shared.bundle.js for its
+// side-effecting top-level globals; the new TS module's trailing
+// globalThis-shim block does the same thing under the same vm semantics.
 //
-// Hybrid pattern: bundle is run for its side-effecting top-level globals;
-// the typed module is run for its named exports.
+// Hybrid pattern: shared.ts is run for its side-effecting globals; the typed
+// discrete-palette module is run for its named exports.
 
 const vm = require("vm");
 const {
@@ -12,12 +13,12 @@ const {
   bundleShell,
   makeDomStubs,
   MINIMAL_REACT,
-  readSharedBundleSrc,
+  readCoreSharedSource,
   runCjs,
 } = require("./_shell-test-utils");
 
-const bundleSrc = readSharedBundleSrc();
-const paletteCjs = bundleShell("_shell/discrete-palette.ts", { transform: true });
+const sharedSrc = readCoreSharedSource();
+const paletteCjs = bundleShell("_shell/discrete-palette.ts");
 
 const ctx = {
   ...builtins(),
@@ -25,13 +26,14 @@ const ctx = {
   React: MINIMAL_REACT,
 };
 vm.createContext(ctx);
-vm.runInContext(bundleSrc, ctx);
+vm.runInContext(sharedSrc, ctx);
 const palette = runCjs(ctx, paletteCjs);
 
 module.exports = {
-  // PALETTE is a `const` binding inside shared.js — not a context property.
-  // Read it via vm.runInContext so the test suite can access it by name.
-  PALETTE: vm.runInContext("PALETTE", ctx),
+  // PALETTE is exported by `_core/shared.ts` and pushed onto globalThis by
+  // its trailing shim, so reading the ctx property directly works now (no
+  // more vm.runInContext bridge needed).
+  PALETTE: ctx.PALETTE,
   DISCRETE_PALETTES: palette.DISCRETE_PALETTES,
   COLORBLIND_SAFE_PALETTES: palette.COLORBLIND_SAFE_PALETTES,
   resolveDiscretePalette: palette.resolveDiscretePalette,

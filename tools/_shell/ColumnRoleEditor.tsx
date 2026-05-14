@@ -9,6 +9,9 @@
 // `roleColors` is read off the ambient browser globals (`tools/shared.js`
 // stays in the plain-JS bundle).
 
+import { roleColors } from "../_core/color";
+
+import type { ColumnRole } from "../_core/csv";
 const h = React.createElement;
 
 interface ColumnRoleEditorProps {

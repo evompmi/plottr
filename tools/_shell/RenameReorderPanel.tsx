@@ -1,3 +1,5 @@
+import type { ColumnRole } from "../_core/csv";
+
 // `RenameReorderPanel` — per-column rename + drag-to-reorder list. Used
 // in the configure step of long-format tools to (a) rename observed
 // values for plot display, (b) reorder groups along a categorical axis.

@@ -16,6 +16,7 @@ import {
 } from "./helpers";
 import { buildCsvExport } from "./reports";
 
+import { downloadCsv, downloadPng, downloadSvg, fileBaseName, flashSaved } from "../_core/download";
 const { useMemo, useRef } = React;
 
 // Detail-view dendrogram stroke width. Was previously user-selectable via

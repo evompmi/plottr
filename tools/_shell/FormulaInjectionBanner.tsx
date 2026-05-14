@@ -1,3 +1,5 @@
+import type { FormulaInjectionWarning } from "../_core/csv";
+
 // `FormulaInjectionBanner` — yellow alert banner that surfaces the
 // result of `scanForFormulaInjection` at ingest time. Shows up when the
 // uploaded file contains cells / headers that would trigger formula

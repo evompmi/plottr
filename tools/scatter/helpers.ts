@@ -10,7 +10,21 @@
 // they belong in tools/scatter/shapes.tsx.
 
 import type { LegendBlock } from "../_shell";
-export type { LegendBlock };
+import {
+  kendallTau,
+  pearsonCorrelation,
+  selectCorrelation,
+  spearmanCorrelation,
+} from "../_core/stats/tests";
+import type {
+  CorrTest,
+  KendallTauResult,
+  PearsonCorrResult,
+  SpearmanCorrResult,
+} from "../_core/stats/types";
+import { formatP } from "../_core/stats/format";
+import type { ParseDataResult } from "../_core/csv";
+export type { LegendBlock, CorrTest };
 
 // ── Tick formatting ────────────────────────────────────────────────────────
 

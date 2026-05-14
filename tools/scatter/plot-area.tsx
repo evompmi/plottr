@@ -18,6 +18,8 @@ import {
   applyDiscretePalette,
   scrollDisclosureIntoView,
 } from "../_shell";
+import { COLOR_PALETTES, PALETTE } from "../_core/color";
+import { downloadCsv, fileBaseName } from "../_core/download";
 const { useState, useRef, useEffect } = React;
 
 export function PlotStep({

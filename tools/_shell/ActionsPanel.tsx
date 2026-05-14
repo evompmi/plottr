@@ -5,6 +5,8 @@
 // a native `title` tooltip; SVG/PNG/Start-over carry fixed built-in
 // strings, each `extraDownloads` entry passes its own `title`.
 
+import { flashSaved } from "../_core/download";
+
 const h = React.createElement;
 
 export interface ActionsPanelDownload {

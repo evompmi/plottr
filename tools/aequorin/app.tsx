@@ -26,6 +26,8 @@ import { UploadStep, ConfigureStep } from "./steps";
 import { PlotControls } from "./controls";
 import { PlotPanel, SampleSelectionOverlay } from "./plot-area";
 
+import { autoDetectSep, fixDecimalCommas, parseData } from "../_core/csv";
+import { fileBaseName } from "../_core/download";
 const { useState, useMemo, useCallback, useRef } = React;
 
 const VIS_INIT_AEQUORIN = {

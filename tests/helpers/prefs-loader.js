@@ -14,7 +14,7 @@ const {
   runCjs,
 } = require("./_shell-test-utils");
 
-const PREFS_CJS = bundleShell("_shell/prefs-store.ts", { transform: true });
+const PREFS_CJS = bundleShell("_shell/prefs-store.ts");
 
 function freshContext() {
   const { store, localStorage } = makeLocalStorage();

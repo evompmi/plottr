@@ -1,14 +1,12 @@
-// Loads `tools/shared.js` into a Node vm context so its pure functions
-// can be tested. Browser-only functions (flashSaved, downloadSvg,
-// downloadCsv) are excluded from exports because they require DOM APIs —
-// they are tested separately via integration tests.
+// Loads the migrated `_core/shared.ts` module into a Node vm context so its
+// pure functions can be tested. Browser-only functions (flashSaved,
+// downloadSvg, downloadCsv) are excluded from exports because they require
+// DOM APIs — they are tested separately via integration tests.
 
 const vm = require("vm");
-const fs = require("fs");
-const path = require("path");
-const { TOOLS_DIR, builtins, makeDomStubs } = require("./_shell-test-utils");
+const { builtins, makeDomStubs, readCoreSharedSource } = require("./_shell-test-utils");
 
-const src = fs.readFileSync(path.join(TOOLS_DIR, "shared.js"), "utf8");
+const src = readCoreSharedSource();
 
 const ctx = { ...builtins(), ...makeDomStubs() };
 vm.createContext(ctx);

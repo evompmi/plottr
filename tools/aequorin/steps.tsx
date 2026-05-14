@@ -10,6 +10,7 @@ import type { CalibrationFormula, ConfigureStepProps, UploadStepProps } from "./
 import { DataPreview, DetectedSeparatorBadge, HowTo, NumberInput, UploadPanel } from "../_shell";
 import { AEQUORIN_HOWTO } from "./howto";
 
+import { flashSaved } from "../_core/download";
 // Render a coefficient as a clean numeric string for the formula
 // preview. Strips trailing zeros (so a default Kr of 7 reads as "7"
 // not "7.0000"); falls back to scientific notation for very small /

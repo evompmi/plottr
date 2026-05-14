@@ -3,6 +3,8 @@
 // renderPoint (the SVG-shape switch used by the chart for every point),
 // and the HTML ShapePreview (the discrete-shape selector swatch).
 
+import { COLOR_PALETTES, interpolateColor } from "../_core/color";
+
 export function PaletteStrip({
   palette,
   width,

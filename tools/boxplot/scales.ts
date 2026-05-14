@@ -11,6 +11,7 @@
 import type { BoxplotGroup } from "./helpers";
 import type { ChartMargins } from "./layout";
 
+import { makeLogTicks, makeTicks } from "../_core/scale";
 // ── Y-domain ────────────────────────────────────────────────────────────────
 
 export interface YDomainInput {
