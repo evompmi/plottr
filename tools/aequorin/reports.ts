@@ -22,6 +22,8 @@ import { tinv } from "../_core/stats/dist";
 import { sampleMean, sampleSD } from "../_core/stats/tests";
 import { compactLetterDisplay } from "../_core/stats/posthoc";
 import { pStars } from "../_core/stats/format";
+import { formatP } from "../_core/stats/format";
+import type { NormalityResult } from "../_core/stats/types";
 // Test/post-hoc labels + group-arity option lists derived from the
 // shared registry (`tools/shared-stats-registry.js`). Pre-registry these
 // were a verbatim copy of `STATS_LABELS` / `POSTHOC_LABELS` from

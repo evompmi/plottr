@@ -7,6 +7,7 @@
 
 import { isNumericValue } from "../_core/numeric";
 
+import type { ColumnRole } from "../_core/csv";
 const h = React.createElement;
 
 interface FilterCheckboxPanelProps {

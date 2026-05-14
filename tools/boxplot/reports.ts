@@ -13,6 +13,7 @@ import { buildRScript, sanitizeRComment } from "../_shell";
 import type { TestResult } from "../_shell";
 import { tinv } from "../_core/stats/dist";
 import { sampleMean, sampleSD } from "../_core/stats/tests";
+import { formatP, pStars } from "../_core/stats/format";
 // `BpReportRow` is just the EnrichedBoxplotStatsRow — re-exported as a
 // distinct alias because the report builders are intentionally permissive
 // about extra fields the panel might layer on top.

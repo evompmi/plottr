@@ -8,6 +8,7 @@ import { computeLegendHeight, renderSvgLegend } from "../_shell";
 import type { LegendBlock } from "../_shell";
 import { makeTicks } from "../_core/scale";
 import { pStars } from "../_core/stats/format";
+import { svgSafeId } from "../_core/svg-export";
 const { forwardRef } = React;
 
 export const Chart = forwardRef<SVGSVGElement, ChartProps>(function Chart(

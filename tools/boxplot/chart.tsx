@@ -30,6 +30,7 @@ import {
 import { getPointColors } from "../_core/color";
 import { seededRandom } from "../_core/numeric";
 import { kde } from "../_core/descriptive";
+import { svgSafeId } from "../_core/svg-export";
 const { forwardRef, useRef } = React;
 
 function statsTextLines(

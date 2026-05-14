@@ -1,9 +1,18 @@
-// Ambient globals for tools/shared.js and tools/shared-*.js.
-// Those files are loaded as plain <script> tags in each tool HTML and expose
-// their top-level names globally. Tool .tsx files consume them without imports.
+// Ambient globals — what's left after the v1.6 `_core/` migration:
 //
-// Types here are the public surface only. Component prop interfaces match
-// the runtime contract documented in each shared-*.js source.
+//   - **Vendored React / ReactDOM** still live as `<script>`-tag globals
+//     because the SPA's HTML loads them from `/vendor/` before any module
+//     bundle parses, and every tool .tsx file references `React.useState`,
+//     `React.createElement`, etc. against the global.
+//   - **Stats-registry types** (`RecommendedTest` / `StatsTestEntry` etc.)
+//     remain ambient because `tools/_shell/stats-registry.ts` uses them as
+//     unqualified type names — re-homing them as exports would force every
+//     consumer to add a type import for marginal benefit.
+//
+// Everything else (~550 lines of function / interface declarations for the
+// pre-migration shared kernel) has been deleted: the kernel now lives in
+// real `_core/*` ES modules with proper `export` declarations and every
+// caller imports its symbols directly.
 
 import type { CSSProperties, FC, ReactElement, ReactNode } from "react";
 import * as ReactNs from "react";
@@ -29,471 +38,11 @@ declare global {
   }
   const ReactDOM: typeof import("react-dom/client");
 
-  // ── Color helpers ──────────────────────────────────────────────────────────
-  function hexToRgb(hex: string): [number, number, number];
-  function rgbToHex(r: number, g: number, b: number): string;
-  function shadeColor(hex: string, factor: number): string;
-  function getPointColors(baseColor: string, nSources: number): string[];
-
-  // ── Palette & icons ────────────────────────────────────────────────────────
-  const PALETTE: readonly string[];
-  const TOOL_ICONS: Record<string, string>;
-  function toolIcon(name: string, size?: number, opts?: { circle?: boolean }): ReactElement | null;
-
-  // ── Style constants (RETIRED — see CLAUDE.md Theming) ─────────────────────
-  // The old inline-style constants (inp / inpN / sec / lbl / btnPrimary /
-  // btnSecondary / btnDanger / btnDownload / btnPlot / selStyle / sepSelect)
-  // were removed from tools/shared.js when the dv-* CSS classes landed.
-  // We deliberately do NOT re-declare them here so that any future
-  // contributor reaching for `style={btnPrimary}` gets a TS error
-  // pointing them at the right tool: use the dv-* className idiom
-  // (`className="dv-btn dv-btn-primary"`, `className="dv-select"`,
-  // `className="dv-input"`, etc.) per CLAUDE.md.
-  const roleColors: Record<string, string>;
-
-  // ── Ingest size policy (shared-file-drop.js) ───────────────────────────────
-
-  // ── Numeric detection & seeded RNG ─────────────────────────────────────────
-  function isNumericValue(v: unknown): boolean;
-  // Locale-aware numeric parser that paired with `isNumericValue`. Strips
-  // NBSP / thin-space thousands separators and normalises Unicode-minus
-  // before Number() — use this rather than parseFloat for cell values.
-  function toNumericValue(v: unknown): number;
-  function normalizeNumericString(v: unknown): string;
-  function seededRandom(seed: number): () => number;
-  function downloadText(text: string, filename: string): void;
-  function powerTwoSample(d: number, n: number, alpha: number, tails: number): number;
-  function powerPaired(d: number, n: number, alpha: number, tails: number): number;
-  function powerOneSample(d: number, n: number, alpha: number, tails: number): number;
-  function powerAnova(f: number, n: number, alpha: number, k: number): number;
-  function powerCorrelation(r: number, n: number, alpha: number, tails: number): number;
-  function powerChi2(w: number, n: number, alpha: number, df: number): number;
-  function fFromGroupMeans(means: number[], sd: number): number;
-  function makeTicks(min: number, max: number, approxN: number): number[];
-  function niceStep(range: number, approxN: number): number;
-  interface LogTick {
-    value: number;
-    major: boolean;
-  }
-  function makeLogTicks(dataMin: number, dataMax: number, base: number): LogTick[];
-
-  // ── Separator detection & decimal comma fix ────────────────────────────────
-  function autoDetectSep(text: string, override?: string): string | RegExp;
-  function fixDecimalCommas(
-    text: string,
-    sep: string | RegExp
-  ): { text: string; commaFixed: boolean; count: number };
-
-  // ── CSV / TSV parsing ──────────────────────────────────────────────────────
-  // Reported by `scanForFormulaInjection`, attached to every parse result.
-  // `null` when the dataset is clean. Example arrays are capped at 8 each so
-  // the warning banner stays compact on huge sheets.
-  interface FormulaInjectionWarning {
-    count: number;
-    headers: Array<{ idx: number; value: string }>;
-    cells: Array<{ row: number; col: number; header: string | null; value: string }>;
-  }
-  function scanForFormulaInjection(
-    headers: string[] | null | undefined,
-    rows: string[][] | null | undefined,
-    opts?: { cap?: number }
-  ): FormulaInjectionWarning;
-
-  interface ParseRawResult {
-    headers: string[];
-    rows: string[][];
-    hasHeader: boolean;
-    injectionWarnings: FormulaInjectionWarning | null;
-  }
-  function parseRaw(text: string, sepOv?: string): ParseRawResult;
-
-  // Long-format column role assigned to each parsed column. "group" picks the
-  // x-axis categorical column, "value" picks the numeric column, "filter" keeps
-  // the column visible in the filter/rename UI without driving the plot, "text"
-  // is a free-text annotation column, and "ignore" hides the column entirely.
-  // guessColumnType can return any of the four roles directly; the boxplot
-  // configure step then demotes duplicates of "group" / "value" to "filter"
-  // so each role stays singular where the plot requires it.
-  type ColumnRole = "group" | "value" | "filter" | "ignore";
-  function guessColumnType(vals: string[]): ColumnRole;
-  function detectWideFormat(headers: string[], rows: string[][]): boolean;
-
-  interface ParseDataResult {
-    headers: string[];
-    data: Array<Array<number | null>>;
-    rawData: string[][];
-    injectionWarnings: FormulaInjectionWarning | null;
-  }
-  function parseData(text: string, sepOv?: string): ParseDataResult;
-
-  function dataToColumns<T>(data: T[][], nCols: number): T[][];
-
-  interface ParseWideMatrixResult {
-    rowLabels: string[];
-    colLabels: string[];
-    matrix: number[][];
-    warnings: { nonNumeric: number };
-    injectionWarnings: FormulaInjectionWarning | null;
-  }
-  function parseWideMatrix(text: string, sepOv?: string): ParseWideMatrixResult;
-
-  // ── Colour palettes ────────────────────────────────────────────────────────
-  const COLOR_PALETTES: Record<string, string[]>;
-  const DIVERGING_PALETTES: Set<string>;
-  function interpolateColor(stops: string[], t: number): string;
-
-  function wideToLong(
-    headers: string[],
-    rows: string[][]
-  ): { headers: [string, string]; rows: string[][]; skipped: number };
-  function reshapeWide(
-    rows: string[][],
-    gi: number,
-    vi: number
-  ): { headers: string[]; rows: string[][] };
-
-  // ── Set-membership parsing (Venn / UpSet) ───────────────────────────────────
-  function parseSetData(
-    headers: string[],
-    rows: string[][]
-  ): { setNames: string[]; sets: Map<string, Set<string>> };
-  function parseLongFormatSets(
-    headers: string[],
-    rows: string[][]
-  ): { setNames: string[]; sets: Map<string, Set<string>> };
-
-  // ── Statistics ─────────────────────────────────────────────────────────────
-  interface Stats {
-    mean: number;
-    sd: number;
-    sem: number;
-    // 95% CI half-width = tinv(0.975, n-1) × sem; falls back to 0 when n<2
-    // or tinv is unavailable. Added to match the shared.js implementation.
-    ci95: number;
-    n: number;
-    min: number;
-    max: number;
-    median: number;
-  }
-  function computeStats(arr: number[]): Stats | null;
-
-  interface QuartileStats {
-    min: number;
-    max: number;
-    q1: number;
-    med: number;
-    q3: number;
-    iqr: number;
-    wLo: number;
-    wHi: number;
-    n: number;
-  }
-  function quartiles(arr: number[]): QuartileStats | null;
-
-  function kde(values: number[], nPoints?: number): Array<{ x: number; d: number }>;
-
-  interface GroupStats {
-    name: string;
-    n: number;
-    mean: number | null;
-    sd: number | null;
-    sem: number | null;
-    min: number | null;
-    max: number | null;
-    median: number | null;
-  }
-  function computeGroupStats(groups: Record<string, string[]>): GroupStats[];
-
-  // ── Download helpers ───────────────────────────────────────────────────────
-  function svgSafeId(s: unknown): string;
-  function fileBaseName(fileName: string | null | undefined, fallback?: string): string;
-  function flashSaved(btn: HTMLElement | null): void;
-  // Save a Blob to disk. Tries `window.showSaveFilePicker` first
-  // (Chromium-based browsers, lets the user pick a folder + filename),
-  // falls back to the classic `<a download>` anchor click on Firefox /
-  // Safari (browser default Downloads folder). User-cancelled picker
-  // is a silent no-op. Fire-and-forget — callers don't need to await.
-  function saveBlob(blob: Blob, filename: string): Promise<void>;
-  function downloadSvg(svgEl: SVGSVGElement | null, filename: string): void;
-  function downloadPng(svgEl: SVGSVGElement | null, filename: string, scale?: number): void;
-  // Register a callback that mutates an export-clone of `svgEl` in place
-  // before attribution is appended. Used by charts that paint to canvas
-  // for performance (e.g. volcano above the rasterise threshold) to
-  // swap the raster `<image>` for vector primitives in downloaded SVGs.
-  function registerSvgExportMutator(
-    svgEl: SVGSVGElement | null,
-    mutator: (clone: SVGSVGElement) => void
-  ): void;
-  function unregisterSvgExportMutator(svgEl: SVGSVGElement | null): void;
-  function downloadCsv(
-    headers: string[],
-    rows: Array<Array<string | number>>,
-    filename: string
-  ): void;
-
-  // ── Shared components ──────────────────────────────────────────────────────
-  // Implementations live in `tools/shared-*.js` (plain JS, concatenated into
-  // shared.bundle.js — see CLAUDE.md). Prop types are tightened here for
-  // .tsx call sites; runtime is unaffected.
-  interface FilterEntry {
-    unique: string[];
-    included: Set<string>;
-  }
-  interface SubgroupMeta {
-    name: string;
-    startIndex: number;
-    count: number;
-  }
-
-  interface BracketPair {
-    i: number;
-    j: number;
-    p?: number;
-    pAdj?: number;
-    label?: string;
-    _level?: number;
-  }
-  // ── Legend SVG helpers from shared-components.js ───────────────────────────
-
-  // ── tools/theme.js ─────────────────────────────────────────────────────────
-  // Theme switching primitives, exposed as script-scope globals via the
-  // shared bundle. `useThemeMode` is a React hook that re-renders the
-  // calling component when the theme attribute changes (BroadcastChannel,
-  // storage event, OS-preference change). `toggleTheme` flips between
-  // light and dark and persists to localStorage.
-  function useThemeMode(): "light" | "dark";
-  function toggleTheme(): void;
-  function getTheme(): "light" | "dark";
-  function setTheme(mode: "light" | "dark" | null): void;
-  const ThemeToggle: FC<{ style?: CSSProperties }>;
-
-  // ── tools/stats.js ─────────────────────────────────────────────────────────
-  function normcdf(x: number): number;
-  function norminv(p: number): number;
-  function gammaln(x: number): number;
-  function betai(a: number, b: number, x: number): number;
-  function betacf(a: number, b: number, x: number): number;
-  function gammainc(a: number, x: number): number;
-  function gammainc_upper(a: number, x: number): number;
-  function tcdf(t: number, df: number): number;
-  function tinv(p: number, df: number): number;
-  function fcdf(f: number, d1: number, d2: number): number;
-  function chi2cdf(x: number, k: number): number;
-  function chi2inv(p: number, k: number): number;
-  function nctcdf(t: number, df: number, delta: number): number;
-  function ncf_sf(f: number, d1: number, d2: number, lambda: number): number;
-  function ncchi2cdf(x: number, k: number, lambda: number): number;
-  function bisect(
-    fn: (x: number) => number,
-    target: number,
-    lo: number,
-    hi: number,
-    tol?: number,
-    maxIter?: number
-  ): number;
-  function sampleMean(x: number[]): number;
-  function sampleVariance(x: number[]): number;
-  function sampleSD(x: number[]): number;
-  function rankWithTies(x: number[]): { ranks: number[]; tieCorrection: number };
-  function shapiroWilk(x: number[]): { W: number; p: number; error?: string };
-  function leveneTest(groups: number[][]): {
-    F: number;
-    df1: number;
-    df2: number;
-    p: number;
-    error?: string;
-  };
-  function tTest(
-    x: number[],
-    y: number[],
-    opts?: { equalVar?: boolean }
-  ): {
-    t: number;
-    df: number;
-    p: number;
-    mean1?: number;
-    mean2?: number;
-    var1?: number;
-    var2?: number;
-    n1?: number;
-    n2?: number;
-    error?: string;
-  };
-  function mannWhitneyU(
-    x: number[],
-    y: number[]
-  ): {
-    U: number;
-    U1: number;
-    U2: number;
-    z: number;
-    p: number;
-    n1: number;
-    n2: number;
-    error?: string;
-  };
-  function cohenD(x: number[], y: number[]): number;
-  function hedgesG(x: number[], y: number[]): number;
-  function rankBiserial(U1: number, n1: number, n2: number): number;
-  // 95 % CI on Cohen's d via noncentral-t pivot (Cumming & Finch 2001).
-  // Returns { lo: NaN, hi: NaN } on degenerate input (n < 2 or non-finite d).
-  function cohenDCI(d: number, n1: number, n2: number, conf?: number): { lo: number; hi: number };
-  function oneWayANOVA(groups: number[][]): {
-    F: number;
-    df1: number;
-    df2: number;
-    p: number;
-    ssBetween?: number;
-    ssWithin?: number;
-    grandMean?: number;
-    error?: string;
-  };
-  function welchANOVA(groups: number[][]): {
-    F: number;
-    df1: number;
-    df2: number;
-    p: number;
-    error?: string;
-  };
-  function kruskalWallis(groups: number[][]): {
-    H: number;
-    df: number;
-    p: number;
-    error?: string;
-  };
-  function etaSquared(groups: number[][]): number;
-  function epsilonSquared(groups: number[][]): number;
-
-  // ── Correlation (stats-tests.js, section 9) ────────────────────────────────
-  // Paired bivariate correlation tests used by the scatter tool's stats panel.
-  // Each picks complete pairs (drops rows with non-finite x or y) before
-  // computing — matches R's `cor.test(use = "complete.obs")` default.
-  interface PearsonCorrResult {
-    r: number;
-    t: number;
-    df: number;
-    p: number;
-    n: number;
-    ci: { lo: number; hi: number };
-    error?: string;
-  }
-  interface SpearmanCorrResult {
-    rho: number;
-    t: number;
-    df: number;
-    p: number;
-    n: number;
-    ci: { lo: number; hi: number };
-    error?: string;
-  }
-  interface KendallTauResult {
-    tau: number;
-    z: number;
-    p: number;
-    n: number;
-    S: number;
-    error?: string;
-  }
-  function pearsonCorrelation(
-    x: number[],
-    y: number[],
-    opts?: { conf?: number }
-  ): PearsonCorrResult;
-  function spearmanCorrelation(
-    x: number[],
-    y: number[],
-    opts?: { conf?: number }
-  ): SpearmanCorrResult;
-  function kendallTau(x: number[], y: number[], opts?: Record<string, unknown>): KendallTauResult;
-  interface CorrNormalityResult {
-    axis: "x" | "y";
-    n: number;
-    W: number | null;
-    p: number | null;
-    normal: boolean | null;
-    note?: string;
-  }
-  type CorrTest = "pearson" | "spearman" | "kendall";
-  function selectCorrelation(
-    x: number[],
-    y: number[],
-    opts?: { alphaNormality?: number }
-  ): {
-    n: number;
-    normality: CorrNormalityResult[];
-    allNormal: boolean;
-    recommendation: { test: CorrTest; reason: string };
-    suggestion?: { test: CorrTest; reason: string };
-  };
-  function ptukey(q: number, k: number, df: number): number;
-  function qtukey(p: number, k: number, df: number): number;
-  interface TukeyPair {
-    i: number;
-    j: number;
-    diff: number;
-    se: number;
-    q: number;
-    p: number;
-    lwr: number;
-    upr: number;
-  }
-  function tukeyHSD(
-    groups: number[][],
-    opts?: { alpha?: number }
-  ): { pairs: TukeyPair[]; k?: number; df?: number; mse?: number; error?: string };
-  interface GamesHowellPair {
-    i: number;
-    j: number;
-    diff: number;
-    se: number;
-    q: number;
-    df: number;
-    p: number;
-  }
-  function gamesHowell(groups: number[][]): {
-    pairs: GamesHowellPair[];
-    k?: number;
-    error?: string;
-  };
-  function bhAdjust(ps: number[]): number[];
-  function multisetIntersectionPExact(xObs: number, ns: number[], N: number): number;
-  function multisetIntersectionPExactLower(xObs: number, ns: number[], N: number): number;
-  function multisetIntersectionPPoisson(xObs: number, ns: number[], N: number): number;
-  function multisetIntersectionP(xObs: number, ns: number[], N: number): number;
-  function multisetIntersectionExpected(ns: number[], N: number): number;
-  function multisetExclusiveExpected(
-    insideSizes: number[],
-    outsideSizes: number[],
-    N: number
-  ): number;
-  function multisetExclusiveP(
-    xObs: number,
-    insideSizes: number[],
-    outsideSizes: number[],
-    N: number,
-    opts?: { tail?: "upper" | "lower" }
-  ): number;
-  interface DunnPair {
-    i: number;
-    j: number;
-    z: number;
-    p: number;
-    pAdj?: number;
-  }
-  function dunnTest(groups: number[][]): { pairs: DunnPair[]; method?: string; error?: string };
-  function compactLetterDisplay(
-    pairs: Array<{ i: number; j: number; p: number; pAdj?: number | null }>,
-    k: number,
-    alpha?: number
-  ): string[];
-  interface NormalityResult {
-    group: number;
-    n: number;
-    W: number | null;
-    p: number | null;
-    normal: boolean | null;
-    note?: string;
-  }
+  // ── Stats-registry ambients ────────────────────────────────────────────────
+  // `tools/_shell/stats-registry.ts` references these type names unqualified.
+  // The runtime values they describe (test functions, post-hoc functions) are
+  // imported directly from `_core/stats/*`; only the ambient *type* surface
+  // stays here to avoid an `import type` line at every consumer.
   type RecommendedTest =
     | "studentT"
     | "welchT"
@@ -502,12 +51,6 @@ declare global {
     | "welchANOVA"
     | "kruskalWallis";
   type RecommendedPostHoc = "tukeyHSD" | "gamesHowell" | "dunn" | null;
-
-  // ── Stats registry (tools/shared-stats-registry.js) ─────────────────────────
-  // Single source of truth that every test/post-hoc dispatcher reads from.
-  // Adding a new entry to STATS_*_REGISTRY (with the corresponding union-
-  // member added to RecommendedTest above) makes every consumer aware of the
-  // new test in one edit, instead of the 8+ string-matching sites pre-registry.
   type TestArity = 2 | "k";
   interface StatsTestEntry {
     label: string;
@@ -525,71 +68,28 @@ declare global {
     run: (values: number[][]) => unknown;
   }
 
-  function selectTest(
-    groups: number[][],
-    opts?: { alphaNormality?: number; alphaVariance?: number }
-  ): {
-    k: number;
-    normality?: NormalityResult[];
-    allNormal?: boolean;
-    levene?: {
-      F?: number;
-      df1?: number;
-      df2?: number;
-      p?: number;
-      equalVar?: boolean | null;
-      error?: string;
-    };
-    recommendation?: {
-      test: RecommendedTest;
-      postHoc: RecommendedPostHoc;
-      reason: string;
-    };
-    // Present only when Shapiro-Wilk flagged at least one group as non-normal.
-    // The stats panel surfaces this as an info banner with a "Use suggestion"
-    // override. Same shape as `recommendation` — see `tools/stats-posthoc.js`
-    // around line 553.
-    suggestion?: {
-      test: RecommendedTest;
-      postHoc: RecommendedPostHoc;
-      reason: string;
-    };
-    error?: string;
-  };
-  function pStars(p: number): string;
-  function formatP(p: number | null | undefined): string;
-
-  // ── Clustering (stats.js) ──────────────────────────────────────────────────
-  function pairwiseDistance(matrix: number[][], metric: string): number[][];
-  interface HClustNode {
-    index?: number;
-    left?: HClustNode;
-    right?: HClustNode;
-    height: number;
-    size: number;
+  // ── Shared-component prop ambients ─────────────────────────────────────────
+  // Used unqualified in `_shell/FilterCheckboxPanel.tsx`,
+  // `_shell/RenameReorderPanel.tsx`, and the per-tool helpers that wire
+  // significance brackets. They're not part of `_core/` — they describe
+  // shared UI prop shapes — so they stay ambient rather than being lifted
+  // into the kernel.
+  interface FilterEntry {
+    unique: string[];
+    included: Set<string>;
   }
-  function hclust(distMatrix: number[][], linkage: string): { tree: HClustNode; order: number[] };
-  interface DendrogramSegment {
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
+  interface BracketPair {
+    i: number;
+    j: number;
+    p?: number;
+    pAdj?: number;
+    label?: string;
+    _level?: number;
   }
-  function dendrogramLayout(tree: HClustNode): {
-    segments: DendrogramSegment[];
-    maxHeight: number;
-  };
-  function kmeans(
-    matrix: number[][],
-    k: number,
-    opts?: { seed?: number; maxIter?: number; restarts?: number }
-  ): {
-    clusters: number[];
-    centroids: number[][];
-    inertia: number;
-    iterations: number;
-    order: number[];
-  };
 }
 
-export {};
+// Re-export React type aliases at module scope so unrelated TS files that
+// `import type { CSSProperties }` from this module's react re-export stay
+// resolvable. Keeping the imports in scope prevents tsc from stripping
+// the `import * as ReactNs` line as unused.
+export type { CSSProperties, FC, ReactElement, ReactNode };

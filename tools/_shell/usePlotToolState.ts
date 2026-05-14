@@ -12,6 +12,7 @@
 
 import { loadAutoPrefs, saveAutoPrefs } from "./prefs-store";
 
+import type { FormulaInjectionWarning } from "../_core/csv";
 const { useState, useReducer, useEffect } = React;
 
 export interface PlotToolState<TVis extends object> {

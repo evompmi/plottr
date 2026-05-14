@@ -31,6 +31,8 @@ import {
 } from "../_core/csv";
 import { computeGroupStats, computeStats, quartiles } from "../_core/descriptive";
 import { downloadPng, downloadSvg } from "../_core/download";
+import { fileBaseName } from "../_core/download";
+import type { ColumnRole } from "../_core/csv";
 const { useState, useReducer, useMemo, useCallback, useRef } = React;
 
 const VIS_INIT_BOXPLOT = {

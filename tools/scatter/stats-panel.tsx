@@ -33,6 +33,7 @@ import { svgSafeId } from "../_core/svg-export";
 import { downloadText, flashSaved } from "../_core/download";
 import { sampleMean, sampleSD, selectCorrelation } from "../_core/stats/tests";
 import { formatP, pStars } from "../_core/stats/format";
+import type { CorrTest } from "../_core/stats/types";
 const { useState, useMemo } = React;
 
 interface ScatterStatsDetailProps {

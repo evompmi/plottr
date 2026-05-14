@@ -39,6 +39,7 @@ import { buildVolcanoRScript, buildVolcanoCsv } from "./reports";
 
 import { COLOR_PALETTES, PALETTE, interpolateColor } from "../_core/color";
 import { autoDetectSep, fixDecimalCommas, parseData } from "../_core/csv";
+import type { ParseDataResult } from "../_core/csv";
 import { downloadCsv, downloadText, fileBaseName } from "../_core/download";
 const { useState, useEffect, useMemo, useCallback, useRef } = React;
 

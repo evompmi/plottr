@@ -28,6 +28,7 @@
 // points); going much darker would visually overwhelm the up/down dots,
 // so the smallest crossing-the-line change is the right one.
 import { isNumericValue, toNumericValue } from "../_core/numeric";
+import type { ParseDataResult } from "../_core/csv";
 
 export const VOLCANO_DEFAULT_COLORS = {
   up: "#D55E00",

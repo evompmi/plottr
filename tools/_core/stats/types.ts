@@ -64,6 +64,19 @@ export interface CorrelationCI {
   hi: number;
 }
 
+// User-visible correlation test selector used by `scatter/stats-panel.tsx`
+// and the corresponding R-export builder. Mirrors the runtime branch in
+// `selectCorrelation` / the scatter dispatcher.
+export type CorrTest = "pearson" | "spearman" | "kendall";
+
+// Aliases kept for back-compat with the pre-v1.6 ambient names. Same
+// runtime shape as `PearsonResult` / `SpearmanResult` / `KendallResult`;
+// scatter / volcano code can keep referring to the old names without an
+// import-rename sweep.
+export type PearsonCorrResult = PearsonResult;
+export type SpearmanCorrResult = SpearmanResult;
+export type KendallTauResult = KendallResult;
+
 export interface PearsonResult extends SampleErr {
   r: number;
   t: number;

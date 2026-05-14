@@ -28,6 +28,7 @@ import { seededRandom } from "../_core/numeric";
 import { autoDetectSep, fixDecimalCommas, parseWideMatrix } from "../_core/csv";
 import { downloadPng, downloadSvg, fileBaseName, flashSaved } from "../_core/download";
 import { hclust, kmeans, pairwiseDistance } from "../_core/stats/cluster";
+import type { HClustTreeNode as HClustNode } from "../_core/stats/types";
 const { useState, useReducer, useMemo, useCallback, useRef } = React;
 
 const VIS_INIT_HEATMAP = {

@@ -14,6 +14,10 @@ import {
 import type { LegendBlock, PowerFromDataResult, TestResult } from "../_shell";
 import { compactLetterDisplay, selectTest } from "../_core/stats/posthoc";
 import { pStars } from "../_core/stats/format";
+import type { ColumnRole } from "../_core/csv";
+import type { GroupStats } from "../_core/descriptive";
+import { formatP } from "../_core/stats/format";
+import type { NormalityResult } from "../_core/stats/types";
 // ── Stats summary SVG layout constants ──────────────────────────────────────
 
 export const STATS_LINE_H = 11;

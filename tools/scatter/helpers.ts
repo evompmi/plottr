@@ -16,7 +16,15 @@ import {
   selectCorrelation,
   spearmanCorrelation,
 } from "../_core/stats/tests";
-export type { LegendBlock };
+import type {
+  CorrTest,
+  KendallTauResult,
+  PearsonCorrResult,
+  SpearmanCorrResult,
+} from "../_core/stats/types";
+import { formatP } from "../_core/stats/format";
+import type { ParseDataResult } from "../_core/csv";
+export type { LegendBlock, CorrTest };
 
 // ── Tick formatting ────────────────────────────────────────────────────────
 

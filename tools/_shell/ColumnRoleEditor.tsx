@@ -11,6 +11,7 @@
 
 import { roleColors } from "../_core/color";
 
+import type { ColumnRole } from "../_core/csv";
 const h = React.createElement;
 
 interface ColumnRoleEditorProps {

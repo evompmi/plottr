@@ -12,6 +12,7 @@ import {
 } from "../_shell";
 import { tinv } from "../_core/stats/dist";
 import { sampleMean, sampleSD } from "../_core/stats/tests";
+import { formatP, pStars } from "../_core/stats/format";
 //
 // One compact summary table: one row per eligible x. Click a row to expand
 // the decision trace + post-hoc inline. Aggregate TXT / R downloads at the
