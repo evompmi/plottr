@@ -25,7 +25,3 @@ export function formatP(p: number | null | undefined): string {
   if (p < 1e-3) return p.toExponential(2);
   return p.toFixed(4);
 }
-
-const _g = globalThis as Record<string, unknown>;
-_g.pStars = pStars;
-_g.formatP = formatP;

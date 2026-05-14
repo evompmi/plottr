@@ -55,10 +55,13 @@ Both calculators export `function App()` exactly the way the plot tools' `app.ts
 
 The shared kernel lives as ES modules under `tools/_core/`. esbuild
 bundles each module into the SPA entry (`tools/_app/index.tsx`) via
-side-effect imports at the top of that file; each module emits real
-`export` declarations and adds a trailing `globalThis.X = X` shim so
-legacy callers that still reference these names as ambient globals keep
-working until they're converted to direct imports.
+side-effect imports at the top of that file. Every tool caller imports
+its kernel symbols directly via `import { parseRaw, … } from
+"../_core/csv"` (or the appropriate sub-module); the `_core/*` modules
+emit pure `export` declarations with no `globalThis` writes (the one
+exception is `_core/svg-export.ts`'s `_svgExportMutators` WeakMap, which
+deliberately lives on `globalThis` so two independently-bundled copies of
+the module share a single registry).
 
 The standalone HTML pages (`index.html`, `benchmark.html`, `privacy.html`)
 also load `tools/shared.bundle.js` via a synchronous `<script>` tag — this
@@ -97,7 +100,7 @@ The legacy `tools/shared*.js` UI shims were retired in 2026-05 into `tools/_shel
 
 ### Shared code constraint
 
-**Add new shared helpers under `tools/_core/`** as TypeScript modules — strict types, real `export` declarations, no script-scope globals. If a new helper is reachable only through unmigrated callers that consume it as an ambient global, add a `globalThis.X = X` line to the module's transitional shim block at the bottom; otherwise skip the shim and have callers import the symbol directly.
+**Add new shared helpers under `tools/_core/`** as TypeScript modules — strict types, real `export` declarations, no script-scope globals. Every caller imports the symbol directly; don't reach for `globalThis` writes. (If a future helper genuinely needs to be a singleton across separately-bundled copies of the module — like `_core/svg-export.ts`'s `_svgExportMutators` WeakMap — store it on `globalThis` under a `__plottr…` namespace key, but that pattern is for cross-bundle state correctness, not legacy-caller compatibility.)
 
 **`tools/shared.bundle.js` is auto-generated** by `scripts/build-shared.js` from `_core/theme.ts`. The script runs in `prebuild` / `prewatch` / `pretest`, so any local `npm run build` / `npm test` invocation regenerates the bundle. Don't edit `shared.bundle.js` by hand and don't add files to it — point new theme-adjacent code at `tools/_core/theme.ts` and let esbuild handle the bundling.
 
@@ -126,7 +129,7 @@ File upload/paste -> `autoDetectSep` + `fixDecimalCommas` + `parseRaw` -> `DataP
 
 ## Per-tool palettes
 
-`PALETTE` is exported from `tools/_core/shared.ts` (also exposed as a global via the transitional shim). Tools may override if needed.
+`PALETTE` is exported from `tools/_core/color.ts` (re-exported through the `tools/_core/shared.ts` barrel). Tools may override if needed.
 
 ## Tool-internal structure
 
@@ -198,7 +201,7 @@ Key conventions:
 
 **esbuild flags matter.** The build command in `package.json` uses `--bundle --splitting --format=esm --outdir=tools/_app --chunk-names=chunks/[name]-[hash] --jsx=transform --minify-syntax --minify-whitespace --sourcemap`. `--bundle` inlines `_shell/*` imports into the entry / per-tool chunks; `--splitting` + `--format=esm` peels each `React.lazy(() => import("../<tool>/app"))` into its own lazy-loaded chunk under `tools/_app/chunks/` (also avoids the IIFE wrapping that would hide chart consts like `BoxplotChart` from render-smoke tests); `--minify-syntax --minify-whitespace` (not `--minify`) preserves top-level identifier names so the render harness can find them. Do not change these without also updating the render-smoke test harness.
 
-**Test-loader pattern.** Per-tool test loaders (`tests/helpers/<tool>-loader.js`) transform `tools/<tool>/helpers.ts` to CommonJS with `esbuild.transformSync` (or `esbuild.buildSync` with `bundle: true` when the tool's `helpers.ts` is a barrel that re-exports from sibling files — see `tests/helpers/venn-loader.js`), then evaluate the result under `vm.runInContext` with the shared kernel pre-loaded into the context: `readCoreSharedSource()` (bundles `_core/shared.ts` to IIFE) and `readStatsSource()` (bundles the `_core/stats` barrel to IIFE) are the helpers in `tests/helpers/_shell-test-utils.js`. The IIFEs' trailing `globalThis.X = X` shims populate the vm context globals exactly the way the old script-scope `shared.js` / `stats-*.js` files did. Exports are read off a `module.exports` object threaded into the vm context via `ctx.module`. **If you add a new pure helper to a tool**, put it in `tools/<tool>/helpers.ts`, and add it to the `module.exports` block at the bottom of the matching loader — that's the only step; no slicing, no regex stripping.
+**Test-loader pattern.** Per-tool test loaders (`tests/helpers/<tool>-loader.js`) bundle `tools/<tool>/helpers.ts` to CommonJS via `esbuild.buildSync` (`bundle: true` so cross-module imports inline cleanly), then evaluate the result under `vm.runInContext` with the shared kernel pre-loaded into the context. The kernel pre-load goes through `readCoreSharedSource()` (bundles `_core/shared.ts` to IIFE) and `readStatsSource()` (bundles the `_core/stats` barrel to IIFE) in `tests/helpers/_shell-test-utils.js`; each helper appends a synthetic `Object.assign(globalThis, __plottr…)` footer at bundling time so the vm context's `ctx.parseRaw` / `ctx.tTest` / etc. resolve exactly the way the old script-scope `shared.js` / `stats-*.js` files used to. (The `_core/*` source modules themselves emit no `globalThis` writes — the footer is a test-bundling concern, not a source-file concern.) Exports are read off a `module.exports` object threaded into the vm context via `ctx.module`. **If you add a new pure helper to a tool**, put it in `tools/<tool>/helpers.ts`, and add it to the `module.exports` block at the bottom of the matching loader — that's the only step; no slicing, no regex stripping.
 
 **If you add a new plot tool**, start by copying the `tools/upset/` folder (or any other migrated plot tool) and adapting `chart.tsx` / `controls.tsx` / `steps.tsx` / `helpers.ts`. Do not re-derive the scaffold and do not stuff the whole tool into `app.tsx` — keep `app.tsx` to the `App()` orchestrator, the module-scope `VIS_INIT_<TOOL>`, and the inline `EXAMPLE_CSV` / `EXAMPLE_TSV`. Then add the new tool to `tools/_app/tool-registry.ts` so the SPA picks up its `/#/<toolkey>` route.
 

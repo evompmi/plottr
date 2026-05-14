@@ -13,21 +13,24 @@ const esbuild = require("esbuild");
 const TOOLS_DIR = path.join(__dirname, "../../tools");
 const STATS_ENTRY = path.join(TOOLS_DIR, "_core/stats/index.ts");
 
-// Bundled IIFE source — when evaluated under vm.runInContext, the inline
-// `globalThis.X = X` side-effects inside each `_core/stats/*` module land on
-// the vm context's global object exactly the way the old script-scope source
-// did. IIFE format keeps `module` / `exports` out of the picture so callers
-// don't have to thread `runCjs` for the stats payload.
+// Bundled IIFE source of the `_core/stats/*` barrel. The `_core/stats/*`
+// modules used to carry trailing `globalThis.X = X` shim blocks so this
+// test path's `vm.runInContext(...)` could read `ctx.tTest` etc. directly.
+// Those shims were retired in v1.6.x; the synthetic `Object.assign` footer
+// below reproduces the effect at test-bundling time. `globalName` collects
+// all the barrel's named exports into one object; the footer copies the
+// names onto the vm context's globalThis.
 function readStatsSource() {
   const result = esbuild.buildSync({
     entryPoints: [STATS_ENTRY],
     bundle: true,
     format: "iife",
+    globalName: "__plottrStats",
     platform: "neutral",
     target: "es2022",
     write: false,
   });
-  return result.outputFiles[0].text;
+  return result.outputFiles[0].text + "\nObject.assign(globalThis, __plottrStats);\n";
 }
 
 // Bundled CommonJS source — preferred by Stryker-instrumented loaders that

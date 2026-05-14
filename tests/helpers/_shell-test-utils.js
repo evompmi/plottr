@@ -199,20 +199,26 @@ function readSharedBundleSrc() {
   return fs.readFileSync(p, "utf8");
 }
 
-// Bundled IIFE source of the migrated `_core/shared.ts` module. When run via
-// vm.runInContext, the inline `globalThis.X = X` shim at the bottom of the
-// module populates the ctx globals so per-tool loaders that previously did
-// `fs.readFileSync(.../shared.js)` keep working without redesign.
+// Bundled IIFE source of the migrated `_core/shared.ts` module. The
+// `_core/*` modules used to carry a trailing `globalThis.X = X` shim
+// block specifically so this test path's `vm.runInContext(...)` could
+// read `ctx.parseRaw` etc. afterwards. That shim was retired in v1.6.x —
+// the synthetic `Object.assign(globalThis, __plottrShared)` footer below
+// reproduces the same effect at test-bundling time without polluting the
+// browser bundle. `globalName` tells esbuild to return the barrel's named
+// exports as a single object literal; the footer spreads them onto the vm
+// context's globalThis so callers like `ctx.parseRaw(...)` keep working.
 function readCoreSharedSource() {
   const result = esbuild.buildSync({
     entryPoints: [path.join(TOOLS_DIR, "_core/shared.ts")],
     bundle: true,
     format: "iife",
+    globalName: "__plottrShared",
     platform: "neutral",
     target: "es2022",
     write: false,
   });
-  return result.outputFiles[0].text;
+  return result.outputFiles[0].text + "\nObject.assign(globalThis, __plottrShared);\n";
 }
 
 // ── Run a CJS bundle inside a vm context ──────────────────────────────

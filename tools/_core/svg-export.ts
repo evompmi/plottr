@@ -1,10 +1,7 @@
 // _core/svg-export.ts — SVG export pipeline + `Plöttr v<VERSION>` attribution
 // band + `svgSafeId` NCName sanitiser.
 //
-// Carved out of `_core/shared.ts` in v1.6.x. The trailing `globalThis` shim
-// keeps the legacy ambient surface alive for callers that still consume
-// these names as globals; the shim retires when every caller imports
-// directly.
+// Carved out of `_core/shared.ts` in v1.6.x.
 
 // Sanitize an arbitrary string into an SVG-safe id fragment so exported
 // <g id="..."> values are valid NCNames and show up as readable group

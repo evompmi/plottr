@@ -1,9 +1,6 @@
 // _core/icons.tsx — `TOOL_ICONS` catalogue + the `toolIcon` React helper.
 //
-// Carved out of `_core/shared.ts` in v1.6.x. The trailing `globalThis` shim
-// keeps the legacy ambient surface alive for callers that still consume
-// these names as globals; the shim retires when every caller imports
-// directly.
+// Carved out of `_core/shared.ts` in v1.6.x.
 //
 // Lives as `.tsx` (not `.ts`) because `toolIcon` returns a ReactElement —
 // the call site uses `React.createElement` rather than JSX literals, but
@@ -72,8 +69,3 @@ export function toolIcon(
     style: { display: "inline-block", verticalAlign: "middle", marginRight: 6, lineHeight: 0 },
   });
 }
-
-// ── Transitional global shim ───────────────────────────────────────────────
-const _g = globalThis as Record<string, unknown>;
-_g.TOOL_ICONS = TOOL_ICONS;
-_g.toolIcon = toolIcon;

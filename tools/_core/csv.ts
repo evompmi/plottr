@@ -1,10 +1,7 @@
 // _core/csv.ts — CSV / TSV parsing, tokenizing, separator detection, format
 // reshaping, and formula-injection scanning.
 //
-// Carved out of `_core/shared.ts` in v1.6.x. The trailing `globalThis` shim
-// keeps the legacy ambient surface alive for callers that still consume
-// these names as globals; the shim retires when every caller imports
-// directly.
+// Carved out of `_core/shared.ts` in v1.6.x.
 
 import { isNumericValue, toNumericValue } from "./numeric";
 
@@ -528,22 +525,3 @@ export function scanForFormulaInjection(
   }
   return out;
 }
-
-// ── Transitional global shim ───────────────────────────────────────────────
-const _g = globalThis as Record<string, unknown>;
-_g.autoDetectSep = autoDetectSep;
-_g.tokenizeDelimited = tokenizeDelimited;
-_g.fixDecimalCommas = fixDecimalCommas;
-_g.detectHeader = detectHeader;
-_g.parseRaw = parseRaw;
-_g.guessColumnType = guessColumnType;
-_g.detectWideFormat = detectWideFormat;
-_g.parseWideMatrix = parseWideMatrix;
-_g.parseData = parseData;
-_g.dataToColumns = dataToColumns;
-_g.wideToLong = wideToLong;
-_g.reshapeWide = reshapeWide;
-_g.parseSetData = parseSetData;
-_g.parseLongFormatSets = parseLongFormatSets;
-_g.buildCsvString = buildCsvString;
-_g.scanForFormulaInjection = scanForFormulaInjection;

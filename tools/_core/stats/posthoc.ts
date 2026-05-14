@@ -448,17 +448,3 @@ export function selectTest(
   if (suggestion) out.suggestion = suggestion;
   return out;
 }
-
-// ── Transitional global shim ───────────────────────────────────────────────
-const _g = globalThis as Record<string, unknown>;
-_g._wprob = _wprob;
-_g._wprob_upper = _wprob_upper;
-_g.ptukey = ptukey;
-_g.ptukey_upper = ptukey_upper;
-_g.qtukey = qtukey;
-_g.tukeyHSD = tukeyHSD;
-_g.gamesHowell = gamesHowell;
-_g.bhAdjust = bhAdjust;
-_g.dunnTest = dunnTest;
-_g.compactLetterDisplay = compactLetterDisplay;
-_g.selectTest = selectTest;

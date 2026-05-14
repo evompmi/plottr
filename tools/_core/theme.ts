@@ -10,9 +10,11 @@
 // synchronously before paint, so the migration of this module to the SPA
 // bundle doesn't reintroduce theme flashing.
 //
-// The trailing `globalThis` block keeps the legacy global surface alive for
-// any unmigrated caller (`ThemeToggle`, `setTheme`, …) until the Phase-5
-// cleanup converts each consumer to a direct import.
+// The standalone HTML pages (`benchmark.html`, `privacy.html`) load the
+// bundled IIFE via `<script>` and reference `getTheme` / `setTheme` /
+// `toggleTheme` from inline scripts; `scripts/build-shared.js` appends a
+// synthetic `Object.assign(globalThis, …)` footer at bundling time so
+// those legacy consumers continue to resolve the names.
 
 const THEME_STORAGE_KEY = "dataviz-theme";
 
@@ -198,11 +200,3 @@ export function ThemeToggle(props?: ThemeToggleProps): React.ReactElement {
     })
   );
 }
-
-// ── Transitional global shim ───────────────────────────────────────────────
-const _g = globalThis as Record<string, unknown>;
-_g.getTheme = getTheme;
-_g.setTheme = setTheme;
-_g.toggleTheme = toggleTheme;
-_g.useThemeMode = useThemeMode;
-_g.ThemeToggle = ThemeToggle;

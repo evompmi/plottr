@@ -1,9 +1,6 @@
 // _core/numeric.ts — locale-aware numeric detection + seeded PRNG.
 //
-// Carved out of `_core/shared.ts` in v1.6.x. The trailing `globalThis` shim
-// keeps the legacy ambient surface alive for callers that still consume
-// these names as globals; the shim retires when every caller imports
-// directly.
+// Carved out of `_core/shared.ts` in v1.6.x.
 //
 // Unicode-aware normalisation before numeric parsing. Excel on macOS, PDFs,
 // Word docs, and statistical-paper copy-paste all routinely embed non-ASCII
@@ -55,10 +52,3 @@ export function seededRandom(seed: number): () => number {
     return s / 2147483647;
   };
 }
-
-// ── Transitional global shim ───────────────────────────────────────────────
-const _g = globalThis as Record<string, unknown>;
-_g.normalizeNumericString = normalizeNumericString;
-_g.isNumericValue = isNumericValue;
-_g.toNumericValue = toNumericValue;
-_g.seededRandom = seededRandom;

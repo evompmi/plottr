@@ -1,9 +1,6 @@
 // _core/color.ts — color helpers, palettes, and role colours.
 //
-// Carved out of `_core/shared.ts` in v1.6.x. The trailing `globalThis` shim
-// keeps the legacy ambient surface alive for callers that still consume
-// these names as globals; the shim retires when every caller imports
-// directly.
+// Carved out of `_core/shared.ts` in v1.6.x.
 
 // ── Color helpers ───────────────────────────────────────────────────────────
 
@@ -100,15 +97,3 @@ export const roleColors: Record<string, string> = {
   filter: "#E69F00",
   ignore: "var(--border-strong)",
 };
-
-// ── Transitional global shim ───────────────────────────────────────────────
-const _g = globalThis as Record<string, unknown>;
-_g.hexToRgb = hexToRgb;
-_g.rgbToHex = rgbToHex;
-_g.shadeColor = shadeColor;
-_g.getPointColors = getPointColors;
-_g.PALETTE = PALETTE;
-_g.COLOR_PALETTES = COLOR_PALETTES;
-_g.DIVERGING_PALETTES = DIVERGING_PALETTES;
-_g.interpolateColor = interpolateColor;
-_g.roleColors = roleColors;
