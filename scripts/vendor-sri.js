@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // Pins the bytes of every vendored JS file via Subresource Integrity.
-// Closes Tier B #4 from docs/security_audit_02-05-2026.md: a malicious
-// PR that swaps the contents of `vendor/react.production.min.js` (or a
-// force-push to `gh-pages`) would otherwise propagate a backdoored React
-// to every visitor on the next page load with zero detection. With SRI
-// pinned, any future tampering forces a hash regen and so passes through
-// normal review — and if it doesn't, the browser refuses to execute the
-// drifted bytes (silent fail, but the script never runs).
+// Without SRI, a malicious PR that swaps the contents of
+// `vendor/react.production.min.js` (or a force-push to `gh-pages`) would
+// propagate a backdoored React to every visitor on the next page load
+// with zero detection. With SRI pinned, any future tampering forces a
+// hash regen and so passes through normal review — and if it doesn't,
+// the browser refuses to execute the drifted bytes (silent fail, but the
+// script never runs).
 //
 // The script is intentionally idempotent: it computes the SHA-384 of each
 // canonical vendor file, walks every HTML page that loads vendored
