@@ -102,6 +102,23 @@ const {
   hclust,
   dendrogramLayout,
   kmeans,
+  // Power functions — kept Stryker-invisible until now because
+  // tests/power.test.js loaded them via vm.runInContext; the require-via-
+  // tmp-file path here gives Stryker line-level coverage tracing.
+  powerTwoSample,
+  powerPaired,
+  powerOneSample,
+  powerCorrelation,
+  powerChi2,
+  fFromGroupMeans,
+  // Distribution helpers with no direct caller test (only reached via
+  // internal callers Stryker traces partially).
+  tpdf,
+  chi2pdf,
+  betai,
+  betai_upper,
+  gammainc,
+  gammainc_upper,
   formatP,
   pStars,
   // `ctx` mirrors every export — kept for the few suites that reach in
@@ -2934,6 +2951,209 @@ test("ncchi2cdf at k=5 / lambda ∈ {0, 1} — FP-precision agreement", () => {
   for (const { x, k, lambda, scipy } of FIX) {
     approx(ncchi2cdf(x, k, lambda), scipy, 1e-12, `ncchi2cdf(${x}, ${k}, ${lambda})`);
   }
+});
+
+// ── Power functions — direct pins via R `pwr` package (mutation audit) ─────
+//
+// `tests/power.test.js` exercises these via the `TESTS` registry inside a
+// vm.runInContext context — that hides them from Stryker's per-test
+// coverage instrumentation. These direct tests give Stryker line-level
+// trace through `powerTwoSample` / `powerPaired` / `powerOneSample` /
+// `powerCorrelation` / `powerChi2` / `fFromGroupMeans`. Reference values
+// from R's pwr package (transplanted from `tests/power.test.js`).
+
+suite("powerTwoSample — R pwr::pwr.t.test reference");
+
+test("d=0.5, n=64, α=0.05, 2-tail → 0.80 (R: pwr.t.test)", () => {
+  approx(powerTwoSample(0.5, 64, 0.05, 2), 0.8, 0.005);
+});
+
+test("d=0.8, n=26, α=0.05, 2-tail → 0.8075", () => {
+  approx(powerTwoSample(0.8, 26, 0.05, 2), 0.8075, 0.005);
+});
+
+test("d=1.2, n=12, α=0.05, 2-tail → 0.8021", () => {
+  approx(powerTwoSample(1.2, 12, 0.05, 2), 0.8021, 0.005);
+});
+
+test("d=0.5, n=64, α=0.01 → 0.5853 (α effect)", () => {
+  approx(powerTwoSample(0.5, 64, 0.01, 2), 0.5853, 0.005);
+});
+
+test("d=0.5, n=51, α=0.05, 1-tail → 0.8059 (1-tail bump)", () => {
+  approx(powerTwoSample(0.5, 51, 0.05, 1), 0.8059, 0.005);
+});
+
+suite("powerPaired — R pwr::pwr.t.test (paired) reference");
+
+test("d=0.5, n=34, α=0.05, 2-tail → 0.80 (R: pwr.t.test paired)", () => {
+  approx(powerPaired(0.5, 34, 0.05, 2), 0.8, 0.01);
+});
+
+test("d=0.8, n=15, α=0.05, 2-tail → 0.81", () => {
+  approx(powerPaired(0.8, 15, 0.05, 2), 0.8213, 0.005);
+});
+
+suite("powerOneSample — delegates to powerPaired");
+
+test("equals powerPaired for same args (delegation contract)", () => {
+  // The kernel implements one-sample as a direct delegate to paired
+  // (same noncentrality structure under H1).
+  approx(powerOneSample(0.5, 34, 0.05, 2), powerPaired(0.5, 34, 0.05, 2), 1e-15);
+  approx(powerOneSample(0.8, 15, 0.05, 2), powerPaired(0.8, 15, 0.05, 2), 1e-15);
+});
+
+suite("powerCorrelation — R pwr::pwr.r.test reference");
+
+test("r=0.3, n=85, α=0.05, 2-tail → 0.80", () => {
+  // R: pwr.r.test(r=0.3, n=85, sig.level=0.05)$power ≈ 0.80
+  approx(powerCorrelation(0.3, 85, 0.05, 2), 0.8, 0.02);
+});
+
+test("r=0.5, n=29, α=0.05, 2-tail → 0.80", () => {
+  // R: pwr.r.test(r=0.5, n=29, sig.level=0.05)$power ≈ 0.80
+  approx(powerCorrelation(0.5, 29, 0.05, 2), 0.8, 0.02);
+});
+
+test("r=0.1, n=783, α=0.05, 2-tail → 0.80 (small effect needs large n)", () => {
+  // R: pwr.r.test(r=0.1, n=783, sig.level=0.05)$power ≈ 0.80
+  approx(powerCorrelation(0.1, 783, 0.05, 2), 0.8, 0.02);
+});
+
+suite("powerChi2 — R pwr::pwr.chisq.test reference");
+
+test("w=0.3, n=88, df=1, α=0.05 → 0.80", () => {
+  approx(powerChi2(0.3, 88, 0.05, 1), 0.8, 0.02);
+});
+
+test("w=0.5, n=32, df=1, α=0.05 → 0.81", () => {
+  approx(powerChi2(0.5, 32, 0.05, 1), 0.81, 0.02);
+});
+
+test("w=0.3, n=133, df=4, α=0.05 → 0.80", () => {
+  approx(powerChi2(0.3, 133, 0.05, 4), 0.8, 0.02);
+});
+
+suite("fFromGroupMeans — Cohen's f from group means + within-SD (direct)");
+
+test("3 means [10, 12, 14], sd=4 → f ≈ 0.4082", () => {
+  approx(fFromGroupMeans([10, 12, 14], 4), 0.40825, 0.0001);
+});
+
+test("4 means [10, 11, 12, 13], sd=5 → f ≈ 0.2236", () => {
+  approx(fFromGroupMeans([10, 11, 12, 13], 5), 0.22361, 0.0001);
+});
+
+test("all-equal means → f = 0 (no between-group variance)", () => {
+  approx(fFromGroupMeans([5, 5, 5], 2), 0, 1e-10);
+});
+
+test("sd <= 0 → f = 0 (degenerate within-group)", () => {
+  approx(fFromGroupMeans([10, 12, 14], 0), 0, 1e-10);
+  approx(fFromGroupMeans([10, 12, 14], -1), 0, 1e-10);
+});
+
+test("empty means → f = 0", () => {
+  approx(fFromGroupMeans([], 5), 0, 1e-10);
+});
+
+// ── Distribution PDFs + upper-tail helpers (mutation audit) ────────────────
+//
+// `tpdf`, `chi2pdf`, `betai_upper`, `gammainc_upper`, `ncchi2cdf_upper`
+// had no direct test calls — they're invoked only by Newton-Raphson
+// derivative paths or by complementary-tail helpers. Direct pins via
+// R reference values and the relevant sum-to-1 identity.
+
+suite("tpdf — R dt() reference");
+
+test("dt(0, 10) = 0.38910 (peak of standard t with df=10)", () => {
+  approx(tpdf(0, 10), 0.3891, 1e-5);
+});
+
+test("dt(1, 5) = 0.21967 (skewed-tail value)", () => {
+  approx(tpdf(1, 5), 0.21967, 1e-5);
+});
+
+test("dt(0, 1) = 1 / π (Cauchy peak)", () => {
+  // df = 1 → Cauchy distribution, peak height = 1/π
+  approx(tpdf(0, 1), 1 / Math.PI, 1e-12);
+});
+
+suite("chi2pdf — closed-form pin");
+
+test("chi2pdf(3, 4) = 3·exp(-1.5)/4 ≈ 0.16735 (df=4 closed form)", () => {
+  // df=4: dchisq(x, 4) = x/4 · exp(-x/2). At x=3: 0.75 · 0.22313 ≈ 0.16735.
+  approx(chi2pdf(3, 4), 0.75 * Math.exp(-1.5), 1e-12);
+});
+
+test("chi2pdf(10, 5) ≈ 0.02833 (R: dchisq(10, 5))", () => {
+  // Pinned to current kernel output; cross-validated against R via the
+  // benchmark suite for chi2cdf which uses the same gammaln + log-space
+  // exponentiation. A precision-shifting mutation on the prefactor
+  // exponent would push this by ≫ tol.
+  approx(chi2pdf(10, 5), 0.028334555341734437, 1e-12);
+});
+
+test("dchisq(0, k) = 0 for k > 2 (boundary)", () => {
+  eq(chi2pdf(0, 4), 0);
+  eq(chi2pdf(0, 10), 0);
+});
+
+test("dchisq(x <= 0, k) saturates to 0", () => {
+  eq(chi2pdf(-1, 5), 0);
+  eq(chi2pdf(-100, 5), 0);
+});
+
+suite("betai_upper — complementary to betai (sum-to-1 identity)");
+
+test("betai(a, b, x) + betai_upper(a, b, x) = 1 for interior x", () => {
+  // Pins the complementary-tail axiom. Mutants that flip a sign or
+  // swap branches in betai_upper break the sum.
+  for (const [a, b, x] of [
+    [2, 3, 0.4],
+    [5, 5, 0.5],
+    [10, 30, 0.2],
+    [50, 50, 0.5],
+  ]) {
+    approx(betai(a, b, x) + betai_upper(a, b, x), 1, 1e-12, `a=${a}, b=${b}, x=${x}`);
+  }
+});
+
+test("betai_upper saturation: x <= 0 → 1, x >= 1 → 0", () => {
+  eq(betai_upper(5, 5, 0), 1);
+  eq(betai_upper(5, 5, -0.5), 1);
+  eq(betai_upper(5, 5, 1), 0);
+  eq(betai_upper(5, 5, 1.5), 0);
+});
+
+test("betai_upper at deep upper tail: x close to 1 (tail-accurate path)", () => {
+  // For x ≈ 1, betai(a, b, x) ≈ 1, so 1 - betai cancels to machine
+  // precision; betai_upper takes the opposite continued-fraction branch
+  // to stay accurate. Pinned to kernel output (≈ 1.22e-8 at (5, 5, 0.99));
+  // sum-to-1 with betai is enforced by the previous test, so this pin
+  // guards the upper-tail branch's prefactor + cf separately.
+  approx(betai_upper(5, 5, 0.99), 1.2185368570000197e-8, 1e-12);
+});
+
+suite("gammainc_upper — complementary to gammainc (sum-to-1 identity)");
+
+test("gammainc(a, x) + gammainc_upper(a, x) = 1 for interior", () => {
+  // Pins the complementary-tail axiom.
+  for (const [a, x] of [
+    [2, 1],
+    [5, 4],
+    [10, 7],
+    [20, 25],
+  ]) {
+    approx(gammainc(a, x) + gammainc_upper(a, x), 1, 1e-10, `a=${a}, x=${x}`);
+  }
+});
+
+test("gammainc_upper at deep upper tail (large x relative to a)", () => {
+  // Pinned to current kernel output at (a=5, x=20) — ~6.7σ above the
+  // Erlang(5, 1) mean. Sum-to-1 with gammainc is enforced separately;
+  // this pin guards the upper-tail Cephes continued-fraction branch.
+  approx(gammainc_upper(5, 20), 1.6944743930067385e-5, 1e-12);
 });
 
 summary();
