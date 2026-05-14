@@ -1,8 +1,9 @@
-// stats-dist.js — probability distributions, special functions, and power calcs.
+// stats/dist.ts — probability distributions, special functions, and power calcs.
 //
-// Loaded as a plain <script> tag through tools/shared.bundle.js (concatenated
-// in scripts/build-shared.js order). Top-level declarations stay as browser
-// globals; tools and tests consume these names without imports.
+// Migrated from the legacy script-scope `tools/stats-dist.js` (1.5.x). Same
+// algorithms, same numerical envelopes — typed at the boundaries and importable
+// as ES modules. The trailing `globalThis` block keeps the legacy ambient
+// surface alive for unmigrated call sites until the Phase-5 cleanup.
 //
 // Layout:
 //   1.  Distribution functions  — normal, gamma, beta, t, F, chi-square,
@@ -18,7 +19,7 @@
 // Normal CDF. Uses A&S 26.2.17 (max error 7.5e-8) for moderate |x|, and
 // switches to the tail-accurate `normsf` for |x| ≥ 7 — avoids the 1 − tiny
 // representation collapse at the edges of double precision.
-function normcdf(x) {
+export function normcdf(x: number): number {
   if (x === 0) return 0.5;
   if (x >= 7) return 1 - normsf(x);
   if (x <= -7) return normsf(-x);
@@ -36,7 +37,7 @@ function normcdf(x) {
 // the asymptotic expansion Φ̄(x) ≈ φ(x)/x · (1 − 1/x² + 3/x⁴ − 15/x⁶ + ...)
 // which stays accurate down to ~1e-300 where A&S 26.2.17 has already lost all
 // meaningful digits.
-function normsf(x) {
+export function normsf(x: number): number {
   if (x === 0) return 0.5;
   if (x < 0) return 1 - normsf(-x);
   const d = 0.3989422804014327; // 1/sqrt(2*pi)
@@ -66,7 +67,7 @@ function normsf(x) {
 }
 
 // Inverse normal CDF — Peter Acklam's rational approximation (max error 1.15e-9)
-function norminv(p) {
+export function norminv(p: number): number {
   if (p <= 0) return -Infinity;
   if (p >= 1) return Infinity;
   if (p === 0.5) return 0;
@@ -85,7 +86,7 @@ function norminv(p) {
   const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
   const pLow = 0.02425,
     pHigh = 1 - pLow;
-  let q, r;
+  let q: number, r: number;
   if (p < pLow) {
     q = Math.sqrt(-2 * Math.log(p));
     return (
@@ -109,7 +110,7 @@ function norminv(p) {
 }
 
 // Log gamma — Lanczos approximation
-function gammaln(x) {
+export function gammaln(x: number): number {
   const g = 7;
   const coef = [
     0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
@@ -132,7 +133,7 @@ function gammaln(x) {
 // p-values — the small-t branch for df/2 ≥ 30 with |t| > 5 routinely lands
 // at logFront ≈ −200 to −140, well within representable range but wiped to 0
 // if we exp() too early.
-function betai(a, b, x) {
+export function betai(a: number, b: number, x: number): number {
   if (x < 0 || x > 1) return 0;
   if (x === 0) return 0;
   if (x === 1) return 1;
@@ -150,7 +151,7 @@ function betai(a, b, x) {
 // 1 − betai() directly cancels when betai is near 1; this helper returns the
 // upper tail via the opposite branch of the continued fraction, so callers
 // like `fcdf_upper` and `tcdf_upper` stay accurate for tiny p-values.
-function betai_upper(a, b, x) {
+export function betai_upper(a: number, b: number, x: number): number {
   if (x <= 0) return 1;
   if (x >= 1) return 0;
   const lnBeta = gammaln(a) + gammaln(b) - gammaln(a + b);
@@ -190,7 +191,7 @@ const CEPHES_MACHEP = 1.1102230246251565e-16;
 // Continued fraction for the regularized incomplete beta — forward form
 // (Cephes' incbcf). Returns the bare CF value `pk/qk`; betai / betai_upper
 // then multiply by the log-space prefactor.
-function betacf(a, b, x) {
+export function betacf(a: number, b: number, x: number): number {
   let k1 = a;
   let k2 = a + b;
   let k3 = a;
@@ -225,7 +226,7 @@ function betacf(a, b, x) {
     qkm2 = qkm1;
     qkm1 = qk;
 
-    let t;
+    let t: number;
     if (qk !== 0) r = pk / qk;
     if (r !== 0) {
       t = Math.abs((ans - r) / r);
@@ -267,7 +268,7 @@ function betacf(a, b, x) {
 // around n ≈ x − a with width √a) — chi2cdf / ptukey at huge df otherwise
 // truncate before convergence. Switchover threshold (`x > 1 && x > a`)
 // matches Cephes literally, not NR's `x < a + 1`.
-function gammainc(a, x) {
+export function gammainc(a: number, x: number): number {
   if (x < 0) return 0;
   if (x === 0) return 0;
   if (x > 1 && x > a) return 1 - gammainc_upper(a, x);
@@ -291,7 +292,7 @@ function gammainc(a, x) {
 // continued-fraction form. Three-term recurrence on (pkm, qkm) with the
 // `pk = pkm1*z − pkm2*yc` update; `c` and `y` advance by integer steps each
 // iteration. Big/biginv rescaling keeps |pk| from running away.
-function gammainc_upper(a, x) {
+export function gammainc_upper(a: number, x: number): number {
   let y = 1 - a;
   let z = x + y + 1;
   let c = 0;
@@ -309,7 +310,7 @@ function gammainc_upper(a, x) {
     const yc = y * c;
     const pk = pkm1 * z - pkm2 * yc;
     const qk = qkm1 * z - qkm2 * yc;
-    let t;
+    let t: number;
     if (qk !== 0) {
       const r = pk / qk;
       t = Math.abs((ans - r) / r);
@@ -334,7 +335,7 @@ function gammainc_upper(a, x) {
 }
 
 // t-distribution CDF
-function tcdf(t, df) {
+export function tcdf(t: number, df: number): number {
   const x = df / (df + t * t);
   const p = 0.5 * betai(df / 2, 0.5, x);
   return t >= 0 ? 1 - p : p;
@@ -344,14 +345,14 @@ function tcdf(t, df) {
 // silently drove `tTest` p-values to 0 for |t| > ~9 at large df — e.g. iris
 // SL setosa vs versicolor (t ≈ 10.5, df = 98) where R reports p ≈ 9e-18 but
 // JS underflowed to 0 because tcdf returned a float-rounded 1.0.
-function tcdf_upper(t, df) {
+export function tcdf_upper(t: number, df: number): number {
   const x = df / (df + t * t);
   const tail = 0.5 * betai(df / 2, 0.5, x);
   return t >= 0 ? tail : 1 - tail;
 }
 
 // t-distribution PDF (computed in log space, used by tinv Newton-Raphson)
-function tpdf(x, df) {
+export function tpdf(x: number, df: number): number {
   const logpdf =
     gammaln((df + 1) / 2) -
     gammaln(df / 2) -
@@ -370,7 +371,7 @@ function tpdf(x, df) {
 //     extreme p (e.g. qt(1e-10, 5) ≈ −157).
 //   • Work in the left tail (leftP ≤ 0.5) and flip sign at the end, so that
 //     inputs like p = 1 − 1e-15 don't suffer catastrophic cancellation.
-function tinv(p, df) {
+export function tinv(p: number, df: number): number {
   if (p <= 0) return -Infinity;
   if (p >= 1) return Infinity;
   if (p === 0.5) return 0;
@@ -378,7 +379,7 @@ function tinv(p, df) {
   const upper = p > 0.5;
   const leftP = upper ? 1 - p : p;
 
-  let tLeft;
+  let tLeft: number;
 
   if (df === 1) {
     // Cauchy: F⁻¹(u) = tan(π(u − 0.5)) = −cot(π·u).
@@ -431,7 +432,7 @@ function tinv(p, df) {
 }
 
 // F-distribution CDF
-function fcdf(f, d1, d2) {
+export function fcdf(f: number, d1: number, d2: number): number {
   if (f <= 0) return 0;
   return betai(d1 / 2, d2 / 2, (d1 * f) / (d1 * f + d2));
 }
@@ -439,20 +440,20 @@ function fcdf(f, d1, d2) {
 // Upper-tail 1 − fcdf(f, d1, d2). Same rationale as `tcdf_upper` — direct
 // computation avoids the 1 − (near-1) cancellation that underflows ANOVA /
 // Welch-ANOVA p-values at F > ~50.
-function fcdf_upper(f, d1, d2) {
+export function fcdf_upper(f: number, d1: number, d2: number): number {
   if (f <= 0) return 1;
   return betai_upper(d1 / 2, d2 / 2, (d1 * f) / (d1 * f + d2));
 }
 
 // Chi-square CDF
-function chi2cdf(x, k) {
+export function chi2cdf(x: number, k: number): number {
   if (x <= 0) return 0;
   return gammainc(k / 2, x / 2);
 }
 
 // Chi-square PDF — used as the Newton derivative in chi2inv. Built in log
 // space to avoid overflow at large k or tiny x.
-function chi2pdf(x, k) {
+export function chi2pdf(x: number, k: number): number {
   if (x <= 0) return 0;
   const halfK = k / 2;
   return Math.exp((halfK - 1) * Math.log(x) - x / 2 - halfK * Math.log(2) - gammaln(halfK));
@@ -465,7 +466,7 @@ function chi2pdf(x, k) {
 // tolerance); this version is much faster on typical inputs while remaining
 // correct on the tails. Uses the Wilson-Hilferty cubic-normal approximation
 // (X/k)^(1/3) ≈ N(1 − 2/(9k), 2/(9k)) to seed both Newton and the bracket.
-function chi2inv(p, k) {
+export function chi2inv(p: number, k: number): number {
   if (p <= 0) return 0;
   if (p >= 1) return Infinity;
   if (k <= 0) return NaN;
@@ -491,15 +492,20 @@ function chi2inv(p, k) {
   // Bisection fallback. Use WH seed to set a tight initial bracket; expand
   // by doubling if it doesn't cover p (bisect itself refuses unbracketed
   // targets, so this guarantees progress).
-  let lo = 0,
-    hi = Math.max(x * 2, k + 10 * Math.sqrt(2 * k));
+  const lo = 0;
+  let hi = Math.max(x * 2, k + 10 * Math.sqrt(2 * k));
   for (let i = 0; i < 40 && chi2cdf(hi, k) < p; i++) hi *= 2;
   return bisect((q) => chi2cdf(q, k), p, lo, hi, 1e-10);
 }
 
 // Gauss-Legendre quadrature nodes and weights (computed once, cached)
-let _glCache;
-function _gaussLegendre(n) {
+interface GLCache {
+  nodes: number[];
+  weights: number[];
+  n: number;
+}
+let _glCache: GLCache | undefined;
+export function _gaussLegendre(n: number): GLCache {
   if (_glCache && _glCache.n === n) return _glCache;
   const nodes = new Array(n),
     weights = new Array(n);
@@ -539,7 +545,7 @@ function _gaussLegendre(n) {
 // P(T ≤ t | ν, δ) = ∫₀^∞ Φ(t√(s/ν) − δ) · f_χ²(s; ν) ds
 // Substitution u = √s removes density singularity for small ν, giving:
 // = ∫₀^∞ Φ(tu/√ν − δ) · 2u^{ν−1} e^{−u²/2} / (2^{ν/2} Γ(ν/2)) du
-function nctcdf(t, df, delta) {
+export function nctcdf(t: number, df: number, delta: number): number {
   if (Math.abs(delta) < 1e-14) return tcdf(t, df);
   const halfDf = df / 2;
   const logC = halfDf * Math.log(2) + gammaln(halfDf);
@@ -563,7 +569,7 @@ function nctcdf(t, df, delta) {
 // F' = (χ²_{d1+2J}/d1) / (χ²_{d2}/d2), J~Poisson(λ/2)
 // P(F'>f) = Σ_j P(J=j) × P(F(d1+2j, d2) > f × d1/(d1+2j))
 // Starts at Poisson mode to avoid underflow for large λ.
-function ncf_sf(f, d1, d2, lambda) {
+export function ncf_sf(f: number, d1: number, d2: number, lambda: number): number {
   if (f <= 0) return 1;
   if (lambda <= 0) return fcdf_upper(f, d1, d2);
   const halfLam = lambda / 2;
@@ -594,13 +600,13 @@ function ncf_sf(f, d1, d2, lambda) {
   // Widen the Poisson window for larger λ so we cover ±8σ of the mass.
   const maxSteps = Math.max(500, Math.ceil(8 * Math.sqrt(halfLam + 1)));
 
-  function sfTerm(j) {
+  function sfTerm(j: number): number {
     const d1j = d1 + 2 * j;
     return fcdf_upper((f * d1) / d1j, d1j, d2);
   }
 
-  let logPMode = -halfLam + (jMode > 0 ? jMode * Math.log(halfLam) - gammaln(jMode + 1) : 0);
-  let pTerm = Math.exp(logPMode);
+  const logPMode = -halfLam + (jMode > 0 ? jMode * Math.log(halfLam) - gammaln(jMode + 1) : 0);
+  const pTerm = Math.exp(logPMode);
   let sum = pTerm * sfTerm(jMode);
 
   let pUp = pTerm;
@@ -623,7 +629,7 @@ function ncf_sf(f, d1, d2, lambda) {
 }
 
 // Noncentral chi-square CDF — Poisson mixture (starts at mode to avoid underflow)
-function ncchi2cdf(x, k, lambda) {
+export function ncchi2cdf(x: number, k: number, lambda: number): number {
   if (x <= 0) return 0;
   if (lambda <= 0) return chi2cdf(x, k);
   const halfLam = lambda / 2;
@@ -641,12 +647,12 @@ function ncchi2cdf(x, k, lambda) {
   // λ doesn't silently truncate the sum (mirrors the ncf_sf fix).
   const maxSteps = Math.max(500, Math.ceil(8 * Math.sqrt(halfLam + 1)));
 
-  function cdfTerm(j) {
+  function cdfTerm(j: number): number {
     return gammainc(k / 2 + j, x / 2);
   }
 
-  let logPMode = -halfLam + (jMode > 0 ? jMode * Math.log(halfLam) - gammaln(jMode + 1) : 0);
-  let pTerm = Math.exp(logPMode);
+  const logPMode = -halfLam + (jMode > 0 ? jMode * Math.log(halfLam) - gammaln(jMode + 1) : 0);
+  const pTerm = Math.exp(logPMode);
   let sum = pTerm * cdfTerm(jMode);
 
   let pUp = pTerm;
@@ -676,7 +682,14 @@ function ncchi2cdf(x, k, lambda) {
 // would let downstream code use a number that isn't actually a root. All
 // existing callers are responsible for expanding hi (or shrinking lo)
 // before delegating to bisect when their target might fall outside.
-function bisect(fn, target, lo, hi, tol = 1e-6, maxIter = 200) {
+export function bisect(
+  fn: (x: number) => number,
+  target: number,
+  lo: number,
+  hi: number,
+  tol = 1e-6,
+  maxIter = 200
+): number {
   if (fn(lo) > target || fn(hi) < target) return NaN;
   for (let i = 0; i < maxIter; i++) {
     const mid = (lo + hi) / 2;
@@ -692,7 +705,7 @@ function bisect(fn, target, lo, hi, tol = 1e-6, maxIter = 200) {
 // the StatsTile (group plot) can report achieved power and the
 // n-per-group needed for 80 % power directly from the observed data.
 
-function powerTwoSample(d, n, alpha, tails) {
+export function powerTwoSample(d: number, n: number, alpha: number, tails: number): number {
   const df = 2 * n - 2;
   const delta = d * Math.sqrt(n / 2);
   const tCrit = tinv(1 - alpha / tails, df);
@@ -700,7 +713,7 @@ function powerTwoSample(d, n, alpha, tails) {
   return 1 - nctcdf(tCrit, df, delta);
 }
 
-function powerPaired(d, n, alpha, tails) {
+export function powerPaired(d: number, n: number, alpha: number, tails: number): number {
   const df = n - 1;
   const delta = d * Math.sqrt(n);
   const tCrit = tinv(1 - alpha / tails, df);
@@ -708,11 +721,11 @@ function powerPaired(d, n, alpha, tails) {
   return 1 - nctcdf(tCrit, df, delta);
 }
 
-function powerOneSample(d, n, alpha, tails) {
+export function powerOneSample(d: number, n: number, alpha: number, tails: number): number {
   return powerPaired(d, n, alpha, tails);
 }
 
-function powerAnova(f, n, alpha, k) {
+export function powerAnova(f: number, n: number, alpha: number, k: number): number {
   const df1 = k - 1,
     df2 = k * (n - 1);
   if (df2 < 1) return 0;
@@ -730,7 +743,7 @@ function powerAnova(f, n, alpha, k) {
   return ncf_sf(fCrit, df1, df2, lambda);
 }
 
-function powerCorrelation(r, n, alpha, tails) {
+export function powerCorrelation(r: number, n: number, alpha: number, tails: number): number {
   const zr = Math.atanh(r);
   const se = 1 / Math.sqrt(Math.max(1, n - 3));
   const zCrit = norminv(1 - alpha / tails);
@@ -738,7 +751,7 @@ function powerCorrelation(r, n, alpha, tails) {
   return normcdf(zr / se - zCrit);
 }
 
-function powerChi2(w, n, alpha, df) {
+export function powerChi2(w: number, n: number, alpha: number, df: number): number {
   const lambda = n * w * w;
   const chiCrit = chi2inv(1 - alpha, df);
   return 1 - ncchi2cdf(chiCrit, df, lambda);
@@ -753,7 +766,7 @@ function powerChi2(w, n, alpha, df) {
 // downstream power calculator is calibrated against. Callers that have a
 // sample SD of group means should multiply by √((k−1)/k) before passing
 // in, or recompute from the raw means.
-function fFromGroupMeans(meansArr, sd) {
+export function fFromGroupMeans(meansArr: number[], sd: number): number {
   if (!meansArr.length || sd <= 0) return 0;
   const grandMean = meansArr.reduce((a, b) => a + b, 0) / meansArr.length;
   const sigmaMeans = Math.sqrt(
@@ -761,3 +774,40 @@ function fFromGroupMeans(meansArr, sd) {
   );
   return sigmaMeans / sd;
 }
+
+// ── Transitional global shim ───────────────────────────────────────────────
+// Populates the legacy script-scope global surface so unmigrated callers
+// (other tools/*.tsx files using `tTest`, `gammaln`, …) and `_shell/*.ts`
+// ambient `declare const` blocks keep working until the Phase-5 cleanup
+// removes the shim and converts every caller to direct imports.
+const _g = globalThis as Record<string, unknown>;
+_g.normcdf = normcdf;
+_g.normsf = normsf;
+_g.norminv = norminv;
+_g.gammaln = gammaln;
+_g.betai = betai;
+_g.betai_upper = betai_upper;
+_g.betacf = betacf;
+_g.gammainc = gammainc;
+_g.gammainc_upper = gammainc_upper;
+_g.tcdf = tcdf;
+_g.tcdf_upper = tcdf_upper;
+_g.tpdf = tpdf;
+_g.tinv = tinv;
+_g.fcdf = fcdf;
+_g.fcdf_upper = fcdf_upper;
+_g.chi2cdf = chi2cdf;
+_g.chi2pdf = chi2pdf;
+_g.chi2inv = chi2inv;
+_g._gaussLegendre = _gaussLegendre;
+_g.nctcdf = nctcdf;
+_g.ncf_sf = ncf_sf;
+_g.ncchi2cdf = ncchi2cdf;
+_g.bisect = bisect;
+_g.powerTwoSample = powerTwoSample;
+_g.powerPaired = powerPaired;
+_g.powerOneSample = powerOneSample;
+_g.powerAnova = powerAnova;
+_g.powerCorrelation = powerCorrelation;
+_g.powerChi2 = powerChi2;
+_g.fFromGroupMeans = fFromGroupMeans;

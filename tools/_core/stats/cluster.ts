@@ -1,20 +1,28 @@
-// stats-cluster.js — distance metrics, hierarchical clustering (`hclust` /
+// stats/cluster.ts — distance metrics, hierarchical clustering (`hclust` /
 // `dendrogramLayout`), and k-means primitives used by tools/heatmap/.
 //
-// No dependencies on the other stats-*.js files — distance + clustering use
-// only built-ins. Lives alongside stats-*.js by historical accident; the
-// "stats" naming is preserved so existing imports keep working through the
-// shared bundle.
+// Migrated from `tools/stats-cluster.js`. No intra-stats dependencies —
+// distance + clustering use only built-ins. Lives alongside the other stats
+// modules by historical convention; could equally live as a top-level
+// _core/cluster.ts. The trailing globalThis block keeps legacy script-scope
+// callers alive until Phase-5 cleanup.
+
+import type {
+  DendrogramLayout,
+  DendrogramSegment,
+  DistanceMetric,
+  HClustResult,
+  HClustTreeNode,
+  KMeansOptions,
+  KMeansResult,
+  LinkageMethod,
+} from "./types";
 
 // ── 14. Hierarchical clustering ─────────────────────────────────────────────
 
-// Pairwise row-wise distance matrix for a 2-D numeric array.
-// metric: "euclidean" | "manhattan" | "correlation" (1 − Pearson r).
-// NaN cells are ignored pairwise (only rows' shared finite columns contribute).
-// Returns an N×N symmetric array of distances (0 on the diagonal).
-function pairwiseDistance(matrix, metric) {
+export function pairwiseDistance(matrix: number[][], metric: DistanceMetric): number[][] {
   const n = matrix.length;
-  const D = Array.from({ length: n }, () => new Array(n).fill(0));
+  const D: number[][] = Array.from({ length: n }, () => new Array(n).fill(0));
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
       const d = rowDistance(matrix[i], matrix[j], metric);
@@ -25,10 +33,10 @@ function pairwiseDistance(matrix, metric) {
   return D;
 }
 
-function rowDistance(a, b, metric) {
+export function rowDistance(a: number[], b: number[], metric: DistanceMetric): number {
   const n = Math.min(a.length, b.length);
-  const xs = [];
-  const ys = [];
+  const xs: number[] = [];
+  const ys: number[] = [];
   for (let k = 0; k < n; k++) {
     if (Number.isFinite(a[k]) && Number.isFinite(b[k])) {
       xs.push(a[k]);
@@ -42,8 +50,6 @@ function rowDistance(a, b, metric) {
     return s;
   }
   if (metric === "correlation") {
-    // 1 − Pearson correlation; collapses to 0 for identical vectors,
-    // 2 for perfectly anti-correlated ones.
     if (xs.length < 2) return NaN;
     let mx = 0,
       my = 0;
@@ -75,33 +81,25 @@ function rowDistance(a, b, metric) {
   return Math.sqrt(s);
 }
 
-// Agglomerative hierarchical clustering. Naive O(n³) merge loop — clear,
-// easy to verify, adequate for the ≤500-leaf range the heatmap tool targets.
-// linkage: "average" (UPGMA) | "complete" | "single".
-// Returns { tree, order }:
-//   tree — nested { index, left, right, height, size }; leaves have index ≥ 0
-//          and left/right null; internal nodes have index = -1.
-//   order — array of leaf indices in dendrogram left-to-right order.
-function hclust(distMatrix, linkage) {
+export function hclust(distMatrix: number[][], linkage: LinkageMethod): HClustResult {
   const n = distMatrix.length;
-  // Stryker disable next-line all -- defensive early return for empty distance matrix; the algorithm body returns the same shape via { tree: undefined, order: [] }, so most mutations on this guard are equivalent
+  // Stryker disable next-line all -- defensive early return for empty distance matrix
   if (n === 0) return { tree: null, order: [] };
-  // Stryker disable all -- defensive early return for singleton matrix; the while-loop body skips when active.size === 1, so a missed n===1 short-circuit yields the same singleton tree
+  // Stryker disable all -- defensive early return for singleton matrix
   if (n === 1)
     return { tree: { index: 0, left: null, right: null, height: 0, size: 1 }, order: [0] };
   // Stryker restore all
 
-  // Working copies: active cluster metadata + mutable distance matrix.
-  const clusters = new Array(n);
-  const D = new Array(n);
+  const clusters: HClustTreeNode[] = new Array(n);
+  const D: number[][] = new Array(n);
   for (let i = 0; i < n; i++) {
     clusters[i] = { index: i, left: null, right: null, height: 0, size: 1 };
     D[i] = distMatrix[i].slice();
   }
-  const active = new Set();
+  const active = new Set<number>();
   for (let i = 0; i < n; i++) active.add(i);
 
-  const mergeFn =
+  const mergeFn: ((d1: number, d2: number) => number) | null =
     linkage === "complete"
       ? (d1, d2) => Math.max(d1, d2)
       : linkage === "single"
@@ -109,7 +107,6 @@ function hclust(distMatrix, linkage) {
         : null; // signals UPGMA (size-weighted average)
 
   while (active.size > 1) {
-    // Find the closest pair among active clusters.
     let best = Infinity;
     let bi = -1,
       bj = -1;
@@ -127,18 +124,12 @@ function hclust(distMatrix, linkage) {
       }
     }
     if (bi < 0) {
-      // No finite distances remain — happens when rows have no overlap
-      // in finite values (e.g. correlation on a matrix where most cells
-      // are NaN). Force-merge the two lowest-index active clusters at a
-      // sentinel height so the returned tree still covers every leaf,
-      // instead of silently truncating to the first active singleton.
       bi = act[0];
       bj = act[1];
       best = 0;
     }
 
-    // Merge j into i — the new cluster keeps index bi, bj becomes inactive.
-    const merged = {
+    const merged: HClustTreeNode = {
       index: -1,
       left: clusters[bi],
       right: clusters[bj],
@@ -153,11 +144,10 @@ function hclust(distMatrix, linkage) {
       if (k === bi) continue;
       const dik = D[bi][k];
       const djk = D[bj][k];
-      let nd;
+      let nd: number;
       if (mergeFn) {
         nd = mergeFn(dik, djk);
       } else {
-        // UPGMA: weighted average by cluster size.
         nd = (sizeI * dik + sizeJ * djk) / (sizeI + sizeJ);
       }
       D[bi][k] = nd;
@@ -169,9 +159,8 @@ function hclust(distMatrix, linkage) {
   const rootId = Array.from(active)[0];
   const tree = clusters[rootId];
 
-  // Leaf order by in-order traversal.
-  const order = [];
-  (function walk(node) {
+  const order: number[] = [];
+  (function walk(node: HClustTreeNode | null) {
     if (!node) return;
     if (node.left === null && node.right === null) {
       order.push(node.index);
@@ -184,35 +173,26 @@ function hclust(distMatrix, linkage) {
   return { tree, order };
 }
 
-// Flatten a hclust tree into SVG-friendly L-shaped segments.
-// Each leaf is placed at integer x = position-in-order; internal nodes
-// at the mean of their subtree leaves' positions. Returns:
-//   { segments, maxHeight }
-// where segments is an array of { x1, y1, x2, y2 } in DATA space
-// (y = merge height, 0 at leaves). The caller scales x, y into pixels.
-function dendrogramLayout(tree) {
-  // Stryker disable next-line all -- defensive early return for null tree (passed when hclust got an empty matrix); the body would crash on null without this guard
+export function dendrogramLayout(tree: HClustTreeNode | null): DendrogramLayout {
+  // Stryker disable next-line all -- defensive early return for null tree
   if (!tree) return { segments: [], maxHeight: 0 };
-  const segments = [];
+  const segments: DendrogramSegment[] = [];
   let maxHeight = 0;
-  function place(node) {
+  function place(node: HClustTreeNode): { x: number; h: number } {
     if (node.left === null && node.right === null) {
-      return { x: node._leafPos, h: 0 };
+      return { x: node._leafPos as number, h: 0 };
     }
-    const L = place(node.left);
-    const R = place(node.right);
+    const L = place(node.left as HClustTreeNode);
+    const R = place(node.right as HClustTreeNode);
     const h = node.height;
     if (h > maxHeight) maxHeight = h;
-    // Vertical stems from each child up to the merge height.
     segments.push({ x1: L.x, y1: L.h, x2: L.x, y2: h });
     segments.push({ x1: R.x, y1: R.h, x2: R.x, y2: h });
-    // Horizontal bar joining them.
     segments.push({ x1: L.x, y1: h, x2: R.x, y2: h });
     return { x: (L.x + R.x) / 2, h };
   }
-  // Annotate leaves with their left-to-right position.
   let leafIdx = 0;
-  (function num(node) {
+  (function num(node: HClustTreeNode | null) {
     if (!node) return;
     if (node.left === null && node.right === null) {
       node._leafPos = leafIdx++;
@@ -227,61 +207,71 @@ function dendrogramLayout(tree) {
 
 // ── 15. K-means (non-hierarchical) clustering ───────────────────────────────
 
-// K-means with k-means++ seeded init. Rows of `matrix` are the observations;
-// columns are features. Missing values (NaN) are handled pairwise per-feature
-// when computing squared distances, and are skipped when averaging centroids.
-// opts: { seed=1, maxIter=100, restarts=8 } — `restarts` independent runs
-// from different seeded inits; the lowest-inertia run is returned.
-// Returns { clusters, centroids, inertia, iterations, order }:
-//   clusters   — array of length n with cluster id (0..k-1) per row
-//   centroids  — k × d array (NaN if a feature had no finite values in a cluster)
-//   inertia    — sum of squared distances from each row to its centroid
-//   iterations — iterations the winning restart took to converge
-//   order      — row-index permutation: rows grouped by cluster id, within each
-//                cluster sorted by distance-to-centroid ascending. Clusters
-//                themselves are ordered by cluster-id.
-function kmeans(matrix, k, opts) {
+export function kmeans(matrix: number[][], k: number, opts?: KMeansOptions): KMeansResult {
   const options = opts || {};
   const seed = options.seed != null ? options.seed : 1;
   const maxIter = options.maxIter != null ? options.maxIter : 100;
   const restarts = options.restarts != null ? options.restarts : 8;
   const n = matrix.length;
-  // Stryker disable next-line all -- defensive early return for empty matrix; the body would crash on `matrix[0].length` (next line) without this guard
+  // Stryker disable next-line all -- defensive early return for empty matrix
   if (n === 0) return { clusters: [], centroids: [], inertia: 0, iterations: 0, order: [] };
   const d = matrix[0].length;
   const kEff = Math.max(1, Math.min(k, n));
 
   const baseRng = kmeansRng(seed);
-  let best = null;
+  let best: {
+    clusters: number[];
+    centroids: number[][];
+    inertia: number;
+    iterations: number;
+  } | null = null;
   for (let r = 0; r < restarts; r++) {
     const rng = kmeansRng(Math.floor(baseRng() * 2147483646) + 1);
     const attempt = kmeansOnce(matrix, kEff, d, rng, maxIter);
     if (!best || attempt.inertia < best.inertia) best = attempt;
   }
+  const winner = best as {
+    clusters: number[];
+    centroids: number[][];
+    inertia: number;
+    iterations: number;
+  };
 
-  // Within-cluster ordering by distance to centroid (ascending).
   const distToCentroid = new Array(n);
   for (let i = 0; i < n; i++) {
-    distToCentroid[i] = sqDistPartial(matrix[i], best.centroids[best.clusters[i]]);
+    distToCentroid[i] = sqDistPartial(matrix[i], winner.centroids[winner.clusters[i]]);
   }
-  const order = [];
+  const order: number[] = [];
   for (let c = 0; c < kEff; c++) {
-    const members = [];
-    for (let i = 0; i < n; i++) if (best.clusters[i] === c) members.push(i);
+    const members: number[] = [];
+    for (let i = 0; i < n; i++) if (winner.clusters[i] === c) members.push(i);
     members.sort((a, b) => distToCentroid[a] - distToCentroid[b]);
     for (const m of members) order.push(m);
   }
 
   return {
-    clusters: best.clusters,
-    centroids: best.centroids,
-    inertia: best.inertia,
-    iterations: best.iterations,
+    clusters: winner.clusters,
+    centroids: winner.centroids,
+    inertia: winner.inertia,
+    iterations: winner.iterations,
     order,
   };
 }
 
-function kmeansOnce(matrix, k, d, rng, maxIter) {
+interface KMeansRunOnce {
+  clusters: number[];
+  centroids: number[][];
+  inertia: number;
+  iterations: number;
+}
+
+function kmeansOnce(
+  matrix: number[][],
+  k: number,
+  d: number,
+  rng: () => number,
+  maxIter: number
+): KMeansRunOnce {
   const n = matrix.length;
   const centroids = kmeansPlusPlusInit(matrix, k, rng);
   const clusters = new Array(n).fill(0);
@@ -306,9 +296,8 @@ function kmeansOnce(matrix, k, d, rng, maxIter) {
       }
     }
 
-    // Recompute centroids as per-feature means over finite values.
-    const sums = Array.from({ length: k }, () => new Array(d).fill(0));
-    const counts = Array.from({ length: k }, () => new Array(d).fill(0));
+    const sums: number[][] = Array.from({ length: k }, () => new Array(d).fill(0));
+    const counts: number[][] = Array.from({ length: k }, () => new Array(d).fill(0));
     const clusterSizes = new Array(k).fill(0);
     for (let i = 0; i < n; i++) {
       const c = clusters[i];
@@ -323,7 +312,6 @@ function kmeansOnce(matrix, k, d, rng, maxIter) {
     }
     for (let c = 0; c < k; c++) {
       if (clusterSizes[c] === 0) {
-        // Empty cluster: reseed to the row farthest from its current centroid.
         let worst = -1;
         let worstD = -Infinity;
         for (let i = 0; i < n; i++) {
@@ -353,10 +341,10 @@ function kmeansOnce(matrix, k, d, rng, maxIter) {
   return { clusters, centroids, inertia, iterations };
 }
 
-function kmeansPlusPlusInit(matrix, k, rng) {
+function kmeansPlusPlusInit(matrix: number[][], k: number, rng: () => number): number[][] {
   const n = matrix.length;
   const d = matrix[0].length;
-  const centroids = [];
+  const centroids: number[][] = [];
   const first = Math.floor(rng() * n);
   centroids.push(matrix[first].slice());
 
@@ -369,8 +357,7 @@ function kmeansPlusPlusInit(matrix, k, rng) {
       if (Number.isFinite(dists[i])) total += dists[i];
     }
     if (total <= 0 || !Number.isFinite(total)) {
-      // Degenerate: fall back to a random distinct-ish row.
-      let pick = Math.floor(rng() * n);
+      const pick = Math.floor(rng() * n);
       centroids.push(matrix[pick].slice());
       continue;
     }
@@ -387,15 +374,14 @@ function kmeansPlusPlusInit(matrix, k, rng) {
     }
     centroids.push(matrix[pick].slice());
   }
-  // Ensure every centroid has length d (for rows that had trailing NaN columns).
   for (const c of centroids) {
     while (c.length < d) c.push(NaN);
   }
   return centroids;
 }
 
-// Park-Miller LCG — kept local so stats.js has no cross-file dependency.
-function kmeansRng(seed) {
+// Park-Miller LCG — kept local so cluster.ts has no cross-file dependency.
+function kmeansRng(seed: number): () => number {
   let s = seed % 2147483647;
   if (s <= 0) s += 2147483646;
   return () => {
@@ -404,7 +390,7 @@ function kmeansRng(seed) {
   };
 }
 
-function sqDistPartial(row, centroid) {
+function sqDistPartial(row: number[], centroid: number[]): number {
   const n = Math.min(row.length, centroid.length);
   let s = 0;
   let any = false;
@@ -419,3 +405,11 @@ function sqDistPartial(row, centroid) {
   }
   return any ? s : Infinity;
 }
+
+// ── Transitional global shim ───────────────────────────────────────────────
+const _g = globalThis as Record<string, unknown>;
+_g.pairwiseDistance = pairwiseDistance;
+_g.rowDistance = rowDistance;
+_g.hclust = hclust;
+_g.dendrogramLayout = dendrogramLayout;
+_g.kmeans = kmeans;

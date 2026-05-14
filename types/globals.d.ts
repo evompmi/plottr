@@ -515,11 +515,14 @@ declare global {
     shortLabel?: string;
     arity: TestArity;
     postHoc: Exclude<RecommendedPostHoc, null> | null;
-    run: (values: number[][]) => Record<string, unknown>;
+    // Returns whichever result-shape the underlying test produces
+    // (TTestResult, ANOVAResult, …); consumers narrow via the typed
+    // dispatchers in `_shell/stats-dispatch.ts`.
+    run: (values: number[][]) => unknown;
   }
   interface StatsPostHocEntry {
     label: string;
-    run: (values: number[][]) => Record<string, unknown>;
+    run: (values: number[][]) => unknown;
   }
 
   function selectTest(

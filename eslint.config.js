@@ -19,7 +19,12 @@ const plottrLocal = {
 // Generated outputs that lint never has anything useful to say about.
 // `tools/_app/chunks/**` covers the per-tool lazy chunks emitted by
 // esbuild's `--splitting --chunk-names=chunks/[name]-[hash]`.
-const compiledTools = ["tools/_app/index.js", "tools/_app/chunks/**", "tools/version.js"];
+const compiledTools = [
+  "tools/_app/index.js",
+  "tools/_app/chunks/**",
+  "tools/version.js",
+  "tools/shared.bundle.js",
+];
 
 // Names declared at top-level of tools/shared.js, the tools/stats-*.js files,
 // and the tools/shared-*.js component files, consumed by tool .tsx files via
@@ -256,13 +261,13 @@ module.exports = [
     },
   },
 
-  // Hand-written shared plain JS and browser-only helper scripts. These files
-  // BOTH define and consume shared globals (the shared-*.js files use styles
-  // from shared.js), so we list the shared globals, disable no-redeclare
-  // (self-declarations collide with the global list), and disable
-  // no-unused-vars (names are consumed via globals).
+  // Hand-written shared plain JS and browser-only helper scripts. Most of
+  // the legacy script-scope files (`shared.js`, `stats-*.js`, `theme.js`)
+  // were migrated to TS modules under `tools/_core/` in v1.6.x; the residual
+  // `tools/*.js` glob still catches any future leaf scripts that need the
+  // script-scope-globals environment.
   {
-    files: ["tools/shared.js", "tools/stats-*.js", "tools/*.js"],
+    files: ["tools/*.js"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "script",

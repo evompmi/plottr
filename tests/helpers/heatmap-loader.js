@@ -7,12 +7,16 @@
 // it to CommonJS with esbuild.
 
 const vm = require("vm");
-const fs = require("fs");
-const path = require("path");
 const { readStatsSource } = require("./stats-source");
-const { TOOLS_DIR, builtins, bundleShell, makeDomStubs, runCjs } = require("./_shell-test-utils");
+const {
+  builtins,
+  bundleShell,
+  makeDomStubs,
+  runCjs,
+  readCoreSharedSource,
+} = require("./_shell-test-utils");
 
-const sharedSrc = fs.readFileSync(path.join(TOOLS_DIR, "shared.js"), "utf8");
+const sharedSrc = readCoreSharedSource();
 const statsSrc = readStatsSource();
 const helpersCjs = bundleShell("heatmap/helpers.ts", { transform: true });
 

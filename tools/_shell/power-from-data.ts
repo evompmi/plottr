@@ -19,16 +19,8 @@
 // returns. See conversation history 2026-05-13 + the H&H 2001 paper
 // for the methodology pivot.
 
-declare const sampleMean: (xs: number[]) => number;
-declare const sampleSD: (xs: number[]) => number;
-declare const powerTwoSample: (d: number, n: number, alpha: number, tails: number) => number;
-declare const powerAnova: (f: number, n: number, alpha: number, k: number) => number;
-declare const cohenDCI: (
-  d: number,
-  n1: number,
-  n2: number,
-  conf?: number
-) => { lo: number; hi: number };
+import { powerAnova, powerTwoSample } from "../_core/stats/dist";
+import { cohenDCI, sampleMean, sampleSD } from "../_core/stats/tests";
 
 export interface PowerFromDataRow {
   alpha: number;

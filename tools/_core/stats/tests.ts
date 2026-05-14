@@ -1,9 +1,10 @@
-// stats-tests.js — descriptive helpers + parametric / nonparametric tests +
+// stats/tests.ts — descriptive helpers + parametric / nonparametric tests +
 // effect sizes.
 //
-// Loaded after stats-dist.js (depends on its distribution / special functions).
-// Plain script-mode JS like the rest of the stats-*.js files — top-level
-// declarations stay as globals once the bundle is concatenated.
+// Migrated from `tools/stats-tests.js`. Depends on `./dist` for distributions
+// and special functions, and on `./format` for the small p-value formatter
+// used by selectCorrelation. The trailing globalThis block keeps legacy
+// script-scope callers alive until Phase-5 cleanup.
 //
 // Layout:
 //   3. Sample helpers          — mean, variance, sd, rank-with-ties
@@ -16,9 +17,25 @@
 //                                selectCorrelation auto-picker
 //  10. k-sample effect sizes   — η², ε²
 
+import { bisect, chi2cdf, fcdf_upper, gammaln, nctcdf, norminv, normsf, tcdf_upper } from "./dist";
+import { formatP } from "./format";
+import type {
+  ANOVAResult,
+  KendallResult,
+  KruskalWallisResult,
+  LeveneResult,
+  MannWhitneyResult,
+  PairwiseComplete,
+  PearsonResult,
+  RankWithTies,
+  ShapiroWilkResult,
+  SpearmanResult,
+  TTestResult,
+} from "./types";
+
 // ── 3. Sample helpers ───────────────────────────────────────────────────────
 
-function sampleMean(x) {
+export function sampleMean(x: number[]): number {
   const n = x.length;
   if (n === 0) return NaN;
   let s = 0;
@@ -33,7 +50,7 @@ function sampleMean(x) {
 // two-pass algorithm is comparable in accuracy on most inputs, but Welford
 // avoids a second loop and pre-computed mean, which is cleaner and slightly
 // faster on large arrays.
-function sampleVariance(x) {
+export function sampleVariance(x: number[]): number {
   const n = x.length;
   if (n < 2) return NaN;
   let mean = 0,
@@ -46,16 +63,18 @@ function sampleVariance(x) {
   return M2 / (n - 1);
 }
 
-function sampleSD(x) {
+export function sampleSD(x: number[]): number {
   return Math.sqrt(sampleVariance(x));
 }
 
 // Midrank assignment with ties — returns ranks[i] = 1-based rank of x[i],
 // averaging ranks for tied values. Also returns the sum of (t³−t)/12 for each
 // tie group, needed as the tie-correction term in Mann-Whitney / Kruskal-Wallis.
-function rankWithTies(x) {
+export function rankWithTies(x: number[]): RankWithTies {
   const n = x.length;
-  const idx = x.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]);
+  const idx: [number, number][] = x
+    .map((v, i): [number, number] => [v, i])
+    .sort((a, b) => a[0] - b[0]);
   const ranks = new Array(n);
   let tieCorrection = 0;
   let i = 0;
@@ -72,21 +91,8 @@ function rankWithTies(x) {
 }
 
 // ── 4. Normality: Shapiro-Wilk (Royston 1995, AS R94) ───────────────────────
-//
-// Algorithm AS R94 (Royston 1995), as implemented in R's stats::shapiro.test.
-// Valid for 3 ≤ n ≤ 5000. Returns { W, p }.
-//
-// The W statistic:   W = (Σ a_i · x_(i))² / Σ (x_i − x̄)²
-//
-// Coefficients a_i are derived from the expected values of normal order
-// statistics (approximated analytically here — exact values would require
-// computing E[z_(i:n)] via numerical integration, but Royston's approximation
-// is accurate to the W-statistic's precision).
-//
-// P-value transformation uses polynomial-in-log approximations tabulated by
-// Royston for the normalizing transform of W.
 
-function shapiroWilk(x) {
+export function shapiroWilk(x: number[]): ShapiroWilkResult {
   const n = x.length;
   if (n < 3 || n > 5000) {
     return { W: NaN, p: NaN, error: "Shapiro-Wilk requires 3 ≤ n ≤ 5000" };
@@ -104,11 +110,6 @@ function shapiroWilk(x) {
   for (let i = 0; i < n; i++) mm += m[i] * m[i];
 
   // Coefficients a_i (Royston 1992 analytical form, AS R94).
-  // For i = n:    a_n   = −2.706056 u⁵ + 4.434685 u⁴ − 2.071190 u³
-  //                       − 0.147981 u² + 0.221157 u + m_n / √mm
-  // For i = n−1:  a_{n−1} = −3.582633 u⁵ + 5.682633 u⁴ − 1.752460 u³
-  //                         − 0.293762 u² + 0.042981 u + m_{n−1} / √mm
-  // where u = 1/√n. Middle coefficients follow AS R94's epsilon correction.
   const a = new Array(n);
   const u = 1 / Math.sqrt(n);
   const sqrtMm = Math.sqrt(mm);
@@ -171,7 +172,7 @@ function shapiroWilk(x) {
   const W = Math.max(0, Math.min(1, (num * num) / den));
 
   // P-value via Royston 1995 normalizing transform.
-  let p;
+  let p: number;
   if (n === 3) {
     // Exact distribution at n=3: p = 6 · (asin(√W) − asin(√(3/4))) / π
     const pi6 = 6 / Math.PI;
@@ -201,19 +202,8 @@ function shapiroWilk(x) {
 }
 
 // ── 5. Equal-variance tests ─────────────────────────────────────────────────
-//
-// Brown-Forsythe variant of Levene's test (median-based — robust to
-// non-normality, which is what we want in a screening step that runs before
-// we've decided whether the data are normal).
-//
-// Algorithm: for each group compute |x_ij − median_i|, then run a one-way
-// ANOVA on those absolute deviations. F statistic and p-value from the
-// F-distribution.
-//
-// Input: groups = [[x11, x12, ...], [x21, x22, ...], ...]
-// Output: { F, df1, df2, p }
 
-function leveneTest(groups) {
+export function leveneTest(groups: number[][]): LeveneResult {
   const k = groups.length;
   if (k < 2) return { F: NaN, df1: 0, df2: 0, p: NaN, error: "≥2 groups required" };
   // Absolute deviations from the group median.
@@ -246,9 +236,6 @@ function leveneTest(groups) {
   const df1 = k - 1;
   const df2 = Ntot - k;
   if (ssWithin === 0) {
-    // All groups are internally constant → within-group dispersion is zero
-    // and Levene's F is undefined (0/0 at best, a phantom ∞ at worst).
-    // R's equivalent oneway.test on the deviations reports F = NaN / p = NA.
     return {
       F: NaN,
       df1,
@@ -263,13 +250,8 @@ function leveneTest(groups) {
 }
 
 // ── 6. Two-sample location tests ────────────────────────────────────────────
-//
-// tTest(x, y, { equalVar }) — two-sample t-test.
-//   equalVar=true  → Student's t (pooled variance, df = n1+n2−2)
-//   equalVar=false → Welch's t (unequal variance, Welch-Satterthwaite df)
-// Two-sided p-value. Returns { t, df, p, mean1, mean2, ... }.
 
-function tTest(x, y, opts = {}) {
+export function tTest(x: number[], y: number[], opts: { equalVar?: boolean } = {}): TTestResult {
   const equalVar = opts.equalVar !== false;
   const n1 = x.length,
     n2 = y.length;
@@ -280,9 +262,6 @@ function tTest(x, y, opts = {}) {
     m2 = sampleMean(y);
   const v1 = sampleVariance(x),
     v2 = sampleVariance(y);
-  // Degenerate case: both groups constant. Matches R, which refuses with
-  // "data are essentially constant" — any result here would have NaN df
-  // (Welch) or zero SE (Student), neither of which is meaningful.
   if (v1 === 0 && v2 === 0) {
     return {
       t: NaN,
@@ -297,7 +276,7 @@ function tTest(x, y, opts = {}) {
       error: "Data are essentially constant (zero variance in both groups)",
     };
   }
-  let t, df;
+  let t: number, df: number;
   if (equalVar) {
     const sp2 = ((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2);
     const se = Math.sqrt(sp2 * (1 / n1 + 1 / n2));
@@ -310,22 +289,11 @@ function tTest(x, y, opts = {}) {
     const den = (v1 / n1) ** 2 / (n1 - 1) + (v2 / n2) ** 2 / (n2 - 1);
     df = num / den;
   }
-  // Two-sided p via tail-accurate upper helper (avoids 1 − (near-1) cancellation
-  // that underflowed p to 0 at |t| > ~9).
   const p = 2 * tcdf_upper(Math.abs(t), df);
   return { t, df, p, mean1: m1, mean2: m2, var1: v1, var2: v2, n1, n2 };
 }
 
-// Mann-Whitney U test (two-sided) — ranks with midranks for ties, normal
-// approximation with continuity correction and tie correction to σ_U².
-// Matches R's wilcox.test(x, y, exact=FALSE, correct=TRUE) when there are
-// ties or larger samples; R switches to an exact enumerator when n1*n2<50
-// and there are no ties — we note this in comments but stick to normal
-// approximation here (the error vs exact is <0.01 in p even for small n).
-//
-// Returns { U, U1, U2, z, p, n1, n2 }. U = min(U1, U2).
-
-function mannWhitneyU(x, y) {
+export function mannWhitneyU(x: number[], y: number[]): MannWhitneyResult {
   const n1 = x.length,
     n2 = y.length;
   if (n1 < 1 || n2 < 1) return { U: NaN, z: NaN, p: NaN, error: "Empty group" };
@@ -342,26 +310,19 @@ function mannWhitneyU(x, y) {
   //  σ² = n1·n2/12 · [(N+1) − Σ(t³−t) / (N(N−1))]
   const sigma2 = ((n1 * n2) / 12) * (N + 1 - tieCorrection / (N * (N - 1)));
   const sigmaU = Math.sqrt(sigma2);
-  // Continuity-corrected z (matches wilcox.test correct=TRUE).
-  // Shift U toward the mean by 0.5.
   const diff = U1 - muU;
-  let z;
+  let z: number;
   if (sigmaU === 0) z = 0;
   else if (diff > 0) z = (diff - 0.5) / sigmaU;
   else if (diff < 0) z = (diff + 0.5) / sigmaU;
   else z = 0;
-  // Tail-accurate normsf — survives |z| > ~7 where 1 − normcdf cancels to 0.
   const p = 2 * normsf(Math.abs(z));
   return { U, U1, U2, z, p, n1, n2 };
 }
 
 // ── 7. Two-sample effect sizes ──────────────────────────────────────────────
-//
-// Cohen's d — standardized mean difference using pooled SD (Bessel-corrected).
-// Hedges' g — small-sample bias-corrected version of Cohen's d.
-// rankBiserial — non-parametric effect size paired with Mann-Whitney U.
 
-function cohenD(x, y) {
+export function cohenD(x: number[], y: number[]): number {
   const n1 = x.length,
     n2 = y.length;
   if (n1 < 2 || n2 < 2) return NaN;
@@ -370,61 +331,35 @@ function cohenD(x, y) {
   const v1 = sampleVariance(x),
     v2 = sampleVariance(y);
   const sp2 = ((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2);
-  // Pooled SD is zero → effect size is undefined (±Infinity is misleading).
   if (sp2 === 0) return NaN;
   return (m1 - m2) / Math.sqrt(sp2);
 }
 
-function hedgesG(x, y) {
+export function hedgesG(x: number[], y: number[]): number {
   const d = cohenD(x, y);
   if (!Number.isFinite(d)) return d;
   const df = x.length + y.length - 2;
   if (df < 1) return NaN;
   // Exact small-sample correction factor:
   //   J(df) = Γ(df/2) / (Γ((df−1)/2) · √(df/2))
-  // computed in log space via gammaln to avoid Γ overflow at large df.
-  // The familiar `J ≈ 1 − 3/(4n − 9)` shortcut is the leading term of the
-  // asymptotic expansion; it's off by ~0.3% at the smallest practical
-  // sample (n1 = n2 = 3) and converges to the exact form by n ≈ 30.
-  // Tightening this also matches what `effectsize::hedges_g()` reports.
   const J = Math.exp(gammaln(df / 2) - gammaln((df - 1) / 2) - 0.5 * Math.log(df / 2));
   return d * J;
 }
 
 // Rank-biserial correlation from Mann-Whitney U (Kerby 2014).
-// r = 1 − 2U/(n1·n2). Sign follows U1 vs U2 (positive means x tends to rank
-// higher than y).
-function rankBiserial(U1, n1, n2) {
+export function rankBiserial(U1: number, n1: number, n2: number): number {
   if (n1 * n2 === 0) return NaN;
   return 1 - (2 * U1) / (n1 * n2);
 }
 
-// 95 % confidence interval for Cohen's d (or d_av) on two independent
-// samples, using the noncentral-t pivot of Cumming & Finch 2001 ("A
-// primer on the understanding, use, and calculation of confidence
-// intervals that are based on central and noncentral distributions",
-// Educational and Psychological Measurement 61(4)):
-//
-//   t_obs  = d / √(1/n1 + 1/n2)          observed t-statistic
-//   df     = n1 + n2 − 2                 (Student-pooled df; we use the
-//                                         same df for d_av as a working
-//                                         approximation — Welch-Satterthwaite
-//                                         df differs slightly but the CI
-//                                         on d is dominated by t-quantile
-//                                         scale, not by the df shift)
-//
-// Then bisect over the noncentrality parameter λ to find:
-//   λ_lo such that P(T ≤ t_obs | df, ncp = λ_lo) = 1 − α/2
-//   λ_hi such that P(T ≤ t_obs | df, ncp = λ_hi) = α/2
-//
-// `nctcdf(t, df, ncp)` is monotonically *decreasing* in ncp, so we
-// bisect against `-nctcdf(...)` (monotone increasing — what `bisect`
-// expects).
-//
-// Returns `{ lo, hi }` on success, `{ lo: NaN, hi: NaN }` when the
-// inputs are degenerate (n < 2 or non-finite d). Default confidence
-// 0.95; explicit `conf` parameter overrides.
-function cohenDCI(d, n1, n2, conf) {
+// 95 % confidence interval for Cohen's d (or d_av) on two independent samples,
+// using the noncentral-t pivot of Cumming & Finch 2001.
+export function cohenDCI(
+  d: number,
+  n1: number,
+  n2: number,
+  conf?: number
+): { lo: number; hi: number } {
   const c = conf == null ? 0.95 : conf;
   if (!Number.isFinite(d) || n1 < 2 || n2 < 2 || c <= 0 || c >= 1) {
     return { lo: NaN, hi: NaN };
@@ -433,9 +368,8 @@ function cohenDCI(d, n1, n2, conf) {
   const seFactor = Math.sqrt(1 / n1 + 1 / n2);
   const tObs = d / seFactor;
   const df = n1 + n2 - 2;
-  // Bracket: ±|tObs| + 20 covers all practical d values (|d| up to ~10).
   const halfRange = Math.abs(tObs) + 20;
-  const negNct = (lam) => -nctcdf(tObs, df, lam);
+  const negNct = (lam: number): number => -nctcdf(tObs, df, lam);
   const lambdaLo = bisect(negNct, -(1 - alpha / 2), -halfRange, halfRange);
   const lambdaHi = bisect(negNct, -alpha / 2, -halfRange, halfRange);
   if (!Number.isFinite(lambdaLo) || !Number.isFinite(lambdaHi)) {
@@ -445,12 +379,8 @@ function cohenDCI(d, n1, n2, conf) {
 }
 
 // ── 8. k-sample location tests ──────────────────────────────────────────────
-//
-// Input for all three is `groups` — an array of numeric arrays.
 
-// One-way ANOVA (equal variances assumed).
-// Returns { F, df1, df2, p, ssBetween, ssWithin, grandMean }.
-function oneWayANOVA(groups) {
+export function oneWayANOVA(groups: number[][]): ANOVAResult {
   const k = groups.length;
   if (k < 2) return { F: NaN, df1: 0, df2: 0, p: NaN, error: "≥2 groups required" };
   let Ntot = 0;
@@ -475,10 +405,6 @@ function oneWayANOVA(groups) {
   const df1 = k - 1;
   const df2 = Ntot - k;
   if (ssWithin === 0) {
-    // Every group is internally constant. R's oneway.test returns F = Inf
-    // with p < 2.2e-16, but that's misleading in a UI — the "significance"
-    // is a divide-by-zero artefact, not evidence of a real location shift.
-    // Mirror the tTest convention and refuse.
     return {
       F: NaN,
       df1,
@@ -495,14 +421,7 @@ function oneWayANOVA(groups) {
   return { F, df1, df2, p, ssBetween, ssWithin, grandMean };
 }
 
-// Welch's ANOVA (unequal variances).
-// Follows R's oneway.test(var.equal=FALSE) source:
-//   w_i = n_i / s_i²,  W = Σ w_i,  m = Σ(w_i · mean_i)/W
-//   num = Σ w_i (mean_i − m)² / (k − 1)
-//   h   = Σ (1 − w_i/W)² / (n_i − 1)
-//   den = 1 + 2(k − 2)/(k² − 1) · h
-//   F   = num/den,  df1 = k−1,  df2 = (k² − 1) / (3 h)
-function welchANOVA(groups) {
+export function welchANOVA(groups: number[][]): ANOVAResult {
   const k = groups.length;
   if (k < 2) return { F: NaN, df1: 0, df2: 0, p: NaN, error: "≥2 groups required" };
   const ns = groups.map((g) => g.length);
@@ -510,11 +429,8 @@ function welchANOVA(groups) {
     return { F: NaN, df1: 0, df2: 0, p: NaN, error: "Each group needs n≥2" };
   }
   const means = groups.map(sampleMean);
-  const vars = groups.map(sampleVariance);
-  // Welch weights are n_i / s_i² — any zero-variance group makes its weight
-  // infinite and poisons the whole computation (matches R oneway.test's
-  // F = NaN, p = NA on constant data).
-  if (vars.some((v) => v === 0)) {
+  const vars_ = groups.map(sampleVariance);
+  if (vars_.some((v) => v === 0)) {
     return {
       F: NaN,
       df1: k - 1,
@@ -523,7 +439,7 @@ function welchANOVA(groups) {
       error: "Data are essentially constant (zero variance in at least one group)",
     };
   }
-  const w = vars.map((v, i) => ns[i] / v);
+  const w = vars_.map((v, i) => ns[i] / v);
   const Wsum = w.reduce((a, b) => a + b, 0);
   const m = w.reduce((a, wi, i) => a + wi * means[i], 0) / Wsum;
   let num = 0;
@@ -542,17 +458,11 @@ function welchANOVA(groups) {
   return { F, df1, df2, p };
 }
 
-// Kruskal-Wallis H test with tie correction.
-//   H = (12/(N(N+1))) · Σ (R_i²/n_i) − 3(N+1)
-//   H' = H / (1 − Σ(t³−t)/(N³−N))       [tie-corrected]
-//   df = k − 1
-//   p  = 1 − χ²_df(H')
-function kruskalWallis(groups) {
+export function kruskalWallis(groups: number[][]): KruskalWallisResult {
   const k = groups.length;
   if (k < 2) return { H: NaN, df: 0, p: NaN, error: "≥2 groups required" };
-  // Concatenate, remember group membership, rank together.
-  const all = [];
-  const owner = [];
+  const all: number[] = [];
+  const owner: number[] = [];
   for (let i = 0; i < k; i++) {
     for (const v of groups[i]) {
       all.push(v);
@@ -561,12 +471,6 @@ function kruskalWallis(groups) {
   }
   const N = all.length;
   if (N <= k) return { H: NaN, df: 0, p: NaN, error: "Not enough observations" };
-  // All values identical → ranks are all (N+1)/2, H computes to 0/0, and the
-  // tie-correction denominator C = 1 − (N³−N)/(N³−N) = 0. The naive code path
-  // skipped the divide and reported H=0, p=1 — a "no difference detected"
-  // answer that masks the fact that the test is undefined. Match R's
-  // kruskal.test behavior (it warns and returns NaN) by detecting the
-  // all-tied case explicitly and surfacing an error the stats tile picks up.
   let allTied = true;
   for (let i = 1; i < N; i++) {
     if (all[i] !== all[0]) {
@@ -578,13 +482,11 @@ function kruskalWallis(groups) {
     return { H: NaN, df: k - 1, p: NaN, error: "Data are essentially constant" };
   }
   const { ranks, tieCorrection } = rankWithTies(all);
-  // Sum of ranks per group.
   const R = new Array(k).fill(0);
   for (let i = 0; i < N; i++) R[owner[i]] += ranks[i];
   let sumR2n = 0;
   for (let i = 0; i < k; i++) sumR2n += (R[i] * R[i]) / groups[i].length;
   let H = (12 / (N * (N + 1))) * sumR2n - 3 * (N + 1);
-  // Tie correction (Siegel & Castellan): divide H by C.
   const C = 1 - tieCorrection / (N * N * N - N);
   if (C > 0) H /= C;
   const df = k - 1;
@@ -593,22 +495,12 @@ function kruskalWallis(groups) {
 }
 
 // ── 9. Correlation (paired bivariate) ──────────────────────────────────────
-//
-// Pearson r, Spearman ρ, Kendall τ-b. Used by the scatter tool's stats
-// panel.
-//
-// Each returns `{ <coef>, p, n, ci?, error? }` with `<coef>` named after the
-// estimator (`r` / `rho` / `tau`). Inputs are paired arrays of equal length;
-// rows where either value is non-finite are dropped (matches R's
-// `cor.test`'s `complete.obs` default).
-//
-// Notation: `S2x = Σ (x − x̄)²`, `S2y = Σ (y − ȳ)²`, `Sxy = Σ (x − x̄)(y − ȳ)`.
 
 // Drop rows with non-finite x or y; return the cleaned pair.
-function _pairwiseComplete(x, y) {
+function _pairwiseComplete(x: number[], y: number[]): PairwiseComplete {
   const n = Math.min(x.length, y.length);
-  const xs = [];
-  const ys = [];
+  const xs: number[] = [];
+  const ys: number[] = [];
   for (let i = 0; i < n; i++) {
     const xv = x[i],
       yv = y[i];
@@ -620,15 +512,11 @@ function _pairwiseComplete(x, y) {
   return { xs, ys, n: xs.length };
 }
 
-// Pearson product-moment correlation. Two-sided p via t-distribution with
-// df = n−2. Fisher z transform CI: z = atanh(r); SE(z) = 1/√(n−3); back-
-// transform with tanh. Confidence level via `opts.conf` (default 0.95).
-//
-// Returns `{ r, t, df, p, n, ci: { lo, hi } }`. Degenerate cases:
-//   - n < 3                       → error "need ≥3 complete pairs"
-//   - either axis zero-variance   → error "data are essentially constant"
-//   - |r| = 1 (perfect fit)       → ci is { lo: ±1, hi: ±1 } and p is 0
-function pearsonCorrelation(x, y, opts = {}) {
+export function pearsonCorrelation(
+  x: number[],
+  y: number[],
+  opts: { conf?: number } = {}
+): PearsonResult {
   const { xs, ys, n } = _pairwiseComplete(x, y);
   if (n < 3) {
     return { r: NaN, t: NaN, df: 0, p: NaN, n, error: "Need ≥3 complete pairs" };
@@ -656,12 +544,9 @@ function pearsonCorrelation(x, y, opts = {}) {
     };
   }
   let r = Sxy / Math.sqrt(S2x * S2y);
-  // Clamp FP overshoot so atanh stays finite at the perfect-fit boundary.
   if (r > 1) r = 1;
   if (r < -1) r = -1;
   const df = n - 2;
-  // Fisher z CI. At |r| = 1 atanh blows up to ±Inf — that's the right answer
-  // (the CI collapses to a point), and Math.tanh of ±Inf gives ±1.
   const conf = opts.conf == null ? 0.95 : opts.conf;
   const ci = { lo: NaN, hi: NaN };
   if (n >= 4) {
@@ -671,26 +556,17 @@ function pearsonCorrelation(x, y, opts = {}) {
     ci.lo = Math.tanh(z - zcrit * se);
     ci.hi = Math.tanh(z + zcrit * se);
   }
-  // t-statistic + two-sided p. |r| = 1 → t = ±Inf → p = 0 (via tcdf_upper).
   const oneMinusR2 = Math.max(0, 1 - r * r);
   const t = oneMinusR2 === 0 ? (r > 0 ? Infinity : -Infinity) : r * Math.sqrt(df / oneMinusR2);
   const p = oneMinusR2 === 0 ? 0 : 2 * tcdf_upper(Math.abs(t), df);
   return { r, t, df, p, n, ci };
 }
 
-// Spearman rank correlation. Pearson of the midranks of x and y (so ties
-// average their ranks — matches R's `cor(..., method = "spearman")` with
-// the default `use = "everything"` on complete cases).
-//
-// P-value: t-approximation with df = n − 2 (matches R's
-// `cor.test(..., method = "spearman", exact = FALSE)`).
-//
-// CI: Bonett & Wright (2000) Fisher-z variant —
-//     SE(z) = √((1 + ρ̂²/2) / (n − 3))
-//     z = atanh(ρ̂),  CI(ρ) = tanh(z ± z_{1−α/2} · SE(z))
-// More accurate than naïve Pearson Fisher-z when ρ ≠ 0 because the variance
-// of atanh(r_s) inflates with the magnitude of the underlying correlation.
-function spearmanCorrelation(x, y, opts = {}) {
+export function spearmanCorrelation(
+  x: number[],
+  y: number[],
+  opts: { conf?: number } = {}
+): SpearmanResult {
   const { xs, ys, n } = _pairwiseComplete(x, y);
   if (n < 3) {
     return { rho: NaN, t: NaN, df: 0, p: NaN, n, error: "Need ≥3 complete pairs" };
@@ -720,32 +596,11 @@ function spearmanCorrelation(x, y, opts = {}) {
   return { rho, t, df, p, n, ci };
 }
 
-// Kendall τ-b (the tie-corrected variant) — equivalent to R's
-// `cor.test(method = "kendall")` τ. Computed by direct O(n²) pair
-// enumeration:
-//
-//     S = Σ_{i<j} sign(x_j − x_i) · sign(y_j − y_i)
-//     τ = S / √((n0 − n1)(n0 − n2))
-//
-// where n0 = n(n−1)/2, n1 = Σ t_x·(t_x−1)/2 (pairs tied in x), and
-// n2 = Σ t_y·(t_y−1)/2 (pairs tied in y).
-//
-// P-value: large-sample normal approximation with continuity correction
-// (matches `cor.test(method = "kendall", exact = FALSE)`):
-//
-//     Var(S) = [n(n−1)(2n+5)
-//              − Σ t_x(t_x−1)(2t_x+5) − Σ t_y(t_y−1)(2t_y+5)] / 18
-//            + [Σ t_x(t_x−1)(t_x−2)] · [Σ t_y(t_y−1)(t_y−2)]
-//                / (9 n(n−1)(n−2))
-//            + [Σ t_x(t_x−1)] · [Σ t_y(t_y−1)] / (2 n(n−1))
-//     z = S / √Var(S)               (no continuity correction —
-//                                    matches R's cor.test source)
-//
-// No CI: an analytic CI on τ requires bootstrap or a Kendall-specific
-// large-sample variance approximation (Long & Cliff 1997) that's only
-// accurate when there are no ties. Stats panel surfaces τ + p + n.
-function kendallTau(x, y, opts = {}) {
-  // `opts` reserved for future use (e.g. an `exact: true` switch).
+export function kendallTau(
+  x: number[],
+  y: number[],
+  opts: Record<string, unknown> = {}
+): KendallResult {
   void opts;
   const { xs, ys, n } = _pairwiseComplete(x, y);
   if (n < 3) {
@@ -762,10 +617,9 @@ function kendallTau(x, y, opts = {}) {
       S += dx > 0 === dy > 0 ? 1 : -1;
     }
   }
-  // Tie group sizes on each axis.
-  const tieGroups = (arr) => {
+  const tieGroups = (arr: number[]): number[] => {
     const sorted = arr.slice().sort((a, b) => a - b);
-    const groups = [];
+    const groups: number[] = [];
     let i = 0;
     while (i < n) {
       let j = i;
@@ -778,7 +632,7 @@ function kendallTau(x, y, opts = {}) {
   };
   const tx = tieGroups(xs);
   const ty = tieGroups(ys);
-  const sumPairs = (g) => g.reduce((s, t) => s + (t * (t - 1)) / 2, 0);
+  const sumPairs = (g: number[]): number => g.reduce((s, t) => s + (t * (t - 1)) / 2, 0);
   const n0 = (n * (n - 1)) / 2;
   const n1 = sumPairs(tx);
   const n2 = sumPairs(ty);
@@ -793,7 +647,6 @@ function kendallTau(x, y, opts = {}) {
     };
   }
   const tau = S / Math.sqrt((n0 - n1) * (n0 - n2));
-  // Var(S) — three-term formula with tie corrections.
   let varS = (n * (n - 1) * (2 * n + 5)) / 18;
   for (const t of tx) varS -= (t * (t - 1) * (2 * t + 5)) / 18;
   for (const t of ty) varS -= (t * (t - 1) * (2 * t + 5)) / 18;
@@ -813,19 +666,28 @@ function kendallTau(x, y, opts = {}) {
   return { tau, z, p, n, S };
 }
 
-// Diagnostic + recommendation for a paired scatter dataset (analogue of
-// `selectTest` for k-group data). Returns:
-//
-//   { n, normality: [{ axis, n, W, p, normal, note? }, ...],
-//     allNormal, recommendation: { test, reason }, suggestion? }
-//
-// Default pick is Pearson. If Shapiro-Wilk on either axis flags non-normal
-// (alpha = 0.05) or n < 10, surface a Spearman suggestion; if the data are
-// also small (n ≤ 30) or heavily-tied, suggest Kendall τ as the secondary
-// alternative. The recommendation itself never changes — same UI contract
-// as `selectTest`: it's a default the user can override from the panel's
-// per-test dropdown.
-function selectCorrelation(x, y, opts = {}) {
+// Diagnostic + recommendation for a paired scatter dataset.
+interface SelectCorrelationAxis {
+  axis: "x" | "y";
+  n: number;
+  W: number | null;
+  p: number | null;
+  normal: boolean | null;
+  note?: string;
+}
+interface SelectCorrelationResult {
+  n: number;
+  normality: SelectCorrelationAxis[];
+  allNormal: boolean;
+  recommendation: { test: "pearson"; reason: string };
+  suggestion?: { test: "spearman"; reason: string };
+}
+
+export function selectCorrelation(
+  x: number[],
+  y: number[],
+  opts: { alphaNormality?: number } = {}
+): SelectCorrelationResult {
   const alphaN = opts.alphaNormality != null ? opts.alphaNormality : 0.05;
   const { xs, ys, n } = _pairwiseComplete(x, y);
   if (n < 3) {
@@ -836,7 +698,7 @@ function selectCorrelation(x, y, opts = {}) {
       recommendation: { test: "pearson", reason: "Need ≥3 complete pairs to test a correlation." },
     };
   }
-  const swCheck = (arr, axis) => {
+  const swCheck = (arr: number[], axis: "x" | "y"): SelectCorrelationAxis => {
     if (arr.length < 3) {
       return { axis, n: arr.length, W: null, p: null, normal: null, note: "n<3" };
     }
@@ -846,25 +708,25 @@ function selectCorrelation(x, y, opts = {}) {
     }
     return { axis, n: arr.length, W: sw.W, p: sw.p, normal: sw.p >= alphaN };
   };
-  const normality = [swCheck(xs, "x"), swCheck(ys, "y")];
+  const normality: SelectCorrelationAxis[] = [swCheck(xs, "x"), swCheck(ys, "y")];
   const allKnownNormal = normality.every((r) => r.normal === true);
   const flagged = normality.filter((r) => r.normal === false);
-  const test = "pearson";
+  const test = "pearson" as const;
   const baseDefault =
     "Default pick: Pearson product-moment correlation. Pearson is the most powerful test when both axes are approximately normal; Spearman and Kendall stay available as rank-based alternatives.";
-  const swNarrative = (() => {
+  const swNarrative = ((): string => {
     if (flagged.length === 0 && allKnownNormal) {
       return `Shapiro-Wilk did not reject normality on x or y at α = ${alphaN}.`;
     }
     if (flagged.length > 0) {
       const labels = flagged
-        .map((r) => `${r.axis} (W=${r.W.toFixed(3)}, p=${formatP(r.p)})`)
+        .map((r) => `${r.axis} (W=${(r.W as number).toFixed(3)}, p=${formatP(r.p)})`)
         .join(", ");
       return `Shapiro-Wilk flagged ${labels} as non-normal at α = ${alphaN}.`;
     }
     return "Shapiro-Wilk could not run on one or both axes (n < 3).";
   })();
-  let suggestion = null;
+  let suggestion: { test: "spearman"; reason: string } | undefined;
   let suggestionNarrative = "";
   if (flagged.length > 0) {
     suggestion = {
@@ -877,7 +739,7 @@ function selectCorrelation(x, y, opts = {}) {
   }
   const overrideHint =
     " You can override this pick from the stats panel's per-test dropdown; the trace below shows the diagnostics the recommendation is based on.";
-  const out = {
+  const out: SelectCorrelationResult = {
     n,
     normality,
     allNormal: allKnownNormal,
@@ -892,19 +754,41 @@ function selectCorrelation(x, y, opts = {}) {
 
 // ── 10. k-sample effect sizes ────────────────────────────────────────────────
 
-// η² = SSbetween / SStotal (ANOVA).
-function etaSquared(groups) {
+export function etaSquared(groups: number[][]): number {
   const a = oneWayANOVA(groups);
   if (a.error) return NaN;
-  const ssTotal = a.ssBetween + a.ssWithin;
-  return ssTotal === 0 ? 0 : a.ssBetween / ssTotal;
+  const ssTotal = (a.ssBetween as number) + (a.ssWithin as number);
+  return ssTotal === 0 ? 0 : (a.ssBetween as number) / ssTotal;
 }
 
-// ε² = H / (N − 1)  — Kruskal-Wallis effect size (Tomczak & Tomczak 2014).
-function epsilonSquared(groups) {
+export function epsilonSquared(groups: number[][]): number {
   const kw = kruskalWallis(groups);
   if (kw.error) return NaN;
   let N = 0;
   for (const g of groups) N += g.length;
   return N > 1 ? kw.H / (N - 1) : NaN;
 }
+
+// ── Transitional global shim ───────────────────────────────────────────────
+const _g = globalThis as Record<string, unknown>;
+_g.sampleMean = sampleMean;
+_g.sampleVariance = sampleVariance;
+_g.sampleSD = sampleSD;
+_g.rankWithTies = rankWithTies;
+_g.shapiroWilk = shapiroWilk;
+_g.leveneTest = leveneTest;
+_g.tTest = tTest;
+_g.mannWhitneyU = mannWhitneyU;
+_g.cohenD = cohenD;
+_g.hedgesG = hedgesG;
+_g.rankBiserial = rankBiserial;
+_g.cohenDCI = cohenDCI;
+_g.oneWayANOVA = oneWayANOVA;
+_g.welchANOVA = welchANOVA;
+_g.kruskalWallis = kruskalWallis;
+_g.pearsonCorrelation = pearsonCorrelation;
+_g.spearmanCorrelation = spearmanCorrelation;
+_g.kendallTau = kendallTau;
+_g.selectCorrelation = selectCorrelation;
+_g.etaSquared = etaSquared;
+_g.epsilonSquared = epsilonSquared;

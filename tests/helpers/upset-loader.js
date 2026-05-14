@@ -6,11 +6,9 @@
 // parseLongFormatSets) available.
 
 const vm = require("vm");
-const fs = require("fs");
-const path = require("path");
-const { TOOLS_DIR, builtins, bundleShell, runCjs } = require("./_shell-test-utils");
+const { builtins, bundleShell, runCjs, readCoreSharedSource } = require("./_shell-test-utils");
 
-const sharedSrc = fs.readFileSync(path.join(TOOLS_DIR, "shared.js"), "utf8");
+const sharedSrc = readCoreSharedSource();
 const helpersCjs = bundleShell("upset/helpers.ts", { transform: true });
 
 const ctx = builtins();

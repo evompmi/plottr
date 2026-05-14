@@ -1,10 +1,23 @@
-// ── Color helpers ────────────────────────────────────────────────────────────
+// _core/shared.ts — color, palette, numeric, CSV / TSV, ticks, statistics,
+// SVG export, and download helpers shared across every tool.
+//
+// Migrated from the legacy script-scope `tools/shared.js`. The same algorithms
+// and the same public surface — typed at the boundaries and importable as ES
+// modules. The trailing `globalThis` block keeps the legacy ambient global
+// surface alive for unmigrated callers (tool `.tsx` files using `parseRaw`,
+// `PALETTE`, `isNumericValue`, …) until the Phase-5 cleanup converts each
+// caller to a direct import.
 
-function hexToRgb(hex) {
+import { tinv } from "./stats/dist";
+
+// ── Color helpers ───────────────────────────────────────────────────────────
+
+export function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
-function rgbToHex(r, g, b) {
+
+export function rgbToHex(r: number, g: number, b: number): string {
   return (
     "#" +
     [r, g, b]
@@ -16,15 +29,17 @@ function rgbToHex(r, g, b) {
       .join("")
   );
 }
-function shadeColor(hex, factor) {
+
+export function shadeColor(hex: string, factor: number): string {
   const [r, g, b] = hexToRgb(hex);
   if (factor > 0)
     return rgbToHex(r + (255 - r) * factor, g + (255 - g) * factor, b + (255 - b) * factor);
   return rgbToHex(r * (1 + factor), g * (1 + factor), b * (1 + factor));
 }
-function getPointColors(baseColor, nSources) {
+
+export function getPointColors(baseColor: string, nSources: number): string[] {
   if (nSources <= 1) return [baseColor];
-  const colors = [];
+  const colors: string[] = [];
   for (let i = 0; i < nSources; i++) {
     const t = nSources === 1 ? 0 : Math.min(1, i / (nSources - 1));
     colors.push(shadeColor(baseColor, -0.4 + t * 0.7));
@@ -32,10 +47,10 @@ function getPointColors(baseColor, nSources) {
   return colors;
 }
 
-// ── Color palette ─────────────────────────────────────────────────────────────
+// ── Color palette ──────────────────────────────────────────────────────────
 
 // Okabe-Ito colorblind-safe palette (Wong 2011, Nature Methods)
-const PALETTE = [
+export const PALETTE: readonly string[] = [
   "#E69F00",
   "#56B4E9",
   "#009E73",
@@ -48,9 +63,9 @@ const PALETTE = [
   "#AA4499",
 ];
 
-// ── Continuous colour palettes (shared by scatter + heatmap) ──────────────────
+// ── Continuous colour palettes (shared by scatter + heatmap) ──────────────
 
-const COLOR_PALETTES = {
+export const COLOR_PALETTES: Record<string, string[]> = {
   viridis: ["#440154", "#3b528b", "#21908c", "#5dc963", "#fde725"],
   plasma: ["#0d0887", "#7e03a8", "#cc4778", "#f89540", "#f0f921"],
   magma: ["#000004", "#3b0f70", "#8c2981", "#de4968", "#fe9f6d", "#fcfdbf"],
@@ -66,10 +81,9 @@ const COLOR_PALETTES = {
 };
 
 // Diverging palettes should be anchored at 0 when rendered (symmetric vmin/vmax).
-const DIVERGING_PALETTES = new Set(["rdbu", "bwr", "rdylbu", "spectral"]);
+export const DIVERGING_PALETTES: Set<string> = new Set(["rdbu", "bwr", "rdylbu", "spectral"]);
 
-// Linear interpolation along a palette's colour stops. t in [0, 1].
-function interpolateColor(stops, t) {
+export function interpolateColor(stops: string[], t: number): string {
   if (!stops || stops.length === 0) return "#000000";
   if (stops.length === 1) return stops[0];
   if (t <= 0 || !Number.isFinite(t)) return stops[0];
@@ -82,9 +96,9 @@ function interpolateColor(stops, t) {
   return rgbToHex(r1 + (r2 - r1) * f, g1 + (g2 - g1) * f, b1 + (b2 - b1) * f);
 }
 
-// ── Tool icons (raw SVG strings) ─────────────────────────────────────────────
+// ── Tool icons (raw SVG strings) ─────────────────────────────────────────
 
-const TOOL_ICONS = {
+export const TOOL_ICONS: Record<string, string> = {
   aequorin:
     '<svg viewBox="0 0 44 44" fill="none" stroke="#648FFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 36 C8 36, 10 36, 12 34 C14 30, 15 8, 17 6 C19 4, 20 14, 22 22 C24 28, 25 32, 27 34 C29 36, 32 36, 40 36"/></svg>',
   boxplot:
@@ -102,25 +116,22 @@ const TOOL_ICONS = {
     '<svg viewBox="0 0 44 44" fill="none" stroke="none"><rect x="6" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.2"/><rect x="17" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.5"/><rect x="28" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.8"/><rect x="6" y="17" width="10" height="10" fill="#648FFF" fill-opacity="0.5"/><rect x="17" y="17" width="10" height="10" fill="#648FFF" fill-opacity="0.8"/><rect x="28" y="17" width="10" height="10" fill="#785EF0" fill-opacity="0.6"/><rect x="6" y="28" width="10" height="10" fill="#648FFF" fill-opacity="0.8"/><rect x="17" y="28" width="10" height="10" fill="#785EF0" fill-opacity="0.6"/><rect x="28" y="28" width="10" height="10" fill="#785EF0"/></svg>',
   upset:
     '<svg viewBox="0 0 44 44" fill="none" stroke="none"><rect x="10" y="4" width="4" height="10" fill="#648FFF"/><rect x="18" y="7" width="4" height="7" fill="#648FFF"/><rect x="26" y="10" width="4" height="4" fill="#648FFF"/><rect x="34" y="11" width="4" height="3" fill="#648FFF"/><line x1="12" y1="22" x2="12" y2="36" stroke="#333333" stroke-width="1.5"/><line x1="20" y1="22" x2="20" y2="36" stroke="#333333" stroke-width="1.5"/><circle cx="12" cy="22" r="2.5" fill="#333333"/><circle cx="20" cy="22" r="2.5" fill="#333333"/><circle cx="28" cy="22" r="2.5" fill="#DDDDDD"/><circle cx="36" cy="22" r="2.5" fill="#DDDDDD"/><circle cx="12" cy="29" r="2.5" fill="#333333"/><circle cx="20" cy="29" r="2.5" fill="#DDDDDD"/><circle cx="28" cy="29" r="2.5" fill="#333333"/><circle cx="36" cy="29" r="2.5" fill="#DDDDDD"/><circle cx="12" cy="36" r="2.5" fill="#DDDDDD"/><circle cx="20" cy="36" r="2.5" fill="#333333"/><circle cx="28" cy="36" r="2.5" fill="#DDDDDD"/><circle cx="36" cy="36" r="2.5" fill="#333333"/></svg>',
-  // Volcano: a clear V — diagonal wings of significant points splaying
-  // outward from a small grey ns vertex at bottom-centre. Dot radius
-  // grows toward the wing tips so the most-significant features visually
-  // dominate, mimicking the eruption shape that gives the plot its name.
-  // A faint dashed line at y=30 hints at the p-cutoff. Vermillion
-  // (up-regulated) on the right wing, deep blue (down-regulated) on the
-  // left, neutral grey at the vertex. Readable at 22 px landing-tile size.
   volcano:
     '<svg viewBox="0 0 44 44" fill="none"><line x1="3" y1="30" x2="41" y2="30" stroke="#999999" stroke-width="0.6" stroke-dasharray="2,2" opacity="0.45"/><circle cx="22" cy="38" r="1.4" fill="#999999"/><circle cx="20" cy="36" r="1.2" fill="#999999"/><circle cx="24" cy="36" r="1.2" fill="#999999"/><circle cx="18" cy="38" r="1" fill="#999999"/><circle cx="26" cy="38" r="1" fill="#999999"/><circle cx="22" cy="34" r="1" fill="#999999"/><circle cx="17" cy="28" r="1.6" fill="#0072B2"/><circle cx="13" cy="22" r="2" fill="#0072B2"/><circle cx="9" cy="16" r="2.4" fill="#0072B2"/><circle cx="5" cy="10" r="2.6" fill="#0072B2"/><circle cx="27" cy="28" r="1.6" fill="#D55E00"/><circle cx="31" cy="22" r="2" fill="#D55E00"/><circle cx="35" cy="16" r="2.4" fill="#D55E00"/><circle cx="39" cy="10" r="2.6" fill="#D55E00"/></svg>',
 };
 
-function toolIcon(name, size, opts) {
-  size = size || 22;
-  opts = opts || {};
+export function toolIcon(
+  name: string,
+  size?: number,
+  opts?: { circle?: boolean }
+): React.ReactElement | null {
+  const sz = size || 22;
+  const o = opts || {};
   if (!TOOL_ICONS[name]) return null;
-  const svg = TOOL_ICONS[name].replace("<svg ", '<svg width="' + size + '" height="' + size + '" ');
-  const pad = Math.round(size * 0.3);
-  const outerSize = size + pad * 2;
-  if (opts.circle) {
+  const svg = TOOL_ICONS[name].replace("<svg ", '<svg width="' + sz + '" height="' + sz + '" ');
+  const pad = Math.round(sz * 0.3);
+  const outerSize = sz + pad * 2;
+  if (o.circle) {
     return React.createElement(
       "span",
       {
@@ -150,67 +161,41 @@ function toolIcon(name, size, opts) {
   });
 }
 
-// ── Role colours ────────────────────────────────────────────────────────────
-// The old inline-style constants (sec/inp/inpN/lbl/btn*/selStyle/sepSelect)
-// have been retired — chrome elements use the `dv-*` classes declared in
-// `components.css` instead (see CLAUDE.md Theming section).
-//
-// Okabe-Ito hues: saturated enough to work on both light and dark chrome.
-// Only `ignore` becomes theme-aware since it was a neutral gray.
-const roleColors = {
+// ── Role colours ───────────────────────────────────────────────────────────
+
+export const roleColors: Record<string, string> = {
   group: "#0072B2",
   value: "#009E73",
   filter: "#E69F00",
   ignore: "var(--border-strong)",
 };
 
-// ── Numeric detection ────────────────────────────────────────────────────────
+// ── Numeric detection ──────────────────────────────────────────────────────
 
-// Unicode-aware normalisation before numeric parsing. Excel on macOS, PDFs,
-// Word docs, and statistical-paper copy-paste all routinely embed non-ASCII
-// minus-ish and whitespace-ish characters into number cells. These are
-// visually identical to the ASCII forms but break `Number()` parsing —
-// `Number("−5")` (U+2212 minus sign) is `NaN`, not `-5`. Normalise them
-// before regex + Number() so we don't silently drop legitimate values.
-const UNICODE_MINUS_CHARS = /[\u2212\u2013\u2014]/g; // − (minus) – (en-dash) — (em-dash)
-const UNICODE_SPACE_CHARS = /[\u00A0\u2009\u202F]/g; // NBSP, thin space, narrow NBSP
-function normalizeNumericString(v) {
+const UNICODE_MINUS_CHARS = /[−–—]/g; // − (minus) – (en-dash) — (em-dash)
+const UNICODE_SPACE_CHARS = /[   ]/g; // NBSP, thin space, narrow NBSP
+
+export function normalizeNumericString(v: unknown): unknown {
   if (typeof v !== "string") return v;
   return v.replace(UNICODE_MINUS_CHARS, "-").replace(UNICODE_SPACE_CHARS, "");
 }
 
-// Returns true only for strings that are entirely a valid finite number.
-// Rejects:
-//   - alphanumeric ("6wpi", "12abc", "0xFF"),
-//   - Number() specials ("Infinity", "NaN"),
-//   - overflow strings that coerce to ±Infinity ("1e999"),
-//   - leading-zero integer IDs ("007", "000123") that silently lose their
-//     zero-padded form when coerced — well plates, accession numbers, and
-//     LIMS codes commonly use this shape.
-// Accepts normalised Unicode variants: "−5" (U+2212), "–5" (en-dash), and
-// numbers containing NBSP / thin spaces from copy-paste.
-function isNumericValue(v) {
+export function isNumericValue(v: unknown): boolean {
   if (typeof v !== "string") return false;
-  const s = normalizeNumericString(v).trim();
+  const s = (normalizeNumericString(v) as string).trim();
   if (s.length === 0) return false;
-  // Leading-zero integer guard: reject "007", "-007", "00012". Allow "0",
-  // "-0", "0.5", "0e3" (exponent notation starting with 0 is still a valid
-  // normalised number).
   if (/^-?0\d/.test(s)) return false;
   if (!/^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s)) return false;
   return Number.isFinite(Number(s));
 }
 
-// Convenience: normalise + parse. Callers that already know `isNumericValue`
-// is true should route through this instead of `Number(v)` directly so
-// Unicode-minus / NBSP values parse correctly.
-function toNumericValue(v) {
-  return isNumericValue(v) ? Number(normalizeNumericString(v).trim()) : NaN;
+export function toNumericValue(v: unknown): number {
+  return isNumericValue(v) ? Number((normalizeNumericString(v) as string).trim()) : NaN;
 }
 
-// ── Seeded random ────────────────────────────────────────────────────────────
+// ── Seeded random ──────────────────────────────────────────────────────────
 
-function seededRandom(seed) {
+export function seededRandom(seed: number): () => number {
   let s = seed;
   return () => {
     s = (s * 16807 + 0) % 2147483647;
@@ -218,19 +203,9 @@ function seededRandom(seed) {
   };
 }
 
-// (Pre-iframe→SPA migration this file also held a
-// `makeExamplePlantCSV()` helper that boxplot called for its
-// "Try sample data" button. It moved to `tools/boxplot/app.tsx`
-// during the all-(C) sample-data consolidation — every tool's
-// example data now lives next to its App component, which makes
-// `git grep` for "where does volcano's sample data live?"
-// answerable in one shot. boxplot was the last holdout, since
-// it generated the CSV procedurally rather than embedding a
-// literal payload like every other tool.)
+// ── Axis ticks ─────────────────────────────────────────────────────────────
 
-// ── Axis ticks ───────────────────────────────────────────────────────────────
-
-function niceStep(range, approxN) {
+export function niceStep(range: number, approxN: number): number {
   const rough = range / approxN;
   const mag = Math.pow(10, Math.floor(Math.log10(rough)));
   const nice = rough / mag;
@@ -239,63 +214,56 @@ function niceStep(range, approxN) {
   if (nice <= 5) return 5 * mag;
   return 10 * mag;
 }
-function makeTicks(min, max, approxN) {
+
+export function makeTicks(min: number, max: number, approxN: number): number[] {
   const step = niceStep(max - min || 1, approxN);
   const start = Math.ceil(min / step) * step;
-  const ticks = [];
+  const ticks: number[] = [];
   for (let v = start; v <= max + step * 0.001; v += step) {
     const tick = parseFloat(v.toPrecision(10));
     if (tick <= max + step * 1e-9) ticks.push(tick);
   }
   return ticks;
 }
-function makeLogTicks(dataMin, dataMax, base) {
-  if (!isFinite(dataMin) || dataMin <= 0) dataMin = base === 2 ? 0.5 : 0.1;
-  if (!isFinite(dataMax) || dataMax <= dataMin) dataMax = dataMin * 1000;
+
+export interface LogTick {
+  value: number;
+  major: boolean;
+}
+
+export function makeLogTicks(dataMin: number, dataMax: number, base: number): LogTick[] {
+  let lo = dataMin;
+  let hi = dataMax;
+  if (!isFinite(lo) || lo <= 0) lo = base === 2 ? 0.5 : 0.1;
+  if (!isFinite(hi) || hi <= lo) hi = lo * 1000;
   const logFn = base === 2 ? Math.log2 : base === 10 ? Math.log10 : Math.log;
-  const logMin = Math.floor(logFn(dataMin));
-  const logMax = Math.ceil(logFn(dataMax));
+  const logMin = Math.floor(logFn(lo));
+  const logMax = Math.ceil(logFn(hi));
   const decades = logMax - logMin;
-  const ticks = [];
+  const ticks: LogTick[] = [];
   for (let exp = logMin; exp <= logMax; exp++) {
     const v = Math.pow(base, exp);
-    if (v >= dataMin * 0.99 && v <= dataMax * 1.01) ticks.push({ value: v, major: true });
+    if (v >= lo * 0.99 && v <= hi * 1.01) ticks.push({ value: v, major: true });
     if (base === 10) {
       const muls = [2, 3, 4, 5, 6, 7, 8, 9];
       for (const mul of muls) {
         const sv = mul * Math.pow(base, exp);
-        if (sv >= dataMin * 0.99 && sv <= dataMax * 1.01) ticks.push({ value: sv, major: false });
+        if (sv >= lo * 0.99 && sv <= hi * 1.01) ticks.push({ value: sv, major: false });
       }
     } else if (base === 2 && decades <= 8) {
       const mid = Math.pow(base, exp) * 1.5;
-      if (mid >= dataMin * 0.99 && mid <= dataMax * 1.01) ticks.push({ value: mid, major: false });
+      if (mid >= lo * 0.99 && mid <= hi * 1.01) ticks.push({ value: mid, major: false });
     }
   }
   ticks.sort((a, b) => a.value - b.value);
   return ticks;
 }
 
-// ── Separator detection ───────────────────────────────────────────────────────
-//
-// Picks the delimiter most likely to produce a consistent column count. The
-// naive "count occurrences across the first 2 kB" heuristic fails on TSVs
-// whose header has commas in free-text ("Sample, Description, Notes") — those
-// header-level commas can out-count the tabs in data rows and flip the
-// detection to `,`, collapsing 20 data columns to 1.
-//
-// Strategy: for each candidate (`\t`, `;`, `,`), measure how uniform the
-// per-line count is across the first ~50 non-empty lines. A real delimiter
-// partitions every line into the SAME number of columns, so its per-line
-// count has low variance and a median ≥ 1. A separator that sneaks into
-// quoted text or headers only produces inconsistent per-line counts.
-//
-// Ranking key: (medianPerLine >= 1, then low coefficient of variation, then
-// high total count). Falls back to `\s+` only when no candidate appears at
-// all.
-function autoDetectSep(text, override = "") {
+// ── Separator detection ────────────────────────────────────────────────────
+
+export function autoDetectSep(text: string, override: string = ""): string | RegExp {
   if (override !== "") return override;
   const h = text.slice(0, 2000);
-  // Bound the scan to ~50 non-empty lines — enough to see pattern, cheap.
   const lines = h.split(/\r?\n/).filter((l) => l.trim() !== "");
   const head = lines.slice(0, Math.min(50, lines.length));
   if (head.length === 0) return /\s+/;
@@ -303,9 +271,6 @@ function autoDetectSep(text, override = "") {
   const CANDIDATES = ["\t", ";", ","];
   const scores = CANDIDATES.map((sep) => {
     const countPerLine = head.map((line) => {
-      // Quoted-field-aware count: skip chars inside "..." (matches the
-      // tokenizer so the detector can't be fooled by an inlined delimiter
-      // in a legitimately-quoted cell).
       let n = 0;
       let inQuoted = false;
       for (let i = 0; i < line.length; i++) {
@@ -322,8 +287,6 @@ function autoDetectSep(text, override = "") {
     const sorted = countPerLine.slice().sort((a, b) => a - b);
     const median = sorted[Math.floor(sorted.length / 2)];
     const mean = total / countPerLine.length;
-    // Sample variance with Bessel correction collapses to 0 for uniform
-    // counts; coefficient of variation is σ / μ (0 when perfectly uniform).
     let variance = 0;
     if (countPerLine.length > 1) {
       for (const n of countPerLine) variance += (n - mean) * (n - mean);
@@ -333,51 +296,33 @@ function autoDetectSep(text, override = "") {
     return { sep, total, median, cv };
   });
 
-  // Keep only candidates that actually show up in most lines. A separator
-  // with median 0 never partitions more than half the lines → it's noise.
   const viable = scores.filter((s) => s.median >= 1);
   if (viable.length === 0) {
-    // No candidate partitions consistently — fall back to "highest raw count"
-    // like the old heuristic, or to whitespace when nothing appears.
     const best = scores.reduce((a, b) => (b.total > a.total ? b : a));
     return best.total === 0 ? /\s+/ : best.sep;
   }
-  // Prefer the most-uniform partition (lowest CV). Break ties by total count.
   viable.sort((a, b) => a.cv - b.cv || b.total - a.total);
   return viable[0].sep;
 }
 
-// ── Delimited-text tokenizer ──────────────────────────────────────────────────
-//
-// RFC 4180-style state machine. Handles quoted fields with embedded separators,
-// embedded `\n` / `\r\n` inside quoted cells, escaped `""` pairs, a leading BOM,
-// and mixed CRLF/LF line endings. A `"` in the middle of an unquoted field is
-// preserved literally (so `5"` as an inch measurement survives) — only a
-// leading `"` at the start of a field opens a quoted run.
-//
-// Cells are post-trimmed to match the historical pre-state-machine behaviour.
-// `sep` may be a single-character string (`,`, `\t`, `;`) or a RegExp (only
-// used for the `autoDetectSep` whitespace fallback). For the RegExp path we
-// fall back to simple line-by-line `split(sep)` because quoted fields don't
-// make sense under an arbitrary-whitespace grammar.
-function tokenizeDelimited(text, sep) {
+// ── Delimited-text tokenizer ───────────────────────────────────────────────
+
+export function tokenizeDelimited(text: string, sep: string | RegExp): string[][] {
   if (typeof text !== "string" || text.length === 0) return [];
-  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-  // Identify whitespace-fallback regex by duck-typing (an `instanceof RegExp`
-  // check would fail under the vm-context loader used by the tests because the
-  // regex is constructed in a different realm).
+  let s = text;
+  if (s.charCodeAt(0) === 0xfeff) s = s.slice(1);
   if (typeof sep !== "string") {
-    return text
+    return s
       .split(/\r?\n/)
       .filter((l) => l.trim() !== "")
       .map((l) => l.trim().split(sep));
   }
-  const rows = [];
-  let row = [];
+  const rows: string[][] = [];
+  let row: string[] = [];
   let field = "";
   let inQuoted = false;
   let fieldStarted = false;
-  const flushRow = () => {
+  const flushRow = (): void => {
     row.push(field);
     if (!(row.length === 1 && row[0] === "")) {
       for (let c = 0; c < row.length; c++) row[c] = row[c].trim();
@@ -387,13 +332,13 @@ function tokenizeDelimited(text, sep) {
     field = "";
     fieldStarted = false;
   };
-  const n = text.length;
+  const n = s.length;
   let i = 0;
   while (i < n) {
-    const ch = text[i];
+    const ch = s[i];
     if (inQuoted) {
       if (ch === '"') {
-        if (i + 1 < n && text[i + 1] === '"') {
+        if (i + 1 < n && s[i + 1] === '"') {
           field += '"';
           i += 2;
         } else {
@@ -410,13 +355,12 @@ function tokenizeDelimited(text, sep) {
       i++;
     } else if (ch === sep) {
       row.push(field);
-      for (let c = 0; c < 0; c++); // no-op; trim happens at flushRow
       field = "";
       fieldStarted = false;
       i++;
     } else if (ch === "\n" || ch === "\r") {
       flushRow();
-      if (ch === "\r" && i + 1 < n && text[i + 1] === "\n") i += 2;
+      if (ch === "\r" && i + 1 < n && s[i + 1] === "\n") i += 2;
       else i++;
     } else {
       field += ch;
@@ -427,30 +371,18 @@ function tokenizeDelimited(text, sep) {
   if (field !== "" || row.length > 0) {
     flushRow();
   }
-  // `flushRow` only trims cells when the row wasn't empty; cells in mid-row
-  // positions pushed before the row-end still need trimming.
   for (let r = 0; r < rows.length; r++) {
     for (let c = 0; c < rows[r].length; c++) rows[r][c] = rows[r][c].trim();
   }
   return rows;
 }
 
-// ── Decimal comma fix (per-column) ────────────────────────────────────────────
-//
-// Old implementation did a global `/(\d),(\d)/g` text rewrite, which silently
-// mangled US-format thousand separators (`1,000.50` → `1.000.50` → NaN) and
-// mutated label cells containing commas (`"E,coli"` → `E.coli`).
-//
-// The new implementation tokenizes the text first, then decides per-column
-// whether commas are decimal separators. A column is flagged only when:
-//   - it has at least one cell containing a comma,
-//   - strictly more cells match `isNumericValue` after `,`→`.` than before,
-//   - at least one comma-cell has a non-3-digit fractional part (pure
-//     `1,000`/`2,500` patterns look like US thousand groups and are left
-//     alone).
-// Only flagged columns get rewritten; label columns, mixed-format columns, and
-// pure-thousand-grouping columns are preserved exactly.
-function fixDecimalCommas(text, sep) {
+// ── Decimal comma fix (per-column) ────────────────────────────────────────
+
+export function fixDecimalCommas(
+  text: string,
+  sep: string | RegExp
+): { text: string; commaFixed: boolean; count: number } {
   if (typeof text !== "string" || text.length === 0) {
     return { text, commaFixed: false, count: 0 };
   }
@@ -460,7 +392,7 @@ function fixDecimalCommas(text, sep) {
   const rows = tokenizeDelimited(text, sep);
   if (rows.length < 2) return { text, commaFixed: false, count: 0 };
   const nCols = Math.max(...rows.map((r) => r.length));
-  const decimalCommaCols = new Set();
+  const decimalCommaCols = new Set<number>();
   for (let c = 0; c < nCols; c++) {
     let numericAsIs = 0;
     let numericIfFixed = 0;
@@ -500,9 +432,9 @@ function fixDecimalCommas(text, sep) {
     }
   }
   if (count === 0) return { text, commaFixed: false, count: 0 };
-  const q = (cell) => {
+  const q = (cell: string): string => {
     if (
-      cell.indexOf(sep) !== -1 ||
+      cell.indexOf(sep as string) !== -1 ||
       cell.indexOf('"') !== -1 ||
       cell.indexOf("\n") !== -1 ||
       cell.indexOf("\r") !== -1
@@ -511,13 +443,13 @@ function fixDecimalCommas(text, sep) {
     }
     return cell;
   };
-  const rebuilt = rows.map((r) => r.map(q).join(sep)).join("\n");
+  const rebuilt = rows.map((r) => r.map(q).join(sep as string)).join("\n");
   return { text: rebuilt, commaFixed: true, count };
 }
 
-// ── Parsing helpers ───────────────────────────────────────────────────────────
+// ── Parsing helpers ────────────────────────────────────────────────────────
 
-function detectHeader(rows) {
+export function detectHeader(rows: string[][]): boolean {
   if (rows.length < 2) return true;
   const a = rows[0].filter((v) => !isNumericValue(v) && v.trim() !== "").length;
   const b = rows[1].filter((v) => !isNumericValue(v) && v.trim() !== "").length;
@@ -532,7 +464,20 @@ function detectHeader(rows) {
   return a > 0;
 }
 
-function parseRaw(text, sepOv = "") {
+export interface FormulaInjectionWarning {
+  count: number;
+  headers: Array<{ idx: number; value: string }>;
+  cells: Array<{ row: number; col: number; header: string | null; value: string }>;
+}
+
+export interface ParseRawResult {
+  headers: string[];
+  rows: string[][];
+  hasHeader: boolean;
+  injectionWarnings: FormulaInjectionWarning | null;
+}
+
+export function parseRaw(text: string, sepOv: string = ""): ParseRawResult {
   const sep = autoDetectSep(text, sepOv);
   const all = tokenizeDelimited(text, sep);
   if (all.length < 1) return { headers: [], rows: [], hasHeader: false, injectionWarnings: null };
@@ -542,7 +487,7 @@ function parseRaw(text, sepOv = "") {
     return r;
   });
   const hh = detectHeader(pad);
-  let headers, rows;
+  let headers: string[], rows: string[][];
   if (hh) {
     headers = pad[0];
     rows = pad.slice(1);
@@ -559,18 +504,12 @@ function parseRaw(text, sepOv = "") {
   };
 }
 
-function guessColumnType(vals) {
+export type ColumnRole = "group" | "value" | "filter" | "ignore";
+
+export function guessColumnType(vals: string[]): ColumnRole {
   const ne = vals.filter((v) => v != null && v !== "");
   if (ne.length === 0) return "ignore";
   if (ne.filter((v) => isNumericValue(v)).length / ne.length > 0.8) {
-    // Years (2024 / 2025 / 2026), binary flags (0 / 1), and small integer
-    // enumerations are 100 % numeric but semantically categorical. Demote to
-    // "group" before the value branch returns: small distinct count, all
-    // integer, and many repetitions per value (cardinality << row count).
-    // Threshold matches the "group" rule below (≤ 12 distinct, < 30 % of
-    // rows) — tighter than the generic ≤ 20 to avoid pulling continuous
-    // small-N data (e.g. 5 unique fluorescence intensities) into the wrong
-    // bucket.
     const u = new Set(ne);
     if (u.size <= 12 && u.size < ne.length * 0.3) {
       const allIntegers = ne.every((v) => {
@@ -586,7 +525,7 @@ function guessColumnType(vals) {
   return "filter";
 }
 
-function detectWideFormat(headers, rows) {
+export function detectWideFormat(headers: string[], rows: string[][]): boolean {
   if (headers.length < 2 || rows.length < 2) return false;
   const numericCols = headers.map((_, ci) => {
     const vals = rows.map((r) => r[ci]).filter((v) => v !== "");
@@ -595,15 +534,15 @@ function detectWideFormat(headers, rows) {
   return numericCols.every(Boolean);
 }
 
-// Wide-matrix parser for heatmap-style data:
-//   first row     = column labels (the leading cell is the row-label-column
-//                   heading and may be blank or any token — we drop it)
-//   first column  = row labels
-//   everything else = numeric values (non-numeric cells become NaN and are
-//                   counted in warnings.nonNumeric so the UI can surface them)
-// Returns { rowLabels, colLabels, matrix, warnings } where matrix is a
-// 2-D array shaped [rowLabels.length][colLabels.length].
-function parseWideMatrix(text, sepOv = "") {
+export interface ParseWideMatrixResult {
+  rowLabels: string[];
+  colLabels: string[];
+  matrix: number[][];
+  warnings: { nonNumeric: number };
+  injectionWarnings: FormulaInjectionWarning | null;
+}
+
+export function parseWideMatrix(text: string, sepOv: string = ""): ParseWideMatrixResult {
   const parsed = parseRaw(text, sepOv);
   const { headers, rows, injectionWarnings } = parsed;
   if (headers.length < 2 || rows.length < 1) {
@@ -611,17 +550,17 @@ function parseWideMatrix(text, sepOv = "") {
       rowLabels: [],
       colLabels: [],
       matrix: [],
-      warnings: { nonNumeric: 0, emptyRows: 0, emptyCols: 0 },
+      warnings: { nonNumeric: 0 },
       injectionWarnings: null,
     };
   }
   const colLabels = headers.slice(1);
-  const rowLabels = [];
-  const matrix = [];
+  const rowLabels: string[] = [];
+  const matrix: number[][] = [];
   let nonNumeric = 0;
   rows.forEach((r) => {
     const label = r[0] == null ? "" : String(r[0]);
-    const values = new Array(colLabels.length);
+    const values: number[] = new Array(colLabels.length);
     for (let ci = 0; ci < colLabels.length; ci++) {
       const raw = r[ci + 1];
       if (raw == null || raw === "") {
@@ -639,16 +578,23 @@ function parseWideMatrix(text, sepOv = "") {
   return { rowLabels, colLabels, matrix, warnings: { nonNumeric }, injectionWarnings };
 }
 
-// ── Unified data parsing ─────────────────────────────────────────────────────
+// ── Unified data parsing ──────────────────────────────────────────────────
 
-function parseData(text, sepOv = "") {
+export interface ParseDataResult {
+  headers: string[];
+  data: (number | null)[][];
+  rawData: string[][];
+  injectionWarnings: FormulaInjectionWarning | null;
+}
+
+export function parseData(text: string, sepOv: string = ""): ParseDataResult {
   const sep = autoDetectSep(text, sepOv);
   const all = tokenizeDelimited(text, sep);
   if (all.length < 2) return { headers: [], data: [], rawData: [], injectionWarnings: null };
   const headers = all[0];
   const nCols = headers.length;
-  const data = [],
-    rawData = [];
+  const data: (number | null)[][] = [];
+  const rawData: string[][] = [];
   for (let i = 1; i < all.length; i++) {
     const rawVals = all[i].slice();
     while (rawVals.length < nCols) rawVals.push("");
@@ -660,24 +606,23 @@ function parseData(text, sepOv = "") {
   return { headers, data, rawData, injectionWarnings: scan.count > 0 ? scan : null };
 }
 
-function dataToColumns(data, nCols) {
-  const columns = Array.from({ length: nCols }, () => []);
+export function dataToColumns(data: (number | null)[][], nCols: number): number[][] {
+  const columns: number[][] = Array.from({ length: nCols }, () => []);
   for (const row of data) {
     for (let c = 0; c < nCols; c++) {
-      if (row[c] != null) columns[c].push(row[c]);
+      if (row[c] != null) columns[c].push(row[c] as number);
     }
   }
   return columns;
 }
 
-// ── Wide / long format helpers ────────────────────────────────────────────────
+// ── Wide / long format helpers ────────────────────────────────────────────
 
-// Returns `{ headers, rows, skipped }`. `skipped` is the number of (row,
-// column) cells that were empty or non-numeric and therefore omitted from
-// the long output — surfaced by the upload-step UX so the user knows when
-// the reshape silently shrank the dataset.
-function wideToLong(headers, rows) {
-  const longRows = [];
+export function wideToLong(
+  headers: string[],
+  rows: string[][]
+): { headers: string[]; rows: string[][]; skipped: number } {
+  const longRows: string[][] = [];
   let skipped = 0;
   rows.forEach((r) => {
     headers.forEach((h, ci) => {
@@ -691,12 +636,12 @@ function wideToLong(headers, rows) {
   return { headers: ["Group", "Value"], rows: longRows, skipped };
 }
 
-// Returns `{ headers, rows, unlabelled }`. `unlabelled` is the number of
-// input rows whose group cell was empty and therefore collapsed into the
-// "?" bucket — surfaced by the download tile so the user knows multiple
-// rows merged under a single placeholder name.
-function reshapeWide(rows, gi, vi) {
-  const g = {};
+export function reshapeWide(
+  rows: string[][],
+  gi: number,
+  vi: number
+): { headers: string[]; rows: string[][]; unlabelled: number } {
+  const g: Record<string, string[]> = {};
   let unlabelled = 0;
   rows.forEach((r) => {
     const raw = r[gi];
@@ -709,19 +654,20 @@ function reshapeWide(rows, gi, vi) {
   if (vals.length === 0) return { headers: [], rows: [], unlabelled };
   const mx = Math.max(...vals.map((v) => v.length));
   const names = Object.keys(g);
-  const w = [];
+  const w: string[][] = [];
   for (let i = 0; i < mx; i++) w.push(names.map((n) => (g[n][i] != null ? g[n][i] : "")));
   return { headers: names, rows: w, unlabelled };
 }
 
-// ── Set-membership parsing (Venn / UpSet) ─────────────────────────────────────
+// ── Set-membership parsing (Venn / UpSet) ─────────────────────────────────
 
-// Wide format: each column is one set, cells are item ids. Preserves the
-// column order via Map so downstream colour/index assignment is deterministic.
-function parseSetData(headers, rows) {
-  const sets = new Map();
+export function parseSetData(
+  headers: string[],
+  rows: string[][]
+): { setNames: string[]; sets: Map<string, Set<string>> } {
+  const sets = new Map<string, Set<string>>();
   for (let ci = 0; ci < headers.length; ci++) {
-    const s = new Set();
+    const s = new Set<string>();
     for (const r of rows) {
       const v = (r[ci] || "").trim();
       if (v) s.add(v);
@@ -732,38 +678,49 @@ function parseSetData(headers, rows) {
   return { setNames, sets };
 }
 
-// Long format: exactly two columns — item id, set name. Pivots into the same
-// {setNames, sets} shape as parseSetData. setNames are ordered by first
-// appearance in the input. Throws if the table doesn't have exactly 2 columns.
-function parseLongFormatSets(headers, rows) {
+export function parseLongFormatSets(
+  headers: string[],
+  rows: string[][]
+): { setNames: string[]; sets: Map<string, Set<string>> } {
   if (!headers || headers.length !== 2) {
     throw new Error("Long format requires exactly 2 columns (item, set).");
   }
-  const sets = new Map();
+  const sets = new Map<string, Set<string>>();
   for (const r of rows) {
     const item = (r[0] || "").trim();
     const setName = (r[1] || "").trim();
     if (!item || !setName) continue;
     if (!sets.has(setName)) sets.set(setName, new Set());
-    sets.get(setName).add(item);
+    sets.get(setName)!.add(item);
   }
   const setNames = [...sets.keys()];
   return { setNames, sets };
 }
 
-// ── Statistics ────────────────────────────────────────────────────────────────
+// ── Statistics ─────────────────────────────────────────────────────────────
 
-function computeStats(arr) {
+export interface ComputeStatsResult {
+  mean: number;
+  sd: number;
+  sem: number;
+  ci95: number;
+  n: number;
+  min: number;
+  max: number;
+  median: number;
+}
+
+export function computeStats(arr: number[]): ComputeStatsResult | null {
   const n = arr.length;
   if (n === 0) return null;
   const mean = arr.reduce((a, b) => a + b, 0) / n;
   const variance = arr.reduce((s, v) => s + (v - mean) ** 2, 0) / (n > 1 ? n - 1 : 1);
   const sd = Math.sqrt(variance);
   const sem = n > 1 ? sd / Math.sqrt(n) : 0;
-  // 95% CI half-width (two-sided t-critical × SEM). Matches lineplot's per-x
-  // CI at line 86. Falls back to 0 when n<2 or tinv is unavailable (shared.js
-  // loads before stats.js, but this runs at call time when tinv is global).
-  const ci95 = n > 1 && typeof tinv === "function" ? tinv(0.975, n - 1) * sem : 0;
+  // Direct import from _core/stats/dist replaces the prior `typeof tinv ===
+  // "function"` runtime check (shared.js loaded before stats.js in script
+  // order). Module imports resolve before either module's body runs.
+  const ci95 = n > 1 ? tinv(0.975, n - 1) * sem : 0;
   const sorted = [...arr].sort((a, b) => a - b);
   const min = sorted[0];
   const max = sorted[n - 1];
@@ -771,11 +728,23 @@ function computeStats(arr) {
   return { mean, sd, sem, ci95, n, min, max, median };
 }
 
-function quartiles(arr) {
-  const s = [...arr].sort((a, b) => a - b),
-    n = s.length;
+export interface QuartilesResult {
+  min: number;
+  max: number;
+  q1: number;
+  med: number;
+  q3: number;
+  iqr: number;
+  wLo: number;
+  wHi: number;
+  n: number;
+}
+
+export function quartiles(arr: number[]): QuartilesResult | null {
+  const s = [...arr].sort((a, b) => a - b);
+  const n = s.length;
   if (n === 0) return null;
-  const q = (p) => {
+  const q = (p: number): number => {
     const i = p * (n - 1),
       lo = Math.floor(i),
       hi = Math.min(Math.ceil(i), n - 1);
@@ -798,7 +767,12 @@ function quartiles(arr) {
   };
 }
 
-function kde(values, nPoints = 50) {
+export interface KdePoint {
+  x: number;
+  d: number;
+}
+
+export function kde(values: number[], nPoints: number = 50): KdePoint[] {
   const n = values.length;
   if (n === 0) return [];
   const sorted = [...values].sort((a, b) => a - b);
@@ -813,7 +787,7 @@ function kde(values, nPoints = 50) {
   const lo = min - pad,
     hi = max + pad;
   const step = (hi - lo) / (nPoints - 1);
-  const pts = [];
+  const pts: KdePoint[] = [];
   for (let i = 0; i < nPoints; i++) {
     const x = lo + i * step;
     let density = 0;
@@ -827,7 +801,19 @@ function kde(values, nPoints = 50) {
   return pts;
 }
 
-function computeGroupStats(groups) {
+export interface GroupStats {
+  name: string;
+  n: number;
+  mean: number | null;
+  sd: number | null;
+  sem: number | null;
+  ci95?: number;
+  min: number | null;
+  max: number | null;
+  median: number | null;
+}
+
+export function computeGroupStats(groups: Record<string, unknown[]>): GroupStats[] {
   return Object.entries(groups).map(([name, vals]) => {
     const nums = vals.filter((v) => v !== "" && isNumericValue(v)).map(toNumericValue);
     const stats = computeStats(nums);
@@ -837,13 +823,9 @@ function computeGroupStats(groups) {
   });
 }
 
-// ── Download helpers ──────────────────────────────────────────────────────────
+// ── Download helpers ──────────────────────────────────────────────────────
 
-// Sanitize an arbitrary string into an SVG-safe id fragment so exported
-// <g id="..."> values are valid NCNames and show up as readable group names
-// in Inkscape's Objects panel / XML editor. Non-alphanumerics become hyphens,
-// runs are collapsed, edges trimmed, and a leading digit is prefixed with "_".
-function svgSafeId(s) {
+export function svgSafeId(s: string | null | undefined): string {
   if (s == null) return "unnamed";
   const cleaned = String(s)
     .replace(/[^A-Za-z0-9_.-]+/g, "-")
@@ -853,12 +835,12 @@ function svgSafeId(s) {
   return /^[A-Za-z_]/.test(cleaned) ? cleaned : "_" + cleaned;
 }
 
-function fileBaseName(fileName, fallback) {
+export function fileBaseName(fileName: unknown, fallback?: string): string {
   if (typeof fileName === "string" && fileName.trim()) return fileName.replace(/\.[^.]+$/, "");
   return fallback || "data";
 }
 
-function flashSaved(btn) {
+export function flashSaved(btn: HTMLButtonElement | null): void {
   if (!btn) return;
   const original = btn.innerHTML;
   btn.innerHTML = "✓ Saved";
@@ -869,76 +851,26 @@ function flashSaved(btn) {
   }, 1500);
 }
 
-// Height of the reserved bottom band added to every export so the
-// `Plöttr v…` attribution sits outside the plot area. Used by both
-// `appendPlottrAttribution` (which extends the viewBox) and
-// `downloadPng` (which sizes its raster canvas to the post-watermark
-// dimensions, since the live SVG element still has the pre-watermark
-// viewBox).
-const PLOTTR_ATTRIBUTION_PAD = 14;
+export const PLOTTR_ATTRIBUTION_PAD = 14;
 
-// ── SVG export mutators ─────────────────────────────────────────────────
-//
-// Charts that paint to canvas for performance (currently only the
-// volcano data layer above POINT_RASTERIZE_THRESHOLD) need to substitute
-// a vector representation in the *exported* file, otherwise the user
-// downloads a fuzzy embedded PNG instead of a crisp SVG. The chart
-// registers a `mutator(clone)` callback against its live SVG element via
-// `registerSvgExportMutator`; `buildExportSvg` invokes it on the clone
-// before attribution is appended, after the standard style / shape-
-// rendering scrub. The mutator owns the swap (typically: remove the
-// raster <image>, append <circle> elements built from the same render
-// records the canvas painted from).
-//
-// The registry is a WeakMap so an unmounting chart whose SVG element
-// goes out of scope releases its entry without explicit cleanup — and
-// the optional explicit `unregisterSvgExportMutator` lets a chart that
-// transitions out of raster mode (drops below threshold) clear its
-// registration immediately rather than wait for GC.
-const _svgExportMutators = typeof WeakMap === "function" ? new WeakMap() : null;
+// ── SVG export mutators ───────────────────────────────────────────────────
 
-function registerSvgExportMutator(svgEl, mutator) {
+type ExportMutator = (svgClone: SVGElement) => void;
+const _svgExportMutators: WeakMap<SVGElement, ExportMutator> | null =
+  typeof WeakMap === "function" ? new WeakMap() : null;
+
+export function registerSvgExportMutator(svgEl: SVGElement, mutator: ExportMutator): void {
   if (!_svgExportMutators || !svgEl || typeof mutator !== "function") return;
   _svgExportMutators.set(svgEl, mutator);
 }
 
-function unregisterSvgExportMutator(svgEl) {
+export function unregisterSvgExportMutator(svgEl: SVGElement): void {
   if (!_svgExportMutators || !svgEl) return;
   _svgExportMutators.delete(svgEl);
 }
 
-// Build a clone of `svgEl` ready for export and append the permanent
-// `Plöttr v<VERSION>` attribution band at the bottom. Returns the
-// cloned <svg> element — callers can serialize it to a string or read
-// its updated `viewBox` / `width` / `height` attributes.
-//
-// Three pre-watermark transformations:
-//
-//   1. Strip the root <svg> inline `style="max-width:100%;height:auto;..."`
-//      (responsive-layout sugar that only makes sense inside an HTML flow;
-//      Inkscape's CSS engine can collapse the computed viewport when it sees
-//      `height: auto` on a root <svg>).
-//
-//   2. Strip every `shape-rendering="crispEdges"` attribute. This matters for
-//      the heatmap, where the cells group carries crispEdges to keep browser
-//      PNG rasterisation seamless. Inkscape ≥1.1 has a cairo-renderer bug
-//      where crispEdges on a group containing thousands of small rects (esp.
-//      sub-pixel-height ones like heatmap cells at 2 px tall) collapses the
-//      whole group to default-fill (black). Our cell rects are already on
-//      integer pixel coordinates via Math.round in the layout code, so
-//      crispEdges is redundant for seam avoidance in the exported file — we
-//      just drop it on export.
-//
-//   3. Run any chart-registered export mutator (see the registry block
-//      above). Mutators replace canvas-rasterised layers with vector
-//      equivalents so downloaded SVGs are crisp regardless of the
-//      on-screen rendering path.
-//
-// The watermark itself extends the viewBox (and `height` attribute, if
-// present) downward by PLOTTR_ATTRIBUTION_PAD px so the plot area, axes
-// and existing margins stay pixel-identical — only the canvas grows.
-function buildExportSvg(svgEl) {
-  const clone = svgEl.cloneNode(true);
+export function buildExportSvg(svgEl: SVGElement): SVGElement {
+  const clone = svgEl.cloneNode(true) as SVGElement;
   clone.removeAttribute("style");
   clone.querySelectorAll("[shape-rendering]").forEach((el) => {
     el.removeAttribute("shape-rendering");
@@ -948,10 +880,6 @@ function buildExportSvg(svgEl) {
     try {
       mutator(clone);
     } catch (err) {
-      // A broken mutator must not silently swallow an export — surface
-      // the error to the console so users can report it, then fall
-      // through with the unmutated clone (which still renders, just
-      // with the rasterised <image> the live view shows).
       if (typeof console !== "undefined" && console.error) {
         console.error("[plottr] SVG export mutator failed:", err);
       }
@@ -961,23 +889,15 @@ function buildExportSvg(svgEl) {
   return clone;
 }
 
-function serializeSvgForExport(svgEl) {
+export function serializeSvgForExport(svgEl: SVGElement): string {
   return new XMLSerializer().serializeToString(buildExportSvg(svgEl));
 }
 
-// Append the `<g id="plottr-attribution">` wrapper containing a small
-// italic `Plöttr v<VERSION>` text to the bottom-right of the SVG
-// canvas. Mutates the passed-in element — pass a clone, not the live
-// DOM node. Idempotent: a second call removes the prior attribution
-// before re-appending, so the canvas can't grow twice.
-function appendPlottrAttribution(svgEl) {
+export function appendPlottrAttribution(svgEl: SVGElement): void {
   if (!svgEl || typeof svgEl.setAttribute !== "function") return;
-  // Idempotency — if a prior attribution exists, strip both the group
-  // and the canvas pad it added before recomputing so repeated calls
-  // don't stack the band.
   const prior = svgEl.querySelector("#plottr-attribution");
   const hadPrior = !!(prior && prior.parentNode === svgEl);
-  if (hadPrior) prior.parentNode.removeChild(prior);
+  if (hadPrior && prior) prior.parentNode!.removeChild(prior);
 
   const vbParts = (svgEl.getAttribute("viewBox") || "").split(/[\s,]+/).map(parseFloat);
   let vbX = 0;
@@ -990,8 +910,8 @@ function appendPlottrAttribution(svgEl) {
     vbW = vbParts[2];
     vbH = vbParts[3];
   } else {
-    const wAttr = parseFloat(svgEl.getAttribute("width"));
-    const hAttr = parseFloat(svgEl.getAttribute("height"));
+    const wAttr = parseFloat(svgEl.getAttribute("width") || "");
+    const hAttr = parseFloat(svgEl.getAttribute("height") || "");
     vbW = Number.isFinite(wAttr) ? wAttr : 0;
     vbH = Number.isFinite(hAttr) ? hAttr : 0;
   }
@@ -1000,15 +920,16 @@ function appendPlottrAttribution(svgEl) {
 
   const newH = vbH + PLOTTR_ATTRIBUTION_PAD;
   svgEl.setAttribute("viewBox", `${vbX} ${vbY} ${vbW} ${newH}`);
-  const heightAttr = parseFloat(svgEl.getAttribute("height"));
+  const heightAttr = parseFloat(svgEl.getAttribute("height") || "");
   if (Number.isFinite(heightAttr)) {
     const baseHeight = hadPrior ? heightAttr - PLOTTR_ATTRIBUTION_PAD : heightAttr;
     svgEl.setAttribute("height", String(baseHeight + PLOTTR_ATTRIBUTION_PAD));
   }
 
   const version =
-    (typeof window !== "undefined" && typeof window.__APP_VERSION__ === "string"
-      ? window.__APP_VERSION__
+    (typeof window !== "undefined" &&
+    typeof (window as Window & { __APP_VERSION__?: string }).__APP_VERSION__ === "string"
+      ? (window as Window & { __APP_VERSION__?: string }).__APP_VERSION__
       : null) || "v?";
   const doc = svgEl.ownerDocument || (typeof document !== "undefined" ? document : null);
   if (!doc || typeof doc.createElementNS !== "function") return;
@@ -1029,10 +950,11 @@ function appendPlottrAttribution(svgEl) {
   svgEl.appendChild(g);
 }
 
-// MIME + accept-extension lookup keyed by filename extension. Drives
-// the native save-picker's `types` filter so users see the right
-// extension highlighted in the dialog.
-const _SAVE_PICKER_TYPES = {
+interface SavePickerType {
+  mime: string;
+  description: string;
+}
+const _SAVE_PICKER_TYPES: Record<string, SavePickerType> = {
   ".svg": { mime: "image/svg+xml", description: "SVG image" },
   ".png": { mime: "image/png", description: "PNG image" },
   ".csv": { mime: "text/csv", description: "CSV file" },
@@ -1042,20 +964,23 @@ const _SAVE_PICKER_TYPES = {
   ".json": { mime: "application/json", description: "JSON file" },
 };
 
-// Save a Blob to disk. Tries the File System Access API
-// (`window.showSaveFilePicker`) first so the user can pick a target
-// folder + filename — supported in Chromium-based browsers (Chrome,
-// Edge, Opera) on HTTPS / localhost. Falls back to the classic
-// `<a download>` anchor click on Firefox / Safari, which routes the
-// file to the browser's default Downloads folder.
-//
-// The fallback is also taken when the picker call throws anything
-// other than the user-cancelled `AbortError` — for instance if the
-// page is loaded inside a sandboxed iframe that strips the API. User
-// cancel returns silently; we don't downgrade to the fallback in that
-// case because the user explicitly chose "Cancel".
-async function saveBlob(blob, filename) {
-  if (typeof window !== "undefined" && typeof window.showSaveFilePicker === "function") {
+interface SaveFilePickerWindow extends Window {
+  showSaveFilePicker?: (opts: {
+    suggestedName: string;
+    types: Array<{ description: string; accept: Record<string, string[]> }>;
+  }) => Promise<{
+    createWritable: () => Promise<{
+      write: (b: Blob) => Promise<void>;
+      close: () => Promise<void>;
+    }>;
+  }>;
+}
+
+export async function saveBlob(blob: Blob, filename: string): Promise<void> {
+  if (
+    typeof window !== "undefined" &&
+    typeof (window as SaveFilePickerWindow).showSaveFilePicker === "function"
+  ) {
     try {
       const dot = filename.lastIndexOf(".");
       const ext = dot >= 0 ? filename.slice(dot).toLowerCase() : "";
@@ -1063,7 +988,7 @@ async function saveBlob(blob, filename) {
         mime: blob.type || "application/octet-stream",
         description: "File",
       };
-      const handle = await window.showSaveFilePicker({
+      const handle = await (window as SaveFilePickerWindow).showSaveFilePicker!({
         suggestedName: filename,
         types: [{ description: meta.description, accept: { [meta.mime]: [ext || ""] } }],
       });
@@ -1072,15 +997,9 @@ async function saveBlob(blob, filename) {
       await writable.close();
       return;
     } catch (err) {
-      // User cancelled — respect it, do nothing.
-      if (err && err.name === "AbortError") return;
-      // Picker threw for some other reason (sandboxed iframe, http://
-      // local file load, missing OS handler). Fall through to the
-      // legacy anchor fallback so the user still gets the file.
+      if (err && (err as { name?: string }).name === "AbortError") return;
     }
   }
-  // Legacy fallback — drops the file in the browser's default Downloads
-  // folder via a hidden <a download> click.
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -1092,32 +1011,29 @@ async function saveBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function downloadSvg(svgEl, filename) {
+export function downloadSvg(svgEl: SVGElement | null, filename: string): void {
   if (!svgEl) return;
   const svgStr = serializeSvgForExport(svgEl);
   const blob = new Blob([svgStr], { type: "image/svg+xml" });
-  // Fire-and-forget — the helper's promise resolves once the user
-  // picks a folder (or the fallback anchor click completes); callers
-  // don't need to await.
   saveBlob(blob, filename);
 }
-function downloadPng(svgEl, filename, scale) {
+
+export function downloadPng(svgEl: SVGElement | null, filename: string, scale?: number): void {
   if (!svgEl) return;
-  scale = scale || 2;
-  // Build the export clone once so the raster canvas matches the
-  // watermarked viewBox — the live element still has the pre-attribution
-  // dimensions, but the SVG we rasterise has the extra bottom band.
+  const s = scale || 2;
   const exportSvg = buildExportSvg(svgEl);
   const svgStr = new XMLSerializer().serializeToString(exportSvg);
   const vb = exportSvg.getAttribute("viewBox");
   const parts = vb ? vb.split(/[\s,]+/) : [];
-  const w = parts.length >= 4 ? parseFloat(parts[2]) : svgEl.clientWidth || 800;
+  const w = parts.length >= 4 ? parseFloat(parts[2]) : (svgEl as SVGSVGElement).clientWidth || 800;
   const h =
-    parts.length >= 4 ? parseFloat(parts[3]) : (svgEl.clientHeight || 600) + PLOTTR_ATTRIBUTION_PAD;
+    parts.length >= 4
+      ? parseFloat(parts[3])
+      : ((svgEl as SVGSVGElement).clientHeight || 600) + PLOTTR_ATTRIBUTION_PAD;
   const canvas = document.createElement("canvas");
-  canvas.width = w * scale;
-  canvas.height = h * scale;
-  const ctx = canvas.getContext("2d");
+  canvas.width = w * s;
+  canvas.height = h * s;
+  const ctx = canvas.getContext("2d")!;
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const img = new Image();
@@ -1127,71 +1043,43 @@ function downloadPng(svgEl, filename, scale) {
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     URL.revokeObjectURL(url);
     canvas.toBlob(function (pngBlob) {
-      // The user-gesture window for `showSaveFilePicker` is normally
-      // tight, but Chromium grants extra slack to async chains rooted
-      // in a click handler — the canvas → blob round-trip stays
-      // within that allowance for typical chart sizes.
-      saveBlob(pngBlob, filename);
+      if (pngBlob) saveBlob(pngBlob, filename);
     }, "image/png");
   };
   img.src = url;
 }
-function downloadText(text, filename) {
+
+export function downloadText(text: string, filename: string): void {
   const blob = new Blob([text], { type: "text/plain" });
   saveBlob(blob, filename);
 }
 
-// Cells whose first character is one of these get a leading single-quote
-// before the CSV escape. Excel / LibreOffice / Google Sheets all treat `=`,
-// `+`, `-`, `@` (and a leading tab / CR before any of those) as a formula
-// trigger; the prepended `'` tells the spreadsheet engine to treat the cell
-// as text. This is the standard OWASP CSV-injection mitigation. Plöttr never
-// evaluates the formula itself, so the laundering happens in the *consumer*
-// of the exported file — see docs/security_audit_02-05-2026.md item #1.
-//
-// `_isFormulaInjection` adds the obvious carve-out the raw OWASP rule
-// misses for scientific data: a cell that *parses cleanly as a number*
-// (per `isNumericValue`) is just a negative or signed value like `-0.5`
-// or `-1.5e3` — Excel reads that as a number, not a formula, so we leave
-// it alone (no banner noise, no apostrophe drift on round-trip). Hostile
-// strings like `-cmd|'/c calc'!A0`, `-2-3+10`, `+evil`, `=5`, `@SUM(...)`,
-// or a leading TAB / CR are all rejected by `isNumericValue` and so still
-// get the prefix.
 const _CSV_FORMULA_LEAD = /^[=+\-@\t\r]/;
 
-function _isFormulaInjection(s) {
+function _isFormulaInjection(s: string): boolean {
   return _CSV_FORMULA_LEAD.test(s) && !isNumericValue(s);
 }
 
-function _escapeCsvCell(v) {
+function _escapeCsvCell(v: unknown): string {
   let s = String(v);
   if (_isFormulaInjection(s)) s = "'" + s;
   return `"${s.replace(/"/g, '""')}"`;
 }
 
-// RFC 4180 CSV string builder. Pure (no DOM / Blob) so it round-trips through
-// `parseRaw` in tests without needing a browser context. Headers go through
-// the same escape as data cells — a header containing a comma
-// ("Sample, Note") used to write a malformed first line that Plöttr's own
-// parseRaw split into N+1 columns on re-import. Cells starting with a
-// formula-trigger character are prefixed with `'` (see _escapeCsvCell).
-function buildCsvString(headers, rows) {
+export function buildCsvString(headers: unknown[], rows: unknown[][]): string {
   return [
     headers.map(_escapeCsvCell).join(","),
     ...rows.map((r) => r.map(_escapeCsvCell).join(",")),
   ].join("\n");
 }
 
-// Scan parsed headers + rows for cells that would trigger formula evaluation
-// when re-opened in Excel / LibreOffice / Sheets — same character set as
-// _CSV_FORMULA_LEAD. Used at ingest time to surface a warning banner so the
-// user knows their pasted dataset is laundering hostile content even if
-// they never download it. Returns { count, headers: [{idx, value}], cells:
-// [{row, col, header, value}] } where the example arrays are capped (cap
-// defaults to 8 for each) so the banner stays compact on huge sheets.
-function scanForFormulaInjection(headers, rows, opts) {
+export function scanForFormulaInjection(
+  headers: unknown[] | null | undefined,
+  rows: unknown[][] | null | undefined,
+  opts?: { cap?: number }
+): FormulaInjectionWarning {
   const cap = (opts && opts.cap) || 8;
-  const out = { count: 0, headers: [], cells: [] };
+  const out: FormulaInjectionWarning = { count: 0, headers: [], cells: [] };
   if (Array.isArray(headers)) {
     for (let i = 0; i < headers.length; i++) {
       const v = headers[i];
@@ -1222,7 +1110,66 @@ function scanForFormulaInjection(headers, rows, opts) {
   return out;
 }
 
-function downloadCsv(headers, rows, filename) {
+export function downloadCsv(headers: unknown[], rows: unknown[][], filename: string): void {
   const blob = new Blob([buildCsvString(headers, rows)], { type: "text/csv" });
   saveBlob(blob, filename);
 }
+
+// ── Transitional global shim ───────────────────────────────────────────────
+// Populates the legacy script-scope global surface so unmigrated callers
+// (tools/*.tsx files using `parseRaw` / `PALETTE` / `isNumericValue` / …)
+// keep working until the Phase-5 cleanup converts every caller to direct
+// imports.
+const _g = globalThis as Record<string, unknown>;
+_g.hexToRgb = hexToRgb;
+_g.rgbToHex = rgbToHex;
+_g.shadeColor = shadeColor;
+_g.getPointColors = getPointColors;
+_g.PALETTE = PALETTE;
+_g.COLOR_PALETTES = COLOR_PALETTES;
+_g.DIVERGING_PALETTES = DIVERGING_PALETTES;
+_g.interpolateColor = interpolateColor;
+_g.TOOL_ICONS = TOOL_ICONS;
+_g.toolIcon = toolIcon;
+_g.roleColors = roleColors;
+_g.normalizeNumericString = normalizeNumericString;
+_g.isNumericValue = isNumericValue;
+_g.toNumericValue = toNumericValue;
+_g.seededRandom = seededRandom;
+_g.niceStep = niceStep;
+_g.makeTicks = makeTicks;
+_g.makeLogTicks = makeLogTicks;
+_g.autoDetectSep = autoDetectSep;
+_g.tokenizeDelimited = tokenizeDelimited;
+_g.fixDecimalCommas = fixDecimalCommas;
+_g.detectHeader = detectHeader;
+_g.parseRaw = parseRaw;
+_g.guessColumnType = guessColumnType;
+_g.detectWideFormat = detectWideFormat;
+_g.parseWideMatrix = parseWideMatrix;
+_g.parseData = parseData;
+_g.dataToColumns = dataToColumns;
+_g.wideToLong = wideToLong;
+_g.reshapeWide = reshapeWide;
+_g.parseSetData = parseSetData;
+_g.parseLongFormatSets = parseLongFormatSets;
+_g.computeStats = computeStats;
+_g.quartiles = quartiles;
+_g.kde = kde;
+_g.computeGroupStats = computeGroupStats;
+_g.svgSafeId = svgSafeId;
+_g.fileBaseName = fileBaseName;
+_g.flashSaved = flashSaved;
+_g.PLOTTR_ATTRIBUTION_PAD = PLOTTR_ATTRIBUTION_PAD;
+_g.registerSvgExportMutator = registerSvgExportMutator;
+_g.unregisterSvgExportMutator = unregisterSvgExportMutator;
+_g.buildExportSvg = buildExportSvg;
+_g.serializeSvgForExport = serializeSvgForExport;
+_g.appendPlottrAttribution = appendPlottrAttribution;
+_g.saveBlob = saveBlob;
+_g.downloadSvg = downloadSvg;
+_g.downloadPng = downloadPng;
+_g.downloadText = downloadText;
+_g.buildCsvString = buildCsvString;
+_g.scanForFormulaInjection = scanForFormulaInjection;
+_g.downloadCsv = downloadCsv;

@@ -199,6 +199,22 @@ function readSharedBundleSrc() {
   return fs.readFileSync(p, "utf8");
 }
 
+// Bundled IIFE source of the migrated `_core/shared.ts` module. When run via
+// vm.runInContext, the inline `globalThis.X = X` shim at the bottom of the
+// module populates the ctx globals so per-tool loaders that previously did
+// `fs.readFileSync(.../shared.js)` keep working without redesign.
+function readCoreSharedSource() {
+  const result = esbuild.buildSync({
+    entryPoints: [path.join(TOOLS_DIR, "_core/shared.ts")],
+    bundle: true,
+    format: "iife",
+    platform: "neutral",
+    target: "es2022",
+    write: false,
+  });
+  return result.outputFiles[0].text;
+}
+
 // ── Run a CJS bundle inside a vm context ──────────────────────────────
 //
 // Threads a fresh `module.exports` slot through `ctx` and returns that
@@ -242,6 +258,7 @@ module.exports = {
   makeLocalStorage,
   bundleShell,
   readSharedBundleSrc,
+  readCoreSharedSource,
   runCjs,
   requireViaTmpFile,
 };

@@ -90,6 +90,10 @@ let _bundleLoaded = false;
 
 function ensureSharedBundleLoaded() {
   if (_bundleLoaded) return;
+  // shared.bundle.js still ships theme.js (the inline no-FOUC IIFE in each
+  // HTML calls `setTheme` synchronously before paint, so theme.js stays
+  // script-scope for now). The migrated `_core/*` modules are loaded
+  // through the IIFE-bundle helpers below.
   const bundlePath = path.join(toolsDir, "shared.bundle.js");
   if (!fs.existsSync(bundlePath)) {
     throw new Error(
@@ -98,6 +102,30 @@ function ensureSharedBundleLoaded() {
   }
   const bundleSrc = fs.readFileSync(bundlePath, "utf8");
   vm.runInThisContext(bundleSrc, { filename: "tools/shared.bundle.js" });
+
+  // Load the migrated `_core/*` modules into the realm so their trailing
+  // `globalThis.X = X` shims populate the same global surface unmigrated
+  // call sites in tool .tsx files (parseRaw, PALETTE, isNumericValue, …)
+  // expect.
+  const coreStats = esbuild.buildSync({
+    entryPoints: [path.join(toolsDir, "_core/stats/index.ts")],
+    bundle: true,
+    format: "iife",
+    platform: "neutral",
+    target: "es2022",
+    write: false,
+  }).outputFiles[0].text;
+  vm.runInThisContext(coreStats, { filename: "tools/_core/stats/index.ts" });
+
+  const coreShared = esbuild.buildSync({
+    entryPoints: [path.join(toolsDir, "_core/shared.ts")],
+    bundle: true,
+    format: "iife",
+    platform: "neutral",
+    target: "es2022",
+    write: false,
+  }).outputFiles[0].text;
+  vm.runInThisContext(coreShared, { filename: "tools/_core/shared.ts" });
 
   // Migrated _shell modules — bundle the barrel via esbuild and lift its
   // named exports onto globalThis so existing `sc.DataPreview` / `sc.X`
