@@ -1873,6 +1873,130 @@ test("reason text cites Welch-by-default rationale", () => {
   assert(/Levene/i.test(reason), "reason should reference Levene diagnostic");
 });
 
+// ── selectTest — narrative content + branch-boundary pins (mutation audit) ─
+//
+// Existing tests pin recommendation.test / suggestion.test values but not
+// the narrative-string content. Many `selectTest` mutants survive because
+// the narrative is mutated to "" or to ``` (empty template literal), the
+// `1 of k` count is wrong, group labels start at 0 instead of 1, etc. —
+// none of which the existing tests detect. These pins assert specific
+// substrings in the reason / suggestion narratives so a content-shifting
+// mutation produces a substring miss.
+
+suite("selectTest — narrative content pins");
+
+test("k=2 non-normal suggestion narrative names Mann-Whitney explicitly", () => {
+  const r = selectTest([skewed1, skewed2]);
+  const reason = r.recommendation.reason;
+  assert(/Mann-Whitney/i.test(reason), "should name Mann-Whitney U for k=2 suggestion");
+  assert(/heavy tails|skew/i.test(reason), "should describe when to switch (heavy tails / skew)");
+});
+
+test("k=3 non-normal suggestion narrative names Kruskal-Wallis + Dunn", () => {
+  const skA = [1, 1, 1, 1, 1, 1, 1, 1, 1, 20];
+  const skB = [2, 2, 2, 2, 2, 2, 2, 2, 2, 25];
+  const skC = [3, 3, 3, 3, 3, 3, 3, 3, 3, 30];
+  const r = selectTest([skA, skB, skC]);
+  const reason = r.recommendation.reason;
+  assert(/Kruskal-Wallis/i.test(reason), "k=3 suggestion should name Kruskal-Wallis");
+  assert(/Dunn/i.test(reason), "k=3 suggestion should name Dunn (BH)");
+});
+
+test("normality narrative labels groups starting at 1 (kills 'r.group + 1' → '- 1' mutation)", () => {
+  const r = selectTest([skewed1, skewed2]);
+  const reason = r.recommendation.reason;
+  // skewed1, skewed2 both flagged → narrative lists "group 1" and "group 2".
+  // A mutation flipping `r.group + 1` to `r.group - 1` would label them
+  // "group -1" and "group 0", or `* 1` would label both "group 0".
+  assert(/group 1/.test(reason), "narrative should label first group as 'group 1'");
+  assert(/group 2/.test(reason), "narrative should label second group as 'group 2'");
+  assert(!/group 0/.test(reason), "narrative must NOT label any group as 'group 0'");
+  assert(!/group -1/.test(reason), "narrative must NOT label any group as 'group -1'");
+});
+
+test("Shapiro flag count narrative reads '<flagged> of <k> group(s)'", () => {
+  // Both skewed1 and skewed2 flagged → "2 of 2 group(s)".
+  const r = selectTest([skewed1, skewed2]);
+  const reason = r.recommendation.reason;
+  assert(
+    /2 of 2/.test(reason),
+    `expected '2 of 2 group(s)' in reason, got: ${reason.slice(0, 250)}`
+  );
+});
+
+test("Levene narrative includes F=... p=... (kills toFixed mutations)", () => {
+  const r = selectTest([normalA, normalB]);
+  const reason = r.recommendation.reason;
+  assert(/F=\d/.test(reason), "Levene narrative includes 'F=<digit>'");
+  assert(/p=/.test(reason), "Levene narrative includes 'p='");
+});
+
+test("equalVar=false changes Levene narrative branch (kills L414 'equalVar !== false' mutation)", () => {
+  // normalSmallVar vs normalLargeVar — Levene rejects equal variance.
+  // The narrative branch should mention "rejected equal variances"; the
+  // alternative branch (did not reject) says "did not reject".
+  const r = selectTest([normalSmallVar, normalLargeVar]);
+  assert(r.levene.equalVar === false, "fixture should make Levene reject");
+  assert(
+    /rejected equal variances/i.test(r.recommendation.reason),
+    `should use 'rejected' branch when equalVar=false`
+  );
+});
+
+test("equalVar=true keeps the 'did not reject' branch (Levene narrative pair)", () => {
+  const r = selectTest([normalA, normalB]);
+  assert(r.levene.equalVar === true, "fixture should make Levene not reject");
+  assert(
+    /did not reject/i.test(r.recommendation.reason),
+    "should use 'did not reject' branch when equalVar=true"
+  );
+});
+
+suite("selectTest — boundary-condition pins");
+
+test("n=3 exactly: SW runs (kills 'g.length < 3' → '<= 3' boundary mutation)", () => {
+  // At g.length=3 exactly, `if (g.length < 3)` is false → SW runs (W computed).
+  // Mutant `<= 3` would skip SW and record note: "n<3".
+  const r = selectTest([
+    [10, 20, 30], // exactly 3 — at the boundary
+    [11, 21, 31],
+  ]);
+  assert(r.normality[0].W !== null, "SW must run at exactly n=3");
+  assert(r.normality[0].note !== "n<3", "no 'n<3' note when n=3 exactly");
+});
+
+test("'allKnownNormal' uses every (kills 'every' → 'some' mutation)", () => {
+  // One normal group + one clearly non-normal group → with `every`, allNormal
+  // is false. With mutant `some`, allNormal would be true (the normal group
+  // counts). Pinning `allNormal === false` enforces the `every` semantic.
+  const normalish = [9.9, 10.0, 10.1, 10.05, 9.95, 10.02, 9.98, 10.03, 9.97, 10.01];
+  const skewed = [1, 1, 1, 1, 1, 1, 1, 1, 1, 50];
+  const r = selectTest([normalish, skewed]);
+  assert(r.normality[0].normal === true, "fixture: group 1 is normal");
+  assert(r.normality[1].normal === false, "fixture: group 2 is non-normal");
+  assert(r.allNormal === false, "allNormal must be false when even one group is flagged");
+});
+
+test("k=3 routing: test === 'welchANOVA' (kills 'k === 2' → 'k !== 2' mutation)", () => {
+  // k=3 input → test should be welchANOVA, postHoc gamesHowell.
+  // Mutated `k === 2` to `k !== 2`: k=3 satisfies `!== 2` → test = welchT,
+  // postHoc = null, which the assertion below catches.
+  const r = selectTest([
+    [10, 11, 12, 13, 14, 15],
+    [20, 21, 22, 23, 24, 25],
+    [30, 31, 32, 33, 34, 35],
+  ]);
+  eq(r.recommendation.test, "welchANOVA");
+  eq(r.recommendation.postHoc, "gamesHowell");
+});
+
+test("k=2 routing: test === 'welchT' + postHoc=null (kills 'k === 2' → 'k !== 2' mutation, other branch)", () => {
+  // k=2 input → test=welchT, postHoc=null.
+  const r = selectTest([normalA, normalB]);
+  eq(r.recommendation.test, "welchT");
+  eq(r.recommendation.postHoc, null);
+});
+
 // ── Hierarchical clustering ────────────────────────────────────────────────
 
 // ── rowDistance — direct, per-metric pins (mutation audit) ─────────────────

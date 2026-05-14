@@ -54,14 +54,21 @@ export default {
     //                  halved no-coverage (145 → 77). Residual mostly
     //                  in chi2inv / tinv Newton internals and GL
     //                  quadrature. ~27 min wall-clock per run.
-    "tools/_core/stats/dist.ts",
+    //   - posthoc.ts — 73.35% raw / 75.29% covered, 168 survivors +
+    //                  18 no-coverage. Adding 11 selectTest narrative-
+    //                  content + branch-boundary pins killed 21 mutants
+    //                  (19 in the L400-449 selectTest cluster). Residual
+    //                  mostly equivalent (p ≥ α boundaries, narrative
+    //                  strings with shared key substrings, _wprob GL
+    //                  internals). ~4 min per run.
+    "tools/_core/stats/posthoc.ts",
     //
     // Pending — uncomment one at a time and re-run:
     // "tools/_core/stats/format.ts",
     // "tools/_core/stats/msi.ts",
     // "tools/_core/stats/cluster.ts",
+    // "tools/_core/stats/dist.ts",
     // "tools/_core/stats/tests.ts",
-    // "tools/_core/stats/posthoc.ts",
     // "tools/volcano/helpers.ts",
     // "tools/scatter/helpers.ts",
     // "tools/lineplot/helpers.ts",
