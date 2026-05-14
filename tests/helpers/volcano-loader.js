@@ -10,7 +10,7 @@ const vm = require("vm");
 const { builtins, bundleShell, runCjs, readCoreSharedSource } = require("./_shell-test-utils");
 
 const sharedSrc = readCoreSharedSource();
-const helpersCjs = bundleShell("volcano/helpers.ts", { transform: true });
+const helpersCjs = bundleShell("volcano/helpers.ts");
 
 const ctx = builtins();
 vm.createContext(ctx);

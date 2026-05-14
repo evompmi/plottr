@@ -304,7 +304,7 @@ export function dunnTest(groups: number[][]): DunnResult {
 // ── 12. Compact letter display ──────────────────────────────────────────────
 
 export function compactLetterDisplay(
-  pairs: { i: number; j: number; p: number; pAdj?: number }[],
+  pairs: { i: number; j: number; p: number; pAdj?: number | null }[],
   k: number,
   alpha = 0.05
 ): string[] {

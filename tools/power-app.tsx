@@ -2,6 +2,18 @@
 // Do NOT edit the .js file directly.
 
 import { NumberInput, PageHeader, buildRScriptForPower, useIsMobile } from "./_shell";
+import { makeTicks } from "./_core/scale";
+import { downloadText, flashSaved } from "./_core/download";
+import {
+  bisect,
+  fFromGroupMeans,
+  powerAnova,
+  powerChi2,
+  powerCorrelation,
+  powerOneSample,
+  powerPaired,
+  powerTwoSample,
+} from "./_core/stats/dist";
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
 
 // Distribution functions, noncentral distributions, `bisect`,

@@ -22,6 +22,8 @@ import {
 } from "../_shell";
 import { BOXPLOT_HOWTO } from "./howto";
 
+import { roleColors } from "../_core/color";
+import { downloadCsv, flashSaved } from "../_core/download";
 // Role-colour themes for the Configure-step AesBox cards. Reuses scatter's
 // `--aes-*` CSS vars so the visual language is consistent across tools
 // (slate "Color" theme → Group; emerald "Size" theme → Value). Theme-aware

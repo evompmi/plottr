@@ -17,14 +17,18 @@ export function fileBaseName(fileName: unknown, fallback?: string): string {
   return fallback || "data";
 }
 
-export function flashSaved(btn: HTMLButtonElement | null): void {
+// Accepts any HTMLElement (call sites use either a button or a wider
+// `EventTarget & HTMLElement` from React's MouseEvent.currentTarget).
+// `disabled` is set only on elements that have the property — most
+// commonly buttons; non-button calls just get the innerHTML swap.
+export function flashSaved(btn: HTMLElement | null): void {
   if (!btn) return;
   const original = btn.innerHTML;
   btn.innerHTML = "✓ Saved";
-  btn.disabled = true;
+  if ("disabled" in btn) (btn as HTMLButtonElement).disabled = true;
   setTimeout(() => {
     btn.innerHTML = original;
-    btn.disabled = false;
+    if ("disabled" in btn) (btn as HTMLButtonElement).disabled = false;
   }, 1500);
 }
 

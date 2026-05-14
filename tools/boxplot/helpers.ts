@@ -12,6 +12,8 @@ import {
   STATS_TEST_REGISTRY,
 } from "../_shell";
 import type { LegendBlock, PowerFromDataResult, TestResult } from "../_shell";
+import { compactLetterDisplay, selectTest } from "../_core/stats/posthoc";
+import { pStars } from "../_core/stats/format";
 // ── Stats summary SVG layout constants ──────────────────────────────────────
 
 export const STATS_LINE_H = 11;
@@ -271,7 +273,8 @@ export function summariseNormality(norm: NormalityResult[] | null | undefined): 
 }
 
 export function summariseEqualVariance(lev: SelectTestResult["levene"] | null | undefined): string {
-  if (!lev || lev.F == null) return "—";
+  if (!lev || "error" in lev) return "—";
+  if (lev.F == null) return "—";
   return lev.equalVar ? "yes" : "no";
 }
 

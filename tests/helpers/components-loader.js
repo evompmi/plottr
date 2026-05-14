@@ -18,7 +18,7 @@ const {
 } = require("./_shell-test-utils");
 
 const bundleSrc = readSharedBundleSrc();
-const svgLegendCjs = bundleShell("_shell/svg-legend.ts", { transform: true });
+const svgLegendCjs = bundleShell("_shell/svg-legend.ts");
 
 const ctx = {
   ...builtins(),

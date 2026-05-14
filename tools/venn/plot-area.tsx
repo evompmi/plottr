@@ -7,6 +7,7 @@ import { VennChart } from "./chart";
 import { regionLabel, regionFilenamePart } from "./helpers";
 import type { IntersectionTableProps, ItemListPanelProps, PlotAreaProps, Region } from "./helpers";
 
+import { downloadCsv, fileBaseName } from "../_core/download";
 const { useState } = React;
 
 export function IntersectionTable({

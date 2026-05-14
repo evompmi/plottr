@@ -26,120 +26,19 @@ const compiledTools = [
   "tools/shared.bundle.js",
 ];
 
-// Names declared at top-level of tools/shared.js, the tools/stats-*.js files,
-// and the tools/shared-*.js component files, consumed by tool .tsx files via
-// <script>-tag globals.
-const sharedGlobals = {
-  // shared.js
-  hexToRgb: "readonly",
-  rgbToHex: "readonly",
-  shadeColor: "readonly",
-  getPointColors: "readonly",
-  PALETTE: "readonly",
-  TOOL_ICONS: "readonly",
-  toolIcon: "readonly",
-  roleColors: "readonly",
-  isNumericValue: "readonly",
-  seededRandom: "readonly",
-  makeTicks: "readonly",
-  makeLogTicks: "readonly",
-  autoDetectSep: "readonly",
-  fixDecimalCommas: "readonly",
-  parseRaw: "readonly",
-  guessColumnType: "readonly",
-  detectWideFormat: "readonly",
-  parseData: "readonly",
-  dataToColumns: "readonly",
-  wideToLong: "readonly",
-  reshapeWide: "readonly",
-  parseWideMatrix: "readonly",
-  parseSetData: "readonly",
-  parseLongFormatSets: "readonly",
-  COLOR_PALETTES: "readonly",
-  DIVERGING_PALETTES: "readonly",
-  interpolateColor: "readonly",
-  computeStats: "readonly",
-  quartiles: "readonly",
-  kde: "readonly",
-  computeGroupStats: "readonly",
-  fileBaseName: "readonly",
-  flashSaved: "readonly",
-  svgSafeId: "readonly",
-  downloadSvg: "readonly",
-  downloadPng: "readonly",
-  downloadCsv: "readonly",
-  downloadText: "readonly",
-  powerTwoSample: "readonly",
-  powerPaired: "readonly",
-  powerOneSample: "readonly",
-  powerAnova: "readonly",
-  powerCorrelation: "readonly",
-  powerChi2: "readonly",
-  fFromGroupMeans: "readonly",
-  // stats-*.js (carved from the original stats.js)
-  normcdf: "readonly",
-  normsf: "readonly",
-  norminv: "readonly",
-  gammaln: "readonly",
-  betai: "readonly",
-  betai_upper: "readonly",
-  betacf: "readonly",
-  gammainc: "readonly",
-  gammainc_upper: "readonly",
-  tcdf: "readonly",
-  tcdf_upper: "readonly",
-  tpdf: "readonly",
-  tinv: "readonly",
-  fcdf: "readonly",
-  fcdf_upper: "readonly",
-  chi2cdf: "readonly",
-  chi2pdf: "readonly",
-  chi2inv: "readonly",
-  nctcdf: "readonly",
-  ncf_sf: "readonly",
-  ncchi2cdf: "readonly",
-  _gaussLegendre: "readonly",
-  bisect: "readonly",
-  sampleMean: "readonly",
-  sampleVariance: "readonly",
-  sampleSD: "readonly",
-  rankWithTies: "readonly",
-  shapiroWilk: "readonly",
-  leveneTest: "readonly",
-  tTest: "readonly",
-  mannWhitneyU: "readonly",
-  cohenD: "readonly",
-  hedgesG: "readonly",
-  rankBiserial: "readonly",
-  oneWayANOVA: "readonly",
-  welchANOVA: "readonly",
-  kruskalWallis: "readonly",
-  etaSquared: "readonly",
-  epsilonSquared: "readonly",
-  ptukey: "readonly",
-  qtukey: "readonly",
-  tukeyHSD: "readonly",
-  gamesHowell: "readonly",
-  bhAdjust: "readonly",
-  dunnTest: "readonly",
-  compactLetterDisplay: "readonly",
-  selectTest: "readonly",
-  // pStars / formatP remain plain-JS in stats-posthoc.js. The
-  // STATS_*_REGISTRY / R-export / StatsTile / computePowerFromData /
-  // assignBracketLevels family all migrated to tools/_shell/ in 2026-05.
-  pStars: "readonly",
-  formatP: "readonly",
-  pairwiseDistance: "readonly",
-  hclust: "readonly",
-  dendrogramLayout: "readonly",
-  kmeans: "readonly",
-  // theme.js
-  ThemeToggle: "readonly",
-  useThemeMode: "readonly",
-  setTheme: "readonly",
-  getTheme: "readonly",
-  toggleTheme: "readonly",
-};
+// Pre-v1.6 this listed ~120 names from tools/shared.js / stats-*.js /
+// theme.js so tool .tsx files could consume them through script-tag
+// globals without TS / lint flagging undefined-variable. The v1.6 `_core/`
+// migration converted the entire shared kernel into ES modules with real
+// `export` declarations, and the per-caller import sweep replaced the
+// global references with `import { … } from "../_core/…"` lines.
+//
+// Two ambient names still remain in `_shell/prefs-store.ts` (`downloadText`
+// — kept ambient so the test loader's vm-context stub can intercept) and
+// in unmigrated `upset` references to `multiset*`. Those are declared
+// inline in the files themselves via `declare const`, so they don't need
+// to live here.
+const sharedGlobals = {};
 
 const browserPlus = {
   ...globals.browser,

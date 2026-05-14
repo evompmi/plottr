@@ -23,6 +23,10 @@ import { buildRScript } from "./r-export";
 import { computePowerFromData, type PowerFromDataRow } from "./power-from-data";
 import type { PostHocPair, PostHocResult, TestResult } from "./stats-dispatch";
 
+import { svgSafeId } from "../_core/svg-export";
+import { downloadText, flashSaved } from "../_core/download";
+import { compactLetterDisplay, selectTest } from "../_core/stats/posthoc";
+import { formatP, pStars } from "../_core/stats/format";
 // Return shape of `selectTest()` — declared globally in `types/globals.d.ts`.
 // Aliased here so component code reads as `SelectTestResult | null` instead
 // of an inlined ReturnType pull.
@@ -192,7 +196,14 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
   }
   lines.push("");
 
-  const lev = (recommendation && recommendation.levene) || {};
+  const lev = ((recommendation && recommendation.levene) || {}) as {
+    F?: number;
+    df1?: number;
+    df2?: number;
+    p?: number;
+    equalVar?: boolean | null;
+    error?: string;
+  };
   lines.push("Levene (Brown-Forsythe) test for equal variance");
   if (lev.error) {
     lines.push("  error: " + lev.error);
@@ -717,7 +728,14 @@ export function StatsTile({
 
   // ── Assumptions section ───────────────────────────────────────────────
   const norm = (recommendation && recommendation.normality) || [];
-  const lev = (recommendation && recommendation.levene) || {};
+  const lev = ((recommendation && recommendation.levene) || {}) as {
+    F?: number;
+    df1?: number;
+    df2?: number;
+    p?: number;
+    equalVar?: boolean | null;
+    error?: string;
+  };
   const normalityRows = norm.map((r) =>
     h(
       "tr",

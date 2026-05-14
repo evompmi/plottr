@@ -17,6 +17,7 @@ import type {
 } from "./helpers";
 import { UPSET_HOWTO } from "./howto";
 
+import { downloadCsv, fileBaseName } from "../_core/download";
 const { useEffect, useMemo } = React;
 
 // ── Upload step ─────────────────────────────────────────────────────────────

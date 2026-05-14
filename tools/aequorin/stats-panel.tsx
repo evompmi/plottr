@@ -41,6 +41,12 @@ import {
   StatsGroup,
 } from "./helpers";
 
+import { svgSafeId } from "../_core/svg-export";
+import { downloadText, flashSaved } from "../_core/download";
+import { tinv } from "../_core/stats/dist";
+import { sampleMean, sampleSD } from "../_core/stats/tests";
+import { selectTest } from "../_core/stats/posthoc";
+import { formatP, pStars } from "../_core/stats/format";
 const { useState, useMemo, useEffect, useRef } = React;
 
 export function AequorinStatsDetail({
@@ -108,7 +114,17 @@ export function AequorinStatsDetail({
     color: "var(--neutral-text)",
   };
   const norm = rec.normality ?? [];
-  const lev = rec.levene ?? {};
+  // Widen `rec.levene` so this block can index `.F` / `.df1` etc. without
+  // per-access narrowing; the `lev.F != null` guard below covers the error
+  // / undefined cases at runtime.
+  const lev = (rec.levene ?? {}) as {
+    F?: number;
+    df1?: number;
+    df2?: number;
+    p?: number;
+    equalVar?: boolean | null;
+    error?: string;
+  };
 
   return (
     <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>

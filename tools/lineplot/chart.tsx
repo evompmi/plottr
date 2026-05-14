@@ -6,6 +6,8 @@
 import { MARGIN, STAR_ROW_H, buildLineD, ChartProps, SeriesPoint } from "./helpers";
 import { computeLegendHeight, renderSvgLegend } from "../_shell";
 import type { LegendBlock } from "../_shell";
+import { makeTicks } from "../_core/scale";
+import { pStars } from "../_core/stats/format";
 const { forwardRef } = React;
 
 export const Chart = forwardRef<SVGSVGElement, ChartProps>(function Chart(

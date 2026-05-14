@@ -10,10 +10,12 @@
 // ARE written to and read from the exported JSON file (explicit user opt-in
 // via Save / Load to file in PrefsPanel).
 //
-// `downloadText` and `setTimeout` / `clearTimeout` / `localStorage` /
-// `document` / `FileReader` are read off the ambient browser globals;
-// the test loader (`tests/helpers/prefs-loader.js`) stubs each one so
-// the pure functions can be exercised without a real browser.
+// `downloadText` is read off the ambient browser globals (populated by the
+// `_core/download.ts` shim at runtime). Stays as an ambient reference (not
+// a direct import) so the test loader (`tests/helpers/prefs-loader.js`)
+// can stub it on the vm context for the exportPrefsFile capture asserts.
+// Browser globals (`setTimeout` / `clearTimeout` / `localStorage` /
+// `document` / `FileReader`) are stubbed by the same loader.
 
 declare const downloadText: (text: string, filename: string) => void;
 

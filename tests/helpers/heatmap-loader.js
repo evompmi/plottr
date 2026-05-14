@@ -18,7 +18,7 @@ const {
 
 const sharedSrc = readCoreSharedSource();
 const statsSrc = readStatsSource();
-const helpersCjs = bundleShell("heatmap/helpers.ts", { transform: true });
+const helpersCjs = bundleShell("heatmap/helpers.ts");
 
 const ctx = { ...builtins(), ...makeDomStubs() };
 vm.createContext(ctx);

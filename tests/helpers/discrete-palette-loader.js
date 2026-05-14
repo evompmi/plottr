@@ -18,7 +18,7 @@ const {
 } = require("./_shell-test-utils");
 
 const sharedSrc = readCoreSharedSource();
-const paletteCjs = bundleShell("_shell/discrete-palette.ts", { transform: true });
+const paletteCjs = bundleShell("_shell/discrete-palette.ts");
 
 const ctx = {
   ...builtins(),

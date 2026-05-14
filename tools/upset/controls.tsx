@@ -15,6 +15,7 @@ import { intersectionLabel } from "./helpers";
 import type { Intersection, PlotControlsProps, UpsetVis } from "./helpers";
 import { BAR_FILL_ENRICHED, BAR_FILL_DEPLETED } from "./chart";
 
+import { downloadCsv, fileBaseName } from "../_core/download";
 const { useState, useRef, useEffect } = React;
 
 export function ControlSection({

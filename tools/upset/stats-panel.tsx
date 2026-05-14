@@ -6,6 +6,7 @@
 import { intersectionShortLabel } from "./helpers";
 import type { IntersectionStatsPanelProps } from "./helpers";
 
+import { multisetExclusiveExpected } from "../_core/stats/msi";
 /* ── Intersection significance panel ────────────────────────────────────────
  *
  * Click-to-compute SuperExactTest-style multi-set intersection p-value for

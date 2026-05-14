@@ -23,6 +23,11 @@ import { UploadStep } from "./steps";
 import { PlotControls } from "./controls";
 import { DetailView, DetailPreviewCard } from "./plot-area";
 
+import { DIVERGING_PALETTES } from "../_core/color";
+import { seededRandom } from "../_core/numeric";
+import { autoDetectSep, fixDecimalCommas, parseWideMatrix } from "../_core/csv";
+import { downloadPng, downloadSvg, fileBaseName, flashSaved } from "../_core/download";
+import { hclust, kmeans, pairwiseDistance } from "../_core/stats/cluster";
 const { useState, useReducer, useMemo, useCallback, useRef } = React;
 
 const VIS_INIT_HEATMAP = {
@@ -187,7 +192,7 @@ export function App() {
       if (normalized.length < 2) return null;
       const D = pairwiseDistance(normalized, distanceMetric);
       const h = hclust(D, linkageMethod);
-      return { mode: "hierarchical", tree: h.tree, order: h.order };
+      return { mode: "hierarchical", tree: h.tree as unknown as HClustNode, order: h.order };
     }
     if (rowMode === "kmeans") {
       if (normalized.length < 2) return null;
@@ -211,7 +216,7 @@ export function App() {
     if (colMode === "hierarchical") {
       const D = pairwiseDistance(T, distanceMetric);
       const h = hclust(D, linkageMethod);
-      return { mode: "hierarchical", tree: h.tree, order: h.order };
+      return { mode: "hierarchical", tree: h.tree as unknown as HClustNode, order: h.order };
     }
     if (colMode === "kmeans") {
       const k = Math.max(2, Math.min(colK, nCols));

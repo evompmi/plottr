@@ -26,6 +26,7 @@
 
 import { ActionsPanel, type ActionsPanelDownload } from "./ActionsPanel";
 
+import { downloadPng, downloadSvg } from "../_core/download";
 interface DownloadTilesProps {
   chartRef: React.RefObject<SVGSVGElement | null>;
   fileStem: string;

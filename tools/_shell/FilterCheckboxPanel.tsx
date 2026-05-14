@@ -5,6 +5,8 @@
 //
 // `isNumericValue` is read off the ambient browser globals.
 
+import { isNumericValue } from "../_core/numeric";
+
 const h = React.createElement;
 
 interface FilterCheckboxPanelProps {

@@ -43,10 +43,7 @@ vm.runInContext(statsSrc, ctx);
 // they're hoisted to the global object.
 const COLOR_PALETTES = vm.runInContext("COLOR_PALETTES", ctx);
 
-const scatterHelpers = requireViaTmpFile(
-  "scatter-helpers",
-  bundleShell("scatter/helpers.ts", { transform: true })
-);
+const scatterHelpers = requireViaTmpFile("scatter-helpers", bundleShell("scatter/helpers.ts"));
 
 module.exports = {
   parseRaw: ctx.parseRaw,

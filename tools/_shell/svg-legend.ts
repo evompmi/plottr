@@ -15,10 +15,7 @@
 // stay as literal hex per the chrome / SVG split — see
 // `tools/CLAUDE.md` § Theming and the no-css-var-in-svg lint rule).
 //
-// `svgSafeId` is read off the ambient browser globals (still a global from
-// shared.js); the module declares it locally so TS sees the right shape.
-
-declare const svgSafeId: (s: string) => string;
+import { svgSafeId } from "../_core/svg-export";
 
 const h = React.createElement;
 

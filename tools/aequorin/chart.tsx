@@ -23,6 +23,9 @@ import {
   renderSvgLegend,
 } from "../_shell";
 import type { LegendBlock } from "../_shell";
+import { seededRandom } from "../_core/numeric";
+import { makeTicks } from "../_core/scale";
+import { tinv } from "../_core/stats/dist";
 const { forwardRef, useRef, useEffect, memo } = React;
 
 // ── Chart ────────────────────────────────────────────────────────────────────

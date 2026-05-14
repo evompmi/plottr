@@ -19,6 +19,7 @@ import {
 import type { ConfigureStepProps, PlotStepProps } from "./helpers";
 import { VolcanoChart } from "./chart";
 
+import { fileBaseName } from "../_core/download";
 // ── Configure step ─────────────────────────────────────────────────────
 //
 // Same shape as boxplot's ConfigureStep — coloured `AesBox`-style cards

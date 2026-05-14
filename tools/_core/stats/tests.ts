@@ -519,7 +519,15 @@ export function pearsonCorrelation(
 ): PearsonResult {
   const { xs, ys, n } = _pairwiseComplete(x, y);
   if (n < 3) {
-    return { r: NaN, t: NaN, df: 0, p: NaN, n, error: "Need ≥3 complete pairs" };
+    return {
+      r: NaN,
+      t: NaN,
+      df: 0,
+      p: NaN,
+      n,
+      ci: { lo: NaN, hi: NaN },
+      error: "Need ≥3 complete pairs",
+    };
   }
   const mx = sampleMean(xs);
   const my = sampleMean(ys);
@@ -540,6 +548,7 @@ export function pearsonCorrelation(
       df: n - 2,
       p: NaN,
       n,
+      ci: { lo: NaN, hi: NaN },
       error: "Data are essentially constant (zero variance in x or y)",
     };
   }
@@ -569,14 +578,30 @@ export function spearmanCorrelation(
 ): SpearmanResult {
   const { xs, ys, n } = _pairwiseComplete(x, y);
   if (n < 3) {
-    return { rho: NaN, t: NaN, df: 0, p: NaN, n, error: "Need ≥3 complete pairs" };
+    return {
+      rho: NaN,
+      t: NaN,
+      df: 0,
+      p: NaN,
+      n,
+      ci: { lo: NaN, hi: NaN },
+      error: "Need ≥3 complete pairs",
+    };
   }
   const { ranks: rx } = rankWithTies(xs);
   const { ranks: ry } = rankWithTies(ys);
   // Reuse the Pearson implementation on the rank vectors.
   const pearsonOnRanks = pearsonCorrelation(rx, ry, opts);
   if (pearsonOnRanks.error) {
-    return { rho: NaN, t: NaN, df: n - 2, p: NaN, n, error: pearsonOnRanks.error };
+    return {
+      rho: NaN,
+      t: NaN,
+      df: n - 2,
+      p: NaN,
+      n,
+      ci: { lo: NaN, hi: NaN },
+      error: pearsonOnRanks.error,
+    };
   }
   const rho = pearsonOnRanks.r;
   const df = n - 2;

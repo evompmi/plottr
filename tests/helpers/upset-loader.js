@@ -9,7 +9,7 @@ const vm = require("vm");
 const { builtins, bundleShell, runCjs, readCoreSharedSource } = require("./_shell-test-utils");
 
 const sharedSrc = readCoreSharedSource();
-const helpersCjs = bundleShell("upset/helpers.ts", { transform: true });
+const helpersCjs = bundleShell("upset/helpers.ts");
 
 const ctx = builtins();
 vm.createContext(ctx);

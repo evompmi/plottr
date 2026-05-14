@@ -27,6 +27,9 @@ import {
   makeValueScale,
 } from "./scales";
 
+import { getPointColors } from "../_core/color";
+import { seededRandom } from "../_core/numeric";
+import { kde } from "../_core/descriptive";
 const { forwardRef, useRef } = React;
 
 function statsTextLines(

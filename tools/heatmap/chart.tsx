@@ -20,6 +20,8 @@ import {
   type DendroLayoutSegment,
 } from "./helpers";
 
+import { COLOR_PALETTES, interpolateColor } from "../_core/color";
+import { registerSvgExportMutator, unregisterSvgExportMutator } from "../_core/svg-export";
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
 
 // ── Cell-grid rasterisation tuning ─────────────────────────────────────────

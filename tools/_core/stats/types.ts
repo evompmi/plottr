@@ -70,7 +70,10 @@ export interface PearsonResult extends SampleErr {
   df: number;
   p: number;
   n: number;
-  ci?: CorrelationCI;
+  // Always present at runtime — set to `{ lo: NaN, hi: NaN }` for n < 4 where
+  // the Fisher-z CI is undefined. Required (not optional) so callers can
+  // index `.ci.lo` without narrowing.
+  ci: CorrelationCI;
 }
 
 export interface SpearmanResult extends SampleErr {
@@ -79,7 +82,7 @@ export interface SpearmanResult extends SampleErr {
   df: number;
   p: number;
   n: number;
-  ci?: CorrelationCI;
+  ci: CorrelationCI;
 }
 
 export interface KendallResult extends SampleErr {
@@ -227,4 +230,9 @@ export interface KMeansResult {
 }
 
 export type DistanceMetric = "euclidean" | "manhattan" | "correlation";
-export type LinkageMethod = "average" | "complete" | "single";
+// "average" (UPGMA), "complete", "single" are computed exactly. Any other
+// value — historically "ward" from the heatmap UI — falls through to UPGMA
+// average. Documented in `_core/stats/cluster.ts`'s `hclust`; the wider
+// string type here accommodates the heatmap's existing labelled-but-fallback
+// option without forcing a UI change.
+export type LinkageMethod = "average" | "complete" | "single" | "ward";

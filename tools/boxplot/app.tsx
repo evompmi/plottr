@@ -18,6 +18,19 @@ import { PlotControls } from "./controls";
 import { PlotArea, FacetPlotList } from "./plot-area";
 import { BoxplotStatsPanel, statsInit, statsReducer } from "./stats-panel";
 
+import { PALETTE } from "../_core/color";
+import { isNumericValue, seededRandom } from "../_core/numeric";
+import {
+  autoDetectSep,
+  detectWideFormat,
+  fixDecimalCommas,
+  guessColumnType,
+  parseRaw,
+  reshapeWide,
+  wideToLong,
+} from "../_core/csv";
+import { computeGroupStats, computeStats, quartiles } from "../_core/descriptive";
+import { downloadPng, downloadSvg } from "../_core/download";
 const { useState, useReducer, useMemo, useCallback, useRef } = React;
 
 const VIS_INIT_BOXPLOT = {

@@ -49,8 +49,18 @@ export const PLOTTR_ATTRIBUTION_PAD = 14;
 // rather than wait for GC.
 
 type ExportMutator = (svgClone: SVGElement) => void;
+// The registry lives on `globalThis` rather than module scope so that two
+// separately-bundled copies of `_core/svg-export.ts` (e.g. the SPA bundle
+// and a tool's standalone test bundle) share one WeakMap. Otherwise a
+// chart registers into closure-A and the export call reads from closure-B,
+// missing the mutator entirely.
+const _gMut = globalThis as { __plottrSvgMutators?: WeakMap<SVGElement, ExportMutator> | null };
+if (_gMut.__plottrSvgMutators === undefined) {
+  _gMut.__plottrSvgMutators =
+    typeof WeakMap === "function" ? new WeakMap<SVGElement, ExportMutator>() : null;
+}
 const _svgExportMutators: WeakMap<SVGElement, ExportMutator> | null =
-  typeof WeakMap === "function" ? new WeakMap() : null;
+  _gMut.__plottrSvgMutators as WeakMap<SVGElement, ExportMutator> | null;
 
 export function registerSvgExportMutator(svgEl: SVGElement, mutator: ExportMutator): void {
   if (!_svgExportMutators || !svgEl || typeof mutator !== "function") return;

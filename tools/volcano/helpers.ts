@@ -27,6 +27,8 @@
 // over the bar. NS dots typically dominate the chart (~80–95 % of all
 // points); going much darker would visually overwhelm the up/down dots,
 // so the smallest crossing-the-line change is the right one.
+import { isNumericValue, toNumericValue } from "../_core/numeric";
+
 export const VOLCANO_DEFAULT_COLORS = {
   up: "#D55E00",
   down: "#0072B2",

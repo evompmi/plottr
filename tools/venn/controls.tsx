@@ -14,6 +14,8 @@ import {
 import { regionLabel, regionFilenamePart } from "./helpers";
 import type { PlotControlsProps, Region, VennVis } from "./helpers";
 
+import { PALETTE } from "../_core/color";
+import { downloadCsv, fileBaseName } from "../_core/download";
 export function PlotControls({
   allSetNames,
   allSets,

@@ -5,14 +5,14 @@
 // plotted (post-normalisation, post-reordering) matrix into the headers +
 // rows arrays expected by `downloadCsv`.
 //
-// Consumes global helpers (COLOR_PALETTES, DIVERGING_PALETTES,
-// sanitizeRString, formatRNumber) from shared.bundle.js — same way every
-// other reports.ts does.
+// Imports the palette catalogue from `_core/color` and the R-string
+// formatters from `_shell/r-export`. Pre-migration these were script-scope
+// globals; the v1.6.x kernel migration moved them under proper modules and
+// the per-caller sweep replaced the ambient `declare const` block with
+// these explicit imports.
 
-declare const COLOR_PALETTES: Record<string, string[]>;
-declare const DIVERGING_PALETTES: Set<string>;
-declare const sanitizeRString: (s: string) => string;
-declare const formatRNumber: (v: number) => string;
+import { sanitizeRString, formatRNumber } from "../_shell/r-export";
+import { COLOR_PALETTES, DIVERGING_PALETTES } from "../_core/color";
 
 import type {
   CellBorderState,

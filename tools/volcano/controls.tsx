@@ -29,6 +29,7 @@ import type {
 } from "./helpers";
 import { matchPointsByLabel } from "./helpers";
 
+import { COLOR_PALETTES, DIVERGING_PALETTES, interpolateColor } from "../_core/color";
 const { useState, useEffect, useRef, useMemo } = React;
 
 // ── AesBox themes — one source of truth used by Configure tiles +
