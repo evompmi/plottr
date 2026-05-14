@@ -82,6 +82,14 @@ function eq(actual, expected, msg) {
 }
 
 function approx(actual, expected, tol = 1e-9, msg) {
+  // `Math.abs(NaN - x) > tol` is `false`, so the naïve form silently
+  // accepts NaN. Reject any non-finite actual unless the expected itself
+  // is the same non-finite value — otherwise a kernel that returns NaN
+  // when it shouldn't can sneak past a tolerance check.
+  if (!Number.isFinite(actual)) {
+    if (Object.is(actual, expected)) return;
+    throw new Error(msg || `Expected ≈${expected}, got ${actual}`);
+  }
   if (Math.abs(actual - expected) > tol)
     throw new Error(msg || `Expected ≈${expected}, got ${actual}`);
 }

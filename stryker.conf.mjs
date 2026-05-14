@@ -36,20 +36,26 @@ export default {
     // Active target. Swap for one of the pending entries below to measure
     // another module.
     //
-    // format.ts pilot — 2026-05-14: 95.56% raw, 100% non-equivalent (45
-    // mutants, 43 killed, 2 surviving mutants both provably equivalent —
-    // `p == null || !Number.isFinite(p)` → `false || !Number.isFinite(p)`,
-    // observably identical because null/undefined fail Number.isFinite
-    // anyway). pStars went from zero direct coverage to comprehensive
-    // boundary tests in `tests/stats.test.js`.
-    "tools/_core/stats/msi.ts",
+    // Verified post-migration:
+    //   - format.ts  — 95.56% raw, 100% non-equivalent (45 mutants, 43
+    //                  killed, 2 provably-equivalent residuals on the
+    //                  `p == null` short-circuit).
+    //   - msi.ts     — 72.20% raw, ~67 residuals largely equivalent
+    //                  (saturation guards are optimisations; betai/DP
+    //                  return the same values without them).
+    //   - cluster.ts — 68.82% raw, 139 residuals mostly equivalent
+    //                  (balanced hclust trees, boundary equalities at
+    //                  ties, single-step kmeans convergence). Surfaced
+    //                  + fixed a real `approx` NaN-pass bug in
+    //                  `tests/harness.js`.
+    "tools/_core/stats/cluster.ts",
     //
     // Pending — uncomment one at a time and re-run:
     // "tools/_core/stats/format.ts",
+    // "tools/_core/stats/msi.ts",
     // "tools/_core/stats/dist.ts",
     // "tools/_core/stats/tests.ts",
     // "tools/_core/stats/posthoc.ts",
-    // "tools/_core/stats/cluster.ts",
     // "tools/volcano/helpers.ts",
     // "tools/scatter/helpers.ts",
     // "tools/lineplot/helpers.ts",
