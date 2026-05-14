@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Boxplot color-by jitter now spreads single-point categories.** The
+  Park-Miller seeded PRNG used for jitter offsets returns near-zero values
+  on the first call for small seeds, so a color-by source with only one
+  point per category had every dot pinned to the left edge of the jitter
+  band. `seededRandom()` now burns one LCG step before returning so the
+  first observable output is properly mixed.
+
 ## [1.5.0] - 2026-05-14
 
 > Long-form release notes — what shipped, why, and how — live in

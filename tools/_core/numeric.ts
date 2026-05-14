@@ -45,8 +45,18 @@ export function toNumericValue(v: unknown): number {
 
 export function seededRandom(seed: number): () => number {
   let s = seed;
+  // Burn one LCG step before returning so the first observable output is
+  // properly mixed. Park-Miller's first step on a small seed produces
+  // roughly `seed * 16807 / 2^31`, so adjacent small seeds (e.g. the
+  // per-source `gi*1000 + si*100 + 42` pattern the boxplot jitter uses)
+  // would otherwise all return near-identical small first values — a
+  // single-point source would then render its dot at the leftmost edge
+  // of the jitter band. One warm-up advances the state into a
+  // properly-mixed region of the cycle while keeping the function
+  // deterministic (re-renders don't re-jitter).
+  s = (s * 16807) % 2147483647;
   return () => {
-    s = (s * 16807 + 0) % 2147483647;
+    s = (s * 16807) % 2147483647;
     return s / 2147483647;
   };
 }
