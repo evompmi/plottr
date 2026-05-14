@@ -4,6 +4,8 @@
   "sideEffects": [
     "tools/_core/stats/*.ts",
     "tools/_core/stats/index.ts",
+    "tools/_core/*.ts",
+    "tools/_core/*.tsx",
     "tools/_core/shared.ts",
     "tools/_core/theme.ts"
   ],

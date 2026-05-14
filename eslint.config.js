@@ -246,6 +246,37 @@ module.exports = [
     },
   },
 
+  // `_core/*` modules are real ES modules with TS syntax. They legitimately
+  // *define* the names the rest of the codebase consumes as globals (via the
+  // trailing `globalThis.X = X` shims) — `no-redeclare` would otherwise flag
+  // every `export function toolIcon` against the `toolIcon` ambient in
+  // `sharedGlobals`. Use the TS parser so the .ts files parse, and turn off
+  // `no-redeclare` since the canonical source-of-truth for those names IS
+  // this folder.
+  {
+    files: ["tools/_core/**/*.ts", "tools/_core/**/*.tsx"],
+    plugins: {
+      "@typescript-eslint": tsPlugin,
+    },
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 2022,
+      sourceType: "module",
+      parserOptions: { ecmaFeatures: { jsx: true } },
+      globals: { ...browserPlus, ...sharedGlobals },
+    },
+    rules: {
+      "no-redeclare": "off",
+      "no-unused-vars": "off",
+      "no-undef": "off",
+      "no-empty": ["error", { allowEmptyCatch: true }],
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
+
   // Plot-tool app.tsx orchestrators (one per folder) must declare a
   // top-level `const EXAMPLE_CSV` / `EXAMPLE_TSV` for the "Try sample
   // data" button — see scripts/eslint-rules/require-example-const.js
