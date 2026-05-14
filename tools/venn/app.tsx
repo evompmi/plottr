@@ -228,7 +228,10 @@ export function App() {
       if (sn.length <= 3) {
         setPendingSelection(sn);
         commitSelection(sn, ss);
-        setStep("plot");
+        // Stop at the Configure step so the user always sees a data-preview
+        // pass — even when no picker is needed. The StepNavBar's Plot tab
+        // is reachable since canNavigate sees pendingSelection.length ∈ [2,3].
+        setStep("configure");
       } else {
         setPendingSelection([]);
         setSetNames([]);
