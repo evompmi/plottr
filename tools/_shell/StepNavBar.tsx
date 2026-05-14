@@ -102,6 +102,16 @@ export function StepNavBar(props: StepNavBarProps) {
           })
         : null;
 
+    // Visual weight scales with progress: past + current circles are large
+    // (36 px) and reachable / locked future circles are smaller (28 px) so
+    // the user's place in the flow is obvious at a glance. The current step
+    // gets an additional outer ring (rendered as a CSS outline so it never
+    // affects layout) in the same accent colour as the filled body —
+    // distinct from the 1 px border by virtue of the 2 px offset gap.
+    const isLarge = isCurrent || isPast;
+    const size = isLarge ? 36 : 28;
+    const numberFontSize = isLarge ? 16 : 13;
+
     const circle = h(
       "span",
       {
@@ -109,8 +119,8 @@ export function StepNavBar(props: StepNavBarProps) {
         style: {
           position: "relative",
           zIndex: 1,
-          width: 36,
-          height: 36,
+          width: size,
+          height: size,
           borderRadius: "50%",
           display: "inline-flex",
           alignItems: "center",
@@ -118,15 +128,44 @@ export function StepNavBar(props: StepNavBarProps) {
           background: circleBg,
           border: circleBorder,
           color: circleColor,
-          fontSize: 16,
+          fontSize: numberFontSize,
           fontWeight: 600,
           lineHeight: 1,
           boxSizing: "border-box",
+          // Current-step halo: an outline sits OUTSIDE the box without
+          // contributing to layout (unlike `border`), so the surrounding
+          // circles stay anchored to the same baseline. `outlineOffset`
+          // creates the visible gap between the filled body and the ring.
+          ...(isCurrent
+            ? {
+                outline: "2px solid var(--step-active-border)",
+                outlineOffset: "2px",
+              }
+            : null),
           transition:
-            "background 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out",
+            "background 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out, width 160ms ease-out, height 160ms ease-out, outline-color 160ms ease-out",
         },
       },
       circleContent
+    );
+
+    // Fixed 36 px row containing the circle so smaller (future) circles stay
+    // vertically centred on the connector line and labels keep a consistent
+    // baseline across the row.
+    const circleRow = h(
+      "div",
+      {
+        key: "circle-row",
+        style: {
+          height: 36,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          zIndex: 1,
+        },
+      },
+      circle
     );
 
     const label = h(
@@ -171,7 +210,7 @@ export function StepNavBar(props: StepNavBarProps) {
           zIndex: 1,
         },
       },
-      circle,
+      circleRow,
       label
     );
 
