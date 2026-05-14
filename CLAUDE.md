@@ -18,14 +18,16 @@ This file holds repo-wide rules. Folder-scoped details live in nested `CLAUDE.md
 
 If a rule applies regardless of folder (code style, build commands, the pre-commit hook, changelog policy), it stays here.
 
+**Keep these files in sync with the current state of the tool.** When you change architecture, folder layout, conventions, build flags, test infrastructure, or any other fact described in a `CLAUDE.md`, update the matching `CLAUDE.md` in the same commit. The docs are descriptive (what exists today) — not historical (what used to be). Don't carry phrases like "the previous X was retired in favour of Y" or "pre-vN.M migration this used to be …"; rewrite to describe Y directly. If a rule used to be different and the reason still matters, capture it in the relevant `docs/release-notes/v<version>.md` instead.
+
 ## Code style & conventions
 
 ### JavaScript / TypeScript
 
 - Use `const` / `let` — never `var`. The codebase is ES2022 throughout.
 - Arrow functions preferred for callbacks; regular `function` declarations for named top-level functions.
-- All `.tsx` and `.ts` files under `tools/` are type-checked with `strict: true` plus `noImplicitReturns` and `noFallthroughCasesInSwitch`. Annotate every parameter, return type, and prop bag — pure helpers (`_core/**`, `_shell/**`, `<tool>/helpers.ts`, `venn/*.ts`, …) and React-tier components alike. The 2026-05 React-tier campaign retired the prior `: any` blessing for sprawling step-component prop bags: every plot tool now declares typed prop interfaces (`BoxplotChartProps`, `VolcanoStyleTileProps`, etc.) in its `helpers.ts` barrel, and the React surface type-checks end to end (zero `: any` destructures across `app.tsx` / `steps.tsx` / `controls.tsx` / `chart.tsx` / `plot-area.tsx`). Don't reach for `: any` — if a prop bag feels unwieldy, lift the shape into a typed interface alongside the pure helpers.
-- The shared kernel lives as ES modules under `tools/_core/` (numerical / stats / parsing / theme). Each module emits real `export` declarations; every tool caller imports its symbols directly. The earlier `globalThis.X = X` transitional shim layer was retired once the per-caller sweep completed — `_core/*` modules are now pure ES modules with no global side effects (except `_core/svg-export.ts`'s `_svgExportMutators` WeakMap, which is intentionally singleton-on-globalThis for cross-bundle correctness).
+- All `.tsx` and `.ts` files under `tools/` are type-checked with `strict: true` plus `noImplicitReturns` and `noFallthroughCasesInSwitch`. Annotate every parameter, return type, and prop bag — pure helpers (`_core/**`, `_shell/**`, `<tool>/helpers.ts`, `venn/*.ts`, …) and React-tier components alike. Every plot tool declares typed prop interfaces (`BoxplotChartProps`, `VolcanoStyleTileProps`, etc.) in its `helpers.ts` barrel; the React surface type-checks end to end (zero `: any` destructures across `app.tsx` / `steps.tsx` / `controls.tsx` / `chart.tsx` / `plot-area.tsx`). Don't reach for `: any` — if a prop bag feels unwieldy, lift the shape into a typed interface alongside the pure helpers.
+- The shared kernel lives as ES modules under `tools/_core/` (numerical / stats / parsing / theme). Each module emits real `export` declarations; every tool caller imports its symbols directly. `_core/*` modules have no `globalThis` side effects, except `_core/svg-export.ts`'s `_svgExportMutators` WeakMap, which is intentionally singleton-on-globalThis for cross-bundle correctness.
 
 ### Formatting (Prettier, enforced in CI)
 
@@ -41,7 +43,7 @@ If a rule applies regardless of folder (code style, build commands, the pre-comm
 - `eslint.config.js` defines three environments:
   - **Node/CommonJS** — `eslint.config.js`, `scripts/**/*.js`, `benchmark/**/*.js`, `tests/**/*.js`
   - **Browser + shared globals** — `tools/*.tsx` (TypeScript parser, React plugin)
-  - **Browser + shared globals** — `tools/*.js` (residual hand-written script-scope files; `no-unused-vars` and `no-redeclare` disabled because names are consumed as globals). Most legacy `tools/*.js` files (`shared.js`, `stats-*.js`, `theme.js`) were retired in the v1.6 `_core/` migration — only future leaf scripts pick this environment up.
+  - **Browser + shared globals** — `tools/*.js` (any future hand-written script-scope leaf file; `no-unused-vars` and `no-redeclare` disabled because names are consumed as globals). The shared kernel lives under `tools/_core/` as TypeScript modules, so this environment now only catches occasional leaf scripts.
 - Compiled outputs (`tools/boxplot.js`, etc.) and the generated `tools/shared.bundle.js` are in the `ignores` list — never lint generated files.
 - `@typescript-eslint/no-unused-vars` warns on unused vars/args in `.tsx` files; prefix with `_` to suppress.
 
@@ -82,13 +84,13 @@ The hook installs automatically via `npm install` (`prepare` script runs `script
 
 **Any user-visible change must be logged in `CHANGELOG.md` under `## [Unreleased]`** before the commit that ships it, using the Keep a Changelog sections (`Added` / `Changed` / `Fixed` / `Removed`). This applies to bug fixes, new features, UI tweaks, and behavior changes — not to internal refactors or test-only edits. Don't wait to be asked — update the changelog in the same commit as the code change.
 
-**Length convention (introduced in 1.1.0).** A changelog entry is one or two short sentences:
+**Length convention.** A changelog entry is one or two short sentences:
 the _what_, optionally a tiny piece of _why_ if it isn't obvious from the title, and (where it
 helps) a "regression: N tests" tag. Keep it under ~80 words. The full long-form context — root
 cause, alternatives considered, file-by-file inventory, trade-offs — goes into a per-release
 note under `docs/release-notes/<version>.md` linked from the version heading. The CHANGELOG is
-the index, not the encyclopedia. Older entries (v1.0.x and earlier) intentionally retain their
-long-form prose as historical record; the new convention applies prospectively.
+the index, not the encyclopedia. Some older v1.0.x entries still carry long-form prose; treat
+those as legacy and apply the short convention to anything new.
 
 When you cut a release, _before_ renaming `## [Unreleased]` to the version heading, lift any
 long-form prose that grew during the cycle into `docs/release-notes/v<version>.md` and shorten
