@@ -61,8 +61,15 @@ const config = {
     //   - msi.ts     — 72.20% raw, ~67 residuals largely equivalent
     //                  (saturation guards are optimisations; betai/DP
     //                  return the same values without them).
-    //   - cluster.ts — 68.82% raw, 139 residuals (not re-measured post-
-    //                  fix; 448 mutants — almost certainly unaffected).
+    //   - cluster.ts — 87.97% raw, 449 mutants (376 killed + 19 timeout,
+    //                  54 survived). 2026-05-15 re-run reproduced the
+    //                  pre-fix 68.82%, then 9 kmeans + tree path pins
+    //                  (multi-iteration loop, empty-cluster reseed,
+    //                  default-option ternaries, maxIter cap, seed≤0
+    //                  normalization, NaN-cell centroid mean) lifted it.
+    //                  Residual 54 equivalent — loop bounds, strict-
+    //                  binary-tree symmetry, new Array sizing, dead
+    //                  branches — plus a few contrived-only.
     //   - dist.ts    — 62.83% raw / 67.11% covered, 1208 mutants (737
     //                  killed + 22 timeout, 372 survived + 77 no-cov).
     //                  Re-run 2026-05-15 post loader-fix; matches the
@@ -92,14 +99,14 @@ const config = {
     //                  contribute zero, dead [0,1] clamps) plus kendallTau
     //                  higher-order tie corrections that need R-verified
     //                  references for size-≥3 tie groups on both axes.
-    "tools/_core/stats/tests.ts",
+    "tools/_core/stats/cluster.ts",
     //
     // Pending — uncomment one at a time and re-run:
     // "tools/_core/stats/format.ts",
     // "tools/_core/stats/msi.ts",
-    // "tools/_core/stats/cluster.ts",
-    // "tools/_core/stats/dist.ts",
     // "tools/_core/stats/posthoc.ts",
+    // "tools/_core/stats/tests.ts",
+    // "tools/_core/stats/dist.ts",
     // "tools/volcano/helpers.ts",
     // "tools/scatter/helpers.ts",
     // "tools/lineplot/helpers.ts",

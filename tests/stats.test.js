@@ -3501,4 +3501,173 @@ test("etaSquared returns NaN (not 0) when its ANOVA errors", () => {
   );
 });
 
+// ── cluster.ts — kmeans + tree path pins (mutation audit) ──────────────────
+//
+// The kmeans suites above run well-separated blobs that converge in a
+// single refinement step, so the multi-iteration loop, the empty-cluster
+// reseed (L308-325), and the dendrogram leaf walk stay under-exercised.
+// These drive data that actually reaches those paths.
+
+suite("cluster.ts — kmeans + tree path pins");
+
+test("kmeans multi-iteration run — clusters / iterations / inertia pinned", () => {
+  // A 1-D ramp at k=3 takes three refinement iterations to settle (seed 5,
+  // restarts 1). A mutant that cuts the loop short — `changed` never set
+  // true, or the `!changed` break inverted — returns the 1-iteration
+  // partition with a different label vector and a higher inertia.
+  const line = [[0], [1], [2], [3], [4], [5], [6], [7], [8]];
+  const res = kmeans(line, 3, { seed: 5, restarts: 1, maxIter: 100 });
+  eq(res.iterations, 3);
+  eq(JSON.stringify(res.clusters), JSON.stringify([2, 2, 1, 1, 1, 0, 0, 0, 0]));
+  approx(res.inertia, 7.5, 1e-12);
+  // `order` sorts rows within each cluster by distance to their centroid —
+  // pins the L243 members.sort comparator.
+  eq(JSON.stringify(res.order), JSON.stringify([6, 7, 5, 8, 3, 2, 4, 0, 1]));
+});
+
+test("kmeans result is a Lloyd fixed point — every row sits at its nearest centroid", () => {
+  // Seed-independent invariant of a converged partition. A short-circuited
+  // refinement leaves rows attached to a stale pre-update centroid.
+  const line = [[0], [1], [2], [3], [4], [5], [6], [7], [8]];
+  const res = kmeans(line, 3, { seed: 5, restarts: 1, maxIter: 100 });
+  const sq = (a, b) => {
+    let s = 0;
+    for (let j = 0; j < a.length; j++) s += (a[j] - b[j]) ** 2;
+    return s;
+  };
+  for (let i = 0; i < line.length; i++) {
+    let nearest = 0;
+    let nd = sq(line[i], res.centroids[0]);
+    for (let c = 1; c < res.centroids.length; c++) {
+      const dc = sq(line[i], res.centroids[c]);
+      if (dc < nd) {
+        nd = dc;
+        nearest = c;
+      }
+    }
+    eq(res.clusters[i], nearest, `row ${i} must sit in its nearest centroid`);
+  }
+});
+
+test("kmeans empty-cluster path — k > distinct points keeps centroids finite", () => {
+  // Only two distinct points but k=4: kmeans++ collides centroids, clusters
+  // go empty, and the L309-325 empty-cluster block runs. It must keep every
+  // centroid coordinate finite — a skipped reseed leaves the centroid
+  // update's `counts[c][j] > 0 ? … : NaN` to emit NaN coords, and a row
+  // pointed at a NaN centroid pushes inertia to Infinity.
+  const dup = [
+    [0, 0],
+    [0, 0],
+    [0, 0],
+    [100, 100],
+    [100, 100],
+    [100, 100],
+  ];
+  const res = kmeans(dup, 4, { seed: 1, restarts: 1 });
+  for (const cent of res.centroids) {
+    for (const v of cent) assert(Number.isFinite(v), `centroid coord finite, got ${v}`);
+  }
+  eq(JSON.stringify(res.clusters), JSON.stringify([3, 0, 0, 1, 1, 1]));
+  approx(res.inertia, 0, 1e-12);
+});
+
+test("hclust walk emits a complete leaf ordering", () => {
+  // `order` must be a permutation of every original row index; a mutant
+  // collapsing the leaf test in `walk` pushes only the root (-1) or
+  // recurses past leaves and pushes nothing.
+  const D = pairwiseDistance(
+    [
+      [0, 0],
+      [1, 0],
+      [10, 0],
+      [11, 0],
+    ],
+    "euclidean"
+  );
+  const { order } = hclust(D, "complete");
+  eq(JSON.stringify([...order].sort((a, b) => a - b)), JSON.stringify([0, 1, 2, 3]));
+});
+
+test("dendrogramLayout — 3 segments per internal node, all coords finite", () => {
+  // 4 leaves → 3 internal nodes → 9 segments. Finite coords prove the leaf
+  // numbering walk ran (a mutant skipping it leaves `_leafPos` undefined).
+  const D = pairwiseDistance(
+    [
+      [0, 0],
+      [1, 0],
+      [10, 0],
+      [11, 0],
+    ],
+    "euclidean"
+  );
+  const { tree } = hclust(D, "complete");
+  const layout = dendrogramLayout(tree);
+  eq(layout.segments.length, 9);
+  for (const seg of layout.segments) {
+    assert(
+      Number.isFinite(seg.x1) &&
+        Number.isFinite(seg.y1) &&
+        Number.isFinite(seg.x2) &&
+        Number.isFinite(seg.y2),
+      "segment coords finite"
+    );
+  }
+  approx(layout.maxHeight, 11, 1e-9);
+});
+
+test("kmeans default options — omitted seed/restarts/maxIter run deterministically", () => {
+  // No opts → seed=1, restarts=8, maxIter=100. Pins the
+  // `options.X != null ? options.X : default` ternaries: a mutant forcing
+  // the `options.X` branch reads `undefined` and the RNG collapses.
+  const line = [[0], [1], [2], [3], [4], [5], [6], [7], [8]];
+  const res = kmeans(line, 3);
+  eq(JSON.stringify(res.clusters), JSON.stringify([0, 0, 0, 2, 2, 2, 1, 1, 1]));
+  approx(res.inertia, 6, 1e-12);
+});
+
+test("kmeans honours a small maxIter — non-converging input stops at the cap", () => {
+  // The duplicate-point input never converges (the reseed keeps flipping
+  // labels); maxIter:5 must cap iterations at 5, not the default 100.
+  const dup = [
+    [0, 0],
+    [0, 0],
+    [0, 0],
+    [100, 100],
+    [100, 100],
+    [100, 100],
+  ];
+  const res = kmeans(dup, 4, { seed: 1, restarts: 1, maxIter: 5 });
+  eq(res.iterations, 5);
+});
+
+test("kmeans seed 0 — the seed≤0 normalization path produces a valid clustering", () => {
+  // kmeansRng maps a non-positive seed into (0, 2³¹−1) via `if (s <= 0)
+  // s += …`. seed 0 exercises that branch; a mutant skipping it leaves the
+  // Park-Miller LCG stuck at 0 so every draw collapses to the same index.
+  const line = [[0], [1], [2], [3], [4], [5], [6], [7], [8]];
+  const res = kmeans(line, 3, { seed: 0, restarts: 1, maxIter: 100 });
+  eq(JSON.stringify(res.clusters), JSON.stringify([1, 1, 1, 2, 2, 2, 0, 0, 0]));
+  approx(res.inertia, 6, 1e-12);
+});
+
+test("kmeans centroid mean skips NaN cells, not whole rows", () => {
+  // Cluster 0 holds [0,0], [0,10], [0,NaN]: the centroid's column 1 must
+  // average only the two finite cells → 5, rather than letting the NaN
+  // poison the whole coordinate.
+  const m = [
+    [0, 0],
+    [0, 10],
+    [0, NaN],
+    [100, 100],
+    [100, 100],
+    [100, 100],
+  ];
+  const res = kmeans(m, 2, { seed: 1, restarts: 1 });
+  eq(JSON.stringify(res.clusters), JSON.stringify([0, 0, 0, 1, 1, 1]));
+  approx(res.centroids[0][1], 5, 1e-12);
+  for (const cent of res.centroids) {
+    for (const v of cent) assert(Number.isFinite(v), `centroid coord finite, got ${v}`);
+  }
+});
+
 summary();
