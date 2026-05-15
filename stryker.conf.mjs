@@ -36,38 +36,46 @@ export default {
     // Active target. Swap for one of the pending entries below to measure
     // another module.
     //
+    // IMPORTANT — false survivors before the 2026-05-15 loader fix.
+    // The test loaders re-ran `esbuild.buildSync` on every test-file
+    // evaluation; under Stryker that is one esbuild service spawn per
+    // mutant, so a long run exhausted the OS process table, the esbuild
+    // service died mid-run, the loaders' require() threw, the test files
+    // registered zero tests, and every remaining mutant was scored as a
+    // false "survived" (and the run exited with a `spawn pgrep EAGAIN`).
+    // `tests/helpers/_shell-test-utils.js` now caches bundles on disk
+    // under Stryker. The scores below for the larger files (dist.ts,
+    // posthoc.ts — and possibly cluster.ts) were measured BEFORE the fix
+    // and are understated; re-run them for accurate numbers.
+    //
     // Verified post-migration:
     //   - format.ts  — 95.56% raw, 100% non-equivalent (45 mutants, 43
     //                  killed, 2 provably-equivalent residuals on the
     //                  `p == null` short-circuit).
     //   - msi.ts     — 72.20% raw, ~67 residuals largely equivalent
     //                  (saturation guards are optimisations; betai/DP
-    //                  return the same values without them).
-    //   - cluster.ts — 68.82% raw, 139 residuals mostly equivalent
-    //                  (balanced hclust trees, boundary equalities at
-    //                  ties, single-step kmeans convergence). Surfaced
-    //                  + fixed a real `approx` NaN-pass bug in
-    //                  `tests/harness.js`.
-    //   - dist.ts    — 63.08% raw / 67.37% covered, 369 survivors +
-    //                  77 no-coverage. Adding direct power* + PDF +
-    //                  complementary-tail tests killed 91 mutants and
-    //                  halved no-coverage (145 → 77). Residual mostly
-    //                  in chi2inv / tinv Newton internals and GL
-    //                  quadrature. ~27 min wall-clock per run.
-    //   - posthoc.ts — 73.35% raw / 75.29% covered, 168 survivors +
-    //                  18 no-coverage. Adding 11 selectTest narrative-
-    //                  content + branch-boundary pins killed 21 mutants
-    //                  (19 in the L400-449 selectTest cluster). Residual
-    //                  mostly equivalent (p ≥ α boundaries, narrative
-    //                  strings with shared key substrings, _wprob GL
-    //                  internals). ~4 min per run.
-    //   - tests.ts   — score PENDING a clean Stryker run. 16 targeted
-    //                  tests added (kendallTau exact-S pins, spearman
-    //                  monotone-extreme pins, η²/ε² boundary pins) and
-    //                  manually verified to kill representative mutants,
-    //                  but every `npm run mutation` attempt on this
-    //                  machine crashed with EAGAIN (process-table
-    //                  exhaustion) — re-run when the box is idle.
+    //                  return the same values without them). Pre-fix.
+    //   - cluster.ts — 68.82% raw, 139 residuals (pre-fix — re-measure).
+    //   - dist.ts    — 63.08% raw / 67.37% covered (PRE-FIX, understated:
+    //                  1208 mutants is well past the process-exhaustion
+    //                  threshold — re-run for the true score).
+    //   - posthoc.ts — 73.35% raw / 75.29% covered (PRE-FIX, likely
+    //                  understated at 698 mutants — re-run).
+    //   - tests.ts   — 87.83% raw / 88.42% covered, 1191 mutants (1025
+    //                  killed + 21 timeout, 137 survived + 8 no-coverage).
+    //                  ~2 min wall-clock. The pre-fix run scored a false
+    //                  58.77% (347 false survivors from the esbuild
+    //                  exhaustion above). After the loader fix the honest
+    //                  baseline was 76.49%; correlation + stats mutation-
+    //                  audit pins (error-message content, n-boundary
+    //                  guards, selectCorrelation structure/narrative,
+    //                  Spearman Fisher-z CI, ANOVA sums-of-squares) took
+    //                  it to 87.83%. Residual ~137 are largely equivalent
+    //                  (loop bounds whose inner loop cannot run, sign
+    //                  flips under squaring, ±1-size "tie" groups that
+    //                  contribute zero, dead [0,1] clamps) plus kendallTau
+    //                  higher-order tie corrections that need R-verified
+    //                  references for size-≥3 tie groups on both axes.
     "tools/_core/stats/tests.ts",
     //
     // Pending — uncomment one at a time and re-run:
