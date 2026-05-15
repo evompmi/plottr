@@ -494,7 +494,7 @@ export function AequorinStatsPanel({
 
   const isOpen = !!expanded[singleKey];
   const p =
-    enriched.testResult && !enriched.testResult.error ? (enriched.testResult as any).p : null;
+    enriched.testResult && !enriched.testResult.error ? (enriched.testResult.p ?? null) : null;
   const sig = p != null && p < 0.05;
   const stars = p != null ? pStars(p) : "";
 

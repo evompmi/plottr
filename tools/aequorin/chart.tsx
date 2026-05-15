@@ -695,7 +695,7 @@ export const FacetChartItem = memo(function FacetChartItem({
   facetRefs,
   chartProps,
 }: FacetChartItemProps) {
-  const localRef = useRef<any>(null);
+  const localRef = useRef<SVGSVGElement>(null);
   useEffect(() => {
     // See boxplot/plot-area.tsx — capture facetRefs.current locally so the
     // cleanup closes over the same map the effect mutated.

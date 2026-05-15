@@ -24,6 +24,31 @@ import { COLOR_PALETTES, interpolateColor } from "../_core/color";
 import { registerSvgExportMutator, unregisterSvgExportMutator } from "../_core/svg-export";
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
 
+// Ephemeral pointer-interaction state (see the block comment at the
+// `useState` declarations inside the component). `HoverCell` tracks the
+// tooltip target cell; `BrushState` the rectangular drag-selection;
+// `AxisHover` the dendrogram / cluster-strip subtree highlight. `xMin` /
+// `xMax` are set only for dendrogram-originated hovers — cluster-strip
+// hover carries `leaves` alone — so they are optional.
+interface HoverCell {
+  ri: number;
+  ci: number;
+  localX: number;
+  localY: number;
+}
+interface BrushState {
+  anchorRi: number;
+  anchorCi: number;
+  curRi: number;
+  curCi: number;
+}
+interface AxisHover {
+  axis: "row" | "col";
+  leaves: Set<number>;
+  xMin?: number;
+  xMax?: number;
+}
+
 // ── Cell-grid rasterisation tuning ─────────────────────────────────────────
 //
 // The cell grid always rasterises to canvas + `<image>` because at 100k+
@@ -335,9 +360,9 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
   // absolute` to the wrapper sidesteps the containing-block issue cleanly
   // and also works when the zoomed plot appears beside the main plot
   // (each chart has its own wrapper; tooltip positioning stays local).
-  const [hover, setHover] = useState<any>(null); // { ri, ci, localX, localY }
-  const [brush, setBrush] = useState<any>(null); // { anchorRi, anchorCi, curRi, curCi }
-  const [axisHover, setAxisHover] = useState<any>(null); // { axis, leaves: Set }
+  const [hover, setHover] = useState<HoverCell | null>(null);
+  const [brush, setBrush] = useState<BrushState | null>(null);
+  const [axisHover, setAxisHover] = useState<AxisHover | null>(null);
   const svgLocalRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
@@ -497,6 +522,9 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
   // leaf span sits inside the hovered node's span — O(1) per segment.
   function segmentInHover(seg: DendroLayoutSegment, axis: "row" | "col") {
     if (!axisHover || axisHover.axis !== axis) return false;
+    // xMin / xMax are absent for cluster-strip-originated hovers — those
+    // highlight via `leaves` only, never the dendrogram-segment span.
+    if (axisHover.xMin == null || axisHover.xMax == null) return false;
     return seg.xMin >= axisHover.xMin && seg.xMax <= axisHover.xMax;
   }
 
@@ -1390,7 +1418,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
         />
       </svg>
 
-      {hoverInfo && (
+      {hoverInfo && hover && (
         <div
           style={{
             position: "absolute",

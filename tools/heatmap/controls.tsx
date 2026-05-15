@@ -73,7 +73,7 @@ export function ClusterModeControl({ label, mode, setMode, k, setK }: ClusterMod
 // page scrolls — so the helper's window-scroll fallback does the work here.
 export function ControlSection({ title, defaultOpen = false, children }: ControlSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
-  const rootRef = useRef<any>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
     requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
