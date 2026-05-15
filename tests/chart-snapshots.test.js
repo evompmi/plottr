@@ -333,6 +333,71 @@ suite("chart snapshots — scatter");
       )
     ).toMatchSnapshot();
   });
+
+  // ── edge cases ────────────────────────────────────────────────────────────
+
+  test("edge — horizontal + vertical reference lines with labels", () => {
+    expect(
+      normalizeSvg(
+        renderHtml(ScatterChart, {
+          ...base,
+          title: "Reference Lines",
+          showGrid: true,
+          pointSize: 4,
+          pointOpacity: 0.7,
+          strokeColor: "#333",
+          strokeWidth: 0.5,
+          colorMapCol: -1,
+          colorMapDiscrete: {},
+          refLines: [
+            {
+              id: "h1",
+              dir: "h",
+              value: 5,
+              color: "#444",
+              dashed: true,
+              label: "y = 5",
+              labelSide: "right",
+            },
+            {
+              id: "v1",
+              dir: "v",
+              value: 4,
+              color: "#888",
+              dashed: false,
+              label: "x = 4",
+              labelSide: "top",
+            },
+            // value 99 is past yMax (10): the chart drops both line and label.
+            { id: "off", dir: "h", value: 99, color: "#444", label: "off-scale" },
+          ],
+        })
+      )
+    ).toMatchSnapshot();
+  });
+
+  test("edge — discrete size + shape mapping by category column", () => {
+    expect(
+      normalizeSvg(
+        renderHtml(ScatterChart, {
+          ...base,
+          title: "Size + Shape Map",
+          showGrid: false,
+          pointSize: 4,
+          pointOpacity: 0.8,
+          strokeColor: "#333",
+          strokeWidth: 0.4,
+          colorMapCol: -1,
+          colorMapDiscrete: {},
+          sizeMapCol: 2,
+          sizeMapType: "discrete",
+          sizeMapDiscrete: { A: 5, B: 11 },
+          shapeMapCol: 2,
+          shapeMapDiscrete: { A: "square", B: "triangle" },
+        })
+      )
+    ).toMatchSnapshot();
+  });
 })();
 
 // ── Aequorin (luminescence time-course) ─────────────────────────────────────
@@ -392,6 +457,61 @@ suite("chart snapshots — aequorin");
       )
     ).toMatchSnapshot();
   });
+
+  // ── edge cases ────────────────────────────────────────────────────────────
+
+  const aqBase = {
+    xStart: 0,
+    xEnd: 2,
+    yMin: 0,
+    yMax: 250,
+    vbW: 700,
+    vbH: 450,
+    xLabel: "Time (s)",
+    yLabel: "Luminescence (RLU)",
+    plotBg: "#fff",
+    showGrid: true,
+    lineWidth: 2,
+    ribbonOpacity: 0.2,
+    gridColor: "#eee",
+    svgLegend: [],
+    plotSubtitle: "",
+  };
+
+  test("edge — single series", () => {
+    expect(
+      normalizeSvg(renderHtml(Chart, { ...aqBase, series: [series[0]], plotTitle: "Single Trace" }))
+    ).toMatchSnapshot();
+  });
+
+  test("edge — six series — legend + colour cycle", () => {
+    // A single-timepoint series is intentionally NOT covered: aequorin
+    // draws lines + ribbons only (no point markers) and buildLineD /
+    // buildAreaD need >= 2 points, so a 1-row series renders an empty
+    // data area — nothing for a visual snapshot to guard.
+    const many = ["#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000", "#1A9850"].map(
+      (color, i) => ({
+        name: `Clone ${i + 1}`,
+        prefix: `Clone ${i + 1}`,
+        color,
+        rows: [
+          { t: 0, mean: 60 + i * 10, sd: 8 },
+          { t: 1, mean: 120 + i * 18, sd: 14 },
+          { t: 2, mean: 90 + i * 12, sd: 10 },
+        ],
+      })
+    );
+    expect(
+      normalizeSvg(
+        renderHtml(Chart, {
+          ...aqBase,
+          series: many,
+          plotTitle: "Six Clones",
+          svgLegend: [{ items: many.map((s) => ({ label: s.name, color: s.color })) }],
+        })
+      )
+    ).toMatchSnapshot();
+  });
 })();
 
 // ── Line plot (mean ± error across a shared x) ──────────────────────────────
@@ -445,6 +565,63 @@ suite("chart snapshots — lineplot");
           errorStrokeWidth: 1,
           errorCapWidth: 6,
           errorType: "sem",
+          svgLegend: [{ items: series.map((s) => ({ label: s.name, color: s.color })) }],
+          showStars: true,
+        })
+      )
+    ).toMatchSnapshot();
+  });
+
+  // ── edge cases ────────────────────────────────────────────────────────────
+
+  const lpBase = {
+    xMin: 0,
+    xMax: 4,
+    yMin: 0,
+    yMax: 0.7,
+    vbW: 700,
+    vbH: 440,
+    xLabel: "Time (h)",
+    yLabel: "OD600",
+    plotSubtitle: "",
+    plotBg: "#ffffff",
+    showGrid: true,
+    gridColor: "#e0e0e0",
+    lineWidth: 1.5,
+    pointRadius: 3.5,
+    errorStrokeWidth: 1,
+    errorCapWidth: 6,
+    errorType: "sem",
+  };
+
+  test("edge — single series", () => {
+    expect(
+      normalizeSvg(
+        renderHtml(Chart, {
+          ...lpBase,
+          series: [series[0]],
+          perXStats: [],
+          plotTitle: "Single Series",
+          svgLegend: [{ items: [{ label: series[0].name, color: series[0].color }] }],
+          showStars: false,
+        })
+      )
+    ).toMatchSnapshot();
+  });
+
+  test("edge — significance stars across x", () => {
+    expect(
+      normalizeSvg(
+        renderHtml(Chart, {
+          ...lpBase,
+          series,
+          // pStars: 0.008 → "**" renders; 0.3 → "ns" is skipped; null → skipped.
+          perXStats: [
+            { x: 0, pAdj: null },
+            { x: 2, pAdj: 0.008 },
+            { x: 4, pAdj: 0.3 },
+          ],
+          plotTitle: "With Stars",
           svgLegend: [{ items: series.map((s) => ({ label: s.name, color: s.color })) }],
           showStars: true,
         })
