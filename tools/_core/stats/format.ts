@@ -8,6 +8,7 @@
 // Map a p-value to the 4-level significance stars used on plots.
 // Non-finite or missing p → empty string so callers can suppress the label.
 export function pStars(p: number | null | undefined): string {
+  // equiv-mutant: p == null is subsumed by !Number.isFinite(p) — null/undefined fail it too
   if (p == null || !Number.isFinite(p)) return "";
   if (p < 0.0001) return "****";
   if (p < 0.001) return "***";
@@ -20,6 +21,7 @@ export function pStars(p: number | null | undefined): string {
 // notation below 1e-3 (where fixed-point would round to 0) and keeps 3
 // significant digits otherwise.
 export function formatP(p: number | null | undefined): string {
+  // equiv-mutant: p == null is subsumed by !Number.isFinite(p) — null/undefined fail it too
   if (p == null || !Number.isFinite(p)) return "—";
   if (p < 1e-4) return p.toExponential(1);
   if (p < 1e-3) return p.toExponential(2);

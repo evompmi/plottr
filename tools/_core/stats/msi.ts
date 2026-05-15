@@ -17,6 +17,7 @@ import { betai, gammainc, gammaln } from "./dist";
 // ── 14. Multi-set intersection test (SuperExactTest-style) ─────────────────
 
 function _logHypergeomPmf(x: number, N: number, K: number, n: number): number {
+  // equiv-mutant: x<0/x>K/x>n never fire from current callers but are this pmf's support contract
   if (x < 0 || x > K || x > n || n - x > N - K) return -Infinity;
   const logC = (a: number, b: number): number =>
     gammaln(a + 1) - gammaln(b + 1) - gammaln(a - b + 1);

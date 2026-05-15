@@ -125,6 +125,7 @@ export function hclust(distMatrix: number[][], linkage: LinkageMethod): HClustRe
     }
 
     const merged: HClustTreeNode = {
+      // equiv-mutant: an internal node's index is never read (only leaf indices, via order) — unused sentinel
       index: -1,
       left: clusters[bi],
       right: clusters[bj],

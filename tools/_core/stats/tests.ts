@@ -638,6 +638,7 @@ export function kendallTau(
     }
   }
   const tieGroups = (arr: number[]): number[] => {
+    // equiv-mutant: .slice() copy keeps xs intact; in-place sort is harmless only as xs is unused after
     const sorted = arr.slice().sort((a, b) => a - b);
     const groups: number[] = [];
     let i = 0;
