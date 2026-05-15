@@ -86,6 +86,20 @@ Files measured so far (run one at a time, scope toggled in `stryker.conf.mjs`):
 
 **Equivalent mutants are the practical ceiling.** Stryker generates _syntactically-different_ mutations of the source. Some of them are _semantically identical_ — e.g. `if (t === 0) return "0"` mutated to `if (false) return "0"`, where the math fallback path also produces "0" for input 0; or `if (abs >= 100)` mutated to `if (abs > 100)` where both branches happen to render "100" at the boundary. No test can kill an equivalent mutant by definition; they show up as survivors but aren't real test gaps. Stryker has no built-in "is-equivalent" detector, so distinguishing equivalent from real survivors is a manual read of each diff. Scatter's 6 surviving mutants are all equivalent; the _non-equivalent mutation score_ is 100%.
 
+**Tag deletion-tempting equivalent survivors in the source — `equiv-mutant`.** Some equivalent mutants sit on code that _looks removable_ — a guard subsumed by another guard, a defensive branch for an input the callers never produce, a value that's set but never read. That is the dangerous kind: a maintainer reads it, thinks "redundant", deletes it — and the test suite, _by definition_, cannot catch the mistake (no test constrains an equivalent mutant). Mark those lines with a one-line grep-able comment:
+
+```ts
+// equiv-mutant: p == null is subsumed by !Number.isFinite(p) — null/undefined fail it too
+if (p == null || !Number.isFinite(p)) return "";
+```
+
+The tag sits in the line of sight of whoever is about to "simplify" the code, and `grep -rn "equiv-mutant" tools/` regenerates the full inventory on demand — no line-numbered catalogue to rot. Rules:
+
+- **Only tag deletion-bait.** Most equivalents are equivalent through a math/data-flow property — a loop bound whose extra index is `undefined`, a sign that vanishes under squaring, a `<` vs `<=` at a tie. Nobody deletes those; tagging them is noise. Leave them; the per-file `stryker.conf.mjs` note covers them at the class level.
+- **The text after the colon is a proof, in one line.** The tag is not a place to park survivors you didn't finish triaging.
+- A line where _every_ mutant is equivalent (a pure defensive validator) can instead take a `// Stryker disable` directive, which drops it from the score entirely.
+- Closing out a file's sweep means: every survivor is killed by a new test, OR tagged `equiv-mutant` (the deletion-bait ones), OR covered by the file's class-level note in `stryker.conf.mjs` (everything else).
+
 **Reports — one per target.** Each run writes `reports/mutation/<target>.html` and `.json` (gitignored), named after the active `mutate` entry — e.g. `core-stats-tests.json`, `core-stats-dist.json`. `stryker.conf.mjs` derives the slug, so a methodical sweep (dist.ts, then posthoc.ts, …) keeps every file's report instead of overwriting one shared `mutation.json`. The HTML report has one row per source line, colour-coded by survived / killed / no-coverage; drill into a survived mutant to see the diff and which tests covered it but didn't fail — the input for deciding real gap (write a sharper property) vs equivalent mutant (note in commit and move on). The JSON report is the machine-readable form: group survivors by line / mutator / enclosing function programmatically rather than scrolling the clear-text tail.
 
 **Scope expansion path.** The `mutate:` array in `stryker.conf.mjs` is a single-target switch — uncomment one entry, comment the others, run, document. Already-validated entries listed in a comment block above the array. To expand to a new tool: (a) check that its helpers.ts doesn't reference shared globals as free vars; if it does, keep the vm.runInContext path and accept that Stryker will only see render-bundle coverage; (b) if it doesn't, refactor that tool's loader to the require()-based pattern (see `tests/helpers/scatter-loader.js`); (c) swap the active scope and run; (d) drive the score up by adding sharp boundary properties for each non-equivalent survivor; (e) document the final score and equivalent-mutant count in the table above + commit.
