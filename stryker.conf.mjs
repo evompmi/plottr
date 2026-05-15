@@ -36,17 +36,20 @@ export default {
     // Active target. Swap for one of the pending entries below to measure
     // another module.
     //
-    // IMPORTANT — false survivors before the 2026-05-15 loader fix.
-    // The test loaders re-ran `esbuild.buildSync` on every test-file
-    // evaluation; under Stryker that is one esbuild service spawn per
-    // mutant, so a long run exhausted the OS process table, the esbuild
-    // service died mid-run, the loaders' require() threw, the test files
-    // registered zero tests, and every remaining mutant was scored as a
-    // false "survived" (and the run exited with a `spawn pgrep EAGAIN`).
-    // `tests/helpers/_shell-test-utils.js` now caches bundles on disk
-    // under Stryker. The scores below for the larger files (dist.ts,
-    // posthoc.ts — and possibly cluster.ts) were measured BEFORE the fix
-    // and are understated; re-run them for accurate numbers.
+    // Note — the 2026-05-15 loader fix. The test loaders used to re-run
+    // `esbuild.buildSync` on every test-file evaluation; under Stryker
+    // that is one esbuild service spawn per mutant. When the spawns come
+    // fast enough they pile up before the OS reaps them, the process
+    // table fills, the esbuild service dies mid-run, the loaders'
+    // require() throws, the test files register zero tests, and every
+    // remaining mutant is scored as a false "survived" (the run also
+    // exits with `spawn pgrep EAGAIN`). It is rate-dependent, not purely
+    // count-dependent: it bit `tests.ts` (1191 mutants, ~1.5 min run),
+    // but re-running `dist.ts` and `posthoc.ts` post-fix reproduced
+    // their pre-fix scores exactly — their slower per-mutant pace spread
+    // the spawns out enough to avoid the pile-up. `_shell-test-utils.js`
+    // now caches bundles on disk under Stryker, so any future run is
+    // correct regardless of pace.
     //
     // Verified post-migration:
     //   - format.ts  — 95.56% raw, 100% non-equivalent (45 mutants, 43
@@ -54,13 +57,23 @@ export default {
     //                  `p == null` short-circuit).
     //   - msi.ts     — 72.20% raw, ~67 residuals largely equivalent
     //                  (saturation guards are optimisations; betai/DP
-    //                  return the same values without them). Pre-fix.
-    //   - cluster.ts — 68.82% raw, 139 residuals (pre-fix — re-measure).
-    //   - dist.ts    — 63.08% raw / 67.37% covered (PRE-FIX, understated:
-    //                  1208 mutants is well past the process-exhaustion
-    //                  threshold — re-run for the true score).
-    //   - posthoc.ts — 73.35% raw / 75.29% covered (PRE-FIX, likely
-    //                  understated at 698 mutants — re-run).
+    //                  return the same values without them).
+    //   - cluster.ts — 68.82% raw, 139 residuals (not re-measured post-
+    //                  fix; 448 mutants — almost certainly unaffected).
+    //   - dist.ts    — 62.83% raw / 67.11% covered, 1208 mutants (737
+    //                  killed + 22 timeout, 372 survived + 77 no-cov).
+    //                  Re-run 2026-05-15 post loader-fix; matches the
+    //                  pre-fix 63.08% (0.25pt delta is timeout-flake
+    //                  noise) — dist.ts was never affected by the bug.
+    //                  Residual mostly chi2inv / tinv Newton internals
+    //                  and Gauss-Legendre quadrature. ~23 min wall-clock.
+    //   - posthoc.ts — 73.35% raw / 75.29% covered, 698 mutants (499
+    //                  killed + 13 timeout, 168 survived + 18 no-cov).
+    //                  Re-run 2026-05-15 post loader-fix; identical to
+    //                  the pre-fix score — also never affected. Residual
+    //                  mostly equivalent (p ≥ α boundaries, narrative
+    //                  strings with shared substrings, _wprob GL
+    //                  internals). ~3 min wall-clock.
     //   - tests.ts   — 87.83% raw / 88.42% covered, 1191 mutants (1025
     //                  killed + 21 timeout, 137 survived + 8 no-coverage).
     //                  ~2 min wall-clock. The pre-fix run scored a false
