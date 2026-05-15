@@ -4,9 +4,12 @@
 // indices). The pure helper itself is mode-agnostic; this test pins the
 // glue that converts a single flat `cellAnnotations` dict (keyed by
 // `${facet}::${subgroup}`) into the per-key spec map the helper consumes.
+//
+// Also covers `computeChartMargins` (tools/boxplot/layout.ts) — specifically
+// the left-margin reservation for rotated x-labels.
 
 const { suite, test, assert, eq, summary } = require("./harness");
-const { mergeSubgroupAnnotations } = require("./helpers/boxplot-loader");
+const { mergeSubgroupAnnotations, computeChartMargins } = require("./helpers/boxplot-loader");
 
 const cellKey = (f, s) => `${f}::${s}`;
 
@@ -148,5 +151,49 @@ test("subgroup-only mode (empty facet key) extracts via cellKey('', sgName)", ()
   eq(merged.pairs[1].i, 2); // Dry offset
   eq(merged.pairs[1].j, 3);
 });
+
+// ── computeChartMargins — rotated-label left margin ─────────────────────────
+//
+// Regression: vertical-mode rotated x-labels are anchored "end" at their
+// tick and tilt down-left, so a long category label overhangs the gutter.
+// `leftM` was hard-coded to 62 px, so the leftmost label clipped off the
+// SVG's left edge. The fix reserves the label's horizontal extent
+// (labelWidth · cos angle) — the mirror of the vertical extent `botM`
+// already reserves for the same labels.
+
+suite("computeChartMargins — rotated-label left margin");
+
+(function () {
+  const longGroups = [
+    { name: "Wild-type baseline (uninduced, 0 h)" },
+    { name: "Knockout + rescue construct (induced, 24 h)" },
+  ];
+  const shortGroups = [{ name: "Ctrl" }, { name: "Test" }];
+  const base = { horizontal: false, plotStyle: "bar", showCompPie: false, colorByCol: -1 };
+
+  test("long labels + rotation grow the left margin past the 62 px floor", () => {
+    const { M } = computeChartMargins({ ...base, groups: longGroups, xLabelAngle: 30 });
+    assert(M.left > 62, `expected left margin > 62 for long rotated labels, got ${M.left}`);
+  });
+
+  test("long labels without rotation keep the 62 px floor", () => {
+    const { M } = computeChartMargins({ ...base, groups: longGroups, xLabelAngle: 0 });
+    eq(M.left, 62);
+  });
+
+  test("short labels + rotation keep the 62 px floor", () => {
+    const { M } = computeChartMargins({ ...base, groups: shortGroups, xLabelAngle: 45 });
+    eq(M.left, 62);
+  });
+
+  test("steeper rotation reserves less left margin (cos shrinks with angle)", () => {
+    const shallow = computeChartMargins({ ...base, groups: longGroups, xLabelAngle: 30 }).M.left;
+    const steep = computeChartMargins({ ...base, groups: longGroups, xLabelAngle: 60 }).M.left;
+    assert(
+      steep > 62 && steep < shallow,
+      `expected 62 < steep(60°) < shallow(30°), got steep=${steep} shallow=${shallow}`
+    );
+  });
+})();
 
 summary();

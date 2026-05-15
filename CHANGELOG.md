@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Long boxplot category labels no longer clip off the left edge when
+  x-axis labels are rotated.** Rotated labels are anchored at their tick
+  and tilt down-left, but the chart's left margin was hard-coded to
+  62 px, so a long label on the leftmost group overran the SVG's left
+  edge. `computeChartMargins` now reserves the label's horizontal extent
+  (`labelWidth × cos(angle)`), mirroring the vertical reservation the
+  bottom margin already made.
+
 ## [1.5.1] - 2026-05-14
 
 > Long-form release notes — what shipped, why, and how — live in

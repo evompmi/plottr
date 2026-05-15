@@ -3875,7 +3875,7 @@ suite("dist.ts — uncovered-path pins");
 test("gammaln reflection — x < 0.5 routes through the Euler reflection formula", () => {
   // gammaln(x<0.5) = ln(π/sin(πx)) − gammaln(1−x). Γ(0.25) ≈ 3.6256099,
   // Γ(0.1) ≈ 9.5135077.
-  approx(gammaln(0.25), Math.log(3.6256099082219083), 1e-10);
+  approx(gammaln(0.25), Math.log(3.625609908221908), 1e-10);
   approx(gammaln(0.1), Math.log(9.513507698668732), 1e-10);
 });
 
