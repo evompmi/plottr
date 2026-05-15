@@ -666,7 +666,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
   function renderColClusterStrip() {
     if (!colIsKmeans) return null;
     const y = MARGIN.top - LABEL_GAP - COL_LABEL_H - LABEL_GAP - DENDRO_SIZE_TOP + 2;
-    const leavesByCluster: Map<any, number[]> | null = interactive ? new Map() : null;
+    const leavesByCluster: Map<number, number[]> | null = interactive ? new Map() : null;
     if (leavesByCluster) {
       for (let c = 0; c < colCluster.clusters.length; c++) {
         const id = colCluster.clusters[c];
@@ -750,7 +750,7 @@ export const HeatmapChart = forwardRef<SVGSVGElement, HeatmapChartProps>(functio
   function renderRowClusterStrip() {
     if (!rowIsKmeans) return null;
     const x = MARGIN.left - LABEL_GAP - DENDRO_SIZE_LEFT + 2;
-    const leavesByCluster: Map<any, number[]> | null = interactive ? new Map() : null;
+    const leavesByCluster: Map<number, number[]> | null = interactive ? new Map() : null;
     if (leavesByCluster) {
       for (let r = 0; r < rowCluster.clusters.length; r++) {
         const id = rowCluster.clusters[r];

@@ -343,7 +343,7 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
     const setSvgRef = (el: SVGSVGElement | null) => {
       localSvgRef.current = el;
       if (typeof ref === "function") ref(el);
-      else if (ref) (ref as React.MutableRefObject<SVGSVGElement | null>).current = el;
+      else if (ref) ref.current = el;
     };
 
     useEffect(() => {

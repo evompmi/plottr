@@ -537,7 +537,7 @@ export function App() {
 
   const groupedData = useMemo(() => {
     if (groupColIdx < 0 || valueColIdx < 0) return {};
-    const g: Record<string, any> = {};
+    const g: Record<string, string[]> = {};
     renamedRows.forEach((r) => {
       const k = r[groupColIdx];
       if (!g[k]) g[k] = [];
@@ -600,7 +600,7 @@ export function App() {
 
   const boxplotGroups = useMemo(() => {
     if (groupColIdx < 0 || valueColIdx < 0) return [];
-    const gm: Record<string, any> = {};
+    const gm: Record<string, Record<string, number[]>> = {};
     renamedRows.forEach((r) => {
       if (groupColIdx >= r.length || valueColIdx >= r.length) return;
       const g = r[groupColIdx],
@@ -711,7 +711,7 @@ export function App() {
   // works at the filter step — before the user has even chosen which column
   // feeds "Facet by" or "Color by" in the plot step.
   const orderableCols = useMemo(() => {
-    const m: Record<string, any> = {};
+    const m: Record<number, { order: string[]; onReorder: (newOrder: string[]) => void }> = {};
     parsedHeaders.forEach((_, i) => {
       if (i === valueColIdx) return;
       if (colRoles[i] !== "group" && colRoles[i] !== "filter") return;
