@@ -77,6 +77,7 @@ export function _wprob(w: number, k: number): number {
     const u = mid + half * gl.nodes[i];
     const phiU = invSqrt2Pi * Math.exp(-0.5 * u * u);
     let diff: number;
+    // equiv-mutant: the `else if (u+w<=0)` branch is byte-identical to `else` — the split is vestigial
     if (u >= 0) {
       diff = normsf(u) - normsf(u + w);
     } else if (u + w <= 0) {
@@ -171,6 +172,7 @@ export function tukeyHSD(groups: number[][], opts: { alpha?: number } = {}): Tuk
   if (anova.error) return { pairs: [], error: anova.error };
   const dfErr = anova.df2;
   const mse = (anova.ssWithin as number) / dfErr;
+  // equiv-mutant: mse === 0 is unreachable — oneWayANOVA already errors above when ssWithin is 0
   if (mse === 0) {
     return {
       pairs: [],

@@ -3670,4 +3670,195 @@ test("kmeans centroid mean skips NaN cells, not whole rows", () => {
   }
 });
 
+// ── posthoc.ts — post-hoc path pins (mutation audit) ───────────────────────
+//
+// The R cross-validations above pin each post-hoc's happy path. These pin
+// the branches they skip: the structured k<2 error objects (a "" mutant on
+// the message still passes a bare `error` check), the k=2 lower boundary,
+// ANOVA-error propagation, the option ternaries, the Dunn tie-correction
+// term, the compact-letter-display split logic, and selectTest's k routing
+// + zero-variance-group handling.
+
+suite("posthoc.ts — post-hoc path pins");
+
+test("post-hoc functions reject k<2 with the ≥2-groups message and an empty pairs list", () => {
+  for (const [name, r] of [
+    ["tukeyHSD", tukeyHSD([[1, 2, 3]])],
+    ["gamesHowell", gamesHowell([[1, 2, 3]])],
+    ["dunnTest", dunnTest([[1, 2, 3]])],
+  ]) {
+    assert(/≥2 groups required/.test(r.error || ""), `${name} k<2 message`);
+    eq(r.pairs.length, 0, `${name} k<2 returns no pairs`);
+  }
+  assert(/≥2 groups required/.test(selectTest([[1, 2, 3]]).error || ""), "selectTest k<2");
+});
+
+test("post-hoc functions accept k=2 — the ≥2 boundary computes a finite pair", () => {
+  const t = tukeyHSD([
+    [1, 2, 3],
+    [4, 5, 6],
+  ]);
+  const g = gamesHowell([
+    [1, 2, 3],
+    [4, 5, 6],
+  ]);
+  // ptukey / ptukey_upper must accept k=2 (a `k <= 2` guard mutant returns NaN)
+  assert(!t.error && Number.isFinite(t.pairs[0].p), "tukeyHSD k=2 → finite p");
+  assert(!g.error && Number.isFinite(g.pairs[0].p), "gamesHowell k=2 → finite p");
+  assert(
+    !dunnTest([
+      [1, 2, 3],
+      [4, 5, 6],
+    ]).error,
+    "dunnTest k=2 computes"
+  );
+  assert(
+    !selectTest([
+      [1, 2, 3],
+      [4, 5, 6],
+    ]).error,
+    "selectTest k=2 computes"
+  );
+});
+
+test("tukeyHSD propagates the ANOVA error on zero-variance data", () => {
+  const r = tukeyHSD([
+    [5, 5, 5],
+    [5, 5, 5],
+  ]);
+  assert(/zero within-group dispersion/.test(r.error || ""), `error: ${r.error}`);
+  eq(r.pairs.length, 0);
+});
+
+test("tukeyHSD alpha option widens the CI as alpha tightens", () => {
+  const g = [
+    [1, 2, 3, 4],
+    [3, 4, 5, 6],
+    [8, 9, 10, 11],
+  ];
+  // a tighter alpha → larger qCrit → wider interval → lower lwr bound
+  assert(
+    tukeyHSD(g, { alpha: 0.01 }).pairs[0].lwr < tukeyHSD(g, { alpha: 0.05 }).pairs[0].lwr,
+    "0.01 CI must be wider than 0.05"
+  );
+});
+
+test("gamesHowell flags a zero-variance group with the named error", () => {
+  const r = gamesHowell([
+    [5, 5, 5],
+    [1, 2, 3],
+  ]);
+  assert(/zero variance/.test(r.error || ""), `error: ${r.error}`);
+  eq(r.pairs.length, 0);
+});
+
+test("dunnTest tie correction — sigma2 carries the tie term (tied data)", () => {
+  // Tied values make tieCorrection ≠ 0, so the `- tieCorrection/(12(N-1))`
+  // term in sigma2 is live; regression pin against the current kernel.
+  const r = dunnTest([
+    [1, 1, 2],
+    [2, 3, 3],
+    [4, 4, 5],
+  ]);
+  approx(r.pairs[0].z, -1.2129568697262454, 1e-9);
+  approx(r.pairs[0].p, 0.2251464364896625, 1e-9);
+});
+
+test("compactLetterDisplay — overlapping vs all-significant pair structures", () => {
+  // 0 vs 2 significant, 0~1 and 1~2 not → groups a / ab / b. Pins the
+  // `L.has(i) && L.has(j)` split test: an || mutant mis-splits the overlap.
+  eq(
+    JSON.stringify(
+      compactLetterDisplay(
+        [
+          { i: 0, j: 1, p: 0.5 },
+          { i: 0, j: 2, p: 0.001 },
+          { i: 1, j: 2, p: 0.5 },
+        ],
+        3
+      )
+    ),
+    JSON.stringify(["a", "ab", "b"])
+  );
+  // every pair significant → three distinct letters
+  eq(
+    JSON.stringify(
+      compactLetterDisplay(
+        [
+          { i: 0, j: 1, p: 0.001 },
+          { i: 0, j: 2, p: 0.001 },
+          { i: 1, j: 2, p: 0.001 },
+        ],
+        3
+      )
+    ),
+    JSON.stringify(["a", "b", "c"])
+  );
+});
+
+test("selectTest — k routing: welchT for k=2, welchANOVA + Games-Howell for k≥3", () => {
+  const s2 = selectTest([
+    [1, 2, 3, 4],
+    [3, 4, 5, 6],
+  ]);
+  const s3 = selectTest([
+    [1, 2, 3, 4],
+    [3, 4, 5, 6],
+    [7, 8, 9, 10],
+  ]);
+  eq(s2.recommendation.test, "welchT");
+  eq(s3.recommendation.test, "welchANOVA");
+  assert(/Welch's t-test/.test(s2.recommendation.reason), "k=2 reason names Welch's t-test");
+  assert(/Welch's ANOVA/.test(s3.recommendation.reason), "k≥3 reason names Welch's ANOVA");
+});
+
+test("selectTest — a zero-variance group is recorded normal:null with an SW note", () => {
+  // shapiroWilk errors on zero variance; selectTest must record that as
+  // normal:null (unknown) with the error carried in `note`, not crash or
+  // mis-classify it as non-normal.
+  const r = selectTest([
+    [5, 5, 5, 5],
+    [1, 2, 3, 4, 5],
+  ]);
+  eq(r.normality[0].normal, null);
+  assert(r.normality[0].note != null, "zero-variance group carries an SW note");
+});
+
+test("selectTest — alphaVariance option moves the Levene equal-variance verdict", () => {
+  const g = [
+    [1, 2, 3, 4, 5],
+    [1, 3, 5, 7, 20],
+  ];
+  eq(selectTest(g).levene.equalVar, true);
+  eq(selectTest(g, { alphaVariance: 0.99 }).levene.equalVar, false);
+});
+
+test("selectTest — Shapiro-Wilk narrative names the all-normal vs flagged branch", () => {
+  const normal = selectTest([
+    [2, 4, 5, 4, 5, 7, 8, 9, 10, 12],
+    [1, 3, 4, 3, 4, 6, 7, 8, 9, 11],
+  ]);
+  assert(
+    /did not reject normality in any group/.test(normal.recommendation.reason),
+    "all-normal narrative"
+  );
+  const flagged = selectTest([
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 50],
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  ]);
+  assert(
+    /Shapiro-Wilk flagged 1 of 2 group/.test(flagged.recommendation.reason),
+    `flagged narrative: ${flagged.recommendation.reason}`
+  );
+  // a group with n<3 → Shapiro-Wilk cannot run → the third narrative branch
+  const smallN = selectTest([
+    [1, 2],
+    [3, 4, 5, 6],
+  ]);
+  assert(
+    /Shapiro-Wilk could not run on every group/.test(smallN.recommendation.reason),
+    `small-n narrative: ${smallN.recommendation.reason}`
+  );
+});
+
 summary();

@@ -77,13 +77,18 @@ const config = {
     //                  noise) — dist.ts was never affected by the bug.
     //                  Residual mostly chi2inv / tinv Newton internals
     //                  and Gauss-Legendre quadrature. ~23 min wall-clock.
-    //   - posthoc.ts — 73.35% raw / 75.29% covered, 698 mutants (499
-    //                  killed + 13 timeout, 168 survived + 18 no-cov).
-    //                  Re-run 2026-05-15 post loader-fix; identical to
-    //                  the pre-fix score — also never affected. Residual
-    //                  mostly equivalent (p ≥ α boundaries, narrative
-    //                  strings with shared substrings, _wprob GL
-    //                  internals). ~3 min wall-clock.
+    //   - posthoc.ts — 79.80% raw / 81.20% covered, 698 mutants (538
+    //                  killed + 19 timeout, 129 survived + 12 no-cov).
+    //                  2026-05-15 sweep: re-run reproduced the pre-fix
+    //                  73.35%, then 11 post-hoc path pins (k<2 error +
+    //                  k=2 boundary, tukeyHSD ANOVA-error + alpha,
+    //                  gamesHowell zero-variance, Dunn tie correction,
+    //                  CLD split structure, selectTest k-routing +
+    //                  zero-variance group + SW narrative branches)
+    //                  lifted it. Residual ~141 equivalent/contrived —
+    //                  GL quadrature internals, qtukey bisection
+    //                  tolerance, the df≤2 & k≥10 pathological-envelope
+    //                  warning, absorption-self-correcting CLD splits.
     //   - tests.ts   — 87.83% raw / 88.42% covered, 1191 mutants (1025
     //                  killed + 21 timeout, 137 survived + 8 no-coverage).
     //                  ~2 min wall-clock. The pre-fix run scored a false
@@ -99,12 +104,12 @@ const config = {
     //                  contribute zero, dead [0,1] clamps) plus kendallTau
     //                  higher-order tie corrections that need R-verified
     //                  references for size-≥3 tie groups on both axes.
-    "tools/_core/stats/cluster.ts",
+    "tools/_core/stats/posthoc.ts",
     //
     // Pending — uncomment one at a time and re-run:
     // "tools/_core/stats/format.ts",
     // "tools/_core/stats/msi.ts",
-    // "tools/_core/stats/posthoc.ts",
+    // "tools/_core/stats/cluster.ts",
     // "tools/_core/stats/tests.ts",
     // "tools/_core/stats/dist.ts",
     // "tools/volcano/helpers.ts",
