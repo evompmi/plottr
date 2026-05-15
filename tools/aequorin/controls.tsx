@@ -35,7 +35,7 @@ export function ControlSection({
   children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
-  const rootRef = useRef<any>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
     requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));

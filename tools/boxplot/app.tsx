@@ -242,8 +242,8 @@ export function App() {
     []
   );
 
-  const facetRefs = useRef<Record<string, any>>({});
-  const chartRef = useRef<any>(null);
+  const facetRefs = useRef<Record<string, SVGSVGElement | null>>({});
+  const chartRef = useRef<SVGSVGElement>(null);
 
   const resetDerived = useCallback(() => {
     setValueRenames({});

@@ -1317,15 +1317,15 @@ export function App() {
   // on the Configure step's file-info line via `<DetectedSeparatorBadge />`.
   const [detectedSep, setDetectedSep] = useState<string>("");
 
-  const [rawText, setRawText] = useState<any>(null);
+  const [rawText, setRawText] = useState<string | null>(null);
   const [formula, setFormula] = useState<CalibrationFormula>("none");
   const [Kr, setKr] = useState(DEFAULT_KR);
   const [Ktr, setKtr] = useState(DEFAULT_KTR);
   const [Kd, setKd] = useState(DEFAULT_KD);
   const [hillN, setHillN] = useState(DEFAULT_HILL_N);
-  const [conditions, setConditions] = useState<any[]>([]);
+  const [conditions, setConditions] = useState<Condition[]>([]);
   const [poolReplicates, setPoolReplicates] = useState(true);
-  const [columnEnabled, setColumnEnabled] = useState<any>({});
+  const [columnEnabled, setColumnEnabled] = useState<Record<number, boolean>>({});
 
   const parsed = useMemo(() => (rawText ? parseData(rawText) : null), [rawText]);
   const calData = useMemo(() => {
