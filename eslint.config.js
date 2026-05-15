@@ -222,7 +222,23 @@ module.exports = [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "commonjs",
-      globals: { ...globals.node, ...globals.browser },
+      // Vitest injects `expect` / `describe` / `it` / `vi` etc. as globals
+      // (`globals: true` in vitest.config.js). The house harness wraps
+      // `test` / `suite`, but snapshot tests call
+      // `expect(...).toMatchSnapshot()` directly — declare the Vitest
+      // globals so ESLint doesn't flag that raw usage as undefined.
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+        expect: "readonly",
+        describe: "readonly",
+        it: "readonly",
+        vi: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+      },
     },
     rules: {
       "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],

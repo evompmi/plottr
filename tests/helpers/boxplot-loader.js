@@ -31,6 +31,7 @@ const statsTileCjs = bundleShell("_shell/StatsTile.tsx");
 const bracketLevelsCjs = bundleShell("_shell/bracket-levels.ts");
 const powerFromDataCjs = bundleShell("_shell/power-from-data.ts");
 const helpersCjs = bundleShell("boxplot/helpers.ts");
+const layoutCjs = bundleShell("boxplot/layout.ts");
 
 const ctx = {
   ...builtins(),
@@ -63,6 +64,10 @@ runCjs(ctx, statsTileCjs);
 
 const helpers = runCjs(ctx, helpersCjs);
 
+// layout.ts is bundled standalone — pure layout arithmetic with no
+// shared-kernel free vars, so it evaluates against the same ctx.
+const layout = runCjs(ctx, layoutCjs);
+
 module.exports = {
   parseRaw: ctx.parseRaw,
   isNumericValue: ctx.isNumericValue,
@@ -94,4 +99,6 @@ module.exports = {
   computeBpSummaryText: helpers.computeBpSummaryText,
   mergeSubgroupAnnotations: helpers.mergeSubgroupAnnotations,
   statsSummaryHeight: helpers.statsSummaryHeight,
+  // Pure layout arithmetic (tools/boxplot/layout.ts).
+  computeChartMargins: layout.computeChartMargins,
 };

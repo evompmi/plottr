@@ -91,7 +91,19 @@ export function computeChartMargins(opts: ChartMarginsInput): ChartMarginsResult
         )
       : 0;
   const botM = hz ? 50 : 60 + rotationExtra + pieSpace;
-  const leftM = hz ? Math.max(62, labelZone + (hasPie ? pieSpace : 0)) : 62;
+  // Rotated x-labels (non-hz) are anchored "end" at their tick and tilt
+  // down-left; on the leftmost group a long label overhangs the fixed
+  // 62 px gutter and clips at the SVG's left edge. Reserve its horizontal
+  // extent (labelWidth · cos angle) the way `rotationExtra` reserves the
+  // vertical extent (labelWidth · sin angle) for `botM`. `absA` is already
+  // 0 in hz mode, so this term only fires for vertical-mode rotation. The
+  // leftmost band would absorb ~half its own width of overhang, but that
+  // credit is omitted so the reservation also covers heavily-compacted
+  // bands — the only cost is a little extra left whitespace.
+  const rotatedLabelLeft = absA > 0 ? maxLabelLen * 7 * Math.cos((absA * Math.PI) / 180) : 0;
+  const leftM = hz
+    ? Math.max(62, labelZone + (hasPie ? pieSpace : 0))
+    : Math.max(62, rotatedLabelLeft);
   const M: ChartMargins = { top: 24, right: 24, bottom: botM, left: leftM };
   return { M, hz, isBar, angle, absA, hasPie, pieSpace, labelZone, maxLabelLen, rotationExtra };
 }

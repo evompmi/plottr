@@ -116,6 +116,138 @@ suite("chart snapshots — boxplot");
   });
 })();
 
+// ── Boxplot edge cases ──────────────────────────────────────────────────────
+//
+// The four inputs most likely to break boxplot layout silently: a lone
+// group, a crowded x-axis, over-long category labels, and a value range
+// small enough to push the y-axis ticks into scientific notation.
+//
+// NaN / Inf values are deliberately NOT covered here. The parse +
+// computeStats pipeline strips non-finite values before they ever reach a
+// group's `allValues`, so a NaN fixture would snapshot an input the chart
+// tier never receives — and `Math.min(...allV)` in computeYDomain would
+// poison the whole domain to NaN. That guard belongs in a computeYDomain
+// unit test, not a visual baseline.
+
+suite("chart snapshots — boxplot edge cases");
+
+(function () {
+  const BoxplotChart = loadTool("boxplot").exports.BoxplotChart;
+
+  // Build a group from a plain list of values — stats are derived so each
+  // fixture stays readable (a name + a few numbers) and self-consistent.
+  function groupOf(name, color, values) {
+    const n = values.length;
+    const mean = values.reduce((a, b) => a + b, 0) / n;
+    const sd = Math.sqrt(values.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1));
+    const sorted = [...values].sort((a, b) => a - b);
+    const median = n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+    return {
+      name,
+      color,
+      displayName: name,
+      stats: { n, mean, sd, sem: sd / Math.sqrt(n), min: sorted[0], max: sorted[n - 1], median },
+      allValues: values,
+      sources: [{ colIndex: 0, values }],
+    };
+  }
+
+  const PAL8 = [
+    "#648FFF",
+    "#785EF0",
+    "#DC267F",
+    "#FE6100",
+    "#FFB000",
+    "#1A9850",
+    "#0072B2",
+    "#999999",
+  ];
+
+  // Bar-mode prop bag shared by every edge-case render; `groups`,
+  // `plotTitle` and `xLabelAngle` are supplied per test.
+  const barBase = {
+    plotStyle: "bar",
+    yLabel: "Value",
+    plotBg: "#fff",
+    showGrid: true,
+    gridColor: "#eee",
+    boxWidth: 60,
+    pointSize: 3,
+    showPoints: true,
+    jitterWidth: 0.3,
+    pointOpacity: 0.6,
+    errorType: "sem",
+    barOpacity: 0.8,
+    categoryColors: {},
+    colorByCol: -1,
+    errStrokeWidth: 1.5,
+    showBarOutline: false,
+    barOutlineWidth: 1,
+    svgLegend: [],
+  };
+
+  test("single group — one bar, axis still well-formed", () => {
+    expect(
+      normalizeSvg(
+        renderHtml(BoxplotChart, {
+          ...barBase,
+          groups: [groupOf("Solo", PAL8[0], [4, 6, 6, 8])],
+          plotTitle: "One Group",
+          xLabelAngle: 0,
+        })
+      )
+    ).toMatchSnapshot();
+  });
+
+  test("eight groups — crowded x-axis, 45° labels", () => {
+    const groups = PAL8.map((c, i) =>
+      groupOf(`Cond ${String.fromCharCode(65 + i)}`, c, [i + 2, i + 4, i + 3, i + 5])
+    );
+    expect(
+      normalizeSvg(
+        renderHtml(BoxplotChart, {
+          ...barBase,
+          groups,
+          plotTitle: "Eight Conditions",
+          xLabelAngle: 45,
+        })
+      )
+    ).toMatchSnapshot();
+  });
+
+  test("very long category labels — 30° rotation", () => {
+    expect(
+      normalizeSvg(
+        renderHtml(BoxplotChart, {
+          ...barBase,
+          groups: [
+            groupOf("Wild-type baseline (uninduced, 0 h)", PAL8[0], [3, 4, 4, 5]),
+            groupOf("Knockout + rescue construct (induced, 24 h)", PAL8[2], [7, 8, 9, 8]),
+          ],
+          plotTitle: "Long Labels",
+          xLabelAngle: 30,
+        })
+      )
+    ).toMatchSnapshot();
+  });
+
+  test("tiny value range — scientific-notation y-ticks", () => {
+    expect(
+      normalizeSvg(
+        renderHtml(BoxplotChart, {
+          ...barBase,
+          groups: [
+            groupOf("Trace A", PAL8[0], [0.0001, 0.00012, 0.00011, 0.00013]),
+            groupOf("Trace B", PAL8[2], [0.00028, 0.00031, 0.00029, 0.00033]),
+          ],
+          plotTitle: "Tiny Range",
+          xLabelAngle: 0,
+        })
+      )
+    ).toMatchSnapshot();
+  });
+})();
+
 // ── Scatter ─────────────────────────────────────────────────────────────────
 
 suite("chart snapshots — scatter");
