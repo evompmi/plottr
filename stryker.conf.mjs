@@ -61,14 +61,21 @@ export default {
     //                  mostly equivalent (p ≥ α boundaries, narrative
     //                  strings with shared key substrings, _wprob GL
     //                  internals). ~4 min per run.
-    "tools/_core/stats/posthoc.ts",
+    //   - tests.ts   — score PENDING a clean Stryker run. 16 targeted
+    //                  tests added (kendallTau exact-S pins, spearman
+    //                  monotone-extreme pins, η²/ε² boundary pins) and
+    //                  manually verified to kill representative mutants,
+    //                  but every `npm run mutation` attempt on this
+    //                  machine crashed with EAGAIN (process-table
+    //                  exhaustion) — re-run when the box is idle.
+    "tools/_core/stats/tests.ts",
     //
     // Pending — uncomment one at a time and re-run:
     // "tools/_core/stats/format.ts",
     // "tools/_core/stats/msi.ts",
     // "tools/_core/stats/cluster.ts",
     // "tools/_core/stats/dist.ts",
-    // "tools/_core/stats/tests.ts",
+    // "tools/_core/stats/posthoc.ts",
     // "tools/volcano/helpers.ts",
     // "tools/scatter/helpers.ts",
     // "tools/lineplot/helpers.ts",

@@ -1202,6 +1202,61 @@ test("iris SL ε² = 0.650587", () => {
   approx(epsilonSquared(irisSL), 0.650587, 5e-3);
 });
 
+// ── η² / ε² — boundary + degenerate-input pins (mutation audit) ────────────
+//
+// The R-reference tests above pin two interior values each. Mutants on the
+// saturation guards (`ssTotal === 0 ? 0 : …`, `kw.error` check, `N > 1`
+// guard) and the error short-circuits survive them. These pins exercise
+// the all-equal-groups case (η² = 0 exactly) and the error / boundary
+// paths so a mutation flipping a guard produces an observable mismatch.
+
+suite("η² / ε² — boundary pins");
+
+test("η² = 0 exactly when all group means are identical", () => {
+  // ssBetween = 0 → η² = 0. A mutant flipping `ssTotal === 0 ? 0 : …`
+  // or the ssBetween/ssTotal ratio would not land on exactly 0 here.
+  eq(
+    etaSquared([
+      [5, 6, 7],
+      [5, 6, 7],
+      [5, 6, 7],
+    ]),
+    0
+  );
+});
+
+test("η² is in (0, 1) for genuinely separated groups", () => {
+  const e = etaSquared([
+    [1, 2, 3],
+    [10, 11, 12],
+    [20, 21, 22],
+  ]);
+  assert(e > 0 && e < 1, `η² must be a proper proportion, got ${e}`);
+  // Heavy between-group separation → η² close to 1.
+  assert(e > 0.95, "near-total separation → η² > 0.95");
+});
+
+test("η² → NaN when ANOVA errors (k < 2)", () => {
+  assert(Number.isNaN(etaSquared([[1, 2, 3]])), "single group → ANOVA error → NaN");
+});
+
+test("ε² → NaN when Kruskal-Wallis errors (k < 2)", () => {
+  assert(Number.isNaN(epsilonSquared([[1, 2, 3]])), "single group → KW error → NaN");
+});
+
+test("ε² = H / (N - 1) — pins the divisor (kills 'N - 1' → 'N + 1' mutation)", () => {
+  // Three 3-element groups → N = 9, divisor = 8. Verify ε² · 8 recovers
+  // the Kruskal-Wallis H exactly.
+  const groups = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9],
+  ];
+  const eps = epsilonSquared(groups);
+  const kw = kruskalWallis(groups);
+  approx(eps * 8, kw.H, 1e-12);
+});
+
 // ── Studentized range distribution ─────────────────────────────────────────
 //
 // Reference values from R's stats::ptukey and stats::qtukey:

@@ -220,4 +220,97 @@ test("n < 3 short-circuits with no suggestion and a flat recommendation", () => 
   eq(out.suggestion, undefined);
 });
 
+// ── kendallTau — exact S-statistic + sign pins (mutation audit) ────────────
+//
+// The existing Kendall tests pin tau / z / p against R `cor.test` at 1e-5
+// tolerances. A single arithmetic mutation in the O(n²) concordance loop
+// often shifts the result by less than that tolerance on a 10-point
+// dataset, so ~160 kendallTau mutants survived. The fix: pin the `S`
+// statistic — an exact integer (sum of ±1 over all pairs) — so any
+// loop-bound, sign, or arithmetic mutation moves S off its integer value.
+// Inputs deliberately include negatives + non-monotonic order so that
+// `xs[j] - xi` → `xs[j] + xi` sign mutations actually flip pair outcomes.
+
+suite("kendallTau — exact S-statistic pins");
+
+test("perfectly concordant: S = n(n-1)/2, tau = 1", () => {
+  const k = kendallTau([1, 2, 3, 4, 5], [10, 20, 30, 40, 50]);
+  eq(k.S, 10); // all 10 pairs concordant
+  approx(k.tau, 1, 1e-12);
+  assert(k.z > 0, "concordant data → positive z");
+});
+
+test("perfectly discordant: S = -n(n-1)/2, tau = -1", () => {
+  const k = kendallTau([1, 2, 3, 4, 5], [50, 40, 30, 20, 10]);
+  eq(k.S, -10);
+  approx(k.tau, -1, 1e-12);
+  assert(k.z < 0, "discordant data → negative z");
+});
+
+test("negative-valued, non-monotonic input pins S exactly (kills dx/dy sign mutations)", () => {
+  // x = [-2, 3, -1], y = [5, -4, 1]:
+  //   (0,1): dx=+5, dy=-9 → -1
+  //   (0,2): dx=+1, dy=-4 → -1
+  //   (1,2): dx=-4, dy=+5 → -1
+  //   S = -3. A `xs[j] - xi` → `xs[j] + xi` mutation flips pairs (0,2)
+  //   and (1,2) to concordant, shifting S to +1 — caught by the eq pin.
+  const k = kendallTau([-2, 3, -1], [5, -4, 1]);
+  eq(k.S, -3);
+});
+
+test("mixed concordant/discordant: S = 4 for [1,2,3,4] vs [1,3,2,4]", () => {
+  // pairs: (0,1)+1 (0,2)+1 (0,3)+1 (1,2)-1 (1,3)+1 (2,3)+1 → S = 4
+  const k = kendallTau([1, 2, 3, 4], [1, 3, 2, 4]);
+  eq(k.S, 4);
+});
+
+test("n = 3 exactly: computes, does not error (kills 'n < 3' boundary mutation)", () => {
+  const k = kendallTau([1, 2, 3], [1, 2, 3]);
+  assert(!k.error, "n=3 must compute");
+  eq(k.S, 3);
+});
+
+test("n = 2: errors with the ≥3-pairs message", () => {
+  const k = kendallTau([1, 2], [1, 2]);
+  assert(k.error != null, "n<3 must error");
+  assert(Number.isNaN(k.tau), "errored result has NaN tau");
+});
+
+test("a tie in x skips the pair (dx === 0 → continue)", () => {
+  // x = [1, 1, 2], y = [1, 2, 3]: pair (0,1) has dx=0 → skipped.
+  //   remaining: (0,2)+1 (1,2)+1 → S = 2.
+  const k = kendallTau([1, 1, 2], [1, 2, 3]);
+  eq(k.S, 2);
+});
+
+// ── spearmanCorrelation — monotone-extreme pins (mutation audit) ───────────
+
+suite("spearmanCorrelation — monotone-extreme pins");
+
+test("perfectly increasing ranks: rho = 1, t = +Infinity, p = 0", () => {
+  const r = spearmanCorrelation([1, 2, 3, 4, 5], [2, 4, 6, 8, 10]);
+  approx(r.rho, 1, 1e-12);
+  eq(r.t, Infinity);
+  eq(r.p, 0);
+});
+
+test("perfectly decreasing ranks: rho = -1, t = -Infinity, p = 0", () => {
+  const r = spearmanCorrelation([1, 2, 3, 4, 5], [50, 40, 30, 20, 10]);
+  approx(r.rho, -1, 1e-12);
+  eq(r.t, -Infinity);
+  eq(r.p, 0);
+});
+
+test("n < 3 → error, NaN rho", () => {
+  const r = spearmanCorrelation([1, 2], [3, 4]);
+  assert(r.error != null, "n<3 must error");
+  assert(Number.isNaN(r.rho));
+});
+
+test("n = 3: CI stays NaN (the n >= 4 guard does not fire)", () => {
+  // Fisher-z CI for Spearman needs n >= 4; at n=3 ci.lo/ci.hi stay NaN.
+  const r = spearmanCorrelation([1, 2, 3], [1, 2, 3]);
+  assert(Number.isNaN(r.ci.lo) && Number.isNaN(r.ci.hi), "n=3 → CI undefined");
+});
+
 summary();
