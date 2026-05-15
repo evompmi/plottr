@@ -1202,6 +1202,61 @@ test("iris SL ε² = 0.650587", () => {
   approx(epsilonSquared(irisSL), 0.650587, 5e-3);
 });
 
+// ── η² / ε² — boundary + degenerate-input pins (mutation audit) ────────────
+//
+// The R-reference tests above pin two interior values each. Mutants on the
+// saturation guards (`ssTotal === 0 ? 0 : …`, `kw.error` check, `N > 1`
+// guard) and the error short-circuits survive them. These pins exercise
+// the all-equal-groups case (η² = 0 exactly) and the error / boundary
+// paths so a mutation flipping a guard produces an observable mismatch.
+
+suite("η² / ε² — boundary pins");
+
+test("η² = 0 exactly when all group means are identical", () => {
+  // ssBetween = 0 → η² = 0. A mutant flipping `ssTotal === 0 ? 0 : …`
+  // or the ssBetween/ssTotal ratio would not land on exactly 0 here.
+  eq(
+    etaSquared([
+      [5, 6, 7],
+      [5, 6, 7],
+      [5, 6, 7],
+    ]),
+    0
+  );
+});
+
+test("η² is in (0, 1) for genuinely separated groups", () => {
+  const e = etaSquared([
+    [1, 2, 3],
+    [10, 11, 12],
+    [20, 21, 22],
+  ]);
+  assert(e > 0 && e < 1, `η² must be a proper proportion, got ${e}`);
+  // Heavy between-group separation → η² close to 1.
+  assert(e > 0.95, "near-total separation → η² > 0.95");
+});
+
+test("η² → NaN when ANOVA errors (k < 2)", () => {
+  assert(Number.isNaN(etaSquared([[1, 2, 3]])), "single group → ANOVA error → NaN");
+});
+
+test("ε² → NaN when Kruskal-Wallis errors (k < 2)", () => {
+  assert(Number.isNaN(epsilonSquared([[1, 2, 3]])), "single group → KW error → NaN");
+});
+
+test("ε² = H / (N - 1) — pins the divisor (kills 'N - 1' → 'N + 1' mutation)", () => {
+  // Three 3-element groups → N = 9, divisor = 8. Verify ε² · 8 recovers
+  // the Kruskal-Wallis H exactly.
+  const groups = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9],
+  ];
+  const eps = epsilonSquared(groups);
+  const kw = kruskalWallis(groups);
+  approx(eps * 8, kw.H, 1e-12);
+});
+
 // ── Studentized range distribution ─────────────────────────────────────────
 //
 // Reference values from R's stats::ptukey and stats::qtukey:
@@ -3278,6 +3333,172 @@ test("gammainc_upper at deep upper tail (large x relative to a)", () => {
   // Erlang(5, 1) mean. Sum-to-1 with gammainc is enforced separately;
   // this pin guards the upper-tail Cephes continued-fraction branch.
   approx(gammainc_upper(5, 20), 1.6944743930067385e-5, 1e-12);
+});
+
+// ── tests.ts — error-message + boundary pins (mutation audit) ──────────────
+//
+// The R cross-validations above pin the happy path of every test/effect-size
+// helper. These pin what they don't reach: the structured error objects (a
+// mutant blanking the message to "" still passes a bare `error` truthiness
+// check), the n-boundary guards (`< 2` vs `<= 2`), and a handful of interior
+// arithmetic terms whose effect on F / H is too small to clear the
+// cross-validation tolerances. Each assertion is exact or independently
+// reconstructed — no tolerance is loosened to accommodate a survivor.
+
+suite("tests.ts — error message + boundary pins");
+
+test("sampleVariance([]) is NaN (n<2 guard, not a divide-through to -0)", () => {
+  // With the `n < 2` guard deleted, n=0 falls through to `0 / (0-1)` = -0,
+  // which is not NaN — so this pins the guard, not just "non-finite".
+  assert(Number.isNaN(sampleVariance([])), "empty input → NaN");
+  assert(Number.isNaN(sampleVariance([7])), "single value → NaN");
+});
+
+test("shapiroWilk n=3 takes the exact-distribution path (closed-form W and p)", () => {
+  // For n=3 the AS R94 coefficients are exact: a = [-1/√2, 0, 1/√2], so
+  // W = (a·x_sorted)² / Σ(x-x̄)². For [1,2,4]: num=(4-1)/√2, Σ(x-7/3)²=14/3,
+  // W = (9/2)/(14/3) = 27/28. The n=3 p-value is the exact arcsine form.
+  const r = shapiroWilk([1, 2, 4]);
+  approx(r.W, 27 / 28, 1e-12);
+  const pExact = (6 / Math.PI) * (Math.asin(Math.sqrt(27 / 28)) - Math.asin(Math.sqrt(3 / 4)));
+  approx(r.p, pExact, 1e-9);
+});
+
+test("shapiroWilk accepts n = 5000 exactly (upper-bound guard is `> 5000`)", () => {
+  const ramp = Array.from({ length: 5000 }, (_, i) => i * 0.7 + Math.sin(i));
+  const r = shapiroWilk(ramp);
+  assert(!r.error, `n=5000 must be accepted, got error: ${r.error}`);
+  assert(Number.isFinite(r.W) && r.W > 0 && r.W <= 1, `W in (0,1]: ${r.W}`);
+});
+
+test("leveneTest error messages name each rejection cause", () => {
+  assert(/≥2 groups required/.test(leveneTest([[1, 2, 3]]).error || ""), "k<2 message");
+  assert(/Not enough observations/.test(leveneTest([[1], [2]]).error || ""), "Ntot≤k message");
+  assert(
+    /zero within-group dispersion/.test(
+      leveneTest([
+        [5, 5, 5],
+        [5, 5, 5],
+      ]).error || ""
+    ),
+    "constant-data message"
+  );
+});
+
+test("tTest: n=2 per group computes, n<2 errors with the n≥2 message", () => {
+  const ok = tTest([1, 2], [3, 5]);
+  assert(!ok.error && Number.isFinite(ok.t), "n=2 each is the valid boundary");
+  const bad = tTest([1], [3, 4, 5]);
+  assert(/Each group needs n≥2/.test(bad.error || ""), `n<2 message: ${bad.error}`);
+  const flat = tTest([5, 5, 5], [7, 7, 7]);
+  assert(
+    /zero variance in both groups/.test(flat.error || ""),
+    `both-constant message: ${flat.error}`
+  );
+});
+
+test("mannWhitneyU: empty group errors; U/U1/U2 satisfy U = min, U2 = n1n2 - U1", () => {
+  assert(/Empty group/.test(mannWhitneyU([], [1, 2]).error || ""), "empty-group message");
+  // n1=1 is the valid lower boundary — must compute, not error.
+  assert(!mannWhitneyU([5], [1, 2, 3]).error, "n1=1 is accepted");
+  const m = mannWhitneyU([1, 2, 3, 4], [3, 4, 5, 6]);
+  eq(m.U1, 2);
+  eq(m.U2, 14); // n1*n2 - U1 = 16 - 2
+  eq(m.U, 2); // min(U1, U2)
+});
+
+test("oneWayANOVA error messages + exact sums of squares", () => {
+  assert(/≥2 groups required/.test(oneWayANOVA([[1, 2, 3]]).error || ""), "k<2 message");
+  assert(/Not enough observations/.test(oneWayANOVA([[1], [2]]).error || ""), "Ntot≤k message");
+  // groups 1-3 / 4-6 / 7-9: means 2,5,8; grandMean 5;
+  // ssBetween = 3·(2-5)² + 3·0 + 3·(8-5)² = 54; ssWithin = 3·(2) = 6.
+  const a = oneWayANOVA([
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9],
+  ]);
+  eq(a.grandMean, 5);
+  approx(a.ssBetween, 54, 1e-12); // mutating `m - grandMean` → `m + grandMean` gives 954
+  approx(a.ssWithin, 6, 1e-12);
+  approx(a.F, 27, 1e-12);
+});
+
+test("welchANOVA error messages + F pinned on a clearly-separated dataset", () => {
+  assert(/≥2 groups required/.test(welchANOVA([[1, 2]]).error || ""), "k<2 message");
+  assert(/Each group needs n≥2/.test(welchANOVA([[1], [2, 3]]).error || ""), "n<2 message");
+  assert(
+    /zero variance in at least one group/.test(
+      welchANOVA([
+        [5, 5, 5],
+        [7, 8, 9],
+      ]).error || ""
+    ),
+    "constant-group message"
+  );
+  // Regression pin (current kernel) — guards the weighted between-group
+  // term `w[i]·(means[i]-m)²` and the `k-1` numerator divisor.
+  const w = welchANOVA([
+    [10, 12, 11],
+    [20, 22, 19],
+    [30, 28, 31],
+  ]);
+  eq(w.df1, 2);
+  approx(w.F, 139.3652392947104, 1e-9);
+});
+
+test("kruskalWallis error messages + H pinned on tied data", () => {
+  assert(/≥2 groups required/.test(kruskalWallis([[1, 2, 3]]).error || ""), "k<2 message");
+  assert(/Not enough observations/.test(kruskalWallis([[1], [2]]).error || ""), "N≤k message");
+  assert(
+    /essentially constant/.test(
+      kruskalWallis([
+        [5, 5, 5],
+        [5, 5, 5],
+      ]).error || ""
+    ),
+    "all-tied message"
+  );
+  // Tied data exercises the (N³-N) tie-correction denominator; regression
+  // pin against the current kernel.
+  const k = kruskalWallis([
+    [1, 1, 2],
+    [2, 3, 3],
+    [4, 4, 5],
+  ]);
+  eq(k.df, 2);
+  approx(k.H, 7.057471264367809, 1e-9);
+});
+
+test("effect sizes return NaN on inputs below their domain", () => {
+  assert(Number.isNaN(cohenD([1], [3, 4, 5])), "cohenD needs n≥2 per group");
+  assert(Number.isFinite(cohenD([1, 2], [3, 4, 5])), "cohenD n=2 is the valid boundary");
+  assert(Number.isNaN(hedgesG([1], [3, 4, 5])), "hedgesG inherits the n≥2 guard");
+  assert(Number.isNaN(rankBiserial(5, 0, 3)), "rankBiserial NaN when n1·n2 = 0");
+  const ci = cohenDCI(0.5, 1, 5);
+  assert(Number.isNaN(ci.lo) && Number.isNaN(ci.hi), "cohenDCI {NaN,NaN} when n1<2");
+});
+
+test("etaSquared returns NaN (not 0) when its ANOVA errors", () => {
+  // With the `if (a.error) return NaN` guard deleted, a zero-variance ANOVA
+  // yields ssBetween = ssWithin = 0 and etaSquared falls through to 0.
+  assert(
+    Number.isNaN(
+      etaSquared([
+        [5, 5],
+        [5, 5],
+      ])
+    ),
+    "constant data → NaN, not 0"
+  );
+  assert(
+    Number.isNaN(
+      epsilonSquared([
+        [5, 5, 5],
+        [5, 5, 5],
+      ])
+    ),
+    "epsilonSquared → NaN"
+  );
 });
 
 summary();

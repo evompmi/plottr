@@ -20,6 +20,7 @@ const path = require("path");
 const esbuild = require("esbuild");
 
 const TOOLS_DIR = path.join(__dirname, "../../tools");
+const TMP_DIR = path.join(__dirname, "../.tmp");
 
 // ── Built-in JS globals every vm.createContext sandbox wants ──────────
 //
@@ -152,6 +153,56 @@ function makeLocalStorage() {
   return { store, localStorage };
 }
 
+// ── esbuild bundle cache ──────────────────────────────────────────────
+//
+// esbuild's *Sync APIs spawn an esbuild service child process. Under
+// Stryker every test file — and therefore every loader that bundles
+// shell / kernel source — is re-evaluated in a fully isolated context
+// once per mutant run. Across thousands of mutants that is thousands of
+// esbuild service spawns; the orphaned services pile up until the OS
+// process table is exhausted. From that point a fresh spawn fails, the
+// esbuild call throws "The service is no longer running", the loader's
+// require() throws at the top of the test file, the file registers zero
+// tests, and every remaining mutant is scored as a false "survived" with
+// no test having run. (The same exhaustion is what makes the run exit
+// with a `spawn pgrep EAGAIN` at teardown.)
+//
+// `cachedBundle` memoizes a bundle on disk. vitest's per-file isolation
+// resets every in-memory anchor — `globalThis`, `process`, even the
+// `esbuild` module object are fresh per mutant run — so the cache cannot
+// live in memory; the filesystem is the only thing that survives. The
+// cache is keyed only inside a Stryker sandbox: `tests/.tmp/` is
+// gitignored, hence not copied into the sandbox, so it starts empty and
+// the instrumented source is immutable for the sandbox's lifetime. A
+// normal `npm test` / `test:watch` run skips the cache entirely and
+// rebuilds every call, so it always sees fresh source.
+const CACHE_BUNDLES = process.cwd().includes(".stryker-tmp");
+
+function cachedBundle(key, build) {
+  if (!CACHE_BUNDLES) return build();
+  const cacheFile = path.join(TMP_DIR, `bundlecache-${key.replace(/[^a-zA-Z0-9]+/g, "_")}.js`);
+  try {
+    const cached = fs.readFileSync(cacheFile, "utf8");
+    if (cached.length > 0) return cached;
+  } catch {
+    /* not cached yet — fall through to build */
+  }
+  const out = build();
+  try {
+    fs.mkdirSync(TMP_DIR, { recursive: true });
+    // Write to a per-process temp then rename: rename is atomic, so a
+    // concurrent reader in another Stryker worker never sees a partial
+    // file. Worst case a few workers race and each builds once before
+    // the file appears — a handful of esbuild spawns, not thousands.
+    const tmp = `${cacheFile}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, out);
+    fs.renameSync(tmp, cacheFile);
+  } catch {
+    /* best-effort cache; correctness does not depend on the write */
+  }
+  return out;
+}
+
 // ── Shell module bundling ─────────────────────────────────────────────
 //
 // `bundleShell(srcRelToTools)` runs esbuild.buildSync with `bundle:
@@ -165,22 +216,24 @@ function makeLocalStorage() {
 // The CJS output looks the same to the vm.runInContext consumer either
 // way; transform-only is just cheaper at boot.
 function bundleShell(srcRelToTools, opts = {}) {
-  const src = path.join(TOOLS_DIR, srcRelToTools);
-  if (opts.transform) {
-    return esbuild.transformSync(fs.readFileSync(src, "utf8"), {
-      loader: srcRelToTools.endsWith(".tsx") ? "tsx" : "ts",
+  return cachedBundle(`shell:${srcRelToTools} ${JSON.stringify(opts)}`, () => {
+    const src = path.join(TOOLS_DIR, srcRelToTools);
+    if (opts.transform) {
+      return esbuild.transformSync(fs.readFileSync(src, "utf8"), {
+        loader: srcRelToTools.endsWith(".tsx") ? "tsx" : "ts",
+        format: "cjs",
+        target: "es2022",
+      }).code;
+    }
+    return esbuild.buildSync({
+      entryPoints: [src],
+      bundle: true,
       format: "cjs",
-      target: "es2022",
-    }).code;
-  }
-  return esbuild.buildSync({
-    entryPoints: [src],
-    bundle: true,
-    format: "cjs",
-    platform: "neutral",
-    jsx: "transform",
-    write: false,
-  }).outputFiles[0].text;
+      platform: "neutral",
+      jsx: "transform",
+      write: false,
+    }).outputFiles[0].text;
+  });
 }
 
 // Read `tools/shared.bundle.js` — the concatenated plain-JS bundle the
@@ -203,16 +256,18 @@ function readSharedBundleSrc() {
 // the vm context's globalThis so callers like `ctx.parseRaw(...)` resolve
 // without each `_core/*` module having to write to globalThis itself.
 function readCoreSharedSource() {
-  const result = esbuild.buildSync({
-    entryPoints: [path.join(TOOLS_DIR, "_core/shared.ts")],
-    bundle: true,
-    format: "iife",
-    globalName: "__plottrShared",
-    platform: "neutral",
-    target: "es2022",
-    write: false,
+  return cachedBundle("core-shared", () => {
+    const result = esbuild.buildSync({
+      entryPoints: [path.join(TOOLS_DIR, "_core/shared.ts")],
+      bundle: true,
+      format: "iife",
+      globalName: "__plottrShared",
+      platform: "neutral",
+      target: "es2022",
+      write: false,
+    });
+    return result.outputFiles[0].text + "\nObject.assign(globalThis, __plottrShared);\n";
   });
-  return result.outputFiles[0].text + "\nObject.assign(globalThis, __plottrShared);\n";
 }
 
 // ── Run a CJS bundle inside a vm context ──────────────────────────────
@@ -238,13 +293,15 @@ function runCjs(ctx, cjs) {
 // instead makes the file part of the module dependency graph and the
 // instrumentation works.
 //
-// Writes `cjs` to `tests/.tmp/<basename>.cjs`, busts the require cache
-// (Stryker mutates the source on disk per cold-start), and returns the
-// exports.
+// Writes `cjs` to `tests/.tmp/<basename>.<pid>.cjs`, busts the require
+// cache (Stryker mutates the source on disk per cold-start), and returns
+// the exports. The filename is per-process: under Stryker several worker
+// processes share `tests/.tmp/`, and a single shared filename lets one
+// process require() the file while another is mid-write — a torn read
+// that surfaces as "Unexpected end of input".
 function requireViaTmpFile(basename, cjs) {
-  const tmpDir = path.join(__dirname, "../.tmp");
-  fs.mkdirSync(tmpDir, { recursive: true });
-  const tmpFile = path.join(tmpDir, `${basename}.cjs`);
+  fs.mkdirSync(TMP_DIR, { recursive: true });
+  const tmpFile = path.join(TMP_DIR, `${basename}.${process.pid}.cjs`);
   fs.writeFileSync(tmpFile, cjs);
   delete require.cache[tmpFile];
   return require(tmpFile);
@@ -256,6 +313,7 @@ module.exports = {
   MINIMAL_REACT,
   makeDomStubs,
   makeLocalStorage,
+  cachedBundle,
   bundleShell,
   readSharedBundleSrc,
   readCoreSharedSource,
