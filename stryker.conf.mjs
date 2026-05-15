@@ -12,10 +12,13 @@
 // helpers, not the framework code.
 //
 // Run: `npm run mutation` (slow — 5–30 min per scope on this hardware).
-// Reports land in `reports/mutation/mutation.html` (gitignored).
+// Reports land in `reports/mutation/<target>.{html,json}` (gitignored):
+// one report per mutated file, named after the active `mutate` entry, so
+// measuring dist.ts then posthoc.ts keeps both reports instead of the
+// second overwriting the first. See the `reportSlug` derivation below.
 
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
-export default {
+const config = {
   // Files Stryker mutates. Start narrow (volcano + stats) so the first
   // run completes in minutes; widen once the workflow is proven.
   mutate: [
@@ -157,11 +160,32 @@ export default {
   // Reporters: progress + clear-text for the terminal, html for a
   // browsable per-mutant report. The dashboard reporter is included by
   // default and would attempt to upload to stryker.dashboard.io;
-  // omitting it keeps the run local-only.
+  // omitting it keeps the run local-only. The html / json output
+  // filenames are set per-target just below `export default` so each
+  // mutated file gets its own report.
   reporters: ["progress", "clear-text", "html", "json"],
-  htmlReporter: { fileName: "reports/mutation/mutation.html" },
-  jsonReporter: { fileName: "reports/mutation/mutation.json" },
 
   // Don't clutter the repo with the sandbox dir between runs.
   cleanTempDir: true,
 };
+
+// Per-target report filenames. Stryker would otherwise overwrite a
+// single `mutation.json` / `mutation.html` on every run, so a sweep that
+// measures dist.ts and then posthoc.ts would lose the dist.ts report.
+// Deriving the name from the active `mutate` entry keeps one report per
+// file — `reports/mutation/core-stats-dist.json`, `…-posthoc.json`, … —
+// so module scores stay comparable across a methodical sweep without
+// re-running. A multi-target run (more than one entry uncommented)
+// falls back to `multi`.
+const reportSlug =
+  config.mutate.length === 1
+    ? config.mutate[0]
+        .replace(/^tools\//, "")
+        .replace(/\.[cm]?[jt]sx?$/, "")
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-+|-+$/g, "")
+    : "multi";
+config.htmlReporter = { fileName: `reports/mutation/${reportSlug}.html` };
+config.jsonReporter = { fileName: `reports/mutation/${reportSlug}.json` };
+
+export default config;
