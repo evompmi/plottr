@@ -70,13 +70,19 @@ const config = {
     //                  Residual 54 equivalent — loop bounds, strict-
     //                  binary-tree symmetry, new Array sizing, dead
     //                  branches — plus a few contrived-only.
-    //   - dist.ts    — 62.83% raw / 67.11% covered, 1208 mutants (737
-    //                  killed + 22 timeout, 372 survived + 77 no-cov).
-    //                  Re-run 2026-05-15 post loader-fix; matches the
-    //                  pre-fix 63.08% (0.25pt delta is timeout-flake
-    //                  noise) — dist.ts was never affected by the bug.
-    //                  Residual mostly chi2inv / tinv Newton internals
-    //                  and Gauss-Legendre quadrature. ~23 min wall-clock.
+    //   - dist.ts    — 69.12% raw / 69.93% covered, 1208 mutants (814
+    //                  killed + 21 timeout, 359 survived + 14 no-cov).
+    //                  2026-05-15 sweep: 8 uncovered-path pins (gammaln
+    //                  reflection, norminv/tinv ±∞ guards, normcdf |x|≥7
+    //                  switchover, one-tailed power, fFromGroupMeans,
+    //                  ncf_sf/ncchi2cdf large-λ short-circuits) killed
+    //                  ~83 and cut no-coverage 77→14. Ceiling is
+    //                  intrinsically low — dist.ts is almost all
+    //                  iterative numerics; residual is Newton-Raphson /
+    //                  continued-fraction / GL-node / Poisson-mixture
+    //                  internals (converge to the same value, outputs
+    //                  pinned by R/SciPy) + 14 contrived-input-only
+    //                  fallback/rescaling paths. ~23 min wall-clock.
     //   - posthoc.ts — 79.80% raw / 81.20% covered, 698 mutants (538
     //                  killed + 19 timeout, 129 survived + 12 no-cov).
     //                  2026-05-15 sweep: re-run reproduced the pre-fix
@@ -104,14 +110,14 @@ const config = {
     //                  contribute zero, dead [0,1] clamps) plus kendallTau
     //                  higher-order tie corrections that need R-verified
     //                  references for size-≥3 tie groups on both axes.
-    "tools/_core/stats/posthoc.ts",
+    "tools/_core/stats/dist.ts",
     //
     // Pending — uncomment one at a time and re-run:
     // "tools/_core/stats/format.ts",
     // "tools/_core/stats/msi.ts",
     // "tools/_core/stats/cluster.ts",
+    // "tools/_core/stats/posthoc.ts",
     // "tools/_core/stats/tests.ts",
-    // "tools/_core/stats/dist.ts",
     // "tools/volcano/helpers.ts",
     // "tools/scatter/helpers.ts",
     // "tools/lineplot/helpers.ts",

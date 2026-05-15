@@ -65,6 +65,7 @@ export function normsf(x: number): number {
 export function norminv(p: number): number {
   if (p <= 0) return -Infinity;
   if (p >= 1) return Infinity;
+  // equiv-mutant: redundant — the p≤pHigh rational form already yields exactly 0 at p=0.5 (q=p−0.5=0)
   if (p === 0.5) return 0;
   const a = [
     -3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.38357751867269e2,
@@ -369,6 +370,7 @@ export function tpdf(x: number, df: number): number {
 export function tinv(p: number, df: number): number {
   if (p <= 0) return -Infinity;
   if (p >= 1) return Infinity;
+  // equiv-mutant: redundant — every df branch already converges to 0 at p=0.5 (leftP=0.5)
   if (p === 0.5) return 0;
 
   const upper = p > 0.5;
@@ -428,6 +430,7 @@ export function tinv(p: number, df: number): number {
 
 // F-distribution CDF
 export function fcdf(f: number, d1: number, d2: number): number {
+  // equiv-mutant: subsumed — for f<=0 the x argument lands outside (0,1) and betai returns 0
   if (f <= 0) return 0;
   return betai(d1 / 2, d2 / 2, (d1 * f) / (d1 * f + d2));
 }
@@ -436,12 +439,14 @@ export function fcdf(f: number, d1: number, d2: number): number {
 // computation avoids the 1 − (near-1) cancellation that underflows ANOVA /
 // Welch-ANOVA p-values at F > ~50.
 export function fcdf_upper(f: number, d1: number, d2: number): number {
+  // equiv-mutant: subsumed — for f<=0 the x argument lands outside (0,1) and betai_upper returns 1
   if (f <= 0) return 1;
   return betai_upper(d1 / 2, d2 / 2, (d1 * f) / (d1 * f + d2));
 }
 
 // Chi-square CDF
 export function chi2cdf(x: number, k: number): number {
+  // equiv-mutant: subsumed — gammainc returns 0 for the x/2<=0 that x<=0 produces
   if (x <= 0) return 0;
   return gammainc(k / 2, x / 2);
 }

@@ -117,6 +117,7 @@ const {
   chi2pdf,
   betai,
   betai_upper,
+  gammaln,
   gammainc,
   gammainc_upper,
   formatP,
@@ -3859,6 +3860,78 @@ test("selectTest — Shapiro-Wilk narrative names the all-normal vs flagged bran
     /Shapiro-Wilk could not run on every group/.test(smallN.recommendation.reason),
     `small-n narrative: ${smallN.recommendation.reason}`
   );
+});
+
+// ── dist.ts — uncovered-path pins (mutation audit) ─────────────────────────
+//
+// dist.ts's R / SciPy cross-validations pin the happy path of every
+// distribution. These reach the branches they skip: the domain guards,
+// the gammaln Euler reflection, the |x|≥7 tail switchover, the one-tailed
+// power branches, the large-λ normal-approximation short-circuits in
+// ncf_sf / ncchi2cdf, and fFromGroupMeans' centring on the grand mean.
+
+suite("dist.ts — uncovered-path pins");
+
+test("gammaln reflection — x < 0.5 routes through the Euler reflection formula", () => {
+  // gammaln(x<0.5) = ln(π/sin(πx)) − gammaln(1−x). Γ(0.25) ≈ 3.6256099,
+  // Γ(0.1) ≈ 9.5135077.
+  approx(gammaln(0.25), Math.log(3.6256099082219083), 1e-10);
+  approx(gammaln(0.1), Math.log(9.513507698668732), 1e-10);
+});
+
+test("norminv / tinv reject out-of-range p with ±Infinity", () => {
+  eq(norminv(0), -Infinity);
+  eq(norminv(1), Infinity);
+  eq(norminv(-1), -Infinity);
+  eq(tinv(0, 5), -Infinity);
+  eq(tinv(1, 5), Infinity);
+  eq(tinv(-0.1, 5), -Infinity);
+});
+
+test("normcdf |x| ≥ 7 uses the tail-accurate normsf switchover", () => {
+  // At x=7 the A&S polynomial has lost its digits; normcdf delegates to
+  // 1 − normsf. A `1 + normsf` mutant would push the result above 1.
+  approx(normcdf(7), 0.9999999999987201, 1e-15);
+  approx(normcdf(-7), 1.2798125429085443e-12, 1e-20);
+  assert(normcdf(7) < 1, "normcdf(7) stays strictly below 1");
+});
+
+test("power functions honour the one-tailed branch (tails=1 ≠ tails=2)", () => {
+  approx(powerTwoSample(0.5, 30, 0.05, 1), 0.6060253082451761, 1e-9);
+  approx(powerPaired(0.5, 30, 0.05, 1), 0.8482541787793818, 1e-9);
+  approx(powerCorrelation(0.3, 80, 0.05, 1), 0.8579534422541399, 1e-9);
+  // a one-tailed test has more power than two-tailed at the same α
+  assert(
+    powerTwoSample(0.5, 30, 0.05, 1) > powerTwoSample(0.5, 30, 0.05, 2),
+    "one-tailed power exceeds two-tailed"
+  );
+});
+
+test("powerAnova — df2 = k(n−1) noncentral-F power", () => {
+  // Regression pin: a `k(n+1)` df2 mutant or a broken fCrit bracket shifts this.
+  approx(powerAnova(0.4, 20, 0.05, 3), 0.7757304738540571, 1e-9);
+});
+
+test("fFromGroupMeans centres on the grand mean (means far from 0)", () => {
+  // Cohen's f = population SD of the group means ÷ within-SD. Means
+  // [100,110,120], sd 5 → √(200/3)/5. A `m + grandMean` mutant explodes it.
+  approx(fFromGroupMeans([100, 110, 120], 5), Math.sqrt(200 / 3) / 5, 1e-12);
+});
+
+test("ncf_sf large-λ normal-approximation short-circuit", () => {
+  // halfLam = 1000 > 500 with d2 = 100: f far below the NCF mean → 1, far
+  // above → 0; a mid-range f falls through to the Poisson mixture sum.
+  eq(ncf_sf(0.001, 3, 100, 2000), 1);
+  eq(ncf_sf(1e7, 3, 100, 2000), 0);
+  approx(ncf_sf(200, 3, 100, 2000), 0.9999999999997912, 1e-9);
+});
+
+test("ncchi2cdf large-λ normal-approximation short-circuit", () => {
+  // halfLam = 1000 > 500: x far below the mean k+λ → 0, far above → 1, a
+  // mid-range x falls through to the Poisson mixture sum.
+  eq(ncchi2cdf(1, 3, 2000), 0);
+  eq(ncchi2cdf(1e6, 3, 2000), 1);
+  approx(ncchi2cdf(2003, 3, 2000), 0.50445780319877, 1e-9);
 });
 
 summary();
