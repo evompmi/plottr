@@ -737,11 +737,14 @@ suite("ScatterChart");
   const tool = loadTool("scatter");
   const ScatterChart = tool.exports.ScatterChart;
 
+  // ScatterChart indexes each row by column number (`row[xCol]`), so `data`
+  // must be parsed rows (arrays), not {x,y} objects — the latter renders zero
+  // points, which still passes a render-without-throwing assertion.
   const sampleData = [
-    { x: 1, y: 2 },
-    { x: 3, y: 4 },
-    { x: 5, y: 6 },
-    { x: 7, y: 8 },
+    [1, 2, "A"],
+    [3, 4, "B"],
+    [5, 6, "A"],
+    [7, 8, "B"],
   ];
   const rawData = [
     ["1", "2", "A"],
@@ -880,9 +883,12 @@ suite("AequorinChart");
   const tool = loadTool("aequorin");
   const Chart = tool.exports.Chart;
 
+  // AequorinChart reads `s.prefix` for the trace id / aria-label; a series
+  // with only `name` renders `aria-label="Trace: undefined"`.
   const sampleSeries = [
     {
       name: "WT",
+      prefix: "WT",
       color: "#648FFF",
       rows: [
         { t: 0, mean: 100, sd: 10 },
@@ -892,6 +898,7 @@ suite("AequorinChart");
     },
     {
       name: "Mutant",
+      prefix: "Mutant",
       color: "#DC267F",
       rows: [
         { t: 0, mean: 80, sd: 10 },
