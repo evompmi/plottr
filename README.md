@@ -197,7 +197,7 @@ A few entries are books or pre-DOI papers with no DOI; those carry an archival o
 - Zimmerman, D. W. (2004). A note on preliminary tests of equality of variances. _British Journal of Mathematical and Statistical Psychology_ 57(1), 173–181. https://doi.org/10.1348/000711004849222
 - Schucany, W. R., & Ng, H. K. T. (2006). Preliminary goodness-of-fit tests for normality do not validate the one-sample Student t. _Communications in Statistics – Theory and Methods_ 35(12), 2275–2286. https://doi.org/10.1080/03610920600853308
 - Rasch, D., Kubinger, K. D., & Moder, K. (2011). The two-sample t test: pre-testing its assumptions does not pay off. _Statistical Papers_ 52(1), 219–231. https://doi.org/10.1007/s00362-009-0224-x
-- Delacre, M., Lakens, D., & Leys, C. (2017). Why psychologists should by default use Welch's t-test instead of Student's t-test. _International Review of Social Psychology_ 30(1), 92–101. https://doi.org/10.5334/irsp.82
+- Delacre, M., Leys, C., Mora, Y. L., & Lakens, D. (2019). Taking parametric assumptions seriously: arguments for the use of Welch's F-test instead of the classical F-test in one-way ANOVA. _International Review of Social Psychology_ 32(1), Article 13. https://doi.org/10.5334/irsp.198
 
 ### Numerical methods and special functions
 
