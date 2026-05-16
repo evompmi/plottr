@@ -164,7 +164,7 @@ Plöttr was built collaboratively with Anthropic's Claude (Anthropic Claude Opus
 
 Plöttr's statistical, numerical, and visualisation methods are independent implementations of published algorithms and methodology. Listed below is every research reference behind the codebase — swept from the source comments and verified against the publishers (Crossref, PubMed, journal pages). Code provenance and licensing for vendored and ported code (React, the Cephes ports, the colour palettes) is detailed separately in [`THIRD_PARTY.md`](THIRD_PARTY.md).
 
-A few entries are books or pre-DOI papers with no DOI; those carry an archival or publisher link where one exists, or none at all — never a fabricated identifier.
+A few entries are books or pre-DOI papers with no DOI; those carry an archival or publisher link where one exists, or none at all.
 
 ### Statistical tests and post-hoc procedures
 
