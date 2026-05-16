@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   distances, e.g. rows with no overlapping finite values — the merge node
   was placed at height 0, below its own children. Merge heights are now
   clamped to stay monotonically non-decreasing.
+- **Statistical functions reject degenerate input cleanly instead of
+  returning a silent NaN or a wrong number.** Games-Howell errors when a
+  group has fewer than 2 observations; Dunn's test errors on too-few or
+  empty groups; `selectTest` reports a non-finite Shapiro-Wilk / Levene
+  diagnostic as "unknown" rather than a false verdict; and the `tcdf` /
+  `fcdf` / `chi2cdf` distribution family returns NaN for an invalid
+  degrees-of-freedom argument instead of a finite wrong value.
 
 ## [1.5.3] - 2026-05-16
 

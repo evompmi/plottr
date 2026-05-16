@@ -489,6 +489,47 @@ test("chi2inv degenerate inputs", () => {
   assert(Number.isNaN(chi2inv(0.5, -1)), "k<0 → NaN");
 });
 
+// ── Distribution domain guards ─────────────────────────────────────────────
+//
+// A finite but invalid degrees-of-freedom / shape parameter (0, negative)
+// used to yield a finite *wrong* number — tcdf(t, 0) returned 1, fcdf with
+// d1=0 returned 0 — instead of NaN. These pin the consistent `df <= 0 → NaN`
+// guard across the distribution surface (chi2inv already had it).
+
+suite("stats.js — distribution domain guards");
+
+test("non-positive df / shape parameter → NaN", () => {
+  for (const bad of [0, -1, -7.5]) {
+    assert(Number.isNaN(tcdf(1.5, bad)), `tcdf df=${bad}`);
+    assert(Number.isNaN(tcdf_upper(1.5, bad)), `tcdf_upper df=${bad}`);
+    assert(Number.isNaN(tinv(0.7, bad)), `tinv df=${bad}`);
+    assert(Number.isNaN(chi2cdf(3, bad)), `chi2cdf k=${bad}`);
+    assert(Number.isNaN(chi2pdf(3, bad)), `chi2pdf k=${bad}`);
+    assert(Number.isNaN(nctcdf(1.5, bad, 1)), `nctcdf df=${bad}`);
+    assert(Number.isNaN(ncchi2cdf(3, bad, 1)), `ncchi2cdf k=${bad}`);
+    assert(Number.isNaN(fcdf(2, bad, 5)) && Number.isNaN(fcdf(2, 5, bad)), `fcdf d=${bad}`);
+    assert(
+      Number.isNaN(fcdf_upper(2, bad, 5)) && Number.isNaN(fcdf_upper(2, 5, bad)),
+      `fcdf_upper d=${bad}`
+    );
+    assert(
+      Number.isNaN(ncf_sf(2, bad, 5, 1)) && Number.isNaN(ncf_sf(2, 5, bad, 1)),
+      `ncf_sf d=${bad}`
+    );
+  }
+});
+
+test("a valid df / shape still computes a finite result (guard does not over-fire)", () => {
+  assert(tcdf(1.5, 10) > 0 && Number.isFinite(tcdf(1.5, 10)), "tcdf df=10");
+  assert(Number.isFinite(tcdf_upper(1.5, 10)), "tcdf_upper df=10");
+  assert(Number.isFinite(tinv(0.7, 10)), "tinv df=10");
+  assert(Number.isFinite(fcdf(2, 3, 12)) && Number.isFinite(fcdf_upper(2, 3, 12)), "fcdf");
+  assert(Number.isFinite(chi2cdf(3, 4)) && Number.isFinite(chi2pdf(3, 4)), "chi2");
+  assert(Number.isFinite(nctcdf(1.5, 10, 1)), "nctcdf");
+  assert(Number.isFinite(ncf_sf(2, 3, 12, 1)), "ncf_sf");
+  assert(Number.isFinite(ncchi2cdf(3, 4, 1)), "ncchi2cdf");
+});
+
 // ── Sample helpers ─────────────────────────────────────────────────────────
 
 suite("stats.js — sample helpers");
@@ -1565,6 +1606,15 @@ test("gamesHowell: all groups constant → error", () => {
   assert(r.error != null, "expected error");
 });
 
+test("gamesHowell: a group with n<2 → error (singleton has no variance)", () => {
+  // A singleton's sample variance is NaN, which slips past the
+  // `variance === 0` guard (NaN === 0 is false); without an explicit n<2
+  // check it would surface as a silent NaN p-value.
+  const r = gamesHowell([[5], [1, 2, 3], [6, 7, 8]]);
+  assert(/n≥2/.test(r.error || ""), `expected an n≥2 error, got ${JSON.stringify(r)}`);
+  assert(r.pairs.length === 0, "pairs should be empty");
+});
+
 // ── Additional zero-variance guards ────────────────────────────────────────
 //
 // These four functions used to return phantom F = Infinity, F = NaN, or
@@ -1708,6 +1758,18 @@ test("PlantGrowth Dunn: BH-adjusted p-values", () => {
 test("Dunn reports BH as method", () => {
   const r = dunnTest(pg);
   assert(r.method === "Benjamini-Hochberg", "expected BH label");
+});
+
+test("dunnTest: too few observations or an empty group → error, not NaN", () => {
+  // N ≤ k (all singletons here) collapses the sigma2 denominator N−1; an
+  // empty group makes a 0/0 mean rank. Both must surface a clean error
+  // instead of a silent NaN p — mirrors the kruskalWallis precondition.
+  const allSingletons = dunnTest([[1], [2], [3]]);
+  assert(/Not enough observations/.test(allSingletons.error || ""), "all-singletons → error");
+  const emptyGroup = dunnTest([[1, 2, 3, 4], []]);
+  assert(/Not enough observations/.test(emptyGroup.error || ""), "empty group → error");
+  // A genuine dataset must still compute.
+  assert(!dunnTest(pg).error, "PlantGrowth must still compute");
 });
 
 // ── Compact letter display ─────────────────────────────────────────────────
@@ -2103,6 +2165,29 @@ test("k=2 routing: test === 'welchT' + postHoc=null (kills 'k === 2' → 'k !== 
   const r = selectTest([normalA, normalB]);
   eq(r.recommendation.test, "welchT");
   eq(r.recommendation.postHoc, null);
+});
+
+test("selectTest: a non-finite value yields honest 'unknown' diagnostics, not false verdicts", () => {
+  // A group carrying Infinity makes Shapiro-Wilk / Levene return NaN.
+  // Without the guards, `NaN >= alpha` collapses to false and the
+  // narrative would assert "non-normal" / "unequal variances" from
+  // garbage. The diagnostics must instead report the group as unknown.
+  const clean = [9.9, 10.0, 10.1, 10.05, 9.95, 10.02];
+  const dirty = [10, 11, 12, Infinity, 13, 14];
+  const r = selectTest([clean, dirty]);
+  // The dirty group's normality verdict must be null (unknown), never false.
+  assert(
+    r.normality[1].normal !== false,
+    `dirty group must not be flagged non-normal: ${JSON.stringify(r.normality[1])}`
+  );
+  // Levene reports as unavailable rather than as a NaN-derived verdict.
+  assert(
+    r.levene.error != null || r.levene.equalVar !== false,
+    `Levene must not assert a verdict from NaN: ${JSON.stringify(r.levene)}`
+  );
+  // The recommended test stays Welch — the pick never depended on the
+  // (now honestly-unknown) diagnostics.
+  eq(r.recommendation.test, "welchT");
 });
 
 // ── Hierarchical clustering ────────────────────────────────────────────────
