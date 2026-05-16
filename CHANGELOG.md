@@ -7,45 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-05-16
+
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md). The
+> entries below are summary bullets that link there.
+
 ### Changed
 
-- **The heatmap colorbar auto-ranges when you cross between a diverging
-  and a sequential palette.** Picking a diverging palette (RdBu, bwr, …)
-  refills vmin / vmax to a symmetric range centred on 0; picking a
-  sequential palette refills to the data's own min / max. A sequential →
-  sequential swap (e.g. viridis → plasma) leaves a manual range untouched.
+- **Heatmap colorbar auto-ranges when you cross between a diverging and a
+  sequential palette** — symmetric vmin/vmax for diverging, data-fit for
+  sequential; a sequential→sequential swap leaves a manual range alone.
+  See [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-changed).
 
 ### Fixed
 
-- **Mann-Whitney U on all-identical data now reports an error instead of
-  a false "p = 1, not significant".** When every observation is identical
-  the tie-corrected variance collapses to exactly 0 and the test is
-  undefined; the result now carries an error, matching Kruskal-Wallis.
-- **Heatmap colorbar re-ranges when you switch the normalization mode.**
-  Switching to Z-score or log₂ shifts the value scale, but vmin/vmax stayed
-  on the raw-data range — rendering the heatmap as a saturated, near-uniform
-  block until "Auto from data" was clicked by hand.
-- **Aequorin auto Y-range no longer clips the mean ± SD ribbon.** The range
-  was derived from raw replicate cells, but `mean + SD` can exceed the
-  largest single replicate; it now ranges over the ribbon edges the chart
-  actually draws.
-- **UpSet multi-set p-value is now exactly 0 for an impossible
-  intersection.** The Poisson-approximation path (used for large set
-  families) returned a small non-zero tail probability when the observed
-  intersection size exceeded the smallest set; it now returns 0, matching
-  the exact path.
-- **Heatmap dendrograms no longer draw inverted (crossed) branches.** When
-  a cluster had to be merged with no distance information — all-NaN
-  distances, e.g. rows with no overlapping finite values — the merge node
-  was placed at height 0, below its own children. Merge heights are now
-  clamped to stay monotonically non-decreasing.
-- **Statistical functions reject degenerate input cleanly instead of
-  returning a silent NaN or a wrong number.** Games-Howell errors when a
-  group has fewer than 2 observations; Dunn's test errors on too-few or
-  empty groups; `selectTest` reports a non-finite Shapiro-Wilk / Levene
-  diagnostic as "unknown" rather than a false verdict; and the `tcdf` /
-  `fcdf` / `chi2cdf` distribution family returns NaN for an invalid
-  degrees-of-freedom argument instead of a finite wrong value.
+- **Mann-Whitney U on all-identical data returns an error, not a false
+  "p = 1".** The tie-corrected variance collapses to 0 and the test is
+  undefined. See
+  [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-fixed).
+- **Games-Howell, Dunn, `selectTest`, and the distribution functions
+  reject degenerate input** (n < 2 groups, empty groups, non-finite
+  diagnostics, df ≤ 0) instead of a silent NaN or a wrong number. See
+  [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-fixed).
+- **Heatmap colorbar re-ranges on a normalization-mode switch** — Z-score
+  / log₂ no longer leaves the heatmap a saturated block. See
+  [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-fixed).
+- **Heatmap dendrograms no longer draw inverted (crossed) branches** — an
+  all-NaN force-merge could place a parent below its children; merge
+  heights are now monotone. See
+  [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-fixed).
+- **Aequorin auto Y-range no longer clips the mean ± SD ribbon** — it
+  ranges over the drawn ribbon edges, not the raw replicate cells. See
+  [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-fixed).
+- **UpSet multi-set p-value is exactly 0 for an impossible intersection**
+  — the Poisson path no longer leaks a non-zero tail. See
+  [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-fixed).
 
 ## [1.5.3] - 2026-05-16
 
@@ -1322,7 +1319,8 @@ First tracked release. Baseline of features shipped to GitHub Pages prior to the
 - **Shared scaffolding.** `tools/shared.js` utilities, plain-JS React components, CSV/TSV parsing with auto-separator + decimal-comma fix.
 - **CI + tooling baseline.** TypeScript typecheck, ESLint + Prettier, GitHub Actions workflow, custom test harness, minified esbuild bundles.
 
-[Unreleased]: https://github.com/evompmi/plottr/compare/v1.5.3...HEAD
+[Unreleased]: https://github.com/evompmi/plottr/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/evompmi/plottr/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/evompmi/plottr/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/evompmi/plottr/compare/v1.5.1...v1.5.2
 [1.1.0]: https://github.com/evompmi/plottr/compare/v1.0.5...v1.1.0
