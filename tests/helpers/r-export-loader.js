@@ -24,4 +24,6 @@ module.exports = {
   sanitizeRComment: rExport.sanitizeRComment,
   formatRNumber: rExport.formatRNumber,
   formatRVector: rExport.formatRVector,
+  wrapRItems: rExport.wrapRItems,
+  R_MAX_LINE: rExport.R_MAX_LINE,
 };

@@ -5,7 +5,7 @@
 // turns the currently plotted (post-normalisation, post-reordering)
 // matrix into the headers + rows arrays expected by `downloadCsv`.
 
-import { sanitizeRString, formatRNumber } from "../_shell/r-export";
+import { sanitizeRString, formatRNumber, wrapRItems } from "../_shell/r-export";
 import { COLOR_PALETTES, DIVERGING_PALETTES } from "../_core/color";
 
 import type {
@@ -54,24 +54,15 @@ export function buildHeatmapRScript({
   cellBorder,
 }: HeatmapRScriptOpts): string {
   const { rowLabels, colLabels, matrix } = rawMatrix;
-  const rowNamesR = "c(" + rowLabels.map((l) => `"${sanitizeRString(l)}"`).join(", ") + ")";
-  const colNamesR = "c(" + colLabels.map((l) => `"${sanitizeRString(l)}"`).join(", ") + ")";
+  const rowNamesR = wrapRItems(rowLabels.map((l) => `"${sanitizeRString(l)}"`));
+  const colNamesR = wrapRItems(colLabels.map((l) => `"${sanitizeRString(l)}"`));
   const flat: number[] = [];
   for (let r = 0; r < matrix.length; r++) {
     for (let c = 0; c < matrix[r].length; c++) flat.push(matrix[r][c]);
   }
-  const dataRows: string[] = [];
-  const perLine = colLabels.length;
-  for (let i = 0; i < flat.length; i += perLine) {
-    dataRows.push(
-      "    " +
-        flat
-          .slice(i, i + perLine)
-          .map(formatRNumber)
-          .join(", ")
-    );
-  }
-  const dataLiteral = "c(\n" + dataRows.join(",\n") + "\n  )";
+  // One matrix row per source line where it fits; wrapRItems re-wraps
+  // any row too wide to stay within R_MAX_LINE.
+  const dataLiteral = wrapRItems(flat.map(formatRNumber), colLabels.length || 8);
   const paletteBase = COLOR_PALETTES[palette] || COLOR_PALETTES.viridis;
   const stops = invertPalette ? [...paletteBase].reverse() : paletteBase;
   const stopsR = "c(" + stops.map((c) => `"${c}"`).join(", ") + ")";

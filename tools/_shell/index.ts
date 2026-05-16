@@ -81,8 +81,10 @@ export {
   buildRScriptForPower,
   formatRNumber,
   formatRVector,
+  R_MAX_LINE,
   sanitizeRComment,
   sanitizeRString,
+  wrapRItems,
 } from "./r-export";
 export type { BuildRScriptCtx, PowerScriptState } from "./r-export";
 export { scrollDisclosureIntoView } from "./scroll-helpers";
