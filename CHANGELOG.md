@@ -7,10 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
+## [1.6.1] - 2026-05-16
 
-- **Corrected the year of the Delacre et al. citation shown in the Group
-  Plot stats-panel decision trace** — the paper is 2017, not 2019.
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.6.1.md`](docs/release-notes/v1.6.1.md). The
+> entries below are summary bullets that link there.
+>
+> Documentation / archival release — no functional changes to the tools.
+
+### Added
+
+- **A verified `References` section in the README** — the research
+  literature behind Plöttr's statistics, numerics, and methodology, each
+  entry checked against Crossref / PubMed / publisher pages for a correct
+  DOI or authoritative URL. See
+  [`docs/release-notes/v1.6.1.md`](docs/release-notes/v1.6.1.md#-added).
+- **`CITATION.cff` and `.zenodo.json`** so Plöttr can be archived and
+  cited through Zenodo. See
+  [`docs/release-notes/v1.6.1.md`](docs/release-notes/v1.6.1.md#-added).
 
 ## [1.6.0] - 2026-05-16
 
@@ -1324,7 +1338,8 @@ First tracked release. Baseline of features shipped to GitHub Pages prior to the
 - **Shared scaffolding.** `tools/shared.js` utilities, plain-JS React components, CSV/TSV parsing with auto-separator + decimal-comma fix.
 - **CI + tooling baseline.** TypeScript typecheck, ESLint + Prettier, GitHub Actions workflow, custom test harness, minified esbuild bundles.
 
-[Unreleased]: https://github.com/evompmi/plottr/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/evompmi/plottr/compare/v1.6.1...HEAD
+[1.6.1]: https://github.com/evompmi/plottr/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/evompmi/plottr/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/evompmi/plottr/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/evompmi/plottr/compare/v1.5.1...v1.5.2
