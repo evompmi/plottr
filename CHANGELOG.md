@@ -21,6 +21,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   was derived from raw replicate cells, but `mean + SD` can exceed the
   largest single replicate; it now ranges over the ribbon edges the chart
   actually draws.
+- **UpSet multi-set p-value is now exactly 0 for an impossible
+  intersection.** The Poisson-approximation path (used for large set
+  families) returned a small non-zero tail probability when the observed
+  intersection size exceeded the smallest set; it now returns 0, matching
+  the exact path.
+- **Heatmap dendrograms no longer draw inverted (crossed) branches.** When
+  a cluster had to be merged with no distance information — all-NaN
+  distances, e.g. rows with no overlapping finite values — the merge node
+  was placed at height 0, below its own children. Merge heights are now
+  clamped to stay monotonically non-decreasing.
 
 ## [1.5.3] - 2026-05-16
 

@@ -174,6 +174,12 @@ export function multisetIntersectionPPoisson(xObs: number, ns: number[], N: numb
     if (n_i === 0) return xObs <= 0 ? 1 : 0;
   }
   if (xObs <= 0) return 1;
+  // The intersection of the sets cannot exceed the smallest set, so an
+  // observed count past min(ns) is impossible and its tail probability is
+  // exactly 0. multisetIntersectionPExact already returns 0 here; the
+  // Poisson approximation must agree, otherwise gammainc would hand back
+  // a small but non-zero tail for an impossible intersection.
+  if (xObs > Math.min(...ns)) return 0;
   let logLambda = 0;
   for (const n_i of ns) logLambda += Math.log(n_i);
   logLambda -= (ns.length - 1) * Math.log(N);

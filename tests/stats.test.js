@@ -1799,6 +1799,58 @@ test("CLD: mixed NaN + significant pairs only act on the resolved pairs", () => 
   assert(cld[1].includes(cld[0]) || cld[1].includes(cld[2]), `1 must overlap, got ${cld}`);
 });
 
+// Intransitive-significance regression pins (pre-launch audit). A CLD is
+// *consistent* iff it satisfies both invariants on every pair:
+//   separation  — a significant pair shares NO letter;
+//   completeness — a non-significant pair shares AT LEAST ONE letter.
+// The audit raised a concern that the split+absorb algorithm might leave
+// a non-significant pair sharing no letter once the significance graph is
+// intransitive at k ≥ 4. These pin that it does not.
+const cldShare = (a, b) => [...a].some((ch) => b.includes(ch));
+const assertCldConsistent = (cld, pairs, alpha) => {
+  for (const pr of pairs) {
+    const sig = Number.isFinite(pr.p) && pr.p < alpha;
+    const shares = cldShare(cld[pr.i], cld[pr.j]);
+    if (sig) {
+      assert(!shares, `significant pair (${pr.i},${pr.j}) must share no letter — got ${cld}`);
+    } else {
+      assert(shares, `non-significant pair (${pr.i},${pr.j}) must share a letter — got ${cld}`);
+    }
+  }
+};
+
+test("CLD: intransitive significance on a 4-group path stays consistent", () => {
+  // Non-significant graph is the path 0—1—2—3 (0≈1, 1≈2, 2≈3); the rest
+  // (0≠2, 0≠3, 1≠3) differ. Correct CLD = the three maximal cliques
+  // {0,1}, {1,2}, {2,3}, i.e. a, ab, bc, c.
+  const pairs = [
+    { i: 0, j: 1, p: 0.5 },
+    { i: 0, j: 2, p: 0.001 },
+    { i: 0, j: 3, p: 0.001 },
+    { i: 1, j: 2, p: 0.5 },
+    { i: 1, j: 3, p: 0.001 },
+    { i: 2, j: 3, p: 0.5 },
+  ];
+  const cld = compactLetterDisplay(pairs, 4);
+  assertCldConsistent(cld, pairs, 0.05);
+});
+
+test("CLD: intransitive significance on a 4-group cycle stays consistent", () => {
+  // Non-significant graph is the 4-cycle 0—1—2—3—0; the diagonals
+  // (0≠2, 1≠3) differ. Correct CLD = the four edge-cliques — every
+  // non-significant pair must still co-occur in some letter.
+  const pairs = [
+    { i: 0, j: 1, p: 0.5 },
+    { i: 0, j: 2, p: 0.001 },
+    { i: 0, j: 3, p: 0.5 },
+    { i: 1, j: 2, p: 0.5 },
+    { i: 1, j: 3, p: 0.001 },
+    { i: 2, j: 3, p: 0.5 },
+  ];
+  const cld = compactLetterDisplay(pairs, 4);
+  assertCldConsistent(cld, pairs, 0.05);
+});
+
 // ── Automatic test selection ───────────────────────────────────────────────
 //
 // Default policy (Welch by default — see stats.js header for the literature
@@ -2433,6 +2485,40 @@ test("all-NaN distance matrix still returns a complete leaf permutation", () => 
   assert(res.order.length === n, `order length ${res.order.length} === ${n}`);
   const unique = new Set(res.order);
   assert(unique.size === n, `order is a permutation of all ${n} leaves`);
+});
+
+// Every internal node's merge height must be ≥ both children's heights,
+// or dendrogramLayout draws a parent bar below its children (a visibly
+// crossed / inverted dendrogram).
+const assertMonotoneHeights = (node) => {
+  if (!node || (node.left === null && node.right === null)) return;
+  for (const child of [node.left, node.right]) {
+    if (!child) continue;
+    assert(
+      node.height >= child.height,
+      `inverted merge: parent height ${node.height} < child height ${child.height}`
+    );
+    assertMonotoneHeights(child);
+  }
+};
+
+test("merge heights stay monotone — a forced merge never sinks below its children", () => {
+  // Points 0 and 1 are a finite distance 1 apart; point 2 has no finite
+  // distance to either. hclust merges {0,1} at height 1, then is forced
+  // to merge in point 2 with no distance information. That forced merge
+  // must NOT land at height 0 — below its own height-1 child — which
+  // would draw an inverted dendrogram. It is clamped up to the child's
+  // height instead.
+  const D = [
+    [0, 1, NaN],
+    [1, 0, NaN],
+    [NaN, NaN, 0],
+  ];
+  for (const linkage of ["average", "single", "complete"]) {
+    const { tree } = hclust(D, linkage);
+    assertMonotoneHeights(tree);
+    eq(tree.height, 1); // the forced root merge is clamped to its child's height
+  }
 });
 
 // ── hclust merge-height fixtures (Lance-Williams update pins) ─────────────
