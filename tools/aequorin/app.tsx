@@ -14,6 +14,7 @@ import {
   calibrateHill,
   calibrateGeneralized,
   computeAutoYRange,
+  ribbonEdgeMatrix,
   detectConditions,
   AequorinSeriesStats,
   Condition,
@@ -1441,21 +1442,21 @@ export function App() {
   );
 
   // Effective y-range for the chart. When `autoYRange` is on, recompute
-  // every render directly from calData — that's what the chart consumes,
-  // so it never paints a frame with stale persisted vis.yMin / vis.yMax
-  // (the prior useLayoutEffect-based fix still left a one-frame glitch
-  // on the first paint of the plot step because the chart had already
-  // received the stale vis values via props by the time the effect's
-  // re-render landed).
+  // every render from the per-condition stats — specifically the
+  // mean ± SD ribbon edges, which is what the chart actually draws.
+  // Ranging over raw replicate cells (as this once did) clips the band:
+  // `mean + SD` routinely exceeds the largest single replicate. Computing
+  // it in render, not an effect, means the chart never paints a frame
+  // with a stale persisted vis.yMin / vis.yMax.
   //
   // `vis.yMin / vis.yMax` are kept in sync via the effect below, so
   // PrefsPanel save / load round-trips and the manual-override path
   // (autoYRange=false) keep working unchanged.
   const effYRange = useMemo(() => {
     if (!vis.autoYRange) return { yMin: vis.yMin, yMax: vis.yMax };
-    const range = computeAutoYRange(calData, vis.xStart, vis.xEnd);
+    const range = computeAutoYRange(ribbonEdgeMatrix(stats), vis.xStart, vis.xEnd);
     return range ?? { yMin: vis.yMin, yMax: vis.yMax };
-  }, [vis.autoYRange, vis.yMin, vis.yMax, vis.xStart, vis.xEnd, calData]);
+  }, [vis.autoYRange, vis.yMin, vis.yMax, vis.xStart, vis.xEnd, stats]);
 
   // Mirror the auto-computed range back into `vis` so a later toggle of
   // autoYRange → false snapshots the current visual range, the

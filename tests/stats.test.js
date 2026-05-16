@@ -3408,6 +3408,21 @@ test("mannWhitneyU: empty group errors; U/U1/U2 satisfy U = min, U2 = n1n2 - U1"
   eq(m.U, 2); // min(U1, U2)
 });
 
+test("mannWhitneyU: all-tied data is rejected, not reported as p=1", () => {
+  // Every observation identical → tie-corrected σ² = 0, the test is
+  // undefined. An unguarded run returns z=0, p=1 ("not significant") —
+  // a false negative. Must surface an error instead (mirrors kruskalWallis).
+  const r = mannWhitneyU([5, 5, 5], [5, 5]);
+  assert(
+    /essentially constant/.test(r.error || ""),
+    `expected all-tied error, got ${JSON.stringify(r)}`
+  );
+  assert(Number.isNaN(r.p), "p must be NaN on all-tied input");
+  // Partial ties (distinct values present) must still compute — the guard
+  // must not false-positive on routine tied data.
+  assert(!mannWhitneyU([1, 1, 2], [2, 3, 3]).error, "partial ties must still compute");
+});
+
 test("oneWayANOVA error messages + exact sums of squares", () => {
   assert(/≥2 groups required/.test(oneWayANOVA([[1, 2, 3]]).error || ""), "k<2 message");
   assert(/Not enough observations/.test(oneWayANOVA([[1], [2]]).error || ""), "Ntot≤k message");

@@ -16,6 +16,7 @@ const {
   buildAreaD,
   buildLineD,
   computeAutoYRange,
+  ribbonEdgeMatrix,
   DEFAULT_KR,
   DEFAULT_KTR,
   DEFAULT_KD,
@@ -382,6 +383,55 @@ test("range is independent of any previously persisted vis.yMin / vis.yMax", () 
     1
   );
   assert(r3.yMax !== r1.yMax);
+});
+
+// ── ribbonEdgeMatrix ────────────────────────────────────────────────────────
+//
+// The chart draws mean ± SD ribbons; the auto Y-range must cover the ribbon
+// edges, not the raw replicate cells. ribbonEdgeMatrix projects the
+// per-condition stats into a matrix of `mean − SD` / `mean + SD` values that
+// computeAutoYRange then ranges over.
+
+suite("ribbonEdgeMatrix");
+
+test("emits mean−SD and mean+SD per condition, one row per time point", () => {
+  const stats = [
+    { means: [5, 8], sds: [1, 2] },
+    { means: [10, 20], sds: [3, 4] },
+  ];
+  // Row 0: cond A → 4,6 ; cond B → 7,13.  Row 1: A → 6,10 ; B → 16,24.
+  eq(
+    JSON.stringify(ribbonEdgeMatrix(stats)),
+    JSON.stringify([
+      [4, 6, 7, 13],
+      [6, 10, 16, 24],
+    ])
+  );
+});
+
+test("skips null / non-finite means; treats null / non-finite SD as zero width", () => {
+  const stats = [{ means: [null, 5, 9], sds: [1, null, NaN] }];
+  // Row 0: mean null → skipped. Row 1: mean 5, sd null → [5,5].
+  // Row 2: mean 9, sd NaN → [9,9].
+  eq(JSON.stringify(ribbonEdgeMatrix(stats)), JSON.stringify([[], [5, 5], [9, 9]]));
+});
+
+test("empty or null stats yields an empty matrix", () => {
+  eq(JSON.stringify(ribbonEdgeMatrix([])), "[]");
+  eq(JSON.stringify(ribbonEdgeMatrix(null)), "[]");
+});
+
+test("regression: auto-range covers mean+SD even when it exceeds every raw cell", () => {
+  // Replicates {0, 10} → mean 5, sample SD √50 ≈ 7.071. The ribbon top
+  // (mean + SD ≈ 12.07) exceeds the largest raw cell (10), so ranging over
+  // raw cells would cap yMax at 11 and clip the band. Ranging over ribbon
+  // edges must push yMax above the ribbon top.
+  const sd = Math.sqrt(50);
+  const stats = [{ means: [5], sds: [sd] }];
+  const r = computeAutoYRange(ribbonEdgeMatrix(stats), 0, 0);
+  assert(r.yMax >= 5 + sd, `yMax ${r.yMax} must cover the ribbon top ${5 + sd}`);
+  // The old raw-cell range would have produced yMax = 11 — strictly below.
+  assert(r.yMax > 11, `yMax ${r.yMax} must exceed the raw-cell range's 11`);
 });
 
 summary();

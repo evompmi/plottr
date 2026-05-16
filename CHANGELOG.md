@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Mann-Whitney U on all-identical data now reports an error instead of
+  a false "p = 1, not significant".** When every observation is identical
+  the tie-corrected variance collapses to exactly 0 and the test is
+  undefined; the result now carries an error, matching Kruskal-Wallis.
+- **Heatmap colorbar re-ranges when you switch the normalization mode.**
+  Switching to Z-score or log₂ shifts the value scale, but vmin/vmax stayed
+  on the raw-data range — rendering the heatmap as a saturated, near-uniform
+  block until "Auto from data" was clicked by hand.
+- **Aequorin auto Y-range no longer clips the mean ± SD ribbon.** The range
+  was derived from raw replicate cells, but `mean + SD` can exceed the
+  largest single replicate; it now ranges over the ribbon edges the chart
+  actually draws.
+
 ## [1.5.3] - 2026-05-16
 
 > Long-form release notes — what shipped, why, and how — live in

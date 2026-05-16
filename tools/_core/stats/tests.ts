@@ -293,6 +293,18 @@ export function mannWhitneyU(x: number[], y: number[]): MannWhitneyResult {
     n2 = y.length;
   if (n1 < 1 || n2 < 1) return { U: NaN, z: NaN, p: NaN, error: "Empty group" };
   const all = x.concat(y);
+  // All observations identical → the tie-corrected variance collapses to
+  // exactly 0, the test is undefined, and an unguarded run reports z = 0,
+  // p = 1 ("not significant") — a false negative. Mirror the kruskalWallis
+  // guard and surface an error instead.
+  let allTied = true;
+  for (let i = 1; i < all.length; i++) {
+    if (all[i] !== all[0]) {
+      allTied = false;
+      break;
+    }
+  }
+  if (allTied) return { U: NaN, z: NaN, p: NaN, error: "Data are essentially constant" };
   const { ranks, tieCorrection } = rankWithTies(all);
   let R1 = 0;
   for (let i = 0; i < n1; i++) R1 += ranks[i];
