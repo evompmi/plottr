@@ -1,0 +1,15 @@
+{
+  "title": "Plöttr — a browser-only data-analysis toolbox for wet-lab scientists",
+  "description": "Plöttr is a browser-only data-visualisation and statistics toolbox for wet-lab scientists. It runs entirely client-side — no server, no tracking, no data leaving the browser — and renders publication-ready SVG charts from pasted CSV / TSV data.",
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "MIT",
+  "creators": [
+    {
+      "name": "Mbengue, Malick",
+      "affiliation": "Laboratoire de Recherche en Sciences Végétales (LRSV), Université de Toulouse, CNRS, UPS, Toulouse INP, Castanet-Tolosan, France.",
+      "orcid": "0000-0002-7723-7757"
+    }
+  ],
+  "keywords": ["data visualization", "statistics", "plotting", "wet-lab biology", "browser-based"]
+}
