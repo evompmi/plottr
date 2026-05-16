@@ -124,12 +124,21 @@ export function hclust(distMatrix: number[][], linkage: LinkageMethod): HClustRe
       best = 0;
     }
 
+    // Merge heights must be monotonically non-decreasing, or the dendrogram
+    // draws a parent bar below its own children — a visible inversion /
+    // crossed branch. single / complete / UPGMA linkage are monotone for
+    // any non-negative symmetric dissimilarity (each step merges the
+    // global-minimum pair, so every recomputed distance is ≥ the height
+    // just used), so on the normal path this clamp is a no-op. It engages
+    // only for the all-NaN force-merge above, where `best` is forced to 0
+    // beneath finite-height children.
+    const childMaxHeight = Math.max(clusters[bi].height, clusters[bj].height);
     const merged: HClustTreeNode = {
       // equiv-mutant: an internal node's index is never read (only leaf indices, via order) — unused sentinel
       index: -1,
       left: clusters[bi],
       right: clusters[bj],
-      height: best,
+      height: Math.max(best, childMaxHeight),
       size: clusters[bi].size + clusters[bj].size,
     };
     const sizeI = clusters[bi].size;

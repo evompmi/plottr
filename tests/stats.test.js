@@ -489,6 +489,47 @@ test("chi2inv degenerate inputs", () => {
   assert(Number.isNaN(chi2inv(0.5, -1)), "k<0 → NaN");
 });
 
+// ── Distribution domain guards ─────────────────────────────────────────────
+//
+// A finite but invalid degrees-of-freedom / shape parameter (0, negative)
+// used to yield a finite *wrong* number — tcdf(t, 0) returned 1, fcdf with
+// d1=0 returned 0 — instead of NaN. These pin the consistent `df <= 0 → NaN`
+// guard across the distribution surface (chi2inv already had it).
+
+suite("stats.js — distribution domain guards");
+
+test("non-positive df / shape parameter → NaN", () => {
+  for (const bad of [0, -1, -7.5]) {
+    assert(Number.isNaN(tcdf(1.5, bad)), `tcdf df=${bad}`);
+    assert(Number.isNaN(tcdf_upper(1.5, bad)), `tcdf_upper df=${bad}`);
+    assert(Number.isNaN(tinv(0.7, bad)), `tinv df=${bad}`);
+    assert(Number.isNaN(chi2cdf(3, bad)), `chi2cdf k=${bad}`);
+    assert(Number.isNaN(chi2pdf(3, bad)), `chi2pdf k=${bad}`);
+    assert(Number.isNaN(nctcdf(1.5, bad, 1)), `nctcdf df=${bad}`);
+    assert(Number.isNaN(ncchi2cdf(3, bad, 1)), `ncchi2cdf k=${bad}`);
+    assert(Number.isNaN(fcdf(2, bad, 5)) && Number.isNaN(fcdf(2, 5, bad)), `fcdf d=${bad}`);
+    assert(
+      Number.isNaN(fcdf_upper(2, bad, 5)) && Number.isNaN(fcdf_upper(2, 5, bad)),
+      `fcdf_upper d=${bad}`
+    );
+    assert(
+      Number.isNaN(ncf_sf(2, bad, 5, 1)) && Number.isNaN(ncf_sf(2, 5, bad, 1)),
+      `ncf_sf d=${bad}`
+    );
+  }
+});
+
+test("a valid df / shape still computes a finite result (guard does not over-fire)", () => {
+  assert(tcdf(1.5, 10) > 0 && Number.isFinite(tcdf(1.5, 10)), "tcdf df=10");
+  assert(Number.isFinite(tcdf_upper(1.5, 10)), "tcdf_upper df=10");
+  assert(Number.isFinite(tinv(0.7, 10)), "tinv df=10");
+  assert(Number.isFinite(fcdf(2, 3, 12)) && Number.isFinite(fcdf_upper(2, 3, 12)), "fcdf");
+  assert(Number.isFinite(chi2cdf(3, 4)) && Number.isFinite(chi2pdf(3, 4)), "chi2");
+  assert(Number.isFinite(nctcdf(1.5, 10, 1)), "nctcdf");
+  assert(Number.isFinite(ncf_sf(2, 3, 12, 1)), "ncf_sf");
+  assert(Number.isFinite(ncchi2cdf(3, 4, 1)), "ncchi2cdf");
+});
+
 // ── Sample helpers ─────────────────────────────────────────────────────────
 
 suite("stats.js — sample helpers");
@@ -1565,6 +1606,15 @@ test("gamesHowell: all groups constant → error", () => {
   assert(r.error != null, "expected error");
 });
 
+test("gamesHowell: a group with n<2 → error (singleton has no variance)", () => {
+  // A singleton's sample variance is NaN, which slips past the
+  // `variance === 0` guard (NaN === 0 is false); without an explicit n<2
+  // check it would surface as a silent NaN p-value.
+  const r = gamesHowell([[5], [1, 2, 3], [6, 7, 8]]);
+  assert(/n≥2/.test(r.error || ""), `expected an n≥2 error, got ${JSON.stringify(r)}`);
+  assert(r.pairs.length === 0, "pairs should be empty");
+});
+
 // ── Additional zero-variance guards ────────────────────────────────────────
 //
 // These four functions used to return phantom F = Infinity, F = NaN, or
@@ -1710,6 +1760,18 @@ test("Dunn reports BH as method", () => {
   assert(r.method === "Benjamini-Hochberg", "expected BH label");
 });
 
+test("dunnTest: too few observations or an empty group → error, not NaN", () => {
+  // N ≤ k (all singletons here) collapses the sigma2 denominator N−1; an
+  // empty group makes a 0/0 mean rank. Both must surface a clean error
+  // instead of a silent NaN p — mirrors the kruskalWallis precondition.
+  const allSingletons = dunnTest([[1], [2], [3]]);
+  assert(/Not enough observations/.test(allSingletons.error || ""), "all-singletons → error");
+  const emptyGroup = dunnTest([[1, 2, 3, 4], []]);
+  assert(/Not enough observations/.test(emptyGroup.error || ""), "empty group → error");
+  // A genuine dataset must still compute.
+  assert(!dunnTest(pg).error, "PlantGrowth must still compute");
+});
+
 // ── Compact letter display ─────────────────────────────────────────────────
 
 suite("stats.js — compact letter display");
@@ -1797,6 +1859,58 @@ test("CLD: mixed NaN + significant pairs only act on the resolved pairs", () => 
   const cld = compactLetterDisplay(mixed, 3);
   assert(cld[0] !== cld[2], `expected 0 and 2 distinct, got ${cld}`);
   assert(cld[1].includes(cld[0]) || cld[1].includes(cld[2]), `1 must overlap, got ${cld}`);
+});
+
+// Intransitive-significance regression pins (pre-launch audit). A CLD is
+// *consistent* iff it satisfies both invariants on every pair:
+//   separation  — a significant pair shares NO letter;
+//   completeness — a non-significant pair shares AT LEAST ONE letter.
+// The audit raised a concern that the split+absorb algorithm might leave
+// a non-significant pair sharing no letter once the significance graph is
+// intransitive at k ≥ 4. These pin that it does not.
+const cldShare = (a, b) => [...a].some((ch) => b.includes(ch));
+const assertCldConsistent = (cld, pairs, alpha) => {
+  for (const pr of pairs) {
+    const sig = Number.isFinite(pr.p) && pr.p < alpha;
+    const shares = cldShare(cld[pr.i], cld[pr.j]);
+    if (sig) {
+      assert(!shares, `significant pair (${pr.i},${pr.j}) must share no letter — got ${cld}`);
+    } else {
+      assert(shares, `non-significant pair (${pr.i},${pr.j}) must share a letter — got ${cld}`);
+    }
+  }
+};
+
+test("CLD: intransitive significance on a 4-group path stays consistent", () => {
+  // Non-significant graph is the path 0—1—2—3 (0≈1, 1≈2, 2≈3); the rest
+  // (0≠2, 0≠3, 1≠3) differ. Correct CLD = the three maximal cliques
+  // {0,1}, {1,2}, {2,3}, i.e. a, ab, bc, c.
+  const pairs = [
+    { i: 0, j: 1, p: 0.5 },
+    { i: 0, j: 2, p: 0.001 },
+    { i: 0, j: 3, p: 0.001 },
+    { i: 1, j: 2, p: 0.5 },
+    { i: 1, j: 3, p: 0.001 },
+    { i: 2, j: 3, p: 0.5 },
+  ];
+  const cld = compactLetterDisplay(pairs, 4);
+  assertCldConsistent(cld, pairs, 0.05);
+});
+
+test("CLD: intransitive significance on a 4-group cycle stays consistent", () => {
+  // Non-significant graph is the 4-cycle 0—1—2—3—0; the diagonals
+  // (0≠2, 1≠3) differ. Correct CLD = the four edge-cliques — every
+  // non-significant pair must still co-occur in some letter.
+  const pairs = [
+    { i: 0, j: 1, p: 0.5 },
+    { i: 0, j: 2, p: 0.001 },
+    { i: 0, j: 3, p: 0.5 },
+    { i: 1, j: 2, p: 0.5 },
+    { i: 1, j: 3, p: 0.001 },
+    { i: 2, j: 3, p: 0.5 },
+  ];
+  const cld = compactLetterDisplay(pairs, 4);
+  assertCldConsistent(cld, pairs, 0.05);
 });
 
 // ── Automatic test selection ───────────────────────────────────────────────
@@ -2051,6 +2165,29 @@ test("k=2 routing: test === 'welchT' + postHoc=null (kills 'k === 2' → 'k !== 
   const r = selectTest([normalA, normalB]);
   eq(r.recommendation.test, "welchT");
   eq(r.recommendation.postHoc, null);
+});
+
+test("selectTest: a non-finite value yields honest 'unknown' diagnostics, not false verdicts", () => {
+  // A group carrying Infinity makes Shapiro-Wilk / Levene return NaN.
+  // Without the guards, `NaN >= alpha` collapses to false and the
+  // narrative would assert "non-normal" / "unequal variances" from
+  // garbage. The diagnostics must instead report the group as unknown.
+  const clean = [9.9, 10.0, 10.1, 10.05, 9.95, 10.02];
+  const dirty = [10, 11, 12, Infinity, 13, 14];
+  const r = selectTest([clean, dirty]);
+  // The dirty group's normality verdict must be null (unknown), never false.
+  assert(
+    r.normality[1].normal !== false,
+    `dirty group must not be flagged non-normal: ${JSON.stringify(r.normality[1])}`
+  );
+  // Levene reports as unavailable rather than as a NaN-derived verdict.
+  assert(
+    r.levene.error != null || r.levene.equalVar !== false,
+    `Levene must not assert a verdict from NaN: ${JSON.stringify(r.levene)}`
+  );
+  // The recommended test stays Welch — the pick never depended on the
+  // (now honestly-unknown) diagnostics.
+  eq(r.recommendation.test, "welchT");
 });
 
 // ── Hierarchical clustering ────────────────────────────────────────────────
@@ -2433,6 +2570,40 @@ test("all-NaN distance matrix still returns a complete leaf permutation", () => 
   assert(res.order.length === n, `order length ${res.order.length} === ${n}`);
   const unique = new Set(res.order);
   assert(unique.size === n, `order is a permutation of all ${n} leaves`);
+});
+
+// Every internal node's merge height must be ≥ both children's heights,
+// or dendrogramLayout draws a parent bar below its children (a visibly
+// crossed / inverted dendrogram).
+const assertMonotoneHeights = (node) => {
+  if (!node || (node.left === null && node.right === null)) return;
+  for (const child of [node.left, node.right]) {
+    if (!child) continue;
+    assert(
+      node.height >= child.height,
+      `inverted merge: parent height ${node.height} < child height ${child.height}`
+    );
+    assertMonotoneHeights(child);
+  }
+};
+
+test("merge heights stay monotone — a forced merge never sinks below its children", () => {
+  // Points 0 and 1 are a finite distance 1 apart; point 2 has no finite
+  // distance to either. hclust merges {0,1} at height 1, then is forced
+  // to merge in point 2 with no distance information. That forced merge
+  // must NOT land at height 0 — below its own height-1 child — which
+  // would draw an inverted dendrogram. It is clamped up to the child's
+  // height instead.
+  const D = [
+    [0, 1, NaN],
+    [1, 0, NaN],
+    [NaN, NaN, 0],
+  ];
+  for (const linkage of ["average", "single", "complete"]) {
+    const { tree } = hclust(D, linkage);
+    assertMonotoneHeights(tree);
+    eq(tree.height, 1); // the forced root merge is clamped to its child's height
+  }
 });
 
 // ── hclust merge-height fixtures (Lance-Williams update pins) ─────────────
@@ -3406,6 +3577,21 @@ test("mannWhitneyU: empty group errors; U/U1/U2 satisfy U = min, U2 = n1n2 - U1"
   eq(m.U1, 2);
   eq(m.U2, 14); // n1*n2 - U1 = 16 - 2
   eq(m.U, 2); // min(U1, U2)
+});
+
+test("mannWhitneyU: all-tied data is rejected, not reported as p=1", () => {
+  // Every observation identical → tie-corrected σ² = 0, the test is
+  // undefined. An unguarded run returns z=0, p=1 ("not significant") —
+  // a false negative. Must surface an error instead (mirrors kruskalWallis).
+  const r = mannWhitneyU([5, 5, 5], [5, 5]);
+  assert(
+    /essentially constant/.test(r.error || ""),
+    `expected all-tied error, got ${JSON.stringify(r)}`
+  );
+  assert(Number.isNaN(r.p), "p must be NaN on all-tied input");
+  // Partial ties (distinct values present) must still compute — the guard
+  // must not false-positive on routine tied data.
+  assert(!mannWhitneyU([1, 1, 2], [2, 3, 3]).error, "partial ties must still compute");
 });
 
 test("oneWayANOVA error messages + exact sums of squares", () => {

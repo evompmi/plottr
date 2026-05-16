@@ -904,6 +904,23 @@ test("xObs ≤ 0 → 1", () => {
   );
 });
 
+test("xObs beyond the smallest set → exactly 0 (impossible intersection)", () => {
+  // The intersection cannot exceed min(ns); an observed count past that
+  // is impossible, so the tail probability is exactly 0. The exact path
+  // already returned 0 here — the Poisson path used to leak a small
+  // non-zero gammainc tail. Both must now agree.
+  check(
+    fc.property(arbSmallNs(2, 3), arbN, fc.integer({ min: 1, max: 20 }), (ns, N, extra) => {
+      const capped = ns.map((n) => Math.min(n, N));
+      const xObs = Math.min(...capped) + extra; // strictly greater than min(ns)
+      return (
+        multisetIntersectionPPoisson(xObs, capped, N) === 0 &&
+        multisetIntersectionPExact(xObs, capped, N) === 0
+      );
+    })
+  );
+});
+
 test("any n_i = 0 → 1 if xObs ≤ 0 else 0", () => {
   check(
     fc.property(arbSmallNs(1, 2), arbN, fc.integer({ min: -3, max: 5 }), (rest, N, xObs) => {

@@ -362,6 +362,33 @@ export function computeAutoYRange(
   return { yMin: round2(Math.max(0, lo * 0.9)), yMax: round2(hi * 1.1) };
 }
 
+// ── Ribbon-extent matrix for the auto Y-range ────────────────────────────────
+// The chart draws each condition as a mean line wrapped in a mean ± SD
+// ribbon. Auto Y-range must cover the *ribbon edges*: `mean + SD` routinely
+// exceeds the largest single replicate, so ranging over the raw calData
+// cells clips the top of the band against the plot frame. This projects the
+// per-condition stats into a DataMatrix whose every value is a ribbon edge
+// (`mean − SD` and `mean + SD`), one row per time point — so the existing
+// `computeAutoYRange` windowing / padding logic can range over it unchanged.
+// Time points whose mean is null / non-finite are skipped; a null / non-finite
+// SD is treated as a zero half-width (mean line only). All conditions are
+// included, matching the prior raw-calData behaviour.
+export function ribbonEdgeMatrix(stats: AequorinSeriesStats[] | null): DataMatrix {
+  if (!stats || stats.length === 0) return [];
+  const rows: Array<Array<number | null>> = [];
+  for (const s of stats) {
+    for (let r = 0; r < s.means.length; r++) {
+      if (!rows[r]) rows[r] = [];
+      const m = s.means[r];
+      if (m == null || !Number.isFinite(m)) continue;
+      const sd = s.sds[r];
+      const half = sd != null && Number.isFinite(sd) ? sd : 0;
+      rows[r].push(m - half, m + half);
+    }
+  }
+  return rows;
+}
+
 // ── Public types for steps / controls prop interfaces ───────────────────────
 
 export type CalibrationFormula = "none" | "allen-blinks" | "hill" | "generalized";

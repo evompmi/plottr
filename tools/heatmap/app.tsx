@@ -307,6 +307,35 @@ export function App() {
     updVis({ vmin: Number(lo.toFixed(3)), vmax: Number(hi.toFixed(3)) });
   }, [normalized, vis.palette, normalization, updVis]);
 
+  // The colorbar range must follow the normalization mode: switching
+  // none → z-score (values ≈ ±3) or → log2 shifts the value scale
+  // entirely, so a vmin/vmax left from the previous scale renders the
+  // heatmap as a saturated, near-uniform block. Re-range on a genuine
+  // normalization change. The ref-compare keeps this from firing when
+  // the autoVRange closure is merely recreated for a palette/data change,
+  // and skips the initial mount — doParse already ranges the raw data.
+  const prevNormRef = useRef(normalization);
+  React.useEffect(() => {
+    if (prevNormRef.current !== normalization) {
+      prevNormRef.current = normalization;
+      autoVRange();
+    }
+  }, [normalization, autoVRange]);
+
+  // Crossing between a diverging and a sequential palette also re-ranges
+  // the colorbar: a diverging palette wants a symmetric vmin/vmax centred
+  // on 0, a sequential one wants the data's own [min, max]. Keyed on the
+  // palette's diverging-ness (not the palette itself), so a sequential →
+  // sequential swap such as viridis → plasma leaves a manual range alone.
+  const paletteIsDiverging = DIVERGING_PALETTES.has(vis.palette);
+  const prevPaletteDivergingRef = useRef(paletteIsDiverging);
+  React.useEffect(() => {
+    if (prevPaletteDivergingRef.current !== paletteIsDiverging) {
+      prevPaletteDivergingRef.current = paletteIsDiverging;
+      autoVRange();
+    }
+  }, [paletteIsDiverging, autoVRange]);
+
   const canNavigate = useCallback(
     (target: string) => {
       if (target === "upload") return true;

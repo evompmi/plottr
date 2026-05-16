@@ -32,6 +32,7 @@ module.exports = {
   buildAreaD: helpers.buildAreaD,
   buildLineD: helpers.buildLineD,
   computeAutoYRange: helpers.computeAutoYRange,
+  ribbonEdgeMatrix: helpers.ribbonEdgeMatrix,
   DEFAULT_KR: helpers.DEFAULT_KR,
   DEFAULT_KTR: helpers.DEFAULT_KTR,
   DEFAULT_KD: helpers.DEFAULT_KD,

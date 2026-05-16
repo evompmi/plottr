@@ -223,6 +223,12 @@ export function gamesHowell(groups: number[][]): GamesHowellResult {
   const means = groups.map(sampleMean);
   const vars_ = groups.map(sampleVariance);
   const ns = groups.map((g) => g.length);
+  // Each group needs n ≥ 2: a singleton has no sample variance
+  // (sampleVariance returns NaN), which slips past the zero-variance guard
+  // below — `NaN === 0` is false — and would surface as a silent NaN p.
+  if (ns.some((n) => n < 2)) {
+    return { pairs: [], k, error: "Each group needs n≥2 for Games-Howell" };
+  }
   if (vars_.some((v) => v === 0)) {
     return {
       pairs: [],
@@ -240,7 +246,10 @@ export function gamesHowell(groups: number[][]): GamesHowellResult {
       const q = Math.abs(diff) / (se / Math.SQRT2);
       const num = (vi + vj) * (vi + vj);
       const den = (vi * vi) / (ns[i] - 1) + (vj * vj) / (ns[j] - 1);
-      const df = num / den;
+      // The Welch–Satterthwaite df is bounded below by min(nᵢ−1, nⱼ−1) ≥ 1
+      // once every group has n ≥ 2; clamp to absorb sub-ULP rounding so
+      // ptukey_upper never receives a df < 1 (which it answers with NaN).
+      const df = Math.max(1, num / den);
       const p = ptukey_upper(q, k, df);
       pairs.push({ i, j, diff, se, q, df, p });
     }
@@ -276,6 +285,13 @@ export function dunnTest(groups: number[][]): DunnResult {
     }
   }
   const N = all.length;
+  // Mirror the kruskalWallis precondition (Dunn is its post-hoc): reject
+  // when there are too few observations to rank, or any group is empty —
+  // either case otherwise yields a silent NaN p-value (an N−1 = 0 divisor
+  // in sigma2, or 0/0 mean ranks for an empty group).
+  if (N <= k || groups.some((g) => g.length < 1)) {
+    return { pairs: [], error: "Not enough observations" };
+  }
   const { ranks, tieCorrection } = rankWithTies(all);
   const meanR = new Array(k).fill(0);
   const ns = groups.map((g) => g.length);
@@ -381,6 +397,12 @@ export function selectTest(
     if (sw.error) {
       return { group: i, n: g.length, W: null, p: null, normal: null, note: sw.error };
     }
+    if (!Number.isFinite(sw.W) || !Number.isFinite(sw.p)) {
+      // Non-finite W/p (e.g. a group carrying ±Infinity) — report it as
+      // "unknown" rather than letting `NaN >= alphaN` collapse to a false
+      // "non-normal" verdict.
+      return { group: i, n: g.length, W: null, p: null, normal: null, note: "non-finite" };
+    }
     return { group: i, n: g.length, W: sw.W, p: sw.p, normal: sw.p >= alphaN };
   });
   const allKnownNormal = normality.every((r) => r.normal === true);
@@ -388,7 +410,11 @@ export function selectTest(
   const anyFlagged = flagged.length > 0;
 
   const lev = leveneTest(groups);
-  const equalVar = lev.error ? null : lev.p >= alphaV;
+  // A non-finite F/p (a group carrying ±Infinity) is as unusable as an
+  // explicit error — treat it the same so the narrative never asserts a
+  // variance verdict derived from NaN.
+  const levUsable = !lev.error && Number.isFinite(lev.F) && Number.isFinite(lev.p);
+  const equalVar = levUsable ? lev.p >= alphaV : null;
 
   const test: SelectTestKind = k === 2 ? "welchT" : "welchANOVA";
   const postHoc: SelectTestPostHoc = k === 2 ? null : "gamesHowell";
@@ -411,8 +437,8 @@ export function selectTest(
     return "Shapiro-Wilk could not run on every group (n < 3 in at least one).";
   })();
 
-  const levNarrative = lev.error
-    ? `Levene (Brown-Forsythe) could not run: ${lev.error}.`
+  const levNarrative = !levUsable
+    ? `Levene (Brown-Forsythe) could not run: ${lev.error || "non-finite result"}.`
     : equalVar === false
       ? `Levene (Brown-Forsythe) rejected equal variances (F=${lev.F.toFixed(3)}, p=${formatP(lev.p)}); Welch handles this without further intervention.`
       : `Levene (Brown-Forsythe) did not reject equal variances (F=${lev.F.toFixed(3)}, p=${formatP(lev.p)}); Welch is still the safe default and matches the equal-variance test closely here.`;
@@ -438,8 +464,8 @@ export function selectTest(
     k,
     normality,
     allNormal: allKnownNormal,
-    levene: lev.error
-      ? { error: lev.error }
+    levene: !levUsable
+      ? { error: lev.error || "non-finite result" }
       : { F: lev.F, df1: lev.df1, df2: lev.df2, p: lev.p, equalVar },
     recommendation: { test, postHoc, reason },
   };

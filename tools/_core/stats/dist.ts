@@ -332,6 +332,7 @@ export function gammainc_upper(a: number, x: number): number {
 
 // t-distribution CDF
 export function tcdf(t: number, df: number): number {
+  if (df <= 0) return NaN;
   const x = df / (df + t * t);
   const p = 0.5 * betai(df / 2, 0.5, x);
   return t >= 0 ? 1 - p : p;
@@ -342,6 +343,7 @@ export function tcdf(t: number, df: number): number {
 // SL setosa vs versicolor (t ≈ 10.5, df = 98) where R reports p ≈ 9e-18 but
 // JS underflowed to 0 because tcdf returned a float-rounded 1.0.
 export function tcdf_upper(t: number, df: number): number {
+  if (df <= 0) return NaN;
   const x = df / (df + t * t);
   const tail = 0.5 * betai(df / 2, 0.5, x);
   return t >= 0 ? tail : 1 - tail;
@@ -368,6 +370,7 @@ export function tpdf(x: number, df: number): number {
 //   • Work in the left tail (leftP ≤ 0.5) and flip sign at the end, so that
 //     inputs like p = 1 − 1e-15 don't suffer catastrophic cancellation.
 export function tinv(p: number, df: number): number {
+  if (df <= 0) return NaN;
   if (p <= 0) return -Infinity;
   if (p >= 1) return Infinity;
   // equiv-mutant: redundant — every df branch already converges to 0 at p=0.5 (leftP=0.5)
@@ -430,6 +433,7 @@ export function tinv(p: number, df: number): number {
 
 // F-distribution CDF
 export function fcdf(f: number, d1: number, d2: number): number {
+  if (d1 <= 0 || d2 <= 0) return NaN;
   // equiv-mutant: subsumed — for f<=0 the x argument lands outside (0,1) and betai returns 0
   if (f <= 0) return 0;
   return betai(d1 / 2, d2 / 2, (d1 * f) / (d1 * f + d2));
@@ -439,6 +443,7 @@ export function fcdf(f: number, d1: number, d2: number): number {
 // computation avoids the 1 − (near-1) cancellation that underflows ANOVA /
 // Welch-ANOVA p-values at F > ~50.
 export function fcdf_upper(f: number, d1: number, d2: number): number {
+  if (d1 <= 0 || d2 <= 0) return NaN;
   // equiv-mutant: subsumed — for f<=0 the x argument lands outside (0,1) and betai_upper returns 1
   if (f <= 0) return 1;
   return betai_upper(d1 / 2, d2 / 2, (d1 * f) / (d1 * f + d2));
@@ -446,6 +451,7 @@ export function fcdf_upper(f: number, d1: number, d2: number): number {
 
 // Chi-square CDF
 export function chi2cdf(x: number, k: number): number {
+  if (k <= 0) return NaN;
   // equiv-mutant: subsumed — gammainc returns 0 for the x/2<=0 that x<=0 produces
   if (x <= 0) return 0;
   return gammainc(k / 2, x / 2);
@@ -454,6 +460,7 @@ export function chi2cdf(x: number, k: number): number {
 // Chi-square PDF — used as the Newton derivative in chi2inv. Built in log
 // space to avoid overflow at large k or tiny x.
 export function chi2pdf(x: number, k: number): number {
+  if (k <= 0) return NaN;
   if (x <= 0) return 0;
   const halfK = k / 2;
   return Math.exp((halfK - 1) * Math.log(x) - x / 2 - halfK * Math.log(2) - gammaln(halfK));
@@ -546,6 +553,7 @@ export function _gaussLegendre(n: number): GLCache {
 // Substitution u = √s removes density singularity for small ν, giving:
 // = ∫₀^∞ Φ(tu/√ν − δ) · 2u^{ν−1} e^{−u²/2} / (2^{ν/2} Γ(ν/2)) du
 export function nctcdf(t: number, df: number, delta: number): number {
+  if (df <= 0) return NaN;
   if (Math.abs(delta) < 1e-14) return tcdf(t, df);
   const halfDf = df / 2;
   const logC = halfDf * Math.log(2) + gammaln(halfDf);
@@ -570,6 +578,7 @@ export function nctcdf(t: number, df: number, delta: number): number {
 // P(F'>f) = Σ_j P(J=j) × P(F(d1+2j, d2) > f × d1/(d1+2j))
 // Starts at Poisson mode to avoid underflow for large λ.
 export function ncf_sf(f: number, d1: number, d2: number, lambda: number): number {
+  if (d1 <= 0 || d2 <= 0) return NaN;
   if (f <= 0) return 1;
   if (lambda <= 0) return fcdf_upper(f, d1, d2);
   const halfLam = lambda / 2;
@@ -630,6 +639,7 @@ export function ncf_sf(f: number, d1: number, d2: number, lambda: number): numbe
 
 // Noncentral chi-square CDF — Poisson mixture (starts at mode to avoid underflow)
 export function ncchi2cdf(x: number, k: number, lambda: number): number {
+  if (k <= 0) return NaN;
   if (x <= 0) return 0;
   if (lambda <= 0) return chi2cdf(x, k);
   const halfLam = lambda / 2;

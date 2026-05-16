@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-05-16
+
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md). The
+> entries below are summary bullets that link there.
+
+### Changed
+
+- **Heatmap colorbar auto-ranges when you cross between a diverging and a
+  sequential palette** — symmetric vmin/vmax for diverging, data-fit for
+  sequential; a sequential→sequential swap leaves a manual range alone.
+  See [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-changed).
+
+### Fixed
+
+- **Mann-Whitney U on all-identical data returns an error, not a false
+  "p = 1".** The tie-corrected variance collapses to 0 and the test is
+  undefined. See
+  [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-fixed).
+- **Games-Howell, Dunn, `selectTest`, and the distribution functions
+  reject degenerate input** (n < 2 groups, empty groups, non-finite
+  diagnostics, df ≤ 0) instead of a silent NaN or a wrong number. See
+  [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-fixed).
+- **Heatmap colorbar re-ranges on a normalization-mode switch** — Z-score
+  / log₂ no longer leaves the heatmap a saturated block. See
+  [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-fixed).
+- **Heatmap dendrograms no longer draw inverted (crossed) branches** — an
+  all-NaN force-merge could place a parent below its children; merge
+  heights are now monotone. See
+  [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-fixed).
+- **Aequorin auto Y-range no longer clips the mean ± SD ribbon** — it
+  ranges over the drawn ribbon edges, not the raw replicate cells. See
+  [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-fixed).
+- **UpSet multi-set p-value is exactly 0 for an impossible intersection**
+  — the Poisson path no longer leaks a non-zero tail. See
+  [`docs/release-notes/v1.6.0.md`](docs/release-notes/v1.6.0.md#-fixed).
+
 ## [1.5.3] - 2026-05-16
 
 > Long-form release notes — what shipped, why, and how — live in
@@ -1282,7 +1319,8 @@ First tracked release. Baseline of features shipped to GitHub Pages prior to the
 - **Shared scaffolding.** `tools/shared.js` utilities, plain-JS React components, CSV/TSV parsing with auto-separator + decimal-comma fix.
 - **CI + tooling baseline.** TypeScript typecheck, ESLint + Prettier, GitHub Actions workflow, custom test harness, minified esbuild bundles.
 
-[Unreleased]: https://github.com/evompmi/plottr/compare/v1.5.3...HEAD
+[Unreleased]: https://github.com/evompmi/plottr/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/evompmi/plottr/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/evompmi/plottr/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/evompmi/plottr/compare/v1.5.1...v1.5.2
 [1.1.0]: https://github.com/evompmi/plottr/compare/v1.0.5...v1.1.0
