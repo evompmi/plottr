@@ -159,3 +159,81 @@ Plöttr was built collaboratively with Anthropic's Claude (Anthropic Claude Opus
 **What is independently verified.** Every statistical function is cross-validated against R 4.5.3 and SciPy 1.17.1 on each `npm run benchmark`. Mutation testing (`npm run mutation`, Stryker) probes whether the test suite catches regressions. These checks exist precisely because the implementation is AI-generated.
 
 **What is _not_ independently verified** and rests on researcher review alone: UI / UX choices, accessibility labels, the prose in this README and the in-app How-to panels, the chart aesthetics. Bug reports there are especially welcome — the "Send feedback" button in every tool opens a mailto draft.
+
+## References
+
+Plöttr's statistical, numerical, and visualisation methods are independent implementations of published algorithms and methodology. Listed below is every research reference behind the codebase — swept from the source comments and verified against the publishers (Crossref, PubMed, journal pages). Code provenance and licensing for vendored and ported code (React, the Cephes ports, the colour palettes) is detailed separately in [`THIRD_PARTY.md`](THIRD_PARTY.md).
+
+A few entries are books or pre-DOI papers with no DOI; those carry an archival or publisher link where one exists, or none at all — never a fabricated identifier.
+
+### Statistical tests and post-hoc procedures
+
+- Welch, B. L. (1947). The generalization of "Student's" problem when several different population variances are involved. _Biometrika_ 34(1–2), 28–35. https://doi.org/10.1093/biomet/34.1-2.28
+- Satterthwaite, F. E. (1946). An approximate distribution of estimates of variance components. _Biometrics Bulletin_ 2(6), 110–114. https://doi.org/10.2307/3002019
+- Levene, H. (1960). Robust tests for equality of variances. In I. Olkin et al. (Eds.), _Contributions to Probability and Statistics: Essays in Honor of Harold Hotelling_ (pp. 278–292). Stanford University Press. https://archive.org/details/contributionstop0000unse_d2c5
+- Brown, M. B., & Forsythe, A. B. (1974). Robust tests for the equality of variances. _Journal of the American Statistical Association_ 69(346), 364–367. https://doi.org/10.1080/01621459.1974.10482955
+- Royston, P. (1992). Approximating the Shapiro-Wilk W-test for non-normality. _Statistics and Computing_ 2(3), 117–119. https://doi.org/10.1007/BF01891203
+- Royston, P. (1995). Remark AS R94: A remark on Algorithm AS 181: The W-test for normality. _Journal of the Royal Statistical Society, Series C (Applied Statistics)_ 44(4), 547–551. https://doi.org/10.2307/2986146
+- Blom, G. (1958). _Statistical Estimates and Transformed Beta-Variables_. Almqvist & Wiksell / John Wiley & Sons. (Monograph; no DOI.)
+- Lehmann, E. L. (1975). _Nonparametrics: Statistical Methods Based on Ranks_. Holden-Day. https://archive.org/details/nonparametricsst0000lehm
+- Siegel, S., & Castellan, N. J. (1988). _Nonparametric Statistics for the Behavioral Sciences_ (2nd ed.). McGraw-Hill. (Textbook; no DOI.)
+- Dunn, O. J. (1964). Multiple comparisons using rank sums. _Technometrics_ 6(3), 241–252. https://doi.org/10.1080/00401706.1964.10490181
+- Day, R. W., & Quinn, G. P. (1989). Comparisons of treatments after an analysis of variance in ecology. _Ecological Monographs_ 59(4), 433–463. https://doi.org/10.2307/1943075
+- Benjamini, Y., & Hochberg, Y. (1995). Controlling the false discovery rate: a practical and powerful approach to multiple testing. _Journal of the Royal Statistical Society, Series B (Methodological)_ 57(1), 289–300. https://doi.org/10.1111/j.2517-6161.1995.tb02031.x
+- Piepho, H.-P. (2004). An algorithm for a letter-based representation of all-pairwise comparisons. _Journal of Computational and Graphical Statistics_ 13(2), 456–466. https://doi.org/10.1198/1061860043515
+- Kerby, D. S. (2014). The simple difference formula: an approach to teaching nonparametric correlation. _Comprehensive Psychology_ 3, Article 11.IT.3.1. https://doi.org/10.2466/11.IT.3.1
+
+### Effect sizes
+
+- Cohen, J. (1988). _Statistical Power Analysis for the Behavioral Sciences_ (2nd ed.). Lawrence Erlbaum Associates. (2013 Routledge reissue: https://doi.org/10.4324/9780203771587)
+- Hedges, L. V. (1981). Distribution theory for Glass's estimator of effect size and related estimators. _Journal of Educational Statistics_ 6(2), 107–128. https://doi.org/10.3102/10769986006002107
+- Cumming, G., & Finch, S. (2001). A primer on the understanding, use, and calculation of confidence intervals that are based on central and noncentral distributions. _Educational and Psychological Measurement_ 61(4), 532–574. https://doi.org/10.1177/0013164401614002
+- Lakens, D. (2013). Calculating and reporting effect sizes to facilitate cumulative science: a practical primer for t-tests and ANOVAs. _Frontiers in Psychology_ 4, Article 863. https://doi.org/10.3389/fpsyg.2013.00863
+- Tomczak, M., & Tomczak, E. (2014). The need to report effect size estimates revisited. An overview of some recommended measures of effect size. _Trends in Sport Sciences_ 21(1), 19–25. (No DOI; published by AWF Poznań.)
+
+### Test-selection methodology
+
+- Hoenig, J. M., & Heisey, D. M. (2001). The abuse of power: the pervasive fallacy of power calculations for data analysis. _The American Statistician_ 55(1), 19–24. https://doi.org/10.1198/000313001300339897
+- Zimmerman, D. W. (2004). A note on preliminary tests of equality of variances. _British Journal of Mathematical and Statistical Psychology_ 57(1), 173–181. https://doi.org/10.1348/000711004849222
+- Schucany, W. R., & Ng, H. K. T. (2006). Preliminary goodness-of-fit tests for normality do not validate the one-sample Student t. _Communications in Statistics – Theory and Methods_ 35(12), 2275–2286. https://doi.org/10.1080/03610920600853308
+- Rasch, D., Kubinger, K. D., & Moder, K. (2011). The two-sample t test: pre-testing its assumptions does not pay off. _Statistical Papers_ 52(1), 219–231. https://doi.org/10.1007/s00362-009-0224-x
+- Delacre, M., Lakens, D., & Leys, C. (2017). Why psychologists should by default use Welch's t-test instead of Student's t-test. _International Review of Social Psychology_ 30(1), 92–101. https://doi.org/10.5334/irsp.82
+
+### Numerical methods and special functions
+
+- Wilson, E. B., & Hilferty, M. M. (1931). The distribution of chi-square. _Proceedings of the National Academy of Sciences_ 17(12), 684–688. https://doi.org/10.1073/pnas.17.12.684
+- Cornish, E. A., & Fisher, R. A. (1938). Moments and cumulants in the specification of distributions. _Revue de l'Institut International de Statistique_ 5(4), 307–320. https://doi.org/10.2307/1400905
+- Abramowitz, M., & Stegun, I. A. (Eds.) (1964). _Handbook of Mathematical Functions with Formulas, Graphs, and Mathematical Tables_. National Bureau of Standards, Applied Mathematics Series 55. https://www.nist.gov/mathematics-statistics/handbook-mathematical-functions-abramowitz-and-stegun
+- Lanczos, C. (1964). A precision approximation of the gamma function. _Journal of the Society for Industrial and Applied Mathematics, Series B: Numerical Analysis_ 1(1), 86–96. https://doi.org/10.1137/0701008
+- Welford, B. P. (1962). Note on a method for calculating corrected sums of squares and products. _Technometrics_ 4(3), 419–420. https://doi.org/10.1080/00401706.1962.10490022
+- Park, S. K., & Miller, K. W. (1988). Random number generators: good ones are hard to find. _Communications of the ACM_ 31(10), 1192–1201. https://doi.org/10.1145/63039.63042
+- Godfrey, P. (2001). A note on the computation of the convergent Lanczos complex Gamma approximation. Unpublished technical note. https://www.numericana.com/answer/info/godfrey.htm
+- Acklam, P. J. An algorithm for computing the inverse normal cumulative distribution function. Undated web note; the original site (`home.online.no/~pjacklam`) is offline and archived via the Internet Archive Wayback Machine.
+
+### Clustering
+
+- Lance, G. N., & Williams, W. T. (1967). A general theory of classificatory sorting strategies: 1. Hierarchical systems. _The Computer Journal_ 9(4), 373–380. https://doi.org/10.1093/comjnl/9.4.373
+- Lloyd, S. P. (1982). Least squares quantization in PCM. _IEEE Transactions on Information Theory_ 28(2), 129–137. https://doi.org/10.1109/TIT.1982.1056489
+- Arthur, D., & Vassilvitskii, S. (2007). k-means++: the advantages of careful seeding. _Proceedings of the 18th Annual ACM-SIAM Symposium on Discrete Algorithms (SODA '07)_, 1027–1035. https://dl.acm.org/doi/10.5555/1283383.1283494
+
+### Set statistics
+
+- Wang, M., Zhao, Y., & Zhang, B. (2015). Efficient test and visualization of multi-set intersections. _Scientific Reports_ 5, Article 16923. https://doi.org/10.1038/srep16923
+
+### Visualisation
+
+- Heckbert, P. S. (1990). Nice numbers for graph labels. In A. S. Glassner (Ed.), _Graphics Gems_ (pp. 61–63). Academic Press. https://publications.ri.cmu.edu/nice-numbers-for-graph-labels/
+- Silverman, B. W. (1986). _Density Estimation for Statistics and Data Analysis_. Chapman & Hall. (2018 CRC Press reprint: https://doi.org/10.1201/9781315140919)
+- Wong, B. (2011). Points of view: color blindness. _Nature Methods_ 8(6), 441. https://doi.org/10.1038/nmeth.1618
+- Nuñez, J. R., Anderton, C. R., & Renslow, R. S. (2018). Optimizing colormaps with consideration for color vision deficiency to enable accurate interpretation of scientific data. _PLOS ONE_ 13(7), e0199239. https://doi.org/10.1371/journal.pone.0199239
+
+### Aequorin calcium calibration
+
+- Allen, D. G., & Blinks, J. R. (1978). Calcium transients in aequorin-injected frog cardiac muscle. _Nature_ 273(5663), 509–513. https://doi.org/10.1038/273509a0
+- Knight, M. R., Campbell, A. K., Smith, S. M., & Trewavas, A. J. (1991). Transgenic plant aequorin reports the effects of touch and cold-shock and elicitors on cytoplasmic calcium. _Nature_ 352(6335), 524–526. https://doi.org/10.1038/352524a0
+- Plieth, C. (2006). Aequorin as a reporter gene. _Methods in Molecular Biology_ 323, 307–327. https://doi.org/10.1385/1-59745-003-0:307
+
+### Datasets
+
+- Anderson, E. (1935). The irises of the Gaspé Peninsula. _Bulletin of the American Iris Society_ 59, 2–5. (No DOI.)
+- Fisher, R. A. (1936). The use of multiple measurements in taxonomic problems. _Annals of Eugenics_ 7(2), 179–188. https://doi.org/10.1111/j.1469-1809.1936.tb02137.x

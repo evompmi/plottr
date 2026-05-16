@@ -422,7 +422,7 @@ export function selectTest(
   const baseDefault =
     k === 2
       ? "Default pick: Welch's t-test. Welch's t is the recommended default for two independent groups (Rasch, Kubinger & Moder 2011; Zimmerman 2004) — it does not assume equal variances and matches Student's t closely when variances are in fact equal."
-      : "Default pick: Welch's ANOVA with Games-Howell post-hoc. Welch's ANOVA is the recommended default for k ≥ 3 independent groups (Delacre et al. 2019; Rasch et al. 2011) — it does not assume equal variances across groups and matches one-way ANOVA closely when variances are in fact equal.";
+      : "Default pick: Welch's ANOVA with Games-Howell post-hoc. Welch's ANOVA is the recommended default for k ≥ 3 independent groups (Delacre et al. 2017; Rasch et al. 2011) — it does not assume equal variances across groups and matches one-way ANOVA closely when variances are in fact equal.";
 
   const swNarrative = ((): string => {
     if (flagged.length === 0 && allKnownNormal) {
