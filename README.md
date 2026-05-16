@@ -146,7 +146,7 @@ No runtime dependencies from external CDNs — `vendor/` ships React + ReactDOM 
 
 If you use Plöttr in published research, please cite the repository. Suggested citation:
 
-> Plöttr — a browser-only data-analysis toolbox for wet-lab scientists. <https://github.com/evompmi/plottr>. Evolution of Plant-Microbe Interactions, Laboratoire de Recherche en Sciences Végétales (LRSV), Université de Toulouse, CNRS, UPS, Toulouse INP, Castanet-Tolosan, France.
+> Plöttr — a browser-only data-analysis toolbox for wet-lab scientists. <https://github.com/evompmi/plottr>. M. Mbengue, Laboratoire de Recherche en Sciences Végétales (LRSV), Université de Toulouse, CNRS, UPS, Toulouse INP, Castanet-Tolosan, France.
 
 ## License
 
@@ -154,8 +154,8 @@ Plöttr is released under the [MIT License](LICENSE). Vendored copies of React +
 
 ## AI Usage
 
-Plöttr was built collaboratively with Anthropic's Claude (via Claude Code) under researcher direction. The bulk of the JavaScript, tests, and documentation is Claude-written; the researcher specifies needs, reviews proposals, picks scope, sets methodology, and approves every commit before it lands. Architectural conventions are encoded in folder-level `CLAUDE.md` files so the workflow is reproducible.
+Plöttr was built collaboratively with Anthropic's Claude (Anthropic Claude Opus 4.7 [Large language model]. https://claude.ai) under researcher direction. The bulk of the JavaScript, tests, and documentation is Claude-written; the researcher specifies needs, reviews proposals, picks scope, sets methodology, and approves every commit before it lands. Architectural conventions are encoded in folder-level `CLAUDE.md` files so the workflow is reproducible.
 
-**What is independently verified.** Every statistical function is cross-validated against R 4.5.3 (529 comparisons) and SciPy 1.17.1 (1,083 comparisons) on each `npm run benchmark`. Mutation testing (`npm run mutation`, Stryker) probes whether the test suite catches regressions. These checks exist precisely because the implementation is AI-generated.
+**What is independently verified.** Every statistical function is cross-validated against R 4.5.3 and SciPy 1.17.1 on each `npm run benchmark`. Mutation testing (`npm run mutation`, Stryker) probes whether the test suite catches regressions. These checks exist precisely because the implementation is AI-generated.
 
 **What is _not_ independently verified** and rests on researcher review alone: UI / UX choices, accessibility labels, the prose in this README and the in-app How-to panels, the chart aesthetics. Bug reports there are especially welcome — the "Send feedback" button in every tool opens a mailto draft.
