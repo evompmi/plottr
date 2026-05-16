@@ -7,16 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-05-16
+
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.5.3.md`](docs/release-notes/v1.5.3.md). The
+> entry below is a summary bullet that links there.
+
 ### Fixed
 
 - **Exported R scripts no longer emit data on lines too long for R to
-  parse.** The scatter export inlined each x / y vector on one line, and
-  the heatmap export put every row / column label (and, for wide
-  matrices, every matrix row) on one line — pasted into the RStudio
-  console these could exceed R's 4094-character input limit and get
-  truncated. Every inlined `c(...)` vector now routes through a single
-  wrapping helper (`wrapRItems`) with a hard 120-character-per-line cap,
-  replacing three divergent wrap implementations.
+  parse.** Scatter inlined each x / y vector on one line and the heatmap
+  export put every row / column label on one line — pasted into the
+  RStudio console these could exceed R's 4094-character input limit and
+  get truncated. Every inlined `c(...)` now routes through one wrapping
+  helper with a hard 120-character-per-line cap. See
+  [`docs/release-notes/v1.5.3.md`](docs/release-notes/v1.5.3.md#-fixed).
 
 ## [1.5.2] - 2026-05-16
 
@@ -1277,7 +1282,8 @@ First tracked release. Baseline of features shipped to GitHub Pages prior to the
 - **Shared scaffolding.** `tools/shared.js` utilities, plain-JS React components, CSV/TSV parsing with auto-separator + decimal-comma fix.
 - **CI + tooling baseline.** TypeScript typecheck, ESLint + Prettier, GitHub Actions workflow, custom test harness, minified esbuild bundles.
 
-[Unreleased]: https://github.com/evompmi/plottr/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/evompmi/plottr/compare/v1.5.3...HEAD
+[1.5.3]: https://github.com/evompmi/plottr/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/evompmi/plottr/compare/v1.5.1...v1.5.2
 [1.1.0]: https://github.com/evompmi/plottr/compare/v1.0.5...v1.1.0
 [1.0.0]: https://github.com/evompmi/plottr/compare/v0.10.0...v1.0.0
