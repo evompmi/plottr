@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use Plöttr in published research, please cite it using the metadata in this file."
+title: "Plöttr — a browser-only data-analysis toolbox for wet-lab scientists"
+abstract: >-
+  Plöttr is a browser-only data-visualisation and statistics toolbox for
+  wet-lab scientists. It runs entirely client-side — no server, no tracking,
+  no data leaving the browser — and renders publication-ready SVG charts from
+  pasted CSV / TSV data.
+type: software
+authors:
+  - given-names: Malick
+    family-names: Mbengue
+    orcid: "https://orcid.org/0000-0002-7723-7757"
+    affiliation: "Laboratoire de Recherche en Sciences Végétales (LRSV), Université de Toulouse, CNRS, UPS, Toulouse INP, Castanet-Tolosan, France."
+license: MIT
+repository-code: "https://github.com/evompmi/plottr"
+url: "https://evompmi.github.io/plottr"
+keywords:
+  - data visualization
+  - statistics
+  - plotting
+  - wet-lab biology
+  - browser-based
