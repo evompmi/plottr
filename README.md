@@ -158,7 +158,7 @@ Plöttr was built collaboratively with Anthropic's Claude (Anthropic Claude Opus
 
 **What is independently verified.** Every statistical function is cross-validated against R 4.5.3 and SciPy 1.17.1 on each `npm run benchmark`. Mutation testing (`npm run mutation`, Stryker) probes whether the test suite catches regressions. These checks exist precisely because the implementation is AI-generated.
 
-**What is _not_ independently verified** and rests on researcher review alone: UI / UX choices, accessibility labels, the prose in this README and the in-app How-to panels, the chart aesthetics. Bug reports there are especially welcome — the "Send feedback" button in every tool opens a mailto draft.
+**What is _not_ independently verified** and rests on researcher review alone: UI / UX choices, accessibility labels and the in-app How-to panels, the chart aesthetics. Bug reports there are especially welcome — the "Send feedback" button in every tool opens a mailto draft.
 
 ## References
 
