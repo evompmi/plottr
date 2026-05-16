@@ -322,6 +322,20 @@ export function App() {
     }
   }, [normalization, autoVRange]);
 
+  // Crossing between a diverging and a sequential palette also re-ranges
+  // the colorbar: a diverging palette wants a symmetric vmin/vmax centred
+  // on 0, a sequential one wants the data's own [min, max]. Keyed on the
+  // palette's diverging-ness (not the palette itself), so a sequential →
+  // sequential swap such as viridis → plasma leaves a manual range alone.
+  const paletteIsDiverging = DIVERGING_PALETTES.has(vis.palette);
+  const prevPaletteDivergingRef = useRef(paletteIsDiverging);
+  React.useEffect(() => {
+    if (prevPaletteDivergingRef.current !== paletteIsDiverging) {
+      prevPaletteDivergingRef.current = paletteIsDiverging;
+      autoVRange();
+    }
+  }, [paletteIsDiverging, autoVRange]);
+
   const canNavigate = useCallback(
     (target: string) => {
       if (target === "upload") return true;

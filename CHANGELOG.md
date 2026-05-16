@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The heatmap colorbar auto-ranges when you cross between a diverging
+  and a sequential palette.** Picking a diverging palette (RdBu, bwr, …)
+  refills vmin / vmax to a symmetric range centred on 0; picking a
+  sequential palette refills to the data's own min / max. A sequential →
+  sequential swap (e.g. viridis → plasma) leaves a manual range untouched.
+
 ### Fixed
 
 - **Mann-Whitney U on all-identical data now reports an error instead of
