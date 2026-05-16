@@ -1,5 +1,7 @@
 # Plöttr — A browser-only data-analysis toolbox
 
+[![DOI](https://zenodo.org/badge/1217835975.svg)](https://doi.org/10.5281/zenodo.20245057)
+
 Static web app for common plot-and-test workflows. No server, no tracking, no data leaving the browser.
 
 **Live:** [evompmi.github.io/plottr](https://evompmi.github.io/plottr) · **Source:** [github.com/evompmi/plottr](https://github.com/evompmi/plottr)
