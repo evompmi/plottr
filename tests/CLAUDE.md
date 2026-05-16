@@ -104,7 +104,7 @@ The tag sits in the line of sight of whoever is about to "simplify" the code, an
 
 **Scope expansion path.** The `mutate:` array in `stryker.conf.mjs` is a single-target switch — uncomment one entry, comment the others, run, document. Already-validated entries listed in a comment block above the array. To expand to a new tool: (a) check that its helpers.ts doesn't reference shared globals as free vars; if it does, keep the vm.runInContext path and accept that Stryker will only see render-bundle coverage; (b) if it doesn't, refactor that tool's loader to the require()-based pattern (see `tests/helpers/scatter-loader.js`); (c) swap the active scope and run; (d) drive the score up by adding sharp boundary properties for each non-equivalent survivor; (e) document the final score and equivalent-mutant count in the table above + commit.
 
-**When NOT to run mutation testing.** Day-to-day editing — the existing 1,505-test suite catches most regressions in seconds, mutation testing is a quarterly exercise. Run it after a substantial test-suite expansion (to validate the new properties have bite), before a release (to confirm coverage didn't regress), or when investigating a class of bug the suite missed (to find the gap that let it through).
+**When NOT to run mutation testing.** Day-to-day editing — the existing 1,734-test suite catches most regressions in seconds, mutation testing is a quarterly exercise. Run it after a substantial test-suite expansion (to validate the new properties have bite), before a release (to confirm coverage didn't regress), or when investigating a class of bug the suite missed (to find the gap that let it through).
 
 ## Operational notes — property tests, Stryker, coverage
 

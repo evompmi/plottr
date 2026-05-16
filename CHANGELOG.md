@@ -7,15 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-05-16
+
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.5.2.md`](docs/release-notes/v1.5.2.md). The
+> entries below are summary bullets that link there.
+
 ### Fixed
 
 - **Long boxplot category labels no longer clip off the left edge when
-  x-axis labels are rotated.** Rotated labels are anchored at their tick
-  and tilt down-left, but the chart's left margin was hard-coded to
-  62 px, so a long label on the leftmost group overran the SVG's left
-  edge. `computeChartMargins` now reserves the label's horizontal extent
-  (`labelWidth × cos(angle)`), mirroring the vertical reservation the
-  bottom margin already made.
+  the x-axis labels are rotated.** The chart's left margin was hard-coded
+  to a 62 px floor, so the down-left overhang of a long label on the
+  left-most group ran off the SVG edge. `computeChartMargins` now
+  reserves the rotated label's horizontal extent in the left margin. See
+  [`docs/release-notes/v1.5.2.md`](docs/release-notes/v1.5.2.md#-fixed).
+
+### Changed
+
+- **Internal — statistics kernel re-verified with Stryker mutation
+  testing.** All six `tools/_core/stats/*` modules swept (format 95.56 %,
+  cluster 87.97 %, tests 87.83 %, posthoc 79.80 %, msi 72.20 %,
+  dist 69.12 %); a latent Stryker loader-exhaustion bug was fixed and new
+  boundary pins were added, leaving every residual survivor equivalent or
+  contrived-input-only. No behaviour change. See
+  [`docs/release-notes/v1.5.2.md`](docs/release-notes/v1.5.2.md#-internal).
+- **Internal — the React tier is now `any`-free end to end** — no `: any`
+  annotations, no `as any` / `as unknown as` casts, no `@ts-*` directives
+  — and a new SVG-snapshot visual-regression suite guards chart geometry.
+  Deterministic suite now 38 files / 1,734 tests. See
+  [`docs/release-notes/v1.5.2.md`](docs/release-notes/v1.5.2.md#-internal).
 
 ## [1.5.1] - 2026-05-14
 
@@ -1246,7 +1266,8 @@ First tracked release. Baseline of features shipped to GitHub Pages prior to the
 - **Shared scaffolding.** `tools/shared.js` utilities, plain-JS React components, CSV/TSV parsing with auto-separator + decimal-comma fix.
 - **CI + tooling baseline.** TypeScript typecheck, ESLint + Prettier, GitHub Actions workflow, custom test harness, minified esbuild bundles.
 
-[Unreleased]: https://github.com/evompmi/plottr/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/evompmi/plottr/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/evompmi/plottr/compare/v1.5.1...v1.5.2
 [1.1.0]: https://github.com/evompmi/plottr/compare/v1.0.5...v1.1.0
 [1.0.0]: https://github.com/evompmi/plottr/compare/v0.10.0...v1.0.0
 [0.7.1]: https://github.com/evompmi/dataviz/compare/v0.7.0...v0.7.1
