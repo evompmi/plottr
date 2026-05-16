@@ -5,6 +5,8 @@ const {
   sanitizeRString,
   formatRNumber,
   formatRVector,
+  wrapRItems,
+  R_MAX_LINE,
 } = require("./helpers/r-export-loader");
 
 // Build a minimal ctx for a two-group or three-group scenario. Shapes match
@@ -101,6 +103,60 @@ test("empty array produces c()", () => {
 
 test("non-finite values become NA inside the vector", () => {
   eq(formatRVector([1, NaN, 3]), "c(1, NA, 3)");
+});
+
+test("a long numeric vector wraps instead of running off one line", () => {
+  const out = formatRVector(Array.from({ length: 500 }, (_, i) => i));
+  assert(out.startsWith("c(\n"), "long vector did not switch to multi-line form");
+  for (const line of out.split("\n")) {
+    assert(line.length <= R_MAX_LINE, `formatRVector line over R_MAX_LINE: ${line.length}`);
+  }
+});
+
+// ── wrapRItems ─────────────────────────────────────────────────────────────
+suite("shared-r-export.js — wrapRItems");
+
+test("empty array produces c()", () => {
+  eq(wrapRItems([]), "c()");
+});
+
+test("a short vector stays on a single compact line", () => {
+  eq(wrapRItems(["1", "2", "3"]), "c(1, 2, 3)");
+});
+
+test("more than perLine items wrap across indented lines", () => {
+  // perLine = 2 → break after every 2 items.
+  eq(wrapRItems(["1", "2", "3", "4", "5"], 2), "c(\n    1, 2,\n    3, 4,\n    5\n  )");
+});
+
+test("no emitted line exceeds R_MAX_LINE, even with long items", () => {
+  // 200 × ~25-char items — a single c(...) line would be ~5000 chars.
+  const items = Array.from({ length: 200 }, (_, i) => `"feature_label_number_${i}"`);
+  for (const line of wrapRItems(items).split("\n")) {
+    assert(line.length <= R_MAX_LINE, `line over R_MAX_LINE (${line.length})`);
+  }
+});
+
+test("the R_MAX_LINE cap overrides a large perLine hint", () => {
+  // perLine = 100, but 100 ten-char items on one line would be ~1200 chars;
+  // the cap must force earlier breaks regardless of the hint.
+  const items = Array.from({ length: 100 }, () => "1234567890");
+  const contentLines = wrapRItems(items, 100)
+    .split("\n")
+    .filter((l) => l.startsWith("    "));
+  assert(contentLines.length > 1, "cap did not force a break under a large perLine");
+  for (const line of contentLines) {
+    assert(line.length <= R_MAX_LINE, "cap exceeded under a large perLine");
+  }
+});
+
+test("a single item longer than the cap gets its own line", () => {
+  const huge = '"' + "x".repeat(R_MAX_LINE + 40) + '"';
+  const lines = wrapRItems([huge, "1", "2"]).split("\n");
+  assert(
+    lines.some((l) => l.includes(huge) && !l.includes(", 1")),
+    "over-long item was not isolated on its own line"
+  );
 });
 
 // ── buildRScript ───────────────────────────────────────────────────────────
@@ -224,8 +280,9 @@ test("long-format data frame has one row per observation", () => {
   assert(out.includes('"Trt", "Trt", "Trt"'), "treatment labels wrong");
   assert(out.includes("1.1, 2.2"), "ctrl values wrong");
   assert(out.includes("3.3, 4.4, 5.5"), "trt values wrong");
-  // factor level order preserved
-  assert(out.includes('factor(df$group, levels = c("Ctrl", "Trt"))'), "factor level order wrong");
+  // factor levels emitted as a standalone vector, display order preserved
+  assert(out.includes('df_levels <- c("Ctrl", "Trt")'), "factor levels vector wrong");
+  assert(out.includes("factor(df$group, levels = df_levels)"), "factor() call wrong");
 });
 
 test("group names with spaces and quotes survive sanitization", () => {

@@ -10,7 +10,11 @@
 //   sanitizeRComment(s)           — strip line terminators for `#` comments
 //   formatRNumber(n)              — Number → R literal (period decimals,
 //                                   NA for non-finite)
-//   formatRVector(arr)            — [n] → "c(n1, n2, ...)"
+//   formatRVector(arr, perLine?)  — number[] → wrapped "c(...)" literal
+//   wrapRItems(items, perLine?)   — pre-formatted items → wrapped "c(...)";
+//                                   the single line-wrapping helper, capped
+//                                   at R_MAX_LINE characters per line
+//   R_MAX_LINE                    — hard per-line char cap for emitted R
 //
 // The ctx shape matches the StatsTile's internal report-builder shape so
 // the R-script chip can reuse the exact same context object without
@@ -63,20 +67,63 @@ export function formatRNumber(n: number | null | undefined): string {
   return String(n);
 }
 
-export function formatRVector(arr: Array<number | null | undefined>): string {
-  return "c(" + arr.map(formatRNumber).join(", ") + ")";
+// Hard cap on the length of any single line of generated R source. R's
+// parser rejects an input line longer than 4094 characters; 120 keeps
+// the output well clear of that and roughly in line with the repo's own
+// formatting width. Every line of a `c(...)` literal returned by
+// `wrapRItems` is guaranteed to be within this cap.
+export const R_MAX_LINE = 120;
+
+// Margin subtracted from R_MAX_LINE when wrapRItems decides whether a
+// vector is short enough to keep on a single line. Callers prepend an
+// assignment prefix (`x <- `, `row_labels <- `, `  group = `, …) that
+// the helper cannot see; reserving 20 chars keeps the compact form's
+// physical line within R_MAX_LINE for every prefix the codebase emits.
+const _R_PREFIX_RESERVE = 20;
+
+// The single line-wrapping helper for inlined R vectors. Packs the
+// pre-formatted `items` into a `c(...)` literal, breaking to a new
+// indented line whenever either `perLine` items have been placed or the
+// next item would push the line past R_MAX_LINE. `formatRVector`, the
+// long-format data.frame builder, the heatmap label / matrix emit and
+// volcano's data columns all route through here — there is no other
+// wrap path.
+//
+// `perLine` (default 8) is a soft hint; the R_MAX_LINE cap always wins,
+// so a caller may pass a large `perLine` (e.g. one heatmap matrix row
+// per line) and still get a re-wrap when that row is too wide. A single
+// item longer than the cap unavoidably gets an over-long line of its
+// own — an R token cannot be split.
+export function wrapRItems(items: string[], perLine?: number): string {
+  if (items.length === 0) return "c()";
+  const P = perLine && perLine > 0 ? perLine : 8;
+  const indent = "    ";
+  // A wrapped content line carries a trailing "," (all but the last),
+  // so budget one char for it when measuring against the cap.
+  const lineBudget = R_MAX_LINE - indent.length - 1;
+  const rows: string[] = [];
+  let cur: string[] = [];
+  let curLen = 0; // length of cur.join(", ")
+  for (const item of items) {
+    if (cur.length > 0 && (cur.length >= P || curLen + 2 + item.length > lineBudget)) {
+      rows.push(indent + cur.join(", "));
+      cur = [];
+      curLen = 0;
+    }
+    curLen += cur.length === 0 ? item.length : 2 + item.length;
+    cur.push(item);
+  }
+  if (cur.length > 0) rows.push(indent + cur.join(", "));
+  if (rows.length === 1) {
+    const oneLine = "c(" + items.join(", ") + ")";
+    if (oneLine.length <= R_MAX_LINE - _R_PREFIX_RESERVE) return oneLine;
+  }
+  return "c(\n" + rows.join(",\n") + "\n  )";
 }
 
-// Wrap a long c(...) literal across multiple indented lines so the
-// generated script stays readable when group sizes get into the dozens.
-function _wrapC(items: string[], perLine?: number): string {
-  const P = perLine || 8;
-  if (items.length <= P) return "c(" + items.join(", ") + ")";
-  const lines: string[] = [];
-  for (let i = 0; i < items.length; i += P) {
-    lines.push("    " + items.slice(i, i + P).join(", "));
-  }
-  return "c(\n" + lines.join(",\n") + "\n  )";
+// number[] → a `c(...)` literal, line-wrapped via wrapRItems.
+export function formatRVector(arr: Array<number | null | undefined>, perLine?: number): string {
+  return wrapRItems(arr.map(formatRNumber), perLine);
 }
 
 // Build a long-format data.frame literal: one row per observation, columns
@@ -93,14 +140,19 @@ function _longFormatDataFrame(names: string[], values: number[][], varName?: str
       valueEntries.push(formatRNumber(vs[j]));
     }
   }
-  const levels = names.map((n) => '"' + sanitizeRString(n) + '"').join(", ");
+  // The factor-level vector is emitted as its own assignment rather
+  // than inlined into factor(): a long `levels = c(...)` argument would
+  // carry a ~40-char `factor(...)` prefix that wrapRItems cannot see, so
+  // a standalone assignment keeps every line within R_MAX_LINE.
+  const levelItems = names.map((n) => '"' + sanitizeRString(n) + '"');
   return [
     vn + " <- data.frame(",
-    "  group = " + _wrapC(groupEntries) + ",",
-    "  value = " + _wrapC(valueEntries) + ",",
+    "  group = " + wrapRItems(groupEntries) + ",",
+    "  value = " + wrapRItems(valueEntries) + ",",
     "  stringsAsFactors = FALSE",
     ")",
-    vn + "$group <- factor(" + vn + "$group, levels = c(" + levels + "))",
+    vn + "_levels <- " + wrapRItems(levelItems),
+    vn + "$group <- factor(" + vn + "$group, levels = " + vn + "_levels)",
   ].join("\n");
 }
 

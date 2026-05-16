@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Exported R scripts no longer emit data on lines too long for R to
+  parse.** The scatter export inlined each x / y vector on one line, and
+  the heatmap export put every row / column label (and, for wide
+  matrices, every matrix row) on one line — pasted into the RStudio
+  console these could exceed R's 4094-character input limit and get
+  truncated. Every inlined `c(...)` vector now routes through a single
+  wrapping helper (`wrapRItems`) with a hard 120-character-per-line cap,
+  replacing three divergent wrap implementations.
+
 ## [1.5.2] - 2026-05-16
 
 > Long-form release notes — what shipped, why, and how — live in

