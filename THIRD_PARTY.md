@@ -7,9 +7,11 @@ entry names what's used, where it's used, and the licensing posture.
 
 The intent is one-stop transparency: a peer reviewer should be able to read
 this page and verify that nothing in the repo is an unattributed copy of
-licensed code. Inline citations exist throughout `tools/stats-dist.js`,
-`tools/stats-tests.js`, `tools/stats-posthoc.js`, `tools/stats-cluster.js`,
-`tools/stats-msi.js`, and `tools/shared.js` — this file consolidates them.
+licensed code. Inline citations exist throughout the statistics kernel
+(`tools/_core/stats/`) and the shared helpers under `tools/_core/` — this
+file consolidates them. The complete, DOI-verified research bibliography
+behind Plöttr's methods is the **References** section of the
+[README](README.md); this file focuses on code provenance and licensing.
 
 ## Vendored binaries
 
@@ -24,13 +26,13 @@ runtime CDN dependency.
 
 ## Ports with public-domain provenance
 
-| Component                                                                  | Where                 | Source                                                                                                                                                | Provenance                                                                                         |
-| -------------------------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `betacf` (continued fraction for the regularized incomplete beta)          | `tools/stats-dist.js` | Cephes Mathematical Library, `incbet.c` (`incbcf` form), Stephen L. Moshier, "Cephes Math Library Release 2.8" (2000), https://www.netlib.org/cephes/ | Public domain (author dedication).                                                                 |
-| `gammainc` (regularized lower incomplete gamma — series form)              | `tools/stats-dist.js` | Cephes Mathematical Library, `igam.c`                                                                                                                 | Public domain (author dedication).                                                                 |
-| `gammainc_upper` (regularized upper incomplete gamma — continued fraction) | `tools/stats-dist.js` | Cephes Mathematical Library, `igam.c` (`igamc` form)                                                                                                  | Public domain (author dedication).                                                                 |
-| `seededRandom` (Park-Miller minimal-standard LCG)                          | `tools/shared.js`     | S. K. Park & K. W. Miller, "Random number generators: Good ones are hard to find" (CACM, 1988); algorithm originated with D. H. Lehmer, 1951.         | Public-domain algorithm; constants 16807 / 2147483647 are the algorithm.                           |
-| `gammaln` Lanczos coefficients (g = 7)                                     | `tools/stats-dist.js` | Paul Godfrey, "A note on the computation of the convergent Lanczos complex Gamma approximation" (2001)                                                | Coefficients are public-domain in spirit; widely circulated as the standard g = 7 reference table. |
+| Component                                                                  | Where                       | Source                                                                                                                                                | Provenance                                                                                         |
+| -------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `betacf` (continued fraction for the regularized incomplete beta)          | `tools/_core/stats/dist.ts` | Cephes Mathematical Library, `incbet.c` (`incbcf` form), Stephen L. Moshier, "Cephes Math Library Release 2.8" (2000), https://www.netlib.org/cephes/ | Public domain (author dedication).                                                                 |
+| `gammainc` (regularized lower incomplete gamma — series form)              | `tools/_core/stats/dist.ts` | Cephes Mathematical Library, `igam.c`                                                                                                                 | Public domain (author dedication).                                                                 |
+| `gammainc_upper` (regularized upper incomplete gamma — continued fraction) | `tools/_core/stats/dist.ts` | Cephes Mathematical Library, `igam.c` (`igamc` form)                                                                                                  | Public domain (author dedication).                                                                 |
+| `seededRandom` (Park-Miller minimal-standard LCG)                          | `tools/_core/numeric.ts`    | S. K. Park & K. W. Miller, "Random number generators: Good ones are hard to find" (CACM, 1988); algorithm originated with D. H. Lehmer, 1951.         | Public-domain algorithm; constants 16807 / 2147483647 are the algorithm.                           |
+| `gammaln` Lanczos coefficients (g = 7)                                     | `tools/_core/stats/dist.ts` | Paul Godfrey, "A note on the computation of the convergent Lanczos complex Gamma approximation" (2001)                                                | Coefficients are public-domain in spirit; widely circulated as the standard g = 7 reference table. |
 
 The Cephes ports use a three-term recurrence (`pkm/qkm` with periodic
 big/biginv rescaling). Plöttr-specific polish — log-space final
@@ -38,7 +40,7 @@ exponentiation in `gammainc` / `gammainc_upper`, and a √a-scaled iteration
 cap so `chi2cdf` and `ptukey` stay accurate at huge df — is layered on top of
 the Cephes recurrence. Constants (`CEPHES_BIG = 2^52`, `CEPHES_BIGINV =
 2^-52`, `CEPHES_MACHEP = 1.11e-16`) match Cephes' `incbet.c` / `igam.c`
-literally. See `tools/stats-dist.js` lines ~170–340 for the attribution block
+literally. See `tools/_core/stats/dist.ts` lines ~170–340 for the attribution block
 (header comment plus the `betacf` / `gammainc` / `gammainc_upper` bodies).
 
 ## Algorithmic references (algorithm-only — no code copied)
@@ -65,7 +67,7 @@ independently coded.
   uses Gauss-Hermite tables from AS 190, Copenhaver & Holland 1988); the
   algebraic factorisation `a^(k−1) − b^(k−1) = (a−b)·Σ a^(k−2−j)·b^j` for
   the upper tail is documented in the source comments at
-  `tools/stats-posthoc.js` ~line 35.
+  `tools/_core/stats/posthoc.ts` ~line 35.
 - **Noncentral t / F / χ² (`nctcdf`, `ncf_sf`, `ncchi2cdf`)** — textbook
   Poisson-mixture and chi²-mixture forms, mode-centred enumeration. The
   closed-form normal-approximation short-circuit (`if halfLam > 500 && d2 >
@@ -112,9 +114,10 @@ independently coded.
 
 ### Set-theoretic and combinatorial
 
-- **Multi-set intersection enrichment / depletion** — N. Wang, J. Zhao &
-  S. Bhattacharya, "Efficient test and visualization of multi-set
-  intersections" (Scientific Reports, 2015) — the algorithmic basis for
+- **Multi-set intersection enrichment / depletion** — M. Wang, Y. Zhao &
+  B. Zhang, "Efficient test and visualization of multi-set intersections"
+  (Scientific Reports 5, article 16923, 2015),
+  https://doi.org/10.1038/srep16923 — the algorithmic basis for
   the `SuperExactTest` R package. Implementation is independently derived
   from the iterated-hypergeometric description; no R code is copied.
 
@@ -144,8 +147,18 @@ independently coded.
 - **Sequential and diverging palettes** — viridis / plasma / magma / inferno
   derived from the Matplotlib palettes (released CC0 / public domain by
   their authors Stéfan van der Walt & Nathaniel Smith); cividis from
-  Nuñez, Anderton & Renslow, "An optimized colormap for the scientific
-  community" (PLoS ONE 13(6), 2018).
+  Nuñez, Anderton & Renslow, "Optimizing colormaps with consideration for
+  color vision deficiency to enable accurate interpretation of scientific
+  data" (PLOS ONE 13(7), e0199239, 2018),
+  https://doi.org/10.1371/journal.pone.0199239.
+- **ColorBrewer qualitative palettes** (set1 / set2 / set3 / dark2 /
+  paired / pastel1 / pastel2) — © Cynthia Brewer, Mark Harrower and The
+  Pennsylvania State University; licensed under the Apache License 2.0.
+  Used as discrete-palette presets in `tools/_shell/discrete-palette.ts`.
+- **Tableau10 qualitative palette** — the ten-colour categorical set
+  originated with Tableau Software and is widely reproduced across
+  visualisation tools; used as a discrete-palette preset in
+  `tools/_shell/discrete-palette.ts`. Plöttr asserts no licence over it.
 
 ### CSV parsing
 
@@ -161,6 +174,6 @@ cross-validation. The benchmark loads them from R at runtime — values are
 **not** redistributed in this repository. The values themselves are facts
 (e.g. iris is Anderson 1935 / Fisher 1936) and not copyrightable.
 
-The single bundled dataset is `tools/iris_example.js`, which ships the
-classic 150-row iris flower measurements verbatim — public domain
-(Anderson 1935; Fisher 1936). The header of that file cites both papers.
+The single bundled dataset is the classic 150-row iris flower
+measurements, inlined verbatim in `tools/scatter/app.tsx` — public domain
+(Anderson 1935; Fisher 1936). The inline comment there cites both papers.
