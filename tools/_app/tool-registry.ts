@@ -118,6 +118,13 @@ export const TOOL_REGISTRY: ToolEntry[] = [
     Component: lazyApp(() => import("../volcano/app")),
   },
   {
+    key: "gff",
+    label: "Genome Track",
+    iconSvg:
+      '<svg viewBox="0 0 44 44" fill="none" stroke="none" aria-hidden="true"><line x1="6" y1="14" x2="38" y2="14" stroke="currentColor" stroke-width="1.5"/><rect x="6" y="10" width="7" height="8" fill="currentColor"/><rect x="18" y="10" width="9" height="8" fill="currentColor"/><rect x="31" y="10" width="7" height="8" fill="currentColor"/><line x1="6" y1="30" x2="38" y2="30" stroke="currentColor" stroke-width="1.5"/><rect x="10" y="26" width="8" height="8" fill="currentColor" fill-opacity="0.55"/><rect x="24" y="26" width="10" height="8" fill="currentColor" fill-opacity="0.55"/></svg>',
+    Component: lazyApp(() => import("../gff/app")),
+  },
+  {
     key: "power",
     label: "Power Analysis",
     iconSvg:

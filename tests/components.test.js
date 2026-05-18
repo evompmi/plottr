@@ -646,6 +646,91 @@ suite("BoxplotChart");
   });
 })();
 
+// ── GffChart ────────────────────────────────────────────────────────────────
+
+suite("GffChart");
+
+(function () {
+  const GffChart = loadTool("gff").exports.GffChart;
+
+  // Pre-packed gene models — the shape app.tsx hands the chart. The chart
+  // only reads model.key / start / end / strand / parts / feature.{name,type}.
+  const packed = [
+    {
+      lane: 0,
+      model: {
+        key: "f3",
+        start: 1000,
+        end: 3500,
+        strand: "+",
+        feature: { name: "GeneA", type: "gene" },
+        parts: [
+          { type: "exon", start: 1000, end: 1320 },
+          { type: "CDS", start: 1150, end: 1320 },
+          { type: "exon", start: 1900, end: 2250 },
+        ],
+      },
+    },
+    {
+      lane: 1,
+      model: {
+        key: "f9",
+        start: 4600,
+        end: 7200,
+        strand: "-",
+        feature: { name: "GeneB", type: "gene" },
+        parts: [],
+      },
+    },
+  ];
+  const typeColors = new Map([
+    ["gene", "#648FFF"],
+    ["exon", "#0072B2"],
+    ["CDS", "#DC267F"],
+  ]);
+  const baseProps = {
+    packed,
+    laneCount: 2,
+    seqid: "ctg1",
+    viewStart: 1,
+    viewEnd: 9000,
+    typeColors,
+    colorMode: "type",
+    selectedKey: null,
+    plotTitle: "Demo track",
+    plotSubtitle: "",
+    plotBg: "#fff",
+    fontSize: 12,
+    featureHeight: 12,
+    showLabels: true,
+    showChevrons: true,
+  };
+
+  test("renders a feature track SVG with axis + feature groups", function () {
+    const html = renderHtml(GffChart, baseProps);
+    assert(html.startsWith("<svg"), "root should be an SVG");
+    assert(tagCount(html) > 10, "should produce a complex tree");
+    assert(html.includes('id="features"'), "has a features group");
+    assert(html.includes('id="axis-x"'), "has an x axis group");
+    assert(html.includes('id="feature-f3"'), "names each feature group by model key");
+  });
+
+  test("strand colour mode + a selected feature render without throwing", function () {
+    const html = renderHtml(GffChart, {
+      ...baseProps,
+      colorMode: "strand",
+      selectedKey: "f3",
+    });
+    assert(html.startsWith("<svg"), "root should be an SVG");
+  });
+
+  test("empty packed model list shows the empty-view message", function () {
+    const html = renderHtml(GffChart, { ...baseProps, packed: [], laneCount: 0 });
+    assert(html.startsWith("<svg"), "root should be an SVG");
+    assert(html.includes("No features in this view"), "shows the empty-state text");
+  });
+})();
+
 // ── BoxplotChart (bar mode) ─────────────────────────────────────────────────
 
 suite("BoxplotChart (bar mode)");

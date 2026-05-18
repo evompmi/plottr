@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Genome Track tool** — a browser-only GFF3 / GFF reader. It parses the
+  9-column feature format, `##` directives, and the `ID`/`Parent` hierarchy
+  (stopping at `##FASTA`), then draws features as a packed genome-browser
+  track: exons/CDS as boxes, introns as connecting lines, strand chevrons,
+  and a base-pair axis. Pick a contig, pan/zoom the view window, colour by
+  feature type or strand, filter types, and click a feature for its full
+  attribute list. Malformed lines are collected as warnings rather than
+  aborting the file.
+
 ## [1.6.1] - 2026-05-16
 
 > Long-form release notes — what shipped, why, and how — live in

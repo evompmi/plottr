@@ -14,8 +14,8 @@ npm run mutation    # Stryker mutation testing — measures whether the suite *c
 The suite splits into four rough buckets:
 
 - **Shared/foundation** — `shared`, `parsing`, `integration`, `components`, `prefs`, `r-export`, `stats`, `power`, `stats-dispatch`, `discrete-palette`, `handoff`.
-- **Per-tool unit tests** — `aequorin`, `boxplot-helpers`, `boxplot-stats-reducer`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`.
-- **Per-tool property tests** (`tests/<tool>.property.test.js`, fast-check) — `aequorin`, `boxplot`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`. See "Property-based tests" below.
+- **Per-tool unit tests** — `aequorin`, `boxplot-helpers`, `boxplot-stats-reducer`, `gff`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`.
+- **Per-tool property tests** (`tests/<tool>.property.test.js`, fast-check) — `aequorin`, `boxplot`, `gff`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`. See "Property-based tests" below.
 - **Build / hygiene** — `anti-clickjack`, `vendor-sri`, `write-version`, `formula-injection`.
 
 Each new plot tool adds a `tests/<tool>.test.js` covering its pure helpers and a `tests/<tool>.property.test.js` covering structural invariants (see below). New shared helpers go into the bucket that matches their domain — don't create a new file unless the domain is genuinely new.
@@ -104,7 +104,7 @@ The tag sits in the line of sight of whoever is about to "simplify" the code, an
 
 **Scope expansion path.** The `mutate:` array in `stryker.conf.mjs` is a single-target switch — uncomment one entry, comment the others, run, document. Already-validated entries listed in a comment block above the array. To expand to a new tool: (a) check that its helpers.ts doesn't reference shared globals as free vars; if it does, keep the vm.runInContext path and accept that Stryker will only see render-bundle coverage; (b) if it doesn't, refactor that tool's loader to the require()-based pattern (see `tests/helpers/scatter-loader.js`); (c) swap the active scope and run; (d) drive the score up by adding sharp boundary properties for each non-equivalent survivor; (e) document the final score and equivalent-mutant count in the table above + commit.
 
-**When NOT to run mutation testing.** Day-to-day editing — the existing 1,734-test suite catches most regressions in seconds, mutation testing is a quarterly exercise. Run it after a substantial test-suite expansion (to validate the new properties have bite), before a release (to confirm coverage didn't regress), or when investigating a class of bug the suite missed (to find the gap that let it through).
+**When NOT to run mutation testing.** Day-to-day editing — the existing 1,798-test suite catches most regressions in seconds, mutation testing is a quarterly exercise. Run it after a substantial test-suite expansion (to validate the new properties have bite), before a release (to confirm coverage didn't regress), or when investigating a class of bug the suite missed (to find the gap that let it through).
 
 ## Operational notes — property tests, Stryker, coverage
 
@@ -136,7 +136,7 @@ Test helpers in `tests/helpers/` load shared code into Node `vm` contexts with D
 
 - **Generic shared loaders** load the `shared-*.js` bundle globals into a vm context: `shared-loader.js`, `parsing-fns.js`, `components-loader.js`, `prefs-loader.js`, `r-export-loader.js`, `stats-dispatch-loader.js`, `discrete-palette-loader.js`, `handoff-loader.js`.
 - **`render-loader.js` (real React 18 + happy-dom).** Used only by `tests/components.test.js`, which declares the happy-dom Vitest environment at the top of the file. Exposes `buildContext()`, `loadTool(toolName)`, `renderHtml(Component, props)` (synchronous static-HTML via `react-dom/server`), and `renderWithEffects(Component, props)` (mount through `react-dom/client.createRoot` + `act` so `useEffect` / `useLayoutEffect` actually fire).
-- **Per-tool loaders** transform `tools/<tool>/helpers.ts` to CommonJS (via `esbuild.transformSync`, or `buildSync` for barrels) and run it under `vm.runInContext` with the shared globals pre-loaded. One per plot tool: `aequorin-loader.js`, `boxplot-loader.js`, `boxplot-stats-reducer-loader.js`, `heatmap-loader.js`, `lineplot-loader.js`, `scatter-loader.js`, `upset-loader.js`, `venn-loader.js`, `volcano-loader.js`.
+- **Per-tool loaders** transform `tools/<tool>/helpers.ts` to CommonJS (via `esbuild.transformSync`, or `buildSync` for barrels) and run it under `vm.runInContext` with the shared globals pre-loaded. One per plot tool: `aequorin-loader.js`, `boxplot-loader.js`, `boxplot-stats-reducer-loader.js`, `gff-loader.js`, `heatmap-loader.js`, `lineplot-loader.js`, `scatter-loader.js`, `upset-loader.js`, `venn-loader.js`, `volcano-loader.js`.
 - **`csv-corpus.js`** — the curated pathological-input corpus (BOM, CRLF, mixed delimiters, decimal commas, ragged rows, null bytes, unicode labels, NaN/Inf tokens, very long labels, …). Exports the `GENERATORS` array and a `makeRng` Park–Miller PRNG.
 - **`csv-arbitraries.js`** — fast-check arbitraries for CSV-shaped inputs. Wraps `csv-corpus.js`'s `GENERATORS` as `arbCorpusCsv` (limited shrinking but full pathology coverage), plus structural arbitraries that shrink properly: `arbWideCsv`, `arbLongCsv`, `arbSetCsv`, `arbLongSetCsv`. The union `arbAnyCsv` is what most parse-resilience properties pull from.
 

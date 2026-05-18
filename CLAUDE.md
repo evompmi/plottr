@@ -65,7 +65,7 @@ Run them locally in this order before committing to catch issues early.
 ```bash
 npm run build          # compile every entry in package.json → tools/<…>.js (one-shot)
 npm run watch          # recompile on save (~5 ms)
-npm test               # run every tests/*.test.js (38 deterministic suites, 1,734 tests)
+npm test               # run every tests/*.test.js (40 deterministic suites, 1,798 tests)
 npm run typecheck      # tsc --noEmit (TypeScript type checking, no emit)
 npm run lint           # ESLint
 npm run format:check   # Prettier dry-run (used in CI)
@@ -77,7 +77,7 @@ Edit `.tsx` source files, run build (or use watch mode), reload in browser. The 
 
 ### Pre-commit hook
 
-A native git hook at `scripts/hooks/pre-commit` rebuilds and re-stages any drifted compiled outputs (`tools/**/index.js`, `tools/*.js`, `tools/*.js.map`, `tools/shared.bundle.js`, `tools/version.js`) whenever staged changes touch source that affects the build: `tools/**/*.tsx`, `tools/<tool>/helpers.ts`, `tools/_core/**`, `tools/_shell/**`, or the `scripts/build-*.js` themselves. This catches sourcemap drift at commit time instead of at CI/merge time (a real issue: `_shell/*` content is inlined into every plot tool's `.js.map` via `sourcesContent`, so a `_shell/*` edit invalidates all eight maps).
+A native git hook at `scripts/hooks/pre-commit` rebuilds and re-stages any drifted compiled outputs (`tools/**/index.js`, `tools/*.js`, `tools/*.js.map`, `tools/shared.bundle.js`, `tools/version.js`) whenever staged changes touch source that affects the build: `tools/**/*.tsx`, `tools/<tool>/helpers.ts`, `tools/_core/**`, `tools/_shell/**`, or the `scripts/build-*.js` themselves. This catches sourcemap drift at commit time instead of at CI/merge time (a real issue: `_shell/*` content is inlined into every plot tool's `.js.map` via `sourcesContent`, so a `_shell/*` edit invalidates all nine maps).
 
 The hook installs automatically via `npm install` (`prepare` script runs `scripts/hooks/install.js`, which points `git config core.hooksPath` at `scripts/hooks/`). Bypass with `git commit --no-verify` if you genuinely need to commit without rebuilding.
 
