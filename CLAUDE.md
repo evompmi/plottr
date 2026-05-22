@@ -55,8 +55,12 @@ All of the following must pass before merging:
 1. `npm run lint` — ESLint
 2. `npm run format:check` — Prettier dry-run
 3. `npm run typecheck` — `tsc --noEmit`
-4. `npm test` — full deterministic suite (every `tests/*.test.js`)
-5. `npm run build` — esbuild compilation
+4. `npm run lint:boundaries` — `dependency-cruiser` enforcement of the
+   four-tier module rule (`docs/architecture.md` §3). Fails on any
+   `_core` → `_shell`/tools, `_shell` → tools/`_app`, or tool →
+   `_app` import, and on any circular import.
+5. `npm test` — full deterministic suite (every `tests/*.test.js`)
+6. `npm run build` — esbuild compilation
 
 Run them locally in this order before committing to catch issues early.
 
