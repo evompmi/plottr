@@ -133,9 +133,13 @@ download volcano, heatmap, or the stats kernel.
      lazy refs to each tool's `App` component.
 ```
 
-The rule is enforced by convention rather than by a tool, but the
-boundary is sharp enough that a violation usually fails typecheck or
-the per-tool test loader.
+The rule is enforced mechanically by `dependency-cruiser`
+(`.dependency-cruiser.cjs`) and gated in CI as the **Module layering**
+step (`npm run lint:boundaries`). Any upward-only-arrow violation —
+`_core/` importing from `_shell/`, `_shell/` reaching into a tool,
+or a tool reaching into `_app/` — fails the build, as does any
+circular import. The check covers the source graph under `tools/`;
+tests deliberately reach across layers and are excluded.
 
 ---
 

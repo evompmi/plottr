@@ -32,6 +32,16 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # Module-graph layering — fails CI if anything in tools/_core/
+      # imports from tools/_shell/ or a tool folder, if tools/_shell/
+      # imports from a tool folder or tools/_app/, or if a tool folder
+      # imports from tools/_app/. The four-tier rule from
+      # docs/architecture.md §3 is enforced mechanically by
+      # dependency-cruiser (.dependency-cruiser.cjs) rather than by
+      # convention.
+      - name: Module layering
+        run: npm run lint:boundaries
+
       # Vendored React / ReactDOM are SRI-pinned in every tools/*.html via
       # scripts/vendor-sri.js (security audit 02-05-2026, Tier B #4). This
       # step fails CI if a vendor/* update landed without re-running the

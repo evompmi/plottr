@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Module-layering CI gate** — the four-tier rule from
+  `docs/architecture.md` §3 (`_core` ← `_shell` ← `tools/<tool>` ← `_app`)
+  is now mechanically enforced by `dependency-cruiser`. New
+  `npm run lint:boundaries` script + CI step fails the build on any
+  upward-only-arrow violation or circular import. Replaces convention-only
+  enforcement; no source changes — the existing graph already complies.
+
 ## [1.6.1] - 2026-05-16
 
 > Long-form release notes — what shipped, why, and how — live in
