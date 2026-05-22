@@ -37,7 +37,7 @@ import { registerSvgExportMutator, unregisterSvgExportMutator } from "../_core/s
 // chart-layout split.
 export { DEFAULT_VBW, VBH, MARGIN } from "./chart-layout";
 
-const { forwardRef, useMemo, useEffect, useRef } = React;
+const { forwardRef, useMemo, useEffect, useRef, memo } = React;
 
 // Above this many visible points, the data layer rasterises to an
 // off-screen canvas + a single PNG `<image>` per chart instead of N
@@ -71,8 +71,8 @@ const POINT_RASTERIZE_MAX_DPR = 6;
 // `VolcanoChartProps` is the type-canonical home in helpers.ts; this
 // file imports it so chart-internal consumers (e.g. tests stubbing
 // chart props) and chart-external callers reach for the same type.
-export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
-  function VolcanoChart(props, ref) {
+export const VolcanoChart = memo(
+  forwardRef<SVGSVGElement, VolcanoChartProps>(function VolcanoChart(props, ref) {
     const {
       points,
       pFloor,
@@ -832,5 +832,5 @@ export const VolcanoChart = forwardRef<SVGSVGElement, VolcanoChartProps>(
         )}
       </svg>
     );
-  }
+  })
 );

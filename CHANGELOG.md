@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **All chart roots wrapped in `React.memo`.** `BoxplotChart`,
+  `ScatterChart`, `HeatmapChart`, `VolcanoChart`, `UpsetChart`,
+  `LineChart`, `VennChart`, and aequorin's `Chart` + `InsetBarplot`
+  now skip re-render when their (already-`useMemo`'d) props are
+  shallow-equal. Chart output is byte-identical — all 16 SVG
+  snapshot baselines unchanged.
 - **Scatter — `uniqueVals` numeric sort uses decorate-sort-undecorate.**
   `parseFloat` now runs once per value (2n) instead of twice per comparison
   (~2·n log n). Observable only on huge category sets; no behaviour change.
