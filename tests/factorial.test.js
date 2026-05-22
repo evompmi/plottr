@@ -11,6 +11,7 @@ const {
   summarizeDesign,
   validateDesign,
   FACTORIAL_ROLE_COLORS,
+  buildHandoffPayload,
 } = require("./helpers/factorial-loader");
 
 const test = harness.test;
@@ -140,4 +141,79 @@ test("colors are distinct (no two roles share the same hex)", () => {
     assert(!seen.has(c), `duplicate color for ${role}: ${c}`);
     seen.add(c);
   }
+});
+
+suite("factorial — buildHandoffPayload");
+
+const longRows3 = [
+  { a: "WT", b: "ctrl", v: 12.3 },
+  { a: "WT", b: "drug", v: 15.2 },
+  { a: "ko", b: "ctrl", v: 11.9 },
+  { a: "ko", b: "drug", v: 11.8 },
+];
+
+test("groupFactor='A': column order is (factorA, value, factorB)", () => {
+  const payload = buildHandoffPayload({
+    factorAName: "genotype",
+    factorBName: "treatment",
+    valueName: "growth",
+    longRows: longRows3,
+    fileStem: "plant",
+    groupFactor: "A",
+  });
+  const lines = payload.csv.split("\n");
+  eq(lines[0], "genotype,growth,treatment");
+  eq(lines[1], "WT,12.3,ctrl");
+  eq(lines[2], "WT,15.2,drug");
+  eq(lines[3], "ko,11.9,ctrl");
+  eq(lines[4], "ko,11.8,drug");
+});
+
+test("groupFactor='B' swaps factorA and factorB columns", () => {
+  const payload = buildHandoffPayload({
+    factorAName: "genotype",
+    factorBName: "treatment",
+    valueName: "growth",
+    longRows: longRows3,
+    fileStem: "plant",
+    groupFactor: "B",
+  });
+  const lines = payload.csv.split("\n");
+  eq(lines[0], "treatment,growth,genotype");
+  eq(lines[1], "ctrl,12.3,WT");
+  eq(lines[2], "drug,15.2,WT");
+});
+
+test("payload routes to boxplot with the correct contract fields", () => {
+  const payload = buildHandoffPayload({
+    factorAName: "genotype",
+    factorBName: "treatment",
+    valueName: "growth",
+    longRows: longRows3,
+    fileStem: "plant",
+    groupFactor: "A",
+  });
+  assert(payload.tool === "boxplot", `tool=${payload.tool}`);
+  assert(payload.mode === "long", `mode=${payload.mode}`);
+  assert(payload.source === "factorial", `source=${payload.source}`);
+  assert(payload.fileName === "plant_drilldown.csv", `fileName=${payload.fileName}`);
+  assert(payload.yLabel === "growth", `yLabel=${payload.yLabel}`);
+  eq(payload.colRoles, ["group", "value", "filter"]);
+});
+
+test("CSV-injection-shaped strings get quoted, never bare", () => {
+  const payload = buildHandoffPayload({
+    factorAName: "genotype, alias",
+    factorBName: "treatment",
+    valueName: 'value "raw"',
+    longRows: [{ a: 'has "quote"', b: "ctrl", v: 1.5 }],
+    fileStem: "x",
+    groupFactor: "A",
+  });
+  const lines = payload.csv.split("\n");
+  // Header: comma-containing name + quote-containing name both quoted, with
+  // doubled internal quotes.
+  eq(lines[0], '"genotype, alias","value ""raw""",treatment');
+  // Data row: quote-containing factor label is also escaped.
+  eq(lines[1], '"has ""quote""",1.5,ctrl');
 });

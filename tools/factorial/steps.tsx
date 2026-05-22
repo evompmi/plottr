@@ -16,7 +16,7 @@ import {
   validateDesign,
 } from "./helpers";
 import { Report } from "./report";
-import { DisplayTiles, DownloadTiles } from "./controls";
+import { DisplayTiles, DownloadTiles, HandoffTile } from "./controls";
 import { FACTORIAL_HOWTO } from "./howto";
 
 const { useMemo } = React;
@@ -393,6 +393,13 @@ export function ReportStep(props: ReportStepProps) {
           valueName={valueName}
           rows={longRows}
           result={result}
+        />
+        <HandoffTile
+          factorAName={factorAName}
+          factorBName={factorBName}
+          valueName={valueName}
+          longRows={longRows}
+          fileStem={fileStem}
         />
       </PlotSidebar>
       <div style={{ flex: 1, minWidth: 0 }}>

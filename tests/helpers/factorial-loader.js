@@ -12,12 +12,14 @@ const { builtins, bundleShell, runCjs, readCoreSharedSource } = require("./_shel
 const sharedSrc = readCoreSharedSource();
 const statsSrc = readStatsSource();
 const helpersCjs = bundleShell("factorial/helpers.ts");
+const handoffCjs = bundleShell("factorial/handoff.ts");
 
 const ctx = builtins();
 vm.createContext(ctx);
 vm.runInContext(sharedSrc, ctx);
 vm.runInContext(statsSrc, ctx);
 const helpers = runCjs(ctx, helpersCjs);
+const handoff = runCjs(ctx, handoffCjs);
 
 module.exports = {
   // Kernel — surfaced for parse-pipeline property tests.
@@ -33,4 +35,6 @@ module.exports = {
   summarizeDesign: helpers.summarizeDesign,
   validateDesign: helpers.validateDesign,
   FACTORIAL_ROLE_COLORS: helpers.FACTORIAL_ROLE_COLORS,
+  // Handoff builder.
+  buildHandoffPayload: handoff.buildHandoffPayload,
 };

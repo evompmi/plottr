@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tools/CLAUDE.md`. Sidebar PrefsPanel attaches via the new
   `PlotToolShell.showPrefsOnStep` prop. Registry slot wired through the
   Statistics & Calculators landing tile group.
+- **Factorial → Group Plot drill-down handoff.** A new sidebar tile in
+  the Factorial Report step ships the long-format dataset to Group Plot
+  for per-cell post-hoc comparisons. Default role mapping is
+  `factorA → group`, `factorB → filter`, with a one-click "Swap" before
+  confirming. Group Plot's handoff consumer now honours pre-assigned
+  `colRoles` (defensive validation against unknown / future role names).
 - **`twoWayANOVA` kernel** (`tools/_core/stats/tests.ts`) — Type II sums of
   squares via nested-model OLS, matching `car::Anova(model, type = 2)`.
   Returns per-term `{ df1, df2, SS, MS, F, p, etaSqP }` for factor A,

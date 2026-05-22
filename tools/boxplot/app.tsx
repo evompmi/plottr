@@ -417,6 +417,13 @@ export function App() {
       // E.g. aequorin sends "A.U.C." instead of letting the boxplot
       // read its CSV column header "Raw Sum" / "Corrected Sum".
       yLabel?: string;
+      // Optional pre-assigned column roles. When present, override
+      // `doParse`'s `guessColumnType` auto-pick on a column-by-column
+      // basis. Used by the Factorial Analysis tool's drill-down
+      // handoff: factor A → group, factor B → filter, value → value
+      // (the user has implicitly confirmed those roles by clicking
+      // "Open in Group Plot" in the factorial Report step).
+      colRoles?: string[];
     }
     const apply = (payload: HandoffPayload | null | undefined) => {
       if (!payload || !payload.csv) return;
@@ -437,6 +444,19 @@ export function App() {
       // override doesn't lock anything.
       if (typeof payload.yLabel === "string" && payload.yLabel.trim() !== "") {
         updVis({ yLabel: payload.yLabel.trim() });
+      }
+      // colRoles override — applied after doParse so the auto-assigned
+      // roles get replaced wholesale. Defensive validation: each entry
+      // must be one of the four ColumnRole strings; anything else
+      // (typo, future-version mismatch) falls through to keep doParse's
+      // auto-pick rather than corrupting the configure-step UI.
+      if (Array.isArray(payload.colRoles)) {
+        const validRoles: ColumnRole[] = ["group", "value", "filter", "ignore"];
+        const isValid = (r: unknown): r is ColumnRole =>
+          typeof r === "string" && (validRoles as string[]).indexOf(r) !== -1;
+        if (payload.colRoles.every(isValid)) {
+          setColRoles(payload.colRoles as ColumnRole[]);
+        }
       }
       setStep("plot");
     };
