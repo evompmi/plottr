@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   upward-only-arrow violation or circular import. Replaces convention-only
   enforcement; no source changes — the existing graph already complies.
 
+### Changed
+
+- **Scatter — `uniqueVals` numeric sort uses decorate-sort-undecorate.**
+  `parseFloat` now runs once per value (2n) instead of twice per comparison
+  (~2·n log n). Observable only on huge category sets; no behaviour change.
+
 ## [1.6.1] - 2026-05-16
 
 > Long-form release notes — what shipped, why, and how — live in

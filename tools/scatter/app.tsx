@@ -430,7 +430,9 @@ export function App() {
   const colorMapType = useMemo(() => detectColType(colorMapCol), [colorMapCol, detectColType]);
   const sizeMapType = useMemo(() => detectColType(sizeMapCol), [sizeMapCol, detectColType]);
 
-  // Unique values (sorted)
+  // Unique values (sorted). Numeric sort uses decorate-sort-undecorate so
+  // each value is parsed once (2n) instead of twice per comparison
+  // (~2·n log n).
   const uniqueVals = useCallback(
     (colIdx: number | null): string[] => {
       if (colIdx == null || !parsed) return [];
@@ -438,9 +440,10 @@ export function App() {
         ...new Set(parsed.rawData.map((r) => r[colIdx]).filter((v) => v != null && v !== "")),
       ] as string[];
       const allNum = vals.every((v) => isNumericValue(v));
-      return allNum
-        ? vals.sort((a, b) => parseFloat(a.replace(",", ".")) - parseFloat(b.replace(",", ".")))
-        : vals.sort();
+      if (!allNum) return vals.sort();
+      const decorated: [string, number][] = vals.map((v) => [v, parseFloat(v.replace(",", "."))]);
+      decorated.sort((a, b) => a[1] - b[1]);
+      return decorated.map((d) => d[0]);
     },
     [parsed]
   );
