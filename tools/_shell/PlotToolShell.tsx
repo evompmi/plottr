@@ -26,6 +26,11 @@ interface PlotToolShellProps<TVis extends object> {
   // import check with ≤ 3 sets but becomes a real configure flow with ≥ 4).
   // Keys = step identifiers (unchanged); values = human-readable labels.
   stepLabels?: Record<string, string>;
+  // Step name on which the PrefsPanel appears in the header's right slot.
+  // Defaults to "plot" — every plot tool puts its visual prefs there. The
+  // Factorial Analysis tool overrides to "report" because its analysis
+  // step isn't named "plot" (no chart).
+  showPrefsOnStep?: string;
   children: React.ReactNode;
 }
 
@@ -63,8 +68,10 @@ export function PlotToolShell<TVis extends object>({
   steps,
   canNavigate,
   stepLabels,
+  showPrefsOnStep,
   children,
 }: PlotToolShellProps<TVis>) {
+  const prefsStep = showPrefsOnStep ?? "plot";
   return (
     <div style={{ padding: "24px 32px", maxWidth: 1400 }}>
       <PageHeader
@@ -80,7 +87,7 @@ export function PlotToolShell<TVis extends object>({
           />
         }
         right={
-          state.step === "plot" ? (
+          state.step === prefsStep ? (
             <PrefsPanel tool={toolName} vis={state.vis} visInit={visInit} updVis={state.updVis} />
           ) : null
         }

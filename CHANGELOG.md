@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Factorial Analysis tool** (`tools/factorial/`) — new stats-only tool for
+  two-factor (A × B) ANOVA with Type II sums of squares. Long-format CSV
+  in, formatted ANOVA table (F, p, η²_p per term, interaction hint when
+  significant, per-cell Shapiro / Levene diagnostics, cell-means table)
+  out. Downloads as CSV / R script (`car::Anova(type=2)` cross-check) /
+  TXT. No chart — first stats-only tool, documented layout exception in
+  `tools/CLAUDE.md`. Sidebar PrefsPanel attaches via the new
+  `PlotToolShell.showPrefsOnStep` prop. Registry slot wired through the
+  Statistics & Calculators landing tile group.
 - **`twoWayANOVA` kernel** (`tools/_core/stats/tests.ts`) — Type II sums of
   squares via nested-model OLS, matching `car::Anova(model, type = 2)`.
   Returns per-term `{ df1, df2, SS, MS, F, p, etaSqP }` for factor A,

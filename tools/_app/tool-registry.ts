@@ -131,6 +131,13 @@ export const TOOL_REGISTRY: ToolEntry[] = [
       '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="8" y1="10" x2="18" y2="10"/><line x1="13" y1="5" x2="13" y2="15"/><line x1="26" y1="10" x2="36" y2="10"/><line x1="8" y1="30" x2="18" y2="30"/><circle cx="13" cy="25" r="1.5" fill="currentColor" stroke="none"/><circle cx="13" cy="35" r="1.5" fill="currentColor" stroke="none"/><line x1="28" y1="27" x2="34" y2="33"/><line x1="34" y1="27" x2="28" y2="33"/></svg>',
     Component: lazyApp(() => import("../molarity-app")),
   },
+  {
+    key: "factorial",
+    label: "Factorial Analysis",
+    iconSvg:
+      '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="14" height="14" rx="2"/><rect x="24" y="6" width="14" height="14" rx="2"/><rect x="6" y="24" width="14" height="14" rx="2"/><rect x="24" y="24" width="14" height="14" rx="2"/><line x1="22" y1="13" x2="22" y2="31"/><line x1="13" y1="22" x2="31" y2="22"/></svg>',
+    Component: lazyApp(() => import("../factorial/app")),
+  },
 ];
 
 // Lookup helper used by the router. Returns the entry whose key
