@@ -45,6 +45,7 @@ const {
   hclust,
   dendrogramLayout,
   kmeans,
+  twoWayANOVA,
 } = require("./helpers/stats-loader");
 
 const RUNS = 300;
@@ -1402,4 +1403,167 @@ test("singleton tree (n = 1) → no segments, maxHeight 0", () => {
   const r = dendrogramLayout(t);
   if (r.segments.length !== 0) throw new Error("segments not empty");
   if (r.maxHeight !== 0) throw new Error("maxHeight not 0");
+});
+
+// ── twoWayANOVA — invariants ──────────────────────────────────────────────
+//
+// The point checks in stats.test.js pin SS / F / df on a few hand-computed
+// designs. The properties below pin invariants the point checks can't see:
+// orthogonality of balanced decompositions, label-permutation invariance,
+// translation/scaling response of F and p.
+
+suite("stats property — twoWayANOVA");
+
+// Generate a balanced k_A × k_B design where every cell has exactly `n`
+// observations. Returns a triple { values, factorA, factorB }.
+function arbBalancedDesign(kAMin = 2, kAMax = 3, kBMin = 2, kBMax = 3, nMin = 2, nMax = 4) {
+  return fc
+    .record({
+      kA: fc.integer({ min: kAMin, max: kAMax }),
+      kB: fc.integer({ min: kBMin, max: kBMax }),
+      n: fc.integer({ min: nMin, max: nMax }),
+      seed: fc.integer({ min: 1, max: 1000 }),
+    })
+    .map(({ kA, kB, n, seed }) => {
+      // Deterministic pseudo-random per (kA, kB, n, seed) — every cell gets
+      // distinct values so the design is non-degenerate by construction.
+      let s = seed;
+      const next = () => {
+        s = (s * 1103515245 + 12345) & 0x7fffffff;
+        return (s % 1000) / 100; // 0.00 .. 9.99
+      };
+      const values = [];
+      const factorA = [];
+      const factorB = [];
+      for (let a = 0; a < kA; a++) {
+        for (let b = 0; b < kB; b++) {
+          for (let r = 0; r < n; r++) {
+            values.push(next() + a * 3 + b * 2);
+            factorA.push("a" + a);
+            factorB.push("b" + b);
+          }
+        }
+      }
+      return { values, factorA, factorB };
+    });
+}
+
+test("balanced designs: SS_A + SS_B + SS_AB + SS_resid ≈ SS_total", () => {
+  check(
+    fc.property(arbBalancedDesign(), ({ values, factorA, factorB }) => {
+      const r = twoWayANOVA(values, factorA, factorB);
+      if (r.error) return false;
+      const sum = r.termA.SS + r.termB.SS + r.termAB.SS + r.residual.SS;
+      const tol = Math.max(1, r.total.SS) * 1e-9;
+      return Math.abs(sum - r.total.SS) <= tol;
+    })
+  );
+});
+
+test("balanced designs: balanced=true detected; df bookkeeping correct", () => {
+  check(
+    fc.property(arbBalancedDesign(), ({ values, factorA, factorB }) => {
+      const r = twoWayANOVA(values, factorA, factorB);
+      if (r.error) return false;
+      const kA = r.levelsA.length;
+      const kB = r.levelsB.length;
+      if (!r.balanced) return false;
+      if (r.termA.df1 !== kA - 1) return false;
+      if (r.termB.df1 !== kB - 1) return false;
+      if (r.termAB.df1 !== (kA - 1) * (kB - 1)) return false;
+      if (r.residual.df !== r.N - kA * kB) return false;
+      if (r.total.df !== r.N - 1) return false;
+      return true;
+    })
+  );
+});
+
+test("translation invariance: adding c to every y leaves F unchanged", () => {
+  check(
+    fc.property(
+      arbBalancedDesign(),
+      fc.double({ min: -100, max: 100, noNaN: true, noDefaultInfinity: true }),
+      ({ values, factorA, factorB }, c) => {
+        const r0 = twoWayANOVA(values, factorA, factorB);
+        const r1 = twoWayANOVA(
+          values.map((v) => v + c),
+          factorA,
+          factorB
+        );
+        if (r0.error || r1.error) return false;
+        const close = (a, b) => {
+          if (!Number.isFinite(a) || !Number.isFinite(b)) return a === b || (isNaN(a) && isNaN(b));
+          return Math.abs(a - b) <= Math.max(1, Math.abs(a)) * 1e-8;
+        };
+        return (
+          close(r0.termA.F, r1.termA.F) &&
+          close(r0.termB.F, r1.termB.F) &&
+          close(r0.termAB.F, r1.termAB.F)
+        );
+      }
+    )
+  );
+});
+
+test("scale invariance: multiplying every y by c ≠ 0 leaves F unchanged", () => {
+  check(
+    fc.property(
+      arbBalancedDesign(),
+      fc.double({ min: 0.5, max: 10, noNaN: true, noDefaultInfinity: true }),
+      ({ values, factorA, factorB }, c) => {
+        const r0 = twoWayANOVA(values, factorA, factorB);
+        const r1 = twoWayANOVA(
+          values.map((v) => v * c),
+          factorA,
+          factorB
+        );
+        if (r0.error || r1.error) return false;
+        const close = (a, b) => {
+          if (!Number.isFinite(a) || !Number.isFinite(b)) return a === b || (isNaN(a) && isNaN(b));
+          return Math.abs(a - b) <= Math.max(1, Math.abs(a)) * 1e-7;
+        };
+        return (
+          close(r0.termA.F, r1.termA.F) &&
+          close(r0.termB.F, r1.termB.F) &&
+          close(r0.termAB.F, r1.termAB.F)
+        );
+      }
+    )
+  );
+});
+
+test("label-permutation invariance: renaming levels leaves F unchanged", () => {
+  check(
+    fc.property(arbBalancedDesign(), ({ values, factorA, factorB }) => {
+      const r0 = twoWayANOVA(values, factorA, factorB);
+      // Rename a0 → z9, a1 → z8, … so the sorted level order flips.
+      const renameA = factorA.map((l) => "z" + (9 - parseInt(l.slice(1), 10)));
+      const renameB = factorB.map((l) => "y" + (9 - parseInt(l.slice(1), 10)));
+      const r1 = twoWayANOVA(values, renameA, renameB);
+      if (r0.error || r1.error) return false;
+      const close = (a, b) => Math.abs(a - b) <= Math.max(1, Math.abs(a)) * 1e-10;
+      return (
+        close(r0.termA.F, r1.termA.F) &&
+        close(r0.termB.F, r1.termB.F) &&
+        close(r0.termAB.F, r1.termAB.F) &&
+        close(r0.total.SS, r1.total.SS)
+      );
+    })
+  );
+});
+
+test("factor-swap exchanges termA and termB; termAB unchanged", () => {
+  check(
+    fc.property(arbBalancedDesign(), ({ values, factorA, factorB }) => {
+      const r0 = twoWayANOVA(values, factorA, factorB);
+      const r1 = twoWayANOVA(values, factorB, factorA);
+      if (r0.error || r1.error) return false;
+      const close = (a, b) => Math.abs(a - b) <= Math.max(1, Math.abs(a)) * 1e-10;
+      return (
+        close(r0.termA.F, r1.termB.F) &&
+        close(r0.termB.F, r1.termA.F) &&
+        close(r0.termAB.F, r1.termAB.F)
+      );
+    })
+  );
 });

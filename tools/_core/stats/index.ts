@@ -10,6 +10,7 @@
 export * from "./types";
 export * from "./format";
 export * from "./dist";
+export * from "./regression";
 export * from "./tests";
 export * from "./posthoc";
 export * from "./cluster";

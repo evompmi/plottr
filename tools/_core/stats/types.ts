@@ -242,6 +242,40 @@ export interface KMeansResult {
   order: number[];
 }
 
+// ── Two-way (factorial) ANOVA ────────────────────────────────────────────────
+
+export interface TwoWayANOVATerm {
+  df1: number; // numerator df (term)
+  df2: number; // denominator df (= residual df, repeated for the consumer's convenience)
+  SS: number;
+  MS: number;
+  F: number;
+  p: number;
+  etaSqP: number; // partial η² = SS_term / (SS_term + SS_resid)
+}
+
+export interface TwoWayANOVACell {
+  levelA: string;
+  levelB: string;
+  n: number;
+  mean: number;
+  sd: number;
+}
+
+export interface TwoWayANOVAResult extends SampleErr {
+  termA: TwoWayANOVATerm;
+  termB: TwoWayANOVATerm;
+  termAB: TwoWayANOVATerm;
+  residual: { df: number; SS: number; MS: number };
+  total: { df: number; SS: number };
+  cells: TwoWayANOVACell[];
+  levelsA: string[];
+  levelsB: string[];
+  balanced: boolean;
+  emptyCells: number;
+  N: number;
+}
+
 export type DistanceMetric = "euclidean" | "manhattan" | "correlation";
 // "average" (UPGMA), "complete", "single" are computed exactly. Any other
 // value — historically "ward" from the heatmap UI — falls through to UPGMA

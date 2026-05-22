@@ -14,6 +14,7 @@
 
 import { bisect, chi2cdf, fcdf_upper, gammaln, nctcdf, norminv, normsf, tcdf_upper } from "./dist";
 import { formatP } from "./format";
+import { ols } from "./regression";
 import type {
   ANOVAResult,
   KendallResult,
@@ -26,6 +27,9 @@ import type {
   ShapiroWilkResult,
   SpearmanResult,
   TTestResult,
+  TwoWayANOVACell,
+  TwoWayANOVAResult,
+  TwoWayANOVATerm,
 } from "./types";
 
 // ── 3. Sample helpers ───────────────────────────────────────────────────────
@@ -463,6 +467,256 @@ export function welchANOVA(groups: number[][]): ANOVAResult {
   const df2 = (k * k - 1) / (3 * h);
   const p = fcdf_upper(F, df1, df2);
   return { F, df1, df2, p };
+}
+
+// ── 8b. Two-way (factorial) ANOVA ───────────────────────────────────────────
+//
+// Type II sums of squares via nested-model OLS — matches R's
+// `car::Anova(model, type = 2)`. Each term's SS is the drop in residual
+// SS when adding it to a model that already contains the OTHER main
+// effect (but not the interaction). For balanced designs Type II equals
+// Type I; for unbalanced data it doesn't depend on contrast coding for
+// the main effects, which is the property biologists usually want.
+//
+// Diagnostics (Shapiro per cell, Levene across cells) are NOT computed
+// here — they're consumed alongside this result by the Factorial
+// Analysis tool's stats panel; consumers can call `shapiroWilk` per cell
+// and `leveneTest` over the cell list directly. Keeping them out of this
+// kernel keeps the function single-purpose and the result shape stable.
+//
+// Caps at k = 2 factors by construction; the Plöttr UI hard-caps at 2
+// per the methodology decision in `tools/factorial/howto.tsx` (a 3+ way
+// factorial design would need a separate kernel).
+
+const _errTwoWay = (msg: string): TwoWayANOVAResult => {
+  const nan: TwoWayANOVATerm = { df1: 0, df2: 0, SS: NaN, MS: NaN, F: NaN, p: NaN, etaSqP: NaN };
+  return {
+    termA: nan,
+    termB: nan,
+    termAB: nan,
+    residual: { df: 0, SS: NaN, MS: NaN },
+    total: { df: 0, SS: NaN },
+    cells: [],
+    levelsA: [],
+    levelsB: [],
+    balanced: false,
+    emptyCells: 0,
+    N: 0,
+    error: msg,
+  };
+};
+
+// Build a dummy-coded design matrix for one of the four nested models.
+// `kind` picks which terms appear: "full" = intercept + A + B + A:B,
+// "additive" = intercept + A + B, "A" = intercept + A, "B" = intercept + B.
+// Dummy coding uses the first level (alphabetical) as the reference for
+// each factor; Type II SS values don't depend on the choice of reference.
+function _twoWayDesign(
+  factorA: string[],
+  factorB: string[],
+  levelsA: string[],
+  levelsB: string[],
+  kind: "full" | "additive" | "A" | "B"
+): number[][] {
+  const kA = levelsA.length;
+  const kB = levelsB.length;
+  const wantA = kind !== "B";
+  const wantB = kind !== "A";
+  const wantAB = kind === "full";
+  // Pre-build a lookup so we don't string-compare per row inside the loop.
+  const idxA = new Map<string, number>();
+  const idxB = new Map<string, number>();
+  for (let i = 0; i < kA; i++) idxA.set(levelsA[i], i);
+  for (let i = 0; i < kB; i++) idxB.set(levelsB[i], i);
+
+  const n = factorA.length;
+  const X: number[][] = [];
+  for (let r = 0; r < n; r++) {
+    const ai = idxA.get(factorA[r])!;
+    const bi = idxB.get(factorB[r])!;
+    const row: number[] = [1]; // intercept
+    if (wantA) {
+      for (let i = 1; i < kA; i++) row.push(ai === i ? 1 : 0);
+    }
+    if (wantB) {
+      for (let i = 1; i < kB; i++) row.push(bi === i ? 1 : 0);
+    }
+    if (wantAB) {
+      for (let i = 1; i < kA; i++) {
+        for (let j = 1; j < kB; j++) {
+          row.push(ai === i && bi === j ? 1 : 0);
+        }
+      }
+    }
+    X.push(row);
+  }
+  return X;
+}
+
+export function twoWayANOVA(
+  values: number[],
+  factorA: string[],
+  factorB: string[]
+): TwoWayANOVAResult {
+  // 1. Length-match check.
+  const N = values.length;
+  if (factorA.length !== N || factorB.length !== N) {
+    return _errTwoWay("values, factorA, factorB must have equal length");
+  }
+  if (N < 4) {
+    return _errTwoWay("Need ≥4 observations for a 2-factor design");
+  }
+  // Reject non-finite y; factor labels are strings, no parsing.
+  for (let i = 0; i < N; i++) {
+    if (!Number.isFinite(values[i])) return _errTwoWay("values contains non-finite entries");
+  }
+
+  // 2. Unique level lists (sorted for stable test output + deterministic
+  //    dummy-coding reference category).
+  const sortedUnique = (xs: string[]): string[] => Array.from(new Set(xs)).sort();
+  const levelsA = sortedUnique(factorA);
+  const levelsB = sortedUnique(factorB);
+  if (levelsA.length < 2) return _errTwoWay("factorA needs ≥2 levels");
+  if (levelsB.length < 2) return _errTwoWay("factorB needs ≥2 levels");
+
+  // 3. Bin into cells and compute per-cell descriptive stats.
+  const cellKey = (a: string, b: string): string => a + " " + b;
+  const cellMap = new Map<string, number[]>();
+  for (let i = 0; i < N; i++) {
+    const k = cellKey(factorA[i], factorB[i]);
+    let arr = cellMap.get(k);
+    if (!arr) {
+      arr = [];
+      cellMap.set(k, arr);
+    }
+    arr.push(values[i]);
+  }
+
+  let emptyCells = 0;
+  const cells: TwoWayANOVACell[] = [];
+  for (const a of levelsA) {
+    for (const b of levelsB) {
+      const arr = cellMap.get(cellKey(a, b));
+      if (!arr || arr.length === 0) {
+        emptyCells += 1;
+        cells.push({ levelA: a, levelB: b, n: 0, mean: NaN, sd: NaN });
+      } else {
+        cells.push({
+          levelA: a,
+          levelB: b,
+          n: arr.length,
+          mean: sampleMean(arr),
+          sd: sampleSD(arr),
+        });
+      }
+    }
+  }
+  if (emptyCells > 0) {
+    const partial = _errTwoWay(
+      `Design has ${emptyCells} empty cell${emptyCells === 1 ? "" : "s"} — interaction non-estimable`
+    );
+    partial.cells = cells;
+    partial.levelsA = levelsA;
+    partial.levelsB = levelsB;
+    partial.N = N;
+    partial.emptyCells = emptyCells;
+    return partial;
+  }
+
+  // 4. Balanced detection. Per the Type II SS contract this doesn't change
+  //    the math (works either way) — it's surfaced so the UI can label
+  //    "Balanced k_A × k_B design" vs. "Unbalanced (Type II SS)".
+  const cellNs = cells.map((c) => c.n);
+  const balanced = cellNs.every((n) => n === cellNs[0]);
+
+  // 5. SS_total around the grand mean — used both for sanity checks and
+  //    for the returned `total` block.
+  let grandSum = 0;
+  for (const v of values) grandSum += v;
+  const grandMean = grandSum / N;
+  let ssTotal = 0;
+  for (const v of values) {
+    const d = v - grandMean;
+    ssTotal += d * d;
+  }
+
+  // 6. Fit the four nested OLS models. The full model uses k_A × k_B free
+  //    cell-mean parameters → residual df = N − k_A·k_B.
+  const X_full = _twoWayDesign(factorA, factorB, levelsA, levelsB, "full");
+  const X_AB = _twoWayDesign(factorA, factorB, levelsA, levelsB, "additive");
+  const X_A = _twoWayDesign(factorA, factorB, levelsA, levelsB, "A");
+  const X_B = _twoWayDesign(factorA, factorB, levelsA, levelsB, "B");
+
+  const olsFull = ols(X_full, values);
+  const olsAB = ols(X_AB, values);
+  const olsA = ols(X_A, values);
+  const olsB = ols(X_B, values);
+
+  if (olsFull.error || olsAB.error || olsA.error || olsB.error) {
+    return _errTwoWay(
+      olsFull.error || olsAB.error || olsA.error || olsB.error || "OLS fit failed on a nested model"
+    );
+  }
+  const dfResid = olsFull.df;
+  if (dfResid <= 0) {
+    return _errTwoWay("Not enough observations for the full A × B model (residual df ≤ 0)");
+  }
+
+  // 7. Type II SS via nested-model RSS differences.
+  //    SS_A   = RSS(B)        − RSS(A + B)
+  //    SS_B   = RSS(A)        − RSS(A + B)
+  //    SS_AB  = RSS(A + B)    − RSS(A + B + A:B)
+  //    SS_res = RSS(A + B + A:B)
+  //
+  //    Floating-point arithmetic can drive a sufficiently-small SS slightly
+  //    negative when the "true" value is zero (additive design with no
+  //    interaction). Clamp to 0 below the SS_total · machine-epsilon scale
+  //    so consumers don't see "SS = −2.1e-15" / "F = negative".
+  const eps = Math.max(1, ssTotal) * 1e-10;
+  const clamp = (x: number): number => (x < eps ? 0 : x);
+  const ssA = clamp(olsB.rss - olsAB.rss);
+  const ssB = clamp(olsA.rss - olsAB.rss);
+  const ssAB = clamp(olsAB.rss - olsFull.rss);
+  const ssResid = olsFull.rss;
+
+  const dfA = levelsA.length - 1;
+  const dfB = levelsB.length - 1;
+  const dfAB = dfA * dfB;
+  const dfTotal = N - 1;
+
+  const msResid = ssResid / dfResid;
+  // When the full model fits exactly (all within-cell values identical) the
+  // F-ratios are undefined; surface NaN F + p so the consumer renders a
+  // "perfect fit" notice rather than misleading numbers.
+  const computeTerm = (ss: number, df: number): TwoWayANOVATerm => {
+    if (df < 1) return { df1: df, df2: dfResid, SS: ss, MS: NaN, F: NaN, p: NaN, etaSqP: NaN };
+    const ms = ss / df;
+    let F: number;
+    let p: number;
+    if (msResid > 0) {
+      F = ms / msResid;
+      p = fcdf_upper(F, df, dfResid);
+    } else {
+      F = ss === 0 ? 0 : NaN;
+      p = NaN;
+    }
+    const etaSqP = ss + ssResid === 0 ? NaN : ss / (ss + ssResid);
+    return { df1: df, df2: dfResid, SS: ss, MS: ms, F, p, etaSqP };
+  };
+
+  return {
+    termA: computeTerm(ssA, dfA),
+    termB: computeTerm(ssB, dfB),
+    termAB: computeTerm(ssAB, dfAB),
+    residual: { df: dfResid, SS: ssResid, MS: msResid },
+    total: { df: dfTotal, SS: ssTotal },
+    cells,
+    levelsA,
+    levelsB,
+    balanced,
+    emptyCells: 0,
+    N,
+  };
 }
 
 export function kruskalWallis(groups: number[][]): KruskalWallisResult {

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`twoWayANOVA` kernel** (`tools/_core/stats/tests.ts`) — Type II sums of
+  squares via nested-model OLS, matching `car::Anova(model, type = 2)`.
+  Returns per-term `{ df1, df2, SS, MS, F, p, etaSqP }` for factor A,
+  factor B, and the A × B interaction, plus cell means/SDs, balanced flag,
+  and empty-cell count. UI consumer (a dedicated Factorial Analysis tool)
+  ships in a later slice — this commit is kernel-only. 24 new tests
+  (point checks against hand-computed designs + property invariants).
+- **OLS regression primitives** in a new `tools/_core/stats/regression.ts`
+  module: `solveLinearSystem` (Gaussian elimination with partial pivoting)
+  and `ols(X, y)` (normal-equations fit returning β + RSS + df). Sized for
+  ANOVA design matrices (≤ ~20 cols); positioned as the home for future
+  multiple-regression / ANCOVA work.
 - **Module-layering CI gate** — the four-tier rule from
   `docs/architecture.md` §3 (`_core` ← `_shell` ← `tools/<tool>` ← `_app`)
   is now mechanically enforced by `dependency-cruiser`. New
