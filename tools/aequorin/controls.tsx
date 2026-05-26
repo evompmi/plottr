@@ -300,6 +300,15 @@ export function PlotControls({
           step={0.05}
           onChange={(v) => updVis({ ribbonOpacity: v })}
         />
+        <SliderControl
+          label="Plot height"
+          value={vis.plotHeight}
+          displayValue={`${(vis.plotHeight / 800).toFixed(2)} : 1`}
+          min={250}
+          max={800}
+          step={10}
+          onChange={(v) => updVis({ plotHeight: v })}
+        />
       </ControlSection>
 
       {/* Barplot controls */}

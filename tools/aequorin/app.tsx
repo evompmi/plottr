@@ -48,6 +48,10 @@ const VIS_INIT_AEQUORIN = {
   lineWidth: 2,
   ribbonOpacity: 0.3,
   gridColor: "#e0e0e0",
+  // Chart height in SVG viewBox units. Width stays at 800; sliding this
+  // changes the chart's aspect ratio (420 ≈ 1.9:1 default, 800 ≈ square).
+  // Facets scale proportionally — facetVbH = 260 * plotHeight / 420.
+  plotHeight: 420,
   timeStep: 1,
   baseUnit: "s",
   displayUnit: "s",
@@ -1968,6 +1972,7 @@ export function App() {
                 lineWidth={vis.lineWidth}
                 ribbonOpacity={vis.ribbonOpacity}
                 gridColor={vis.gridColor}
+                plotHeight={vis.plotHeight}
                 timeStep={vis.timeStep}
                 baseUnit={vis.baseUnit}
                 displayUnit={vis.displayUnit}

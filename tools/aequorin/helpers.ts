@@ -419,6 +419,7 @@ export interface AequorinVis {
   lineWidth: number;
   ribbonOpacity: number;
   gridColor: string;
+  plotHeight: number;
   timeStep: number;
   baseUnit: string;
   displayUnit: string;
@@ -747,6 +748,7 @@ export interface PlotPanelProps {
   lineWidth: number;
   ribbonOpacity: number;
   gridColor: string;
+  plotHeight: number;
   timeStep: number;
   baseUnit: string;
   displayUnit: string;
