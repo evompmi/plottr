@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Aequorin — "Plot height" slider** under the Style sidebar tile.
+  Adjusts the curve plot's aspect ratio (250–800 px height against a
+  fixed 800 px width, default 420 ≈ 1.9 : 1) so users can drop a more
+  square chart into multi-panel figures. The faceted view scales
+  proportionally — facet height = `260 · plotHeight / 420` — so the
+  whole grid follows the same ratio.
 - **Module-layering CI gate** — the four-tier rule from
   `docs/architecture.md` §3 (`_core` ← `_shell` ← `tools/<tool>` ← `_app`)
   is now mechanically enforced by `dependency-cruiser`. New

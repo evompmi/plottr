@@ -47,6 +47,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
     lineWidth,
     ribbonOpacity,
     gridColor,
+    plotHeight,
     timeStep,
     baseUnit,
     displayUnit,
@@ -635,7 +636,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                 yMin,
                 yMax,
                 vbW: 400,
-                vbH: 260,
+                vbH: Math.max(80, Math.round((260 * plotHeight) / 420)),
                 xLabel: xLabelText,
                 yLabel: formula === "none" ? "RLU (raw)" : "[Ca²⁺] (µM)",
                 plotBg,
@@ -674,7 +675,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
             yMin={yMin}
             yMax={yMax}
             vbW={800}
-            vbH={420}
+            vbH={plotHeight}
             xLabel={xLabelText}
             yLabel={formula === "none" ? "RLU (raw)" : "[Ca²⁺] (µM)"}
             plotBg={plotBg}
