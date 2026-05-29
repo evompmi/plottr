@@ -585,6 +585,15 @@ test("one-tailed > two-tailed for same params", () => {
   assert(p1 > p2, "one-tailed should have more power than two-tailed");
 });
 
+test("one-tailed power uses |d| — negative d matches positive (not ~0)", () => {
+  // Regression: a one-tailed call once used the signed effect, so a negative d
+  // returned ~0 power. Power is the power to detect an effect of this magnitude.
+  const pos = TESTS["t-ind"].power(0.8, 20, 0.05, 1);
+  const neg = TESTS["t-ind"].power(-0.8, 20, 0.05, 1);
+  assert(neg === pos, `negative d should equal positive: ${neg} vs ${pos}`);
+  assert(neg > 0.5, `negative d one-tailed power should be substantial, got ${neg}`);
+});
+
 // ════════════════════════════════════════════════════════════════════════════
 // SECTION 4: POWER — PAIRED T-TEST
 // R: pwr.t.test(d, n, sig.level, type="paired", alternative=...)
@@ -796,6 +805,14 @@ test("one-tailed > two-tailed (correlation)", () => {
   const p1 = TESTS["correlation"].power(0.3, 50, 0.05, 1);
   const p2 = TESTS["correlation"].power(0.3, 50, 0.05, 2);
   assert(p1 > p2, "one-tailed should have more power");
+});
+
+test("one-tailed power uses |r| — negative r matches positive (not ~0)", () => {
+  // Regression: signed r once gave ~0 one-tailed power for a negative correlation.
+  const pos = TESTS["correlation"].power(0.5, 22, 0.05, 1);
+  const neg = TESTS["correlation"].power(-0.5, 22, 0.05, 1);
+  assert(neg === pos, `negative r should equal positive: ${neg} vs ${pos}`);
+  assert(neg > 0.5, `negative r one-tailed power should be substantial, got ${neg}`);
 });
 
 // ════════════════════════════════════════════════════════════════════════════
