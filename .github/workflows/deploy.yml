@@ -1,7 +1,15 @@
 name: Build & Deploy to GitHub Pages
 
 on:
-  push:
+  # Deploy only after the Tests workflow completes successfully on a push to
+  # main/master, so a commit that fails lint / format / typecheck / boundaries /
+  # SRI / the full test suite / the compiled-sources-in-sync check / e2e never
+  # reaches Pages. Previously this workflow triggered on `push` independently of
+  # Tests, so the two raced — a push that broke a gate still deployed because
+  # deploy only needed `npm run build` to exit 0.
+  workflow_run:
+    workflows: ["Tests"]
+    types: [completed]
     branches: [main, master]
   workflow_dispatch:
 
@@ -15,11 +23,18 @@ env:
 
 jobs:
   build-and-deploy:
+    # workflow_run fires on both success and failure — gate on success.
+    # A manual workflow_dispatch run has no workflow_run payload, so allow it
+    # unconditionally (use it to force a redeploy).
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # Check out the exact commit Tests passed on (workflow_run), or the
+          # dispatched ref — never a newer, untested tip of the branch.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
