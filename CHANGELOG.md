@@ -76,6 +76,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `\r` could split a row when Group Plot re-parsed it. Added `\r` to the quote
   predicate.
 
+### Changed
+
+- **Molarity calculator — batch-paste rejects data over 2 MB.** The batch
+  prep-sheet textarea now gates on the same `FILE_LIMIT_BYTES` (2 MB) limit as
+  every other ingest surface, matching the documented ingest-size policy.
+
 ## [1.6.1] - 2026-05-16
 
 > Long-form release notes — what shipped, why, and how — live in
