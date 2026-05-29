@@ -418,11 +418,16 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                         ])
                       );
                       const header = ["Condition", sumLabel];
+                      // Quote on \r too — a lone-CR cell would otherwise split
+                      // a row when Boxplot re-parses. (Not buildCsvString: its
+                      // formula-injection guard would prefix legit condition
+                      // names like "-control"/"+drug" with a quote, and this
+                      // payload is re-parsed in-app, never opened in a sheet.)
                       const csv = [header, ...rows]
                         .map((r) =>
                           r
                             .map((c) =>
-                              /[",\n]/.test(String(c)) ? `"${c.replace(/"/g, '""')}"` : c
+                              /[",\r\n]/.test(String(c)) ? `"${c.replace(/"/g, '""')}"` : c
                             )
                             .join(",")
                         )

@@ -71,6 +71,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `downloadPng` had no `onerror` handler, so if the chart SVG failed to load
   into the rasterizer the download silently no-op'd and the object URL leaked.
   Now logs the failure and revokes the URL.
+- **Aequorin → Group Plot handoff — quote cells containing a carriage return.**
+  The inline CSV escape only quoted on `"`/`\n`, so a condition name with a lone
+  `\r` could split a row when Group Plot re-parsed it. Added `\r` to the quote
+  predicate.
 
 ## [1.6.1] - 2026-05-16
 
