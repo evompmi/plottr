@@ -49,6 +49,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ~125k points. Scatter has no row cap beyond the 2 MB ingest limit, so a
   valid large CSV blanked the tool (caught by the ErrorBoundary). Replaced with
   a single linear pass; no behaviour change for normal-size data.
+- **Box/Group, Line, and Aequorin exports — opaque full-canvas background.**
+  These charts painted only the inner plot area, leaving the title, axis
+  labels, legend, and watermark on transparency in exported SVG — so the SVG
+  rendered differently from the PNG (which fills white) and floated text over
+  any non-white canvas in Inkscape. Added a full-canvas `id="background"` rect
+  (main + inset for Aequorin), matching the five other tools. 12 SVG snapshot
+  baselines updated (background group only; all other output byte-identical).
 
 ## [1.6.1] - 2026-05-16
 

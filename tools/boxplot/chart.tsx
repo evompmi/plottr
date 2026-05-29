@@ -344,6 +344,9 @@ export const BoxplotChart = memo(
         <title>{plotTitle || (isBar ? "Bar chart" : "Box plot")}</title>
         <desc>{`${isBar ? "Bar chart" : "Box plot"} with ${groups.length} group${groups.length !== 1 ? "s" : ""}${yLabel ? `, Y axis: ${yLabel}` : ""}`}</desc>
 
+        <g id="background">
+          <rect x={0} y={0} width={vbW} height={vbH} fill={plotBg} />
+        </g>
         <rect id="plot-area-background" x={M.left} y={M.top} width={w} height={h} fill={plotBg} />
 
         {showGrid && (

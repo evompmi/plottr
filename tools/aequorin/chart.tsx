@@ -100,6 +100,9 @@ export const Chart = memo(
       >
         <title>{plotTitle || "RLU timecourse chart"}</title>
         <desc>{`Time series chart with ${series.length} series${xLabel ? `, X: ${xLabel}` : ""}${yLabel ? `, Y: ${yLabel}` : ""}`}</desc>
+        <g id="background">
+          <rect x={0} y={0} width={vbW} height={vbH + legendH + topPad} fill={plotBg || "#fff"} />
+        </g>
         {plotTitle && (
           <g id="title">
             <text
@@ -450,6 +453,9 @@ export const InsetBarplot = memo(
       >
         <title>{plotTitle || "Inset bar plot"}</title>
         <desc>{`Inset bar plot of ${series.length} condition${series.length !== 1 ? "s" : ""}`}</desc>
+        <g id="background">
+          <rect x={0} y={0} width={iW} height={totalH + topPad} fill={plotBg || "#fff"} />
+        </g>
         {plotTitle && (
           <g id="title">
             <text

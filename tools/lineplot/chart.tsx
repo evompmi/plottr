@@ -82,6 +82,9 @@ export const Chart = memo(
       >
         <title>{plotTitle || "Line chart"}</title>
         <desc>{`Line chart with ${series.length} group${series.length === 1 ? "" : "s"}`}</desc>
+        <g id="background">
+          <rect x={0} y={0} width={vbW} height={vbH + legendH + topPad} fill={plotBg || "#fff"} />
+        </g>
         {plotTitle && (
           <g id="title">
             <text
