@@ -34,6 +34,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `parseFloat` now runs once per value (2n) instead of twice per comparison
   (~2·n log n). Observable only on huge category sets; no behaviour change.
 
+### Fixed
+
+- **Aequorin — calibrated-CSV export now sanitises and quotes cells.** The
+  "Download calibrated CSV" button hand-assembled rows with `join(",")` and
+  bypassed `downloadCsv`/`buildCsvString`, so a header or cell beginning with
+  `=`/`+`/`-`/`@` was written verbatim (CSV formula-injection when the file is
+  reopened in Excel/LibreOffice/Sheets) and values containing a comma, quote,
+  or newline corrupted the row structure. Now routed through the shared
+  formula-injection-sanitising, RFC-4180-quoting `downloadCsv`.
+
 ## [1.6.1] - 2026-05-16
 
 > Long-form release notes — what shipped, why, and how — live in
