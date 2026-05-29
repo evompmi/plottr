@@ -76,20 +76,14 @@ restore_stash() {
 }
 trap restore_stash EXIT
 
-# Clean the per-tool lazy chunks dir before rebuild. esbuild's
-# `--splitting --chunk-names=chunks/[name]-[hash]` is deterministic from
-# source content but doesn't garbage-collect: a tool whose hash changes
-# leaves its prior chunk on disk, tracked-but-unreferenced. Without this
-# wipe the hook can't tell stale-tracked from current — the file is
-# still on disk and `git diff` reports no drift. Wiping forces the
-# rebuild to re-emit only what the SPA currently imports; deletions land
-# in `git status` and `git add -A` below stages them. `tools/_app/index.js`
-# itself is excluded — only the content-hashed chunks under chunks/
-# need this treatment.
-rm -f tools/_app/chunks/*.js tools/_app/chunks/*.js.map
-
-# Rebuild. prebuild script also regenerates tools/version.js and
-# tools/shared.bundle.js, so we don't need separate invocations.
+# Rebuild. The `prebuild` npm script wipes tools/_app/chunks/ first (esbuild's
+# `--splitting --chunk-names=chunks/[name]-[hash]` is deterministic but doesn't
+# garbage-collect, so a tool whose hash changes would otherwise leave its prior
+# chunk tracked-but-unreferenced — and `git diff` reports no drift because the
+# stale file is still on disk). With prebuild doing the wipe, the same cleaning
+# runs in CI/deploy too, so the "Verify compiled sources in sync" diff can catch
+# orphaned chunks. prebuild also regenerates tools/version.js and
+# tools/shared.bundle.js, so we don't need separate invocations here.
 npm run --silent build >/dev/null
 
 # Compiled-output pathspec — every glob below is a path whose content is

@@ -183,8 +183,16 @@ module.exports = [
   // tools (`tools/<tool>/app.tsx`); calculator app files
   // (`tools/<calc>-app.tsx`) don't have a sample-data button and
   // are excluded.
+  //
+  // `tools/_app/**` is excluded explicitly: the SPA shell root is
+  // `tools/_app/App.tsx` (capital A), which the case-sensitive `app.tsx`
+  // glob skips on Linux CI — but on a case-insensitive FS (macOS) the
+  // path resolves and the rule false-fires. The ignore makes the skip
+  // independent of filename casing (and survives a future App.tsx → app.tsx
+  // rename to match the other tools).
   {
     files: ["tools/*/app.tsx"],
+    ignores: ["tools/_app/**"],
     plugins: { plottr: plottrLocal },
     rules: {
       "plottr/require-example-const": "error",
