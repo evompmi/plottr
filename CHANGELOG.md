@@ -43,6 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reopened in Excel/LibreOffice/Sheets) and values containing a comma, quote,
   or newline corrupted the row structure. Now routed through the shared
   formula-injection-sanitising, RFC-4180-quoting `downloadCsv`.
+- **Scatter — large datasets no longer crash the chart.** The auto axis-range
+  and continuous colour/size-mapping range used `Math.min/max(...vals)`, which
+  spreads every row as a function argument and throws `RangeError` past
+  ~125k points. Scatter has no row cap beyond the 2 MB ingest limit, so a
+  valid large CSV blanked the tool (caught by the ErrorBoundary). Replaced with
+  a single linear pass; no behaviour change for normal-size data.
 
 ## [1.6.1] - 2026-05-16
 

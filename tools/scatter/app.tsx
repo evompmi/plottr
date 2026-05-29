@@ -475,7 +475,17 @@ export function App() {
       const vals = parsed.rawData
         .map((r) => parseFloat((r[colIdx] || "").replace(",", ".")))
         .filter((v) => !isNaN(v));
-      return vals.length ? [Math.min(...vals), Math.max(...vals)] : [0, 1];
+      if (!vals.length) return [0, 1];
+      // Linear min/max — Math.min(...vals) spreads every row as a function
+      // argument and throws RangeError past ~125k elements (scatter has no
+      // row cap beyond the 2 MB ingest limit, which permits far more).
+      let mn = Infinity,
+        mx = -Infinity;
+      for (const v of vals) {
+        if (v < mn) mn = v;
+        if (v > mx) mx = v;
+      }
+      return [mn, mx];
     },
     [parsed]
   );
@@ -554,13 +564,28 @@ export function App() {
     const data = parsed.data;
     const xVals = data.map((r) => r[xCol]).filter((v) => v != null);
     const yVals = data.map((r) => r[yCol]).filter((v) => v != null);
-    const xPad = xVals.length > 1 ? (Math.max(...xVals) - Math.min(...xVals)) * 0.05 : 0.5;
-    const yPad = yVals.length > 1 ? (Math.max(...yVals) - Math.min(...yVals)) * 0.05 : 0.5;
+    // Linear min/max — Math.min/max(...vals) spreads every row as a function
+    // argument and throws RangeError past ~125k elements (no row cap beyond
+    // the 2 MB ingest limit).
+    let xMn = Infinity,
+      xMx = -Infinity,
+      yMn = Infinity,
+      yMx = -Infinity;
+    for (const v of xVals) {
+      if (v < xMn) xMn = v;
+      if (v > xMx) xMx = v;
+    }
+    for (const v of yVals) {
+      if (v < yMn) yMn = v;
+      if (v > yMx) yMx = v;
+    }
+    const xPad = xVals.length > 1 ? (xMx - xMn) * 0.05 : 0.5;
+    const yPad = yVals.length > 1 ? (yMx - yMn) * 0.05 : 0.5;
     return {
-      xMin: xVals.length ? Math.min(...xVals) - xPad : 0,
-      xMax: xVals.length ? Math.max(...xVals) + xPad : 1,
-      yMin: yVals.length ? Math.min(...yVals) - yPad : 0,
-      yMax: yVals.length ? Math.max(...yVals) + yPad : 1,
+      xMin: xVals.length ? xMn - xPad : 0,
+      xMax: xVals.length ? xMx + xPad : 1,
+      yMin: yVals.length ? yMn - yPad : 0,
+      yMax: yVals.length ? yMx + yPad : 1,
     };
   }, [parsed, xCol, yCol]);
 
