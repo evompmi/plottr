@@ -266,9 +266,13 @@
   --accent-primary-weak: rgba(58, 68, 84, 0.28);
   --accent-warning-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 
-  /* Dimmer, less-saturated ocean blue for dark mode (deep #0369a1 reads
-     as a near-black against the dark surface). Less chromatic intensity
-     than the light-mode value, per the dark-accents-softer rule. */
+  /* Less-saturated ocean blue for dark mode (deep #0369a1 reads as a
+     near-black against the dark surface). DELIBERATE EXCEPTION to the
+     dark-accents-softer rule (dark must be <= light brightness): the
+     light value #0369a1 is unusually dark (L0.13), and used as label /
+     border text on --surface #1a1b23, matching that brightness would drop
+     contrast to ~2.9:1 and fail WCAG AA. This value (L0.35) keeps ~6.3:1.
+     The rule still holds for every other --accent-* pair. */
   --accent-blue: #7da3c4;
 }
 
@@ -354,6 +358,9 @@
     --accent-primary-weak: rgba(58, 68, 84, 0.28);
     --accent-warning-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 
+    /* Deliberate exception to dark-accents-softer — see the [data-theme=dark]
+       block above. Light #0369a1 is too dark (L0.13) to match without failing
+       WCAG AA contrast on the dark surface; this L0.35 value keeps ~6.3:1. */
     --accent-blue: #7da3c4;
   }
 }
