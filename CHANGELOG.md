@@ -56,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   any non-white canvas in Inkscape. Added a full-canvas `id="background"` rect
   (main + inset for Aequorin), matching the five other tools. 12 SVG snapshot
   baselines updated (background group only; all other output byte-identical).
-- **Power calculator — one-tailed power now uses the effect *magnitude*.** A
+- **Power calculator — one-tailed power now uses the effect _magnitude_.** A
   one-tailed test with a negative Cohen's d (routine when group 2 > group 1) or
   a negative correlation returned a power estimate of ~0, reading as "this study
   is hopeless." `powerTwoSample` / `powerPaired` / `powerOneSample` /

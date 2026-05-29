@@ -805,11 +805,7 @@ test("2 groups with equal variance → p large", () => {
 test("singleton group is dropped (car::leveneTest n≥2 rule), not folded into df", () => {
   // A group of size 1 has deviation 0 and would inflate df2; it must be
   // excluded so the result equals the test over the two real groups.
-  const withSingleton = leveneTest([
-    [1, 2, 3, 4, 5],
-    [2, 4, 6, 8, 10, 12],
-    [99],
-  ]);
+  const withSingleton = leveneTest([[1, 2, 3, 4, 5], [2, 4, 6, 8, 10, 12], [99]]);
   const without = leveneTest([
     [1, 2, 3, 4, 5],
     [2, 4, 6, 8, 10, 12],
@@ -821,10 +817,7 @@ test("singleton group is dropped (car::leveneTest n≥2 rule), not folded into d
 });
 
 test("fewer than 2 groups with n≥2 → error, not a fake F", () => {
-  const r = leveneTest([
-    [1, 2, 3, 4],
-    [5],
-  ]);
+  const r = leveneTest([[1, 2, 3, 4], [5]]);
   assert(Number.isNaN(r.F), "F should be NaN when only one group has n≥2");
   assert(/Not enough observations/.test(r.error || ""), `expected error, got ${r.error}`);
 });
