@@ -717,7 +717,12 @@ export function bisect(
 
 export function powerTwoSample(d: number, n: number, alpha: number, tails: number): number {
   const df = 2 * n - 2;
-  const delta = d * Math.sqrt(n / 2);
+  // Power is the power to detect an effect of this *magnitude* — match R's
+  // pwr::pwr.t.test, which takes |d|. Without abs, a one-tailed call with a
+  // negative d (routine when group 2 > group 1) returns ~0, reading as "this
+  // study is hopeless." (Two-tailed is already sign-symmetric, so abs is a
+  // no-op there.)
+  const delta = Math.abs(d) * Math.sqrt(n / 2);
   const tCrit = tinv(1 - alpha / tails, df);
   if (tails === 2) return 1 - nctcdf(tCrit, df, delta) + nctcdf(-tCrit, df, delta);
   return 1 - nctcdf(tCrit, df, delta);
@@ -725,7 +730,8 @@ export function powerTwoSample(d: number, n: number, alpha: number, tails: numbe
 
 export function powerPaired(d: number, n: number, alpha: number, tails: number): number {
   const df = n - 1;
-  const delta = d * Math.sqrt(n);
+  // Magnitude convention — see powerTwoSample.
+  const delta = Math.abs(d) * Math.sqrt(n);
   const tCrit = tinv(1 - alpha / tails, df);
   if (tails === 2) return 1 - nctcdf(tCrit, df, delta) + nctcdf(-tCrit, df, delta);
   return 1 - nctcdf(tCrit, df, delta);
@@ -758,7 +764,9 @@ export function powerCorrelation(r: number, n: number, alpha: number, tails: num
   const se = 1 / Math.sqrt(Math.max(1, n - 3));
   const zCrit = norminv(1 - alpha / tails);
   if (tails === 2) return normcdf(Math.abs(zr) / se - zCrit) + normcdf(-Math.abs(zr) / se - zCrit);
-  return normcdf(zr / se - zCrit);
+  // Magnitude convention — see powerTwoSample. A negative r with a one-tailed
+  // test would otherwise return ~0.
+  return normcdf(Math.abs(zr) / se - zCrit);
 }
 
 export function powerChi2(w: number, n: number, alpha: number, df: number): number {

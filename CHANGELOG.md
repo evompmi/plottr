@@ -34,6 +34,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `parseFloat` now runs once per value (2n) instead of twice per comparison
   (~2·n log n). Observable only on huge category sets; no behaviour change.
 
+### Fixed
+
+- **Aequorin — calibrated-CSV export now sanitises and quotes cells.** The
+  "Download calibrated CSV" button hand-assembled rows with `join(",")` and
+  bypassed `downloadCsv`/`buildCsvString`, so a header or cell beginning with
+  `=`/`+`/`-`/`@` was written verbatim (CSV formula-injection when the file is
+  reopened in Excel/LibreOffice/Sheets) and values containing a comma, quote,
+  or newline corrupted the row structure. Now routed through the shared
+  formula-injection-sanitising, RFC-4180-quoting `downloadCsv`.
+- **Scatter — large datasets no longer crash the chart.** The auto axis-range
+  and continuous colour/size-mapping range used `Math.min/max(...vals)`, which
+  spreads every row as a function argument and throws `RangeError` past
+  ~125k points. Scatter has no row cap beyond the 2 MB ingest limit, so a
+  valid large CSV blanked the tool (caught by the ErrorBoundary). Replaced with
+  a single linear pass; no behaviour change for normal-size data.
+- **Box/Group, Line, and Aequorin exports — opaque full-canvas background.**
+  These charts painted only the inner plot area, leaving the title, axis
+  labels, legend, and watermark on transparency in exported SVG — so the SVG
+  rendered differently from the PNG (which fills white) and floated text over
+  any non-white canvas in Inkscape. Added a full-canvas `id="background"` rect
+  (main + inset for Aequorin), matching the five other tools. 12 SVG snapshot
+  baselines updated (background group only; all other output byte-identical).
+- **Power calculator — one-tailed power now uses the effect _magnitude_.** A
+  one-tailed test with a negative Cohen's d (routine when group 2 > group 1) or
+  a negative correlation returned a power estimate of ~0, reading as "this study
+  is hopeless." `powerTwoSample` / `powerPaired` / `powerOneSample` /
+  `powerCorrelation` now take `|effect|`, matching R's `pwr` package. Two-tailed
+  results are unchanged (already sign-symmetric).
+- **Levene's test drops singleton groups (matches `car::leveneTest`).** A group
+  of size 1 has a zero deviation-from-median and silently inflated the error df,
+  giving a confidently-wrong equal-variance verdict in the stats panel. Groups
+  with n<2 are now excluded; if fewer than two valid groups remain the test
+  reports "Not enough observations" instead of a bogus F.
+
 ## [1.6.1] - 2026-05-16
 
 > Long-form release notes — what shipped, why, and how — live in

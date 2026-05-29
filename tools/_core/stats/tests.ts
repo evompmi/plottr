@@ -199,10 +199,18 @@ export function shapiroWilk(x: number[]): ShapiroWilkResult {
 // ── 5. Equal-variance tests ─────────────────────────────────────────────────
 
 export function leveneTest(groups: number[][]): LeveneResult {
-  const k = groups.length;
-  if (k < 2) return { F: NaN, df1: 0, df2: 0, p: NaN, error: "≥2 groups required" };
+  if (groups.length < 2) return { F: NaN, df1: 0, df2: 0, p: NaN, error: "≥2 groups required" };
+  // A singleton group has median = its own value, so every absolute deviation
+  // is exactly 0: it carries no dispersion information and would silently
+  // inflate the error df. car::leveneTest requires n≥2 per group, so drop the
+  // undersized ones before computing the deviation ANOVA.
+  const valid = groups.filter((g) => g.length >= 2);
+  if (valid.length < 2) {
+    return { F: NaN, df1: 0, df2: 0, p: NaN, error: "Not enough observations" };
+  }
+  const k = valid.length;
   // Absolute deviations from the group median.
-  const devs = groups.map((g) => {
+  const devs = valid.map((g) => {
     const s = [...g].sort((a, b) => a - b);
     const n = s.length;
     const med = n % 2 === 0 ? (s[n / 2 - 1] + s[n / 2]) / 2 : s[Math.floor(n / 2)];
@@ -215,7 +223,6 @@ export function leveneTest(groups: number[][]): LeveneResult {
     Ntot += d.length;
     for (const v of d) grandSum += v;
   }
-  if (Ntot <= k) return { F: NaN, df1: 0, df2: 0, p: NaN, error: "Not enough observations" };
   const grandMean = grandSum / Ntot;
   let ssBetween = 0,
     ssWithin = 0;

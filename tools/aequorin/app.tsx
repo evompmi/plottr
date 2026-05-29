@@ -28,7 +28,7 @@ import { PlotControls } from "./controls";
 import { PlotPanel, SampleSelectionOverlay } from "./plot-area";
 
 import { autoDetectSep, fixDecimalCommas, parseData } from "../_core/csv";
-import { fileBaseName } from "../_core/download";
+import { downloadCsv, fileBaseName } from "../_core/download";
 const { useState, useMemo, useCallback, useRef } = React;
 
 const VIS_INIT_AEQUORIN = {
@@ -1474,14 +1474,6 @@ export function App() {
     updVis({ yMin: effYRange.yMin, yMax: effYRange.yMax });
   }, [effYRange, vis.autoYRange, vis.yMin, vis.yMax, updVis]);
 
-  const csvText = useMemo(() => {
-    if (!calData || !parsed) return "";
-    const enabledIdx = parsed.headers.map((_, i) => i).filter((i) => columnEnabled[i] !== false);
-    const rows = [enabledIdx.map((i) => parsed.headers[i]).join(",")];
-    calData.forEach((r) => rows.push(enabledIdx.map((i) => (r[i] != null ? r[i] : "")).join(",")));
-    return rows.join("\n");
-  }, [calData, parsed, columnEnabled]);
-
   // Per-column rep numbers and name counts (for the column grouping UI)
   const colInfo = useMemo(() => {
     if (!parsed) return [];
@@ -1682,17 +1674,15 @@ export function App() {
   };
 
   const downloadCalibrated = () => {
-    if (!csvText) return;
-    const blob = new Blob([csvText], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${fileBaseName(fileName, "rlu_timecourse")}_calibrated.csv`;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (!calData || !parsed) return;
+    // Route through downloadCsv → buildCsvString so headers/cells are
+    // formula-injection-sanitised and RFC-4180-quoted (a hand-rolled join(",")
+    // would emit a "=…"-leading header verbatim and corrupt rows containing a
+    // comma / quote / newline).
+    const enabledIdx = parsed.headers.map((_, i) => i).filter((i) => columnEnabled[i] !== false);
+    const headers = enabledIdx.map((i) => parsed.headers[i]);
+    const rows = calData.map((r) => enabledIdx.map((i) => (r[i] != null ? r[i] : "")));
+    downloadCsv(headers, rows, `${fileBaseName(fileName, "rlu_timecourse")}_calibrated.csv`);
   };
 
   const canNavigate = (s: string) => s === "upload" || (!!parsed && s !== "upload");
