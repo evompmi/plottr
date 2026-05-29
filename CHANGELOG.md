@@ -67,6 +67,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   giving a confidently-wrong equal-variance verdict in the stats panel. Groups
   with n<2 are now excluded; if fewer than two valid groups remain the test
   reports "Not enough observations" instead of a bogus F.
+- **PNG export — surfaces rasterization failure instead of silently leaking.**
+  `downloadPng` had no `onerror` handler, so if the chart SVG failed to load
+  into the rasterizer the download silently no-op'd and the object URL leaked.
+  Now logs the failure and revokes the URL.
 
 ## [1.6.1] - 2026-05-16
 
