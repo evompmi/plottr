@@ -137,6 +137,12 @@ export function downloadPng(svgEl: SVGElement | null, filename: string, scale?: 
       if (pngBlob) saveBlob(pngBlob, filename);
     }, "image/png");
   };
+  // Without this, a serialized SVG the rasterizer rejects leaves onload
+  // unfired: no PNG, no feedback, and the object URL leaks.
+  img.onerror = function () {
+    URL.revokeObjectURL(url);
+    console.error("[plottr] PNG export failed: the chart SVG could not be rasterized");
+  };
   img.src = url;
 }
 

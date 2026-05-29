@@ -1,7 +1,7 @@
 // molarity.jsx — editable source. Run `npm run build` to compile to molarity.js
 // Do NOT edit the .js file directly.
 
-import { PageHeader, useIsMobile } from "./_shell";
+import { PageHeader, useIsMobile, FILE_LIMIT_BYTES } from "./_shell";
 import { parseRaw } from "./_core/csv";
 import { downloadCsv } from "./_core/download";
 const { useState, useMemo, useCallback } = React;
@@ -683,6 +683,15 @@ function BatchMode() {
     setResults(null);
     if (!raw.trim()) {
       setError("Paste your data above.");
+      return;
+    }
+    // Match the documented ingest-size policy (FileDropZone / UploadPanel):
+    // hard-reject pastes over 2 MB before parsing.
+    const bytes = new Blob([raw]).size;
+    if (bytes > FILE_LIMIT_BYTES) {
+      setError(
+        `Pasted data too large (${(bytes / 1024 / 1024).toFixed(1)} MB). Maximum is 2 MB — paste fewer rows.`
+      );
       return;
     }
 
