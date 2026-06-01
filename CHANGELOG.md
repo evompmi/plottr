@@ -7,80 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-06-01
+
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md). The
+> entries below are summary bullets that link there.
+>
+> A robustness-and-export-safety release: a plot-height slider for
+> Aequorin, hardened export/ingest paths, and two statistics edge-case
+> fixes.
+
 ### Added
 
-- **Aequorin — "Plot height" slider** under the Style sidebar tile.
-  Adjusts the curve plot's aspect ratio (250–800 px height against a
-  fixed 800 px width, default 420 ≈ 1.9 : 1) so users can drop a more
-  square chart into multi-panel figures. The faceted view scales
-  proportionally — facet height = `260 · plotHeight / 420` — so the
-  whole grid follows the same ratio.
+- **Aequorin — "Plot height" slider** under the Style tile, adjusting the
+  curve plot's aspect ratio (250–800 px against a fixed 800 px width,
+  default 420) for multi-panel figures; the faceted view scales
+  proportionally. See
+  [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md#-added).
 - **Module-layering CI gate** — the four-tier rule from
-  `docs/architecture.md` §3 (`_core` ← `_shell` ← `tools/<tool>` ← `_app`)
-  is now mechanically enforced by `dependency-cruiser`. New
-  `npm run lint:boundaries` script + CI step fails the build on any
-  upward-only-arrow violation or circular import. Replaces convention-only
-  enforcement; no source changes — the existing graph already complies.
+  `docs/architecture.md` §3 is now mechanically enforced by
+  `dependency-cruiser` via `npm run lint:boundaries`. See
+  [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md#-added).
 
 ### Changed
 
-- **All chart roots wrapped in `React.memo`.** `BoxplotChart`,
-  `ScatterChart`, `HeatmapChart`, `VolcanoChart`, `UpsetChart`,
-  `LineChart`, `VennChart`, and aequorin's `Chart` + `InsetBarplot`
-  now skip re-render when their (already-`useMemo`'d) props are
-  shallow-equal. Chart output is byte-identical — all 16 SVG
-  snapshot baselines unchanged.
-- **Scatter — `uniqueVals` numeric sort uses decorate-sort-undecorate.**
-  `parseFloat` now runs once per value (2n) instead of twice per comparison
-  (~2·n log n). Observable only on huge category sets; no behaviour change.
+- **All chart roots wrapped in `React.memo`** so they skip re-render on
+  shallow-equal props. Chart output byte-identical; all 16 SVG snapshot
+  baselines unchanged. See
+  [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md#-changed).
+- **Scatter — `uniqueVals` numeric sort uses decorate-sort-undecorate**
+  (`parseFloat` once per value, not twice per comparison). No behaviour
+  change. See
+  [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md#-changed).
+- **Molarity calculator — batch-paste rejects data over 2 MB**, matching
+  the `FILE_LIMIT_BYTES` ingest policy of every other surface. See
+  [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md#-changed).
 
 ### Fixed
 
-- **Aequorin — calibrated-CSV export now sanitises and quotes cells.** The
-  "Download calibrated CSV" button hand-assembled rows with `join(",")` and
-  bypassed `downloadCsv`/`buildCsvString`, so a header or cell beginning with
-  `=`/`+`/`-`/`@` was written verbatim (CSV formula-injection when the file is
-  reopened in Excel/LibreOffice/Sheets) and values containing a comma, quote,
-  or newline corrupted the row structure. Now routed through the shared
-  formula-injection-sanitising, RFC-4180-quoting `downloadCsv`.
-- **Scatter — large datasets no longer crash the chart.** The auto axis-range
-  and continuous colour/size-mapping range used `Math.min/max(...vals)`, which
-  spreads every row as a function argument and throws `RangeError` past
-  ~125k points. Scatter has no row cap beyond the 2 MB ingest limit, so a
-  valid large CSV blanked the tool (caught by the ErrorBoundary). Replaced with
-  a single linear pass; no behaviour change for normal-size data.
-- **Box/Group, Line, and Aequorin exports — opaque full-canvas background.**
-  These charts painted only the inner plot area, leaving the title, axis
-  labels, legend, and watermark on transparency in exported SVG — so the SVG
-  rendered differently from the PNG (which fills white) and floated text over
-  any non-white canvas in Inkscape. Added a full-canvas `id="background"` rect
-  (main + inset for Aequorin), matching the five other tools. 12 SVG snapshot
-  baselines updated (background group only; all other output byte-identical).
-- **Power calculator — one-tailed power now uses the effect _magnitude_.** A
-  one-tailed test with a negative Cohen's d (routine when group 2 > group 1) or
-  a negative correlation returned a power estimate of ~0, reading as "this study
-  is hopeless." `powerTwoSample` / `powerPaired` / `powerOneSample` /
-  `powerCorrelation` now take `|effect|`, matching R's `pwr` package. Two-tailed
-  results are unchanged (already sign-symmetric).
-- **Levene's test drops singleton groups (matches `car::leveneTest`).** A group
-  of size 1 has a zero deviation-from-median and silently inflated the error df,
-  giving a confidently-wrong equal-variance verdict in the stats panel. Groups
-  with n<2 are now excluded; if fewer than two valid groups remain the test
-  reports "Not enough observations" instead of a bogus F.
-- **PNG export — surfaces rasterization failure instead of silently leaking.**
-  `downloadPng` had no `onerror` handler, so if the chart SVG failed to load
-  into the rasterizer the download silently no-op'd and the object URL leaked.
-  Now logs the failure and revokes the URL.
-- **Aequorin → Group Plot handoff — quote cells containing a carriage return.**
-  The inline CSV escape only quoted on `"`/`\n`, so a condition name with a lone
-  `\r` could split a row when Group Plot re-parsed it. Added `\r` to the quote
-  predicate.
-
-### Changed
-
-- **Molarity calculator — batch-paste rejects data over 2 MB.** The batch
-  prep-sheet textarea now gates on the same `FILE_LIMIT_BYTES` (2 MB) limit as
-  every other ingest surface, matching the documented ingest-size policy.
+- **Aequorin — calibrated-CSV export sanitises and quotes cells**, routed
+  through the shared `downloadCsv` (fixes CSV formula-injection and
+  comma/quote/newline row corruption). See
+  [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md#-fixed).
+- **Scatter — large datasets no longer crash the chart.** Auto axis-range
+  and colour/size mapping replaced `Math.min/max(...vals)` (which threw
+  `RangeError` past ~125k points) with a single linear pass. See
+  [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md#-fixed).
+- **Box/Group, Line, and Aequorin exports — opaque full-canvas
+  background.** Added an `id="background"` rect so exported SVG matches
+  the PNG. 12 SVG snapshot baselines updated (background group only). See
+  [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md#-fixed).
+- **Power calculator — one-tailed power uses the effect _magnitude_**, so
+  a negative Cohen's d or correlation no longer returns power ~0. Matches
+  R's `pwr`. See
+  [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md#-fixed).
+- **Levene's test drops singleton groups** (matches `car::leveneTest`),
+  no longer inflating the error df with a zero-deviation group. See
+  [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md#-fixed).
+- **PNG export surfaces rasterization failure** instead of silently
+  no-op'ing and leaking the object URL. See
+  [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md#-fixed).
+- **Aequorin → Group Plot handoff quotes cells containing a carriage
+  return**, so a lone `\r` no longer splits a re-parsed row. See
+  [`docs/release-notes/v1.7.0.md`](docs/release-notes/v1.7.0.md#-fixed).
 
 ## [1.6.1] - 2026-05-16
 
@@ -1413,7 +1402,8 @@ First tracked release. Baseline of features shipped to GitHub Pages prior to the
 - **Shared scaffolding.** `tools/shared.js` utilities, plain-JS React components, CSV/TSV parsing with auto-separator + decimal-comma fix.
 - **CI + tooling baseline.** TypeScript typecheck, ESLint + Prettier, GitHub Actions workflow, custom test harness, minified esbuild bundles.
 
-[Unreleased]: https://github.com/evompmi/plottr/compare/v1.6.1...HEAD
+[Unreleased]: https://github.com/evompmi/plottr/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/evompmi/plottr/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/evompmi/plottr/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/evompmi/plottr/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/evompmi/plottr/compare/v1.5.2...v1.5.3
