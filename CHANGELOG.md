@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **"Cite" pill in a landing-page footer** — a footer below the tool grid links
+  to Plöttr's Zenodo concept DOI (`10.5281/zenodo.20245057`, always the latest
+  archived release). Self-contained — no hot-linked third-party shield, so the
+  page still makes zero external requests on load.
+
 ## [1.7.0] - 2026-06-01
 
 > Long-form release notes — what shipped, why, and how — live in
