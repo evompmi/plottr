@@ -269,6 +269,13 @@
       .trust-badge-privacy {
         color: var(--text-muted);
       }
+      .landing-footer {
+        margin-top: 44px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: center;
+      }
       .how-it-works {
         display: flex;
         flex-direction: column;
@@ -1044,6 +1051,26 @@
           anywhere — handy for sanity-checking stats on the go or verifying a molarity calculation.
         </div>
       </div>
+      <footer class="landing-footer">
+        <a
+          href="https://doi.org/10.5281/zenodo.20245057"
+          class="trust-badge"
+          target="_blank"
+          rel="noopener"
+          title="Archived on Zenodo — cite Plöttr via DOI 10.5281/zenodo.20245057"
+        >
+          <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path
+              d="M3.5 2.5 H8 a1 1 0 0 1 1 1 V9.5 H4.5 a1 1 0 0 0 -1 1 V2.5 z"
+              stroke="currentColor"
+              stroke-width="1.1"
+              stroke-linejoin="round"
+              class="trust-badge-stats"
+            />
+          </svg>
+          Cite
+        </a>
+      </footer>
     </div>
 
     <!-- SPA mount. The router (tools/_app/Router.tsx) reads
