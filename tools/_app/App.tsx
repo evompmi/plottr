@@ -14,6 +14,7 @@ import { useRoute, navigate } from "./Router";
 import { TOOL_REGISTRY, findToolEntry } from "./tool-registry";
 import { ErrorBoundary } from "../_shell";
 import { toggleTheme, useThemeMode } from "../_core/theme";
+import { TOOL_ACCENT, tintIcon } from "../_core/icons";
 // Inline SVG icons reused across the SPA shell. Visual identity mirrors
 // the landing markup in `index.html`.
 const HOME_SVG =
@@ -43,11 +44,17 @@ function IconButton({
   svg,
   onClick,
   extraAttrs,
+  color,
 }: {
   title: string;
   svg: string;
   onClick?: () => void;
   extraAttrs?: Record<string, string>;
+  // When set, tints the (currentColor) glyph to this tool's accent so the
+  // topbar quick-jumps carry the same per-tool colour as the landing tiles.
+  // Inline style outranks `.tb-icon-btn:hover`, so the colour also holds on
+  // hover (only the border/background change).
+  color?: string;
 }) {
   return React.createElement("button", {
     type: "button",
@@ -55,6 +62,7 @@ function IconButton({
     title,
     "aria-label": title,
     onClick,
+    ...(color ? { style: { color } } : {}),
     dangerouslySetInnerHTML: { __html: svg },
     ...(extraAttrs || {}),
   });
@@ -187,7 +195,8 @@ function ToolTopbar({ currentKey }: { currentKey: string }) {
       React.createElement(IconButton, {
         key: t.key,
         title: t.label,
-        svg: t.iconSvg,
+        svg: tintIcon(t.iconSvg, t.key),
+        color: TOOL_ACCENT[t.key],
         onClick: () => navigate(t.key),
         extraAttrs: { "data-tool": t.key },
       })

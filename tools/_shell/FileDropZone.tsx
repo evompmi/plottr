@@ -127,10 +127,10 @@ export function FileDropZone({
         <div style={{ fontSize: 40, marginBottom: 8 }} aria-hidden="true">
           📂
         </div>
-        <p style={{ margin: 0, fontSize: 15, color: "var(--text-muted)" }}>
+        <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "var(--text)" }}>
           Drop CSV, TSV, or TXT — or click to browse
         </p>
-        <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-faint)" }}>{hint}</p>
+        <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--text-faint)" }}>{hint}</p>
       </div>
       {sizeError && (
         <div
