@@ -3,14 +3,14 @@
    Plot cards (--plot-card-*) are intentionally white in both themes so that
    exported SVG/PNG charts always sit on a white background.
 
-   Primary chrome accent is ink / slate-blue — near-greyscale with a faint
-   cool tint, deliberately chosen over any saturated hue to let chart
-   colours carry all the expression. Buttons and active pills use a very
-   soft slate-400-ish tone in light (#939eae) and a near-surface muted tone
-   in dark (#2c3646); both sit close to their surface so neither punches
-   against the chrome. Contrast for white pill/button text is deliberately
-   low (~2.9:1 in light) — a conscious trade-off picked by the user over
-   louder selector hues. Maximally editorial, journal-adjacent.
+   Primary chrome accent is Plöttr blue (#648fff in light) — the same hue
+   the brand rune is stroked in. It frames the chrome: borders, hover,
+   focus rings, active outlines, icon tints. Filled buttons and active
+   pills use a deeper, contrast-safe blue (#4a72e8 in light, ~4.3:1 white
+   text; a dimmed #2f3e63 in dark) so the press targets read as confident
+   without glowing. The data-chart palette (teal / violet / blue / …) is
+   left untouched — it carries the per-series expression; the accent only
+   frames it.
 
    Dark-mode rule: every accent in dark mode is EQUAL or DIMMER than its
    light-mode counterpart — never brighter. Dark mode is supposed to be
@@ -20,6 +20,19 @@
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
+  /* Typography — two voices, both self-hosted (see tools/fonts.css, vendored
+     by scripts/vendor-fonts.mjs; no third-party font request at runtime).
+     --font-display (Fraunces, a "wonky" optical serif) is reserved for the
+     landing "Plöttr" wordmark and nothing else — it's too editorial for
+     functional UI. --font-mono (IBM Plex Mono) is the default for everything
+     else: body, UI, tool titles, tabular chrome; it rhymes with the IBM
+     colourblind-safe chart palette. Both fall back gracefully so the page is
+     legible before the woff2 swaps in. Chart-internal SVG text keeps its own
+     hardcoded font-family (sans-serif / monospace) for export fidelity —
+     these tokens are chrome-only. */
+  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
   /* Page */
   --page-bg: #f0f0f4;
   --page-bg-dot: #d0d0d8;
@@ -41,8 +54,8 @@
   --slider-track: #d1d5db;
 
   /* Accents */
-  --accent-primary: #939eae;
-  --accent-primary-weak: rgba(147, 158, 174, 0.12);
+  --accent-primary: #648fff;
+  --accent-primary-weak: rgba(100, 143, 255, 0.12);
   --accent-plot: #2ec4b6;
   --accent-dna: #785ef0;
   /* Deep ocean blue, paired with --accent-dna as the second member of a
@@ -138,19 +151,16 @@
   --focus-ring: 0 0 0 2px rgba(100, 143, 255, 0.2);
 
   /* Active step-nav pill (Upload / Configure / Filter / Output / Plot).
-     Softened ~30% further toward white for a calmer nav chrome. White
-     text on this bg is ~2.9:1 — below WCAG AA for body text but acceptable
-     for short, bolded pill labels where the user opted in to low-contrast
-     UI chrome over loud selectors. */
-  --step-active-bg: #939eae;
-  --step-active-border: #939eae;
+     Plöttr blue, deep enough for ~4.3:1 white text — a real, confident
+     active state rather than the old near-greyscale pill. */
+  --step-active-bg: #4a72e8;
+  --step-active-border: #4a72e8;
 
   /* Primary CTA button (`.dv-btn-primary` — Compute effect size, Continue to
-     plot, …). Softened ~30% further toward white from slate-500 so the
-     buttons stop punching against the chrome. Dark mode softens by the
-     mirror-image amount toward the dark surface. */
-  --cta-primary-bg: #939eae;
-  --cta-primary-shadow: 0 4px 12px -2px rgba(147, 158, 174, 0.2);
+     plot, …). The deep brand blue (#4a72e8), giving ~4.3:1 white-text
+     contrast. Dark mode dims it toward the dark surface (never brighter). */
+  --cta-primary-bg: #4a72e8;
+  --cta-primary-shadow: 0 4px 12px -2px rgba(74, 114, 232, 0.28);
 
   /* Toggle-pill teal (aequorin Σ Baseline-corrected). Mirrors the
      --cta-primary-bg pattern: same as --accent-plot in light mode, dimmed in
@@ -241,14 +251,14 @@
      reads against the dark surface. */
   --focus-ring: 0 0 0 2px rgba(100, 143, 255, 0.35);
 
-  --step-active-bg: #1e293b;
-  --step-active-border: #334155;
+  --step-active-bg: #28304d;
+  --step-active-border: #3a4a72;
 
   /* Primary CTA in dark is softened another ~30% toward the dark surface,
      mirroring the light-mode softening. Still visibly brighter than the
      step-nav pill above so it reads as "press me", and never brighter
      than the light-mode primary. */
-  --cta-primary-bg: #2c3646;
+  --cta-primary-bg: #2f3e63;
   --cta-primary-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.35);
 
   /* Dimmed teal for toggle pills in dark mode (same role as --cta-primary-bg
@@ -262,8 +272,8 @@
      glow from the light-mode rgba() reads too loud against the dark UI.
      The accent color itself (--accent-warning) stays identical across
      themes like all other --accent-* vars. */
-  --accent-primary: #3a4454;
-  --accent-primary-weak: rgba(58, 68, 84, 0.28);
+  --accent-primary: #3f5280;
+  --accent-primary-weak: rgba(63, 82, 128, 0.28);
   --accent-warning-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 
   /* Less-saturated ocean blue for dark mode (deep #0369a1 reads as a
@@ -347,7 +357,7 @@
     --step-active-bg: #1e293b;
     --step-active-border: #334155;
 
-    --cta-primary-bg: #2c3646;
+    --cta-primary-bg: #2f3e63;
     --cta-primary-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.35);
 
     --cta-plot-bg: #1d7a6d;

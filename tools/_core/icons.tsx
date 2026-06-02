@@ -27,6 +27,36 @@ export const TOOL_ICONS: Record<string, string> = {
     '<svg viewBox="0 0 44 44" fill="none"><line x1="3" y1="30" x2="41" y2="30" stroke="#999999" stroke-width="0.6" stroke-dasharray="2,2" opacity="0.45"/><circle cx="22" cy="38" r="1.4" fill="#999999"/><circle cx="20" cy="36" r="1.2" fill="#999999"/><circle cx="24" cy="36" r="1.2" fill="#999999"/><circle cx="18" cy="38" r="1" fill="#999999"/><circle cx="26" cy="38" r="1" fill="#999999"/><circle cx="22" cy="34" r="1" fill="#999999"/><circle cx="17" cy="28" r="1.6" fill="#0072B2"/><circle cx="13" cy="22" r="2" fill="#0072B2"/><circle cx="9" cy="16" r="2.4" fill="#0072B2"/><circle cx="5" cy="10" r="2.6" fill="#0072B2"/><circle cx="27" cy="28" r="1.6" fill="#D55E00"/><circle cx="31" cy="22" r="2" fill="#D55E00"/><circle cx="35" cy="16" r="2.4" fill="#D55E00"/><circle cx="39" cy="10" r="2.6" fill="#D55E00"/></svg>',
 };
 
+// Per-tool accent colours — a MIRROR of the landing tile `--tile-accent`
+// values in index.html. `toolIcon` retints each glyph's base hue to its
+// tool's accent so the topbar / upload-panel icon carries the same per-tool
+// colour as the landing tile. Volcano has no base-blue in its glyph, so it
+// keeps its intrinsic multi-tone (matching the landing). Keep this table in
+// sync with the `--tile-accent` literals in index.html if either changes.
+export const TOOL_ACCENT: Record<string, string> = {
+  boxplot: "#648fff",
+  scatter: "#1ba89b",
+  lineplot: "#fe6100",
+  aequorin: "#dc267f",
+  venn: "#d9a400",
+  upset: "#785ef0",
+  heatmap: "#0072b2",
+  volcano: "#d55e00",
+  power: "#dc267f",
+  molarity: "#1ba89b",
+};
+
+// Retint an icon SVG string's base blue (and the secondary violet a couple of
+// glyphs use) to the tool's accent. Glyphs with neither — e.g. volcano — pass
+// through unchanged. Used for both the size-injected `toolIcon` glyph and the
+// registry `iconSvg` strings rendered in the topbar quick-jumps. Icons drawn
+// with `currentColor` are unaffected here and instead inherit the accent from
+// the rendering element's `color`.
+export function tintIcon(svg: string, name: string): string {
+  const accent = TOOL_ACCENT[name];
+  return accent ? svg.replace(/#648FFF/gi, accent).replace(/#785EF0/gi, accent) : svg;
+}
+
 export function toolIcon(
   name: string,
   size?: number,
@@ -35,7 +65,8 @@ export function toolIcon(
   const sz = size || 22;
   const o = opts || {};
   if (!TOOL_ICONS[name]) return null;
-  const svg = TOOL_ICONS[name].replace("<svg ", '<svg width="' + sz + '" height="' + sz + '" ');
+  const sized = TOOL_ICONS[name].replace("<svg ", '<svg width="' + sz + '" height="' + sz + '" ');
+  const svg = tintIcon(sized, name);
   const pad = Math.round(sz * 0.3);
   const outerSize = sz + pad * 2;
   if (o.circle) {

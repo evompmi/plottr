@@ -485,7 +485,11 @@ input[type="range"]::-moz-range-thumb {
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  /* Slightly wider tracking reads as a deliberate section kicker, echoing
+     the landing's mono section-kickers (--accent-colour is skipped here on
+     purpose: in dark mode the dimmed accent would fail contrast as body-size
+     header text). */
+  letter-spacing: 1px;
   font-family: inherit;
 }
 

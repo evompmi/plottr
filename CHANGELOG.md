@@ -9,10 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **"Cite" pill in a landing-page footer** — a footer below the tool grid links
-  to Plöttr's Zenodo concept DOI (`10.5281/zenodo.20245057`, always the latest
-  archived release). Self-contained — no hot-linked third-party shield, so the
-  page still makes zero external requests on load.
+- **Self-hosted display + mono typefaces.** Fraunces (display — reserved for
+  the landing "Plöttr" wordmark) and IBM Plex Mono (the functional default for
+  all other chrome) are vendored as woff2 under `tools/fonts/` and declared in
+  `tools/fonts.css` (new `scripts/vendor-fonts.mjs` fetches them). No
+  third-party font request at runtime — same zero-external-call stance as the
+  SRI-pinned React bundle.
+- **Landing-page footer** — Cite (Zenodo DOI `10.5281/zenodo.20245057`,
+  always-latest) · GitHub · MIT · "cross-checked vs R + SciPy". Self-contained,
+  no hot-linked third-party shield.
+
+### Changed
+
+- **Refreshed UI language across the app.** The chrome accent moves from the
+  near-greyscale slate to Plöttr blue (`#648fff`, the brand-rune hue) via
+  `theme.css` tokens, so every tool re-skins from one place; press targets use a
+  deeper `#4a72e8` for ~4.3:1 white-text contrast (light + dark, never brighter
+  in dark). A faint accent vignette sits behind the landing and every tool page.
+- **Rebuilt landing page.** A two-column hero pairs the copy (eyebrow, big
+  Fraunces wordmark with the version as an accent chip, a statement tagline)
+  with a live grouped-boxplot **specimen** so visitors see what they'll make;
+  display-font section headers with mono kickers; a bold full-width tool-tile
+  grid where each tile carries its own tool colour (icon, hover glow, left-edge
+  accent bar); and an orchestrated page-load (the rune draws itself on, sections
+  rise in sequence) gated behind `prefers-reduced-motion`.
+- **Editorial tool shells.** Each tool's topbar (and upload-panel) icon now
+  carries that tool's accent colour, matching its landing tile — driven by a
+  central `TOOL_ACCENT` map in `_core/icons.tsx`. The shared upload screen gets
+  a bolder prompt and the sidebar section headers (`.dv-tile-title`, every tool)
+  read as confident kickers. Chart output is untouched — all 16 SVG snapshot
+  baselines unchanged.
 
 ## [1.7.0] - 2026-06-01
 

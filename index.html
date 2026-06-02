@@ -78,6 +78,7 @@
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='none' stroke='%23648FFF' stroke-width='2'/><g fill='none' stroke='%23648FFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M 13 6.5 L 13 25.5'/><path d='M 13 6.5 L 22 11.5'/><path d='M 13 13 L 22 18'/></g></svg>"
     />
+    <link rel="stylesheet" href="tools/fonts.css" />
     <link rel="stylesheet" href="tools/theme.css" />
     <link rel="stylesheet" href="tools/components.css" />
     <style>
@@ -87,7 +88,7 @@
         padding: 0;
       }
       body {
-        font-family: monospace;
+        font-family: var(--font-mono);
         background: var(--page-bg);
         background-image: radial-gradient(circle, var(--page-bg-dot) 0.8px, transparent 0.8px);
         background-size: 20px 20px;
@@ -96,15 +97,35 @@
         display: flex;
         flex-direction: column;
       }
+      /* Faint accent vignette at the top so the flat dot-grid gains depth —
+         shows on the landing and on every in-app tool page. */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background: radial-gradient(
+          120% 70% at 50% -10%,
+          var(--accent-primary-weak),
+          transparent 55%
+        );
+      }
+      .landing,
+      #root {
+        position: relative;
+        z-index: 1;
+      }
       .landing {
         flex: 1;
-        min-height: 100vh;
+        width: 100%;
+        max-width: 1080px;
+        margin: 0 auto;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 30px;
-        padding: 32px 16px;
+        align-items: stretch;
+        gap: 40px;
+        padding: 56px 24px 0;
       }
       /* SPA route toggle: when a tool is active (location.hash starts with
          "#/"), the inline IIFE near the bottom of this file sets
@@ -203,42 +224,124 @@
         margin-top: 1.2rem;
       }
       .landing-header {
-        text-align: center;
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 48px;
+        align-items: center;
+        min-height: 56vh;
       }
-      .landing-header h1 {
-        font-size: 36px;
-        font-weight: 700;
-        color: var(--text);
+      @media (max-width: 860px) {
+        .landing-header {
+          grid-template-columns: 1fr;
+          gap: 28px;
+          text-align: center;
+          min-height: auto;
+        }
+      }
+      .eyebrow {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        gap: 14px;
+        gap: 8px;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        margin-bottom: 22px;
+      }
+      .eyebrow .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent-primary);
+        box-shadow: 0 0 0 4px var(--accent-primary-weak);
+      }
+      .specimen {
+        position: relative;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px 20px 16px;
+        box-shadow:
+          0 1px 2px rgba(24, 24, 31, 0.04),
+          0 10px 30px rgba(24, 24, 31, 0.07);
+      }
+      .specimen svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      @media (max-width: 860px) {
+        /* Hero stacks to one column; the decorative specimen chart is hidden
+           rather than squeezed under the copy. The calculators-only mobile
+           layout and its centring live in the max-width: 900px block below. */
+        .specimen {
+          display: none;
+        }
+      }
+      .landing-header h1 {
+        font-family: var(--font-display);
+        font-optical-sizing: auto;
+        font-size: clamp(52px, 7vw, 84px);
+        font-weight: 900;
+        line-height: 0.95;
+        letter-spacing: -0.02em;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+      @media (max-width: 860px) {
+        .landing-header h1 {
+          justify-content: center;
+        }
       }
       .landing-header .brand-rune {
-        width: 40px;
-        height: 40px;
+        width: 56px;
+        height: 56px;
         flex-shrink: 0;
-        color: var(--text);
+        color: var(--accent-primary);
       }
       .landing-header .version {
-        font-size: 11px;
-        font-weight: 400;
-        color: var(--text-faint);
-        vertical-align: super;
-        margin-left: 4px;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--accent-primary);
+        background: var(--accent-primary-weak);
+        padding: 2px 8px;
+        border-radius: 6px;
+        vertical-align: middle;
+        margin-left: 6px;
       }
       .landing-header .tagline {
-        margin-top: 8px;
-        font-size: 13px;
-        color: var(--text-faint);
-        font-style: italic;
+        font-family: var(--font-mono);
+        font-size: clamp(15px, 1.7vw, 18px);
+        line-height: 1.5;
+        color: var(--text-muted);
+        max-width: 46ch;
+        margin-bottom: 26px;
+      }
+      @media (max-width: 860px) {
+        .landing-header .tagline {
+          margin-left: auto;
+          margin-right: auto;
+        }
+      }
+      .landing-header .tagline b {
+        font-weight: 600;
+        font-style: normal;
+        color: var(--text);
       }
       .trust-badges {
-        margin-top: 14px;
-        display: grid;
-        grid-template-columns: max-content;
-        justify-content: center;
-        gap: 6px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      @media (max-width: 860px) {
+        .trust-badges {
+          justify-content: center;
+        }
       }
       .trust-badge {
         display: inline-flex;
@@ -271,18 +374,99 @@
       }
       .landing-footer {
         margin-top: 44px;
-        padding-top: 24px;
+        padding-top: 20px;
+        padding-bottom: 8px;
         border-top: 1px solid var(--border);
         display: flex;
+        align-items: center;
         justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        font-size: 11.5px;
+        color: var(--text-faint);
+      }
+      .landing-footer a {
+        color: var(--text-muted);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .landing-footer a:hover {
+        color: var(--accent-primary);
+      }
+      .landing-footer svg {
+        width: 13px;
+        height: 13px;
+      }
+      .landing-footer .sep {
+        opacity: 0.4;
+      }
+
+      /* ── page-load orchestration (landing only) ───────────────────
+         The landing reveals in sequence on load: the Ansuz rune draws
+         itself on (an instrument calibrating), then each section rises
+         and fades up in turn. Fully disabled under prefers-reduced-motion,
+         where everything is shown immediately at rest. */
+      @keyframes landingRise {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes runeDraw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes runeRingIn {
+        to {
+          opacity: 1;
+        }
+      }
+      #landing > * {
+        opacity: 0;
+        animation: landingRise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+      }
+      #landing > *:nth-child(1) {
+        animation-delay: 0.05s;
+      }
+      #landing > *:nth-child(2) {
+        animation-delay: 0.14s;
+      }
+      #landing > *:nth-child(3) {
+        animation-delay: 0.22s;
+      }
+      #landing > *:nth-child(n + 4) {
+        animation-delay: 0.3s;
+      }
+      .brand-rune .rune-ring {
+        opacity: 0;
+        animation: runeRingIn 0.5s ease forwards 0.1s;
+      }
+      .brand-rune .rune-stroke {
+        stroke-dasharray: 60;
+        stroke-dashoffset: 60;
+        animation: runeDraw 0.7s cubic-bezier(0.65, 0, 0.35, 1) forwards 0.22s;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #landing > *,
+        .brand-rune .rune-ring,
+        .brand-rune .rune-stroke {
+          animation: none;
+          opacity: 1;
+          stroke-dashoffset: 0;
+        }
       }
       .how-it-works {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        max-width: 640px;
-        padding: 0 12px;
+        align-items: flex-start;
+        gap: 12px;
       }
       .how-it-works .hiw-label {
         font-size: 10px;
@@ -294,9 +478,9 @@
       .hiw-steps {
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         flex-wrap: wrap;
-        gap: 4px;
+        gap: 8px;
       }
       .hiw-step {
         display: inline-flex;
@@ -325,60 +509,93 @@
       .hiw-arrow {
         color: var(--text-faint);
         font-size: 12px;
-        margin: 0 2px;
       }
       .tile-groups {
         display: flex;
         flex-direction: column;
-        gap: 28px;
-        align-items: center;
+        gap: 30px;
+        align-items: stretch;
       }
       .tile-group-label {
-        font-size: 11px;
+        font-family: var(--font-mono);
+        font-size: 14px;
         font-weight: 600;
-        color: var(--text-faint);
+        color: var(--text);
+        letter-spacing: 0.01em;
+        margin-bottom: -10px;
+      }
+      .tile-group-label .tg-kicker {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 1.6px;
         text-transform: uppercase;
-        letter-spacing: 1.5px;
-        margin-bottom: -8px;
+        color: var(--accent-primary);
+        margin-bottom: 3px;
       }
       .tiles {
         display: grid;
-        grid-template-columns: repeat(4, 150px);
+        grid-template-columns: repeat(4, 1fr);
         gap: 14px;
-        justify-content: center;
+        width: 100%;
       }
-      .tiles.tiles-narrow {
-        grid-template-columns: repeat(2, 150px);
-      }
+      /* Calculators reuse the same 4-column track as the plot grid so every
+         tile is identical width — the two calculator tiles simply fill the
+         first two columns and leave the rest empty, rather than stretching to
+         their own wider 2-up grid. */
       @media (max-width: 700px) {
         .tiles {
-          grid-template-columns: repeat(2, 150px);
+          grid-template-columns: repeat(2, 1fr);
         }
       }
       .tile {
-        width: 150px;
-        height: 130px;
+        --tile-accent: var(--accent-primary);
+        position: relative;
+        overflow: hidden;
+        min-height: 138px;
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 12px;
+        border-radius: 14px;
+        padding: 22px 14px 18px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 8px;
+        gap: 10px;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition:
+          transform 0.2s cubic-bezier(0.2, 0.7, 0.2, 1),
+          border-color 0.2s ease,
+          box-shadow 0.2s ease;
         text-decoration: none;
         color: inherit;
         font-family: inherit;
       }
+      /* Signature accent bar — wipes down the left edge on hover, tinted to
+         each tile's own tool colour (--tile-accent, set inline per tile). */
+      .tile::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--tile-accent);
+        transform: scaleY(0);
+        transform-origin: top;
+        transition: transform 0.22s ease;
+      }
       .tile:hover {
-        border-color: var(--accent-primary);
-        box-shadow: 0 6px 20px rgba(100, 143, 255, 0.15);
-        transform: translateY(-4px);
+        border-color: color-mix(in srgb, var(--tile-accent) 45%, var(--border));
+        box-shadow: 0 12px 28px color-mix(in srgb, var(--tile-accent) 14%, transparent);
+        transform: translateY(-6px);
+      }
+      .tile:hover::before {
+        transform: scaleY(1);
       }
       .tile:focus-visible {
-        outline: 2px solid var(--accent-primary);
+        outline: 2px solid var(--tile-accent);
         outline-offset: 2px;
       }
       .tile-icon {
@@ -386,13 +603,21 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        color: var(--tile-accent);
+        /* Mute the per-tile colour at rest so the grid reads calm/serious;
+           the full accent comes up on hover. */
+        opacity: 0.72;
+        transition: opacity 0.2s ease;
+      }
+      .tile:hover .tile-icon {
+        opacity: 1;
       }
       .tile-icon svg {
-        width: 34px;
-        height: 34px;
+        width: 38px;
+        height: 38px;
       }
       .tile-label {
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 600;
         color: var(--text);
       }
@@ -498,6 +723,19 @@
         border-color: var(--accent-primary);
         color: var(--accent-primary);
         background: var(--surface-subtle);
+      }
+      /* Tool quick-jumps carry a per-tool accent (inline color); mute them at
+         rest so the topbar reads calm, full colour on hover — mirroring the
+         muted-at-rest landing tiles. */
+      .tool-topbar .tb-icon-btn[data-tool] {
+        opacity: 0.82;
+        transition:
+          opacity 0.15s,
+          border-color 0.15s,
+          background 0.15s;
+      }
+      .tool-topbar .tb-icon-btn[data-tool]:hover {
+        opacity: 1;
       }
       .tb-icon-btn:focus-visible {
         outline: 2px solid var(--accent-primary);
@@ -635,6 +873,21 @@
         .how-it-works {
           display: none;
         }
+        /* Calculators-only mobile layout: centre the surviving group and
+           constrain the two calculator tiles to the same 314px width as the
+           hint banner below, so tiles + banner line up and centre together
+           (the desktop grid stretches them full-width). */
+        .tile-groups {
+          align-items: center;
+        }
+        .tile-group-label {
+          text-align: center;
+        }
+        .tiles.tiles-narrow {
+          grid-template-columns: repeat(2, 1fr);
+          width: 314px;
+          max-width: 100%;
+        }
         .mobile-hint {
           display: block;
           /* Width matches the 2-column tile grid (2 × 150 px tiles + 14 px
@@ -730,76 +983,188 @@
     ></button>
     <div class="landing" id="landing">
       <div class="landing-header">
-        <h1>
-          <svg
-            class="brand-rune"
-            viewBox="0 0 32 32"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <title>Ansuz rune</title>
-            <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2" />
-            <g
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+        <div class="hero-copy">
+          <div class="eyebrow">
+            <span class="dot"></span>Browser-only · no install · your data stays put
+          </div>
+          <h1>
+            <svg
+              class="brand-rune"
+              viewBox="0 0 32 32"
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
             >
-              <path d="M 13 6.5 L 13 25.5" />
-              <path d="M 13 6.5 L 22 11.5" />
-              <path d="M 13 13 L 22 18" />
-            </g>
-          </svg>
-          <span>Plöttr<span class="version" id="app-version">dev</span></span>
-        </h1>
-        <div class="tagline">— Paste, plot, publish —</div>
-        <div class="trust-badges">
-          <a
-            href="benchmark.html"
-            class="trust-badge"
-            data-benchmark-link
-            title="Cross-checked vs R 4.5 + SciPy 1.17 — see the public benchmark"
-          >
-            <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path
-                d="M2.5 6.5 L5 9 L9.5 3"
+              <title>Ansuz rune</title>
+              <circle
+                class="rune-ring"
+                cx="16"
+                cy="16"
+                r="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <g
+                fill="none"
                 stroke="currentColor"
                 stroke-width="1.8"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                class="trust-badge-stats"
-              />
+              >
+                <path class="rune-stroke" d="M 13 6.5 L 13 25.5" />
+                <path class="rune-stroke" d="M 13 6.5 L 22 11.5" />
+                <path class="rune-stroke" d="M 13 13 L 22 18" />
+              </g>
             </svg>
-            Validated against R + SciPy
-          </a>
-          <a
-            href="privacy.html"
-            class="trust-badge"
-            data-benchmark-link
-            title="No uploads, no tracking — see the data-flow diagram"
-          >
-            <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path
-                d="M3 5.5 V4 a3 3 0 0 1 6 0 V5.5"
-                stroke="currentColor"
-                stroke-width="1.3"
-                stroke-linecap="round"
-                fill="none"
-              />
+            <span>Plöttr<span class="version" id="app-version">dev</span></span>
+          </h1>
+          <p class="tagline">
+            Paste a spreadsheet. Get a <b>publication-ready figure</b> — and the <b>R code</b> for
+            the statistics behind it.
+          </p>
+          <div class="trust-badges">
+            <a
+              href="benchmark.html"
+              class="trust-badge"
+              data-benchmark-link
+              title="Cross-checked vs R 4.5 + SciPy 1.17 — see the public benchmark"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M2.5 6.5 L5 9 L9.5 3"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="trust-badge-stats"
+                />
+              </svg>
+              Validated against R + SciPy
+            </a>
+            <a
+              href="privacy.html"
+              class="trust-badge"
+              data-benchmark-link
+              title="No uploads, no tracking — see the data-flow diagram"
+            >
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M3 5.5 V4 a3 3 0 0 1 6 0 V5.5"
+                  stroke="currentColor"
+                  stroke-width="1.3"
+                  stroke-linecap="round"
+                  fill="none"
+                />
+                <rect
+                  x="2.5"
+                  y="5.5"
+                  width="7"
+                  height="5"
+                  rx="1"
+                  stroke="currentColor"
+                  stroke-width="1.3"
+                  fill="none"
+                />
+              </svg>
+              Data stays in your browser
+            </a>
+          </div>
+        </div>
+
+        <div class="specimen" aria-hidden="true">
+          <svg viewBox="0 0 340 250" role="img">
+            <line x1="44" y1="20" x2="44" y2="210" stroke="var(--border-strong)" stroke-width="1" />
+            <line
+              x1="44"
+              y1="210"
+              x2="320"
+              y2="210"
+              stroke="var(--border-strong)"
+              stroke-width="1"
+            />
+            <!-- Control (blue) -->
+            <g>
+              <line x1="98" y1="150" x2="98" y2="178" stroke="#648fff" stroke-width="1.4" />
+              <line x1="98" y1="92" x2="98" y2="120" stroke="#648fff" stroke-width="1.4" />
               <rect
-                x="2.5"
-                y="5.5"
-                width="7"
-                height="5"
-                rx="1"
-                stroke="currentColor"
-                stroke-width="1.3"
-                fill="none"
+                x="80"
+                y="120"
+                width="36"
+                height="30"
+                rx="2"
+                fill="#648fff"
+                fill-opacity="0.15"
+                stroke="#648fff"
+                stroke-width="1.6"
               />
-            </svg>
-            Data stays in your browser
-          </a>
+              <line x1="80" y1="136" x2="116" y2="136" stroke="#648fff" stroke-width="2" />
+              <circle cx="92" cy="134" r="2.4" fill="#648fff" fill-opacity="0.55" />
+              <circle cx="104" cy="128" r="2.4" fill="#648fff" fill-opacity="0.55" />
+              <circle cx="106" cy="141" r="2.4" fill="#648fff" fill-opacity="0.55" />
+            </g>
+            <!-- Drug A (indigo) -->
+            <g>
+              <line x1="182" y1="120" x2="182" y2="150" stroke="#785ef0" stroke-width="1.4" />
+              <line x1="182" y1="64" x2="182" y2="92" stroke="#785ef0" stroke-width="1.4" />
+              <rect
+                x="164"
+                y="92"
+                width="36"
+                height="28"
+                rx="2"
+                fill="#785ef0"
+                fill-opacity="0.15"
+                stroke="#785ef0"
+                stroke-width="1.6"
+              />
+              <line x1="164" y1="104" x2="200" y2="104" stroke="#785ef0" stroke-width="2" />
+              <circle cx="176" cy="100" r="2.4" fill="#785ef0" fill-opacity="0.55" />
+              <circle cx="188" cy="112" r="2.4" fill="#785ef0" fill-opacity="0.55" />
+            </g>
+            <!-- Drug B (magenta) -->
+            <g>
+              <line x1="266" y1="86" x2="266" y2="116" stroke="#dc267f" stroke-width="1.4" />
+              <line x1="266" y1="36" x2="266" y2="60" stroke="#dc267f" stroke-width="1.4" />
+              <rect
+                x="248"
+                y="60"
+                width="36"
+                height="26"
+                rx="2"
+                fill="#dc267f"
+                fill-opacity="0.15"
+                stroke="#dc267f"
+                stroke-width="1.6"
+              />
+              <line x1="248" y1="72" x2="284" y2="72" stroke="#dc267f" stroke-width="2" />
+              <circle cx="260" cy="68" r="2.4" fill="#dc267f" fill-opacity="0.55" />
+              <circle cx="272" cy="78" r="2.4" fill="#dc267f" fill-opacity="0.55" />
+            </g>
+            <!-- significance bracket -->
+            <g stroke="var(--text-muted)" stroke-width="1" fill="none">
+              <path d="M98 30 L98 24 L266 24 L266 30" />
+            </g>
+            <text
+              x="182"
+              y="20"
+              text-anchor="middle"
+              font-family="var(--font-mono)"
+              font-size="11"
+              fill="var(--text-muted)"
+            >
+              ✱✱✱
+            </text>
+            <g
+              font-family="var(--font-mono)"
+              font-size="9.5"
+              fill="var(--text-muted)"
+              text-anchor="middle"
+            >
+              <text x="98" y="224">Control</text>
+              <text x="182" y="224">Drug A</text>
+              <text x="266" y="224">Drug B</text>
+            </g>
+          </svg>
         </div>
       </div>
       <div class="how-it-works" aria-label="How every plot tool works">
@@ -815,14 +1180,16 @@
         </div>
       </div>
       <div class="tile-groups">
-        <span class="tile-group-label plots-label">Plots</span>
+        <span class="tile-group-label plots-label"
+          ><span class="tg-kicker">Plots</span>Eight chart types, one paste away</span
+        >
         <div class="tiles plots-tiles">
-          <button class="tile" data-tool="boxplot">
+          <button class="tile" data-tool="boxplot" style="--tile-accent: #648fff">
             <span class="tile-icon"
               ><svg
                 viewBox="0 0 44 44"
                 fill="none"
-                stroke="#648FFF"
+                stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -834,7 +1201,7 @@
                   width="8"
                   height="22"
                   rx="1"
-                  fill="#648FFF"
+                  fill="currentColor"
                   fill-opacity="0.15"
                 />
                 <line x1="8" y1="12" x2="8" y2="20" />
@@ -850,7 +1217,7 @@
                   width="8"
                   height="16"
                   rx="1"
-                  fill="#648FFF"
+                  fill="currentColor"
                   fill-opacity="0.15"
                 />
                 <line x1="36" y1="18" x2="36" y2="26" /></svg
@@ -858,9 +1225,9 @@
             <span class="tile-label">Group Plot</span>
             <span class="tile-desc">Box / violin / bar<br />with stats &amp; facets</span>
           </button>
-          <button class="tile" data-tool="scatter">
+          <button class="tile" data-tool="scatter" style="--tile-accent: #1ba89b">
             <span class="tile-icon"
-              ><svg viewBox="0 0 44 44" fill="#648FFF" stroke="none">
+              ><svg viewBox="0 0 44 44" fill="currentColor" stroke="none">
                 <circle cx="10" cy="30" r="3" />
                 <circle cx="16" cy="22" r="2.5" />
                 <circle cx="24" cy="26" r="3.5" />
@@ -872,31 +1239,31 @@
             <span class="tile-label">Scatter Plot</span>
             <span class="tile-desc">XY with color<br />&amp; size mapping</span>
           </button>
-          <button class="tile" data-tool="lineplot">
+          <button class="tile" data-tool="lineplot" style="--tile-accent: #fe6100">
             <span class="tile-icon"
               ><svg
                 viewBox="0 0 44 44"
                 fill="none"
-                stroke="#648FFF"
+                stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
                 <polyline points="6,34 16,24 26,28 36,12" />
-                <circle cx="6" cy="34" r="2.5" fill="#648FFF" />
-                <circle cx="16" cy="24" r="2.5" fill="#648FFF" />
-                <circle cx="26" cy="28" r="2.5" fill="#648FFF" />
-                <circle cx="36" cy="12" r="2.5" fill="#648FFF" /></svg
+                <circle cx="6" cy="34" r="2.5" fill="currentColor" />
+                <circle cx="16" cy="24" r="2.5" fill="currentColor" />
+                <circle cx="26" cy="28" r="2.5" fill="currentColor" />
+                <circle cx="36" cy="12" r="2.5" fill="currentColor" /></svg
             ></span>
             <span class="tile-label">Line Plot</span>
             <span class="tile-desc">Profile plot<br />mean &#xB1; error by group</span>
           </button>
-          <button class="tile" data-tool="aequorin">
+          <button class="tile" data-tool="aequorin" style="--tile-accent: #dc267f">
             <span class="tile-icon"
               ><svg
                 viewBox="0 0 44 44"
                 fill="none"
-                stroke="#648FFF"
+                stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -908,22 +1275,28 @@
             <span class="tile-label">RLU Timecourse</span>
             <span class="tile-desc">Optional Ca&#xB2;&#x207A;<br />calibration</span>
           </button>
-          <button class="tile" data-tool="venn">
+          <button class="tile" data-tool="venn" style="--tile-accent: #d9a400">
             <span class="tile-icon"
               ><svg viewBox="0 0 44 44" fill="none" stroke-width="1.5">
-                <circle cx="16" cy="20" r="12" stroke="#648FFF" fill="rgba(100,143,255,0.12)" />
+                <circle
+                  cx="16"
+                  cy="20"
+                  r="12"
+                  stroke="currentColor"
+                  fill="rgba(100,143,255,0.12)"
+                />
                 <circle cx="28" cy="20" r="12" stroke="#785EF0" fill="rgba(120,94,240,0.12)" /></svg
             ></span>
             <span class="tile-label">Venn Diagram</span>
             <span class="tile-desc">Set overlaps<br />2&#x2013;3 sets</span>
           </button>
-          <button class="tile" data-tool="upset">
+          <button class="tile" data-tool="upset" style="--tile-accent: #785ef0">
             <span class="tile-icon"
               ><svg viewBox="0 0 44 44" fill="none" stroke="none">
-                <rect x="10" y="4" width="4" height="10" fill="#648FFF" />
-                <rect x="18" y="7" width="4" height="7" fill="#648FFF" />
-                <rect x="26" y="10" width="4" height="4" fill="#648FFF" />
-                <rect x="34" y="11" width="4" height="3" fill="#648FFF" />
+                <rect x="10" y="4" width="4" height="10" fill="currentColor" />
+                <rect x="18" y="7" width="4" height="7" fill="currentColor" />
+                <rect x="26" y="10" width="4" height="4" fill="currentColor" />
+                <rect x="34" y="11" width="4" height="3" fill="currentColor" />
                 <line x1="12" y1="22" x2="12" y2="36" stroke="currentColor" stroke-width="1.5" />
                 <line x1="20" y1="22" x2="20" y2="36" stroke="currentColor" stroke-width="1.5" />
                 <circle cx="12" cy="22" r="2.5" fill="currentColor" />
@@ -942,23 +1315,23 @@
             <span class="tile-label">UpSet Plot</span>
             <span class="tile-desc">Set overlaps<br />4+ sets</span>
           </button>
-          <button class="tile" data-tool="heatmap">
+          <button class="tile" data-tool="heatmap" style="--tile-accent: #0072b2">
             <span class="tile-icon"
               ><svg viewBox="0 0 44 44" fill="none" stroke="none">
-                <rect x="6" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.2" />
-                <rect x="17" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.5" />
-                <rect x="28" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.8" />
-                <rect x="6" y="17" width="10" height="10" fill="#648FFF" fill-opacity="0.5" />
-                <rect x="17" y="17" width="10" height="10" fill="#648FFF" fill-opacity="0.8" />
+                <rect x="6" y="6" width="10" height="10" fill="currentColor" fill-opacity="0.2" />
+                <rect x="17" y="6" width="10" height="10" fill="currentColor" fill-opacity="0.5" />
+                <rect x="28" y="6" width="10" height="10" fill="currentColor" fill-opacity="0.8" />
+                <rect x="6" y="17" width="10" height="10" fill="currentColor" fill-opacity="0.5" />
+                <rect x="17" y="17" width="10" height="10" fill="currentColor" fill-opacity="0.8" />
                 <rect x="28" y="17" width="10" height="10" fill="#785EF0" fill-opacity="0.6" />
-                <rect x="6" y="28" width="10" height="10" fill="#648FFF" fill-opacity="0.8" />
+                <rect x="6" y="28" width="10" height="10" fill="currentColor" fill-opacity="0.8" />
                 <rect x="17" y="28" width="10" height="10" fill="#785EF0" fill-opacity="0.6" />
                 <rect x="28" y="28" width="10" height="10" fill="#785EF0" /></svg
             ></span>
             <span class="tile-label">Heatmap</span>
             <span class="tile-desc">Matrix view<br />with clustering</span>
           </button>
-          <button class="tile" data-tool="volcano">
+          <button class="tile" data-tool="volcano" style="--tile-accent: #d55e00">
             <span class="tile-icon"
               ><svg viewBox="0 0 44 44" fill="none">
                 <line
@@ -995,14 +1368,16 @@
             >
           </button>
         </div>
-        <span class="tile-group-label">Statistics &amp; Calculators</span>
+        <span class="tile-group-label"
+          ><span class="tg-kicker">Statistics &amp; Calculators</span>Quick math at the bench</span
+        >
         <div class="tiles tiles-narrow">
-          <button class="tile" data-tool="power">
+          <button class="tile" data-tool="power" style="--tile-accent: #dc267f">
             <span class="tile-icon"
               ><svg
                 viewBox="0 0 44 44"
                 fill="none"
-                stroke="#648FFF"
+                stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -1023,12 +1398,12 @@
             <span class="tile-label">Power Analysis</span>
             <span class="tile-desc">Sample size &amp; power<br />for t, ANOVA, &chi;&sup2;, r</span>
           </button>
-          <button class="tile" data-tool="molarity">
+          <button class="tile" data-tool="molarity" style="--tile-accent: #1ba89b">
             <span class="tile-icon"
               ><svg
                 viewBox="0 0 44 44"
                 fill="none"
-                stroke="#648FFF"
+                stroke="currentColor"
                 stroke-width="2.5"
                 stroke-linecap="round"
               >
@@ -1036,8 +1411,8 @@
                 <line x1="13" y1="5" x2="13" y2="15" />
                 <line x1="26" y1="10" x2="36" y2="10" />
                 <line x1="8" y1="30" x2="18" y2="30" />
-                <circle cx="13" cy="25" r="1.5" fill="#648FFF" stroke="none" />
-                <circle cx="13" cy="35" r="1.5" fill="#648FFF" stroke="none" />
+                <circle cx="13" cy="25" r="1.5" fill="currentColor" stroke="none" />
+                <circle cx="13" cy="35" r="1.5" fill="currentColor" stroke="none" />
                 <line x1="28" y1="27" x2="34" y2="33" />
                 <line x1="34" y1="27" x2="28" y2="33" /></svg
             ></span>
@@ -1054,7 +1429,6 @@
       <footer class="landing-footer">
         <a
           href="https://doi.org/10.5281/zenodo.20245057"
-          class="trust-badge"
           target="_blank"
           rel="noopener"
           title="Archived on Zenodo — cite Plöttr via DOI 10.5281/zenodo.20245057"
@@ -1062,14 +1436,19 @@
           <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
             <path
               d="M3.5 2.5 H8 a1 1 0 0 1 1 1 V9.5 H4.5 a1 1 0 0 0 -1 1 V2.5 z"
-              stroke="currentColor"
+              stroke="var(--accent-primary)"
               stroke-width="1.1"
               stroke-linejoin="round"
-              class="trust-badge-stats"
             />
           </svg>
-          Cite
+          Cite — Zenodo DOI
         </a>
+        <span class="sep">·</span>
+        <a href="https://github.com/evompmi/plottr" target="_blank" rel="noopener">GitHub</a>
+        <span class="sep">·</span>
+        <span>MIT licensed</span>
+        <span class="sep">·</span>
+        <span>Cross-checked vs R 4.5 + SciPy 1.17</span>
       </footer>
     </div>
 
