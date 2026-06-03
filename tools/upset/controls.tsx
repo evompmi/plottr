@@ -7,6 +7,7 @@ import {
   ColorInput,
   DownloadTiles,
   NumberInput,
+  OnOffToggle,
   PlotSidebar,
   SliderControl,
   scrollDisclosureIntoView,
@@ -319,77 +320,19 @@ export function PlotControls({
         />
         <div>
           <div className="dv-label">Intersection size labels</div>
-          <div
-            style={{
-              display: "flex",
-              borderRadius: 6,
-              overflow: "hidden",
-              border: "1px solid var(--border-strong)",
-            }}
-          >
-            {(["off", "on"] as const).map((mode) => {
-              const on = vis.showIntersectionLabels !== false;
-              const active = mode === "on" ? on : !on;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => updVis({ showIntersectionLabels: mode === "on" })}
-                  style={{
-                    flex: 1,
-                    padding: "4px 0",
-                    fontSize: 11,
-                    fontWeight: active ? 700 : 400,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    border: "none",
-                    background: active ? "var(--accent-primary)" : "var(--surface)",
-                    color: active ? "var(--on-accent)" : "var(--text-muted)",
-                    transition: "background 120ms ease, color 120ms ease",
-                  }}
-                >
-                  {mode === "off" ? "Off" : "On"}
-                </button>
-              );
-            })}
-          </div>
+          <OnOffToggle
+            value={vis.showIntersectionLabels !== false}
+            onChange={(v) => updVis({ showIntersectionLabels: v })}
+            ariaLabel="Intersection size labels"
+          />
         </div>
         <div>
           <div className="dv-label">Set size labels</div>
-          <div
-            style={{
-              display: "flex",
-              borderRadius: 6,
-              overflow: "hidden",
-              border: "1px solid var(--border-strong)",
-            }}
-          >
-            {(["off", "on"] as const).map((mode) => {
-              const on = vis.showSetSizeLabels !== false;
-              const active = mode === "on" ? on : !on;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => updVis({ showSetSizeLabels: mode === "on" })}
-                  style={{
-                    flex: 1,
-                    padding: "4px 0",
-                    fontSize: 11,
-                    fontWeight: active ? 700 : 400,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    border: "none",
-                    background: active ? "var(--accent-primary)" : "var(--surface)",
-                    color: active ? "var(--on-accent)" : "var(--text-muted)",
-                    transition: "background 120ms ease, color 120ms ease",
-                  }}
-                >
-                  {mode === "off" ? "Off" : "On"}
-                </button>
-              );
-            })}
-          </div>
+          <OnOffToggle
+            value={vis.showSetSizeLabels !== false}
+            onChange={(v) => updVis({ showSetSizeLabels: v })}
+            ariaLabel="Set size labels"
+          />
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span className="dv-label">Background</span>

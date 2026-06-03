@@ -10,7 +10,9 @@ import {
   ColorInput,
   DiscretePaletteRow,
   GroupColorEditor,
+  OnOffToggle,
   PlotSidebar,
+  SegToggle,
   SliderControl,
   applyDiscretePalette,
   scrollDisclosureIntoView,
@@ -205,7 +207,11 @@ export function PlotControls({
       >
         <div>
           <div className="dv-label">Plot style</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4 }}>
+          <div
+            role="group"
+            aria-label="Plot style"
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4 }}
+          >
             {(
               [
                 {
@@ -335,6 +341,7 @@ export function PlotControls({
                 <button
                   key={key}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => updVis({ plotStyle: key })}
                   style={{
                     display: "flex",
@@ -364,39 +371,13 @@ export function PlotControls({
         </div>
         <div>
           <div className="dv-label">Orientation</div>
-          <div
-            style={{
-              display: "flex",
-              borderRadius: 6,
-              overflow: "hidden",
-              border: "1px solid var(--border-strong)",
-            }}
-          >
-            {(["vertical", "horizontal"] as const).map((mode) => {
-              const active = mode === "horizontal" ? vis.horizontal : !vis.horizontal;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => updVis({ horizontal: mode === "horizontal" })}
-                  style={{
-                    flex: 1,
-                    padding: "4px 0",
-                    fontSize: 11,
-                    fontWeight: active ? 700 : 400,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    border: "none",
-                    background: active ? "var(--accent-primary)" : "var(--surface)",
-                    color: active ? "var(--on-accent)" : "var(--text-muted)",
-                    transition: "background 120ms ease, color 120ms ease",
-                  }}
-                >
-                  {mode === "vertical" ? "Vertical" : "Horizontal"}
-                </button>
-              );
-            })}
-          </div>
+          <OnOffToggle
+            value={vis.horizontal}
+            onChange={(v) => updVis({ horizontal: v })}
+            offLabel="Vertical"
+            onLabel="Horizontal"
+            ariaLabel="Orientation"
+          />
         </div>
       </div>
 
@@ -443,23 +424,17 @@ export function PlotControls({
             />
             <div>
               <div className="dv-label">Error bars</div>
-              <div className="dv-seg" role="group" aria-label="Error bars">
-                {(["none", "sem", "sd", "ci95"] as const).map((mode) => {
-                  const active = vis.errorType === mode;
-                  const label =
-                    mode === "none" ? "None" : mode === "ci95" ? "95% CI" : mode.toUpperCase();
-                  return (
-                    <button
-                      key={mode}
-                      type="button"
-                      className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
-                      onClick={() => updVis({ errorType: mode })}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
+              <SegToggle<string>
+                ariaLabel="Error bars"
+                value={vis.errorType}
+                onChange={(v) => updVis({ errorType: v })}
+                options={[
+                  { value: "none", label: "None" },
+                  { value: "sem", label: "SEM" },
+                  { value: "sd", label: "SD" },
+                  { value: "ci95", label: "95% CI" },
+                ]}
+              />
             </div>
             {vis.errorType !== "none" && (
               <SliderControl
@@ -474,26 +449,11 @@ export function PlotControls({
             )}
             <div>
               <div className="dv-label">Bar outline</div>
-              <div className="dv-seg" role="group" aria-label="Bar outline">
-                {(
-                  [
-                    [false, "Off"],
-                    [true, "On"],
-                  ] as const
-                ).map(([value, label]) => {
-                  const active = !!vis.showBarOutline === value;
-                  return (
-                    <button
-                      key={String(value)}
-                      type="button"
-                      className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
-                      onClick={() => updVis({ showBarOutline: value })}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
+              <OnOffToggle
+                value={vis.showBarOutline}
+                onChange={(v) => updVis({ showBarOutline: v })}
+                ariaLabel="Bar outline"
+              />
             </div>
             {vis.showBarOutline && (
               <>
@@ -534,39 +494,11 @@ export function PlotControls({
       <ControlSection title="Data points">
         <div>
           <div className="dv-label">Show points</div>
-          <div
-            style={{
-              display: "flex",
-              borderRadius: 6,
-              overflow: "hidden",
-              border: "1px solid var(--border-strong)",
-            }}
-          >
-            {(["off", "on"] as const).map((mode) => {
-              const active = mode === "on" ? vis.showPoints : !vis.showPoints;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => updVis({ showPoints: mode === "on" })}
-                  style={{
-                    flex: 1,
-                    padding: "4px 0",
-                    fontSize: 11,
-                    fontWeight: active ? 700 : 400,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    border: "none",
-                    background: active ? "var(--accent-primary)" : "var(--surface)",
-                    color: active ? "var(--on-accent)" : "var(--text-muted)",
-                    transition: "background 120ms ease, color 120ms ease",
-                  }}
-                >
-                  {mode === "off" ? "Off" : "On"}
-                </button>
-              );
-            })}
-          </div>
+          <OnOffToggle
+            value={vis.showPoints}
+            onChange={(v) => updVis({ showPoints: v })}
+            ariaLabel="Show points"
+          />
         </div>
         {vis.showPoints && (
           <>
@@ -589,39 +521,11 @@ export function PlotControls({
             {colorByCol >= 0 && (
               <div>
                 <div className="dv-label">Composition pies</div>
-                <div
-                  style={{
-                    display: "flex",
-                    borderRadius: 6,
-                    overflow: "hidden",
-                    border: "1px solid var(--border-strong)",
-                  }}
-                >
-                  {(["off", "on"] as const).map((mode) => {
-                    const active = mode === "on" ? vis.showCompPie : !vis.showCompPie;
-                    return (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => updVis({ showCompPie: mode === "on" })}
-                        style={{
-                          flex: 1,
-                          padding: "4px 0",
-                          fontSize: 11,
-                          fontWeight: active ? 700 : 400,
-                          fontFamily: "inherit",
-                          cursor: "pointer",
-                          border: "none",
-                          background: active ? "var(--accent-primary)" : "var(--surface)",
-                          color: active ? "var(--on-accent)" : "var(--text-muted)",
-                          transition: "background 120ms ease, color 120ms ease",
-                        }}
-                      >
-                        {mode === "off" ? "Off" : "On"}
-                      </button>
-                    );
-                  })}
-                </div>
+                <OnOffToggle
+                  value={vis.showCompPie}
+                  onChange={(v) => updVis({ showCompPie: v })}
+                  ariaLabel="Composition pies"
+                />
               </div>
             )}
             {colorByCol >= 0 && (
@@ -773,28 +677,17 @@ export function PlotControls({
         </div>
         <div>
           <div className="dv-label">Y scale</div>
-          <div className="dv-seg" role="group" aria-label="Y scale">
-            {(
-              [
-                ["linear", "Linear"],
-                ["log10", "Log\u2081\u2080"],
-                ["log2", "Log\u2082"],
-                ["ln", "Ln"],
-              ] as const
-            ).map(([value, label]) => {
-              const active = (vis.yScale || "linear") === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
-                  onClick={() => updVis({ yScale: value })}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+          <SegToggle<string>
+            ariaLabel="Y scale"
+            value={vis.yScale || "linear"}
+            onChange={(v) => updVis({ yScale: v })}
+            options={[
+              { value: "linear", label: "Linear" },
+              { value: "log10", label: "Log\u2081\u2080" },
+              { value: "log2", label: "Log\u2082" },
+              { value: "ln", label: "Ln" },
+            ]}
+          />
         </div>
         <SliderControl
           label="Group label angle"

@@ -3,6 +3,7 @@
 // plot tool's sidebar.
 
 import { ColorInput } from "./ColorInput";
+import { OnOffToggle } from "./SegToggle";
 
 const h = React.createElement;
 
@@ -36,41 +37,7 @@ export function BaseStyleControls(props: BaseStyleControlsProps) {
       "div",
       { key: "grid" },
       h("span", { className: "dv-label" }, "Grid"),
-      h(
-        "div",
-        {
-          style: {
-            display: "flex",
-            borderRadius: 6,
-            overflow: "hidden",
-            border: "1px solid var(--border-strong)",
-          },
-        },
-        ["off", "on"].map((mode) => {
-          const active = mode === "on" ? showGrid : !showGrid;
-          return h(
-            "button",
-            {
-              key: mode,
-              type: "button",
-              onClick: () => onShowGridChange(mode === "on"),
-              style: {
-                flex: 1,
-                padding: "4px 0",
-                fontSize: 11,
-                fontWeight: active ? 700 : 400,
-                fontFamily: "inherit",
-                cursor: "pointer",
-                border: "none",
-                background: active ? "var(--accent-primary)" : "var(--surface)",
-                color: active ? "var(--on-accent)" : "var(--text-muted)",
-                transition: "background 120ms ease, color 120ms ease",
-              },
-            },
-            mode === "off" ? "Off" : "On"
-          );
-        })
-      )
+      h(OnOffToggle, { value: showGrid, onChange: onShowGridChange, ariaLabel: "Grid" })
     ),
   ];
   if (showGrid) {

@@ -28,6 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Accessible, unified segmented toggles.** Introduced a shared `SegToggle` /
+  `OnOffToggle` control (the canonical `.dv-seg` chrome) and migrated the
+  inline-styled Off/On and segmented toggles that several tools had each
+  re-implemented by hand (aequorin, boxplot, scatter, upset, venn, and the
+  shared grid control). All segmented controls — including the boxplot plot-style
+  switch and the power calculator's mode/solve-for/α/power/tails selectors — now
+  expose their selected state to assistive tech via `aria-pressed`, and pick up
+  the shared focus-visible / disabled styling they previously lacked. No visual
+  change to the controls.
 - **UI consistency pass — copy & symbols.** Aligned tool names so the header,
   registry, and How-to agree ("RLU Timecourse", "UpSet Plot"); the Group Plot
   empty state now says "No groups selected" (was "conditions"); and Volcano's

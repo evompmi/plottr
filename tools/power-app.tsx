@@ -291,6 +291,7 @@ function EffectSizePanel({
               key={m}
               type="button"
               onClick={() => setMode(m)}
+              aria-pressed={active}
               className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
             >
               {m === "helper" ? "From my data" : "Direct value"}
@@ -851,6 +852,7 @@ export function App() {
                   key={key}
                   type="button"
                   onClick={() => setSolveFor(key)}
+                  aria-pressed={active}
                   className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                   style={{ fontSize: 12 }}
                 >
@@ -945,6 +947,7 @@ export function App() {
                       key={a}
                       type="button"
                       onClick={() => setAlphaInput(a)}
+                      aria-pressed={active}
                       className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                     >
                       {a}
@@ -967,6 +970,7 @@ export function App() {
                       onClick={() => setPowerInput(p)}
                       disabled={solveFor === "power"}
                       title={p === "0.80" ? "0.80 (standard)" : undefined}
+                      aria-pressed={active}
                       className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                     >
                       {p}
@@ -993,6 +997,7 @@ export function App() {
                         key={t}
                         type="button"
                         onClick={() => setTails(t)}
+                        aria-pressed={active}
                         className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                       >
                         {label}

@@ -38,6 +38,8 @@ export { PlotToolShell } from "./PlotToolShell";
 export { PrefsPanel } from "./PrefsPanel";
 export { RenameReorderPanel } from "./RenameReorderPanel";
 export { ScrollablePlotCard } from "./ScrollablePlotCard";
+export { SegToggle, OnOffToggle } from "./SegToggle";
+export type { SegOption, SegToggleProps, OnOffToggleProps } from "./SegToggle";
 export { SignificanceBrackets } from "./SignificanceBrackets";
 export { SliderControl } from "./SliderControl";
 export { StatsTable } from "./StatsTable";
