@@ -1,7 +1,7 @@
 import type { HowToContent } from "../_shell";
 export const AEQUORIN_HOWTO: HowToContent = {
   toolName: "aequorin",
-  title: "RLU timecourse — How to use",
+  title: "RLU Timecourse — How to use",
   subtitle:
     "Plot any time-series of replicates (luminescence, fluorescence, OD, …) with replicate-derived error ribbons",
   purpose: (

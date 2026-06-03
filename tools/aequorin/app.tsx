@@ -1691,7 +1691,7 @@ export function App() {
     <PlotToolShell
       state={shell}
       toolName="aequorin"
-      title="RLU timecourse"
+      title="RLU Timecourse"
       visInit={VIS_INIT_AEQUORIN}
       steps={["upload", "configure", "plot"]}
       canNavigate={canNavigate}

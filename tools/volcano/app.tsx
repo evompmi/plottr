@@ -523,8 +523,8 @@ export function App() {
     [points, vis.fcCutoff, vis.pCutoff]
   );
 
-  const xLabel = parsed && xCol >= 0 ? parsed.headers[xCol] : "log2(fold change)";
-  const yLabel = parsed && yCol >= 0 ? "−log10(" + parsed.headers[yCol] + ")" : "−log10(p-value)";
+  const xLabel = parsed && xCol >= 0 ? parsed.headers[xCol] : "log₂(fold change)";
+  const yLabel = parsed && yCol >= 0 ? "−log₁₀(" + parsed.headers[yCol] + ")" : "−log₁₀(p-value)";
 
   // Derived aesthetic mappings — null when the tile is toggled Off,
   // populated otherwise. The chart consumes `colorByIdx` / `radiusByIdx`

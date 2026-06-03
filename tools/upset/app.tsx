@@ -604,7 +604,7 @@ export function App() {
     <PlotToolShell
       state={{ ...shell, setStep: navigateStep }}
       toolName="upset"
-      title="UpSet plot"
+      title="UpSet Plot"
       visInit={VIS_INIT_UPSET}
       steps={["upload", "configure", "plot"]}
       canNavigate={canNavigate}

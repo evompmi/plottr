@@ -247,13 +247,15 @@ function EffectSizePanel({
                 ? "medium"
                 : "large";
 
+  // Semantic tokens (not raw Okabe-Ito hexes) so the effect-size badge dims
+  // correctly in dark mode like every other status-coloured chrome label.
   const sizeColor =
     sizeLabel === "small"
-      ? "#009E73"
+      ? "var(--success-text)"
       : sizeLabel === "medium"
-        ? "#E69F00"
+        ? "var(--warning-text)"
         : sizeLabel === "large"
-          ? "#D55E00"
+          ? "var(--danger-text)"
           : "var(--text-faint)";
 
   // Correlation uses direct input only (r is intuitive)

@@ -38,7 +38,7 @@ export function StepNavBar(props: StepNavBarProps) {
     if (isPast) {
       circleBg = "var(--step-ready)";
       circleBorder = "none";
-      circleColor = "#ffffff";
+      circleColor = "var(--on-accent)";
       circleContent = h(
         "svg",
         {
