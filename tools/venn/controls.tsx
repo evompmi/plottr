@@ -7,6 +7,7 @@ import {
   ColorInput,
   DiscretePaletteRow,
   DownloadTiles,
+  OnOffToggle,
   PlotSidebar,
   SliderControl,
   applyDiscretePalette,
@@ -198,39 +199,11 @@ export function PlotControls({
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
             <span className="dv-label">Proportional areas</span>
-            <div
-              style={{
-                display: "flex",
-                borderRadius: 6,
-                overflow: "hidden",
-                border: "1px solid var(--border-strong)",
-              }}
-            >
-              {(["off", "on"] as const).map((mode) => {
-                const active = mode === "on" ? proportional : !proportional;
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => onProportionalChange(mode === "on")}
-                    style={{
-                      flex: 1,
-                      padding: "4px 0",
-                      fontSize: 11,
-                      fontWeight: active ? 700 : 400,
-                      fontFamily: "inherit",
-                      cursor: "pointer",
-                      border: "none",
-                      background: active ? "var(--accent-primary)" : "var(--surface)",
-                      color: active ? "var(--on-accent)" : "var(--text-muted)",
-                      transition: "background 120ms ease, color 120ms ease",
-                    }}
-                  >
-                    {mode === "off" ? "Off" : "On"}
-                  </button>
-                );
-              })}
-            </div>
+            <OnOffToggle
+              value={proportional}
+              onChange={onProportionalChange}
+              ariaLabel="Proportional areas"
+            />
           </div>
           {proportional && (
             <SliderControl
@@ -262,39 +235,11 @@ export function PlotControls({
           />
           <div>
             <span className="dv-label">Circle outline</span>
-            <div
-              style={{
-                display: "flex",
-                borderRadius: 6,
-                overflow: "hidden",
-                border: "1px solid var(--border-strong)",
-              }}
-            >
-              {(["off", "on"] as const).map((mode) => {
-                const active = mode === "on" ? vis.showOutline : !vis.showOutline;
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => updVis({ showOutline: mode === "on" })}
-                    style={{
-                      flex: 1,
-                      padding: "4px 0",
-                      fontSize: 11,
-                      fontWeight: active ? 700 : 400,
-                      fontFamily: "inherit",
-                      cursor: "pointer",
-                      border: "none",
-                      background: active ? "var(--accent-primary)" : "var(--surface)",
-                      color: active ? "var(--on-accent)" : "var(--text-muted)",
-                      transition: "background 120ms ease, color 120ms ease",
-                    }}
-                  >
-                    {mode === "off" ? "Off" : "On"}
-                  </button>
-                );
-              })}
-            </div>
+            <OnOffToggle
+              value={vis.showOutline}
+              onChange={(v) => updVis({ showOutline: v })}
+              ariaLabel="Circle outline"
+            />
           </div>
           <SliderControl
             label="Font size"

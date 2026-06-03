@@ -5,25 +5,13 @@
 // imported from ./chart so the sidebar's palette picker and the
 // heatmap's colourbar stay visually in sync.
 
-import {
-  ActionsPanel,
-  ColorInput,
-  NumberInput,
-  PlotSidebar,
-  scrollDisclosureIntoView,
-} from "../_shell";
+import { ActionsPanel, ColorInput, ControlSection, NumberInput, PlotSidebar } from "../_shell";
 import { PaletteStrip } from "./chart";
 import { buildHeatmapRScript, buildCsvExport } from "./reports";
-import type {
-  ClusterMode,
-  ClusterModeControlProps,
-  ControlSectionProps,
-  PlotControlsProps,
-} from "./helpers";
+import type { ClusterMode, ClusterModeControlProps, PlotControlsProps } from "./helpers";
 
 import { COLOR_PALETTES, DIVERGING_PALETTES } from "../_core/color";
 import { downloadCsv, downloadText, fileBaseName } from "../_core/download";
-const { useState, useRef, useEffect } = React;
 
 export function ClusterModeControl({ label, mode, setMode, k, setK }: ClusterModeControlProps) {
   const OPTIONS: Array<{ k: ClusterMode; label: string }> = [
@@ -39,6 +27,7 @@ export function ClusterModeControl({ label, mode, setMode, k, setK }: ClusterMod
           <button
             key={o.k}
             type="button"
+            aria-pressed={mode === o.k}
             className={"dv-seg-btn" + (mode === o.k ? " dv-seg-btn-active" : "")}
             onClick={() => setMode(o.k)}
           >
@@ -60,50 +49,6 @@ export function ClusterModeControl({ label, mode, setMode, k, setK }: ClusterMod
             }}
             style={{ width: "100%" }}
           />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Collapsible section wrapper for sidebar tiles. Mirrors the ControlSection
-// pattern in boxplot / lineplot / aequorin so expanding a section auto-scrolls
-// (via scrollDisclosureIntoView) to reveal the content plus the next
-// section's header. Heatmap's sidebar is NOT its own scroll container — the
-// page scrolls — so the helper's window-scroll fallback does the work here.
-export function ControlSection({ title, defaultOpen = false, children }: ControlSectionProps) {
-  const [open, setOpen] = useState(defaultOpen);
-  const rootRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
-  }, [open]);
-  return (
-    <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="dv-tile-title"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          width: "100%",
-          padding: "7px 10px",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
-        }}
-      >
-        <span
-          className={"dv-disclosure" + (open ? " dv-disclosure-open" : "")}
-          aria-hidden="true"
-        />
-        {title}
-      </button>
-      {open && (
-        <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
-          {children}
         </div>
       )}
     </div>
@@ -207,6 +152,7 @@ export function PlotControls({
             <button
               key={o.k}
               type="button"
+              aria-pressed={normalization === o.k}
               className={"dv-seg-btn" + (normalization === o.k ? " dv-seg-btn-active" : "")}
               onClick={() => setNormalization(o.k)}
             >
@@ -241,6 +187,7 @@ export function PlotControls({
                 <button
                   key={o.k}
                   type="button"
+                  aria-pressed={distanceMetric === o.k}
                   className={"dv-seg-btn" + (distanceMetric === o.k ? " dv-seg-btn-active" : "")}
                   onClick={() => setDistanceMetric(o.k)}
                 >
@@ -256,6 +203,7 @@ export function PlotControls({
                 <button
                   key={o.k}
                   type="button"
+                  aria-pressed={linkageMethod === o.k}
                   className={"dv-seg-btn" + (linkageMethod === o.k ? " dv-seg-btn-active" : "")}
                   onClick={() => setLinkageMethod(o.k)}
                 >
@@ -280,6 +228,7 @@ export function PlotControls({
                       <button
                         key={String(value)}
                         type="button"
+                        aria-pressed={active}
                         className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                         onClick={() => updVis({ showRowDendrogram: value })}
                       >
@@ -307,6 +256,7 @@ export function PlotControls({
                       <button
                         key={String(value)}
                         type="button"
+                        aria-pressed={active}
                         className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                         onClick={() => updVis({ showColDendrogram: value })}
                       >
@@ -365,6 +315,7 @@ export function PlotControls({
           <div className="dv-seg" role="group" aria-label="Palette direction">
             <button
               type="button"
+              aria-pressed={!vis.invertPalette}
               className={"dv-seg-btn" + (!vis.invertPalette ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ invertPalette: false })}
               style={{ fontSize: 11, padding: "3px 8px" }}
@@ -373,6 +324,7 @@ export function PlotControls({
             </button>
             <button
               type="button"
+              aria-pressed={vis.invertPalette}
               className={"dv-seg-btn" + (vis.invertPalette ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ invertPalette: true })}
               style={{ fontSize: 11, padding: "3px 8px" }}
@@ -410,6 +362,7 @@ export function PlotControls({
         <div className="dv-seg" role="group" aria-label="Cell borders">
           <button
             type="button"
+            aria-pressed={!cellBorder.on}
             className={"dv-seg-btn" + (!cellBorder.on ? " dv-seg-btn-active" : "")}
             onClick={() => updCellBorder({ on: false })}
           >
@@ -417,6 +370,7 @@ export function PlotControls({
           </button>
           <button
             type="button"
+            aria-pressed={cellBorder.on}
             className={"dv-seg-btn" + (cellBorder.on ? " dv-seg-btn-active" : "")}
             onClick={() => updCellBorder({ on: true })}
           >
@@ -492,6 +446,7 @@ export function PlotControls({
           <div className="dv-seg" role="group" aria-label="Show row names">
             <button
               type="button"
+              aria-pressed={!vis.showRowLabels}
               className={"dv-seg-btn" + (!vis.showRowLabels ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showRowLabels: false })}
             >
@@ -499,6 +454,7 @@ export function PlotControls({
             </button>
             <button
               type="button"
+              aria-pressed={vis.showRowLabels}
               className={"dv-seg-btn" + (vis.showRowLabels ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showRowLabels: true })}
             >
@@ -513,6 +469,7 @@ export function PlotControls({
           <div className="dv-seg" role="group" aria-label="Show column names">
             <button
               type="button"
+              aria-pressed={!vis.showColLabels}
               className={"dv-seg-btn" + (!vis.showColLabels ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showColLabels: false })}
             >
@@ -520,6 +477,7 @@ export function PlotControls({
             </button>
             <button
               type="button"
+              aria-pressed={vis.showColLabels}
               className={"dv-seg-btn" + (vis.showColLabels ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showColLabels: true })}
             >

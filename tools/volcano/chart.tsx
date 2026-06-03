@@ -702,7 +702,7 @@ export const VolcanoChart = memo(
                       >
                         <title>
                           {(r.pt.label ? r.pt.label + " · " : "") +
-                            "log2FC=" +
+                            "log₂FC=" +
                             r.pt.log2fc.toFixed(3) +
                             ", p=" +
                             (r.pt.p === 0 ? "0 (clamped)" : r.pt.p.toExponential(2)) +

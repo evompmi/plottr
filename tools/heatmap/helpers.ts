@@ -286,12 +286,6 @@ export interface ClusterModeControlProps {
   setK: (k: number) => void;
 }
 
-export interface ControlSectionProps {
-  title: string;
-  defaultOpen?: boolean;
-  children?: React.ReactNode;
-}
-
 // `matrixRef` is a ref to the materialised CSV-export shape — it carries
 // the post-normalisation matrix + row/col orders + (optional) cluster ids
 // so the CSV download tile can serialize the exact view the user sees.
