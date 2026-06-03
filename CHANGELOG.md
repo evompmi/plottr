@@ -63,6 +63,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Upload-screen info hint shows a real info icon.** The separator-detection
+  hint led with a bare `ℹ` (U+2139), which has a text-default presentation and
+  rendered as a plain italic "i" in the mono chrome font. Replaced with an
+  inline `currentColor` SVG info mark that themes in both light and dark.
 - **Venn → UpSet handoff link no longer 404s on middle/ctrl-click.** The
   "use the UpSet tool" link pointed at `upset.html`; in the hash-routed SPA a
   new-tab open hit a non-existent page. It now targets `#/upset`.
