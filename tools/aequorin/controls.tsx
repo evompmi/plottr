@@ -10,6 +10,7 @@ import {
   ActionsPanel,
   BaseStyleControls,
   ColorInput,
+  ControlSection,
   DiscretePaletteRow,
   NumberInput,
   OnOffToggle,
@@ -17,73 +18,10 @@ import {
   SegToggle,
   SliderControl,
   resolveDiscretePalette,
-  scrollDisclosureIntoView,
 } from "../_shell";
 import { TIME_UNITS, convertTime } from "./helpers";
 import type { Condition, PlotControlsProps } from "./helpers";
 import { ConditionEditor } from "./plot-area";
-
-const { useState, useRef, useEffect } = React;
-
-export function ControlSection({
-  title,
-  defaultOpen = false,
-  headerRight,
-  children,
-}: {
-  title: string;
-  defaultOpen?: boolean;
-  headerRight?: React.ReactNode;
-  children?: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  const rootRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
-  }, [open]);
-  return (
-    <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          width: "100%",
-          padding: "7px 10px",
-          gap: 8,
-        }}
-      >
-        <button
-          onClick={() => setOpen(!open)}
-          className="dv-tile-title"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            flex: 1,
-            padding: 0,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            textAlign: "left",
-          }}
-        >
-          <span
-            className={"dv-disclosure" + (open ? " dv-disclosure-open" : "")}
-            aria-hidden="true"
-          />
-          {title}
-        </button>
-        {headerRight}
-      </div>
-      {open && (
-        <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function SubHeading({ children }: { children?: React.ReactNode }) {
   return (

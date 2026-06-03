@@ -8,6 +8,7 @@ import {
   ActionsPanel,
   BaseStyleControls,
   ColorInput,
+  ControlSection,
   DiscretePaletteRow,
   GroupColorEditor,
   OnOffToggle,
@@ -15,56 +16,8 @@ import {
   SegToggle,
   SliderControl,
   applyDiscretePalette,
-  scrollDisclosureIntoView,
 } from "../_shell";
 import type { BoxplotGroup, BoxplotVis, PlotControlsProps } from "./helpers";
-
-export function ControlSection({
-  title,
-  defaultOpen = false,
-  children,
-}: {
-  title: string;
-  defaultOpen?: boolean;
-  children?: React.ReactNode;
-}) {
-  const [open, setOpen] = React.useState(defaultOpen);
-  const rootRef = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => {
-    if (!open) return;
-    requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
-  }, [open]);
-  return (
-    <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="dv-tile-title"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          width: "100%",
-          padding: "7px 10px",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
-        }}
-      >
-        <span
-          className={"dv-disclosure" + (open ? " dv-disclosure-open" : "")}
-          aria-hidden="true"
-        />
-        {title}
-      </button>
-      {open && (
-        <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function PlotControls({
   dataFormat,

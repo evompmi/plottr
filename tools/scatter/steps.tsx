@@ -1,8 +1,8 @@
-// scatter/steps.tsx — UploadStep, plus the AesBox themed wrapper and the
-// small ControlSection disclosure helper. AesBox + the aesTheme palette
-// are re-exported because the Plot step and its sidebar both want them.
+// scatter/steps.tsx — UploadStep, plus the AesBox themed wrapper. AesBox +
+// the aesTheme palette are re-exported because the Plot step and its sidebar
+// both want them. (The ControlSection disclosure tile now lives in ../_shell.)
 
-import { HowTo, UploadPanel, scrollDisclosureIntoView } from "../_shell";
+import { HowTo, UploadPanel } from "../_shell";
 import { SCATTER_HOWTO } from "./howto";
 
 export const aesTheme = {
@@ -28,53 +28,6 @@ export const aesTheme = {
     label: "Shape",
   },
 };
-
-export function ControlSection({
-  title,
-  defaultOpen = false,
-  children,
-}: {
-  title: string;
-  defaultOpen?: boolean;
-  children?: React.ReactNode;
-}) {
-  const [open, setOpen] = React.useState(defaultOpen);
-  const rootRef = React.useRef(null);
-  React.useEffect(() => {
-    if (!open) return;
-    requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
-  }, [open]);
-  return (
-    <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="dv-tile-title"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          width: "100%",
-          padding: "7px 10px",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
-        }}
-      >
-        <span
-          className={"dv-disclosure" + (open ? " dv-disclosure-open" : "")}
-          aria-hidden="true"
-        />
-        {title}
-      </button>
-      {open && (
-        <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function AesBox({
   theme,

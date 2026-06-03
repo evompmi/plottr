@@ -5,66 +5,18 @@
 
 import {
   ColorInput,
+  ControlSection,
   DownloadTiles,
   NumberInput,
   OnOffToggle,
   PlotSidebar,
   SliderControl,
-  scrollDisclosureIntoView,
 } from "../_shell";
 import { intersectionLabel } from "./helpers";
 import type { Intersection, PlotControlsProps, UpsetVis } from "./helpers";
 import { BAR_FILL_ENRICHED, BAR_FILL_DEPLETED } from "./chart";
 
 import { downloadCsv, fileBaseName } from "../_core/download";
-const { useState, useRef, useEffect } = React;
-
-export function ControlSection({
-  title,
-  defaultOpen = false,
-  children,
-}: {
-  title: React.ReactNode;
-  defaultOpen?: boolean;
-  children?: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!open) return;
-    requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
-  }, [open]);
-  return (
-    <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="dv-tile-title"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          width: "100%",
-          padding: "7px 10px",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
-        }}
-      >
-        <span
-          className={"dv-disclosure" + (open ? " dv-disclosure-open" : "")}
-          aria-hidden="true"
-        />
-        {title}
-      </button>
-      {open && (
-        <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── PlotControls ────────────────────────────────────────────────────────────
 

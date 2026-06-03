@@ -5,6 +5,7 @@
 import {
   BaseStyleControls,
   ColorInput,
+  ControlSection,
   DiscretePaletteRow,
   DownloadTiles,
   NumberInput,
@@ -15,7 +16,6 @@ import {
 } from "../_shell";
 import { ERROR_KINDS, formatX, round2 } from "./helpers";
 import type { PerXRow, PlotControlsProps, Series } from "./helpers";
-import { ControlSection } from "./steps";
 
 import { downloadCsv, fileBaseName } from "../_core/download";
 import { pStars } from "../_core/stats/format";

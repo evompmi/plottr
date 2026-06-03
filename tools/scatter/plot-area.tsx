@@ -3,12 +3,13 @@
 
 import { ScatterChart } from "./chart";
 import { PaletteStrip, ShapePreview } from "./shapes";
-import { AesBox, ControlSection } from "./steps";
+import { AesBox } from "./steps";
 import { fmtTick, SHAPES, PlotStepProps, RefLine } from "./helpers";
 import { ScatterStatsPanel } from "./stats-panel";
 import {
   BaseStyleControls,
   ColorInput,
+  ControlSection,
   DetectedSeparatorBadge,
   DiscretePaletteRow,
   DownloadTiles,

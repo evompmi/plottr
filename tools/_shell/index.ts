@@ -17,6 +17,8 @@ export { CldLabels } from "./CldLabels";
 export { ColorInput, normalizeHexColor } from "./ColorInput";
 export { ColumnRoleEditor } from "./ColumnRoleEditor";
 export { CommaFixBanner } from "./CommaFixBanner";
+export { ControlSection } from "./ControlSection";
+export type { ControlSectionProps } from "./ControlSection";
 export { DataPreview } from "./DataPreview";
 export { DatasheetIcon } from "./DatasheetIcon";
 export { DetectedSeparatorBadge, describeSeparator } from "./DetectedSeparatorBadge";
