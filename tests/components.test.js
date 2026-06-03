@@ -954,6 +954,40 @@ suite("AequorinChart");
     });
     assert(html.startsWith("<svg"), "root should be an SVG");
   });
+
+  test("brush-enabled render exposes the crosshair affordance", function () {
+    // When an onBrush handler is supplied (the main combined chart), the root
+    // svg gains the crosshair cursor; without it (faceted mini-charts) the
+    // render stays exactly as before. We can't drive the drag itself here —
+    // it depends on getBoundingClientRect, which happy-dom stubs to zeros —
+    // so this just pins that the affordance is wired to the prop.
+    const base = {
+      series: sampleSeries,
+      xStart: 0,
+      xEnd: 2,
+      yMin: 0,
+      yMax: 250,
+      vbW: 700,
+      vbH: 450,
+      xLabel: "Time (s)",
+      yLabel: "Luminescence (RLU)",
+      plotBg: "#fff",
+      showGrid: true,
+      lineWidth: 2,
+      ribbonOpacity: 0.2,
+      gridColor: "#eee",
+      svgLegend: [],
+      plotTitle: "Ca2+ Response",
+      plotSubtitle: "",
+    };
+    const withBrush = renderHtml(Chart, { ...base, onBrush: () => {} });
+    assert(withBrush.includes("crosshair"), "brush-enabled svg should carry the crosshair cursor");
+    const withoutBrush = renderHtml(Chart, base);
+    assert(
+      !withoutBrush.includes("crosshair"),
+      "non-interactive svg should not carry the crosshair cursor"
+    );
+  });
 })();
 
 // ── Line Plot Chart ─────────────────────────────────────────────────────────

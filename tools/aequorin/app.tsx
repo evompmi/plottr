@@ -1987,6 +1987,11 @@ export function App() {
                 insetShowPoints={vis.insetShowPoints}
                 insetPointSize={vis.insetPointSize}
                 insetPointColor={vis.insetPointColor}
+                onXRangeChange={(xStartRow, xEndRow) =>
+                  updVis({ xStart: xStartRow, xEnd: xEndRow })
+                }
+                onResetXRange={() => updVis({ xStart: 0, xEnd: calData.length, autoYRange: true })}
+                xZoomed={vis.xStart > 0 || vis.xEnd < calData.length}
               />
             </div>
           </div>

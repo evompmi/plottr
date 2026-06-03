@@ -27,7 +27,7 @@ import { seededRandom } from "../_core/numeric";
 import { makeTicks } from "../_core/scale";
 import { tinv } from "../_core/stats/dist";
 import { svgSafeId } from "../_core/svg-export";
-const { forwardRef, useRef, useEffect, memo } = React;
+const { forwardRef, useRef, useState, useEffect, memo } = React;
 
 // ── Chart ────────────────────────────────────────────────────────────────────
 
@@ -51,6 +51,7 @@ export const Chart = memo(
       svgLegend,
       plotTitle,
       plotSubtitle,
+      onBrush,
     },
     ref
   ) {
@@ -89,14 +90,83 @@ export const Chart = memo(
       };
     });
 
+    // ── Click-drag brush (set the X window by dragging across the plot) ──
+    // `brush` holds the live selection in viewBox-x coordinates (the chart
+    // group only translates in y, so x is shared with the root svg). It is
+    // transient — cleared on mouseup — so it never lands in an exported SVG.
+    const [brush, setBrush] = useState<{ x0: number; x1: number } | null>(null);
+    const plotY0 = topPad + MARGIN.top;
+    const plotY1 = plotY0 + h;
+    // Map a clientX/clientY to viewBox coordinates via the rendered svg box,
+    // then clamp x to the plot area. The viewBox width is `vbW`; the rendered
+    // CSS width is the bounding-rect width, so 1 css-px = vbW/rect.width vb-units.
+    const clientToVb = (
+      svg: SVGSVGElement,
+      clientX: number,
+      clientY: number
+    ): { x: number; y: number } => {
+      const bb = svg.getBoundingClientRect();
+      const scale = vbW / (bb.width || 1);
+      const x = (clientX - bb.left) * scale;
+      const y = (clientY - bb.top) * scale;
+      return { x: Math.max(MARGIN.left, Math.min(MARGIN.left + w, x)), y };
+    };
+    const vbToData = (vx: number): number =>
+      xStart + ((vx - MARGIN.left) / (w || 1)) * (xEnd - xStart);
+
+    const onBrushDown = (e: React.MouseEvent<SVGSVGElement>): void => {
+      if (!onBrush || e.button !== 0) return;
+      // Capture to a const so the narrowing survives into the nested mouseup
+      // closure (TS re-widens captured parameters otherwise).
+      const emit = onBrush;
+      const svg = e.currentTarget;
+      const start = clientToVb(svg, e.clientX, e.clientY);
+      // Only begin a brush when the press lands inside the plot area; clicks
+      // on the title / legend / margins fall through to normal behaviour.
+      if (start.y < plotY0 || start.y > plotY1) return;
+      e.preventDefault();
+      setBrush({ x0: start.x, x1: start.x });
+      const move = (ev: MouseEvent): void => {
+        setBrush({ x0: start.x, x1: clientToVb(svg, ev.clientX, ev.clientY).x });
+      };
+      const up = (ev: MouseEvent): void => {
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", up);
+        const endX = clientToVb(svg, ev.clientX, ev.clientY).x;
+        setBrush(null);
+        // Ignore clicks / micro-drags so a stray click never collapses the
+        // window to a zero-width slice.
+        if (Math.abs(endX - start.x) < 4) return;
+        const a = vbToData(start.x);
+        const b = vbToData(endX);
+        emit(Math.min(a, b), Math.max(a, b));
+      };
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+    };
+
     return (
       <svg
         ref={ref}
         viewBox={`0 0 ${vbW} ${vbH + legendH + topPad}`}
-        style={{ width: "100%", height: "auto", display: "block" }}
+        style={
+          // Only add the brush affordances when brushing is enabled, so the
+          // non-interactive render (faceted mini-charts, snapshot tests) stays
+          // byte-identical to before this feature.
+          onBrush
+            ? {
+                width: "100%",
+                height: "auto",
+                display: "block",
+                cursor: "crosshair",
+                userSelect: "none",
+              }
+            : { width: "100%", height: "auto", display: "block" }
+        }
         xmlns="http://www.w3.org/2000/svg"
         role="img"
         aria-label={plotTitle || "RLU timecourse chart"}
+        onMouseDown={onBrush ? onBrushDown : undefined}
       >
         <title>{plotTitle || "RLU timecourse chart"}</title>
         <desc>{`Time series chart with ${series.length} series${xLabel ? `, X: ${xLabel}` : ""}${yLabel ? `, Y: ${yLabel}` : ""}`}</desc>
@@ -309,8 +379,26 @@ export const Chart = memo(
             vbH + 10,
             MARGIN.left,
             vbW - MARGIN.left - MARGIN.right,
-            aequorinItemW,
-            14
+            // No `truncateLabel` — `aequorinItemW` sizes each legend column to
+            // the full label width (name + "(n=NN)"), so labels are shown in
+            // full. Long names widen their column, which drops the per-row
+            // count (down to one-per-row / stacked) rather than clipping text.
+            aequorinItemW
+          )}
+          {brush && Math.abs(brush.x1 - brush.x0) > 0.5 && (
+            <g id="brush-selection" pointerEvents="none">
+              <rect
+                x={Math.min(brush.x0, brush.x1)}
+                y={MARGIN.top}
+                width={Math.abs(brush.x1 - brush.x0)}
+                height={h}
+                fill="#648fff"
+                fillOpacity="0.15"
+                stroke="#648fff"
+                strokeOpacity="0.6"
+                strokeWidth="1"
+              />
+            </g>
           )}
         </g>
       </svg>
