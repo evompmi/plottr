@@ -576,6 +576,11 @@ export interface ChartProps {
   // combined chart passes title / subtitle which can be empty strings.
   plotTitle: string | null;
   plotSubtitle?: string | null;
+  // Optional click-drag brush. When supplied, dragging across the plot area
+  // reports the selected window in *display-time* units (same units as the
+  // axis the user sees); PlotPanel maps it back to row indices. Omitted on
+  // the faceted mini-charts — only the main combined chart is brushable.
+  onBrush?: (d0: number, d1: number) => void;
 }
 
 export interface InsetBarplotProps {
@@ -776,4 +781,14 @@ export interface PlotPanelProps {
   formula: CalibrationFormula;
   replicateSums?: ReplicateSumsRow[] | null;
   fileName: string;
+  // Drag-to-window callback. Receives row indices (xStart, xEnd) derived from
+  // a brush gesture on the main chart; App wires it to updVis.
+  onXRangeChange?: (xStartRow: number, xEndRow: number) => void;
+  // Reset the X window to the full data extent (the "Clear" affordance next to
+  // the brush tip). App wires it to updVis({ xStart: 0, xEnd: <full>, … }).
+  onResetXRange?: () => void;
+  // Whether the X window is currently narrower than the full data extent —
+  // true when zoomed via either the brush or the Axes number inputs. Gates the
+  // visibility of the "Clear" button (and its mention in the tip).
+  xZoomed?: boolean;
 }

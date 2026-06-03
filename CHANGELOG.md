@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Drag-to-window on the RLU timecourse plot.** Click and drag across the main
+  time-course chart to set the X window (`X start` / `X end`) directly, instead
+  of typing the bounds in the Axes tile. The selection follows the displayed
+  time unit and maps back to the underlying time-points; once a window is set
+  (via the brush or the Axes inputs) a **Clear** button next to the chart resets
+  it to the full data range without opening the control panel. Faceted
+  mini-charts are unaffected.
 - **Self-hosted display + mono typefaces.** Fraunces (display — reserved for
   the landing "Plöttr" wordmark) and IBM Plex Mono (the functional default for
   all other chrome) are vendored as woff2 under `tools/fonts/` and declared in
@@ -39,6 +46,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a bolder prompt and the sidebar section headers (`.dv-tile-title`, every tool)
   read as confident kickers. Chart output is untouched — all 16 SVG snapshot
   baselines unchanged.
+
+### Fixed
+
+- **RLU timecourse legend no longer clips long condition names.** The trace
+  legend was hard-truncating each entry at 14 characters, so a name plus its
+  `(n=NN)` count showed as `Control siR…`. Labels now render in full — each
+  legend column is sized to the full label, and long names simply reduce the
+  per-row count (down to one-per-row) instead of being cut.
 
 ## [1.7.0] - 2026-06-01
 

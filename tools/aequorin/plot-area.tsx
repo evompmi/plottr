@@ -27,7 +27,7 @@ import {
 
 import { downloadPng, downloadSvg, fileBaseName } from "../_core/download";
 import { downloadCsv, flashSaved } from "../_core/download";
-const { useState, useMemo, useRef, useEffect } = React;
+const { useState, useMemo, useRef, useEffect, useCallback } = React;
 
 // ── PlotPanel ────────────────────────────────────────────────────────────────
 
@@ -75,6 +75,9 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
     formula,
     replicateSums,
     fileName,
+    onXRangeChange,
+    onResetXRange,
+    xZoomed,
   },
   ref
 ) {
@@ -153,6 +156,21 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
   const xLabelText = `Time (${dUnit})`;
   const displayXStart = xStart * ts * convFactor;
   const displayXEnd = xEnd * ts * convFactor;
+
+  // Drag-to-window: the Chart reports the brushed window in display-time
+  // units; map it back to row indices (the inverse of `displayX = row * ts *
+  // convFactor`) and hand it to App. Rounded to whole rows — brushing is
+  // imprecise and rows are the underlying time-points the window slices on.
+  const tsConv = ts * convFactor || 1;
+  const onBrush = useCallback(
+    (d0: number, d1: number) => {
+      if (!onXRangeChange) return;
+      const r0 = Math.round(d0 / tsConv);
+      const r1 = Math.round(d1 / tsConv);
+      if (r1 > r0) onXRangeChange(r0, r1);
+    },
+    [onXRangeChange, tsConv]
+  );
 
   const displaySeries = useMemo(() => {
     return series.map((s) => ({
@@ -701,7 +719,35 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                 })),
               },
             ]}
+            onBrush={onXRangeChange ? onBrush : undefined}
           />
+          {onXRangeChange && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 10,
+                margin: "6px 2px 0",
+              }}
+            >
+              <p style={{ margin: 0, fontSize: 11, color: "var(--text-faint)" }}>
+                Tip: drag across the plot to set the time window. Adjust it in Axes.
+                {xZoomed ? " Click clear to reset." : ""}
+              </p>
+              {onResetXRange && xZoomed && (
+                <button
+                  type="button"
+                  onClick={onResetXRange}
+                  className="dv-btn dv-btn-secondary"
+                  style={{ padding: "4px 10px", fontSize: 11, flexShrink: 0 }}
+                  title="Reset the time window to the full data range"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          )}
         </>
       )}
       {IntegralTile}
