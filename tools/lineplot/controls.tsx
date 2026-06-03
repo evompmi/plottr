@@ -169,6 +169,7 @@ export function PlotControls({
             <button
               key={k.value}
               type="button"
+              aria-pressed={errorType === k.value}
               className={"dv-seg-btn" + (errorType === k.value ? " dv-seg-btn-active" : "")}
               onClick={() => setErrorType(k.value)}
             >

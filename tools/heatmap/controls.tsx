@@ -27,6 +27,7 @@ export function ClusterModeControl({ label, mode, setMode, k, setK }: ClusterMod
           <button
             key={o.k}
             type="button"
+            aria-pressed={mode === o.k}
             className={"dv-seg-btn" + (mode === o.k ? " dv-seg-btn-active" : "")}
             onClick={() => setMode(o.k)}
           >
@@ -151,6 +152,7 @@ export function PlotControls({
             <button
               key={o.k}
               type="button"
+              aria-pressed={normalization === o.k}
               className={"dv-seg-btn" + (normalization === o.k ? " dv-seg-btn-active" : "")}
               onClick={() => setNormalization(o.k)}
             >
@@ -185,6 +187,7 @@ export function PlotControls({
                 <button
                   key={o.k}
                   type="button"
+                  aria-pressed={distanceMetric === o.k}
                   className={"dv-seg-btn" + (distanceMetric === o.k ? " dv-seg-btn-active" : "")}
                   onClick={() => setDistanceMetric(o.k)}
                 >
@@ -200,6 +203,7 @@ export function PlotControls({
                 <button
                   key={o.k}
                   type="button"
+                  aria-pressed={linkageMethod === o.k}
                   className={"dv-seg-btn" + (linkageMethod === o.k ? " dv-seg-btn-active" : "")}
                   onClick={() => setLinkageMethod(o.k)}
                 >
@@ -224,6 +228,7 @@ export function PlotControls({
                       <button
                         key={String(value)}
                         type="button"
+                        aria-pressed={active}
                         className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                         onClick={() => updVis({ showRowDendrogram: value })}
                       >
@@ -251,6 +256,7 @@ export function PlotControls({
                       <button
                         key={String(value)}
                         type="button"
+                        aria-pressed={active}
                         className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                         onClick={() => updVis({ showColDendrogram: value })}
                       >
@@ -309,6 +315,7 @@ export function PlotControls({
           <div className="dv-seg" role="group" aria-label="Palette direction">
             <button
               type="button"
+              aria-pressed={!vis.invertPalette}
               className={"dv-seg-btn" + (!vis.invertPalette ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ invertPalette: false })}
               style={{ fontSize: 11, padding: "3px 8px" }}
@@ -317,6 +324,7 @@ export function PlotControls({
             </button>
             <button
               type="button"
+              aria-pressed={vis.invertPalette}
               className={"dv-seg-btn" + (vis.invertPalette ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ invertPalette: true })}
               style={{ fontSize: 11, padding: "3px 8px" }}
@@ -354,6 +362,7 @@ export function PlotControls({
         <div className="dv-seg" role="group" aria-label="Cell borders">
           <button
             type="button"
+            aria-pressed={!cellBorder.on}
             className={"dv-seg-btn" + (!cellBorder.on ? " dv-seg-btn-active" : "")}
             onClick={() => updCellBorder({ on: false })}
           >
@@ -361,6 +370,7 @@ export function PlotControls({
           </button>
           <button
             type="button"
+            aria-pressed={cellBorder.on}
             className={"dv-seg-btn" + (cellBorder.on ? " dv-seg-btn-active" : "")}
             onClick={() => updCellBorder({ on: true })}
           >
@@ -436,6 +446,7 @@ export function PlotControls({
           <div className="dv-seg" role="group" aria-label="Show row names">
             <button
               type="button"
+              aria-pressed={!vis.showRowLabels}
               className={"dv-seg-btn" + (!vis.showRowLabels ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showRowLabels: false })}
             >
@@ -443,6 +454,7 @@ export function PlotControls({
             </button>
             <button
               type="button"
+              aria-pressed={vis.showRowLabels}
               className={"dv-seg-btn" + (vis.showRowLabels ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showRowLabels: true })}
             >
@@ -457,6 +469,7 @@ export function PlotControls({
           <div className="dv-seg" role="group" aria-label="Show column names">
             <button
               type="button"
+              aria-pressed={!vis.showColLabels}
               className={"dv-seg-btn" + (!vis.showColLabels ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showColLabels: false })}
             >
@@ -464,6 +477,7 @@ export function PlotControls({
             </button>
             <button
               type="button"
+              aria-pressed={vis.showColLabels}
               className={"dv-seg-btn" + (vis.showColLabels ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showColLabels: true })}
             >

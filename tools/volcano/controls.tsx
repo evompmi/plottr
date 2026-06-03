@@ -142,6 +142,7 @@ export function ToggleRow({
         <button
           type="button"
           onClick={() => onChange(true)}
+          aria-pressed={checked}
           className={"dv-seg-btn" + (checked ? " dv-seg-btn-active" : "")}
           style={{ fontSize: 12 }}
         >
@@ -150,6 +151,7 @@ export function ToggleRow({
         <button
           type="button"
           onClick={() => onChange(false)}
+          aria-pressed={!checked}
           className={"dv-seg-btn" + (!checked ? " dv-seg-btn-active" : "")}
           style={{ fontSize: 12 }}
         >
@@ -209,6 +211,7 @@ export function ThresholdsTile({ vis, updVis }: ThresholdsTileProps) {
               <button
                 key={o.value}
                 type="button"
+                aria-pressed={active}
                 className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                 style={{ fontSize: 12 }}
                 onClick={() => updVis({ pCutoff: o.value })}
@@ -748,6 +751,7 @@ export function ColorMapTile({
                 <div className="dv-seg" role="group" aria-label="Palette direction">
                   <button
                     type="button"
+                    aria-pressed={!vis.colorMapInvert}
                     className={"dv-seg-btn" + (!vis.colorMapInvert ? " dv-seg-btn-active" : "")}
                     onClick={() => updVis({ colorMapInvert: false })}
                     style={{ fontSize: 11, padding: "3px 8px" }}
@@ -756,6 +760,7 @@ export function ColorMapTile({
                   </button>
                   <button
                     type="button"
+                    aria-pressed={vis.colorMapInvert}
                     className={"dv-seg-btn" + (vis.colorMapInvert ? " dv-seg-btn-active" : "")}
                     onClick={() => updVis({ colorMapInvert: true })}
                     style={{ fontSize: 11, padding: "3px 8px" }}
