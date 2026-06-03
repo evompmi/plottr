@@ -1,67 +1,10 @@
-// lineplot/steps.tsx — UploadStep + ConfigureStep panels, plus the small
-// ControlSection disclosure helper used inside the Plot step's sidebar
-// and the LpAesBox themed wrapper used in the configure-step grid.
+// lineplot/steps.tsx — UploadStep + ConfigureStep panels, plus the LpAesBox
+// themed wrapper used in the configure-step grid. (The ControlSection
+// disclosure tile now lives in ../_shell and is imported there directly.)
 
 import type { UploadStepProps, ConfigureStepProps } from "./helpers";
-import {
-  DataPreview,
-  DetectedSeparatorBadge,
-  HowTo,
-  UploadPanel,
-  scrollDisclosureIntoView,
-} from "../_shell";
+import { DataPreview, DetectedSeparatorBadge, HowTo, UploadPanel } from "../_shell";
 import { LINEPLOT_HOWTO } from "./howto";
-
-const { useState, useRef, useEffect } = React;
-
-// ── ControlSection (disclosure panel) ──────────────────────────────────────
-
-export function ControlSection({
-  title,
-  defaultOpen = false,
-  children,
-}: {
-  title: React.ReactNode;
-  defaultOpen?: boolean;
-  children?: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  const rootRef = useRef(null);
-  useEffect(() => {
-    if (!open) return;
-    requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
-  }, [open]);
-  return (
-    <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="dv-tile-title"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          width: "100%",
-          padding: "7px 10px",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
-        }}
-      >
-        <span
-          className={"dv-disclosure" + (open ? " dv-disclosure-open" : "")}
-          aria-hidden="true"
-        />
-        {title}
-      </button>
-      {open && (
-        <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── UploadStep ─────────────────────────────────────────────────────────────
 

@@ -3,16 +3,18 @@
 
 import { ScatterChart } from "./chart";
 import { PaletteStrip, ShapePreview } from "./shapes";
-import { AesBox, ControlSection } from "./steps";
+import { AesBox } from "./steps";
 import { fmtTick, SHAPES, PlotStepProps, RefLine } from "./helpers";
 import { ScatterStatsPanel } from "./stats-panel";
 import {
   BaseStyleControls,
   ColorInput,
+  ControlSection,
   DetectedSeparatorBadge,
   DiscretePaletteRow,
   DownloadTiles,
   NumberInput,
+  OnOffToggle,
   PlotSidebar,
   SliderControl,
   applyDiscretePalette,
@@ -337,75 +339,19 @@ export function PlotStep({
                 />
                 <div>
                   <span className="dv-label">Dashed</span>
-                  <div
-                    style={{
-                      display: "flex",
-                      borderRadius: 6,
-                      overflow: "hidden",
-                      border: "1px solid var(--border-strong)",
-                    }}
-                  >
-                    {(["off", "on"] as const).map((mode) => {
-                      const active = mode === "on" ? regression.dashed : !regression.dashed;
-                      return (
-                        <button
-                          key={mode}
-                          type="button"
-                          onClick={() => updRegression({ dashed: mode === "on" })}
-                          style={{
-                            flex: 1,
-                            padding: "4px 0",
-                            fontSize: 11,
-                            fontWeight: active ? 700 : 400,
-                            fontFamily: "inherit",
-                            cursor: "pointer",
-                            border: "none",
-                            background: active ? "var(--accent-primary)" : "var(--surface)",
-                            color: active ? "var(--on-accent)" : "var(--text-muted)",
-                            transition: "background 120ms ease, color 120ms ease",
-                          }}
-                        >
-                          {mode === "off" ? "Off" : "On"}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <OnOffToggle
+                    value={regression.dashed}
+                    onChange={(v) => updRegression({ dashed: v })}
+                    ariaLabel="Dashed regression line"
+                  />
                 </div>
                 <div>
                   <span className="dv-label">Show equation &amp; R² on plot</span>
-                  <div
-                    style={{
-                      display: "flex",
-                      borderRadius: 6,
-                      overflow: "hidden",
-                      border: "1px solid var(--border-strong)",
-                    }}
-                  >
-                    {(["off", "on"] as const).map((mode) => {
-                      const active = mode === "on" ? regression.showStats : !regression.showStats;
-                      return (
-                        <button
-                          key={mode}
-                          type="button"
-                          onClick={() => updRegression({ showStats: mode === "on" })}
-                          style={{
-                            flex: 1,
-                            padding: "4px 0",
-                            fontSize: 11,
-                            fontWeight: active ? 700 : 400,
-                            fontFamily: "inherit",
-                            cursor: "pointer",
-                            border: "none",
-                            background: active ? "var(--accent-primary)" : "var(--surface)",
-                            color: active ? "var(--on-accent)" : "var(--text-muted)",
-                            transition: "background 120ms ease, color 120ms ease",
-                          }}
-                        >
-                          {mode === "off" ? "Off" : "On"}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <OnOffToggle
+                    value={regression.showStats}
+                    onChange={(v) => updRegression({ showStats: v })}
+                    ariaLabel="Show equation and R² on plot"
+                  />
                 </div>
                 {regression.showStats && (
                   <div>
@@ -566,39 +512,11 @@ export function PlotStep({
                   />
                   <div>
                     <span className="dv-label">Dashed</span>
-                    <div
-                      style={{
-                        display: "flex",
-                        borderRadius: 6,
-                        overflow: "hidden",
-                        border: "1px solid var(--border-strong)",
-                      }}
-                    >
-                      {(["off", "on"] as const).map((mode) => {
-                        const active = mode === "on" ? rl.dashed : !rl.dashed;
-                        return (
-                          <button
-                            key={mode}
-                            type="button"
-                            onClick={() => updateRefLine(rl.id, "dashed", mode === "on")}
-                            style={{
-                              flex: 1,
-                              padding: "4px 0",
-                              fontSize: 11,
-                              fontWeight: active ? 700 : 400,
-                              fontFamily: "inherit",
-                              cursor: "pointer",
-                              border: "none",
-                              background: active ? "var(--accent-primary)" : "var(--surface)",
-                              color: active ? "var(--on-accent)" : "var(--text-muted)",
-                              transition: "background 120ms ease, color 120ms ease",
-                            }}
-                          >
-                            {mode === "off" ? "Off" : "On"}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <OnOffToggle
+                      value={rl.dashed}
+                      onChange={(v) => updateRefLine(rl.id, "dashed", v)}
+                      ariaLabel="Dashed reference line"
+                    />
                   </div>
                   {rl.dashed && (
                     <select

@@ -7,11 +7,11 @@
 
 import {
   ColorInput,
+  ControlSection,
   DiscretePaletteRow,
   NumberInput,
   SliderControl,
   resolveDiscretePalette,
-  scrollDisclosureIntoView,
 } from "../_shell";
 import { VOLCANO_DEFAULT_COLORS, eligibleColumns } from "./helpers";
 import type {
@@ -29,7 +29,7 @@ import type {
 import { matchPointsByLabel } from "./helpers";
 
 import { COLOR_PALETTES, DIVERGING_PALETTES, interpolateColor } from "../_core/color";
-const { useState, useEffect, useRef, useMemo } = React;
+const { useState, useEffect, useMemo } = React;
 
 // ── AesBox themes — one source of truth used by Configure tiles +
 // the ColorMap / SizeMap sidebar boxes. Same `--aes-*` CSS vars
@@ -119,69 +119,6 @@ export function VolcanoAesBox({
 // chevron flips via `dv-disclosure-open` (CSS rotation in
 // components.css). After expand, scrollDisclosureIntoView ensures the
 // newly-opened body lands inside the sticky sidebar's scroll viewport.
-export function ControlSection({
-  title,
-  defaultOpen = false,
-  headerRight,
-  children,
-}: {
-  title: string;
-  defaultOpen?: boolean;
-  // Optional slot for an inline control rendered to the right of the
-  // section title — typically the on/off pill toggle for the section
-  // (matches aequorin's "Summary barplot" pattern). Survives folds.
-  headerRight?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  const rootRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
-  }, [open]);
-  return (
-    <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          width: "100%",
-          padding: "7px 10px",
-          gap: 8,
-        }}
-      >
-        <button
-          onClick={() => setOpen(!open)}
-          className="dv-tile-title"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            flex: 1,
-            padding: 0,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            textAlign: "left",
-          }}
-        >
-          <span
-            className={"dv-disclosure" + (open ? " dv-disclosure-open" : "")}
-            aria-hidden="true"
-          />
-          {title}
-        </button>
-        {headerRight}
-      </div>
-      {open && (
-        <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // Canonical on/off selector — the `dv-seg` segmented pill-bar declared
 // in components.css. Same widget power and molarity use for two-state
 // pickers (mode / alpha / tails / separator). A row of buttons where
@@ -205,6 +142,7 @@ export function ToggleRow({
         <button
           type="button"
           onClick={() => onChange(true)}
+          aria-pressed={checked}
           className={"dv-seg-btn" + (checked ? " dv-seg-btn-active" : "")}
           style={{ fontSize: 12 }}
         >
@@ -213,6 +151,7 @@ export function ToggleRow({
         <button
           type="button"
           onClick={() => onChange(false)}
+          aria-pressed={!checked}
           className={"dv-seg-btn" + (!checked ? " dv-seg-btn-active" : "")}
           style={{ fontSize: 12 }}
         >
@@ -272,6 +211,7 @@ export function ThresholdsTile({ vis, updVis }: ThresholdsTileProps) {
               <button
                 key={o.value}
                 type="button"
+                aria-pressed={active}
                 className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                 style={{ fontSize: 12 }}
                 onClick={() => updVis({ pCutoff: o.value })}
@@ -811,6 +751,7 @@ export function ColorMapTile({
                 <div className="dv-seg" role="group" aria-label="Palette direction">
                   <button
                     type="button"
+                    aria-pressed={!vis.colorMapInvert}
                     className={"dv-seg-btn" + (!vis.colorMapInvert ? " dv-seg-btn-active" : "")}
                     onClick={() => updVis({ colorMapInvert: false })}
                     style={{ fontSize: 11, padding: "3px 8px" }}
@@ -819,6 +760,7 @@ export function ColorMapTile({
                   </button>
                   <button
                     type="button"
+                    aria-pressed={vis.colorMapInvert}
                     className={"dv-seg-btn" + (vis.colorMapInvert ? " dv-seg-btn-active" : "")}
                     onClick={() => updVis({ colorMapInvert: true })}
                     style={{ fontSize: 11, padding: "3px 8px" }}

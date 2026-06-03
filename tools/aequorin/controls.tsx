@@ -10,78 +10,18 @@ import {
   ActionsPanel,
   BaseStyleControls,
   ColorInput,
+  ControlSection,
   DiscretePaletteRow,
   NumberInput,
+  OnOffToggle,
   PlotSidebar,
+  SegToggle,
   SliderControl,
   resolveDiscretePalette,
-  scrollDisclosureIntoView,
 } from "../_shell";
 import { TIME_UNITS, convertTime } from "./helpers";
 import type { Condition, PlotControlsProps } from "./helpers";
 import { ConditionEditor } from "./plot-area";
-
-const { useState, useRef, useEffect } = React;
-
-export function ControlSection({
-  title,
-  defaultOpen = false,
-  headerRight,
-  children,
-}: {
-  title: string;
-  defaultOpen?: boolean;
-  headerRight?: React.ReactNode;
-  children?: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  const rootRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
-  }, [open]);
-  return (
-    <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          width: "100%",
-          padding: "7px 10px",
-          gap: 8,
-        }}
-      >
-        <button
-          onClick={() => setOpen(!open)}
-          className="dv-tile-title"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            flex: 1,
-            padding: 0,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            textAlign: "left",
-          }}
-        >
-          <span
-            className={"dv-disclosure" + (open ? " dv-disclosure-open" : "")}
-            aria-hidden="true"
-          />
-          {title}
-        </button>
-        {headerRight}
-      </div>
-      {open && (
-        <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function SubHeading({ children }: { children?: React.ReactNode }) {
   return (
@@ -376,39 +316,11 @@ export function PlotControls({
               </label>
               <div>
                 <span className="dv-label">Grid</span>
-                <div
-                  style={{
-                    display: "flex",
-                    borderRadius: 6,
-                    overflow: "hidden",
-                    border: "1px solid var(--border-strong)",
-                  }}
-                >
-                  {(["off", "on"] as const).map((mode) => {
-                    const active = mode === "on" ? vis.insetShowGrid : !vis.insetShowGrid;
-                    return (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => updVis({ insetShowGrid: mode === "on" })}
-                        style={{
-                          flex: 1,
-                          padding: "4px 0",
-                          fontSize: 11,
-                          fontWeight: active ? 700 : 400,
-                          fontFamily: "inherit",
-                          cursor: "pointer",
-                          border: "none",
-                          background: active ? "var(--accent-primary)" : "var(--surface)",
-                          color: active ? "var(--on-accent)" : "var(--text-muted)",
-                          transition: "background 120ms ease, color 120ms ease",
-                        }}
-                      >
-                        {mode === "off" ? "Off" : "On"}
-                      </button>
-                    );
-                  })}
-                </div>
+                <OnOffToggle
+                  value={vis.insetShowGrid}
+                  onChange={(v) => updVis({ insetShowGrid: v })}
+                  ariaLabel="Grid"
+                />
               </div>
               {vis.insetShowGrid && (
                 <label style={{ display: "block" }}>
@@ -460,39 +372,11 @@ export function PlotControls({
             />
             <div>
               <span className="dv-label">Bar outline</span>
-              <div
-                style={{
-                  display: "flex",
-                  borderRadius: 6,
-                  overflow: "hidden",
-                  border: "1px solid var(--border-strong)",
-                }}
-              >
-                {(["off", "on"] as const).map((mode) => {
-                  const active = mode === "on" ? vis.insetShowBarOutline : !vis.insetShowBarOutline;
-                  return (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => updVis({ insetShowBarOutline: mode === "on" })}
-                      style={{
-                        flex: 1,
-                        padding: "4px 0",
-                        fontSize: 11,
-                        fontWeight: active ? 700 : 400,
-                        fontFamily: "inherit",
-                        cursor: "pointer",
-                        border: "none",
-                        background: active ? "var(--accent-primary)" : "var(--surface)",
-                        color: active ? "var(--on-accent)" : "var(--text-muted)",
-                        transition: "background 120ms ease, color 120ms ease",
-                      }}
-                    >
-                      {mode === "off" ? "Off" : "On"}
-                    </button>
-                  );
-                })}
-              </div>
+              <OnOffToggle
+                value={vis.insetShowBarOutline}
+                onChange={(v) => updVis({ insetShowBarOutline: v })}
+                ariaLabel="Bar outline"
+              />
             </div>
             {vis.insetShowBarOutline && (
               <>
@@ -520,29 +404,17 @@ export function PlotControls({
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div>
                 <span className="dv-label">Type</span>
-                <div className="dv-seg" role="group" aria-label="Error bars">
-                  {(["none", "sem", "sd", "ci95"] as const).map((mode) => {
-                    const active = vis.insetErrorType === mode;
-                    const label =
-                      mode === "none"
-                        ? "None"
-                        : mode === "sem"
-                          ? "SEM"
-                          : mode === "sd"
-                            ? "SD"
-                            : "95% CI";
-                    return (
-                      <button
-                        key={mode}
-                        type="button"
-                        className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
-                        onClick={() => updVis({ insetErrorType: mode })}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
+                <SegToggle<string>
+                  ariaLabel="Error bars"
+                  value={vis.insetErrorType}
+                  onChange={(v) => updVis({ insetErrorType: v })}
+                  options={[
+                    { value: "none", label: "None" },
+                    { value: "sem", label: "SEM" },
+                    { value: "sd", label: "SD" },
+                    { value: "ci95", label: "95% CI" },
+                  ]}
+                />
               </div>
               {vis.insetErrorType !== "none" && (
                 <SliderControl
@@ -560,39 +432,11 @@ export function PlotControls({
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div>
                 <span className="dv-label">Show</span>
-                <div
-                  style={{
-                    display: "flex",
-                    borderRadius: 6,
-                    overflow: "hidden",
-                    border: "1px solid var(--border-strong)",
-                  }}
-                >
-                  {(["off", "on"] as const).map((mode) => {
-                    const active = mode === "on" ? vis.insetShowPoints : !vis.insetShowPoints;
-                    return (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => updVis({ insetShowPoints: mode === "on" })}
-                        style={{
-                          flex: 1,
-                          padding: "4px 0",
-                          fontSize: 11,
-                          fontWeight: active ? 700 : 400,
-                          fontFamily: "inherit",
-                          cursor: "pointer",
-                          border: "none",
-                          background: active ? "var(--accent-primary)" : "var(--surface)",
-                          color: active ? "var(--on-accent)" : "var(--text-muted)",
-                          transition: "background 120ms ease, color 120ms ease",
-                        }}
-                      >
-                        {mode === "off" ? "Off" : "On"}
-                      </button>
-                    );
-                  })}
-                </div>
+                <OnOffToggle
+                  value={vis.insetShowPoints}
+                  onChange={(v) => updVis({ insetShowPoints: v })}
+                  ariaLabel="Show points"
+                />
               </div>
               {vis.insetShowPoints && (
                 <>

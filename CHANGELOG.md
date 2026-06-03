@@ -28,6 +28,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Accessible, unified segmented toggles.** Introduced a shared `SegToggle` /
+  `OnOffToggle` control (the canonical `.dv-seg` chrome) and migrated the
+  inline-styled Off/On and segmented toggles that several tools had each
+  re-implemented by hand (aequorin, boxplot, scatter, upset, venn, and the
+  shared grid control). All segmented controls — including the boxplot plot-style
+  switch and the power calculator's mode/solve-for/α/power/tails selectors — now
+  expose their selected state to assistive tech via `aria-pressed`, and pick up
+  the shared focus-visible / disabled styling they previously lacked. No visual
+  change to the controls.
+- **UI consistency pass — copy & symbols.** Aligned tool names so the header,
+  registry, and How-to agree ("RLU Timecourse", "UpSet Plot"); the Group Plot
+  empty state now says "No groups selected" (was "conditions"); and Volcano's
+  exported axis labels / hover read use proper subscripts (`log₂`, `−log₁₀`)
+  to match the rest of that tool's UI.
 - **Refreshed UI language across the app.** The chrome accent moves from the
   near-greyscale slate to Plöttr blue (`#648fff`, the brand-rune hue) via
   `theme.css` tokens, so every tool re-skins from one place; press targets use a
@@ -49,6 +63,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Venn → UpSet handoff link no longer 404s on middle/ctrl-click.** The
+  "use the UpSet tool" link pointed at `upset.html`; in the hash-routed SPA a
+  new-tab open hit a non-existent page. It now targets `#/upset`.
+- **Power calculator effect-size badge adapts to dark mode.** The
+  small/medium/large effect label used raw Okabe-Ito hexes that stayed
+  full-brightness in dark mode; it now uses the themed status tokens.
 - **RLU timecourse legend no longer clips long condition names.** The trace
   legend was hard-truncating each entry at 14 characters, so a name plus its
   `(n=NN)` count showed as `Control siR…`. Labels now render in full — each

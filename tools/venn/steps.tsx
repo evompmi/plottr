@@ -138,7 +138,7 @@ export function ConfigureStep({
             3 sets. For 4+ sets, use the UpSet tool.
           </span>
           <a
-            href="upset.html"
+            href="#/upset"
             onClick={openUpset}
             style={{
               display: "inline-flex",

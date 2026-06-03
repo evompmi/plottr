@@ -112,7 +112,7 @@ export function PlotArea({
               fontSize: 14,
             }}
           >
-            No conditions selected. Enable at least one to display the plot.
+            No groups selected. Enable at least one to display the plot.
           </div>
         </div>
       </div>

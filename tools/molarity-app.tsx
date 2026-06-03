@@ -804,6 +804,7 @@ function BatchMode() {
                   key={label}
                   type="button"
                   onClick={() => setSepOverride(val)}
+                  aria-pressed={active}
                   className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                   style={{ flex: "0 0 auto", padding: "4px 10px" }}
                 >
