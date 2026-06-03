@@ -336,7 +336,21 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span aria-hidden="true">ℹ</span>
+          {/* Inline SVG info mark (currentColor → inherits --info-text and
+              themes in both modes). Replaces a bare U+2139 "ℹ", which has a
+              text-default presentation and rendered as a plain italic "i" in
+              the mono chrome font. */}
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 16 16"
+            aria-hidden="true"
+            style={{ flexShrink: 0 }}
+          >
+            <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.4" />
+            <circle cx="8" cy="4.6" r="1" fill="currentColor" />
+            <rect x="7.15" y="6.8" width="1.7" height="5" rx="0.85" fill="currentColor" />
+          </svg>
           <span>
             Plöttr auto-detects the column separator (comma, tab, semicolon, …) from the data.
           </span>
