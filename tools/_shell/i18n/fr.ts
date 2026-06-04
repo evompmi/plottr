@@ -161,6 +161,17 @@ const fr: Record<ShellKey, string> = {
   "shell.prefs.resetTitle":
     "Restaurer les réglages visuels par défaut et effacer les préférences enregistrées",
   "shell.prefs.loadError": "Impossible de charger le fichier de réglages.",
+
+  // StatsTable
+  "shell.stats.summaryBy": "Résumé — groupé par « {group} »",
+  "shell.stats.group": "Groupe",
+  "shell.stats.n": "n",
+  "shell.stats.mean": "Moyenne",
+  "shell.stats.median": "Médiane",
+  "shell.stats.sd": "SD",
+  "shell.stats.sem": "SEM",
+  "shell.stats.min": "Min",
+  "shell.stats.max": "Max",
 };
 
 export default fr;

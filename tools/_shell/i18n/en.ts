@@ -159,6 +159,18 @@ const en = {
   "shell.prefs.reset": "Reset to defaults",
   "shell.prefs.resetTitle": "Restore default visual plot settings and clear stored preferences",
   "shell.prefs.loadError": "Could not load settings file.",
+
+  // StatsTable — summary table headers + caption (SD / SEM / n / Min / Max
+  // are kept as the universal stats abbreviations in both languages).
+  "shell.stats.summaryBy": 'Summary — grouped by "{group}"',
+  "shell.stats.group": "Group",
+  "shell.stats.n": "n",
+  "shell.stats.mean": "Mean",
+  "shell.stats.median": "Median",
+  "shell.stats.sd": "SD",
+  "shell.stats.sem": "SEM",
+  "shell.stats.min": "Min",
+  "shell.stats.max": "Max",
 } as const satisfies Catalog;
 
 export default en;
