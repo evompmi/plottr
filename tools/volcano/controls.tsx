@@ -27,6 +27,7 @@ import type {
   ThresholdsTileProps,
 } from "./helpers";
 import { matchPointsByLabel } from "./helpers";
+import { useT, type VolcanoKey } from "./i18n";
 
 import { COLOR_PALETTES, DIVERGING_PALETTES, interpolateColor } from "../_core/color";
 const { useState, useEffect, useMemo } = React;
@@ -85,6 +86,14 @@ export const VOLCANO_AES_THEMES = {
   },
 } as const;
 
+const AES_LABEL_KEYS: Record<keyof typeof VOLCANO_AES_THEMES, VolcanoKey> = {
+  x: "volcano.aes.x",
+  y: "volcano.aes.y",
+  label: "volcano.aes.label",
+  colorMap: "volcano.aes.colorMap",
+  sizeMap: "volcano.aes.sizeMap",
+};
+
 export function VolcanoAesBox({
   theme,
   children,
@@ -92,6 +101,7 @@ export function VolcanoAesBox({
   theme: keyof typeof VOLCANO_AES_THEMES;
   children: React.ReactNode;
 }) {
+  const tr = useT();
   const t = VOLCANO_AES_THEMES[theme];
   return (
     <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
@@ -105,7 +115,7 @@ export function VolcanoAesBox({
             letterSpacing: "0.8px",
           }}
         >
-          {t.label}
+          {tr(AES_LABEL_KEYS[theme])}
         </span>
       </div>
       <div style={{ padding: "12px 14px", minHeight: 40 }}>{children}</div>
@@ -135,6 +145,7 @@ export function ToggleRow({
   onChange: (v: boolean) => void;
   children: React.ReactNode;
 }) {
+  const tr = useT();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <span className="dv-label">{children}</span>
@@ -146,7 +157,7 @@ export function ToggleRow({
           className={"dv-seg-btn" + (checked ? " dv-seg-btn-active" : "")}
           style={{ fontSize: 12 }}
         >
-          On
+          {tr("volcano.on")}
         </button>
         <button
           type="button"
@@ -155,7 +166,7 @@ export function ToggleRow({
           className={"dv-seg-btn" + (!checked ? " dv-seg-btn-active" : "")}
           style={{ fontSize: 12 }}
         >
-          Off
+          {tr("volcano.off")}
         </button>
       </div>
     </div>
@@ -163,6 +174,7 @@ export function ToggleRow({
 }
 
 export function ThresholdsTile({ vis, updVis }: ThresholdsTileProps) {
+  const tr = useT();
   // |log2FC| cutoff: numeric stepper (−/+ buttons + free-form entry).
   // p-value cutoff: discrete select with the conventional values
   // researchers actually use ({0.05, 0.01, 0.001}) plus "None" — the
@@ -176,7 +188,7 @@ export function ThresholdsTile({ vis, updVis }: ThresholdsTileProps) {
     updVis({ fcCutoff: Math.max(0, Math.min(10, v)) });
   };
   const P_OPTIONS = [
-    { value: 1, label: "None" },
+    { value: 1, label: tr("volcano.thresh.none") },
     { value: 0.05, label: "0.05" },
     { value: 0.01, label: "0.01" },
     { value: 0.001, label: "0.001" },
@@ -185,9 +197,9 @@ export function ThresholdsTile({ vis, updVis }: ThresholdsTileProps) {
   // (handles legacy values from before this control existed).
   const pPickValue = P_OPTIONS.find((o) => Math.abs(o.value - vis.pCutoff) < 1e-12)?.value ?? 0.05;
   return (
-    <ControlSection title="Thresholds" defaultOpen>
+    <ControlSection title={tr("volcano.thresh.title")} defaultOpen>
       <label style={{ display: "block" }}>
-        <span className="dv-label">|log2FC| cutoff</span>
+        <span className="dv-label">{tr("volcano.thresh.fcCutoff")}</span>
         <NumberInput
           value={vis.fcCutoff}
           min={0}
@@ -198,7 +210,7 @@ export function ThresholdsTile({ vis, updVis }: ThresholdsTileProps) {
         />
       </label>
       <label style={{ display: "block" }}>
-        <span className="dv-label">p-value cutoff</span>
+        <span className="dv-label">{tr("volcano.thresh.pCutoff")}</span>
         {/* Same `dv-seg` segmented pill-bar power and molarity use for
             their alpha / tails / mode pickers — one canonical
             exclusive-selector look across the whole tool. Every option
@@ -223,13 +235,14 @@ export function ThresholdsTile({ vis, updVis }: ThresholdsTileProps) {
         </div>
       </label>
       <ToggleRow checked={vis.showRefLines} onChange={(v) => updVis({ showRefLines: v })}>
-        Show reference lines
+        {tr("volcano.thresh.showRefLines")}
       </ToggleRow>
     </ControlSection>
   );
 }
 
 export function ColorsTile({ vis, updVis }: ColorsTileProps) {
+  const tr = useT();
   // Volcano has only 3 fixed slots (up / down / ns), not N categories. The
   // palette picker maps the resolved hex list into the two SIGNIFICANT
   // slots only — `[0]` → colorUp, `[1]` → colorDown — and leaves
@@ -248,20 +261,24 @@ export function ColorsTile({ vis, updVis }: ColorsTileProps) {
     });
   };
   return (
-    <ControlSection title="Colors">
+    <ControlSection title={tr("volcano.colors.title")}>
       <DiscretePaletteRow
         value={vis.discretePalette || "okabe-ito"}
         onChange={handlePalette}
         names={["up", "down", "ns"]}
       />
-      <ColorRow label="Up-regulated" value={vis.colorUp} onChange={(v) => updVis({ colorUp: v })} />
       <ColorRow
-        label="Down-regulated"
+        label={tr("volcano.colors.up")}
+        value={vis.colorUp}
+        onChange={(v) => updVis({ colorUp: v })}
+      />
+      <ColorRow
+        label={tr("volcano.colors.down")}
         value={vis.colorDown}
         onChange={(v) => updVis({ colorDown: v })}
       />
       <ColorRow
-        label="Not significant"
+        label={tr("volcano.colors.ns")}
         value={vis.colorNs}
         onChange={(v) => updVis({ colorNs: v })}
       />
@@ -286,6 +303,7 @@ function ColorRow({ label, value, onChange }: ColorRowProps) {
 // lower-cased label cache so a 50 k-point dataset stays snappy. The live
 // readout is informational only — nothing commits until the user submits.
 function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchRowProps) {
+  const tr = useT();
   const [query, setQuery] = useState("");
   const [previewQuery, setPreviewQuery] = useState("");
   const [showUnmatched, setShowUnmatched] = useState(false);
@@ -328,7 +346,7 @@ function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchR
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <div className="dv-label">Search by name</div>
+      <div className="dv-label">{tr("volcano.search.label")}</div>
       <div style={{ display: "flex", gap: 6 }}>
         <input
           type="search"
@@ -341,10 +359,10 @@ function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchR
               submit();
             }
           }}
-          placeholder="gene name (or paste a list)"
+          placeholder={tr("volcano.search.placeholder")}
           disabled={disabled}
           style={{ flex: 1, fontSize: 11, padding: "3px 6px" }}
-          title="Comma- or newline-separated. Case-insensitive substring."
+          title={tr("volcano.search.inputTitle")}
         />
         <button
           type="button"
@@ -354,18 +372,18 @@ function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchR
           style={{ padding: "4px 10px", fontSize: 11 }}
           title={
             disabled
-              ? "Pick a label column in Configure to enable search"
+              ? tr("volcano.search.disabledTitle")
               : matchCount === 0
-                ? "Type a name to search"
-                : `Add ${matchCount} matched point${matchCount === 1 ? "" : "s"} to the labelled set`
+                ? tr("volcano.search.typeTitle")
+                : tr("volcano.search.addTitle", { n: matchCount })
           }
         >
-          Add
+          {tr("volcano.search.add")}
         </button>
       </div>
       {disabled ? (
         <span style={{ fontSize: 10, color: "var(--text-faint)", fontStyle: "italic" }}>
-          ↳ Pick a label column in Configure to enable search
+          {tr("volcano.search.disabledHint")}
         </span>
       ) : hasQuery ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -380,10 +398,10 @@ function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchR
             }}
           >
             {matchCount === 0
-              ? "no matches"
-              : `${matchCount} match${matchCount === 1 ? "" : "es"}` +
-                (tooMany ? " — labels may overlap" : "") +
-                (unmatchedCount > 0 ? ` · ${unmatchedCount} unmatched` : "")}
+              ? tr("volcano.search.noMatches")
+              : tr("volcano.search.matches", { n: matchCount }) +
+                (tooMany ? tr("volcano.search.overlap") : "") +
+                (unmatchedCount > 0 ? tr("volcano.search.unmatched", { n: unmatchedCount }) : "")}
           </span>
           {unmatchedCount > 0 && (
             <button
@@ -400,9 +418,11 @@ function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchR
                 cursor: "pointer",
                 textDecoration: "underline",
               }}
-              title="Toggle the list of tokens that matched zero points"
+              title={tr("volcano.search.unmatchedToggleTitle")}
             >
-              {showUnmatched ? "hide unmatched" : "show unmatched"}
+              {showUnmatched
+                ? tr("volcano.search.hideUnmatched")
+                : tr("volcano.search.showUnmatched")}
             </button>
           )}
           {showUnmatched && unmatchedCount > 0 && (
@@ -428,7 +448,7 @@ function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchR
         </div>
       ) : (
         <span style={{ fontSize: 10, color: "var(--text-faint)", fontStyle: "italic" }}>
-          ↳ Comma- or newline-separated · case-insensitive substring
+          {tr("volcano.search.placeholderHint")}
         </span>
       )}
     </div>
@@ -449,6 +469,7 @@ export function LabelsTile({
   // heuristic estimate based on point count or plot dimensions.
   labelDensity,
 }: LabelsTileProps) {
+  const tr = useT();
   const manualCount = manualSelection ? manualSelection.size : 0;
   const hasManual = manualCount > 0;
   // The cap warning is hidden in manual mode (the user's explicit
@@ -468,9 +489,9 @@ export function LabelsTile({
   const suggestedUp = Math.max(0, Math.round(cleanBudget * ratioUp));
   const suggestedDown = Math.max(0, cleanBudget - suggestedUp);
   return (
-    <ControlSection title="Labels" defaultOpen={hasManual}>
+    <ControlSection title={tr("volcano.labels.title")} defaultOpen={hasManual}>
       <ToggleRow checked={vis.showLabels} onChange={(v) => updVis({ showLabels: v })}>
-        Annotate top features
+        {tr("volcano.labels.annotateTop")}
       </ToggleRow>
       <LabelSearchRow
         points={points}
@@ -495,24 +516,24 @@ export function LabelsTile({
           }}
         >
           <span style={{ fontSize: 11, color: "var(--info-text)" }}>
-            {manualCount} point{manualCount === 1 ? "" : "s"} clicked
+            {tr("volcano.labels.clicked", { n: manualCount })}
           </span>
           <button
             onClick={clearManualSelection}
             className="dv-btn dv-btn-secondary"
             style={{ padding: "4px 10px", fontSize: 11 }}
-            title="Clear the manual selection — labelling falls back to the auto top-N picks"
+            title={tr("volcano.labels.clearTitle")}
           >
-            Clear
+            {tr("volcano.labels.clear")}
           </button>
         </div>
       ) : (
         <span style={{ fontSize: 10, color: "var(--text-faint)", fontStyle: "italic" }}>
-          ↳ Click any point on the chart to label it directly
+          {tr("volcano.labels.clickHint")}
         </span>
       )}
       <SliderControl
-        label="Top up-regulated"
+        label={tr("volcano.labels.topUp")}
         value={vis.topNUp}
         displayValue={String(vis.topNUp)}
         min={0}
@@ -521,7 +542,7 @@ export function LabelsTile({
         onChange={(v) => updVis({ topNUp: Number(v) })}
       />
       <SliderControl
-        label="Top down-regulated"
+        label={tr("volcano.labels.topDown")}
         value={vis.topNDown}
         displayValue={String(vis.topNDown)}
         min={0}
@@ -530,7 +551,7 @@ export function LabelsTile({
         onChange={(v) => updVis({ topNDown: Number(v) })}
       />
       <SliderControl
-        label="Font size"
+        label={tr("volcano.labels.fontSize")}
         value={vis.labelFontSize}
         displayValue={String(vis.labelFontSize)}
         min={8}
@@ -555,7 +576,7 @@ export function LabelsTile({
           }}
         >
           <span>
-            ⚠ {forcedCount} of {attemptedCount} labels couldn't place cleanly at this data density.
+            ⚠ {tr("volcano.labels.densityWarn", { forced: forcedCount, attempted: attemptedCount })}
           </span>
           {cleanBudget > 0 && cleanBudget < totalRequested && (
             <button
@@ -563,15 +584,9 @@ export function LabelsTile({
               onClick={() => updVis({ topNUp: suggestedUp, topNDown: suggestedDown })}
               className="dv-btn dv-btn-secondary"
               style={{ alignSelf: "flex-start", padding: "3px 10px", fontSize: 11 }}
-              title={
-                "Drop top-N to (" +
-                suggestedUp +
-                " up / " +
-                suggestedDown +
-                " down) so every label places without overlap."
-              }
+              title={tr("volcano.labels.dropTitle", { up: suggestedUp, down: suggestedDown })}
             >
-              Use suggested ({suggestedUp} / {suggestedDown})
+              {tr("volcano.labels.useSuggested", { up: suggestedUp, down: suggestedDown })}
             </button>
           )}
         </div>
@@ -581,10 +596,11 @@ export function LabelsTile({
 }
 
 export function StyleTile({ vis, updVis }: StyleTileProps) {
+  const tr = useT();
   return (
-    <ControlSection title="Style">
+    <ControlSection title={tr("volcano.style.title")}>
       <SliderControl
-        label="Plot width"
+        label={tr("volcano.style.plotWidth")}
         value={vis.plotWidth}
         displayValue={String(Math.round(vis.plotWidth)) + " px"}
         min={600}
@@ -593,7 +609,7 @@ export function StyleTile({ vis, updVis }: StyleTileProps) {
         onChange={(v) => updVis({ plotWidth: Number(v) })}
       />
       <SliderControl
-        label="Point radius"
+        label={tr("volcano.style.pointRadius")}
         value={vis.pointRadius}
         displayValue={vis.pointRadius.toFixed(1)}
         min={1}
@@ -602,7 +618,7 @@ export function StyleTile({ vis, updVis }: StyleTileProps) {
         onChange={(v) => updVis({ pointRadius: Number(v) })}
       />
       <SliderControl
-        label="Point alpha"
+        label={tr("volcano.style.pointAlpha")}
         value={vis.pointAlpha}
         displayValue={vis.pointAlpha.toFixed(2)}
         min={0.1}
@@ -611,7 +627,7 @@ export function StyleTile({ vis, updVis }: StyleTileProps) {
         onChange={(v) => updVis({ pointAlpha: Number(v) })}
       />
       <ToggleRow checked={vis.showAxes} onChange={(v) => updVis({ showAxes: v })}>
-        Show grid
+        {tr("volcano.style.showGrid")}
       </ToggleRow>
       <label
         style={{
@@ -622,13 +638,13 @@ export function StyleTile({ vis, updVis }: StyleTileProps) {
           color: "var(--text)",
         }}
       >
-        Plot title
+        {tr("volcano.style.plotTitle")}
         <input
           type="text"
           className="dv-input"
           value={vis.plotTitle}
           onChange={(e) => updVis({ plotTitle: e.target.value })}
-          placeholder="(optional)"
+          placeholder={tr("volcano.style.optional")}
         />
       </label>
     </ControlSection>
@@ -689,6 +705,7 @@ export function ColorMapTile({
   vis,
   updVis,
 }: ColorMapTileProps) {
+  const tr = useT();
   const candidates = eligibleColumns(parsed, xCol, yCol, labelCol);
   // Bare-global access — see the comment in App's colorMap useMemo for
   // why we don't go through `window`.
@@ -701,7 +718,7 @@ export function ColorMapTile({
         onChange={(e) => setCol(e.target.value === "" ? -1 : parseInt(e.target.value))}
         style={{ width: "100%", marginBottom: colorMap ? 8 : 0 }}
       >
-        <option value="">— None —</option>
+        <option value="">{tr("volcano.map.none")}</option>
         {candidates.map(({ h, i }) => (
           <option key={i} value={i}>
             {h}
@@ -711,15 +728,15 @@ export function ColorMapTile({
       {colorMap && (
         <>
           <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 6 }}>
-            Detected:{" "}
+            {tr("volcano.map.detected")}
             <strong
               style={{
                 color: colorMap.type === "continuous" ? "var(--accent-dna)" : "var(--accent-blue)",
               }}
             >
               {colorMap.type === "continuous"
-                ? "numeric (continuous)"
-                : `categorical (${colorMap.legend.length} groups)`}
+                ? tr("volcano.map.continuous")
+                : tr("volcano.map.categorical", { n: colorMap.legend.length })}
             </strong>
           </div>
           {colorMap.type === "continuous" && (
@@ -733,7 +750,7 @@ export function ColorMapTile({
                 {paletteNames.map((name) => (
                   <option key={name} value={name}>
                     {name}
-                    {DIVERGING_PALETTES.has(name) ? "  (diverging)" : ""}
+                    {DIVERGING_PALETTES.has(name) ? tr("volcano.map.diverging") : ""}
                   </option>
                 ))}
               </select>
@@ -746,9 +763,9 @@ export function ColorMapTile({
                   "Direction" dv-seg row exactly. */}
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <span className="dv-label" style={{ fontSize: 11, flexShrink: 0 }}>
-                  Direction
+                  {tr("volcano.map.direction")}
                 </span>
-                <div className="dv-seg" role="group" aria-label="Palette direction">
+                <div className="dv-seg" role="group" aria-label={tr("volcano.map.directionAria")}>
                   <button
                     type="button"
                     aria-pressed={!vis.colorMapInvert}
@@ -756,7 +773,7 @@ export function ColorMapTile({
                     onClick={() => updVis({ colorMapInvert: false })}
                     style={{ fontSize: 11, padding: "3px 8px" }}
                   >
-                    Normal
+                    {tr("volcano.map.normal")}
                   </button>
                   <button
                     type="button"
@@ -765,12 +782,15 @@ export function ColorMapTile({
                     onClick={() => updVis({ colorMapInvert: true })}
                     style={{ fontSize: 11, padding: "3px 8px" }}
                   >
-                    Inverted
+                    {tr("volcano.map.inverted")}
                   </button>
                 </div>
               </div>
               <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
-                range: {colorMap.vmin.toPrecision(3)} → {colorMap.vmax.toPrecision(3)}
+                {tr("volcano.map.range", {
+                  min: colorMap.vmin.toPrecision(3),
+                  max: colorMap.vmax.toPrecision(3),
+                })}
               </span>
             </div>
           )}
@@ -830,6 +850,7 @@ export function SizeMapTile({
   vis,
   updVis,
 }: SizeMapTileProps) {
+  const tr = useT();
   const candidates = eligibleColumns(parsed, xCol, yCol, labelCol);
   const active = col >= 0;
   return (
@@ -840,7 +861,7 @@ export function SizeMapTile({
         onChange={(e) => setCol(e.target.value === "" ? -1 : parseInt(e.target.value))}
         style={{ width: "100%", marginBottom: active ? 8 : 0 }}
       >
-        <option value="">— None —</option>
+        <option value="">{tr("volcano.map.none")}</option>
         {candidates.map(({ h, i }) => (
           <option key={i} value={i}>
             {h}
@@ -850,7 +871,7 @@ export function SizeMapTile({
       {active && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <SliderControl
-            label="Min radius"
+            label={tr("volcano.size.minRadius")}
             value={vis.sizeMapMinR}
             displayValue={vis.sizeMapMinR.toFixed(1)}
             min={1}
@@ -859,7 +880,7 @@ export function SizeMapTile({
             onChange={(v) => updVis({ sizeMapMinR: Number(v) })}
           />
           <SliderControl
-            label="Max radius"
+            label={tr("volcano.size.maxRadius")}
             value={vis.sizeMapMaxR}
             displayValue={vis.sizeMapMaxR.toFixed(1)}
             min={vis.sizeMapMinR + 0.5}
@@ -868,7 +889,7 @@ export function SizeMapTile({
             onChange={(v) => updVis({ sizeMapMaxR: Number(v) })}
           />
           <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
-            Non-numeric / blank cells fall back to the default radius from the Style tile.
+            {tr("volcano.size.fallbackNote")}
           </span>
         </div>
       )}
@@ -877,26 +898,30 @@ export function SizeMapTile({
 }
 
 export function SummaryTile({ summary, fcCutoff, pCutoff }: SummaryTileProps) {
+  const tr = useT();
   return (
     <div
       className="dv-panel"
       style={{ padding: "10px 14px", display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12 }}
     >
       <span>
-        <strong style={{ color: VOLCANO_DEFAULT_COLORS.up }}>↑ up</strong>: {summary.up}
+        <strong style={{ color: VOLCANO_DEFAULT_COLORS.up }}>{tr("volcano.summary.up")}</strong>:{" "}
+        {summary.up}
       </span>
       <span>
-        <strong style={{ color: VOLCANO_DEFAULT_COLORS.down }}>↓ down</strong>: {summary.down}
+        <strong style={{ color: VOLCANO_DEFAULT_COLORS.down }}>{tr("volcano.summary.down")}</strong>
+        : {summary.down}
       </span>
       <span>
-        <strong style={{ color: VOLCANO_DEFAULT_COLORS.ns }}>· ns</strong>: {summary.ns}
+        <strong style={{ color: VOLCANO_DEFAULT_COLORS.ns }}>{tr("volcano.summary.ns")}</strong>:{" "}
+        {summary.ns}
       </span>
       <span style={{ color: "var(--text-muted)" }}>
-        of {summary.total} valid
-        {summary.discarded > 0 ? ` (+${summary.discarded} discarded)` : ""}
+        {tr("volcano.summary.ofValid", { n: summary.total })}
+        {summary.discarded > 0 ? tr("volcano.summary.discarded", { n: summary.discarded }) : ""}
       </span>
       <span style={{ color: "var(--text-faint)" }}>
-        |log2FC| &gt; {fcCutoff} · p &lt; {pCutoff}
+        {tr("volcano.summary.cutoffs", { fc: fcCutoff, p: pCutoff })}
       </span>
     </div>
   );

@@ -21,7 +21,9 @@
 // other tool uses.
 
 import { HowTo, PlotToolShell, UploadPanel, usePlotToolState } from "../_shell";
-import { VOLCANO_HOWTO } from "./howto";
+import "./i18n";
+import { tt, useT } from "./i18n";
+import { useVolcanoHowTo } from "./howto";
 import {
   VOLCANO_DEFAULT_COLORS,
   classifyPoint,
@@ -331,6 +333,8 @@ AT5G64750\t1.34\t1.6e-5\t1.4e-5\t34538
 `;
 
 export function App() {
+  const tr = useT();
+  const howto = useVolcanoHowTo();
   const shell = usePlotToolState("volcano", VIS_INIT_VOLCANO);
   const {
     step,
@@ -439,9 +443,7 @@ export function App() {
       const out = parseData(fixed, effectiveSep);
       setInjectionWarning(out.injectionWarnings);
       if (out.headers.length < 2 || out.data.length === 0) {
-        setParseError(
-          "The file appears empty or has fewer than two columns. Volcano expects at least a log2FC and a p-value column."
-        );
+        setParseError(tt("volcano.err.fewCols"));
         return;
       }
       setParseError(null);
@@ -523,7 +525,7 @@ export function App() {
     [points, vis.fcCutoff, vis.pCutoff]
   );
 
-  const xLabel = parsed && xCol >= 0 ? parsed.headers[xCol] : "log₂(fold change)";
+  const xLabel = parsed && xCol >= 0 ? parsed.headers[xCol] : tr("volcano.xLabelFallback");
   const yLabel = parsed && yCol >= 0 ? "−log₁₀(" + parsed.headers[yCol] + ")" : "−log₁₀(p-value)";
 
   // Derived aesthetic mappings — null when the tile is toggled Off,
@@ -658,13 +660,12 @@ export function App() {
             autoDetect
             onLoadExample={onLoadExample}
             exampleSummary={{
-              title: "Mock DESeq2 results",
-              subtitle: "200 features · plant circadian transcriptomics",
-              buttonLabel: "Plot this example →",
+              title: tr("volcano.example.title"),
+              subtitle: tr("volcano.example.subtitle"),
             }}
-            hint="CSV · TSV · TXT · one row per feature · expects log2FC + p-value columns · 2 MB max"
+            hint={tr("volcano.upload.hint")}
           />
-          <HowTo {...VOLCANO_HOWTO} />
+          <HowTo {...howto} />
         </div>
       )}
 
