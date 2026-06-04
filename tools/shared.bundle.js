@@ -31,6 +31,7 @@ var __plottrShared = (() => {
     applyStaticI18n: () => applyStaticI18n,
     getLang: () => getLang,
     getTheme: () => getTheme,
+    makeT: () => makeT,
     registerCatalog: () => registerCatalog,
     setLang: () => setLang,
     setTheme: () => setTheme,
@@ -351,6 +352,14 @@ var __plottrShared = (() => {
   function useT() {
     useLang();
     return t;
+  }
+  function makeT() {
+    const tt = (key, vars) => t(key, vars);
+    const useTHook = () => {
+      useLang();
+      return tt;
+    };
+    return { tt, useT: useTHook };
   }
   function toggleLang() {
     setLang(getLang() === "fr" ? "en" : "fr");

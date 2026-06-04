@@ -4,6 +4,8 @@
 // composition live in sibling modules under tools/venn/.
 
 import { PlotToolShell, applyDiscretePalette, usePlotToolState } from "../_shell";
+import "./i18n";
+import { tt, useT } from "./i18n";
 import { computeIntersections, detectLongFormat, VIS_INIT_VENN } from "./helpers";
 import type { SetColorsUpdater } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
@@ -50,6 +52,7 @@ ANAC019,,ANAC055
 ANAC055,,`;
 
 export function App() {
+  const tr = useT();
   const shell = usePlotToolState("venn", VIS_INIT_VENN);
   const {
     step,
@@ -187,7 +190,7 @@ export function App() {
       const { headers, rows, injectionWarnings } = parseRaw(dc.text, effectiveSep);
       setInjectionWarning(injectionWarnings);
       if (!headers.length || !rows.length) {
-        setParseError("The file appears to be empty or has no data rows.");
+        setParseError(tt("venn.err.empty"));
         return;
       }
 
@@ -214,7 +217,7 @@ export function App() {
       }
 
       if (sn.length < 2) {
-        setParseError("Need at least 2 sets — each column header becomes a set name.");
+        setParseError(tt("venn.err.needSets"));
         return;
       }
 
@@ -350,7 +353,8 @@ export function App() {
         // real configure flow: the UpSet nudge, the 3-set cap, and the
         // rename/recolour picker all live there. Relabel so the stepper
         // tells users which it is at a glance.
-        configure: allColumnNames.length >= 4 ? "Configure" : "Import check",
+        configure:
+          allColumnNames.length >= 4 ? tr("venn.step.configure") : tr("venn.step.importCheck"),
       }}
       canNavigate={canNavigate}
     >

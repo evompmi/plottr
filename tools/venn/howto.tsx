@@ -1,25 +1,18 @@
 import type { HowToContent } from "../_shell";
-export const VENN_HOWTO: HowToContent = {
-  toolName: "venn",
-  title: "Venn Diagram — How to use",
-  subtitle: "Item-overlap between 2–3 sets, area-proportional or classic",
-  purpose: (
-    <>
-      Show which items are shared between 2 or 3 sets (genes upregulated in two conditions; taxa
-      common to multiple samples). For ≥ 4 sets, use the UpSet tool instead.
-    </>
-  ),
-  dataLayout: (
-    <>
-      <strong>Wide</strong> — one column per set, items stacked in each column.{" "}
-      <strong>Long</strong> — two columns: <em>item</em> and <em>set</em>. Both formats auto-detect.
-    </>
-  ),
-  display: (
-    <>
-      Toggle between <strong>area-proportional</strong> (circle sizes scale with set size; subset
-      relationships are exact) and <strong>classic</strong> (uniform-radius Euler-style). Click any
-      region to drill down into its item list. CSV export per region.
-    </>
-  ),
-};
+import { useT, type VennKey } from "./i18n";
+
+// How-to content as a hook so it re-renders on language change. The
+// dataLayout / display copy carries <strong>/<em> emphasis, rendered from
+// authored HTML strings in the catalog (safe — not user input).
+export function useVennHowTo(): HowToContent {
+  const tr = useT();
+  const html = (k: VennKey) => <span dangerouslySetInnerHTML={{ __html: tr(k) }} />;
+  return {
+    toolName: "venn",
+    title: tr("venn.howto.title"),
+    subtitle: tr("venn.howto.subtitle"),
+    purpose: html("venn.howto.purpose"),
+    dataLayout: html("venn.howto.dataLayout"),
+    display: html("venn.howto.display"),
+  };
+}

@@ -265,6 +265,23 @@ export function useT(): typeof t {
   return t;
 }
 
+// Per-namespace typed-wrapper factory. A tool's `i18n/index.ts` registers
+// its catalogs then does `export const { tt, useT } = makeT<ToolKey>()` —
+// `tt(key)` is key-checked (accepting plural base keys), and `useT()`
+// subscribes to language changes before returning `tt` so components
+// re-render on toggle. Cuts the per-tool boilerplate to three lines.
+export function makeT<K extends string>(): {
+  tt: (key: TranslatableKey<K>, vars?: TVars) => string;
+  useT: () => (key: TranslatableKey<K>, vars?: TVars) => string;
+} {
+  const tt = (key: TranslatableKey<K>, vars?: TVars): string => t(key, vars);
+  const useTHook = (): ((key: TranslatableKey<K>, vars?: TVars) => string) => {
+    useLang();
+    return tt;
+  };
+  return { tt, useT: useTHook };
+}
+
 export function toggleLang(): void {
   setLang(getLang() === "fr" ? "en" : "fr");
 }

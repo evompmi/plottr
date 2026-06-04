@@ -13,6 +13,7 @@ import {
   VENN_CONFIG,
 } from "./helpers";
 import type { Region, VennChartProps } from "./helpers";
+import { tt } from "./i18n";
 
 import { PALETTE } from "../_core/color";
 import { svgSafeId } from "../_core/svg-export";
@@ -84,10 +85,10 @@ export const VennChart = memo(
         style={{ width: "100%", height: "auto", display: "block" }}
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label={plotTitle || "Venn diagram"}
+        aria-label={plotTitle || tt("venn.chart.fallbackTitle")}
       >
-        <title>{plotTitle || "Venn diagram"}</title>
-        <desc>{`Venn diagram with ${n} set${n !== 1 ? "s" : ""}: ${setNames.join(", ")}`}</desc>
+        <title>{plotTitle || tt("venn.chart.fallbackTitle")}</title>
+        <desc>{tt("venn.chart.desc", { n, names: setNames.join(", ") })}</desc>
         <rect id="background" width={VW} height={VH} fill={plotBg || "#fff"} rx="8" />
         {plotTitle && (
           <g id="title">
