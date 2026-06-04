@@ -5,7 +5,8 @@
 
 import type { UploadStepProps } from "./helpers";
 import { HowTo, UploadPanel } from "../_shell";
-import { HEATMAP_HOWTO } from "./howto";
+import { useHeatmapHowTo } from "./howto";
+import { useT } from "./i18n";
 
 export function UploadStep({
   sepOverride,
@@ -14,6 +15,8 @@ export function UploadStep({
   handleTextPaste,
   onLoadExample,
 }: UploadStepProps) {
+  const tr = useT();
+  const howto = useHeatmapHowTo();
   return (
     <div>
       <UploadPanel
@@ -24,13 +27,12 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          title: "Gene-expression matrix",
-          subtitle: "500 genes × 6 samples (3 Control · 3 Stress) · clustered demo",
-          buttonLabel: "Plot this example →",
+          title: tr("heatmap.example.title"),
+          subtitle: tr("heatmap.example.subtitle"),
         }}
-        hint="CSV · TSV · TXT — first column = row labels, first row = column labels, rest numeric · 2 MB max"
+        hint={tr("heatmap.upload.hint")}
       />
-      <HowTo {...HEATMAP_HOWTO} />
+      <HowTo {...howto} />
     </div>
   );
 }
