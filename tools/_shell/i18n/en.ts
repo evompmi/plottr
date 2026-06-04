@@ -171,6 +171,94 @@ const en = {
   "shell.stats.sem": "SEM",
   "shell.stats.min": "Min",
   "shell.stats.max": "Max",
+
+  // StatsTile — test + post-hoc display names (the registry stays English so
+  // the R-script export remains portable; these localize the on-screen +
+  // text-report copies). Proper names (Mann-Whitney, Kruskal-Wallis, Tukey,
+  // Games-Howell) are kept identical across languages.
+  "shell.test.studentT": "Student's t-test",
+  "shell.test.welchT": "Welch's t-test",
+  "shell.test.mannWhitney": "Mann-Whitney U",
+  "shell.test.oneWayANOVA": "One-way ANOVA",
+  "shell.test.welchANOVA": "Welch's ANOVA",
+  "shell.test.kruskalWallis": "Kruskal-Wallis",
+  "shell.posthoc.tukeyHSD": "Tukey HSD",
+  "shell.posthoc.gamesHowell": "Games-Howell",
+  "shell.posthoc.dunn": "Dunn (BH-adjusted)",
+
+  // StatsTile — shared assessment labels + captions + column headers
+  "shell.assess.normal": "normal",
+  "shell.assess.notNormal": "not normal",
+  "shell.assess.unknown": "unknown",
+  "shell.assess.equalVar": "equal variance",
+  "shell.assess.unequalVar": "unequal variance",
+  "shell.stats.shapiro": "Shapiro-Wilk test for normality",
+  "shell.stats.levene": "Levene (Brown-Forsythe) test for equal variance",
+  "shell.stats.w": "W",
+  "shell.stats.p": "p",
+  "shell.stats.assessment": "Assessment",
+  "shell.stats.pair": "Pair",
+  "shell.stats.signif": "Signif.",
+  "shell.stats.meanDiff": "Mean diff",
+  "shell.stats.rankDiff": "Rank diff",
+  "shell.stats.effectSize": "Effect size",
+  "shell.stats.nFor80": "n for 80% power",
+  "shell.stats.vs": "vs",
+
+  // StatsTile — on-screen controls + panel
+  "shell.statsui.displayTitle": "Statistics display",
+  "shell.statsui.summaryTitle": "Statistics summary",
+  "shell.statsui.txtTitle": "Download a plain-text stats report",
+  "shell.statsui.rTitle": "Download a runnable R script reproducing these tests",
+  "shell.statsui.letters": "Letters",
+  "shell.statsui.brackets": "Brackets",
+  "shell.statsui.displayOnPlot": "Display on plot",
+  "shell.statsui.printSummary": "Print summary below plot",
+  "shell.statsui.style": "Style:",
+  "shell.statsui.showNs": "Show ns",
+  "shell.statsui.assumptions": "Assumptions",
+  "shell.statsui.test": "Test",
+  "shell.statsui.recommendedSuffix": "  (recommended)",
+  "shell.statsui.useRecommendation": "Use recommendation",
+  "shell.statsui.suggestedAlt": "Suggested alternative:",
+  "shell.statsui.suggestConsider": "Shapiro-Wilk flagged non-normal data — consider ",
+  "shell.statsui.useSuggestion": "Use suggestion",
+  "shell.statsui.posthocPrefix": "Post-hoc — ",
+  "shell.statsui.replication": "Replication planning (n for 80% power)",
+  "shell.statsui.replicationDesc":
+    "Given the observed effect size, sample size a future study would need to detect this effect at 80% power.",
+  "shell.statsui.approxNote":
+    "Approximation — rank-based test power estimated from its parametric analog.",
+  "shell.statsui.gt5000": "> 5000",
+
+  // StatsTile — below-plot text summary
+  "shell.summary.posthoc": "Post-hoc: ",
+  "shell.summary.effectSize": "Effect size: ",
+  "shell.summary.nPerGroup": "n per group: ",
+
+  // StatsTile — downloadable plain-text report (fixed-width columns: keep
+  // translations short enough to fit the existing pads)
+  "shell.report.title": "Statistical analysis report",
+  "shell.report.generated": "Generated: ",
+  "shell.report.groups": "GROUPS",
+  "shell.report.meanEq": "mean = ",
+  "shell.report.assumptions": "ASSUMPTIONS",
+  "shell.report.test": "TEST",
+  "shell.report.recommended": "Recommended: ",
+  "shell.report.reason": "Reason:      ",
+  "shell.report.chosen": "Chosen:      ",
+  "shell.report.result": "Result: ",
+  "shell.report.errorPrefix": "error: ",
+  "shell.report.replication": "REPLICATION PLANNING (target 80% power)",
+  "shell.report.effectSize": "Effect size:       ",
+  "shell.report.futureStudy": "For a future study at the observed effect size:",
+  "shell.report.alpha": "alpha",
+  "shell.report.rankNote": "Note: rank-based test — power estimated from its parametric analog.",
+  "shell.report.whyNot1": "Why not 'achieved power'? Post-hoc / observed power is a",
+  "shell.report.whyNot2": "deterministic transformation of p (Hoenig & Heisey 2001),",
+  "shell.report.whyNot3": "so it adds no information beyond p itself. The forward-",
+  "shell.report.whyNot4": "looking n-needed estimates above are the actionable signal.",
+  "shell.report.posthoc": "POST-HOC — ",
 } as const satisfies Catalog;
 
 export default en;

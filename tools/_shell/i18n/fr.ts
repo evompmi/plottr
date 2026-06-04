@@ -172,6 +172,92 @@ const fr: Record<ShellKey, string> = {
   "shell.stats.sem": "SEM",
   "shell.stats.min": "Min",
   "shell.stats.max": "Max",
+
+  // StatsTile — test + post-hoc display names
+  "shell.test.studentT": "test t de Student",
+  "shell.test.welchT": "test t de Welch",
+  "shell.test.mannWhitney": "Mann-Whitney U",
+  "shell.test.oneWayANOVA": "ANOVA à un facteur",
+  "shell.test.welchANOVA": "ANOVA de Welch",
+  "shell.test.kruskalWallis": "Kruskal-Wallis",
+  "shell.posthoc.tukeyHSD": "Tukey HSD",
+  "shell.posthoc.gamesHowell": "Games-Howell",
+  "shell.posthoc.dunn": "Dunn (ajusté BH)",
+
+  // StatsTile — assessment labels + captions + column headers
+  "shell.assess.normal": "normale",
+  "shell.assess.notNormal": "non normale",
+  "shell.assess.unknown": "inconnu",
+  "shell.assess.equalVar": "variances égales",
+  "shell.assess.unequalVar": "variances inégales",
+  "shell.stats.shapiro": "Test de normalité de Shapiro-Wilk",
+  "shell.stats.levene": "Test de Levene (Brown-Forsythe) pour l’égalité des variances",
+  "shell.stats.w": "W",
+  "shell.stats.p": "p",
+  "shell.stats.assessment": "Évaluation",
+  "shell.stats.pair": "Paire",
+  "shell.stats.signif": "Signif.",
+  "shell.stats.meanDiff": "Diff. moy.",
+  "shell.stats.rankDiff": "Diff. rang",
+  "shell.stats.effectSize": "Taille d’effet",
+  "shell.stats.nFor80": "n pour puiss. 80 %",
+  "shell.stats.vs": "vs",
+
+  // StatsTile — on-screen controls + panel
+  "shell.statsui.displayTitle": "Affichage des statistiques",
+  "shell.statsui.summaryTitle": "Résumé statistique",
+  "shell.statsui.txtTitle": "Télécharger un rapport statistique en texte brut",
+  "shell.statsui.rTitle": "Télécharger un script R exécutable reproduisant ces tests",
+  "shell.statsui.letters": "Lettres",
+  "shell.statsui.brackets": "Crochets",
+  "shell.statsui.displayOnPlot": "Afficher sur le tracé",
+  "shell.statsui.printSummary": "Imprimer le résumé sous le tracé",
+  "shell.statsui.style": "Style :",
+  "shell.statsui.showNs": "Afficher ns",
+  "shell.statsui.assumptions": "Hypothèses",
+  "shell.statsui.test": "Test",
+  "shell.statsui.recommendedSuffix": "  (recommandé)",
+  "shell.statsui.useRecommendation": "Utiliser la recommandation",
+  "shell.statsui.suggestedAlt": "Alternative suggérée :",
+  "shell.statsui.suggestConsider": "Shapiro-Wilk a signalé des données non normales — envisagez ",
+  "shell.statsui.useSuggestion": "Utiliser la suggestion",
+  "shell.statsui.posthocPrefix": "Post-hoc — ",
+  "shell.statsui.replication": "Planification de réplication (n pour puiss. 80 %)",
+  "shell.statsui.replicationDesc":
+    "Compte tenu de la taille d’effet observée, taille d’échantillon qu’une étude future devrait atteindre pour détecter cet effet à 80 % de puissance.",
+  "shell.statsui.approxNote":
+    "Approximation — puissance du test sur rangs estimée à partir de son analogue paramétrique.",
+  "shell.statsui.gt5000": "> 5000",
+
+  // StatsTile — below-plot text summary
+  "shell.summary.posthoc": "Post-hoc : ",
+  "shell.summary.effectSize": "Taille d’effet : ",
+  "shell.summary.nPerGroup": "n par groupe : ",
+
+  // StatsTile — downloadable plain-text report
+  "shell.report.title": "Rapport d’analyse statistique",
+  "shell.report.generated": "Généré : ",
+  "shell.report.groups": "GROUPES",
+  "shell.report.meanEq": "moy. = ",
+  "shell.report.assumptions": "HYPOTHÈSES",
+  "shell.report.test": "TEST",
+  "shell.report.recommended": "Recommandé : ",
+  "shell.report.reason": "Raison :     ",
+  "shell.report.chosen": "Choisi :     ",
+  "shell.report.result": "Résultat : ",
+  "shell.report.errorPrefix": "erreur : ",
+  "shell.report.replication": "PLANIFICATION DE RÉPLICATION (cible 80 % de puissance)",
+  "shell.report.effectSize": "Taille d’effet :    ",
+  "shell.report.futureStudy": "Pour une étude future à la taille d’effet observée :",
+  "shell.report.alpha": "alpha",
+  "shell.report.rankNote":
+    "Note : test sur rangs — puissance estimée à partir de son analogue paramétrique.",
+  "shell.report.whyNot1": "Pourquoi pas la « puissance atteinte » ? La puissance post-hoc /",
+  "shell.report.whyNot2":
+    "observée est une transformation déterministe de p (Hoenig & Heisey 2001),",
+  "shell.report.whyNot3": "elle n’ajoute donc aucune information au-delà de p. Les estimations",
+  "shell.report.whyNot4": "prospectives du n nécessaire ci-dessus sont le signal exploitable.",
+  "shell.report.posthoc": "POST-HOC — ",
 };
 
 export default fr;
