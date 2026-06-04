@@ -5,7 +5,20 @@
 // steps render a neutral outline. Connector line between circles
 // fills --step-ready up to the last completed step.
 
+import { useShellT, type ShellKey } from "./i18n";
+
 const h = React.createElement;
+
+// Default localized labels for the canonical step keys. Tools may still
+// override any of these via the `stepLabels` prop (e.g. heatmap's
+// "Import check"); unknown keys fall back to capitalize().
+const STEP_LABEL_KEYS: Record<string, ShellKey> = {
+  upload: "shell.step.upload",
+  configure: "shell.step.configure",
+  filter: "shell.step.filter",
+  output: "shell.step.output",
+  plot: "shell.step.plot",
+};
 
 interface StepNavBarProps {
   steps: string[];
@@ -19,12 +32,15 @@ interface StepNavBarProps {
 }
 
 export function StepNavBar(props: StepNavBarProps) {
+  const tr = useShellT();
   const { steps, currentStep, onStepChange } = props;
   const canNavigate = props.canNavigate;
   const stepLabels = props.stepLabels || {};
   const currentIdx = steps.indexOf(currentStep);
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  const labelFor = (s: string) => stepLabels[s] || capitalize(s);
+  // Priority: explicit per-tool override → localized default → capitalize.
+  const labelFor = (s: string) =>
+    stepLabels[s] || (STEP_LABEL_KEYS[s] ? tr(STEP_LABEL_KEYS[s]) : capitalize(s));
   const cells = steps.map((s, i) => {
     const enabled = canNavigate ? canNavigate(s) : true;
     const isCurrent = i === currentIdx;
@@ -193,7 +209,7 @@ export function StepNavBar(props: StepNavBarProps) {
         onClick: enabled ? () => onStepChange(s) : undefined,
         disabled: !enabled,
         "aria-current": isCurrent ? "step" : undefined,
-        "aria-label": "Step " + (i + 1) + " of " + steps.length + ": " + labelFor(s),
+        "aria-label": tr("shell.step.aria", { n: i + 1, total: steps.length, label: labelFor(s) }),
         // Stable test handle. The previous e2e selector
         // `getByRole("button", { name: /Plot$/ })` matched both this pill
         // and the SPA topbar's tool-icon buttons (which also end in

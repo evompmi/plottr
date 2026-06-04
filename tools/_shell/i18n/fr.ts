@@ -39,6 +39,82 @@ const fr: Record<ShellKey, string> = {
   "shell.error.technical": "Détails techniques",
   "shell.error.reload": "Recharger l’outil",
   "shell.error.copy": "Copier les détails de l’erreur",
+
+  // FileDropZone
+  "shell.upload.dropAria": "Déposez un fichier de données ici ou appuyez sur Entrée pour parcourir",
+  "shell.upload.dropMain": "Déposez un CSV, TSV ou TXT — ou cliquez pour parcourir",
+  "shell.upload.dropHint": "CSV · TSV · TXT · DAT — 2 Mo max",
+  "shell.upload.tooLarge":
+    "Fichier trop volumineux ({mb} Mo). Le maximum est 2 Mo — divisez le fichier ou échantillonnez des lignes et réessayez.",
+  "shell.upload.largeWarn": "Fichier volumineux ({mb} Mo) — l’analyse peut prendre un moment.",
+  "shell.upload.readError":
+    "Impossible de lire le fichier ({msg}). Vérifiez les autorisations et réessayez.",
+  "shell.upload.unknownError": "erreur inconnue",
+  "shell.upload.reading": "Lecture du fichier…",
+
+  // DataPreview
+  "shell.preview.more": "… {n} de plus ({total} au total)",
+
+  // ColumnRoleEditor
+  "shell.roles.group": "groupe",
+  "shell.roles.value": "valeur",
+  "shell.roles.filter": "filtre",
+  "shell.roles.ignore": "ignorer",
+  "shell.cols.heading": "Rôles des colonnes",
+  "shell.cols.help.exactlyOne": "Exactement une colonne ",
+  "shell.cols.help.xAxisAndOne": " (axe des x) et une colonne ",
+  "shell.cols.help.numericPicking": " (numérique). Choisir ",
+  "shell.cols.help.or": " ou ",
+  "shell.cols.help.demotesTo": " sur une autre colonne rétrograde la précédente en ",
+  "shell.cols.help.period": ".",
+
+  // StepNavBar
+  "shell.step.upload": "Importer",
+  "shell.step.configure": "Configurer",
+  "shell.step.filter": "Filtrer",
+  "shell.step.output": "Sortie",
+  "shell.step.plot": "Tracé",
+  "shell.step.aria": "Étape {n} sur {total} : {label}",
+
+  // UploadPanel — separator picker + options
+  "shell.sep.label": "Séparateur de colonnes",
+  "shell.sep.force": "Forcer le séparateur",
+  "shell.sep.select": "— Sélectionner —",
+  "shell.sep.auto": "Détection auto",
+  "shell.sep.comma": "Virgule (,)",
+  "shell.sep.semicolon": "Point-virgule (;)",
+  "shell.sep.tab": "Tabulation (\\t)",
+  "shell.sep.space": "Espace",
+  "shell.sep.pickToEnable":
+    "Choisissez un séparateur de colonnes ci-dessus pour activer le chargement de fichier",
+  "shell.sep.overrideHint":
+    "Nécessaire uniquement lorsque le détecteur choisit le mauvais délimiteur.",
+  "shell.sep.autoInfo":
+    "Plöttr détecte automatiquement le séparateur de colonnes (virgule, tabulation, point-virgule, …) à partir des données.",
+  "shell.sep.overrideShow": "Forcer ▾",
+  "shell.sep.overrideHide": "Masquer ▴",
+
+  // UploadPanel — sample-dataset CTA
+  "shell.sample.try": "Essayer des données d’exemple :",
+  "shell.sample.loadExample": "Charger l’exemple →",
+  "shell.sample.tryDataset": "Essayer un jeu de données d’exemple",
+  "shell.sample.plotThis": "Tracer cet exemple →",
+  "shell.sample.quickStart": "Nouveau ici ? Démarrage rapide",
+
+  // UploadPanel — paste card
+  "shell.paste.dropTitle": "Déposer un fichier",
+  "shell.paste.pasteTitle": "Coller des données",
+  "shell.paste.placeholder":
+    "Collez ici des lignes séparées par des virgules, tabulations ou points-virgules.\nAstuce : une sélection copiée depuis Excel ou Google Sheets devient automatiquement séparée par des tabulations.",
+  "shell.paste.aria": "Coller des données tabulaires",
+  "shell.paste.parse": "Analyser les données collées",
+  "shell.paste.clear": "Effacer",
+  "shell.paste.maxSize": "2 Mo max",
+  "shell.paste.empty":
+    "Collez d’abord des données — copiez une sélection depuis Excel, Sheets ou n’importe quel CSV.",
+  "shell.paste.tooLarge":
+    "Données collées trop volumineuses ({mb} Mo). Le maximum est 2 Mo — divisez les données ou échantillonnez des lignes et réessayez.",
+  "shell.paste.largeWarn": "Collage volumineux ({mb} Mo) — l’analyse peut prendre un moment.",
 };
 
 export default fr;

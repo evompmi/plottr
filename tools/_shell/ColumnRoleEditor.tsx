@@ -10,9 +10,19 @@
 // stays in the plain-JS bundle).
 
 import { roleColors } from "../_core/color";
+import { useShellT } from "./i18n";
 
 import type { ColumnRole } from "../_core/csv";
 const h = React.createElement;
+
+// Display labels for the four column roles; the <option> value attrs keep
+// the English ColumnRole enum so the role logic is locale-independent.
+const ROLE_LABEL_KEYS = {
+  group: "shell.roles.group",
+  value: "shell.roles.value",
+  filter: "shell.roles.filter",
+  ignore: "shell.roles.ignore",
+} as const;
 
 interface ColumnRoleEditorProps {
   headers: string[];
@@ -24,6 +34,9 @@ interface ColumnRoleEditorProps {
 }
 
 export function ColumnRoleEditor(props: ColumnRoleEditorProps) {
+  const tr = useShellT();
+  const roleLabel = (r: string): string =>
+    r in ROLE_LABEL_KEYS ? tr(ROLE_LABEL_KEYS[r as keyof typeof ROLE_LABEL_KEYS]) : r;
   const headers = props.headers;
   const rows = props.rows;
   const colRoles = props.colRoles;
@@ -36,7 +49,7 @@ export function ColumnRoleEditor(props: ColumnRoleEditorProps) {
     h(
       "p",
       { style: { margin: "0 0 4px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" } },
-      "Column roles"
+      tr("shell.cols.heading")
     ),
     h(
       "p",
@@ -48,17 +61,17 @@ export function ColumnRoleEditor(props: ColumnRoleEditorProps) {
           lineHeight: 1.4,
         },
       },
-      "Exactly one ",
-      h("span", { style: { color: roleColors.group, fontWeight: 600 } }, "group"),
-      " (x-axis) and one ",
-      h("span", { style: { color: roleColors.value, fontWeight: 600 } }, "value"),
-      " (numeric) column. Picking ",
-      h("span", { style: { color: roleColors.group, fontWeight: 600 } }, "group"),
-      " or ",
-      h("span", { style: { color: roleColors.value, fontWeight: 600 } }, "value"),
-      " on another column demotes the previous one to ",
-      h("span", { style: { color: roleColors.filter, fontWeight: 600 } }, "filter"),
-      "."
+      tr("shell.cols.help.exactlyOne"),
+      h("span", { style: { color: roleColors.group, fontWeight: 600 } }, roleLabel("group")),
+      tr("shell.cols.help.xAxisAndOne"),
+      h("span", { style: { color: roleColors.value, fontWeight: 600 } }, roleLabel("value")),
+      tr("shell.cols.help.numericPicking"),
+      h("span", { style: { color: roleColors.group, fontWeight: 600 } }, roleLabel("group")),
+      tr("shell.cols.help.or"),
+      h("span", { style: { color: roleColors.value, fontWeight: 600 } }, roleLabel("value")),
+      tr("shell.cols.help.demotesTo"),
+      h("span", { style: { color: roleColors.filter, fontWeight: 600 } }, roleLabel("filter")),
+      tr("shell.cols.help.period")
     ),
     h(
       "div",
@@ -79,7 +92,7 @@ export function ColumnRoleEditor(props: ColumnRoleEditorProps) {
               fontWeight: 600,
             },
           },
-          r
+          roleLabel(r)
         );
       })
     ),
@@ -135,10 +148,10 @@ export function ColumnRoleEditor(props: ColumnRoleEditorProps) {
                 color: roleColors[colRoles[i]],
               },
             },
-            h("option", { value: "group" }, "group"),
-            h("option", { value: "value" }, "value"),
-            h("option", { value: "filter" }, "filter"),
-            h("option", { value: "ignore" }, "ignore")
+            h("option", { value: "group" }, roleLabel("group")),
+            h("option", { value: "value" }, roleLabel("value")),
+            h("option", { value: "filter" }, roleLabel("filter")),
+            h("option", { value: "ignore" }, roleLabel("ignore"))
           ),
           h(
             "span",

@@ -4,6 +4,8 @@
 // here too — any new ingest surface (paste textarea, URL fetch, …) must
 // gate on the same constants and surface the same red-banner UX.
 
+import { useShellT } from "./i18n";
+
 const { useState, useRef } = React;
 
 // 2 MB — hard reject. Any new ingest surface (paste textarea, URL fetch,
@@ -26,8 +28,11 @@ interface FileDropZoneProps {
 export function FileDropZone({
   onFileLoad,
   accept = ".csv,.tsv,.txt,.dat",
-  hint = "CSV · TSV · TXT · DAT — 2 MB max",
+  hint,
 }: FileDropZoneProps) {
+  const tr = useShellT();
+  // Default hint is localized; a tool may still override via the `hint` prop.
+  const hintText = hint ?? tr("shell.upload.dropHint");
   const [drag, setDrag] = useState(false);
   const [focus, setFocus] = useState(false);
   const [sizeError, setSizeError] = useState<string | null>(null);
@@ -41,15 +46,11 @@ export function FileDropZone({
     setSizeWarn(null);
     setReadError(null);
     if (file.size > FILE_LIMIT_BYTES) {
-      setSizeError(
-        `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 2 MB — split the file or sample rows and try again.`
-      );
+      setSizeError(tr("shell.upload.tooLarge", { mb: (file.size / 1024 / 1024).toFixed(1) }));
       return;
     }
     if (file.size > FILE_WARN_BYTES) {
-      setSizeWarn(
-        `Large file (${(file.size / 1024 / 1024).toFixed(1)} MB) — parsing may take a moment.`
-      );
+      setSizeWarn(tr("shell.upload.largeWarn", { mb: (file.size / 1024 / 1024).toFixed(1) }));
     }
     const reader = new FileReader();
     // Both `onload` and `onerror` must be wired — a corrupt file or blocked
@@ -63,8 +64,10 @@ export function FileDropZone({
     };
     reader.onerror = () => {
       setReading(false);
-      const msg = (reader.error && (reader.error.message || reader.error.name)) || "unknown error";
-      setReadError(`Couldn't read the file (${msg}). Check permissions and try again.`);
+      const msg =
+        (reader.error && (reader.error.message || reader.error.name)) ||
+        tr("shell.upload.unknownError");
+      setReadError(tr("shell.upload.readError", { msg }));
     };
     reader.readAsText(file);
   };
@@ -76,7 +79,7 @@ export function FileDropZone({
       <div
         role="button"
         tabIndex={0}
-        aria-label="Drop a data file here or press Enter to browse"
+        aria-label={tr("shell.upload.dropAria")}
         onDragOver={(e) => {
           e.preventDefault();
           setDrag(true);
@@ -128,9 +131,9 @@ export function FileDropZone({
           📂
         </div>
         <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "var(--text)" }}>
-          Drop CSV, TSV, or TXT — or click to browse
+          {tr("shell.upload.dropMain")}
         </p>
-        <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--text-faint)" }}>{hint}</p>
+        <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--text-faint)" }}>{hintText}</p>
       </div>
       {sizeError && (
         <div
@@ -212,7 +215,7 @@ export function FileDropZone({
             color: "var(--info-text)",
           }}
         >
-          Reading file…
+          {tr("shell.upload.reading")}
         </div>
       )}
     </div>

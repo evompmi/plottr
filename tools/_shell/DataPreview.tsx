@@ -2,6 +2,8 @@
 // every tool's upload + configure steps. Renders the first `maxRows` rows
 // (default 10) plus a "… N more" footer when truncated.
 
+import { useShellT } from "./i18n";
+
 interface DataPreviewProps {
   headers: string[];
   // Cell values are coerced to strings at render time; accept strings,
@@ -12,6 +14,7 @@ interface DataPreviewProps {
 }
 
 export function DataPreview({ headers, rows, maxRows }: DataPreviewProps) {
+  const tr = useShellT();
   const limit = maxRows || 10;
   const d = rows.slice(0, limit);
   return (
@@ -89,7 +92,7 @@ export function DataPreview({ headers, rows, maxRows }: DataPreviewProps) {
             textAlign: "center",
           }}
         >
-          {`… ${rows.length - limit} more (${rows.length} total)`}
+          {tr("shell.preview.more", { n: rows.length - limit, total: rows.length })}
         </p>
       ) : null}
     </div>
