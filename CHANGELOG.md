@@ -14,13 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the theme wiring: `plottr-lang` persisted in localStorage, cross-tab sync via
   BroadcastChannel, `<html lang>` pinned no-FOUC from the `<head>`, and a `t()`
   lookup with `{var}` interpolation + `Intl.PluralRules` plurals. An EN/FR toggle
-  sits beside the theme button in the tool topbar and on the landing page. Now
-  bilingual: the shared shell chrome (upload / paste / separator picker, column-
-  role editor, data preview, step navigator, comma-fix / formula-injection /
-  parse-error banners, error boundary, plot-step download + reset actions) and
-  the static landing (hero, "how it works", tile descriptions, trust badges,
-  footer) via `data-i18n` attributes. The per-tool control/stats panels and the
-  file-protocol help page remain English for a following phase.
+  sits beside the theme button in the tool topbar and on the landing page. The
+  **entire shared shell is bilingual**: upload / paste / separator picker,
+  column-role editor, data preview, step navigator, filter + rename/reorder +
+  palette + group-colour panels, how-to cards, prefs panel, comma-fix /
+  formula-injection / parse-error banners, error boundary, plot-step download +
+  reset actions, the summary stats table, and the in-app statistics tile —
+  including its downloadable plain-text report (test names localized on screen
+  while the R-script export stays English for portability). The static landing
+  (hero, "how it works", tile descriptions, trust badges, footer) is localized
+  via `data-i18n` attributes. Remaining for a following phase: each tool's own
+  control panels + the two calculators, chart/SVG labels, the file-protocol help
+  page, and tool display names.
 - **Drag-to-window on the RLU timecourse plot.** Click and drag across the main
   time-course chart to set the X window (`X start` / `X end`) directly, instead
   of typing the bounds in the Axes tile. The selection follows the displayed
