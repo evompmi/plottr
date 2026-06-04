@@ -115,6 +115,15 @@ const en = {
   "shell.paste.tooLarge":
     "Pasted data too large ({mb} MB). Maximum is 2 MB — split the data or sample rows and try again.",
   "shell.paste.largeWarn": "Large paste ({mb} MB) — parsing may take a moment.",
+
+  // ActionsPanel — plot-step download / reset chrome
+  "shell.actions.title": "Actions",
+  "shell.actions.svgTitle":
+    "Download the plot as SVG — vector graphics, editable in Inkscape or Illustrator",
+  "shell.actions.pngTitle": "Download the plot as PNG — 2× raster at the plot's native resolution",
+  "shell.actions.startOver": "Start over",
+  "shell.actions.resetTitle":
+    "Clear all data, controls, and current session — returns to the upload step",
 } as const satisfies Catalog;
 
 export default en;

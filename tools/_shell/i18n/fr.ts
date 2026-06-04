@@ -115,6 +115,16 @@ const fr: Record<ShellKey, string> = {
   "shell.paste.tooLarge":
     "Données collées trop volumineuses ({mb} Mo). Le maximum est 2 Mo — divisez les données ou échantillonnez des lignes et réessayez.",
   "shell.paste.largeWarn": "Collage volumineux ({mb} Mo) — l’analyse peut prendre un moment.",
+
+  // ActionsPanel
+  "shell.actions.title": "Actions",
+  "shell.actions.svgTitle":
+    "Télécharger le tracé en SVG — graphique vectoriel, modifiable dans Inkscape ou Illustrator",
+  "shell.actions.pngTitle":
+    "Télécharger le tracé en PNG — raster 2× à la résolution native du tracé",
+  "shell.actions.startOver": "Recommencer",
+  "shell.actions.resetTitle":
+    "Effacer toutes les données, les réglages et la session en cours — retour à l’étape d’import",
 };
 
 export default fr;
