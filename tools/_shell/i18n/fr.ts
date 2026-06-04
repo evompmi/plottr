@@ -258,6 +258,18 @@ const fr: Record<ShellKey, string> = {
   "shell.report.whyNot3": "elle n’ajoute donc aucune information au-delà de p. Les estimations",
   "shell.report.whyNot4": "prospectives du n nécessaire ci-dessus sont le signal exploitable.",
   "shell.report.posthoc": "POST-HOC — ",
+
+  // BaseStyleControls
+  "shell.style.background": "Arrière-plan",
+  "shell.style.grid": "Grille",
+  "shell.style.gridColor": "Couleur de la grille",
+
+  // NumberInput stepper
+  "shell.num.increment": "Augmenter",
+  "shell.num.decrement": "Diminuer",
+
+  // ScrollablePlotCard
+  "shell.scroll.more": "Défiler pour voir plus →",
 };
 
 export default fr;

@@ -134,7 +134,11 @@ try {
 }
 
 function _applyLangAttr(lang: Lang): void {
-  if (typeof document !== "undefined") document.documentElement.lang = lang;
+  // Guard documentElement too: under the test vm loaders `document` may be a
+  // bare stub without a documentElement.
+  if (typeof document !== "undefined" && document.documentElement) {
+    document.documentElement.lang = lang;
+  }
 }
 
 export function getLang(): Lang {

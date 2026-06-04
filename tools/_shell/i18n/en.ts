@@ -259,6 +259,18 @@ const en = {
   "shell.report.whyNot3": "so it adds no information beyond p itself. The forward-",
   "shell.report.whyNot4": "looking n-needed estimates above are the actionable signal.",
   "shell.report.posthoc": "POST-HOC — ",
+
+  // BaseStyleControls
+  "shell.style.background": "Background",
+  "shell.style.grid": "Grid",
+  "shell.style.gridColor": "Grid color",
+
+  // NumberInput stepper
+  "shell.num.increment": "Increment",
+  "shell.num.decrement": "Decrement",
+
+  // ScrollablePlotCard
+  "shell.scroll.more": "Scroll for more →",
 } as const satisfies Catalog;
 
 export default en;

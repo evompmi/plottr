@@ -255,7 +255,9 @@ var __plottrShared = (() => {
     _langChannel = null;
   }
   function _applyLangAttr(lang) {
-    if (typeof document !== "undefined") document.documentElement.lang = lang;
+    if (typeof document !== "undefined" && document.documentElement) {
+      document.documentElement.lang = lang;
+    }
   }
   function getLang() {
     return _lang;

@@ -11,6 +11,8 @@
 // auto-fit). Keep here as the canonical home for any future tool that grows
 // horizontally-scrolling content.
 
+import { useShellT } from "./i18n";
+
 const { useState, useRef, useEffect, useCallback } = React;
 
 interface ScrollablePlotCardProps {
@@ -18,6 +20,7 @@ interface ScrollablePlotCardProps {
 }
 
 export function ScrollablePlotCard({ children }: ScrollablePlotCardProps) {
+  const tr = useShellT();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasOverflow, setHasOverflow] = useState(false);
   const [atStart, setAtStart] = useState(true);
@@ -117,7 +120,7 @@ export function ScrollablePlotCard({ children }: ScrollablePlotCardProps) {
             opacity: 0.92,
           }}
         >
-          Scroll for more →
+          {tr("shell.scroll.more")}
         </div>
       )}
     </div>

@@ -67,7 +67,21 @@ const ctx = {
     memo: (fn) => fn,
   },
   ReactDOM: { render: () => {}, createRoot: () => ({ render: () => {} }) },
-  document: { getElementById: () => ({}) },
+  // power-app.tsx now transitively bundles _core/i18n.ts (via the shared
+  // NumberInput → useShellT); stub enough DOM that its load-time side
+  // effects no-op cleanly.
+  document: {
+    getElementById: () => ({}),
+    documentElement: { lang: "" },
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    visibilityState: "visible",
+  },
+  window: {
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => {},
+  },
   toolIcon: () => null,
   makeTicks: (min, max, n) => {
     const step = (max - min) / n;
