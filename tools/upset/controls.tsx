@@ -15,6 +15,7 @@ import {
 import { intersectionLabel } from "./helpers";
 import type { Intersection, PlotControlsProps, UpsetVis } from "./helpers";
 import { BAR_FILL_ENRICHED, BAR_FILL_DEPLETED } from "./chart";
+import { useT } from "./i18n";
 
 import { downloadCsv, fileBaseName } from "../_core/download";
 
@@ -42,6 +43,7 @@ export function PlotControls({
   maxAllIntersectionSize,
   allIntersectionsCount,
 }: PlotControlsProps) {
+  const tr = useT();
   const baseName = fileBaseName(fileName, "upset");
   const sv = (k: keyof UpsetVis) => (v: unknown) => updVis({ [k]: v } as Partial<UpsetVis>);
   const universeValid =
@@ -54,9 +56,8 @@ export function PlotControls({
         onReset={resetAll}
         extraDownloads={[
           {
-            label: "Table",
-            title:
-              "Download the currently-plotted intersection table (Intersection, Degree, Size, + per-set flags). Matches the plot exactly — reflects sort, Top N, Minimum/Maximum degree, and Minimum size filters.",
+            label: tr("upset.dl.table"),
+            title: tr("upset.dl.tableTitle"),
             onClick: () => {
               const headers = ["Intersection", "Degree", "Size", ...activeSetNames];
               const rows = intersections.map((r: Intersection) => {
@@ -70,9 +71,8 @@ export function PlotControls({
             },
           },
           {
-            label: "Matrix",
-            title:
-              "Download the membership matrix — one row per item, a 0/1 column for each active set",
+            label: tr("upset.dl.matrix"),
+            title: tr("upset.dl.matrixTitle"),
             onClick: () => {
               const allItems = new Set<string>();
               for (const n of activeSetNames) {
@@ -91,9 +91,8 @@ export function PlotControls({
             },
           },
           {
-            label: "All regions",
-            title:
-              "One CSV per currently-plotted intersection (named _I1, _I2, … matching the on-plot identifiers) plus an _index.csv mapping Id → Intersection, Degree, Size. Your browser may ask once to allow multiple downloads.",
+            label: tr("upset.dl.allRegions"),
+            title: tr("upset.dl.allRegionsTitle"),
             onClick: () => {
               if (!intersections.length) return;
               const indexHeaders = ["Id", "Intersection", "Degree", "Size"];
@@ -124,20 +123,20 @@ export function PlotControls({
         ]}
       />
 
-      <ControlSection title="Columns" defaultOpen>
+      <ControlSection title={tr("upset.sec.columns")} defaultOpen>
         <div>
-          <span className="dv-label">Sort by</span>
+          <span className="dv-label">{tr("upset.sort.label")}</span>
           <select
             value={vis.sortMode}
             onChange={(e) => updVis({ sortMode: e.target.value })}
             className="dv-input"
             style={{ width: "100%" }}
           >
-            <option value="size-desc">Size (largest first)</option>
-            <option value="size-asc">Size (smallest first)</option>
-            <option value="degree-desc">Degree (highest first)</option>
-            <option value="degree-asc">Degree (lowest first)</option>
-            <option value="sets">Set order</option>
+            <option value="size-desc">{tr("upset.sort.sizeDesc")}</option>
+            <option value="size-asc">{tr("upset.sort.sizeAsc")}</option>
+            <option value="degree-desc">{tr("upset.sort.degreeDesc")}</option>
+            <option value="degree-asc">{tr("upset.sort.degreeAsc")}</option>
+            <option value="sets">{tr("upset.sort.sets")}</option>
           </select>
         </div>
         <label style={{ display: "block" }}>
@@ -149,10 +148,10 @@ export function PlotControls({
               marginBottom: 2,
             }}
           >
-            <span className="dv-label">Minimum intersection size</span>
+            <span className="dv-label">{tr("upset.minSize")}</span>
             {maxAllIntersectionSize > 0 && (
               <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
-                max in data: {maxAllIntersectionSize.toLocaleString()}
+                {tr("upset.maxInData", { n: maxAllIntersectionSize.toLocaleString() })}
               </span>
             )}
           </div>
@@ -171,7 +170,7 @@ export function PlotControls({
           />
         </label>
         <label style={{ display: "block" }}>
-          <span className="dv-label">Minimum degree</span>
+          <span className="dv-label">{tr("upset.minDegree")}</span>
           <NumberInput
             value={vis.minDegree}
             min={1}
@@ -198,10 +197,10 @@ export function PlotControls({
               marginBottom: 2,
             }}
           >
-            <span className="dv-label">Maximum degree</span>
+            <span className="dv-label">{tr("upset.maxDegree")}</span>
             {activeSetNames.length > 0 && (
               <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
-                max in data: {activeSetNames.length.toLocaleString()}
+                {tr("upset.maxInData", { n: activeSetNames.length.toLocaleString() })}
               </span>
             )}
           </div>
@@ -224,9 +223,9 @@ export function PlotControls({
         </label>
       </ControlSection>
 
-      <ControlSection title="Labels">
+      <ControlSection title={tr("upset.sec.labels")}>
         <label style={{ display: "block" }}>
-          <span className="dv-label">Title</span>
+          <span className="dv-label">{tr("upset.label.title")}</span>
           <input
             value={vis.plotTitle}
             onChange={(e) => updVis({ plotTitle: e.target.value })}
@@ -235,7 +234,7 @@ export function PlotControls({
           />
         </label>
         <label style={{ display: "block" }}>
-          <span className="dv-label">Subtitle</span>
+          <span className="dv-label">{tr("upset.label.subtitle")}</span>
           <input
             value={vis.plotSubtitle}
             onChange={(e) => updVis({ plotSubtitle: e.target.value })}
@@ -245,9 +244,9 @@ export function PlotControls({
         </label>
       </ControlSection>
 
-      <ControlSection title="Display">
+      <ControlSection title={tr("upset.sec.display")}>
         <SliderControl
-          label="Bar opacity"
+          label={tr("upset.disp.barOpacity")}
           value={vis.barOpacity}
           min={0.3}
           max={1}
@@ -255,7 +254,7 @@ export function PlotControls({
           onChange={sv("barOpacity")}
         />
         <SliderControl
-          label="Dot size"
+          label={tr("upset.disp.dotSize")}
           value={vis.dotSize}
           min={3}
           max={12}
@@ -263,7 +262,7 @@ export function PlotControls({
           onChange={sv("dotSize")}
         />
         <SliderControl
-          label="Font size"
+          label={tr("upset.disp.fontSize")}
           value={vis.fontSize}
           min={8}
           max={20}
@@ -271,28 +270,28 @@ export function PlotControls({
           onChange={sv("fontSize")}
         />
         <div>
-          <div className="dv-label">Intersection size labels</div>
+          <div className="dv-label">{tr("upset.disp.intersectionLabels")}</div>
           <OnOffToggle
             value={vis.showIntersectionLabels !== false}
             onChange={(v) => updVis({ showIntersectionLabels: v })}
-            ariaLabel="Intersection size labels"
+            ariaLabel={tr("upset.disp.intersectionLabels")}
           />
         </div>
         <div>
-          <div className="dv-label">Set size labels</div>
+          <div className="dv-label">{tr("upset.disp.setSizeLabels")}</div>
           <OnOffToggle
             value={vis.showSetSizeLabels !== false}
             onChange={(v) => updVis({ showSetSizeLabels: v })}
-            ariaLabel="Set size labels"
+            ariaLabel={tr("upset.disp.setSizeLabels")}
           />
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span className="dv-label">Background</span>
+          <span className="dv-label">{tr("upset.disp.background")}</span>
           <ColorInput value={vis.plotBg} onChange={sv("plotBg")} size={24} />
         </div>
       </ControlSection>
 
-      <ControlSection title="Statistics">
+      <ControlSection title={tr("upset.sec.statistics")}>
         <div>
           <div
             style={{
@@ -302,7 +301,7 @@ export function PlotControls({
               marginBottom: 2,
             }}
           >
-            <span className="dv-label">Universe size (N)</span>
+            <span className="dv-label">{tr("upset.stat.universe")}</span>
             {universeOverridden && Number.isFinite(Number(defaultUniverseSize)) && (
               <button
                 type="button"
@@ -320,9 +319,9 @@ export function PlotControls({
                   cursor: "pointer",
                   fontFamily: "inherit",
                 }}
-                title="Revert to the union of uploaded items"
+                title={tr("upset.stat.resetUniverseTitle")}
               >
-                Reset to |∪|={defaultUniverseSize}
+                {tr("upset.stat.resetUniverse", { n: defaultUniverseSize })}
               </button>
             )}
           </div>
@@ -345,14 +344,12 @@ export function PlotControls({
               lineHeight: 1.4,
             }}
           >
-            Defaults to the union of uploaded items (|∪|). Override with the genome / proteome /
-            predefined background for real enrichment analyses — a smaller universe inflates
-            p-values.
+            {tr("upset.stat.universeNote")}
           </p>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div className="dv-label">Intersection statistics</div>
+          <div className="dv-label">{tr("upset.stat.intersectionStats")}</div>
           <button
             type="button"
             className="dv-btn dv-btn-primary"
@@ -360,10 +357,10 @@ export function PlotControls({
             disabled={computingStats || !universeValid || allIntersectionsCount === 0}
             title={
               !universeValid
-                ? "Set a Universe size above before computing stats"
+                ? tr("upset.stat.computeDisabledTitle")
                 : computingStats
-                  ? "Computing…"
-                  : `Run the SuperExactTest exact test for every one of the ${allIntersectionsCount} intersections in the active set selection and BH-adjust across them. Display filters (minimum size / degree) do NOT change which intersections are tested.`
+                  ? tr("upset.stat.computingTitle")
+                  : tr("upset.stat.computeTitle", { n: allIntersectionsCount })
             }
             style={{
               fontSize: 12,
@@ -388,12 +385,15 @@ export function PlotControls({
                   }}
                   aria-hidden="true"
                 />
-                Computing {computeProgress.done}/{computeProgress.total}…
+                {tr("upset.stat.computingProgress", {
+                  done: computeProgress.done,
+                  total: computeProgress.total,
+                })}
               </>
             ) : intersectionTestsCount > 0 ? (
-              `Recompute stats (${allIntersectionsCount} intersections)`
+              tr("upset.stat.recompute", { n: allIntersectionsCount })
             ) : (
-              `Compute stats (${allIntersectionsCount} intersections)`
+              tr("upset.stat.compute", { n: allIntersectionsCount })
             )}
           </button>
           {computingStats && computeProgress.total > 0 && (
@@ -423,8 +423,7 @@ export function PlotControls({
               className="dv-btn dv-btn-secondary"
               style={{ fontSize: 11, padding: "3px 8px" }}
             >
-              Clear {intersectionTestsCount} cached{" "}
-              {intersectionTestsCount === 1 ? "result" : "results"}
+              {tr("upset.stat.clearCached", { n: intersectionTestsCount })}
             </button>
           )}
           <p
@@ -435,16 +434,13 @@ export function PlotControls({
               lineHeight: 1.4,
             }}
           >
-            Computes the exact Binomial p (upper tail, lower tail, and the headline two-sided =
-            smaller tail × 2) per intersection, then BH-adjusts each family across every
-            intersection in the active set selection. Display filters (minimum size / degree) only
-            affect what's shown on the plot — they never change the BH family.
+            {tr("upset.stat.computeNote")}
           </p>
           <style>{`@keyframes dv-spin { to { transform: rotate(360deg); } }`}</style>
         </div>
 
         <div>
-          <div className="dv-label">Significance markers</div>
+          <div className="dv-label">{tr("upset.stat.sigMarkers")}</div>
           <div
             style={{
               display: "flex",
@@ -455,9 +451,9 @@ export function PlotControls({
           >
             {(
               [
-                ["off", "Off"],
-                ["stars", "Stars"],
-                ["p-value", "p-value"],
+                ["off", tr("upset.stat.off")],
+                ["stars", tr("upset.stat.stars")],
+                ["p-value", tr("upset.stat.pvalue")],
               ] as const
             ).map(([mode, label]) => {
               const current = vis.significanceDisplay || "off";
@@ -493,13 +489,12 @@ export function PlotControls({
               lineHeight: 1.4,
             }}
           >
-            Only tested intersections are marked. Uses the two-sided p (smaller tail × 2, BH-
-            adjusted across every test run this session), so both enrichment and depletion show up.
+            {tr("upset.stat.sigMarkersNote")}
           </p>
         </div>
 
         <div>
-          <div className="dv-label">Color bars by significance</div>
+          <div className="dv-label">{tr("upset.stat.colorBars")}</div>
           <div
             style={{
               display: "flex",
@@ -510,8 +505,8 @@ export function PlotControls({
           >
             {(
               [
-                [false, "Off"],
-                [true, "On"],
+                [false, tr("upset.stat.off")],
+                [true, tr("upset.stat.on")],
               ] as const
             ).map(([value, label]) => {
               const active = !!vis.colorBarsBySignificance === value;
@@ -546,10 +541,14 @@ export function PlotControls({
               lineHeight: 1.4,
             }}
           >
-            <span style={{ color: BAR_FILL_ENRICHED, fontWeight: 700 }}>Green</span> = enriched.{" "}
-            <span style={{ color: BAR_FILL_DEPLETED, fontWeight: 700 }}>Dark red</span> = depleted.
-            Both at two-sided p_adj &lt; 0.05, direction from the sign of observed − expected.
-            Untested or non-significant bars stay black.
+            <span style={{ color: BAR_FILL_ENRICHED, fontWeight: 700 }}>
+              {tr("upset.stat.green")}
+            </span>
+            {tr("upset.stat.colorBarsNote1")}
+            <span style={{ color: BAR_FILL_DEPLETED, fontWeight: 700 }}>
+              {tr("upset.stat.darkRed")}
+            </span>
+            {tr("upset.stat.colorBarsNote2")}
           </p>
         </div>
       </ControlSection>

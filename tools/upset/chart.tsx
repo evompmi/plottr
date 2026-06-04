@@ -9,6 +9,7 @@ import type { Intersection, UpsetChartProps } from "./helpers";
 
 import { formatP, pStars } from "../_core/stats/format";
 import { svgSafeId } from "../_core/svg-export";
+import { tt } from "./i18n";
 const { forwardRef, memo } = React;
 
 // ── Layout constants ─────────────────────────────────────────────────────────
@@ -188,9 +189,9 @@ export const UpsetChart = memo(
         style={{ display: "block" }}
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label={plotTitle || "UpSet plot"}
+        aria-label={plotTitle || tt("upset.chart.fallbackTitle")}
       >
-        <title>{plotTitle || "UpSet plot"}</title>
+        <title>{plotTitle || tt("upset.chart.fallbackTitle")}</title>
         <desc>{`UpSet plot with ${nSets} sets and ${nCols} intersections`}</desc>
 
         <g id="background">
@@ -321,7 +322,10 @@ export const UpsetChart = memo(
                 style={{ cursor: "pointer" }}
                 onClick={() => onColumnClick && onColumnClick(isSelected ? null : inter.mask)}
                 role="img"
-                aria-label={`${intersectionLabel(inter.setIndices, setNames)}: ${inter.size} element${inter.size !== 1 ? "s" : ""}`}
+                aria-label={tt("upset.chart.barAria", {
+                  label: intersectionLabel(inter.setIndices, setNames),
+                  size: inter.size,
+                })}
               >
                 <rect
                   x={barX}
