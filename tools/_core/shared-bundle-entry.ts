@@ -12,3 +12,13 @@
 // below is reachable from the pages' inline `<script>` blocks.
 export * from "./theme";
 export * from "./i18n";
+
+// Register the static-landing catalog into this bundle's i18n registry so
+// the page's inline script can call applyStaticI18n() against it. (The SPA
+// doesn't render landing copy, so this namespace lives only here.)
+import { registerCatalog } from "./i18n";
+import landingEn from "./i18n/landing.en";
+import landingFr from "./i18n/landing.fr";
+
+registerCatalog("landing", "en", landingEn);
+registerCatalog("landing", "fr", landingFr);

@@ -9,13 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **i18n foundation + language toggle (English · French).** A lightweight,
-  zero-dependency translation layer (`tools/_core/i18n.ts`) mirroring the theme
-  wiring: `plottr-lang` persisted in localStorage, cross-tab sync via
+- **French localization — app chrome + landing page (English · French).** A
+  lightweight, zero-dependency translation layer (`tools/_core/i18n.ts`) mirroring
+  the theme wiring: `plottr-lang` persisted in localStorage, cross-tab sync via
   BroadcastChannel, `<html lang>` pinned no-FOUC from the `<head>`, and a `t()`
-  lookup with `{var}` interpolation + `Intl.PluralRules` plurals. An EN/FR
-  toggle now sits beside the theme button in the tool topbar. This phase ships
-  the plumbing only — the UI copy itself is translated in following phases.
+  lookup with `{var}` interpolation + `Intl.PluralRules` plurals. An EN/FR toggle
+  sits beside the theme button in the tool topbar and on the landing page. Now
+  bilingual: the shared shell chrome (upload / paste / separator picker, column-
+  role editor, data preview, step navigator, comma-fix / formula-injection /
+  parse-error banners, error boundary, plot-step download + reset actions) and
+  the static landing (hero, "how it works", tile descriptions, trust badges,
+  footer) via `data-i18n` attributes. The per-tool control/stats panels and the
+  file-protocol help page remain English for a following phase.
 - **Drag-to-window on the RLU timecourse plot.** Click and drag across the main
   time-course chart to set the X window (`X start` / `X end`) directly, instead
   of typing the bounds in the Axes tile. The selection follows the displayed

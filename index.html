@@ -146,7 +146,8 @@
          (e.g. clicking the SPA's "Home" button) clears the attribute
          and the landing reappears. */
       html[data-spa-route="active"] #landing,
-      html[data-spa-route="active"] #landing-theme-toggle {
+      html[data-spa-route="active"] #landing-theme-toggle,
+      html[data-spa-route="active"] #landing-lang-toggle {
         display: none;
       }
       html:not([data-spa-route="active"]) #root {
@@ -167,6 +168,7 @@
       }
       html[data-file-protocol="1"] #landing,
       html[data-file-protocol="1"] #landing-theme-toggle,
+      html[data-file-protocol="1"] #landing-lang-toggle,
       html[data-file-protocol="1"] #root {
         display: none !important;
       }
@@ -992,11 +994,30 @@
       id="landing-theme-toggle"
       style="position: fixed; top: 16px; right: 16px; z-index: 10"
     ></button>
+    <button
+      class="theme-toggle-btn"
+      data-lang-toggle
+      id="landing-lang-toggle"
+      style="
+        position: fixed;
+        top: 16px;
+        right: 56px;
+        z-index: 10;
+        width: auto;
+        padding: 0 10px;
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+      "
+    ></button>
     <div class="landing" id="landing">
       <div class="landing-header">
         <div class="hero-copy">
           <div class="eyebrow">
-            <span class="dot"></span>Browser-only · no install · your data stays put
+            <span class="dot"></span
+            ><span data-i18n="landing.eyebrow"
+              >Browser-only · no install · your data stays put</span
+            >
           </div>
           <h1>
             <svg
@@ -1029,7 +1050,7 @@
             </svg>
             <span>Plöttr<span class="version" id="app-version">dev</span></span>
           </h1>
-          <p class="tagline">
+          <p class="tagline" data-i18n-html="landing.tagline">
             Paste a spreadsheet. Get a <b>publication-ready figure</b> — and the <b>R code</b> for
             the statistics behind it.
           </p>
@@ -1039,6 +1060,7 @@
               class="trust-badge"
               data-benchmark-link
               title="Cross-checked vs R 4.5 + SciPy 1.17 — see the public benchmark"
+              data-i18n-title="landing.trust.validatedTitle"
             >
               <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
                 <path
@@ -1050,13 +1072,14 @@
                   class="trust-badge-stats"
                 />
               </svg>
-              Validated against R + SciPy
+              <span data-i18n="landing.trust.validated">Validated against R + SciPy</span>
             </a>
             <a
               href="privacy.html"
               class="trust-badge"
               data-benchmark-link
               title="No uploads, no tracking — see the data-flow diagram"
+              data-i18n-title="landing.trust.privacyTitle"
             >
               <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
                 <path
@@ -1077,7 +1100,7 @@
                   fill="none"
                 />
               </svg>
-              Data stays in your browser
+              <span data-i18n="landing.trust.privacy">Data stays in your browser</span>
             </a>
           </div>
         </div>
@@ -1179,20 +1202,33 @@
         </div>
       </div>
       <div class="how-it-works" aria-label="How every plot tool works">
-        <span class="hiw-label">How it works</span>
+        <span class="hiw-label" data-i18n="landing.hiw.label">How it works</span>
         <div class="hiw-steps">
-          <span class="hiw-step"><span class="hiw-num">1</span>Upload CSV</span>
+          <span class="hiw-step"
+            ><span class="hiw-num">1</span
+            ><span data-i18n="landing.hiw.step1">Upload CSV</span></span
+          >
           <span class="hiw-arrow" aria-hidden="true">→</span>
-          <span class="hiw-step"><span class="hiw-num">2</span>Assign roles</span>
+          <span class="hiw-step"
+            ><span class="hiw-num">2</span
+            ><span data-i18n="landing.hiw.step2">Assign roles</span></span
+          >
           <span class="hiw-arrow" aria-hidden="true">→</span>
-          <span class="hiw-step"><span class="hiw-num">3</span>Tweak plot</span>
+          <span class="hiw-step"
+            ><span class="hiw-num">3</span
+            ><span data-i18n="landing.hiw.step3">Tweak plot</span></span
+          >
           <span class="hiw-arrow" aria-hidden="true">→</span>
-          <span class="hiw-step"><span class="hiw-num">4</span>Download SVG + R</span>
+          <span class="hiw-step"
+            ><span class="hiw-num">4</span
+            ><span data-i18n="landing.hiw.step4">Download SVG + R</span></span
+          >
         </div>
       </div>
       <div class="tile-groups">
         <span class="tile-group-label plots-label"
-          ><span class="tg-kicker">Plots</span>Eight chart types, one paste away</span
+          ><span class="tg-kicker" data-i18n="landing.group.plotsKicker">Plots</span
+          ><span data-i18n="landing.group.plotsText">Eight chart types, one paste away</span></span
         >
         <div class="tiles plots-tiles">
           <button class="tile" data-tool="boxplot" style="--tile-accent: #648fff">
@@ -1234,7 +1270,9 @@
                 <line x1="36" y1="18" x2="36" y2="26" /></svg
             ></span>
             <span class="tile-label">Group Plot</span>
-            <span class="tile-desc">Box / violin / bar<br />with stats &amp; facets</span>
+            <span class="tile-desc" data-i18n-html="landing.desc.boxplot"
+              >Box / violin / bar<br />with stats &amp; facets</span
+            >
           </button>
           <button class="tile" data-tool="scatter" style="--tile-accent: #1ba89b">
             <span class="tile-icon"
@@ -1248,7 +1286,9 @@
                 <circle cx="28" cy="32" r="2" /></svg
             ></span>
             <span class="tile-label">Scatter Plot</span>
-            <span class="tile-desc">XY with color<br />&amp; size mapping</span>
+            <span class="tile-desc" data-i18n-html="landing.desc.scatter"
+              >XY with color<br />&amp; size mapping</span
+            >
           </button>
           <button class="tile" data-tool="lineplot" style="--tile-accent: #fe6100">
             <span class="tile-icon"
@@ -1267,7 +1307,9 @@
                 <circle cx="36" cy="12" r="2.5" fill="currentColor" /></svg
             ></span>
             <span class="tile-label">Line Plot</span>
-            <span class="tile-desc">Profile plot<br />mean &#xB1; error by group</span>
+            <span class="tile-desc" data-i18n-html="landing.desc.lineplot"
+              >Profile plot<br />mean &#xB1; error by group</span
+            >
           </button>
           <button class="tile" data-tool="aequorin" style="--tile-accent: #dc267f">
             <span class="tile-icon"
@@ -1284,7 +1326,9 @@
                 /></svg
             ></span>
             <span class="tile-label">RLU Timecourse</span>
-            <span class="tile-desc">Optional Ca&#xB2;&#x207A;<br />calibration</span>
+            <span class="tile-desc" data-i18n-html="landing.desc.aequorin"
+              >Optional Ca&#xB2;&#x207A;<br />calibration</span
+            >
           </button>
           <button class="tile" data-tool="venn" style="--tile-accent: #d9a400">
             <span class="tile-icon"
@@ -1299,7 +1343,9 @@
                 <circle cx="28" cy="20" r="12" stroke="#785EF0" fill="rgba(120,94,240,0.12)" /></svg
             ></span>
             <span class="tile-label">Venn Diagram</span>
-            <span class="tile-desc">Set overlaps<br />2&#x2013;3 sets</span>
+            <span class="tile-desc" data-i18n-html="landing.desc.venn"
+              >Set overlaps<br />2&#x2013;3 sets</span
+            >
           </button>
           <button class="tile" data-tool="upset" style="--tile-accent: #785ef0">
             <span class="tile-icon"
@@ -1324,7 +1370,9 @@
                 <circle cx="36" cy="36" r="2.5" fill="currentColor" /></svg
             ></span>
             <span class="tile-label">UpSet Plot</span>
-            <span class="tile-desc">Set overlaps<br />4+ sets</span>
+            <span class="tile-desc" data-i18n-html="landing.desc.upset"
+              >Set overlaps<br />4+ sets</span
+            >
           </button>
           <button class="tile" data-tool="heatmap" style="--tile-accent: #0072b2">
             <span class="tile-icon"
@@ -1340,7 +1388,9 @@
                 <rect x="28" y="28" width="10" height="10" fill="#785EF0" /></svg
             ></span>
             <span class="tile-label">Heatmap</span>
-            <span class="tile-desc">Matrix view<br />with clustering</span>
+            <span class="tile-desc" data-i18n-html="landing.desc.heatmap"
+              >Matrix view<br />with clustering</span
+            >
           </button>
           <button class="tile" data-tool="volcano" style="--tile-accent: #d55e00">
             <span class="tile-icon"
@@ -1374,13 +1424,15 @@
                 <circle cx="39" cy="10" r="2.6" fill="#D55E00" /></svg
             ></span>
             <span class="tile-label">Volcano Plot</span>
-            <span class="tile-desc"
+            <span class="tile-desc" data-i18n-html="landing.desc.volcano"
               >log&#8322;FC vs &minus;log&#8321;&#8320;p<br />for &mdash;omics hits</span
             >
           </button>
         </div>
         <span class="tile-group-label"
-          ><span class="tg-kicker">Statistics &amp; Calculators</span>Quick math at the bench</span
+          ><span class="tg-kicker" data-i18n="landing.group.statsKicker"
+            >Statistics &amp; Calculators</span
+          ><span data-i18n="landing.group.statsText">Quick math at the bench</span></span
         >
         <div class="tiles tiles-narrow">
           <button class="tile" data-tool="power" style="--tile-accent: #dc267f">
@@ -1407,7 +1459,9 @@
                 /></svg
             ></span>
             <span class="tile-label">Power Analysis</span>
-            <span class="tile-desc">Sample size &amp; power<br />for t, ANOVA, &chi;&sup2;, r</span>
+            <span class="tile-desc" data-i18n-html="landing.desc.power"
+              >Sample size &amp; power<br />for t, ANOVA, &chi;&sup2;, r</span
+            >
           </button>
           <button class="tile" data-tool="molarity" style="--tile-accent: #1ba89b">
             <span class="tile-icon"
@@ -1428,7 +1482,9 @@
                 <line x1="34" y1="27" x2="28" y2="33" /></svg
             ></span>
             <span class="tile-label">Calculator</span>
-            <span class="tile-desc">Molarity, dilution<br />&amp; batch prep sheets</span>
+            <span class="tile-desc" data-i18n-html="landing.desc.molarity"
+              >Molarity, dilution<br />&amp; batch prep sheets</span
+            >
           </button>
         </div>
         <div class="mobile-hint" role="note">
@@ -1443,6 +1499,7 @@
           target="_blank"
           rel="noopener"
           title="Archived on Zenodo — cite Plöttr via DOI 10.5281/zenodo.20245057"
+          data-i18n-title="landing.footer.citeTitle"
         >
           <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
             <path
@@ -1452,14 +1509,14 @@
               stroke-linejoin="round"
             />
           </svg>
-          Cite — Zenodo DOI
+          <span data-i18n="landing.footer.cite">Cite — Zenodo DOI</span>
         </a>
         <span class="sep">·</span>
         <a href="https://github.com/evompmi/plottr" target="_blank" rel="noopener">GitHub</a>
         <span class="sep">·</span>
-        <span>MIT licensed</span>
+        <span data-i18n="landing.footer.mit">MIT licensed</span>
         <span class="sep">·</span>
-        <span>Cross-checked vs R 4.5 + SciPy 1.17</span>
+        <span data-i18n="landing.footer.crosschecked">Cross-checked vs R 4.5 + SciPy 1.17</span>
       </footer>
     </div>
 
@@ -1640,6 +1697,46 @@
           else if (mq.addListener) mq.addListener(onMq);
         }
         render();
+      })();
+
+      // ── Static-landing i18n wiring ──
+      // `applyStaticI18n` / `getLang` / `setLang` are globals from
+      // tools/shared.bundle.js (Object.assign(globalThis, __plottrShared),
+      // sourced from _core/i18n.ts). Swap the data-i18n* copy on load and
+      // whenever the language changes, and wire the EN/FR toggle button.
+      (function () {
+        if (typeof applyStaticI18n !== "function") return;
+        function currentLang() {
+          return typeof getLang === "function" ? getLang() : "en";
+        }
+        function renderToggle() {
+          var lang = currentLang();
+          var title = lang === "fr" ? "Passer en anglais" : "Switch to French";
+          document.querySelectorAll("[data-lang-toggle]").forEach(function (btn) {
+            btn.textContent = lang.toUpperCase();
+            btn.title = title;
+            btn.setAttribute("aria-label", title);
+          });
+        }
+        function applyAll() {
+          try {
+            applyStaticI18n(document);
+          } catch (e) {}
+          renderToggle();
+        }
+        document.querySelectorAll("[data-lang-toggle]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            if (typeof setLang !== "function") return;
+            setLang(currentLang() === "fr" ? "en" : "fr");
+          });
+        });
+        // i18n.ts dispatches `plottr-lang-change` on setLang and on
+        // cross-tab sync; the `storage` listener covers other-tab writes.
+        window.addEventListener("plottr-lang-change", applyAll);
+        window.addEventListener("storage", function (e) {
+          if (e.key === "plottr-lang") applyAll();
+        });
+        applyAll();
       })();
     </script>
   </body>

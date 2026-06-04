@@ -286,6 +286,10 @@ var __plottrShared = (() => {
       const key = el.dataset.i18nHtml;
       if (key) el.innerHTML = t(key);
     });
+    root.querySelectorAll("[data-i18n-title]").forEach((el) => {
+      const key = el.dataset.i18nTitle;
+      if (key) el.setAttribute("title", t(key));
+    });
   }
   _applyLangAttr(_lang);
   if (_langChannel) {
@@ -384,6 +388,78 @@ var __plottrShared = (() => {
       lang.toUpperCase()
     );
   }
+
+  // tools/_core/i18n/landing.en.ts
+  var landingEn = {
+    "landing.eyebrow": "Browser-only \xB7 no install \xB7 your data stays put",
+    "landing.tagline": "Paste a spreadsheet. Get a <b>publication-ready figure</b> \u2014 and the <b>R code</b> for the statistics behind it.",
+    "landing.trust.validated": "Validated against R + SciPy",
+    "landing.trust.validatedTitle": "Cross-checked vs R 4.5 + SciPy 1.17 \u2014 see the public benchmark",
+    "landing.trust.privacy": "Data stays in your browser",
+    "landing.trust.privacyTitle": "No uploads, no tracking \u2014 see the data-flow diagram",
+    "landing.hiw.label": "How it works",
+    "landing.hiw.step1": "Upload CSV",
+    "landing.hiw.step2": "Assign roles",
+    "landing.hiw.step3": "Tweak plot",
+    "landing.hiw.step4": "Download SVG + R",
+    "landing.group.plotsKicker": "Plots",
+    "landing.group.plotsText": "Eight chart types, one paste away",
+    "landing.group.statsKicker": "Statistics & Calculators",
+    "landing.group.statsText": "Quick math at the bench",
+    "landing.desc.boxplot": "Box / violin / bar<br/>with stats &amp; facets",
+    "landing.desc.scatter": "XY with color<br/>&amp; size mapping",
+    "landing.desc.lineplot": "Profile plot<br/>mean \xB1 error by group",
+    "landing.desc.aequorin": "Optional Ca\xB2\u207A<br/>calibration",
+    "landing.desc.venn": "Set overlaps<br/>2\u20133 sets",
+    "landing.desc.upset": "Set overlaps<br/>4+ sets",
+    "landing.desc.heatmap": "Matrix view<br/>with clustering",
+    "landing.desc.volcano": "log\u2082FC vs \u2212log\u2081\u2080p<br/>for \u2014omics hits",
+    "landing.desc.power": "Sample size &amp; power<br/>for t, ANOVA, \u03C7\xB2, r",
+    "landing.desc.molarity": "Molarity, dilution<br/>&amp; batch prep sheets",
+    "landing.footer.cite": "Cite \u2014 Zenodo DOI",
+    "landing.footer.citeTitle": "Archived on Zenodo \u2014 cite Pl\xF6ttr via DOI 10.5281/zenodo.20245057",
+    "landing.footer.mit": "MIT licensed",
+    "landing.footer.crosschecked": "Cross-checked vs R 4.5 + SciPy 1.17"
+  };
+  var landing_en_default = landingEn;
+
+  // tools/_core/i18n/landing.fr.ts
+  var landingFr = {
+    "landing.eyebrow": "Tout dans le navigateur \xB7 sans installation \xB7 vos donn\xE9es restent chez vous",
+    "landing.tagline": "Collez un tableur. Obtenez une <b>figure pr\xEAte \xE0 publier</b> \u2014 et le <b>code R</b> des statistiques qui la sous-tendent.",
+    "landing.trust.validated": "Valid\xE9 face \xE0 R + SciPy",
+    "landing.trust.validatedTitle": "Recoup\xE9 avec R 4.5 + SciPy 1.17 \u2014 voir le benchmark public",
+    "landing.trust.privacy": "Vos donn\xE9es restent dans votre navigateur",
+    "landing.trust.privacyTitle": "Aucun envoi, aucun suivi \u2014 voir le sch\xE9ma de flux de donn\xE9es",
+    "landing.hiw.label": "Comment \xE7a marche",
+    "landing.hiw.step1": "Importer un CSV",
+    "landing.hiw.step2": "Attribuer les r\xF4les",
+    "landing.hiw.step3": "Ajuster le trac\xE9",
+    "landing.hiw.step4": "T\xE9l\xE9charger SVG + R",
+    "landing.group.plotsKicker": "Trac\xE9s",
+    "landing.group.plotsText": "Huit types de graphiques, \xE0 un collage pr\xE8s",
+    "landing.group.statsKicker": "Statistiques & calculatrices",
+    "landing.group.statsText": "Calculs rapides \xE0 la paillasse",
+    "landing.desc.boxplot": "Bo\xEEte / violon / barre<br/>avec stats &amp; facettes",
+    "landing.desc.scatter": "XY avec couleur<br/>&amp; taille",
+    "landing.desc.lineplot": "Graphique de profil<br/>moyenne \xB1 erreur par groupe",
+    "landing.desc.aequorin": "Calibration Ca\xB2\u207A<br/>optionnelle",
+    "landing.desc.venn": "Chevauchements d\u2019ensembles<br/>2\u20133 ensembles",
+    "landing.desc.upset": "Chevauchements d\u2019ensembles<br/>4+ ensembles",
+    "landing.desc.heatmap": "Vue matricielle<br/>avec clustering",
+    "landing.desc.volcano": "log\u2082FC vs \u2212log\u2081\u2080p<br/>pour donn\xE9es \u2014omiques",
+    "landing.desc.power": "Taille d\u2019\xE9chantillon &amp; puissance<br/>pour t, ANOVA, \u03C7\xB2, r",
+    "landing.desc.molarity": "Molarit\xE9, dilution<br/>&amp; feuilles de pr\xE9paration",
+    "landing.footer.cite": "Citer \u2014 DOI Zenodo",
+    "landing.footer.citeTitle": "Archiv\xE9 sur Zenodo \u2014 citez Pl\xF6ttr via le DOI 10.5281/zenodo.20245057",
+    "landing.footer.mit": "Sous licence MIT",
+    "landing.footer.crosschecked": "Recoup\xE9 avec R 4.5 + SciPy 1.17"
+  };
+  var landing_fr_default = landingFr;
+
+  // tools/_core/shared-bundle-entry.ts
+  registerCatalog("landing", "en", landing_en_default);
+  registerCatalog("landing", "fr", landing_fr_default);
   return __toCommonJS(shared_bundle_entry_exports);
 })();
 

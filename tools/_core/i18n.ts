@@ -167,6 +167,10 @@ export function setLang(lang: Lang): void {
 // Used by the landing / privacy pages (Phase 1); the catalog values are
 // authored by us, so `innerHTML` for the markup-bearing variant is safe.
 export function applyStaticI18n(root: ParentNode = document): void {
+  // `data-i18n` → textContent (plain text); `data-i18n-html` → innerHTML
+  // (for entries carrying authored markup like <b> / <br>; values are ours,
+  // not user input, so innerHTML is safe); `data-i18n-title` → the title
+  // attribute (tooltips on trust badges etc.).
   root.querySelectorAll<HTMLElement>("[data-i18n]").forEach((el) => {
     const key = el.dataset.i18n;
     if (key) el.textContent = t(key);
@@ -174,6 +178,10 @@ export function applyStaticI18n(root: ParentNode = document): void {
   root.querySelectorAll<HTMLElement>("[data-i18n-html]").forEach((el) => {
     const key = el.dataset.i18nHtml;
     if (key) el.innerHTML = t(key);
+  });
+  root.querySelectorAll<HTMLElement>("[data-i18n-title]").forEach((el) => {
+    const key = el.dataset.i18nTitle;
+    if (key) el.setAttribute("title", t(key));
   });
 }
 
