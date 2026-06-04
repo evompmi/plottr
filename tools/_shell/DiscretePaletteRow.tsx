@@ -13,6 +13,7 @@ import {
   COLORBLIND_SAFE_PALETTES,
   resolveDiscretePalette,
 } from "./discrete-palette";
+import { useShellT } from "./i18n";
 
 const { useState } = React;
 
@@ -59,6 +60,7 @@ export function DiscreteSwatchStrip({
   height = 18,
   width = "100%",
 }: DiscreteSwatchStripProps) {
+  const tr = useShellT();
   const count = typeof n === "number" && n > 0 ? n : naturalPaletteLength(palette);
   const colours = resolveDiscretePalette(palette, count);
   const [copied, setCopied] = useState<string | null>(null);
@@ -129,7 +131,7 @@ export function DiscreteSwatchStrip({
           color: copied ? "var(--success-text)" : "var(--text-faint)",
         }}
       >
-        {copied ? "✓ Copied " + copied : "Click a swatch to copy its hex"}
+        {copied ? tr("shell.palette.copied", { hex: copied }) : tr("shell.palette.clickToCopy")}
       </div>
     </div>
   );

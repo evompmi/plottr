@@ -124,6 +124,41 @@ const en = {
   "shell.actions.startOver": "Start over",
   "shell.actions.resetTitle":
     "Clear all data, controls, and current session — returns to the upload step",
+
+  // HowTo — sub-card section labels (content is supplied per tool)
+  "shell.howto.purpose": "Purpose",
+  "shell.howto.dataLayout": "Data layout",
+  "shell.howto.display": "Display",
+  "shell.howto.tips": "Tips",
+
+  // SegToggle / OnOffToggle — default labels (callers may override)
+  "shell.toggle.on": "On",
+  "shell.toggle.off": "Off",
+
+  // FilterCheckboxPanel
+  "shell.filter.heading": "Filter rows ({shown}/{total})",
+  "shell.filter.all": "All",
+  "shell.filter.none": "None",
+  "shell.filter.numericHint": "numeric — use axis range in plot",
+
+  // RenameReorderPanel
+  "shell.rename.heading": "Rename values & reorder groups ",
+  "shell.rename.hint": "(drag ☰ to reorder groups on plot)",
+  "shell.rename.empty": "(empty)",
+
+  // DiscretePaletteRow
+  "shell.palette.copied": "✓ Copied {hex}",
+  "shell.palette.clickToCopy": "Click a swatch to copy its hex",
+
+  // PrefsPanel
+  "shell.prefs.title": "Visual plot settings",
+  "shell.prefs.save": "Save to file",
+  "shell.prefs.saveTitle": "Download current visual plot settings as a JSON file",
+  "shell.prefs.load": "Load from file",
+  "shell.prefs.loadTitle": "Apply visual plot settings from a previously saved JSON file",
+  "shell.prefs.reset": "Reset to defaults",
+  "shell.prefs.resetTitle": "Restore default visual plot settings and clear stored preferences",
+  "shell.prefs.loadError": "Could not load settings file.",
 } as const satisfies Catalog;
 
 export default en;

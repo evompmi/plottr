@@ -125,6 +125,42 @@ const fr: Record<ShellKey, string> = {
   "shell.actions.startOver": "Recommencer",
   "shell.actions.resetTitle":
     "Effacer toutes les données, les réglages et la session en cours — retour à l’étape d’import",
+
+  // HowTo
+  "shell.howto.purpose": "Objectif",
+  "shell.howto.dataLayout": "Disposition des données",
+  "shell.howto.display": "Affichage",
+  "shell.howto.tips": "Astuces",
+
+  // SegToggle / OnOffToggle
+  "shell.toggle.on": "Activé",
+  "shell.toggle.off": "Désactivé",
+
+  // FilterCheckboxPanel
+  "shell.filter.heading": "Filtrer les lignes ({shown}/{total})",
+  "shell.filter.all": "Tout",
+  "shell.filter.none": "Aucun",
+  "shell.filter.numericHint": "numérique — utiliser la plage de l’axe dans le tracé",
+
+  // RenameReorderPanel
+  "shell.rename.heading": "Renommer les valeurs & réordonner les groupes ",
+  "shell.rename.hint": "(glissez ☰ pour réordonner les groupes sur le tracé)",
+  "shell.rename.empty": "(vide)",
+
+  // DiscretePaletteRow
+  "shell.palette.copied": "✓ Copié {hex}",
+  "shell.palette.clickToCopy": "Cliquez sur une pastille pour copier son hex",
+
+  // PrefsPanel
+  "shell.prefs.title": "Réglages visuels du tracé",
+  "shell.prefs.save": "Enregistrer dans un fichier",
+  "shell.prefs.saveTitle": "Télécharger les réglages visuels actuels dans un fichier JSON",
+  "shell.prefs.load": "Charger depuis un fichier",
+  "shell.prefs.loadTitle": "Appliquer les réglages visuels depuis un fichier JSON enregistré",
+  "shell.prefs.reset": "Réinitialiser",
+  "shell.prefs.resetTitle":
+    "Restaurer les réglages visuels par défaut et effacer les préférences enregistrées",
+  "shell.prefs.loadError": "Impossible de charger le fichier de réglages.",
 };
 
 export default fr;
