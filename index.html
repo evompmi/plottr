@@ -64,6 +64,17 @@
       } catch (e) {}
     </script>
     <script>
+      // No-FOUC language: pin <html lang> from the stored choice so screen
+      // readers / hyphenation / SEO are correct from first paint. Mirrors the
+      // theme snippet above; the full sync wiring (BroadcastChannel, storage,
+      // applyStaticI18n) lives in tools/_core/i18n.ts, shipped in
+      // tools/shared.bundle.js and loaded later in the body.
+      try {
+        var lng = localStorage.getItem("plottr-lang");
+        if (lng === "en" || lng === "fr") document.documentElement.lang = lng;
+      } catch (e) {}
+    </script>
+    <script>
       // Detect file:// (cloned-and-double-clicked use). Modern browsers block
       // <script type="module"> loading from file:// origins, so the SPA shell
       // (tools/_app/index.js) silently fails to start and clicking a tool

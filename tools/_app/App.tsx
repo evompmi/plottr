@@ -14,6 +14,7 @@ import { useRoute, navigate } from "./Router";
 import { TOOL_REGISTRY, findToolEntry } from "./tool-registry";
 import { ErrorBoundary } from "../_shell";
 import { toggleTheme, useThemeMode } from "../_core/theme";
+import { useLang, setLang } from "../_core/i18n";
 import { TOOL_ACCENT, tintIcon } from "../_core/icons";
 // Inline SVG icons reused across the SPA shell. Visual identity mirrors
 // the landing markup in `index.html`.
@@ -159,8 +160,31 @@ function ThemeButton() {
   });
 }
 
-// Topbar rendered above an active tool. Theme toggle + home button +
-// sibling-tool quick-jump icons.
+// Language toggle for the SPA topbar. Mirrors ThemeButton — the inline
+// IIFE in index.html only wires static-page buttons at load time, so the
+// React-rendered topbar carries its own button against useLang() / setLang()
+// from _core/i18n, styled to match the tb-icon-btn siblings (text label
+// instead of a glyph). Two-state EN | FR for now.
+function LangButton() {
+  const lang = useLang();
+  const next = lang === "fr" ? "en" : "fr";
+  const title = lang === "fr" ? "Passer en anglais" : "Switch to French";
+  return React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "tb-icon-btn",
+      title,
+      "aria-label": title,
+      onClick: () => setLang(next),
+      style: { fontWeight: 700, fontSize: 11, letterSpacing: 0.5 },
+    },
+    lang.toUpperCase()
+  );
+}
+
+// Topbar rendered above an active tool. Theme toggle + language toggle +
+// home button + sibling-tool quick-jump icons.
 function ToolTopbar({ currentKey }: { currentKey: string }) {
   const others = TOOL_REGISTRY.filter((t) => t.key !== currentKey);
   return React.createElement(
@@ -177,6 +201,7 @@ function ToolTopbar({ currentKey }: { currentKey: string }) {
       },
     },
     React.createElement(ThemeButton),
+    React.createElement(LangButton),
     React.createElement("div", { className: "tb-sep" }),
     IconButton({
       title: "Home",

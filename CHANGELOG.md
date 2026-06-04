@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **i18n foundation + language toggle (English · French).** A lightweight,
+  zero-dependency translation layer (`tools/_core/i18n.ts`) mirroring the theme
+  wiring: `plottr-lang` persisted in localStorage, cross-tab sync via
+  BroadcastChannel, `<html lang>` pinned no-FOUC from the `<head>`, and a `t()`
+  lookup with `{var}` interpolation + `Intl.PluralRules` plurals. An EN/FR
+  toggle now sits beside the theme button in the tool topbar. This phase ships
+  the plumbing only — the UI copy itself is translated in following phases.
 - **Drag-to-window on the RLU timecourse plot.** Click and drag across the main
   time-course chart to set the X window (`X start` / `X end`) directly, instead
   of typing the bounds in the Axes tile. The selection follows the displayed
