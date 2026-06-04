@@ -9,12 +9,14 @@
 // styled neutrally on `var(--text-faint)` so it doesn't compete with the
 // file name or counts.
 
+import { tt, useShellT } from "./i18n";
+
 export function describeSeparator(sep: string): string {
-  if (sep === ",") return "comma";
-  if (sep === ";") return "semicolon";
-  if (sep === "\t") return "tab";
-  if (sep === " ") return "space";
-  return "whitespace";
+  if (sep === ",") return tt("shell.separator.comma");
+  if (sep === ";") return tt("shell.separator.semicolon");
+  if (sep === "\t") return tt("shell.separator.tab");
+  if (sep === " ") return tt("shell.separator.space");
+  return tt("shell.separator.whitespace");
 }
 
 interface DetectedSeparatorBadgeProps {
@@ -22,10 +24,11 @@ interface DetectedSeparatorBadgeProps {
 }
 
 export function DetectedSeparatorBadge({ sep }: DetectedSeparatorBadgeProps) {
+  const tr = useShellT();
   if (!sep) return null;
   return (
     <span style={{ marginLeft: 8, color: "var(--text-faint)", fontWeight: 400 }}>
-      · detected: <strong>{describeSeparator(sep)}</strong>-separated
+      {tr("shell.separator.badge", { sep: describeSeparator(sep) })}
     </span>
   );
 }

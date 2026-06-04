@@ -40,6 +40,15 @@ function _isLang(v: unknown): v is Lang {
 // ---------------------------------------------------------------------------
 
 export type Catalog = Record<string, string>;
+
+// Plural keys are stored as sibling entries `${base}.${category}` (e.g.
+// `…detail.one` / `…detail.other`). Callers pass the BASE key + a `count`
+// var; `t()` resolves the right sibling. These helpers let a namespace's
+// typed wrapper accept the base key in addition to the concrete keys.
+export type PluralCategory = "zero" | "one" | "two" | "few" | "many" | "other";
+export type PluralBaseKey<K extends string> = K extends `${infer B}.${PluralCategory}` ? B : never;
+export type TranslatableKey<K extends string> = K | PluralBaseKey<K>;
+
 type Registry = Record<string, Partial<Record<Lang, Catalog>>>;
 const _registry: Registry = Object.create(null) as Registry;
 
