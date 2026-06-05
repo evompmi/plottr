@@ -17,6 +17,8 @@ import { UploadStep, ConfigureStep, FilterStep, OutputStep } from "./steps";
 import { PlotControls } from "./controls";
 import { PlotArea, FacetPlotList } from "./plot-area";
 import { BoxplotStatsPanel, statsInit, statsReducer } from "./stats-panel";
+import "./i18n";
+import { tt, useT } from "./i18n";
 
 import { PALETTE } from "../_core/color";
 import { isNumericValue, seededRandom } from "../_core/numeric";
@@ -121,6 +123,7 @@ const EXAMPLE_CSV = (() => {
 /* ── Main App (orchestrator) ───────────────────────────────────────────────── */
 
 export function App() {
+  const trApp = useT();
   const shell = usePlotToolState("boxplot", VIS_INIT_BOXPLOT);
   const {
     step,
@@ -293,9 +296,7 @@ export function App() {
       const { headers, rows, hasHeader: hh, injectionWarnings } = parseRaw(fixedText, effectiveSep);
       setInjectionWarning(injectionWarnings);
       if (!headers.length || !rows.length) {
-        setParseError(
-          "The file appears to be empty or has no data rows. Please check your file and try again."
-        );
+        setParseError(tt("boxplot.err.empty"));
         return;
       }
       setParseError(null);
@@ -979,11 +980,11 @@ export function App() {
           ? "subgroup"
           : "flat";
   const statsPanelLabel = useMemo(() => {
-    if (statsPanelMode === "facet") return "Facet";
-    if (statsPanelMode === "subgroup") return "Subgroup";
-    if (statsPanelMode === "facetSubgroup") return "Facet × Subgroup";
+    if (statsPanelMode === "facet") return trApp("boxplot.set.facet");
+    if (statsPanelMode === "subgroup") return trApp("boxplot.set.subgroup");
+    if (statsPanelMode === "facetSubgroup") return trApp("boxplot.set.facetSubgroup");
     return "";
-  }, [statsPanelMode]);
+  }, [statsPanelMode, trApp]);
   const statsPanelSets = useMemo(() => {
     const renamedValues = (gs: BoxplotGroup[]) =>
       gs.map((g) => ({ name: plotGroupRenames[g.name] ?? g.name, values: g.allValues }));

@@ -58,9 +58,37 @@ import { tinv } from "../_core/stats/dist";
 import { sampleMean, sampleSD } from "../_core/stats/tests";
 import { selectTest } from "../_core/stats/posthoc";
 import { formatP, pStars } from "../_core/stats/format";
+import { tt, useT, type BoxplotKey } from "./i18n";
 const { useState, useMemo, useRef, useEffect } = React;
 
+// Map the kernel's test / post-hoc registry ids to catalog keys. The English
+// registry labels (TEST_LABELS_BP / POSTHOC_LABELS_BP) stay the fallback so an
+// unmapped id still renders, and so R-script exports keep their English names.
+const TEST_LABEL_KEYS_BP: Record<string, BoxplotKey> = {
+  studentT: "boxplot.test.studentT",
+  welchT: "boxplot.test.welchT",
+  mannWhitney: "boxplot.test.mannWhitney",
+  oneWayANOVA: "boxplot.test.oneWayANOVA",
+  welchANOVA: "boxplot.test.welchANOVA",
+  kruskalWallis: "boxplot.test.kruskalWallis",
+};
+const POSTHOC_LABEL_KEYS_BP: Record<string, BoxplotKey> = {
+  tukeyHSD: "boxplot.posthoc.tukeyHSD",
+  gamesHowell: "boxplot.posthoc.gamesHowell",
+  dunn: "boxplot.posthoc.dunn",
+};
+function bpTestLabel(key: string | null | undefined): string {
+  if (!key) return "—";
+  return TEST_LABEL_KEYS_BP[key] ? tt(TEST_LABEL_KEYS_BP[key]) : TEST_LABELS_BP[key] || key;
+}
+function bpPosthocLabel(key: string): string {
+  return POSTHOC_LABEL_KEYS_BP[key]
+    ? tt(POSTHOC_LABEL_KEYS_BP[key])
+    : POSTHOC_LABELS_BP[key] || key;
+}
+
 function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsDetailProps) {
+  const tr = useT();
   const names = row.names;
   const values = row.values;
   const k = names.length;
@@ -130,16 +158,16 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
 
   return (
     <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>
-      <div style={subhead}>Groups</div>
+      <div style={subhead}>{tr("boxplot.sp.groups")}</div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th style={thS}>Group</th>
-            <th style={thS}>n</th>
-            <th style={thS}>Mean</th>
-            <th style={thS}>SD</th>
-            <th style={thS}>SEM</th>
-            <th style={thS}>95% CI</th>
+            <th style={thS}>{tr("boxplot.sp.group")}</th>
+            <th style={thS}>{tr("boxplot.sp.n")}</th>
+            <th style={thS}>{tr("boxplot.sp.mean")}</th>
+            <th style={thS}>{tr("boxplot.sp.sd")}</th>
+            <th style={thS}>{tr("boxplot.sp.sem")}</th>
+            <th style={thS}>{tr("boxplot.sp.ci95")}</th>
           </tr>
         </thead>
         <tbody>
@@ -164,20 +192,24 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
         </tbody>
       </table>
 
-      <div style={subhead}>Assumptions</div>
+      <div style={subhead}>{tr("boxplot.sp.assumptions")}</div>
       {norm.length > 0 && (
         <div style={{ marginBottom: 6 }}>
           <div
             style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 2 }}
           >
-            Shapiro-Wilk (normality)
+            {tr("boxplot.sp.shapiro")}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {norm.map((r, i) => {
               const label = names[r.group] || `g${r.group}`;
               const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
               const verdict =
-                r.normal === true ? "normal" : r.normal === false ? "not normal" : "—";
+                r.normal === true
+                  ? tr("boxplot.sp.normal")
+                  : r.normal === false
+                    ? tr("boxplot.sp.notNormal")
+                    : "—";
               return (
                 <span key={i} style={{ fontSize: 11, color: "var(--text)" }}>
                   {label}: <span style={pill}>{verdict}</span>
@@ -189,15 +221,15 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
       )}
       {lev.F != null && (
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-          <span style={{ fontWeight: 600 }}>Levene</span> — F({lev.df1}, {lev.df2}) ={" "}
-          {lev.F.toFixed(3)}, p = {formatP(lev.p)}{" "}
+          <span style={{ fontWeight: 600 }}>{tr("boxplot.sp.levene")}</span> — F({lev.df1},{" "}
+          {lev.df2}) = {lev.F.toFixed(3)}, p = {formatP(lev.p)}{" "}
           <span style={lev.equalVar ? pillOk : pillBad}>
-            {lev.equalVar ? "equal variance" : "unequal variance"}
+            {lev.equalVar ? tr("boxplot.sp.equalVar") : tr("boxplot.sp.unequalVar")}
           </span>
         </div>
       )}
 
-      <div style={subhead}>Test</div>
+      <div style={subhead}>{tr("boxplot.sp.test")}</div>
       <div
         style={{
           display: "flex",
@@ -219,8 +251,8 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
         >
           {testOptions.map((t) => (
             <option key={t} value={t}>
-              {TEST_LABELS_BP[t]}
-              {t === recTest ? "  (recommended)" : ""}
+              {bpTestLabel(t)}
+              {t === recTest ? tr("boxplot.sp.recommendedSuffix") : ""}
             </option>
           ))}
         </select>
@@ -234,7 +266,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
             className="dv-btn dv-btn-secondary"
             style={{ padding: "2px 8px", fontSize: 10 }}
           >
-            Use recommendation
+            {tr("boxplot.sp.useRecommendation")}
           </button>
         )}
       </div>
@@ -261,10 +293,10 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
             color: "var(--info-text)",
           }}
         >
-          <span style={{ fontWeight: 700 }}>Suggested alternative:</span>
+          <span style={{ fontWeight: 700 }}>{tr("boxplot.sp.suggestedAlt")}</span>
           <span>
-            Shapiro-Wilk flagged non-normal data — consider{" "}
-            <strong>{TEST_LABELS_BP[suggestion.test] || suggestion.test}</strong>.
+            {tr("boxplot.sp.suggestConsider")}
+            <strong>{bpTestLabel(suggestion.test)}</strong>.
           </span>
           <button
             type="button"
@@ -275,7 +307,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
             className="dv-btn dv-btn-secondary"
             style={{ padding: "2px 8px", fontSize: 10, marginLeft: "auto" }}
           >
-            Use suggestion
+            {tr("boxplot.sp.useSuggestion")}
           </button>
         </div>
       )}
@@ -300,15 +332,20 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
       {k >= 3 && postHoc && !postHoc.error && row.postHocName && (
         <>
           <div style={subhead}>
-            Post-hoc — {POSTHOC_LABELS_BP[row.postHocName] || row.postHocName}
+            {tr("boxplot.sp.posthocPrefix")}
+            {bpPosthocLabel(row.postHocName)}
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={thS}>Pair</th>
-                <th style={thS}>{row.postHocName === "dunn" ? "Rank diff" : "Mean diff"}</th>
-                <th style={thS}>p</th>
-                <th style={thS}>Signif.</th>
+                <th style={thS}>{tr("boxplot.sp.pair")}</th>
+                <th style={thS}>
+                  {row.postHocName === "dunn"
+                    ? tr("boxplot.sp.rankDiff")
+                    : tr("boxplot.sp.meanDiff")}
+                </th>
+                <th style={thS}>{tr("boxplot.sp.colP")}</th>
+                <th style={thS}>{tr("boxplot.sp.signif")}</th>
               </tr>
             </thead>
             <tbody>
@@ -323,7 +360,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
                 return (
                   <tr key={i}>
                     <td style={tdS}>
-                      {names[pr.i]} vs {names[pr.j]}
+                      {names[pr.i]} {tr("boxplot.sp.vs")} {names[pr.j]}
                     </td>
                     <td style={tdS}>{diff}</td>
                     <td style={tdS}>{formatP(p)}</td>
@@ -346,17 +383,16 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
 
       {power && (
         <>
-          <div style={subhead}>Replication planning (n for 80% power)</div>
+          <div style={subhead}>{tr("boxplot.sp.replication")}</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>
-            Given the observed effect size, sample size a future study would need to detect this
-            effect at 80% power.
+            {tr("boxplot.sp.replicationDesc")}
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={thS}>Effect size</th>
+                <th style={thS}>{tr("boxplot.sp.effectSize")}</th>
                 <th style={thS}>α</th>
-                <th style={thS}>n for 80% power</th>
+                <th style={thS}>{tr("boxplot.sp.nFor80")}</th>
               </tr>
             </thead>
             <tbody>
@@ -372,7 +408,9 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
                   ) : null}
                   <td style={tdS}>{String(pr.alpha)}</td>
                   <td style={tdS}>
-                    {pr.nForTarget != null ? `${pr.nForTarget} ${power.nLabel}` : "> 5000"}
+                    {pr.nForTarget != null
+                      ? `${pr.nForTarget} ${power.nLabel}`
+                      : tr("boxplot.sp.gt5000")}
                   </td>
                 </tr>
               ))}
@@ -387,7 +425,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
                 marginTop: 4,
               }}
             >
-              Approximation — rank-based test power estimated from its parametric analog.
+              {tr("boxplot.sp.approxNote")}
             </div>
           )}
         </>
@@ -411,6 +449,7 @@ export function BoxplotStatsPanel({
   onShowSummaryChange,
   errorBarLabel,
 }: BoxplotStatsPanelProps) {
+  const tr = useT();
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     singletonAutoExpand && sets.length === 1 ? { [sets[0].key]: true } : {}
   );
@@ -561,7 +600,9 @@ export function BoxplotStatsPanel({
   const anyMulti = eligible.some((r) => r.k > 2);
   const singleSet = sets.length === 1;
   const headingLabel =
-    setLabel && !singleSet ? `Statistics at each ${setLabel.toLowerCase()}` : "Statistics";
+    setLabel && !singleSet
+      ? tr("boxplot.sp.statsAtEach", { label: setLabel.toLowerCase() })
+      : tr("boxplot.sp.statistics");
 
   const thS: React.CSSProperties = {
     textAlign: "left",
@@ -632,10 +673,12 @@ export function BoxplotStatsPanel({
             {headingLabel}
           </h3>
           <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
-            Click a row to inspect decision trace, assumptions, post-hoc and power.
+            {tr("boxplot.sp.desc")}
             {singleSet
               ? ""
-              : " Tests are independent per " + (setLabel || "set").toLowerCase() + "."}
+              : tr("boxplot.sp.descMulti", {
+                  label: (setLabel || tr("boxplot.sp.set")).toLowerCase(),
+                })}
           </p>
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
@@ -645,8 +688,10 @@ export function BoxplotStatsPanel({
             onClick={downloadReport}
             title={
               singleSet
-                ? "Download a plain-text stats report"
-                : `Download a plain-text report covering every ${(setLabel || "set").toLowerCase()}`
+                ? tr("boxplot.sp.txtTitleSingle")
+                : tr("boxplot.sp.txtTitleMulti", {
+                    label: (setLabel || tr("boxplot.sp.set")).toLowerCase(),
+                  })
             }
           >
             ⬇ TXT
@@ -658,8 +703,10 @@ export function BoxplotStatsPanel({
               onClick={downloadR}
               title={
                 singleSet
-                  ? "Download a runnable R script reproducing these tests"
-                  : `Download a runnable R script reproducing every ${(setLabel || "set").toLowerCase()} test`
+                  ? tr("boxplot.sp.rTitleSingle")
+                  : tr("boxplot.sp.rTitleMulti", {
+                      label: (setLabel || tr("boxplot.sp.set")).toLowerCase(),
+                    })
               }
             >
               ⬇ R
@@ -680,7 +727,7 @@ export function BoxplotStatsPanel({
         }}
       >
         <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>
-          Display on plot
+          {tr("boxplot.sp.displayOnPlot")}
         </span>
         <div
           style={{
@@ -690,9 +737,9 @@ export function BoxplotStatsPanel({
             border: "1px solid var(--border-strong)",
           }}
         >
-          {segBtn("none", "Off")}
-          {anyMulti && segBtn("cld", "Letters")}
-          {segBtn("brackets", "Brackets")}
+          {segBtn("none", tr("boxplot.sp.off"))}
+          {anyMulti && segBtn("cld", tr("boxplot.sp.letters"))}
+          {segBtn("brackets", tr("boxplot.sp.brackets"))}
         </div>
         <label
           style={{
@@ -712,7 +759,7 @@ export function BoxplotStatsPanel({
             onChange={(e) => setShowNs(e.target.checked)}
             style={{ accentColor: "var(--cta-primary-bg)" }}
           />
-          Show ns
+          {tr("boxplot.sp.showNs")}
         </label>
         <label
           style={{
@@ -730,18 +777,18 @@ export function BoxplotStatsPanel({
             onChange={(e) => setShowSummary(e.target.checked)}
             style={{ accentColor: "var(--cta-primary-bg)" }}
           />
-          Print summary below plot
+          {tr("boxplot.sp.printSummary")}
         </label>
       </div>
 
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th style={thS}>{setLabel || "Set"}</th>
-            <th style={thS}>Groups</th>
-            <th style={thS}>Test</th>
-            <th style={thS}>Statistic</th>
-            <th style={thS}>p</th>
+            <th style={thS}>{setLabel || tr("boxplot.sp.set")}</th>
+            <th style={thS}>{tr("boxplot.sp.groups")}</th>
+            <th style={thS}>{tr("boxplot.sp.test")}</th>
+            <th style={thS}>{tr("boxplot.sp.statistic")}</th>
+            <th style={thS}>{tr("boxplot.sp.colP")}</th>
             <th style={{ ...thS, width: 60 }}></th>
           </tr>
         </thead>
@@ -755,7 +802,7 @@ export function BoxplotStatsPanel({
                   <td style={tdS}>{r.name || "—"}</td>
                   <td style={tdS} colSpan={5}>
                     <span style={{ color: "var(--text-faint)", fontStyle: "italic" }}>
-                      Needs ≥ 2 groups with n ≥ 2 to run a test.
+                      {tr("boxplot.sp.needsGroups")}
                     </span>
                   </td>
                 </tr>
@@ -782,9 +829,7 @@ export function BoxplotStatsPanel({
                 >
                   <td style={tdS}>{r.name || "—"}</td>
                   <td style={tdS}>{r.k}</td>
-                  <td style={tdS}>
-                    {r.chosenTest ? TEST_LABELS_BP[r.chosenTest] || r.chosenTest : "—"}
-                  </td>
+                  <td style={tdS}>{bpTestLabel(r.chosenTest)}</td>
                   <td style={{ ...tdS, ...mono }}>
                     {formatBpStatShort(r.chosenTest, r.testResult)}
                   </td>

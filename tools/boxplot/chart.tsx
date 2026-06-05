@@ -31,6 +31,7 @@ import { getPointColors } from "../_core/color";
 import { seededRandom } from "../_core/numeric";
 import { kde } from "../_core/descriptive";
 import { svgSafeId } from "../_core/svg-export";
+import { useT } from "./i18n";
 const { forwardRef, useRef, memo } = React;
 
 function statsTextLines(
@@ -149,6 +150,7 @@ export const BoxplotChart = memo(
     },
     ref
   ) {
+    const tr = useT();
     // ── Layout: margins + annotation padding ─────────────────────────────────
     const { M, hz, isBar, angle, absA, pieSpace, labelZone } = computeChartMargins({
       groups,
@@ -339,10 +341,18 @@ export const BoxplotChart = memo(
         style={{ width: vbW, maxWidth: "100%", height: "auto", display: "block", margin: "0 auto" }}
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label={plotTitle || (isBar ? "Bar chart" : "Box plot")}
+        aria-label={
+          plotTitle || (isBar ? tr("boxplot.chart.barChart") : tr("boxplot.chart.boxPlot"))
+        }
       >
-        <title>{plotTitle || (isBar ? "Bar chart" : "Box plot")}</title>
-        <desc>{`${isBar ? "Bar chart" : "Box plot"} with ${groups.length} group${groups.length !== 1 ? "s" : ""}${yLabel ? `, Y axis: ${yLabel}` : ""}`}</desc>
+        <title>
+          {plotTitle || (isBar ? tr("boxplot.chart.barChart") : tr("boxplot.chart.boxPlot"))}
+        </title>
+        <desc>
+          {tr(isBar ? "boxplot.chart.descBar" : "boxplot.chart.descBox", {
+            count: groups.length,
+          }) + (yLabel ? tr("boxplot.chart.descYAxis", { y: yLabel }) : "")}
+        </desc>
 
         <g id="background">
           <rect x={0} y={0} width={vbW} height={vbH} fill={plotBg} />
@@ -483,7 +493,7 @@ export const BoxplotChart = memo(
                   key={`${gi}-${g.name}`}
                   id={_grpId("bar", gi, g.name)}
                   role="group"
-                  aria-label={`${g.name}: mean ${mean.toFixed(2)}${showErr ? `, ${errorType === "sd" ? "SD" : errorType === "ci95" ? "95% CI" : "SEM"} ${errVal.toFixed(2)}` : ""}, n=${g.stats.n}`}
+                  aria-label={`${g.name}: ${tr("boxplot.chart.mean")} ${mean.toFixed(2)}${showErr ? `, ${errorType === "sd" ? "SD" : errorType === "ci95" ? "95% CI" : "SEM"} ${errVal.toFixed(2)}` : ""}, n=${g.stats.n}`}
                 >
                   <rect
                     {...barR}
