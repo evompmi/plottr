@@ -375,7 +375,7 @@ function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchR
               ? tr("volcano.search.disabledTitle")
               : matchCount === 0
                 ? tr("volcano.search.typeTitle")
-                : tr("volcano.search.addTitle", { n: matchCount })
+                : tr("volcano.search.addTitle", { n: matchCount, count: matchCount })
           }
         >
           {tr("volcano.search.add")}
@@ -399,7 +399,7 @@ function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchR
           >
             {matchCount === 0
               ? tr("volcano.search.noMatches")
-              : tr("volcano.search.matches", { n: matchCount }) +
+              : tr("volcano.search.matches", { n: matchCount, count: matchCount }) +
                 (tooMany ? tr("volcano.search.overlap") : "") +
                 (unmatchedCount > 0 ? tr("volcano.search.unmatched", { n: unmatchedCount }) : "")}
           </span>
@@ -516,7 +516,7 @@ export function LabelsTile({
           }}
         >
           <span style={{ fontSize: 11, color: "var(--info-text)" }}>
-            {tr("volcano.labels.clicked", { n: manualCount })}
+            {tr("volcano.labels.clicked", { n: manualCount, count: manualCount })}
           </span>
           <button
             onClick={clearManualSelection}
@@ -736,7 +736,10 @@ export function ColorMapTile({
             >
               {colorMap.type === "continuous"
                 ? tr("volcano.map.continuous")
-                : tr("volcano.map.categorical", { n: colorMap.legend.length })}
+                : tr("volcano.map.categorical", {
+                    n: colorMap.legend.length,
+                    count: colorMap.legend.length,
+                  })}
             </strong>
           </div>
           {colorMap.type === "continuous" && (

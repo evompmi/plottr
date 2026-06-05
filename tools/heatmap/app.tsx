@@ -475,7 +475,10 @@ export function App() {
                 {" "}
                 ·{" "}
                 <span style={{ color: "var(--warning-text)" }}>
-                  {tr("heatmap.cfg.nonNumeric", { n: warnings.nonNumeric })}
+                  {tr("heatmap.cfg.nonNumeric", {
+                    n: warnings.nonNumeric,
+                    count: warnings.nonNumeric,
+                  })}
                 </span>
               </>
             )}

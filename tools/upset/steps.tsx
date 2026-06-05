@@ -305,7 +305,7 @@ export function ItemListPanel({ intersection, setNames, fileName, columnId }: It
           )}
           {label}{" "}
           <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>
-            {tr("upset.items.count", { n: intersection.size })}
+            {tr("upset.items.count", { n: intersection.size, count: intersection.size })}
           </span>
         </p>
         <button

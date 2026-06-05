@@ -423,7 +423,10 @@ export function PlotControls({
               className="dv-btn dv-btn-secondary"
               style={{ fontSize: 11, padding: "3px 8px" }}
             >
-              {tr("upset.stat.clearCached", { n: intersectionTestsCount })}
+              {tr("upset.stat.clearCached", {
+                n: intersectionTestsCount,
+                count: intersectionTestsCount,
+              })}
             </button>
           )}
           <p

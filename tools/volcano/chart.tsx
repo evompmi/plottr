@@ -604,7 +604,10 @@ export const VolcanoChart = memo(
              aesthetic-mapping props (colorByIdx / radiusByIdx) — falls
              back to the class palette + uniform radius when no mapping
              is active. */}
-        <g id="data-points" aria-label={tt("volcano.chart.pointsTotal", { n: summary.total })}>
+        <g
+          id="data-points"
+          aria-label={tt("volcano.chart.pointsTotal", { n: summary.total, count: summary.total })}
+        >
           {useRasterize ? (
             <>
               {/* Single canvas-rasterised PNG of every point. Painted

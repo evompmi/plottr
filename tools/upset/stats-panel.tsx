@@ -246,7 +246,11 @@ export function IntersectionStatsPanel({
                 {renderRow(tr("upset.sp.enrichment"), tr("upset.sp.enrichmentHint"), enr, enrAdj)}
                 {renderRow(tr("upset.sp.depletion"), tr("upset.sp.depletionHint"), dep, depAdj)}
                 <span style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>
-                  {tr("upset.sp.familyNote", { n: intersectionTests.size, universe: universeN })}
+                  {tr("upset.sp.familyNote", {
+                    n: intersectionTests.size,
+                    count: intersectionTests.size,
+                    universe: universeN,
+                  })}
                 </span>
               </>
             );

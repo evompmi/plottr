@@ -325,6 +325,7 @@ export const UpsetChart = memo(
                 aria-label={tt("upset.chart.barAria", {
                   label: intersectionLabel(inter.setIndices, setNames),
                   size: inter.size,
+                  count: inter.size,
                 })}
               >
                 <rect
