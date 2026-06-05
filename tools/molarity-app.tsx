@@ -4,6 +4,8 @@
 import { PageHeader, useIsMobile, FILE_LIMIT_BYTES } from "./_shell";
 import { parseRaw } from "./_core/csv";
 import { downloadCsv } from "./_core/download";
+import "./molarity-app/i18n";
+import { useT } from "./molarity-app/i18n";
 const { useState, useMemo, useCallback } = React;
 
 // ── Unit definitions & conversions ──────────────────────────────────────────
@@ -131,6 +133,7 @@ function UnitInput({
 // ── Molarity Mode ───────────────────────────────────────────────────────────
 
 function MolarityMode({ compact }: { compact?: boolean }) {
+  const tr = useT();
   const [mw, setMw] = useState("");
   const [mass, setMass] = useState("");
   const [massUnit, setMassUnit] = useState("g");
@@ -199,10 +202,10 @@ function MolarityMode({ compact }: { compact?: boolean }) {
   }, [mw, mass, massUnit, vol, volUnit, conc, concUnit, solveFor]);
 
   const fields = [
-    { key: "mw", label: "Mol. weight (g/mol)" },
-    { key: "mass", label: "Mass" },
-    { key: "volume", label: "Volume" },
-    { key: "conc", label: "Concentration" },
+    { key: "mw", label: tr("molarity.mol.field.mw") },
+    { key: "mass", label: tr("molarity.mol.field.mass") },
+    { key: "volume", label: tr("molarity.mol.field.volume") },
+    { key: "conc", label: tr("molarity.mol.field.conc") },
   ];
 
   return (
@@ -235,7 +238,7 @@ function MolarityMode({ compact }: { compact?: boolean }) {
               ...(compact ? { width: "100%", marginBottom: 4 } : {}),
             }}
           >
-            Solve for:
+            {tr("molarity.solveFor")}
           </p>
           <div
             style={{
@@ -279,7 +282,7 @@ function MolarityMode({ compact }: { compact?: boolean }) {
               color: "var(--text-muted)",
             }}
           >
-            Inputs:
+            {tr("molarity.inputs")}
           </p>
           <div
             style={{
@@ -300,7 +303,7 @@ function MolarityMode({ compact }: { compact?: boolean }) {
                 fontSize: compact ? 11 : undefined,
               }}
             >
-              MW (g/mol)
+              {tr("molarity.mol.mwLabel")}
             </label>
             <input
               type="text"
@@ -308,7 +311,7 @@ function MolarityMode({ compact }: { compact?: boolean }) {
               value={solveFor === "mw" ? "" : mw}
               onChange={(e) => setMw(e.target.value)}
               disabled={solveFor === "mw"}
-              placeholder={solveFor === "mw" ? "calculated" : ""}
+              placeholder={solveFor === "mw" ? tr("molarity.calculated") : ""}
               className="dv-input"
               style={{
                 width: compact ? 0 : 130,
@@ -324,7 +327,7 @@ function MolarityMode({ compact }: { compact?: boolean }) {
           </div>
 
           <UnitInput
-            label="Mass"
+            label={tr("molarity.mol.field.mass")}
             compact={compact}
             value={solveFor === "mass" ? "" : mass}
             onValueChange={setMass}
@@ -332,28 +335,28 @@ function MolarityMode({ compact }: { compact?: boolean }) {
             onUnitChange={setMassUnit}
             units={MASS_UNITS}
             disabled={solveFor === "mass"}
-            placeholder={solveFor === "mass" ? "calculated" : ""}
+            placeholder={solveFor === "mass" ? tr("molarity.calculated") : ""}
           />
           <UnitInput
-            label="Volume"
+            label={tr("molarity.mol.field.volume")}
             value={solveFor === "volume" ? "" : vol}
             onValueChange={setVol}
             unit={volUnit}
             onUnitChange={setVolUnit}
             units={VOL_UNITS}
             disabled={solveFor === "volume"}
-            placeholder={solveFor === "volume" ? "calculated" : ""}
+            placeholder={solveFor === "volume" ? tr("molarity.calculated") : ""}
             compact={compact}
           />
           <UnitInput
-            label="Concentration"
+            label={tr("molarity.mol.field.conc")}
             value={solveFor === "conc" ? "" : conc}
             onValueChange={setConc}
             unit={concUnit}
             onUnitChange={setConcUnit}
             units={CONC_UNITS}
             disabled={solveFor === "conc"}
-            placeholder={solveFor === "conc" ? "calculated" : ""}
+            placeholder={solveFor === "conc" ? tr("molarity.calculated") : ""}
             compact={compact}
           />
 
@@ -387,6 +390,7 @@ function MolarityMode({ compact }: { compact?: boolean }) {
 // ── Dilution Mode ───────────────────────────────────────────────────────────
 
 function DilutionMode({ compact }: { compact?: boolean }) {
+  const tr = useT();
   const [c1, setC1] = useState("");
   const [c1Unit, setC1Unit] = useState("mM");
   const [v1, setV1] = useState("");
@@ -436,10 +440,10 @@ function DilutionMode({ compact }: { compact?: boolean }) {
   }, [c1, c1Unit, v1, v1Unit, c2, c2Unit, v2, v2Unit, solveFor]);
 
   const fields = [
-    { key: "c1", label: "C1 (stock conc.)" },
-    { key: "v1", label: "V1 (stock vol.)" },
-    { key: "c2", label: "C2 (final conc.)" },
-    { key: "v2", label: "V2 (final vol.)" },
+    { key: "c1", label: tr("molarity.dil.field.c1") },
+    { key: "v1", label: tr("molarity.dil.field.v1") },
+    { key: "c2", label: tr("molarity.dil.field.c2") },
+    { key: "v2", label: tr("molarity.dil.field.v2") },
   ];
 
   return (
@@ -472,11 +476,11 @@ function DilutionMode({ compact }: { compact?: boolean }) {
               ...(compact ? { width: "100%" } : {}),
             }}
           >
-            C1 × V1 = C2 × V2 — Solve for:
+            {tr("molarity.dil.equation")}
           </p>
           {!compact && (
             <p style={{ margin: "0 0 10px", fontSize: 11, color: "var(--text-faint)" }}>
-              Solve for:
+              {tr("molarity.solveFor")}
             </p>
           )}
           <div
@@ -521,7 +525,7 @@ function DilutionMode({ compact }: { compact?: boolean }) {
               color: "var(--text-muted)",
             }}
           >
-            Inputs:
+            {tr("molarity.inputs")}
           </p>
           <p
             style={{
@@ -531,28 +535,28 @@ function DilutionMode({ compact }: { compact?: boolean }) {
               color: "var(--accent-primary)",
             }}
           >
-            Stock solution
+            {tr("molarity.dil.stock")}
           </p>
           <UnitInput
-            label="C1 (concentration)"
+            label={tr("molarity.dil.c1")}
             value={solveFor === "c1" ? "" : c1}
             onValueChange={setC1}
             unit={c1Unit}
             onUnitChange={setC1Unit}
             units={CONC_UNITS}
             disabled={solveFor === "c1"}
-            placeholder={solveFor === "c1" ? "calculated" : ""}
+            placeholder={solveFor === "c1" ? tr("molarity.calculated") : ""}
             compact={compact}
           />
           <UnitInput
-            label="V1 (volume)"
+            label={tr("molarity.dil.v1")}
             value={solveFor === "v1" ? "" : v1}
             onValueChange={setV1}
             unit={v1Unit}
             onUnitChange={setV1Unit}
             units={VOL_UNITS}
             disabled={solveFor === "v1"}
-            placeholder={solveFor === "v1" ? "calculated" : ""}
+            placeholder={solveFor === "v1" ? tr("molarity.calculated") : ""}
             compact={compact}
           />
           <p
@@ -563,28 +567,28 @@ function DilutionMode({ compact }: { compact?: boolean }) {
               color: "var(--accent-primary)",
             }}
           >
-            Final solution
+            {tr("molarity.dil.final")}
           </p>
           <UnitInput
-            label="C2 (concentration)"
+            label={tr("molarity.dil.c2")}
             value={solveFor === "c2" ? "" : c2}
             onValueChange={setC2}
             unit={c2Unit}
             onUnitChange={setC2Unit}
             units={CONC_UNITS}
             disabled={solveFor === "c2"}
-            placeholder={solveFor === "c2" ? "calculated" : ""}
+            placeholder={solveFor === "c2" ? tr("molarity.calculated") : ""}
             compact={compact}
           />
           <UnitInput
-            label="V2 (volume)"
+            label={tr("molarity.dil.v2")}
             value={solveFor === "v2" ? "" : v2}
             onValueChange={setV2}
             unit={v2Unit}
             onUnitChange={setV2Unit}
             units={VOL_UNITS}
             disabled={solveFor === "v2"}
-            placeholder={solveFor === "v2" ? "calculated" : ""}
+            placeholder={solveFor === "v2" ? tr("molarity.calculated") : ""}
             compact={compact}
           />
 
@@ -664,6 +668,7 @@ function parseMassVolConc(
 }
 
 function BatchMode() {
+  const tr = useT();
   const [raw, setRaw] = useState("");
   const [sepOverride, setSepOverride] = useState("");
   type MolarityRow = {
@@ -682,36 +687,34 @@ function BatchMode() {
     setError(null);
     setResults(null);
     if (!raw.trim()) {
-      setError("Paste your data above.");
+      setError(tr("molarity.batch.errPaste"));
       return;
     }
     // Match the documented ingest-size policy (FileDropZone / UploadPanel):
     // hard-reject pastes over 2 MB before parsing.
     const bytes = new Blob([raw]).size;
     if (bytes > FILE_LIMIT_BYTES) {
-      setError(
-        `Pasted data too large (${(bytes / 1024 / 1024).toFixed(1)} MB). Maximum is 2 MB — paste fewer rows.`
-      );
+      setError(tr("molarity.batch.errTooLarge", { mb: (bytes / 1024 / 1024).toFixed(1) }));
       return;
     }
 
     const { headers, rows } = parseRaw(raw, sepOverride);
     if (rows.length === 0) {
-      setError("No data rows found.");
+      setError(tr("molarity.batch.errNoRows"));
       return;
     }
     if (headers.length < 4) {
-      setError("Need at least 4 columns: Name, MW, Concentration, Volume.");
+      setError(tr("molarity.batch.errCols"));
       return;
     }
 
     const output: MolarityRow[] = [];
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
-      const name = r[0] || "Row " + (i + 1);
+      const name = r[0] || tr("molarity.batch.rowFallback", { n: i + 1 });
       const mwVal = parseFloat(r[1]);
       if (!isFinite(mwVal) || mwVal <= 0) {
-        output.push({ name, error: "Invalid MW: " + r[1] });
+        output.push({ name, error: tr("molarity.batch.errInvalidMw", { v: r[1] }) });
         continue;
       }
 
@@ -721,7 +724,7 @@ function BatchMode() {
 
       const volParsed = parseValueUnit(volStr, "mL", VOL_UNITS);
       if (!volParsed) {
-        output.push({ name, error: "Invalid volume: " + volStr });
+        output.push({ name, error: tr("molarity.batch.errInvalidVol", { v: volStr }) });
         continue;
       }
       const volL = toBase(volParsed.value, volParsed.unit, VOL_UNITS);
@@ -758,11 +761,11 @@ function BatchMode() {
         continue;
       }
 
-      output.push({ name, error: "Cannot parse concentration: " + concStr });
+      output.push({ name, error: tr("molarity.batch.errCannotParseConc", { v: concStr }) });
     }
 
     setResults(output);
-  }, [raw, sepOverride]);
+  }, [raw, sepOverride, tr]);
 
   const csvExport = useCallback(() => {
     if (!results) return;
@@ -779,23 +782,22 @@ function BatchMode() {
     <div>
       <div className="dv-panel">
         <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-          Paste a table: Name, MW (g/mol), Concentration (with unit), Volume (with unit)
+          {tr("molarity.batch.instruction")}
         </p>
         <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--text-faint)" }}>
-          Units can be inline (e.g. "150 mM", "500 mL", "50 mg/mL"). Supported: M, mM, µM, nM, g/L,
-          mg/mL, µg/µL, L, mL, µL.
+          {tr("molarity.batch.unitsNote")}
         </p>
         <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-primary)" }}>
-            Separator:
+            {tr("molarity.batch.separator")}
           </span>
           <div className="dv-seg">
             {(
               [
-                ["", "Auto-detect"],
-                [",", "Comma (,)"],
-                [";", "Semicolon (;)"],
-                ["\t", "Tab (\\t)"],
+                ["", tr("molarity.batch.autoDetect")],
+                [",", tr("molarity.batch.comma")],
+                [";", tr("molarity.batch.semicolon")],
+                ["\t", tr("molarity.batch.tab")],
               ] as const
             ).map(([val, label]) => {
               const active = sepOverride === val;
@@ -833,10 +835,10 @@ function BatchMode() {
         />
         <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
           <button onClick={compute} className="dv-btn dv-btn-primary">
-            Calculate
+            {tr("molarity.batch.calculate")}
           </button>
           <button onClick={() => setRaw(BATCH_EXAMPLE)} className="dv-btn dv-btn-secondary">
-            Load example
+            {tr("molarity.batch.loadExample")}
           </button>
         </div>
       </div>
@@ -871,7 +873,7 @@ function BatchMode() {
             }}
           >
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-              Prep Sheet
+              {tr("molarity.batch.prepSheet")}
             </p>
             <button
               onClick={csvExport}
@@ -885,7 +887,13 @@ function BatchMode() {
             <table style={{ borderCollapse: "collapse", fontSize: 12, width: "100%" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid var(--border-strong)" }}>
-                  {["Name", "MW", "Concentration", "Volume", "Mass to weigh"].map((h) => (
+                  {[
+                    tr("molarity.batch.col.name"),
+                    tr("molarity.batch.col.mw"),
+                    tr("molarity.batch.col.conc"),
+                    tr("molarity.batch.col.vol"),
+                    tr("molarity.batch.col.mass"),
+                  ].map((h) => (
                     <th
                       key={h}
                       style={{
@@ -953,6 +961,7 @@ function formatMass(grams: number): string {
 // ── Ligation Mode ───────────────────────────────────────────────────────────
 
 function LigationMode({ compact }: { compact?: boolean }) {
+  const tr = useT();
   const [vectorBp, setVectorBp] = useState("");
   const [vectorNg, setVectorNg] = useState("");
   const [insertBp, setInsertBp] = useState("");
@@ -984,10 +993,10 @@ function LigationMode({ compact }: { compact?: boolean }) {
     <div>
       <div className="dv-panel">
         <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-          Ligation insert calculator
+          {tr("molarity.lig.title")}
         </p>
         <p style={{ margin: "0 0 0", fontSize: 11, color: "var(--text-faint)" }}>
-          insert (ng) = (insert bp / vector bp) × vector ng × (insert:vector ratio)
+          {tr("molarity.lig.formula")}
         </p>
       </div>
 
@@ -1003,11 +1012,11 @@ function LigationMode({ compact }: { compact?: boolean }) {
           <p
             style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--accent-dna)" }}
           >
-            Vector
+            {tr("molarity.lig.vector")}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             <label className="dv-label" style={{ marginBottom: 0, fontWeight: 600, fontSize: 11 }}>
-              Length
+              {tr("molarity.lig.length")}
             </label>
             <input
               type="text"
@@ -1021,7 +1030,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <label className="dv-label" style={{ marginBottom: 0, fontWeight: 600, fontSize: 11 }}>
-              Amount
+              {tr("molarity.lig.amount")}
             </label>
             <input
               type="text"
@@ -1039,11 +1048,11 @@ function LigationMode({ compact }: { compact?: boolean }) {
           <p
             style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--accent-dna)" }}
           >
-            Insert
+            {tr("molarity.lig.insert")}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <label className="dv-label" style={{ marginBottom: 0, fontWeight: 600, fontSize: 11 }}>
-              Length
+              {tr("molarity.lig.length")}
             </label>
             <input
               type="text"
@@ -1061,7 +1070,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
           <p
             style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--accent-dna)" }}
           >
-            Molar ratio
+            {tr("molarity.lig.molarRatio")}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             <label
@@ -1073,7 +1082,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
                 color: "var(--text-muted)",
               }}
             >
-              Vector
+              {tr("molarity.lig.vector")}
             </label>
             <input
               type="text"
@@ -1094,7 +1103,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
                 color: "var(--text-muted)",
               }}
             >
-              Insert
+              {tr("molarity.lig.insert")}
             </label>
             <input
               type="text"
@@ -1125,7 +1134,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
               fontWeight: 600,
             }}
           >
-            Insert amount needed:
+            {tr("molarity.lig.needed")}
           </p>
           <span style={{ fontSize: 22, fontWeight: 700, color: "var(--success-text)" }}>
             {formatResult(result)}
@@ -1198,17 +1207,30 @@ function ModeButton({
 }
 
 export function App() {
+  const tr = useT();
   const [mode, setMode] = useState("molarity");
   const compact = useIsMobile();
 
   const chemModes = [
-    { key: "molarity", label: "Molarity", desc: "MW / mass / volume / concentration" },
-    { key: "dilution", label: "Dilution", desc: "C1×V1 = C2×V2" },
-    { key: "batch", label: "Batch", desc: "Paste a table, get a prep sheet" },
+    {
+      key: "molarity",
+      label: tr("molarity.mode.molarity"),
+      desc: tr("molarity.mode.molarity.desc"),
+    },
+    {
+      key: "dilution",
+      label: tr("molarity.mode.dilution"),
+      desc: tr("molarity.mode.dilution.desc"),
+    },
+    { key: "batch", label: tr("molarity.mode.batch"), desc: tr("molarity.mode.batch.desc") },
   ];
 
   const dnaModes = [
-    { key: "ligation", label: "Ligation", desc: "Insert mass from vector:insert ratio" },
+    {
+      key: "ligation",
+      label: tr("molarity.mode.ligation"),
+      desc: tr("molarity.mode.ligation.desc"),
+    },
   ];
 
   const chemColor = "var(--cta-primary-bg)";
@@ -1230,7 +1252,7 @@ export function App() {
             letterSpacing: "1px",
           }}
         >
-          Solutions
+          {tr("molarity.section.solutions")}
         </span>
         <span style={{ flex: 1, height: 1, background: chemColor, opacity: 0.3 }} />
       </div>
@@ -1259,7 +1281,7 @@ export function App() {
             letterSpacing: "1px",
           }}
         >
-          DNA
+          {tr("molarity.section.dna")}
         </span>
         <span style={{ flex: 1, height: 1, background: dnaColor, opacity: 0.3 }} />
       </div>

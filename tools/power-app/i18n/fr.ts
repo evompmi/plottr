@@ -3,8 +3,6 @@
 import type { PowerKey } from "./en";
 
 const fr: Record<PowerKey, string> = {
-  "power.title": "Analyse de puissance",
-
   "power.test.tInd.label": "Test t à deux échantillons",
   "power.test.tInd.question":
     "Combien de sujets par groupe pour détecter une différence entre deux groupes indépendants ?",

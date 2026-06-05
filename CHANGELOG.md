@@ -23,9 +23,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   including its downloadable plain-text report (test names localized on screen
   while the R-script export stays English for portability). The static landing
   (hero, "how it works", tile descriptions, trust badges, footer) is localized
-  via `data-i18n` attributes. Remaining for a following phase: each tool's own
-  control panels + the two calculators, chart/SVG labels, the file-protocol help
-  page, and tool display names.
+  via `data-i18n` attributes. **All eight plot tools and both calculators
+  (Power Analysis, molarity/dilution/batch/ligation) are now fully bilingual** —
+  controls, step panels, configure/filter/output banners, chart titles +
+  descriptions + ARIA, per-tool stats panels, and how-to cards. Statistical
+  test / post-hoc display names are localized on screen via registry→key maps
+  while the English registry labels stay the fallback and R-script + CSV exports
+  keep English column names for portability. Remaining for a following phase:
+  chart default axis-label localization (with an English-figure export toggle),
+  the file-protocol help page, and the tool display names in the topbar /
+  landing tiles.
 - **Drag-to-window on the RLU timecourse plot.** Click and drag across the main
   time-course chart to set the X window (`X start` / `X end`) directly, instead
   of typing the bounds in the Axes tile. The selection follows the displayed

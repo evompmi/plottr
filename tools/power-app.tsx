@@ -865,7 +865,7 @@ export function App() {
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 32px" }}>
-      <PageHeader toolName="power" title={tr("power.title")} />
+      <PageHeader toolName="power" title="Power Analysis" />
 
       {/* ── Top group: test picker + solve-for picker share the first row;
           question banner takes its own full-width row beneath them. The

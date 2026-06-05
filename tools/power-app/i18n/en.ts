@@ -3,9 +3,6 @@
 import type { Catalog } from "../../_core/i18n";
 
 const en = {
-  // Page
-  "power.title": "Power Analysis",
-
   // Test registry — labels + questions + sample-size labels
   "power.test.tInd.label": "Two-sample t-test",
   "power.test.tInd.question":
