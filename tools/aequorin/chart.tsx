@@ -27,6 +27,7 @@ import { seededRandom } from "../_core/numeric";
 import { makeTicks } from "../_core/scale";
 import { tinv } from "../_core/stats/dist";
 import { svgSafeId } from "../_core/svg-export";
+import { useT } from "./i18n";
 const { forwardRef, useRef, useState, useEffect, memo } = React;
 
 // ── Chart ────────────────────────────────────────────────────────────────────
@@ -55,6 +56,7 @@ export const Chart = memo(
     },
     ref
   ) {
+    const tr = useT();
     const aequorinItemW = (b: LegendBlock): number => {
       const maxLen = Math.max(0, ...(b.items || []).map((i) => (i.label || "").length));
       return Math.max(110, maxLen * 6 + 28);
@@ -165,11 +167,15 @@ export const Chart = memo(
         }
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label={plotTitle || "RLU timecourse chart"}
+        aria-label={plotTitle || tr("aequorin.chart.fallbackTitle")}
         onMouseDown={onBrush ? onBrushDown : undefined}
       >
-        <title>{plotTitle || "RLU timecourse chart"}</title>
-        <desc>{`Time series chart with ${series.length} series${xLabel ? `, X: ${xLabel}` : ""}${yLabel ? `, Y: ${yLabel}` : ""}`}</desc>
+        <title>{plotTitle || tr("aequorin.chart.fallbackTitle")}</title>
+        <desc>
+          {tr("aequorin.chart.desc", { count: series.length }) +
+            (xLabel ? tr("aequorin.chart.descX", { x: xLabel }) : "") +
+            (yLabel ? tr("aequorin.chart.descY", { y: yLabel }) : "")}
+        </desc>
         <g id="background">
           <rect x={0} y={0} width={vbW} height={vbH + legendH + topPad} fill={plotBg || "#fff"} />
         </g>
@@ -264,7 +270,7 @@ export const Chart = memo(
                   stroke={p.color}
                   strokeWidth={lineWidth}
                   role="img"
-                  aria-label={`Trace: ${p.prefix}`}
+                  aria-label={tr("aequorin.chart.traceAria", { name: p.prefix })}
                 />
               ) : null
             )}
@@ -442,6 +448,7 @@ export const InsetBarplot = memo(
     },
     ref
   ) {
+    const tr = useT();
     const refIW = insetW || 400,
       iH = insetH || 200;
     const _compact = (100 - (insetBarGap != null ? insetBarGap : 0)) / 100;
@@ -537,10 +544,10 @@ export const InsetBarplot = memo(
         style={{ width: iW, maxWidth: "100%", height: "auto", display: "block", margin: "0 auto" }}
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label={plotTitle || "Bar plot"}
+        aria-label={plotTitle || tr("aequorin.chart.barAria")}
       >
-        <title>{plotTitle || "Inset bar plot"}</title>
-        <desc>{`Inset bar plot of ${series.length} condition${series.length !== 1 ? "s" : ""}`}</desc>
+        <title>{plotTitle || tr("aequorin.chart.barTitle")}</title>
+        <desc>{tr("aequorin.chart.barDesc", { count: series.length })}</desc>
         <g id="background">
           <rect x={0} y={0} width={iW} height={totalH + topPad} fill={plotBg || "#fff"} />
         </g>
