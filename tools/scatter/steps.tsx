@@ -3,7 +3,14 @@
 // both want them. (The ControlSection disclosure tile now lives in ../_shell.)
 
 import { HowTo, UploadPanel } from "../_shell";
-import { SCATTER_HOWTO } from "./howto";
+import { useScatterHowTo } from "./howto";
+import { useT, type ScatterKey } from "./i18n";
+
+const AES_LABEL_KEYS: Record<"color" | "size" | "shape", ScatterKey> = {
+  color: "scatter.aes.color",
+  size: "scatter.aes.size",
+  shape: "scatter.aes.shape",
+};
 
 export const aesTheme = {
   color: {
@@ -36,6 +43,7 @@ export function AesBox({
   theme: "color" | "size" | "shape";
   children?: React.ReactNode;
 }) {
+  const tr = useT();
   const t = aesTheme[theme];
   return (
     <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
@@ -49,7 +57,7 @@ export function AesBox({
             letterSpacing: "0.8px",
           }}
         >
-          {t.label}
+          {tr(AES_LABEL_KEYS[theme])}
         </span>
       </div>
       <div style={{ padding: "12px 14px", minHeight: 40 }}>{children}</div>
@@ -78,6 +86,8 @@ export function UploadStep({
   handleTextPaste,
   onLoadExample,
 }: UploadStepProps) {
+  const tr = useT();
+  const howto = useScatterHowTo();
   return (
     <div>
       <UploadPanel
@@ -91,13 +101,12 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          title: "Fisher's Iris dataset",
-          subtitle: "150 flowers × 4 measurements · 3 species",
-          buttonLabel: "Plot this example →",
+          title: tr("scatter.example.title"),
+          subtitle: tr("scatter.example.subtitle"),
         }}
-        hint="CSV · TSV · TXT — one column per variable, one row per point · 2 MB max"
+        hint={tr("scatter.upload.hint")}
       />
-      <HowTo {...SCATTER_HOWTO} />
+      <HowTo {...howto} />
     </div>
   );
 }

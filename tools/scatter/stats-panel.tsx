@@ -34,7 +34,20 @@ import { downloadText, flashSaved } from "../_core/download";
 import { sampleMean, sampleSD, selectCorrelation } from "../_core/stats/tests";
 import { formatP, pStars } from "../_core/stats/format";
 import type { CorrTest } from "../_core/stats/types";
+import { tt, useT, type ScatterKey } from "./i18n";
 const { useState, useMemo } = React;
+
+// Localized correlation-test display names (registry stays English for the
+// R export); proper names (Pearson r, Spearman ρ, Kendall τ) are identical
+// across languages but routed through the catalog for consistency.
+const CORR_LABEL_KEYS: Record<string, ScatterKey> = {
+  pearson: "scatter.corr.pearson",
+  spearman: "scatter.corr.spearman",
+  kendall: "scatter.corr.kendall",
+};
+function corrLabel(key: string): string {
+  return CORR_LABEL_KEYS[key] ? tt(CORR_LABEL_KEYS[key]) : CORR_TEST_LABELS[key as CorrTest] || key;
+}
 
 interface ScatterStatsDetailProps {
   row: EnrichedScatterStatsRow;
@@ -51,6 +64,7 @@ function ScatterStatsDetail({
   xLabel,
   yLabel,
 }: ScatterStatsDetailProps) {
+  const tr = useT();
   const res = row.testResult;
   const rec = row.rec;
   const recReason = rec?.recommendation?.reason;
@@ -107,14 +121,14 @@ function ScatterStatsDetail({
 
   return (
     <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>
-      <div style={subhead}>Variables</div>
+      <div style={subhead}>{tr("scatter.sp.variables")}</div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th style={thS}>Axis</th>
-            <th style={thS}>n</th>
-            <th style={thS}>Mean</th>
-            <th style={thS}>SD</th>
+            <th style={thS}>{tr("scatter.sp.axis")}</th>
+            <th style={thS}>{tr("scatter.sp.n")}</th>
+            <th style={thS}>{tr("scatter.sp.mean")}</th>
+            <th style={thS}>{tr("scatter.sp.sd")}</th>
           </tr>
         </thead>
         <tbody>
@@ -137,12 +151,16 @@ function ScatterStatsDetail({
 
       {normality.length > 0 && (
         <>
-          <div style={subhead}>Assumptions</div>
+          <div style={subhead}>{tr("scatter.sp.assumptions")}</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {normality.map((r, i) => {
               const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
               const verdict =
-                r.normal === true ? "normal" : r.normal === false ? "not normal" : "—";
+                r.normal === true
+                  ? tr("scatter.sp.normal")
+                  : r.normal === false
+                    ? tr("scatter.sp.notNormal")
+                    : "—";
               const wpStr =
                 r.W != null && r.p != null ? ` (W=${r.W.toFixed(3)}, p=${formatP(r.p)})` : "";
               return (
@@ -156,7 +174,7 @@ function ScatterStatsDetail({
         </>
       )}
 
-      <div style={subhead}>Test</div>
+      <div style={subhead}>{tr("scatter.sp.test")}</div>
       <div
         style={{
           display: "flex",
@@ -178,8 +196,8 @@ function ScatterStatsDetail({
         >
           {CORR_TEST_OPTIONS.map((t) => (
             <option key={t} value={t}>
-              {CORR_TEST_LABELS[t]}
-              {t === recTest ? "  (recommended)" : ""}
+              {corrLabel(t)}
+              {t === recTest ? tr("scatter.sp.recommendedSuffix") : ""}
             </option>
           ))}
         </select>
@@ -193,7 +211,7 @@ function ScatterStatsDetail({
             className="dv-btn dv-btn-secondary"
             style={{ padding: "2px 8px", fontSize: 10 }}
           >
-            Use recommendation
+            {tr("scatter.sp.useRecommendation")}
           </button>
         )}
       </div>
@@ -220,10 +238,10 @@ function ScatterStatsDetail({
             color: "var(--info-text)",
           }}
         >
-          <span style={{ fontWeight: 700 }}>Suggested alternative:</span>
+          <span style={{ fontWeight: 700 }}>{tr("scatter.sp.suggestedAlt")}</span>
           <span>
-            Shapiro-Wilk flagged non-normal data — consider{" "}
-            <strong>{CORR_TEST_LABELS[suggestion.test]}</strong>.
+            {tr("scatter.sp.suggestConsider")}
+            <strong>{corrLabel(suggestion.test)}</strong>.
           </span>
           <button
             type="button"
@@ -234,7 +252,7 @@ function ScatterStatsDetail({
             className="dv-btn dv-btn-secondary"
             style={{ padding: "2px 8px", fontSize: 10, marginLeft: "auto" }}
           >
-            Use suggestion
+            {tr("scatter.sp.useSuggestion")}
           </button>
         </div>
       )}
@@ -260,7 +278,7 @@ function ScatterStatsDetail({
             marginTop: 4,
           }}
         >
-          Kendall τ does not ship an analytic CI — bootstrap if a CI is required.
+          {tr("scatter.sp.kendallNote")}
         </div>
       )}
     </div>
@@ -275,6 +293,7 @@ export interface ScatterStatsPanelProps {
 }
 
 export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterStatsPanelProps) {
+  const tr = useT();
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     sets.length === 1 ? { [sets[0].key]: true } : {}
   );
@@ -358,7 +377,7 @@ export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterSta
   };
 
   const singleSet = sets.length === 1;
-  const headingLabel = singleSet ? "Correlation" : "Correlation by group";
+  const headingLabel = singleSet ? tr("scatter.sp.headingSingle") : tr("scatter.sp.headingGroup");
 
   const thS: React.CSSProperties = {
     textAlign: "left",
@@ -403,8 +422,8 @@ export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterSta
             {headingLabel}
           </h3>
           <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
-            Click a row to inspect assumptions, switch tests, and read the full coefficient + CI.
-            {singleSet ? "" : " Tests run independently per group."}
+            {tr("scatter.sp.desc")}
+            {singleSet ? "" : tr("scatter.sp.descMulti")}
           </p>
         </div>
         {eligible.length > 0 && (
@@ -413,11 +432,7 @@ export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterSta
               type="button"
               className="dv-btn dv-btn-dl"
               onClick={downloadReport}
-              title={
-                singleSet
-                  ? "Download a plain-text correlation report"
-                  : "Download a plain-text correlation report covering every group"
-              }
+              title={singleSet ? tr("scatter.sp.txtTitleSingle") : tr("scatter.sp.txtTitleMulti")}
             >
               ⬇ TXT
             </button>
@@ -425,11 +440,7 @@ export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterSta
               type="button"
               className="dv-btn dv-btn-dl"
               onClick={downloadR}
-              title={
-                singleSet
-                  ? "Download a runnable R script reproducing cor.test on this set"
-                  : "Download a runnable R script reproducing cor.test for every group"
-              }
+              title={singleSet ? tr("scatter.sp.rTitleSingle") : tr("scatter.sp.rTitleMulti")}
             >
               ⬇ R
             </button>
@@ -440,11 +451,11 @@ export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterSta
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th style={thS}>Group</th>
-            <th style={thS}>n</th>
-            <th style={thS}>Test</th>
-            <th style={thS}>Statistic</th>
-            <th style={thS}>p</th>
+            <th style={thS}>{tr("scatter.sp.colGroup")}</th>
+            <th style={thS}>{tr("scatter.sp.n")}</th>
+            <th style={thS}>{tr("scatter.sp.colTest")}</th>
+            <th style={thS}>{tr("scatter.sp.colStatistic")}</th>
+            <th style={thS}>{tr("scatter.sp.colP")}</th>
             <th style={{ ...thS, width: 60 }}></th>
           </tr>
         </thead>
@@ -517,7 +528,7 @@ export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterSta
                     </span>
                   </td>
                   <td style={tdS}>{r.n}</td>
-                  <td style={tdS}>{CORR_TEST_LABELS[r.chosenTest]}</td>
+                  <td style={tdS}>{corrLabel(r.chosenTest)}</td>
                   <td style={{ ...tdS, ...mono }}>
                     {coef != null ? formatCorrStatShort(res) : "—"}
                   </td>

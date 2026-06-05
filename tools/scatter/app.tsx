@@ -4,6 +4,8 @@
 // under tools/scatter/.
 
 import { PlotToolShell, resolveDiscretePalette, usePlotToolState } from "../_shell";
+import "./i18n";
+import { tt } from "./i18n";
 import {
   SHAPES,
   ScatterStatsSet,
@@ -463,7 +465,7 @@ export function App() {
 
   const shapeWarning = useMemo(() => {
     if (shapeMapCategories.length > 4) {
-      return `This column has ${shapeMapCategories.length} unique values — only 4 shapes are available. Categories beyond the 4th will cycle through the same shapes.`;
+      return tt("scatter.shapeWarning", { n: shapeMapCategories.length });
     }
     return null;
   }, [shapeMapCategories]);
@@ -622,7 +624,7 @@ export function App() {
       }
     }
     if (xs.length === 0) return [];
-    const sets: ScatterStatsSet[] = [{ key: "__all__", name: "All", xs, ys }];
+    const sets: ScatterStatsSet[] = [{ key: "__all__", name: tt("scatter.set.all"), xs, ys }];
     if (discreteColorMap != null && colorMapCategories.length > 0) {
       for (const cat of colorMapCategories) {
         const sx: number[] = [];
@@ -773,9 +775,7 @@ export function App() {
       const { headers, data, rawData, injectionWarnings } = parseData(fixedText, effectiveSep);
       setInjectionWarning(injectionWarnings);
       if (headers.length < 2 || data.length === 0) {
-        setParseError(
-          "The file appears to be empty or has no data rows. Please check your file and try again."
-        );
+        setParseError(tt("scatter.err.empty"));
         return;
       }
       setParseError(null);

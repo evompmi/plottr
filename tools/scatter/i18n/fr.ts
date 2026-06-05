@@ -1,0 +1,148 @@
+// French catalog for the Scatter tool. Typed Record<ScatterKey, string>.
+
+import type { ScatterKey } from "./en";
+
+const fr: Record<ScatterKey, string> = {
+  "scatter.err.empty":
+    "Le fichier semble vide ou sans lignes de données. Vérifiez votre fichier et réessayez.",
+  "scatter.set.all": "Tout",
+  "scatter.shapeWarning":
+    "Cette colonne a {n} valeurs uniques — seulement 4 formes sont disponibles. Les catégories au-delà de la 4ᵉ réutiliseront les mêmes formes.",
+
+  "scatter.aes.color": "Couleur",
+  "scatter.aes.size": "Taille",
+  "scatter.aes.shape": "Forme",
+  "scatter.example.title": "Jeu de données Iris de Fisher",
+  "scatter.example.subtitle": "150 fleurs × 4 mesures · 3 espèces",
+  "scatter.upload.hint":
+    "CSV · TSV · TXT — une colonne par variable, une ligne par point · 2 Mo max",
+
+  "scatter.dl.csv": "CSV",
+  "scatter.dl.csvTitle":
+    "Télécharger la table de données filtrée — seulement les colonnes et lignes actuellement tracées",
+  "scatter.loaded": "Chargé ",
+  "scatter.pastedData": "données collées",
+  "scatter.colsRows": " — {rows} lignes × {cols} colonnes",
+  "scatter.tile.variables": "Variables",
+  "scatter.var.xAxis": "Axe X",
+  "scatter.var.yAxis": "Axe Y",
+
+  "scatter.sec.pointStyle": "Style des points",
+  "scatter.pt.color": "Couleur",
+  "scatter.pt.size": "Taille",
+  "scatter.pt.opacity": "Opacité",
+  "scatter.pt.stroke": "Contour",
+  "scatter.pt.strokeWidth": "Épaisseur du contour",
+  "scatter.on": "Activé",
+  "scatter.off": "Désact.",
+
+  "scatter.reg.title": "Droite de régression",
+  "scatter.reg.needPoints": "Il faut ≥ 2 points avec de la variation en X.",
+  "scatter.reg.slope": "pente : ",
+  "scatter.reg.intercept": "ordonnée : ",
+  "scatter.reg.r2": "R² : ",
+  "scatter.reg.undefined": "indéfini",
+  "scatter.reg.nEq": "n = ",
+  "scatter.reg.color": "Couleur",
+  "scatter.reg.width": "Épaisseur",
+  "scatter.reg.dashed": "Pointillés",
+  "scatter.reg.showEq": "Afficher l’équation & R² sur le tracé",
+  "scatter.reg.labelPos": "Position de l’étiquette",
+  "scatter.reg.tl": "haut-gauche",
+  "scatter.reg.tr": "haut-droite",
+  "scatter.reg.bl": "bas-gauche",
+  "scatter.reg.br": "bas-droite",
+
+  "scatter.ref.title": "Ligne de référence",
+  "scatter.ref.addH": "+ H",
+  "scatter.ref.addV": "+ V",
+  "scatter.ref.none": "Aucune ligne de référence.",
+  "scatter.ref.yEq": "Y =",
+  "scatter.ref.xEq": "X =",
+  "scatter.ref.width": "Épaisseur",
+  "scatter.ref.dashed": "Pointillés",
+  "scatter.ref.labelPlaceholder": "étiquette",
+  "scatter.ref.right": "droite",
+  "scatter.ref.left": "gauche",
+  "scatter.ref.top": "haut",
+  "scatter.ref.bottom": "bas",
+
+  "scatter.aes.none": "— Aucun —",
+  "scatter.aes.detected": "Détecté : ",
+  "scatter.aes.continuous": "numérique (continu)",
+  "scatter.aes.categorical.one": "catégoriel ({n} groupe)",
+  "scatter.aes.categorical.other": "catégoriel ({n} groupes)",
+  "scatter.aes.range": "plage : {min} → {max}",
+  "scatter.size.min": "Taille min",
+  "scatter.size.max": "Taille max",
+
+  "scatter.sec.axes": "Axes",
+  "scatter.axes.xMin": "X min",
+  "scatter.axes.xMax": "X max",
+  "scatter.axes.yMin": "Y min",
+  "scatter.axes.yMax": "Y max",
+  "scatter.axes.auto": "auto ({v})",
+  "scatter.axes.xLabel": "Étiquette X",
+  "scatter.axes.yLabel": "Étiquette Y",
+  "scatter.axes.title": "Titre",
+
+  "scatter.sec.style": "Style",
+  "scatter.filters.title": "Filtres",
+  "scatter.filters.rows": "{shown} sur {total} lignes",
+  "scatter.filters.all": "tout",
+
+  "scatter.chart.fallbackTitle": "Nuage de points",
+  "scatter.chart.pointsAria.one": "{n} point de données",
+  "scatter.chart.pointsAria.other": "{n} points de données",
+  "scatter.chart.regressionAria":
+    "Régression linéaire : pente {slope}, ordonnée {intercept}, R² {r2}, n={n}",
+
+  "scatter.corr.pearson": "Pearson r",
+  "scatter.corr.spearman": "Spearman ρ",
+  "scatter.corr.kendall": "Kendall τ",
+
+  "scatter.sp.variables": "Variables",
+  "scatter.sp.axis": "Axe",
+  "scatter.sp.n": "n",
+  "scatter.sp.mean": "Moyenne",
+  "scatter.sp.sd": "SD",
+  "scatter.sp.assumptions": "Hypothèses",
+  "scatter.sp.normal": "normale",
+  "scatter.sp.notNormal": "non normale",
+  "scatter.sp.test": "Test",
+  "scatter.sp.recommendedSuffix": "  (recommandé)",
+  "scatter.sp.useRecommendation": "Utiliser la recommandation",
+  "scatter.sp.suggestedAlt": "Alternative suggérée :",
+  "scatter.sp.suggestConsider": "Shapiro-Wilk a signalé des données non normales — envisagez ",
+  "scatter.sp.useSuggestion": "Utiliser la suggestion",
+  "scatter.sp.kendallNote":
+    "Kendall τ ne fournit pas d’IC analytique — utilisez le bootstrap si un IC est requis.",
+
+  "scatter.sp.headingSingle": "Corrélation",
+  "scatter.sp.headingGroup": "Corrélation par groupe",
+  "scatter.sp.desc":
+    "Cliquez sur une ligne pour inspecter les hypothèses, changer de test et lire le coefficient complet + IC.",
+  "scatter.sp.descMulti": " Les tests sont effectués indépendamment par groupe.",
+  "scatter.sp.txtTitleSingle": "Télécharger un rapport de corrélation en texte brut",
+  "scatter.sp.txtTitleMulti":
+    "Télécharger un rapport de corrélation en texte brut couvrant chaque groupe",
+  "scatter.sp.rTitleSingle":
+    "Télécharger un script R exécutable reproduisant cor.test sur cet ensemble",
+  "scatter.sp.rTitleMulti":
+    "Télécharger un script R exécutable reproduisant cor.test pour chaque groupe",
+  "scatter.sp.colGroup": "Groupe",
+  "scatter.sp.colTest": "Test",
+  "scatter.sp.colStatistic": "Statistique",
+  "scatter.sp.colP": "p",
+
+  "scatter.howto.title": "Scatter Plot — Comment l’utiliser",
+  "scatter.howto.subtitle": "Nuage XY avec mappage optionnel couleur / taille / forme",
+  "scatter.howto.purpose":
+    "Tracez une colonne numérique contre une autre. Mappez une troisième (ou quatrième, ou cinquième) colonne à la couleur, la taille ou la forme des points pour révéler une structure multivariée en une seule vue.",
+  "scatter.howto.dataLayout":
+    "Une ligne par point. Au moins deux colonnes <strong>numériques</strong> (les axes X et Y). Les colonnes supplémentaires — catégorielles ou numériques — deviennent des mappages esthétiques ou des filtres.",
+  "scatter.howto.display":
+    "Couleur-par-colonne optionnelle (dégradé continu ou pastilles discrètes), taille-par-colonne et forme-par-colonne. Ajoutez des <strong>lignes de référence</strong> à des valeurs X / Y fixes, superposez une <strong>régression linéaire</strong> avec R² + p-value. Filtrez les lignes par n’importe quelle colonne catégorielle.",
+};
+
+export default fr;
