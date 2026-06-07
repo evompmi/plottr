@@ -1,0 +1,1300 @@
+
+_1207 strings across 12 namespaces._
+
+# Plöttr — i18n translation worksheet
+
+Every user-facing string in the app, grouped by namespace. **Edit the _French_ column only**, then hand the file back. The `Key` column is my reference for writing changes back into the catalogs — please keep it intact. Leave the English column unchanged.
+
+Notes on conventions already applied (so you don't need to "fix" them): statistical test / post-hoc names, CSV & R-export column headers, chart default axis labels, and tool proper-names are intentionally English; `{...}` placeholders and inline HTML (`<strong>`, `<br/>`, `style=...`) must be preserved verbatim in the French text.
+
+
+## landing — Static landing page
+
+_29 strings · tools/_core/i18n/landing.en.ts_
+
+| Key | English | French |
+| --- | --- | --- |
+| `landing.eyebrow` | Browser-only · no install · your data stays put | Tout dans le navigateur · sans installation · vos données restent chez vous |
+| `landing.tagline` | Paste a spreadsheet. Get a <b>publication-ready figure</b> — and the <b>R code</b> for the statistics behind it. | Collez un tableur. Obtenez une <b>figure prête à publier</b> — et le <b>code R</b> des statistiques qui la sous-tendent. |
+| `landing.trust.validated` | Validated against R + SciPy | Validé face à R + SciPy |
+| `landing.trust.validatedTitle` | Cross-checked vs R 4.5 + SciPy 1.17 — see the public benchmark | Recoupé avec R 4.5 + SciPy 1.17 — voir le benchmark public |
+| `landing.trust.privacy` | Data stays in your browser | Vos données restent dans votre navigateur |
+| `landing.trust.privacyTitle` | No uploads, no tracking — see the data-flow diagram | Aucun envoi, aucun suivi — voir le schéma de flux de données |
+| `landing.hiw.label` | How it works | Comment ça marche |
+| `landing.hiw.step1` | Upload CSV | Importer un CSV |
+| `landing.hiw.step2` | Assign roles | Attribuer les rôles |
+| `landing.hiw.step3` | Tweak plot | Ajuster le tracé |
+| `landing.hiw.step4` | Download SVG + R | Télécharger SVG + R |
+| `landing.group.plotsKicker` | Plots | Tracés |
+| `landing.group.plotsText` | Eight chart types, one paste away | Huit types de graphiques, à un collage près |
+| `landing.group.statsKicker` | Statistics & Calculators | Statistiques & calculatrices |
+| `landing.group.statsText` | Quick math at the bench | Calculs rapides à la paillasse |
+| `landing.desc.boxplot` | Box / violin / bar<br/>with stats &amp; facets | Boîte / violon / barre<br/>avec stats &amp; facettes |
+| `landing.desc.scatter` | XY with color<br/>&amp; size mapping | XY avec couleur<br/>&amp; taille |
+| `landing.desc.lineplot` | Profile plot<br/>mean ± error by group | Graphique de profil<br/>moyenne ± erreur par groupe |
+| `landing.desc.aequorin` | Optional Ca²⁺<br/>calibration | Calibration Ca²⁺<br/>optionnelle |
+| `landing.desc.venn` | Set overlaps<br/>2–3 sets | Chevauchements d’ensembles<br/>2–3 ensembles |
+| `landing.desc.upset` | Set overlaps<br/>4+ sets | Chevauchements d’ensembles<br/>4+ ensembles |
+| `landing.desc.heatmap` | Matrix view<br/>with clustering | Vue matricielle<br/>avec clustering |
+| `landing.desc.volcano` | log₂FC vs −log₁₀p<br/>for —omics hits | log₂FC vs −log₁₀p<br/>pour données —omiques |
+| `landing.desc.power` | Sample size &amp; power<br/>for t, ANOVA, χ², r | Taille d’échantillon &amp; puissance<br/>pour t, ANOVA, χ², r |
+| `landing.desc.molarity` | Molarity, dilution<br/>&amp; batch prep sheets | Molarité, dilution<br/>&amp; feuilles de préparation |
+| `landing.footer.cite` | Cite — Zenodo DOI | Citer — DOI Zenodo |
+| `landing.footer.citeTitle` | Archived on Zenodo — cite Plöttr via DOI 10.5281/zenodo.20245057 | Archivé sur Zenodo — citez Plöttr via le DOI 10.5281/zenodo.20245057 |
+| `landing.footer.mit` | MIT licensed | Sous licence MIT |
+| `landing.footer.crosschecked` | Cross-checked vs R 4.5 + SciPy 1.17 | Recoupé avec R 4.5 + SciPy 1.17 |
+
+## shell — Shared shell (chrome, upload, steps, stats tile/table)
+
+_192 strings · tools/_shell/i18n/en.ts_
+
+| Key | English | French |
+| --- | --- | --- |
+| `shell.commaFix.title` | Decimal commas automatically converted to dots | Virgules décimales converties automatiquement en points |
+| `shell.commaFix.detail.one` | {count} value had commas as decimal separators (e.g. "0,5" → "0.5"). | {count} valeur utilisait la virgule comme séparateur décimal (p. ex. « 0,5 » → « 0.5 »). |
+| `shell.commaFix.detail.other` | {count} values had commas as decimal separators (e.g. "0,5" → "0.5"). | {count} valeurs utilisaient la virgule comme séparateur décimal (p. ex. « 0,5 » → « 0.5 »). |
+| `shell.separator.comma` | comma | virgule |
+| `shell.separator.semicolon` | semicolon | point-virgule |
+| `shell.separator.tab` | tab | tabulation |
+| `shell.separator.space` | space | espace |
+| `shell.separator.whitespace` | whitespace | espace |
+| `shell.separator.badge` | · detected: {sep}-separated | · détecté : {sep} |
+| `shell.formula.title.one` | Suspicious cells in uploaded data ({count} cell) | Cellule suspecte dans les données importées ({count} cellule) |
+| `shell.formula.title.other` | Suspicious cells in uploaded data ({count} cells) | Cellules suspectes dans les données importées ({count} cellules) |
+| `shell.formula.explain` | Cells starting with = + - @ tab CR are treated as formulas by Excel / LibreOffice / Sheets and could exfiltrate or run code if you re-open this data there. Plöttr exports prefix them with a leading apostrophe to neutralise them — but the original file is unchanged, so handle with care. | Les cellules commençant par = + - @ tab CR sont interprétées comme des formules par Excel / LibreOffice / Sheets et pourraient exfiltrer des données ou exécuter du code si vous rouvrez ces données là-bas. Les exports Plöttr les préfixent d’une apostrophe pour les neutraliser — mais le fichier d’origine reste inchangé, donc soyez prudent. |
+| `shell.formula.headerLabel` | Header —  | En-tête —  |
+| `shell.formula.colLabel` | column {n} | colonne {n} |
+| `shell.formula.cellWithHeader` | “{header}” row {row} | « {header} » ligne {row} |
+| `shell.formula.cellNoHeader` | row {row} col {col} | ligne {row} col {col} |
+| `shell.formula.overflow` | …and {count} more. | … et {count} de plus. |
+| `shell.error.heading` | Something went wrong | Une erreur est survenue |
+| `shell.error.body` | {tool} hit an unexpected error and can't continue. Your data is still on your machine — nothing was sent anywhere. Try reloading; if it keeps crashing, use “Copy error details” and open an issue. | {tool} a rencontré une erreur inattendue et ne peut pas continuer. Vos données sont toujours sur votre machine — rien n’a été envoyé où que ce soit. Essayez de recharger ; si le problème persiste, utilisez « Copier les détails de l’erreur » et ouvrez un ticket. |
+| `shell.error.toolFallback` | This tool | Cet outil |
+| `shell.error.technical` | Technical details | Détails techniques |
+| `shell.error.reload` | Reload tool | Recharger l’outil |
+| `shell.error.copy` | Copy error details | Copier les détails de l’erreur |
+| `shell.upload.dropAria` | Drop a data file here or press Enter to browse | Déposez un fichier de données ici ou appuyez sur Entrée pour parcourir |
+| `shell.upload.dropMain` | Drop CSV, TSV, or TXT — or click to browse | Déposez un CSV, TSV ou TXT — ou cliquez pour parcourir |
+| `shell.upload.dropHint` | CSV · TSV · TXT · DAT — 2 MB max | CSV · TSV · TXT · DAT — 2 Mo max |
+| `shell.upload.tooLarge` | File too large ({mb} MB). Maximum is 2 MB — split the file or sample rows and try again. | Fichier trop volumineux ({mb} Mo). Le maximum est 2 Mo — divisez le fichier ou échantillonnez des lignes et réessayez. |
+| `shell.upload.largeWarn` | Large file ({mb} MB) — parsing may take a moment. | Fichier volumineux ({mb} Mo) — l’analyse peut prendre un moment. |
+| `shell.upload.readError` | Couldn't read the file ({msg}). Check permissions and try again. | Impossible de lire le fichier ({msg}). Vérifiez les autorisations et réessayez. |
+| `shell.upload.unknownError` | unknown error | erreur inconnue |
+| `shell.upload.reading` | Reading file… | Lecture du fichier… |
+| `shell.preview.more` | … {n} more ({total} total) | … {n} de plus ({total} au total) |
+| `shell.roles.group` | group | groupe |
+| `shell.roles.value` | value | valeur |
+| `shell.roles.filter` | filter | filtre |
+| `shell.roles.ignore` | ignore | ignorer |
+| `shell.cols.heading` | Column roles | Rôles des colonnes |
+| `shell.cols.help.exactlyOne` | Exactly one  | Exactement une colonne  |
+| `shell.cols.help.xAxisAndOne` |  (x-axis) and one  |  (axe des x) et une colonne  |
+| `shell.cols.help.numericPicking` |  (numeric) column. Picking  |  (numérique). Choisir  |
+| `shell.cols.help.or` |  or  |  ou  |
+| `shell.cols.help.demotesTo` |  on another column demotes the previous one to  |  sur une autre colonne rétrograde la précédente en  |
+| `shell.cols.help.period` | . | . |
+| `shell.step.upload` | Upload | Importer |
+| `shell.step.configure` | Configure | Configurer |
+| `shell.step.filter` | Filter | Filtrer |
+| `shell.step.output` | Output | Sortie |
+| `shell.step.plot` | Plot | Tracé |
+| `shell.step.aria` | Step {n} of {total}: {label} | Étape {n} sur {total} : {label} |
+| `shell.sep.label` | Column separator | Séparateur de colonnes |
+| `shell.sep.force` | Force separator | Forcer le séparateur |
+| `shell.sep.select` | — Select — | — Sélectionner — |
+| `shell.sep.auto` | Auto-detect | Détection auto |
+| `shell.sep.comma` | Comma (,) | Virgule (,) |
+| `shell.sep.semicolon` | Semicolon (;) | Point-virgule (;) |
+| `shell.sep.tab` | Tab (\t) | Tabulation (\t) |
+| `shell.sep.space` | Space | Espace |
+| `shell.sep.pickToEnable` | Pick a column separator above to enable file loading | Choisissez un séparateur de colonnes ci-dessus pour activer le chargement de fichier |
+| `shell.sep.overrideHint` | Only needed when the detector picks the wrong delimiter. | Nécessaire uniquement lorsque le détecteur choisit le mauvais délimiteur. |
+| `shell.sep.autoInfo` | Plöttr auto-detects the column separator (comma, tab, semicolon, …) from the data. | Plöttr détecte automatiquement le séparateur de colonnes (virgule, tabulation, point-virgule, …) à partir des données. |
+| `shell.sep.overrideShow` | Override ▾ | Forcer ▾ |
+| `shell.sep.overrideHide` | Hide override ▴ | Masquer ▴ |
+| `shell.sample.try` | Try sample data: | Essayer des données d’exemple : |
+| `shell.sample.loadExample` | Load example → | Charger l’exemple → |
+| `shell.sample.tryDataset` | Try a sample dataset | Essayer un jeu de données d’exemple |
+| `shell.sample.plotThis` | Plot this example → | Tracer cet exemple → |
+| `shell.sample.quickStart` | New here? Quick start | Nouveau ici ? Démarrage rapide |
+| `shell.paste.dropTitle` | Drop a file | Déposer un fichier |
+| `shell.paste.pasteTitle` | Paste data | Coller des données |
+| `shell.paste.placeholder` | Paste comma-, tab-, or semicolon-separated rows here.<br>Tip: a selection copied from Excel or Google Sheets becomes tab-separated automatically. | Collez ici des lignes séparées par des virgules, tabulations ou points-virgules.<br>Astuce : une sélection copiée depuis Excel ou Google Sheets devient automatiquement séparée par des tabulations. |
+| `shell.paste.aria` | Paste tabular data | Coller des données tabulaires |
+| `shell.paste.parse` | Parse pasted data | Analyser les données collées |
+| `shell.paste.clear` | Clear | Effacer |
+| `shell.paste.maxSize` | 2 MB max | 2 Mo max |
+| `shell.paste.empty` | Paste some data first — copy a selection from Excel, Sheets, or any CSV. | Collez d’abord des données — copiez une sélection depuis Excel, Sheets ou n’importe quel CSV. |
+| `shell.paste.tooLarge` | Pasted data too large ({mb} MB). Maximum is 2 MB — split the data or sample rows and try again. | Données collées trop volumineuses ({mb} Mo). Le maximum est 2 Mo — divisez les données ou échantillonnez des lignes et réessayez. |
+| `shell.paste.largeWarn` | Large paste ({mb} MB) — parsing may take a moment. | Collage volumineux ({mb} Mo) — l’analyse peut prendre un moment. |
+| `shell.actions.title` | Actions | Actions |
+| `shell.actions.svgTitle` | Download the plot as SVG — vector graphics, editable in Inkscape or Illustrator | Télécharger le tracé en SVG — graphique vectoriel, modifiable dans Inkscape ou Illustrator |
+| `shell.actions.pngTitle` | Download the plot as PNG — 2× raster at the plot's native resolution | Télécharger le tracé en PNG — raster 2× à la résolution native du tracé |
+| `shell.actions.startOver` | Start over | Recommencer |
+| `shell.actions.resetTitle` | Clear all data, controls, and current session — returns to the upload step | Effacer toutes les données, les réglages et la session en cours — retour à l’étape d’import |
+| `shell.howto.purpose` | Purpose | Objectif |
+| `shell.howto.dataLayout` | Data layout | Disposition des données |
+| `shell.howto.display` | Display | Affichage |
+| `shell.howto.tips` | Tips | Astuces |
+| `shell.toggle.on` | On | Activé |
+| `shell.toggle.off` | Off | Désactivé |
+| `shell.filter.heading` | Filter rows ({shown}/{total}) | Filtrer les lignes ({shown}/{total}) |
+| `shell.filter.all` | All | Tout |
+| `shell.filter.none` | None | Aucun |
+| `shell.filter.numericHint` | numeric — use axis range in plot | numérique — utiliser la plage de l’axe dans le tracé |
+| `shell.rename.heading` | Rename values & reorder groups  | Renommer les valeurs & réordonner les groupes  |
+| `shell.rename.hint` | (drag ☰ to reorder groups on plot) | (glissez ☰ pour réordonner les groupes sur le tracé) |
+| `shell.rename.empty` | (empty) | (vide) |
+| `shell.palette.copied` | ✓ Copied {hex} | ✓ Copié {hex} |
+| `shell.palette.clickToCopy` | Click a swatch to copy its hex | Cliquez sur une pastille pour copier son hex |
+| `shell.prefs.title` | Visual plot settings | Réglages visuels du tracé |
+| `shell.prefs.save` | Save to file | Enregistrer dans un fichier |
+| `shell.prefs.saveTitle` | Download current visual plot settings as a JSON file | Télécharger les réglages visuels actuels dans un fichier JSON |
+| `shell.prefs.load` | Load from file | Charger depuis un fichier |
+| `shell.prefs.loadTitle` | Apply visual plot settings from a previously saved JSON file | Appliquer les réglages visuels depuis un fichier JSON enregistré |
+| `shell.prefs.reset` | Reset to defaults | Réinitialiser |
+| `shell.prefs.resetTitle` | Restore default visual plot settings and clear stored preferences | Restaurer les réglages visuels par défaut et effacer les préférences enregistrées |
+| `shell.prefs.loadError` | Could not load settings file. | Impossible de charger le fichier de réglages. |
+| `shell.stats.summaryBy` | Summary — grouped by "{group}" | Résumé — groupé par « {group} » |
+| `shell.stats.group` | Group | Groupe |
+| `shell.stats.n` | n | n |
+| `shell.stats.mean` | Mean | Moyenne |
+| `shell.stats.median` | Median | Médiane |
+| `shell.stats.sd` | SD | SD |
+| `shell.stats.sem` | SEM | SEM |
+| `shell.stats.min` | Min | Min |
+| `shell.stats.max` | Max | Max |
+| `shell.test.studentT` | Student's t-test | test t de Student |
+| `shell.test.welchT` | Welch's t-test | test t de Welch |
+| `shell.test.mannWhitney` | Mann-Whitney U | Mann-Whitney U |
+| `shell.test.oneWayANOVA` | One-way ANOVA | ANOVA à un facteur |
+| `shell.test.welchANOVA` | Welch's ANOVA | ANOVA de Welch |
+| `shell.test.kruskalWallis` | Kruskal-Wallis | Kruskal-Wallis |
+| `shell.posthoc.tukeyHSD` | Tukey HSD | Tukey HSD |
+| `shell.posthoc.gamesHowell` | Games-Howell | Games-Howell |
+| `shell.posthoc.dunn` | Dunn (BH-adjusted) | Dunn (ajusté BH) |
+| `shell.assess.normal` | normal | normale |
+| `shell.assess.notNormal` | not normal | non normale |
+| `shell.assess.unknown` | unknown | inconnu |
+| `shell.assess.equalVar` | equal variance | variances égales |
+| `shell.assess.unequalVar` | unequal variance | variances inégales |
+| `shell.stats.shapiro` | Shapiro-Wilk test for normality | Test de normalité de Shapiro-Wilk |
+| `shell.stats.levene` | Levene (Brown-Forsythe) test for equal variance | Test de Levene (Brown-Forsythe) pour l’égalité des variances |
+| `shell.stats.w` | W | W |
+| `shell.stats.p` | p | p |
+| `shell.stats.assessment` | Assessment | Évaluation |
+| `shell.stats.pair` | Pair | Paire |
+| `shell.stats.signif` | Signif. | Signif. |
+| `shell.stats.meanDiff` | Mean diff | Diff. moy. |
+| `shell.stats.rankDiff` | Rank diff | Diff. rang |
+| `shell.stats.effectSize` | Effect size | Taille d’effet |
+| `shell.stats.nFor80` | n for 80% power | n pour puiss. 80 % |
+| `shell.stats.vs` | vs | vs |
+| `shell.statsui.displayTitle` | Statistics display | Affichage des statistiques |
+| `shell.statsui.summaryTitle` | Statistics summary | Résumé statistique |
+| `shell.statsui.txtTitle` | Download a plain-text stats report | Télécharger un rapport statistique en texte brut |
+| `shell.statsui.rTitle` | Download a runnable R script reproducing these tests | Télécharger un script R exécutable reproduisant ces tests |
+| `shell.statsui.letters` | Letters | Lettres |
+| `shell.statsui.brackets` | Brackets | Crochets |
+| `shell.statsui.displayOnPlot` | Display on plot | Afficher sur le tracé |
+| `shell.statsui.printSummary` | Print summary below plot | Imprimer le résumé sous le tracé |
+| `shell.statsui.style` | Style: | Style : |
+| `shell.statsui.showNs` | Show ns | Afficher ns |
+| `shell.statsui.assumptions` | Assumptions | Hypothèses |
+| `shell.statsui.test` | Test | Test |
+| `shell.statsui.recommendedSuffix` |   (recommended) |   (recommandé) |
+| `shell.statsui.useRecommendation` | Use recommendation | Utiliser la recommandation |
+| `shell.statsui.suggestedAlt` | Suggested alternative: | Alternative suggérée : |
+| `shell.statsui.suggestConsider` | Shapiro-Wilk flagged non-normal data — consider  | Shapiro-Wilk a signalé des données non normales — envisagez  |
+| `shell.statsui.useSuggestion` | Use suggestion | Utiliser la suggestion |
+| `shell.statsui.posthocPrefix` | Post-hoc —  | Post-hoc —  |
+| `shell.statsui.replication` | Replication planning (n for 80% power) | Planification de réplication (n pour puiss. 80 %) |
+| `shell.statsui.replicationDesc` | Given the observed effect size, sample size a future study would need to detect this effect at 80% power. | Compte tenu de la taille d’effet observée, taille d’échantillon qu’une étude future devrait atteindre pour détecter cet effet à 80 % de puissance. |
+| `shell.statsui.approxNote` | Approximation — rank-based test power estimated from its parametric analog. | Approximation — puissance du test sur rangs estimée à partir de son analogue paramétrique. |
+| `shell.statsui.gt5000` | > 5000 | > 5000 |
+| `shell.summary.posthoc` | Post-hoc:  | Post-hoc :  |
+| `shell.summary.effectSize` | Effect size:  | Taille d’effet :  |
+| `shell.summary.nPerGroup` | n per group:  | n par groupe :  |
+| `shell.report.title` | Statistical analysis report | Rapport d’analyse statistique |
+| `shell.report.generated` | Generated:  | Généré :  |
+| `shell.report.groups` | GROUPS | GROUPES |
+| `shell.report.meanEq` | mean =  | moy. =  |
+| `shell.report.assumptions` | ASSUMPTIONS | HYPOTHÈSES |
+| `shell.report.test` | TEST | TEST |
+| `shell.report.recommended` | Recommended:  | Recommandé :  |
+| `shell.report.reason` | Reason:       | Raison :      |
+| `shell.report.chosen` | Chosen:       | Choisi :      |
+| `shell.report.result` | Result:  | Résultat :  |
+| `shell.report.errorPrefix` | error:  | erreur :  |
+| `shell.report.replication` | REPLICATION PLANNING (target 80% power) | PLANIFICATION DE RÉPLICATION (cible 80 % de puissance) |
+| `shell.report.effectSize` | Effect size:        | Taille d’effet :     |
+| `shell.report.futureStudy` | For a future study at the observed effect size: | Pour une étude future à la taille d’effet observée : |
+| `shell.report.alpha` | alpha | alpha |
+| `shell.report.rankNote` | Note: rank-based test — power estimated from its parametric analog. | Note : test sur rangs — puissance estimée à partir de son analogue paramétrique. |
+| `shell.report.whyNot1` | Why not 'achieved power'? Post-hoc / observed power is a | Pourquoi pas la « puissance atteinte » ? La puissance post-hoc / |
+| `shell.report.whyNot2` | deterministic transformation of p (Hoenig & Heisey 2001), | observée est une transformation déterministe de p (Hoenig & Heisey 2001), |
+| `shell.report.whyNot3` | so it adds no information beyond p itself. The forward- | elle n’ajoute donc aucune information au-delà de p. Les estimations |
+| `shell.report.whyNot4` | looking n-needed estimates above are the actionable signal. | prospectives du n nécessaire ci-dessus sont le signal exploitable. |
+| `shell.report.posthoc` | POST-HOC —  | POST-HOC —  |
+| `shell.style.background` | Background | Arrière-plan |
+| `shell.style.grid` | Grid | Grille |
+| `shell.style.gridColor` | Grid color | Couleur de la grille |
+| `shell.num.increment` | Increment | Augmenter |
+| `shell.num.decrement` | Decrement | Diminuer |
+| `shell.scroll.more` | Scroll for more → | Défiler pour voir plus → |
+
+## venn — Venn tool
+
+_38 strings · tools/venn/i18n/en.ts_
+
+| Key | English | French |
+| --- | --- | --- |
+| `venn.dl.csv` | CSV | CSV |
+| `venn.dl.csvTitle` | Download the membership matrix — one row per item, a 0/1 column for each active set (long/tidy format) | Télécharger la matrice d’appartenance — une ligne par élément, une colonne 0/1 pour chaque ensemble actif (format long/tidy) |
+| `venn.dl.regions` | Regions | Régions |
+| `venn.dl.regionsTitle` | Download one CSV per non-empty region (fires multiple saves — your browser may ask once to allow them) | Télécharger un CSV par région non vide (déclenche plusieurs enregistrements — votre navigateur peut demander une autorisation) |
+| `venn.tile.sets` | Sets | Ensembles |
+| `venn.tile.display` | Display | Affichage |
+| `venn.ctrl.proportionalAreas` | Proportional areas | Aires proportionnelles |
+| `venn.ctrl.propReadable` | Proportional ↔ Readable | Proportionnel ↔ Lisible |
+| `venn.ctrl.title` | Title | Titre |
+| `venn.ctrl.fillOpacity` | Fill opacity | Opacité du remplissage |
+| `venn.ctrl.circleOutline` | Circle outline | Contour des cercles |
+| `venn.ctrl.fontSize` | Font size | Taille de police |
+| `venn.ctrl.background` | Background | Arrière-plan |
+| `venn.example.title` | Arabidopsis stress-response DEGs | DEG de réponse au stress chez Arabidopsis |
+| `venn.example.subtitle` | 3 sets — Drought · Heat · Salt | 3 ensembles — Sécheresse · Chaleur · Sel |
+| `venn.upload.hint` | CSV · TSV · TXT — wide (one column per set, 2–3) or long (item, set) · 2 MB max | CSV · TSV · TXT — large (une colonne par ensemble, 2–3) ou long (élément, ensemble) · 2 Mo max |
+| `venn.picker.choose` | Choose sets to overlap | Choisir les ensembles à superposer |
+| `venn.picker.pick` | Pick 2 or 3 sets to overlap. | Choisissez 2 ou 3 ensembles à superposer. |
+| `venn.picker.one` | 1 selected — pick at least one more. | 1 sélectionné — choisissez-en au moins un autre. |
+| `venn.picker.ready` | {n} selected — ready to plot. | {n} sélectionnés — prêt à tracer. |
+| `venn.nudge.count` | {n} sets detected | {n} ensembles détectés |
+| `venn.nudge.rest` |  — Venn diagrams only render 2 or 3 sets. For 4+ sets, use the UpSet tool. |  — les diagrammes de Venn n’affichent que 2 ou 3 ensembles. Pour 4 ensembles ou plus, utilisez l’outil UpSet. |
+| `venn.nudge.openUpset` | Open in UpSet → | Ouvrir dans UpSet → |
+| `venn.area.proportionalNote` | Areas are proportional to set sizes (max region error < 0.5%) | Les aires sont proportionnelles à la taille des ensembles (erreur de région max < 0,5 %) |
+| `venn.area.maxErrorLabel` | Max region error:  | Erreur de région max :  |
+| `venn.area.meanSuffix` |  · mean {mean}% |  · moyenne {mean} % |
+| `venn.chart.fallbackTitle` | Venn diagram | Diagramme de Venn |
+| `venn.chart.desc.one` | Venn diagram with {n} set: {names} | Diagramme de Venn avec {n} ensemble : {names} |
+| `venn.chart.desc.other` | Venn diagram with {n} sets: {names} | Diagramme de Venn avec {n} ensembles : {names} |
+| `venn.step.configure` | Configure | Configurer |
+| `venn.step.importCheck` | Import check | Vérification d’import |
+| `venn.err.empty` | The file appears to be empty or has no data rows. | Le fichier semble vide ou sans lignes de données. |
+| `venn.err.needSets` | Need at least 2 sets — each column header becomes a set name. | Il faut au moins 2 ensembles — chaque en-tête de colonne devient un ensemble. |
+| `venn.howto.title` | Venn Diagram — How to use | Venn Diagram — Comment l’utiliser |
+| `venn.howto.subtitle` | Item-overlap between 2–3 sets, area-proportional or classic | Chevauchement d’éléments entre 2–3 ensembles, proportionnel ou classique |
+| `venn.howto.purpose` | Show which items are shared between 2 or 3 sets (genes upregulated in two conditions; taxa common to multiple samples). For ≥ 4 sets, use the UpSet tool instead. | Montrez quels éléments sont partagés entre 2 ou 3 ensembles (gènes surexprimés dans deux conditions ; taxons communs à plusieurs échantillons). Pour ≥ 4 ensembles, utilisez plutôt l’outil UpSet. |
+| `venn.howto.dataLayout` | <strong>Wide</strong> — one column per set, items stacked in each column. <strong>Long</strong> — two columns: <em>item</em> and <em>set</em>. Both formats auto-detect. | <strong>Large</strong> — une colonne par ensemble, éléments empilés dans chaque colonne. <strong>Long</strong> — deux colonnes : <em>élément</em> et <em>ensemble</em>. Les deux formats sont détectés automatiquement. |
+| `venn.howto.display` | Toggle between <strong>area-proportional</strong> (circle sizes scale with set size; subset relationships are exact) and <strong>classic</strong> (uniform-radius Euler-style). Click any region to drill down into its item list. CSV export per region. | Basculez entre <strong>proportionnel aux aires</strong> (la taille des cercles suit celle des ensembles ; les relations de sous-ensemble sont exactes) et <strong>classique</strong> (rayon uniforme, style Euler). Cliquez sur une région pour explorer sa liste d’éléments. Export CSV par région. |
+
+## volcano — Volcano tool
+
+_104 strings · tools/volcano/i18n/en.ts_
+
+| Key | English | French |
+| --- | --- | --- |
+| `volcano.err.fewCols` | The file appears empty or has fewer than two columns. Volcano expects at least a log2FC and a p-value column. | Le fichier semble vide ou comporte moins de deux colonnes. Volcano attend au moins une colonne log2FC et une colonne de p-value. |
+| `volcano.xLabelFallback` | log₂(fold change) | log₂(variation d’expression) |
+| `volcano.example.title` | Mock DESeq2 results | Résultats DESeq2 fictifs |
+| `volcano.example.subtitle` | 200 features · plant circadian transcriptomics | 200 caractéristiques · transcriptomique circadienne végétale |
+| `volcano.upload.hint` | CSV · TSV · TXT · one row per feature · expects log2FC + p-value columns · 2 MB max | CSV · TSV · TXT · une ligne par caractéristique · attend des colonnes log2FC + p-value · 2 Mo max |
+| `volcano.class.ns` | not significant | non significatif |
+| `volcano.class.down` | downregulated | sous-exprimé |
+| `volcano.class.up` | upregulated | surexprimé |
+| `volcano.chart.fallbackTitle` | Volcano plot | Volcano plot |
+| `volcano.chart.pointsTotal.one` | {n} point total | {n} point au total |
+| `volcano.chart.pointsTotal.other` | {n} points total | {n} points au total |
+| `volcano.aes.x` | X axis · log₂ fold change | Axe X · log₂ de la variation d’expression |
+| `volcano.aes.y` | Y axis · p-value (−log₁₀) | Axe Y · p-value (−log₁₀) |
+| `volcano.aes.label` | Feature label (optional) | Étiquette de caractéristique (optionnel) |
+| `volcano.aes.colorMap` | Color | Couleur |
+| `volcano.aes.sizeMap` | Size | Taille |
+| `volcano.thresh.title` | Thresholds | Seuils |
+| `volcano.thresh.fcCutoff` | \|log2FC\| cutoff | Seuil \|log2FC\| |
+| `volcano.thresh.pCutoff` | p-value cutoff | Seuil de p-value |
+| `volcano.thresh.none` | None | Aucun |
+| `volcano.thresh.showRefLines` | Show reference lines | Afficher les lignes de référence |
+| `volcano.on` | On | Activé |
+| `volcano.off` | Off | Désactivé |
+| `volcano.colors.title` | Colors | Couleurs |
+| `volcano.colors.up` | Up-regulated | Surexprimé |
+| `volcano.colors.down` | Down-regulated | Sous-exprimé |
+| `volcano.colors.ns` | Not significant | Non significatif |
+| `volcano.search.label` | Search by name | Rechercher par nom |
+| `volcano.search.placeholder` | gene name (or paste a list) | nom de gène (ou collez une liste) |
+| `volcano.search.inputTitle` | Comma- or newline-separated. Case-insensitive substring. | Séparés par virgule ou retour à la ligne. Sous-chaîne insensible à la casse. |
+| `volcano.search.add` | Add | Ajouter |
+| `volcano.search.disabledTitle` | Pick a label column in Configure to enable search | Choisissez une colonne d’étiquettes dans Configurer pour activer la recherche |
+| `volcano.search.typeTitle` | Type a name to search | Saisissez un nom à rechercher |
+| `volcano.search.addTitle.one` | Add {n} matched point to the labelled set | Ajouter {n} point correspondant à l’ensemble étiqueté |
+| `volcano.search.addTitle.other` | Add {n} matched points to the labelled set | Ajouter {n} points correspondants à l’ensemble étiqueté |
+| `volcano.search.disabledHint` | ↳ Pick a label column in Configure to enable search | ↳ Choisissez une colonne d’étiquettes dans Configurer pour activer la recherche |
+| `volcano.search.placeholderHint` | ↳ Comma- or newline-separated · case-insensitive substring | ↳ Séparés par virgule ou retour à la ligne · sous-chaîne insensible à la casse |
+| `volcano.search.noMatches` | no matches | aucune correspondance |
+| `volcano.search.matches.one` | {n} match | {n} correspondance |
+| `volcano.search.matches.other` | {n} matches | {n} correspondances |
+| `volcano.search.overlap` |  — labels may overlap |  — les étiquettes peuvent se chevaucher |
+| `volcano.search.unmatched` |  · {n} unmatched |  · {n} sans correspondance |
+| `volcano.search.showUnmatched` | show unmatched | afficher les non correspondants |
+| `volcano.search.hideUnmatched` | hide unmatched | masquer les non correspondants |
+| `volcano.search.unmatchedToggleTitle` | Toggle the list of tokens that matched zero points | Afficher/masquer la liste des termes sans correspondance |
+| `volcano.cfg.adjusted` | This column is an <strong>adjusted</strong> p-value (FDR / BH / qvalue) | Cette colonne est une p-value <strong>ajustée</strong> (FDR / BH / qvalue) |
+| `volcano.cfg.adjustedNote` | Plotted as −log₁₀(p). Auto-detect prefers an adjusted column when both raw and adjusted are present. | Tracée en −log₁₀(p). La détection automatique préfère une colonne ajustée lorsque brute et ajustée sont toutes deux présentes. |
+| `volcano.cfg.labelNone` | — none — | — aucune — |
+| `volcano.cfg.labelNote` | Categorical column used to annotate the top-N most-significant features (gene symbol, protein name, accession). Skip if your data has no such column. | Colonne catégorielle servant à annoter les top-N caractéristiques les plus significatives (symbole de gène, nom de protéine, accession). À ignorer si vos données n’ont pas de telle colonne. |
+| `volcano.cfg.assignWarn` | Assign both a <strong>log₂FC column</strong> and a <strong>p-value column</strong> to unlock the Plot step in the navigation above. | Attribuez à la fois une <strong>colonne log₂FC</strong> et une <strong>colonne p-value</strong> pour débloquer l’étape Tracé dans la navigation ci-dessus. |
+| `volcano.cfg.pastedData` | (pasted data) | (données collées) |
+| `volcano.cfg.colsRows` |  — {cols} cols × {rows} rows |  — {cols} colonnes × {rows} lignes |
+| `volcano.cfg.preview` | Preview (first 8 rows): | Aperçu (8 premières lignes) : |
+| `volcano.dl.csv` | CSV | CSV |
+| `volcano.dl.csvTitle` | Download the per-feature classification table — feature, log2FC, p, −log10(p), class | Télécharger la table de classification par caractéristique — caractéristique, log2FC, p, −log10(p), classe |
+| `volcano.dl.r` | R | R |
+| `volcano.dl.rTitle` | Download a self-contained ggplot2 R script that reproduces this volcano from the underlying data | Télécharger un script R ggplot2 autonome qui reproduit ce volcano à partir des données sous-jacentes |
+| `volcano.steps.clamped.one` | {count} feature had p = 0; clamped to a finite floor for display so the y-axis stays bounded. | {count} caractéristique avait p = 0 ; bornée à un plancher fini pour l’affichage afin que l’axe Y reste borné. |
+| `volcano.steps.clamped.other` | {count} features had p = 0; clamped to a finite floor for display so the y-axis stays bounded. | {count} caractéristiques avaient p = 0 ; bornées à un plancher fini pour l’affichage afin que l’axe Y reste borné. |
+| `volcano.labels.title` | Labels | Étiquettes |
+| `volcano.labels.annotateTop` | Annotate top features | Annoter les caractéristiques principales |
+| `volcano.labels.clicked.one` | {n} point clicked | {n} point cliqué |
+| `volcano.labels.clicked.other` | {n} points clicked | {n} points cliqués |
+| `volcano.labels.clearTitle` | Clear the manual selection — labelling falls back to the auto top-N picks | Effacer la sélection manuelle — l’étiquetage revient aux choix top-N automatiques |
+| `volcano.labels.clear` | Clear | Effacer |
+| `volcano.labels.clickHint` | ↳ Click any point on the chart to label it directly | ↳ Cliquez sur un point du graphique pour l’étiqueter directement |
+| `volcano.labels.topUp` | Top up-regulated | Top surexprimés |
+| `volcano.labels.topDown` | Top down-regulated | Top sous-exprimés |
+| `volcano.labels.fontSize` | Font size | Taille de police |
+| `volcano.labels.densityWarn` | {forced} of {attempted} labels couldn't place cleanly at this data density. | {forced} étiquettes sur {attempted} n’ont pas pu se placer proprement à cette densité de données. |
+| `volcano.labels.dropTitle` | Drop top-N to ({up} up / {down} down) so every label places without overlap. | Réduire le top-N à ({up} haut / {down} bas) pour que chaque étiquette se place sans chevauchement. |
+| `volcano.labels.useSuggested` | Use suggested ({up} / {down}) | Utiliser la suggestion ({up} / {down}) |
+| `volcano.style.title` | Style | Style |
+| `volcano.style.plotWidth` | Plot width | Largeur du tracé |
+| `volcano.style.pointRadius` | Point radius | Rayon des points |
+| `volcano.style.pointAlpha` | Point alpha | Opacité des points |
+| `volcano.style.showGrid` | Show grid | Afficher la grille |
+| `volcano.style.plotTitle` | Plot title | Titre du tracé |
+| `volcano.style.optional` | (optional) | (optionnel) |
+| `volcano.map.none` | — None — | — Aucun — |
+| `volcano.map.detected` | Detected:  | Détecté :  |
+| `volcano.map.continuous` | numeric (continuous) | numérique (continu) |
+| `volcano.map.categorical.one` | categorical ({n} group) | catégoriel ({n} groupe) |
+| `volcano.map.categorical.other` | categorical ({n} groups) | catégoriel ({n} groupes) |
+| `volcano.map.diverging` |   (diverging) |   (divergente) |
+| `volcano.map.direction` | Direction | Direction |
+| `volcano.map.directionAria` | Palette direction | Direction de la palette |
+| `volcano.map.normal` | Normal | Normale |
+| `volcano.map.inverted` | Inverted | Inversée |
+| `volcano.map.range` | range: {min} → {max} | plage : {min} → {max} |
+| `volcano.size.minRadius` | Min radius | Rayon min |
+| `volcano.size.maxRadius` | Max radius | Rayon max |
+| `volcano.size.fallbackNote` | Non-numeric / blank cells fall back to the default radius from the Style tile. | Les cellules non numériques / vides reviennent au rayon par défaut de la tuile Style. |
+| `volcano.summary.up` | ↑ up | ↑ haut |
+| `volcano.summary.down` | ↓ down | ↓ bas |
+| `volcano.summary.ns` | · ns | · ns |
+| `volcano.summary.ofValid` | of {n} valid | sur {n} valides |
+| `volcano.summary.discarded` |  (+{n} discarded) |  (+{n} écartés) |
+| `volcano.summary.cutoffs` | \|log2FC\| > {fc} · p < {p} | \|log2FC\| > {fc} · p < {p} |
+| `volcano.howto.title` | Volcano Plot — How to use | Volcano Plot — Comment l’utiliser |
+| `volcano.howto.subtitle` | One row per feature · log₂FC on X · p-value (−log₁₀) on Y | Une ligne par caractéristique · log₂FC en X · p-value (−log₁₀) en Y |
+| `volcano.howto.purpose` | Highlight differentially expressed features by combining <strong>fold change</strong> with <strong>statistical significance</strong> — the canonical way to inspect RNA-seq, proteomics, or metabolomics tables. | Mettez en évidence les caractéristiques différentiellement exprimées en combinant <strong>variation d’expression</strong> et <strong>significativité statistique</strong> — la façon canonique d’inspecter des tables RNA-seq, protéomiques ou métabolomiques. |
+| `volcano.howto.dataLayout` | One <strong>row</strong> per feature. Two numeric columns: a <strong>log₂ fold change</strong> and a <strong>p-value</strong> (raw or adjusted). An optional <strong>label</strong> column (gene symbol, feature ID) drives annotations. DESeq2, limma, edgeR, MaxQuant column names auto-detect. | Une <strong>ligne</strong> par caractéristique. Deux colonnes numériques : une <strong>variation d’expression log₂</strong> et une <strong>p-value</strong> (brute ou ajustée). Une colonne <strong>étiquette</strong> optionnelle (symbole de gène, identifiant) pilote les annotations. Les noms de colonnes DESeq2, limma, edgeR, MaxQuant sont détectés automatiquement. |
+| `volcano.howto.display` | Tweak <strong>\|log₂FC\|</strong> + <strong>p</strong> cutoffs in the Thresholds tile to set the up / down / ns split. Label features via auto top-N, click-to-label, or paste-list search in the Labels tile. Optional colour and size aesthetic mappings (e.g. expression level) render in-SVG legends. | Ajustez les seuils <strong>\|log₂FC\|</strong> + <strong>p</strong> dans la tuile Seuils pour définir la répartition haut / bas / ns. Étiquetez les caractéristiques via top-N automatique, clic-pour-étiqueter, ou recherche par liste collée dans la tuile Étiquettes. Des mappages esthétiques optionnels de couleur et de taille (p. ex. niveau d’expression) génèrent des légendes en SVG. |
+
+## heatmap — Heatmap tool
+
+_76 strings · tools/heatmap/i18n/en.ts_
+
+| Key | English | French |
+| --- | --- | --- |
+| `heatmap.dl.csv` | CSV | CSV |
+| `heatmap.dl.csvTitle` | Download the plotted matrix as CSV — normalisation and row / column reordering applied | Télécharger la matrice tracée en CSV — normalisation et réordonnancement lignes / colonnes appliqués |
+| `heatmap.dl.r` | R script | Script R |
+| `heatmap.dl.rTitle` | Download a runnable R script that reproduces this plot with pheatmap (includes the raw matrix, clustering, normalisation, palette) | Télécharger un script R exécutable qui reproduit ce graphique avec pheatmap (inclut la matrice brute, le clustering, la normalisation, la palette) |
+| `heatmap.cluster.none` | None | Aucun |
+| `heatmap.cluster.hier` | Hier. | Hiér. |
+| `heatmap.cluster.kmeans` | K-means | K-means |
+| `heatmap.cluster.k` | k | k |
+| `heatmap.cluster.rows` | Rows | Lignes |
+| `heatmap.cluster.columns` | Columns | Colonnes |
+| `heatmap.cluster.modeAria` | {label} clustering mode | Mode de clustering {label} |
+| `heatmap.sec.normalisation` | Normalisation | Normalisation |
+| `heatmap.sec.clustering` | Clustering | Clustering |
+| `heatmap.sec.colourScale` | Colour scale | Échelle de couleurs |
+| `heatmap.sec.cellBorders` | Cell borders | Bordures de cellule |
+| `heatmap.sec.labels` | Labels | Étiquettes |
+| `heatmap.norm.none` | None | Aucune |
+| `heatmap.norm.zrow` | Z row | Z ligne |
+| `heatmap.norm.zcol` | Z col | Z col |
+| `heatmap.norm.log2` | log₂ | log₂ |
+| `heatmap.dist.heading` | Hierarchical · Distance | Hiérarchique · Distance |
+| `heatmap.dist.aria` | Distance metric | Métrique de distance |
+| `heatmap.dist.euclidean` | Euclidean | Euclidienne |
+| `heatmap.dist.manhattan` | Manhattan | Manhattan |
+| `heatmap.dist.correlation` | 1 − r | 1 − r |
+| `heatmap.link.heading` | Hierarchical · Linkage | Hiérarchique · Liaison |
+| `heatmap.link.aria` | Linkage method | Méthode de liaison |
+| `heatmap.link.average` | Average | Moyenne |
+| `heatmap.link.complete` | Complete | Complète |
+| `heatmap.link.single` | Single | Simple |
+| `heatmap.dendro.rowHeading` | Hierarchical · Row dendrogram | Hiérarchique · Dendrogramme des lignes |
+| `heatmap.dendro.colHeading` | Hierarchical · Column dendrogram | Hiérarchique · Dendrogramme des colonnes |
+| `heatmap.dendro.rowAria` | Show row dendrogram | Afficher le dendrogramme des lignes |
+| `heatmap.dendro.colAria` | Show column dendrogram | Afficher le dendrogramme des colonnes |
+| `heatmap.dendro.note` | Leaf order + cluster structure stay applied when hidden. Drag on the heatmap to open a zoomed selection if you still need per-cluster exports. Applies to both the main and zoomed plots. | L’ordre des feuilles + la structure de clusters restent appliqués lorsqu’ils sont masqués. Glissez sur la heatmap pour ouvrir une sélection zoomée si vous avez besoin d’exports par cluster. S’applique aux tracés principal et zoomé. |
+| `heatmap.on` | On | Activé |
+| `heatmap.off` | Off | Désactivé |
+| `heatmap.kmeans.seed` | K-means · Seed | K-means · Graine |
+| `heatmap.kmeans.seedNote` | Change the seed to try a different k-means++ initialisation. | Changez la graine pour essayer une autre initialisation k-means++. |
+| `heatmap.colour.palette` | Palette | Palette |
+| `heatmap.colour.diverging` |   (diverging) |   (divergente) |
+| `heatmap.colour.direction` | Direction | Direction |
+| `heatmap.colour.directionAria` | Palette direction | Direction de la palette |
+| `heatmap.colour.normal` | Normal | Normale |
+| `heatmap.colour.inverted` | Inverted | Inversée |
+| `heatmap.colour.min` | Min | Min |
+| `heatmap.colour.max` | Max | Max |
+| `heatmap.colour.auto` | Auto from data | Auto depuis les données |
+| `heatmap.border.width` | Width | Épaisseur |
+| `heatmap.labels.title` | Title | Titre |
+| `heatmap.labels.subtitle` | Subtitle | Sous-titre |
+| `heatmap.labels.xAxis` | X-axis label | Étiquette axe X |
+| `heatmap.labels.yAxis` | Y-axis label | Étiquette axe Y |
+| `heatmap.labels.rowNames` | Row names | Noms des lignes |
+| `heatmap.labels.colNames` | Column names | Noms des colonnes |
+| `heatmap.labels.rowNamesAria` | Show row names | Afficher les noms des lignes |
+| `heatmap.labels.colNamesAria` | Show column names | Afficher les noms des colonnes |
+| `heatmap.chart.cluster` | Cluster n° {n} | Groupe n° {n} |
+| `heatmap.chart.colorbarAria` | Colourbar: values range from {min} to {max} | Barre de couleurs : valeurs de {min} à {max} |
+| `heatmap.err.matrix` | The file needs at least one row label column and one data column with a header. | Le fichier doit comporter au moins une colonne d’étiquettes de ligne et une colonne de données avec un en-tête. |
+| `heatmap.step.importCheck` | Import check | Vérification d’import |
+| `heatmap.cfg.pastedData` | Pasted data | Données collées |
+| `heatmap.cfg.parsed` |  — parsed {rows} rows × {cols} columns |  — {rows} lignes × {cols} colonnes analysées |
+| `heatmap.cfg.nonNumeric.one` | {n} non-numeric cell rendered as NaN | {n} cellule non numérique rendue en NaN |
+| `heatmap.cfg.nonNumeric.other` | {n} non-numeric cells rendered as NaN | {n} cellules non numériques rendues en NaN |
+| `heatmap.cfg.large` | matrix is large — clustering may take a few seconds | la matrice est grande — le clustering peut prendre quelques secondes |
+| `heatmap.plot.clear` | Clear | Effacer |
+| `heatmap.plot.dragHint` | ↳ Drag on the heatmap or click a dendrogram / k-means band to open a zoomed view | ↳ Glissez sur la heatmap ou cliquez sur un dendrogramme / une bande k-means pour ouvrir une vue zoomée |
+| `heatmap.example.title` | Gene-expression matrix | Matrice d’expression génique |
+| `heatmap.example.subtitle` | 500 genes × 6 samples (3 Control · 3 Stress) · clustered demo | 500 gènes × 6 échantillons (3 Contrôle · 3 Stress) · démo clustérisée |
+| `heatmap.upload.hint` | CSV · TSV · TXT — first column = row labels, first row = column labels, rest numeric · 2 MB max | CSV · TSV · TXT — première colonne = étiquettes de ligne, première ligne = étiquettes de colonne, le reste numérique · 2 Mo max |
+| `heatmap.howto.title` | Heatmap — How to use | Heatmap — Comment l’utiliser |
+| `heatmap.howto.subtitle` | Numeric matrix with optional row / column clustering | Matrice numérique avec clustering optionnel des lignes / colonnes |
+| `heatmap.howto.purpose` | Visualise a 2D numeric matrix (genes × samples, taxa × conditions, distance matrix). Reorder rows + columns by hierarchical or k-means clustering to surface structure. | Visualisez une matrice numérique 2D (gènes × échantillons, taxons × conditions, matrice de distances). Réordonnez lignes + colonnes par clustering hiérarchique ou k-means pour révéler la structure. |
+| `heatmap.howto.dataLayout` | Wide matrix — first column holds the row labels (genes / features), the header row holds the column labels (samples / conditions), the rest is a numeric grid. Missing values are tolerated. | Matrice large — la première colonne contient les étiquettes de ligne (gènes / caractéristiques), la ligne d’en-tête contient les étiquettes de colonne (échantillons / conditions), le reste est une grille numérique. Les valeurs manquantes sont tolérées. |
+| `heatmap.howto.display` | Pick a <strong>palette</strong> (continuous viridis-family or diverging), optional <strong>z-score</strong> / <strong>log₂</strong> normalisation per row or column, and independent row / column clustering modes (<strong>hierarchical</strong> with linkage + distance metric, or <strong>k-means</strong> with explicit k). Drag-select any region for a zoomed detail view. | Choisissez une <strong>palette</strong> (continue famille viridis ou divergente), une normalisation optionnelle <strong>z-score</strong> / <strong>log₂</strong> par ligne ou colonne, et des modes de clustering indépendants lignes / colonnes (<strong>hiérarchique</strong> avec liaison + métrique de distance, ou <strong>k-means</strong> avec k explicite). Glissez pour sélectionner une région et obtenir une vue détaillée zoomée. |
+
+## upset — UpSet tool
+
+_103 strings · tools/upset/i18n/en.ts_
+
+| Key | English | French |
+| --- | --- | --- |
+| `upset.err.empty` | The file appears to be empty or has no data rows. | Le fichier semble vide ou sans lignes de données. |
+| `upset.err.parse` | Unable to parse set membership. | Impossible d’analyser l’appartenance aux ensembles. |
+| `upset.err.longSets` | Need at least 2 distinct set names in the second column. | Il faut au moins 2 noms d’ensembles distincts dans la deuxième colonne. |
+| `upset.err.wideSets` | Need at least 2 non-empty set columns. | Il faut au moins 2 colonnes d’ensembles non vides. |
+| `upset.chart.fallbackTitle` | UpSet plot | Diagramme UpSet |
+| `upset.chart.barAria.one` | {label}: {size} element | {label} : {size} élément |
+| `upset.chart.barAria.other` | {label}: {size} elements | {label} : {size} éléments |
+| `upset.dl.table` | Table | Table |
+| `upset.dl.tableTitle` | Download the currently-plotted intersection table (Intersection, Degree, Size, + per-set flags). Matches the plot exactly — reflects sort, Top N, Minimum/Maximum degree, and Minimum size filters. | Télécharger la table d’intersections actuellement tracée (Intersection, Degré, Taille, + indicateurs par ensemble). Correspond exactement au tracé — reflète le tri, le Top N, les filtres de degré min/max et de taille min. |
+| `upset.dl.matrix` | Matrix | Matrice |
+| `upset.dl.matrixTitle` | Download the membership matrix — one row per item, a 0/1 column for each active set | Télécharger la matrice d’appartenance — une ligne par élément, une colonne 0/1 pour chaque ensemble actif |
+| `upset.dl.allRegions` | All regions | Toutes les régions |
+| `upset.dl.allRegionsTitle` | One CSV per currently-plotted intersection (named _I1, _I2, … matching the on-plot identifiers) plus an _index.csv mapping Id → Intersection, Degree, Size. Your browser may ask once to allow multiple downloads. | Un CSV par intersection tracée (nommé _I1, _I2, … selon les identifiants du tracé) plus un _index.csv reliant Id → Intersection, Degré, Taille. Votre navigateur peut demander une autorisation pour plusieurs téléchargements. |
+| `upset.sec.columns` | Columns | Colonnes |
+| `upset.sort.label` | Sort by | Trier par |
+| `upset.sort.sizeDesc` | Size (largest first) | Taille (plus grand d’abord) |
+| `upset.sort.sizeAsc` | Size (smallest first) | Taille (plus petit d’abord) |
+| `upset.sort.degreeDesc` | Degree (highest first) | Degré (plus élevé d’abord) |
+| `upset.sort.degreeAsc` | Degree (lowest first) | Degré (plus faible d’abord) |
+| `upset.sort.sets` | Set order | Ordre des ensembles |
+| `upset.minSize` | Minimum intersection size | Taille d’intersection minimale |
+| `upset.maxInData` | max in data: {n} | max dans les données : {n} |
+| `upset.minDegree` | Minimum degree | Degré minimal |
+| `upset.maxDegree` | Maximum degree | Degré maximal |
+| `upset.sec.labels` | Labels | Étiquettes |
+| `upset.label.title` | Title | Titre |
+| `upset.label.subtitle` | Subtitle | Sous-titre |
+| `upset.sec.display` | Display | Affichage |
+| `upset.disp.barOpacity` | Bar opacity | Opacité des barres |
+| `upset.disp.dotSize` | Dot size | Taille des points |
+| `upset.disp.fontSize` | Font size | Taille de police |
+| `upset.disp.intersectionLabels` | Intersection size labels | Étiquettes de taille d’intersection |
+| `upset.disp.setSizeLabels` | Set size labels | Étiquettes de taille d’ensemble |
+| `upset.disp.background` | Background | Arrière-plan |
+| `upset.sec.statistics` | Statistics | Statistiques |
+| `upset.stat.universe` | Universe size (N) | Taille de l’univers (N) |
+| `upset.stat.resetUniverse` | Reset to \|∪\|={n} | Réinitialiser à \|∪\|={n} |
+| `upset.stat.resetUniverseTitle` | Revert to the union of uploaded items | Revenir à l’union des éléments importés |
+| `upset.stat.universeNote` | Defaults to the union of uploaded items (\|∪\|). Override with the genome / proteome / predefined background for real enrichment analyses — a smaller universe inflates p-values. | Par défaut, l’union des éléments importés (\|∪\|). Remplacez par le génome / protéome / arrière-plan prédéfini pour de vraies analyses d’enrichissement — un univers plus petit gonfle les p-values. |
+| `upset.stat.intersectionStats` | Intersection statistics | Statistiques d’intersection |
+| `upset.stat.computeDisabledTitle` | Set a Universe size above before computing stats | Définissez une taille d’univers ci-dessus avant de calculer |
+| `upset.stat.computingTitle` | Computing… | Calcul en cours… |
+| `upset.stat.computeTitle` | Run the SuperExactTest exact test for every one of the {n} intersections in the active set selection and BH-adjust across them. Display filters (minimum size / degree) do NOT change which intersections are tested. | Exécuter le test exact de type SuperExactTest pour chacune des {n} intersections de la sélection d’ensembles active et appliquer la correction BH. Les filtres d’affichage (taille / degré minimal) NE changent PAS quelles intersections sont testées. |
+| `upset.stat.computingProgress` | Computing {done}/{total}… | Calcul {done}/{total}… |
+| `upset.stat.recompute` | Recompute stats ({n} intersections) | Recalculer les stats ({n} intersections) |
+| `upset.stat.compute` | Compute stats ({n} intersections) | Calculer les stats ({n} intersections) |
+| `upset.stat.clearCached.one` | Clear {n} cached result | Effacer {n} résultat en cache |
+| `upset.stat.clearCached.other` | Clear {n} cached results | Effacer {n} résultats en cache |
+| `upset.stat.computeNote` | Computes the exact Binomial p (upper tail, lower tail, and the headline two-sided = smaller tail × 2) per intersection, then BH-adjusts each family across every intersection in the active set selection. Display filters (minimum size / degree) only affect what's shown on the plot — they never change the BH family. | Calcule la p binomiale exacte (queue supérieure, queue inférieure, et la p bilatérale de tête = plus petite queue × 2) par intersection, puis applique la correction BH à chaque famille sur toutes les intersections de la sélection active. Les filtres d’affichage (taille / degré minimal) n’affectent que ce qui est montré sur le tracé — ils ne changent jamais la famille BH. |
+| `upset.stat.sigMarkers` | Significance markers | Marqueurs de significativité |
+| `upset.stat.off` | Off | Désact. |
+| `upset.stat.stars` | Stars | Étoiles |
+| `upset.stat.pvalue` | p-value | p-value |
+| `upset.stat.on` | On | Activé |
+| `upset.stat.sigMarkersNote` | Only tested intersections are marked. Uses the two-sided p (smaller tail × 2, BH-adjusted across every test run this session), so both enrichment and depletion show up. | Seules les intersections testées sont marquées. Utilise la p bilatérale (plus petite queue × 2, corrigée BH sur tous les tests lancés cette session), de sorte que l’enrichissement et l’appauvrissement apparaissent tous deux. |
+| `upset.stat.colorBars` | Color bars by significance | Colorer les barres par significativité |
+| `upset.stat.green` | Green | Vert |
+| `upset.stat.darkRed` | Dark red | Rouge foncé |
+| `upset.stat.colorBarsNote1` |  = enriched.  |  = enrichi.  |
+| `upset.stat.colorBarsNote2` |  = depleted. Both at two-sided p_adj < 0.05, direction from the sign of observed − expected. Untested or non-significant bars stay black. |  = appauvri. Tous deux à p_adj bilatérale < 0,05, direction selon le signe de observé − attendu. Les barres non testées ou non significatives restent noires. |
+| `upset.example.title` | Arabidopsis stress-response DEGs | DEG de réponse au stress chez Arabidopsis |
+| `upset.example.subtitle` | 5 sets — Drought · Heat · Salt · Cold · ABA | 5 ensembles — Sécheresse · Chaleur · Sel · Froid · ABA |
+| `upset.upload.hint` | CSV · TSV · TXT — wide (one column per set, 2+) or long (item, set) · 2 MB max | CSV · TSV · TXT — large (une colonne par ensemble, 2+) ou long (élément, ensemble) · 2 Mo max |
+| `upset.picker.heading` | Sets to include | Ensembles à inclure |
+| `upset.picker.pick` | Pick at least 2 sets to plot. | Choisissez au moins 2 ensembles à tracer. |
+| `upset.picker.one` | 1 selected — pick at least one more. | 1 sélectionné — choisissez-en au moins un autre. |
+| `upset.picker.ready` | {n} selected — ready to plot. | {n} sélectionnés — prêt à tracer. |
+| `upset.items.empty` | Click an intersection bar or matrix column to view items. | Cliquez sur une barre d’intersection ou une colonne de matrice pour voir les éléments. |
+| `upset.items.count.one` | ({n} item) | ({n} élément) |
+| `upset.items.count.other` | ({n} items) | ({n} éléments) |
+| `upset.cutoff.title` | Intersection cutoff | Seuil d’intersection |
+| `upset.cutoff.intro` | With {sets} sets, up to {max} intersections are possible. Keep only intersections whose degree falls in this window: | Avec {sets} ensembles, jusqu’à {max} intersections sont possibles. Ne conserver que les intersections dont le degré tombe dans cette fenêtre : |
+| `upset.cutoff.min` | Min | Min |
+| `upset.cutoff.max` | Max | Max |
+| `upset.cutoff.kept` | {kept} of {total} non-empty intersections kept. | {kept} intersections non vides conservées sur {total}. |
+| `upset.cutoff.note` | Degree 1 keeps singletons (items unique to one set); degree = {sets} keeps the all-sets intersection. You can change this later in the plot controls. | Le degré 1 conserve les singletons (éléments propres à un seul ensemble) ; le degré = {sets} conserve l’intersection de tous les ensembles. Vous pouvez modifier cela plus tard dans les contrôles du tracé. |
+| `upset.cfg.colsRows` |  — {cols} cols × {rows} rows |  — {cols} colonnes × {rows} lignes |
+| `upset.cfg.preview` | Preview (first 8 rows): | Aperçu (8 premières lignes) : |
+| `upset.sp.title` | Intersection significance | Significativité d’intersection |
+| `upset.sp.subtitle` | SuperExactTest-style exact test against the fixed-margin null | Test exact de type SuperExactTest contre l’hypothèse nulle à marges fixes |
+| `upset.sp.setsTested` | Sets tested | Ensembles testés |
+| `upset.sp.setSizes` | Set sizes (nᵢ) | Tailles d’ensembles (nᵢ) |
+| `upset.sp.exclusiveOverlap` | Exclusive overlap (bar) | Chevauchement exclusif (barre) |
+| `upset.sp.enriched` | ↑ enriched | ↑ enrichi |
+| `upset.sp.depleted` | ↓ depleted | ↓ appauvri |
+| `upset.sp.asExpected` | ≈ as expected | ≈ comme attendu |
+| `upset.sp.expectedNull` | Expected under null | Attendu sous l’hypothèse nulle |
+| `upset.sp.expectedTitle` | E[exclusive] = N · Π(nᵢ/N) · Π(1 − nⱼ/N) under the independence approximation (each item falls in each set with its marginal probability). Inside: sets the bar covers. Outside: the other uploaded sets. | E[exclusif] = N · Π(nᵢ/N) · Π(1 − nⱼ/N) sous l’approximation d’indépendance (chaque élément tombe dans chaque ensemble avec sa probabilité marginale). Intérieur : les ensembles couverts par la barre. Extérieur : les autres ensembles importés. |
+| `upset.sp.inclusiveOverlap` | Inclusive overlap | Chevauchement inclusif |
+| `upset.sp.twoSided` | Two-sided | Bilatéral |
+| `upset.sp.twoSidedHint` | min(2·pUpper, 2·pLower, 1) — headline p, drives plot markers + bar colour | min(2·pSup, 2·pInf, 1) — p de tête, pilote les marqueurs + la couleur des barres |
+| `upset.sp.enrichment` | Enrichment | Enrichissement |
+| `upset.sp.enrichmentHint` | P(X ≥ bar) — Binomial(N, p_M), upper tail | P(X ≥ barre) — Binomiale(N, p_M), queue supérieure |
+| `upset.sp.depletion` | Depletion | Appauvrissement |
+| `upset.sp.depletionHint` | P(X ≤ bar) — lower tail | P(X ≤ barre) — queue inférieure |
+| `upset.sp.familyNote.one` | Each family BH-adjusted separately across {n} intersection cached for N={universe}. The two-sided p is the honest headline (one test per bar, no cherry-picking); the per-tail rows are there for directional breakdown. The Binomial null assumes each item is independently placed in every set at its marginal rate. | Chaque famille corrigée BH séparément sur {n} intersection en cache pour N={universe}. La p bilatérale est la valeur de tête honnête (un test par barre, sans cherry-picking) ; les lignes par queue sont là pour la ventilation directionnelle. L’hypothèse nulle binomiale suppose que chaque élément est placé indépendamment dans chaque ensemble à son taux marginal. |
+| `upset.sp.familyNote.other` | Each family BH-adjusted separately across {n} intersections cached for N={universe}. The two-sided p is the honest headline (one test per bar, no cherry-picking); the per-tail rows are there for directional breakdown. The Binomial null assumes each item is independently placed in every set at its marginal rate. | Chaque famille corrigée BH séparément sur {n} intersections en cache pour N={universe}. La p bilatérale est la valeur de tête honnête (un test par barre, sans cherry-picking) ; les lignes par queue sont là pour la ventilation directionnelle. L’hypothèse nulle binomiale suppose que chaque élément est placé indépendamment dans chaque ensemble à son taux marginal. |
+| `upset.sp.noPvalue` | No p-value for this intersection yet — use <strong>Compute stats</strong> in the sidebar to run the two-sided Binomial test (plus the per-tail enrichment / depletion breakdown) on the exclusive bar height for every intersection in the current set selection in one pass. | Pas encore de p-value pour cette intersection — utilisez <strong>Calculer les stats</strong> dans la barre latérale pour lancer le test binomial bilatéral (plus la ventilation enrichissement / appauvrissement par queue) sur la hauteur de barre exclusive de chaque intersection de la sélection actuelle en une seule passe. |
+| `upset.howto.title` | UpSet Plot — How to use | UpSet Plot — Comment l’utiliser |
+| `upset.howto.subtitle` | Set-intersection sizes for 2+ sets, where Venn breaks down | Tailles d’intersection d’ensembles pour 2+ ensembles, là où Venn ne suffit plus |
+| `upset.howto.purpose` | Show intersections between many sets at once — UpSet plots scale gracefully past three sets where Venn diagrams collapse into unreadable shapes. | Montrez les intersections entre de nombreux ensembles à la fois — les diagrammes UpSet passent à l’échelle au-delà de trois ensembles, là où les diagrammes de Venn deviennent illisibles. |
+| `upset.howto.dataLayout` | <strong>Wide</strong> — one column per set, items stacked in each column. <strong>Long</strong> — two columns: <em>item</em> and <em>set</em>. Same format as Venn. | <strong>Large</strong> — une colonne par ensemble, éléments empilés dans chaque colonne. <strong>Long</strong> — deux colonnes : <em>élément</em> et <em>ensemble</em>. Même format que Venn. |
+| `upset.howto.display` | Each intersection is a column: top-half bar shows its size, bottom-half dot matrix shows the set membership. Sort by <strong>size</strong> (default) or <strong>degree</strong>; filter by minimum size + degree window. Per-intersection significance test against a uniform-random null with BH-adjusted p-values. | Chaque intersection est une colonne : la barre du haut montre sa taille, la matrice de points du bas montre l’appartenance aux ensembles. Triez par <strong>taille</strong> (par défaut) ou par <strong>degré</strong> ; filtrez par taille minimale + fenêtre de degré. Test de significativité par intersection contre une hypothèse nulle uniforme avec p-values corrigées BH. |
+
+## lineplot — Line Plot tool
+
+_95 strings · tools/lineplot/i18n/en.ts_
+
+| Key | English | French |
+| --- | --- | --- |
+| `lineplot.err.empty` | The file appears to be empty or has no data rows. Please check your file and try again. | Le fichier semble vide ou sans lignes de données. Vérifiez votre fichier et réessayez. |
+| `lineplot.chart.fallbackTitle` | Line chart | Graphique linéaire |
+| `lineplot.chart.traceAria.one` | {name}: {n} x-point | {name} : {n} point en x |
+| `lineplot.chart.traceAria.other` | {name}: {n} x-points | {name} : {n} points en x |
+| `lineplot.dl.statsCsv` | Stats CSV | CSV stats |
+| `lineplot.dl.statsCsvTitle` | Download the per-x summary statistics (n, mean, SD, SEM, 95% CI) for every group | Télécharger les statistiques de synthèse par x (n, moyenne, SD, SEM, IC 95 %) pour chaque groupe |
+| `lineplot.tile.variables` | Variables | Variables |
+| `lineplot.var.xAxis` | X axis | Axe X |
+| `lineplot.var.yAxis` | Y axis | Axe Y |
+| `lineplot.var.groupBy` | Group by | Grouper par |
+| `lineplot.var.singleLine` | (single line) | (ligne unique) |
+| `lineplot.sec.groups` | Groups | Groupes |
+| `lineplot.groups.empty` | No groups yet — pick a grouping column. | Aucun groupe — choisissez une colonne de regroupement. |
+| `lineplot.sec.errorBars` | Error bars | Barres d’erreur |
+| `lineplot.errorBars.aria` | Error bar type | Type de barre d’erreur |
+| `lineplot.err.none` | None | Aucune |
+| `lineplot.err.sem` | SEM | SEM |
+| `lineplot.err.sd` | SD | SD |
+| `lineplot.err.ci95` | 95% CI | IC 95 % |
+| `lineplot.sec.axes` | Axes | Axes |
+| `lineplot.axes.xMin` | X min | X min |
+| `lineplot.axes.xMax` | X max | X max |
+| `lineplot.axes.yMin` | Y min | Y min |
+| `lineplot.axes.yMax` | Y max | Y max |
+| `lineplot.sec.labels` | Labels | Étiquettes |
+| `lineplot.labels.title` | Title | Titre |
+| `lineplot.labels.subtitle` | Subtitle | Sous-titre |
+| `lineplot.labels.xLabel` | X label | Étiquette X |
+| `lineplot.labels.yLabel` | Y label | Étiquette Y |
+| `lineplot.sec.style` | Style | Style |
+| `lineplot.style.lineWidth` | Line width | Épaisseur de ligne |
+| `lineplot.style.pointRadius` | Point radius | Rayon des points |
+| `lineplot.style.errorCapWidth` | Error cap width | Largeur des embouts d’erreur |
+| `lineplot.example.title` | Bacterial growth curves | Courbes de croissance bactérienne |
+| `lineplot.example.subtitle` | 3 strains × 5 timepoints × 3 replicates | 3 souches × 5 points de temps × 3 réplicats |
+| `lineplot.upload.hint` | CSV · TSV · TXT — one row per observation, columns for X, Y, and grouping · 2 MB max | CSV · TSV · TXT — une ligne par observation, colonnes pour X, Y et le regroupement · 2 Mo max |
+| `lineplot.test.studentT` | Student's t-test | test t de Student |
+| `lineplot.test.welchT` | Welch's t-test | test t de Welch |
+| `lineplot.test.mannWhitney` | Mann-Whitney U | Mann-Whitney U |
+| `lineplot.test.oneWayANOVA` | One-way ANOVA | ANOVA à un facteur |
+| `lineplot.test.welchANOVA` | Welch's ANOVA | ANOVA de Welch |
+| `lineplot.test.kruskalWallis` | Kruskal-Wallis | Kruskal-Wallis |
+| `lineplot.posthoc.tukeyHSD` | Tukey HSD | Tukey HSD |
+| `lineplot.posthoc.gamesHowell` | Games-Howell | Games-Howell |
+| `lineplot.posthoc.dunn` | Dunn (BH-adjusted) | Dunn (ajusté BH) |
+| `lineplot.sp.title` | Statistics at each {x} | Statistiques à chaque {x} |
+| `lineplot.sp.xFallback` | x | x |
+| `lineplot.sp.desc` | Click a row to see the decision trace, assumptions, and post-hoc details. P-values are BH-adjusted across the x-axis. | Cliquez sur une ligne pour voir la trace de décision, les hypothèses et les détails post-hoc. Les p-values sont corrigées BH sur l’axe des x. |
+| `lineplot.sp.reportTitle` | Download a plain-text report covering every x | Télécharger un rapport en texte brut couvrant chaque x |
+| `lineplot.sp.rTitle` | Download a runnable R script reproducing every per-x test | Télécharger un script R exécutable reproduisant chaque test par x |
+| `lineplot.sp.displayOnPlot` | Display on plot | Afficher sur le tracé |
+| `lineplot.sp.off` | Off | Désact. |
+| `lineplot.sp.stars` | Stars | Étoiles |
+| `lineplot.sp.colTest` | Test | Test |
+| `lineplot.sp.colStatistic` | Statistic | Statistique |
+| `lineplot.sp.colP` | p | p |
+| `lineplot.sp.colPBH` | p (BH) | p (BH) |
+| `lineplot.sp.groups` | Groups | Groupes |
+| `lineplot.sp.group` | Group | Groupe |
+| `lineplot.sp.n` | n | n |
+| `lineplot.sp.mean` | Mean | Moyenne |
+| `lineplot.sp.sd` | SD | SD |
+| `lineplot.sp.sem` | SEM | SEM |
+| `lineplot.sp.ci95` | 95% CI | IC 95 % |
+| `lineplot.sp.assumptions` | Assumptions | Hypothèses |
+| `lineplot.sp.shapiro` | Shapiro-Wilk (normality) | Shapiro-Wilk (normalité) |
+| `lineplot.sp.normal` | normal | normale |
+| `lineplot.sp.notNormal` | not normal | non normale |
+| `lineplot.sp.levene` | Levene | Levene |
+| `lineplot.sp.equalVar` | equal variance | variances égales |
+| `lineplot.sp.unequalVar` | unequal variance | variances inégales |
+| `lineplot.sp.test` | Test | Test |
+| `lineplot.sp.recommendedSuffix` |   (recommended) |   (recommandé) |
+| `lineplot.sp.useRecommendation` | Use recommendation | Utiliser la recommandation |
+| `lineplot.sp.suggestedAlt` | Suggested alternative: | Alternative suggérée : |
+| `lineplot.sp.suggestConsider` | Shapiro-Wilk flagged non-normal data — consider  | Shapiro-Wilk a signalé des données non normales — envisagez  |
+| `lineplot.sp.useSuggestion` | Use suggestion | Utiliser la suggestion |
+| `lineplot.sp.bhAdj` |  · BH-adjusted p = {p} |  · p corrigée BH = {p} |
+| `lineplot.sp.posthocPrefix` | Post-hoc —  | Post-hoc —  |
+| `lineplot.sp.pair` | Pair | Paire |
+| `lineplot.sp.meanDiff` | Mean diff | Diff. moy. |
+| `lineplot.sp.rankDiff` | Rank diff | Diff. rang |
+| `lineplot.sp.signif` | Signif. | Signif. |
+| `lineplot.sp.vs` | vs | vs |
+| `lineplot.sp.replication` | Replication planning (n for 80% power) | Planification de réplication (n pour puiss. 80 %) |
+| `lineplot.sp.replicationDesc` | Given the observed effect size, sample size a future study would need to detect this effect at 80% power. | Compte tenu de la taille d’effet observée, taille d’échantillon qu’une étude future devrait atteindre pour détecter cet effet à 80 % de puissance. |
+| `lineplot.sp.effectSize` | Effect size | Taille d’effet |
+| `lineplot.sp.nFor80` | n for 80% power | n pour puiss. 80 % |
+| `lineplot.sp.gt5000` | > 5000 | > 5000 |
+| `lineplot.sp.approxNote` | Approximation — rank-based test power estimated from its parametric analog. | Approximation — puissance du test sur rangs estimée à partir de son analogue paramétrique. |
+| `lineplot.howto.title` | Line Plot — How to use | Line Plot — Comment l’utiliser |
+| `lineplot.howto.subtitle` | Mean ± error per group across an x-axis, with per-x significance | Moyenne ± erreur par groupe sur un axe des x, avec significativité par x |
+| `lineplot.howto.purpose` | Plot how a measurement evolves across an x-axis variable (time, dose, concentration), one line per group. Replicates at the same X are averaged and their spread becomes the error bar. | Tracez l’évolution d’une mesure selon une variable en x (temps, dose, concentration), une ligne par groupe. Les réplicats au même X sont moyennés et leur dispersion devient la barre d’erreur. |
+| `lineplot.howto.dataLayout` | Long format — one row per observation, with a numeric <strong>X</strong>, a numeric <strong>Y</strong>, and a categorical <strong>group</strong> column. Replicates share the same (X, group) pair. Error bars only render when a group has ≥ 2 replicates at that X. | Format long — une ligne par observation, avec un <strong>X</strong> numérique, un <strong>Y</strong> numérique et une colonne <strong>groupe</strong> catégorielle. Les réplicats partagent le même couple (X, groupe). Les barres d’erreur ne s’affichent que lorsqu’un groupe a ≥ 2 réplicats à ce X. |
+| `lineplot.howto.display` | Pick <strong>SEM</strong> (default), <strong>SD</strong>, or <strong>95% CI</strong> for error ribbons. At every X shared by ≥ 2 groups the right test is auto-routed (t / Welch / Mann-Whitney; ANOVA / Welch-ANOVA / Kruskal-Wallis); p-values are <strong>BH-adjusted</strong> across the X-axis and significance stars overlay the chart. | Choisissez <strong>SEM</strong> (par défaut), <strong>SD</strong> ou <strong>IC 95 %</strong> pour les rubans d’erreur. À chaque X partagé par ≥ 2 groupes, le bon test est routé automatiquement (t / Welch / Mann-Whitney ; ANOVA / Welch-ANOVA / Kruskal-Wallis) ; les p-values sont <strong>corrigées BH</strong> sur l’axe des X et des étoiles de significativité se superposent au graphique. |
+
+## scatter — Scatter tool
+
+_114 strings · tools/scatter/i18n/en.ts_
+
+| Key | English | French |
+| --- | --- | --- |
+| `scatter.err.empty` | The file appears to be empty or has no data rows. Please check your file and try again. | Le fichier semble vide ou sans lignes de données. Vérifiez votre fichier et réessayez. |
+| `scatter.set.all` | All | Tout |
+| `scatter.shapeWarning` | This column has {n} unique values — only 4 shapes are available. Categories beyond the 4th will cycle through the same shapes. | Cette colonne a {n} valeurs uniques — seulement 4 formes sont disponibles. Les catégories au-delà de la 4ᵉ réutiliseront les mêmes formes. |
+| `scatter.aes.color` | Color | Couleur |
+| `scatter.aes.size` | Size | Taille |
+| `scatter.aes.shape` | Shape | Forme |
+| `scatter.example.title` | Fisher's Iris dataset | Jeu de données Iris de Fisher |
+| `scatter.example.subtitle` | 150 flowers × 4 measurements · 3 species | 150 fleurs × 4 mesures · 3 espèces |
+| `scatter.upload.hint` | CSV · TSV · TXT — one column per variable, one row per point · 2 MB max | CSV · TSV · TXT — une colonne par variable, une ligne par point · 2 Mo max |
+| `scatter.dl.csv` | CSV | CSV |
+| `scatter.dl.csvTitle` | Download the filtered data table — only the columns and rows currently drawn on the plot | Télécharger la table de données filtrée — seulement les colonnes et lignes actuellement tracées |
+| `scatter.loaded` | Loaded  | Chargé  |
+| `scatter.pastedData` | pasted data | données collées |
+| `scatter.colsRows` |  — {rows} rows × {cols} columns |  — {rows} lignes × {cols} colonnes |
+| `scatter.tile.variables` | Variables | Variables |
+| `scatter.var.xAxis` | X axis | Axe X |
+| `scatter.var.yAxis` | Y axis | Axe Y |
+| `scatter.sec.pointStyle` | Point style | Style des points |
+| `scatter.pt.color` | Color | Couleur |
+| `scatter.pt.size` | Size | Taille |
+| `scatter.pt.opacity` | Opacity | Opacité |
+| `scatter.pt.stroke` | Stroke | Contour |
+| `scatter.pt.strokeWidth` | Stroke width | Épaisseur du contour |
+| `scatter.on` | On | Activé |
+| `scatter.off` | Off | Désact. |
+| `scatter.reg.title` | Regression line | Droite de régression |
+| `scatter.reg.needPoints` | Need ≥ 2 points with variation in X. | Il faut ≥ 2 points avec de la variation en X. |
+| `scatter.reg.slope` | slope:  | pente :  |
+| `scatter.reg.intercept` | intercept:  | ordonnée :  |
+| `scatter.reg.r2` | R²:  | R² :  |
+| `scatter.reg.undefined` | undefined | indéfini |
+| `scatter.reg.nEq` | n =  | n =  |
+| `scatter.reg.color` | Color | Couleur |
+| `scatter.reg.width` | Width | Épaisseur |
+| `scatter.reg.dashed` | Dashed | Pointillés |
+| `scatter.reg.showEq` | Show equation & R² on plot | Afficher l’équation & R² sur le tracé |
+| `scatter.reg.labelPos` | Label position | Position de l’étiquette |
+| `scatter.reg.tl` | top-left | haut-gauche |
+| `scatter.reg.tr` | top-right | haut-droite |
+| `scatter.reg.bl` | bottom-left | bas-gauche |
+| `scatter.reg.br` | bottom-right | bas-droite |
+| `scatter.ref.title` | Reference line | Ligne de référence |
+| `scatter.ref.addH` | + H | + H |
+| `scatter.ref.addV` | + V | + V |
+| `scatter.ref.none` | No reference lines. | Aucune ligne de référence. |
+| `scatter.ref.yEq` | Y = | Y = |
+| `scatter.ref.xEq` | X = | X = |
+| `scatter.ref.width` | Width | Épaisseur |
+| `scatter.ref.dashed` | Dashed | Pointillés |
+| `scatter.ref.labelPlaceholder` | label | étiquette |
+| `scatter.ref.right` | right | droite |
+| `scatter.ref.left` | left | gauche |
+| `scatter.ref.top` | top | haut |
+| `scatter.ref.bottom` | bottom | bas |
+| `scatter.aes.none` | — None — | — Aucun — |
+| `scatter.aes.detected` | Detected:  | Détecté :  |
+| `scatter.aes.continuous` | numeric (continuous) | numérique (continu) |
+| `scatter.aes.categorical.one` | categorical ({n} group) | catégoriel ({n} groupe) |
+| `scatter.aes.categorical.other` | categorical ({n} groups) | catégoriel ({n} groupes) |
+| `scatter.aes.range` | range: {min} → {max} | plage : {min} → {max} |
+| `scatter.size.min` | Min size | Taille min |
+| `scatter.size.max` | Max size | Taille max |
+| `scatter.sec.axes` | Axes | Axes |
+| `scatter.axes.xMin` | X min | X min |
+| `scatter.axes.xMax` | X max | X max |
+| `scatter.axes.yMin` | Y min | Y min |
+| `scatter.axes.yMax` | Y max | Y max |
+| `scatter.axes.auto` | auto ({v}) | auto ({v}) |
+| `scatter.axes.xLabel` | X label | Étiquette X |
+| `scatter.axes.yLabel` | Y label | Étiquette Y |
+| `scatter.axes.title` | Title | Titre |
+| `scatter.sec.style` | Style | Style |
+| `scatter.filters.title` | Filters | Filtres |
+| `scatter.filters.rows` | {shown} of {total} rows | {shown} sur {total} lignes |
+| `scatter.filters.all` | all | tout |
+| `scatter.chart.fallbackTitle` | Scatter plot | Nuage de points |
+| `scatter.chart.pointsAria.one` | {n} data point | {n} point de données |
+| `scatter.chart.pointsAria.other` | {n} data points | {n} points de données |
+| `scatter.chart.regressionAria` | Linear regression: slope {slope}, intercept {intercept}, R² {r2}, n={n} | Régression linéaire : pente {slope}, ordonnée {intercept}, R² {r2}, n={n} |
+| `scatter.corr.pearson` | Pearson r | Pearson r |
+| `scatter.corr.spearman` | Spearman ρ | Spearman ρ |
+| `scatter.corr.kendall` | Kendall τ | Kendall τ |
+| `scatter.sp.variables` | Variables | Variables |
+| `scatter.sp.axis` | Axis | Axe |
+| `scatter.sp.n` | n | n |
+| `scatter.sp.mean` | Mean | Moyenne |
+| `scatter.sp.sd` | SD | SD |
+| `scatter.sp.assumptions` | Assumptions | Hypothèses |
+| `scatter.sp.normal` | normal | normale |
+| `scatter.sp.notNormal` | not normal | non normale |
+| `scatter.sp.test` | Test | Test |
+| `scatter.sp.recommendedSuffix` |   (recommended) |   (recommandé) |
+| `scatter.sp.useRecommendation` | Use recommendation | Utiliser la recommandation |
+| `scatter.sp.suggestedAlt` | Suggested alternative: | Alternative suggérée : |
+| `scatter.sp.suggestConsider` | Shapiro-Wilk flagged non-normal data — consider  | Shapiro-Wilk a signalé des données non normales — envisagez  |
+| `scatter.sp.useSuggestion` | Use suggestion | Utiliser la suggestion |
+| `scatter.sp.kendallNote` | Kendall τ does not ship an analytic CI — bootstrap if a CI is required. | Kendall τ ne fournit pas d’IC analytique — utilisez le bootstrap si un IC est requis. |
+| `scatter.sp.headingSingle` | Correlation | Corrélation |
+| `scatter.sp.headingGroup` | Correlation by group | Corrélation par groupe |
+| `scatter.sp.desc` | Click a row to inspect assumptions, switch tests, and read the full coefficient + CI. | Cliquez sur une ligne pour inspecter les hypothèses, changer de test et lire le coefficient complet + IC. |
+| `scatter.sp.descMulti` |  Tests run independently per group. |  Les tests sont effectués indépendamment par groupe. |
+| `scatter.sp.txtTitleSingle` | Download a plain-text correlation report | Télécharger un rapport de corrélation en texte brut |
+| `scatter.sp.txtTitleMulti` | Download a plain-text correlation report covering every group | Télécharger un rapport de corrélation en texte brut couvrant chaque groupe |
+| `scatter.sp.rTitleSingle` | Download a runnable R script reproducing cor.test on this set | Télécharger un script R exécutable reproduisant cor.test sur cet ensemble |
+| `scatter.sp.rTitleMulti` | Download a runnable R script reproducing cor.test for every group | Télécharger un script R exécutable reproduisant cor.test pour chaque groupe |
+| `scatter.sp.colGroup` | Group | Groupe |
+| `scatter.sp.colTest` | Test | Test |
+| `scatter.sp.colStatistic` | Statistic | Statistique |
+| `scatter.sp.colP` | p | p |
+| `scatter.howto.title` | Scatter Plot — How to use | Scatter Plot — Comment l’utiliser |
+| `scatter.howto.subtitle` | XY scatter with optional colour / size / shape mapping | Nuage XY avec mappage optionnel couleur / taille / forme |
+| `scatter.howto.purpose` | Plot one numeric column against another. Map a third (or fourth, or fifth) column to point colour, size, or shape to surface multivariate structure in a single view. | Tracez une colonne numérique contre une autre. Mappez une troisième (ou quatrième, ou cinquième) colonne à la couleur, la taille ou la forme des points pour révéler une structure multivariée en une seule vue. |
+| `scatter.howto.dataLayout` | One row per point. At least two <strong>numeric</strong> columns (the X and Y axes). Extra columns — categorical or numeric — become aesthetic mappings or filters. | Une ligne par point. Au moins deux colonnes <strong>numériques</strong> (les axes X et Y). Les colonnes supplémentaires — catégorielles ou numériques — deviennent des mappages esthétiques ou des filtres. |
+| `scatter.howto.display` | Optional colour-by-column (continuous gradient or discrete swatches), size-by-column, and shape-by-column. Add <strong>reference lines</strong> at fixed X / Y values, overlay a <strong>linear regression</strong> with R² + p-value. Filter rows by any categorical column. | Couleur-par-colonne optionnelle (dégradé continu ou pastilles discrètes), taille-par-colonne et forme-par-colonne. Ajoutez des <strong>lignes de référence</strong> à des valeurs X / Y fixes, superposez une <strong>régression linéaire</strong> avec R² + p-value. Filtrez les lignes par n’importe quelle colonne catégorielle. |
+
+## boxplot — Group Plot (boxplot) tool
+
+_156 strings · tools/boxplot/i18n/en.ts_
+
+| Key | English | French |
+| --- | --- | --- |
+| `boxplot.err.empty` | The file appears to be empty or has no data rows. Please check your file and try again. | Le fichier semble vide ou sans lignes de données. Vérifiez votre fichier et réessayez. |
+| `boxplot.set.facet` | Facet | Facette |
+| `boxplot.set.subgroup` | Subgroup | Sous-groupe |
+| `boxplot.set.facetSubgroup` | Facet × Subgroup | Facette × Sous-groupe |
+| `boxplot.chart.boxPlot` | Box plot | Boîte à moustaches |
+| `boxplot.chart.barChart` | Bar chart | Diagramme en barres |
+| `boxplot.chart.descBox.one` | Box plot with {count} group | Boîte à moustaches avec {count} groupe |
+| `boxplot.chart.descBox.other` | Box plot with {count} groups | Boîte à moustaches avec {count} groupes |
+| `boxplot.chart.descBar.one` | Bar chart with {count} group | Diagramme en barres avec {count} groupe |
+| `boxplot.chart.descBar.other` | Bar chart with {count} groups | Diagramme en barres avec {count} groupes |
+| `boxplot.chart.descYAxis` | , Y axis: {y} | , axe Y : {y} |
+| `boxplot.chart.mean` | mean | moyenne |
+| `boxplot.ctrl.wideDetected` | Wide format auto-detected | Format large détecté automatiquement |
+| `boxplot.ctrl.switchLong` | Switch to long pipeline | Passer au pipeline long |
+| `boxplot.ctrl.conditions` | Conditions ({sel}/{total}) | Conditions ({sel}/{total}) |
+| `boxplot.ctrl.selectedObs` | {sel} of {total} selected · {obs} obs | {sel} sur {total} sélectionnées · {obs} obs |
+| `boxplot.ctrl.plotStyle` | Plot style | Style de tracé |
+| `boxplot.ctrl.style.box` | Box | Boîte |
+| `boxplot.ctrl.style.violin` | Violin | Violon |
+| `boxplot.ctrl.style.rain` | Rain | Pluie |
+| `boxplot.ctrl.style.bar` | Bar | Barres |
+| `boxplot.ctrl.orientation` | Orientation | Orientation |
+| `boxplot.ctrl.vertical` | Vertical | Vertical |
+| `boxplot.ctrl.horizontal` | Horizontal | Horizontal |
+| `boxplot.ctrl.shapeFill` | Shape & fill | Forme & remplissage |
+| `boxplot.ctrl.boxWidth` | Box width | Largeur de boîte |
+| `boxplot.ctrl.barWidth` | Bar width | Largeur de barre |
+| `boxplot.ctrl.width` | Width | Largeur |
+| `boxplot.ctrl.boxGap` | Box gap | Espace entre boîtes |
+| `boxplot.ctrl.barGap` | Bar gap | Espace entre barres |
+| `boxplot.ctrl.gap` | Gap | Espacement |
+| `boxplot.ctrl.fillOpacity` | Fill opacity | Opacité du remplissage |
+| `boxplot.ctrl.errorBars` | Error bars | Barres d’erreur |
+| `boxplot.ctrl.none` | None | Aucune |
+| `boxplot.ctrl.errStroke` | Error bar stroke | Épaisseur des barres d’erreur |
+| `boxplot.ctrl.barOutline` | Bar outline | Contour des barres |
+| `boxplot.ctrl.outlineWidth` | Outline width | Épaisseur du contour |
+| `boxplot.ctrl.outlineColor` | Outline color | Couleur du contour |
+| `boxplot.ctrl.dataPoints` | Data points | Points de données |
+| `boxplot.ctrl.showPoints` | Show points | Afficher les points |
+| `boxplot.ctrl.colorBy` | Color by | Colorer par |
+| `boxplot.ctrl.noneOption` | — none — | — aucun — |
+| `boxplot.ctrl.compPies` | Composition pies | Camemberts de composition |
+| `boxplot.ctrl.size` | Size | Taille |
+| `boxplot.ctrl.jitter` | Jitter | Dispersion |
+| `boxplot.ctrl.opacity` | Opacity | Opacité |
+| `boxplot.ctrl.splitBy` | Split by | Diviser par |
+| `boxplot.ctrl.facetBy` | Facet by | Facette par |
+| `boxplot.ctrl.subgroupBy` | Subgroup by | Sous-groupe par |
+| `boxplot.ctrl.noneParen` | (none) | (aucun) |
+| `boxplot.ctrl.axesLabels` | Axes & labels | Axes & étiquettes |
+| `boxplot.ctrl.title` | Title | Titre |
+| `boxplot.ctrl.yLabel` | Y label | Étiquette Y |
+| `boxplot.ctrl.yMin` | Y min | Y min |
+| `boxplot.ctrl.yMax` | Y max | Y max |
+| `boxplot.ctrl.auto` | auto | auto |
+| `boxplot.ctrl.yScale` | Y scale | Échelle Y |
+| `boxplot.ctrl.linear` | Linear | Linéaire |
+| `boxplot.ctrl.groupLabelAngle` | Group label angle | Angle des étiquettes de groupe |
+| `boxplot.steps.aes.group` | Group (X axis) | Groupe (axe X) |
+| `boxplot.steps.aes.value` | Value (Y axis) | Valeur (axe Y) |
+| `boxplot.steps.example.title` | Plant biomass under drought & salt | Biomasse végétale sous sécheresse & sel |
+| `boxplot.steps.example.subtitle` | 3 genotypes × 3 treatments × 8 replicates · 72 rows | 3 génotypes × 3 traitements × 8 réplicats · 72 lignes |
+| `boxplot.steps.example.button` | Plot this example → | Tracer cet exemple → |
+| `boxplot.steps.uploadHint` | CSV · TSV · TXT · DAT — one row per observation · 2 MB max | CSV · TSV · TXT · DAT — une ligne par observation · 2 Mo max |
+| `boxplot.steps.otherCols` | Other columns | Autres colonnes |
+| `boxplot.steps.otherColsDesc` | Toggle <strong style="color:{c}">filter</strong> to keep the column available for the Filter step and for color / facet / subgroup mapping on the plot. Otherwise the column is ignored. | Activez <strong style="color:{c}">filtre</strong> pour garder la colonne disponible pour l’étape Filtrer et pour le mappage couleur / facette / sous-groupe sur le tracé. Sinon la colonne est ignorée. |
+| `boxplot.steps.filter` | filter | filtre |
+| `boxplot.steps.chooseGroup` | — choose a group column — | — choisir une colonne de groupe — |
+| `boxplot.steps.chooseValue` | — choose a value column — | — choisir une colonne de valeur — |
+| `boxplot.steps.displayAs` | Display as | Afficher comme |
+| `boxplot.steps.renameGroupTitle` | Rename the selected column. The new name is used on the X-axis label and in exports. | Renommer la colonne sélectionnée. Le nouveau nom est utilisé sur l’étiquette de l’axe X et dans les exports. |
+| `boxplot.steps.renameValueTitle` | Rename the selected column. The new name is used on the Y-axis label and in exports. | Renommer la colonne sélectionnée. Le nouveau nom est utilisé sur l’étiquette de l’axe Y et dans les exports. |
+| `boxplot.steps.groupHint` | Categorical column that defines the X-axis groups (genotypes, treatments, …). | Colonne catégorielle qui définit les groupes de l’axe X (génotypes, traitements, …). |
+| `boxplot.steps.valueHint` | Numeric column plotted as the Y-axis measurement. | Colonne numérique tracée comme mesure de l’axe Y. |
+| `boxplot.steps.nonNumericConfigure` | ⚠ Column <strong>"{name}"</strong> is assigned as <strong>value</strong> but appears to be non-numeric — the plot will be empty. Please assign a numeric column as value. | ⚠ La colonne <strong>"{name}"</strong> est assignée comme <strong>valeur</strong> mais semble non numérique — le tracé sera vide. Veuillez assigner une colonne numérique comme valeur. |
+| `boxplot.steps.assignGroupValue` | Assign at least one <strong style="color:{gc}">group</strong> and one <strong style="color:{vc}">value</strong> column to continue. | Assignez au moins une colonne <strong style="color:{gc}">groupe</strong> et une colonne <strong style="color:{vc}">valeur</strong> pour continuer. |
+| `boxplot.steps.colsRows` | {cols} cols × {rows} rows | {cols} cols × {rows} lignes |
+| `boxplot.steps.noHeader` |  (no header) |  (pas d’en-tête) |
+| `boxplot.steps.preview8` | Preview (first 8 rows): | Aperçu (8 premières lignes) : |
+| `boxplot.steps.preview` | Preview | Aperçu |
+| `boxplot.steps.previewOf` | of {total} rows | sur {total} lignes |
+| `boxplot.steps.filteredOut` | filtered out | filtrées |
+| `boxplot.steps.filteredLong` | Filtered data (long) | Données filtrées (long) |
+| `boxplot.steps.longCsv` | ⬇ Long CSV | ⬇ CSV long |
+| `boxplot.steps.reshapedWide` | Reshaped (wide) | Remodelé (large) |
+| `boxplot.steps.wideCsv` | ⬇ Wide CSV | ⬇ CSV large |
+| `boxplot.steps.unlabelled.one` | ⚠ {count} row had an empty group cell — all merged under the "?" column. | ⚠ {count} ligne avait une cellule de groupe vide — toutes fusionnées sous la colonne « ? ». |
+| `boxplot.steps.unlabelled.other` | ⚠ {count} rows had an empty group cell — all merged under the "?" column. | ⚠ {count} lignes avaient une cellule de groupe vide — toutes fusionnées sous la colonne « ? ». |
+| `boxplot.steps.assignReshape` | ⚠ Assign <strong>group</strong> + <strong>value</strong> columns to enable reshaping & stats. | ⚠ Assignez les colonnes <strong>groupe</strong> + <strong>valeur</strong> pour activer le remodelage & les stats. |
+| `boxplot.steps.nonNumericOutput` | ⚠ Column <strong>"{name}"</strong> is assigned as <strong>value</strong> but appears to be non-numeric — the plot will be empty. Go back to Configure and assign a numeric column as value. | ⚠ La colonne <strong>"{name}"</strong> est assignée comme <strong>valeur</strong> mais semble non numérique — le tracé sera vide. Retournez à Configurer et assignez une colonne numérique comme valeur. |
+| `boxplot.test.studentT` | Student's t-test | Test t de Student |
+| `boxplot.test.welchT` | Welch's t-test | Test t de Welch |
+| `boxplot.test.mannWhitney` | Mann-Whitney U | Mann-Whitney U |
+| `boxplot.test.oneWayANOVA` | One-way ANOVA | ANOVA à un facteur |
+| `boxplot.test.welchANOVA` | Welch's ANOVA | ANOVA de Welch |
+| `boxplot.test.kruskalWallis` | Kruskal-Wallis | Kruskal-Wallis |
+| `boxplot.posthoc.tukeyHSD` | Tukey HSD | Tukey HSD |
+| `boxplot.posthoc.gamesHowell` | Games-Howell | Games-Howell |
+| `boxplot.posthoc.dunn` | Dunn (BH-adjusted) | Dunn (ajusté BH) |
+| `boxplot.sp.statsAtEach` | Statistics at each {label} | Statistiques à chaque {label} |
+| `boxplot.sp.statistics` | Statistics | Statistiques |
+| `boxplot.sp.desc` | Click a row to inspect decision trace, assumptions, post-hoc and power. | Cliquez sur une ligne pour inspecter la trace de décision, les hypothèses, le post-hoc et la puissance. |
+| `boxplot.sp.descMulti` |  Tests are independent per {label}. |  Les tests sont indépendants par {label}. |
+| `boxplot.sp.txtTitleSingle` | Download a plain-text stats report | Télécharger un rapport de statistiques en texte brut |
+| `boxplot.sp.txtTitleMulti` | Download a plain-text report covering every {label} | Télécharger un rapport en texte brut couvrant chaque {label} |
+| `boxplot.sp.rTitleSingle` | Download a runnable R script reproducing these tests | Télécharger un script R exécutable reproduisant ces tests |
+| `boxplot.sp.rTitleMulti` | Download a runnable R script reproducing every {label} test | Télécharger un script R exécutable reproduisant chaque test de {label} |
+| `boxplot.sp.displayOnPlot` | Display on plot | Afficher sur le tracé |
+| `boxplot.sp.off` | Off | Désact. |
+| `boxplot.sp.letters` | Letters | Lettres |
+| `boxplot.sp.brackets` | Brackets | Crochets |
+| `boxplot.sp.showNs` | Show ns | Afficher ns |
+| `boxplot.sp.printSummary` | Print summary below plot | Imprimer le résumé sous le tracé |
+| `boxplot.sp.set` | Set | Ensemble |
+| `boxplot.sp.groups` | Groups | Groupes |
+| `boxplot.sp.test` | Test | Test |
+| `boxplot.sp.statistic` | Statistic | Statistique |
+| `boxplot.sp.colP` | p | p |
+| `boxplot.sp.needsGroups` | Needs ≥ 2 groups with n ≥ 2 to run a test. | Nécessite ≥ 2 groupes avec n ≥ 2 pour lancer un test. |
+| `boxplot.sp.group` | Group | Groupe |
+| `boxplot.sp.n` | n | n |
+| `boxplot.sp.mean` | Mean | Moyenne |
+| `boxplot.sp.sd` | SD | SD |
+| `boxplot.sp.sem` | SEM | SEM |
+| `boxplot.sp.ci95` | 95% CI | IC 95 % |
+| `boxplot.sp.assumptions` | Assumptions | Hypothèses |
+| `boxplot.sp.shapiro` | Shapiro-Wilk (normality) | Shapiro-Wilk (normalité) |
+| `boxplot.sp.normal` | normal | normale |
+| `boxplot.sp.notNormal` | not normal | non normale |
+| `boxplot.sp.levene` | Levene | Levene |
+| `boxplot.sp.equalVar` | equal variance | variances égales |
+| `boxplot.sp.unequalVar` | unequal variance | variances inégales |
+| `boxplot.sp.recommendedSuffix` |   (recommended) |   (recommandé) |
+| `boxplot.sp.useRecommendation` | Use recommendation | Utiliser la recommandation |
+| `boxplot.sp.suggestedAlt` | Suggested alternative: | Alternative suggérée : |
+| `boxplot.sp.suggestConsider` | Shapiro-Wilk flagged non-normal data — consider  | Shapiro-Wilk a signalé des données non normales — envisagez  |
+| `boxplot.sp.useSuggestion` | Use suggestion | Utiliser la suggestion |
+| `boxplot.sp.posthocPrefix` | Post-hoc —  | Post-hoc —  |
+| `boxplot.sp.pair` | Pair | Paire |
+| `boxplot.sp.meanDiff` | Mean diff | Diff. moyennes |
+| `boxplot.sp.rankDiff` | Rank diff | Diff. rangs |
+| `boxplot.sp.signif` | Signif. | Signif. |
+| `boxplot.sp.vs` | vs | vs |
+| `boxplot.sp.replication` | Replication planning (n for 80% power) | Planification de réplication (n pour 80 % de puissance) |
+| `boxplot.sp.replicationDesc` | Given the observed effect size, sample size a future study would need to detect this effect at 80% power. | Étant donné la taille d’effet observée, taille d’échantillon qu’une étude future devrait avoir pour détecter cet effet à 80 % de puissance. |
+| `boxplot.sp.effectSize` | Effect size | Taille d’effet |
+| `boxplot.sp.nFor80` | n for 80% power | n pour 80 % de puissance |
+| `boxplot.sp.gt5000` | > 5000 | > 5000 |
+| `boxplot.sp.approxNote` | Approximation — rank-based test power estimated from its parametric analog. | Approximation — puissance du test sur rangs estimée à partir de son analogue paramétrique. |
+| `boxplot.howto.title` | Group Plot — How to use | Group Plot — Comment l’utiliser |
+| `boxplot.howto.subtitle` | Compare a numeric measurement across categorical groups | Comparer une mesure numérique entre des groupes catégoriels |
+| `boxplot.howto.purpose` | Side-by-side comparison of a numeric measurement across two or more groups (genotypes, treatments, conditions). Routes the right statistical test for the data shape and overlays the result. | Comparaison côte à côte d’une mesure numérique entre deux groupes ou plus (génotypes, traitements, conditions). Achemine le bon test statistique selon la forme des données et superpose le résultat. |
+| `boxplot.howto.dataLayout` | <strong>Long</strong> (preferred) — one row per observation, with a categorical <strong>group</strong> column and a numeric <strong>value</strong> column. <strong>Wide</strong> (one column per group) is auto-detected and reshaped on the fly. Optional extra columns become filters / facets / sub-groups. | <strong>Long</strong> (préféré) — une ligne par observation, avec une colonne catégorielle <strong>groupe</strong> et une colonne numérique <strong>valeur</strong>. Le format <strong>large</strong> (une colonne par groupe) est détecté et remodelé à la volée. Les colonnes supplémentaires optionnelles deviennent des filtres / facettes / sous-groupes. |
+| `boxplot.howto.display` | Switch between <strong>box</strong> / <strong>violin</strong> / <strong>raincloud</strong> / <strong>bar</strong>. Significance is computed automatically (<em>t</em> / Welch / Mann-Whitney for k = 2; ANOVA / Welch-ANOVA / Kruskal-Wallis with Tukey / Games-Howell / Dunn post-hoc for k ≥ 3) and rendered as brackets or compact-letter display. | Basculez entre <strong>boîte</strong> / <strong>violon</strong> / <strong>raincloud</strong> / <strong>barres</strong>. La significativité est calculée automatiquement (<em>t</em> / Welch / Mann-Whitney pour k = 2 ; ANOVA / ANOVA de Welch / Kruskal-Wallis avec post-hoc Tukey / Games-Howell / Dunn pour k ≥ 3) et rendue en crochets ou en affichage par lettres compactes. |
+| `boxplot.howto.tips` | Pick a <strong>Color by</strong> column to map a second categorical to point colour; <strong>Facet by</strong> splits the chart into a small-multiples grid; <strong>Subgroup by</strong> nests a second factor inside each group's box. | Choisissez une colonne <strong>Colorer par</strong> pour mapper une seconde catégorielle à la couleur des points ; <strong>Facette par</strong> divise le tracé en une grille de petits multiples ; <strong>Sous-groupe par</strong> imbrique un second facteur dans la boîte de chaque groupe. |
+
+## aequorin — RLU Timecourse (aequorin) tool
+
+_161 strings · tools/aequorin/i18n/en.ts_
+
+| Key | English | French |
+| --- | --- | --- |
+| `aequorin.err.empty` | The file appears to be empty or has no data rows. Please check your file and try again. | Le fichier semble vide ou sans lignes de données. Vérifiez votre fichier et réessayez. |
+| `aequorin.err.oneColumn` | Only one column detected — this tool expects wide-format data with one column per sample. Check your separator setting or file format. | Une seule colonne détectée — cet outil attend des données au format large avec une colonne par échantillon. Vérifiez votre séparateur ou le format du fichier. |
+| `aequorin.err.notNumeric` | Less than 30% of values are numeric. This tool expects a numeric matrix (one column per sample, one row per time-point). Your file may be in long format or contain mostly text. | Moins de 30 % des valeurs sont numériques. Cet outil attend une matrice numérique (une colonne par échantillon, une ligne par point temporel). Votre fichier est peut-être au format long ou contient surtout du texte. |
+| `aequorin.err.exampleNotLoaded` | Example dataset not loaded. Please try uploading a file instead. | Jeu de données d’exemple non chargé. Essayez plutôt de téléverser un fichier. |
+| `aequorin.warn.longFormat` | ⚠️ This looks like it could be long-format data (few columns, mix of text and numbers). This tool expects wide format — one column per sample, one row per time-point. | ⚠️ Cela ressemble à des données au format long (peu de colonnes, mélange de texte et de nombres). Cet outil attend le format large — une colonne par échantillon, une ligne par point temporel. |
+| `aequorin.warn.differentLengths` | ⚠️ Columns have different lengths ({min}–{max} numeric values). Some samples may have missing time-points, which can affect mean/SD calculations. | ⚠️ Les colonnes ont des longueurs différentes ({min}–{max} valeurs numériques). Certains échantillons peuvent avoir des points temporels manquants, ce qui peut affecter les calculs de moyenne/SD. |
+| `aequorin.app.series` | Series | Séries |
+| `aequorin.app.seriesDef` | Series definition | Définition des séries |
+| `aequorin.app.poolByName` | Pool by name | Regrouper par nom |
+| `aequorin.app.individual` | Individual | Individuel |
+| `aequorin.app.layout` | Layout | Disposition |
+| `aequorin.app.plotLayout` | Plot layout | Disposition du tracé |
+| `aequorin.app.combined` | Combined | Combiné |
+| `aequorin.app.faceted` | Faceted | Facetté |
+| `aequorin.chart.fallbackTitle` | RLU timecourse chart | Graphique chronologique RLU |
+| `aequorin.chart.desc.one` | Time series chart with {count} series | Graphique de série temporelle avec {count} série |
+| `aequorin.chart.desc.other` | Time series chart with {count} series | Graphique de série temporelle avec {count} séries |
+| `aequorin.chart.descX` | , X: {x} | , X : {x} |
+| `aequorin.chart.descY` | , Y: {y} | , Y : {y} |
+| `aequorin.chart.traceAria` | Trace: {name} | Tracé : {name} |
+| `aequorin.chart.barAria` | Bar plot | Diagramme en barres |
+| `aequorin.chart.barTitle` | Inset bar plot | Diagramme en barres en médaillon |
+| `aequorin.chart.barDesc.one` | Inset bar plot of {count} condition | Diagramme en barres en médaillon de {count} condition |
+| `aequorin.chart.barDesc.other` | Inset bar plot of {count} conditions | Diagramme en barres en médaillon de {count} conditions |
+| `aequorin.ctrl.csvTitle` | Download calibrated [Ca²⁺] over time — one row per time-point, one column per sample (calibration applied) | Télécharger [Ca²⁺] calibré au cours du temps — une ligne par point temporel, une colonne par échantillon (calibration appliquée) |
+| `aequorin.ctrl.conditions` | Conditions | Conditions |
+| `aequorin.ctrl.axes` | Axes | Axes |
+| `aequorin.ctrl.xStart` | X start ({unit}) | Début X ({unit}) |
+| `aequorin.ctrl.xEnd` | X end ({unit}) | Fin X ({unit}) |
+| `aequorin.ctrl.yMin` | Y min | Y min |
+| `aequorin.ctrl.yMax` | Y max | Y max |
+| `aequorin.ctrl.autoOnTitle` | Re-enable auto-scaling of Y to the visible X window | Réactiver l’auto-échelle de Y sur la fenêtre X visible |
+| `aequorin.ctrl.autoOffTitle` | Auto-scaling is on — Y follows the visible X window | L’auto-échelle est active — Y suit la fenêtre X visible |
+| `aequorin.ctrl.auto` | Auto | Auto |
+| `aequorin.ctrl.autoOn` | Auto ✓ | Auto ✓ |
+| `aequorin.ctrl.smooth` | Smooth (±pts) | Lissage (±pts) |
+| `aequorin.ctrl.smoothValue` | {n} pts | {n} pts |
+| `aequorin.ctrl.displayUnit` | Display unit | Unité d’affichage |
+| `aequorin.ctrl.labels` | Labels | Étiquettes |
+| `aequorin.ctrl.title` | Title | Titre |
+| `aequorin.ctrl.subtitle` | Subtitle | Sous-titre |
+| `aequorin.ctrl.style` | Style | Style |
+| `aequorin.ctrl.lineWidth` | Line width | Épaisseur de ligne |
+| `aequorin.ctrl.sdOpacity` | SD opacity | Opacité SD |
+| `aequorin.ctrl.plotHeight` | Plot height | Hauteur du tracé |
+| `aequorin.ctrl.summaryBarplot` | Summary barplot | Diagramme en barres récapitulatif |
+| `aequorin.ctrl.summaryBarplotTitle` | Barplot of the sum (Σ) of plotted values per condition | Diagramme en barres de la somme (Σ) des valeurs tracées par condition |
+| `aequorin.ctrl.off` | Off | Désact. |
+| `aequorin.ctrl.on` | On | Activé |
+| `aequorin.ctrl.layout` | Layout | Disposition |
+| `aequorin.ctrl.autoPlaceholder` | auto | auto |
+| `aequorin.ctrl.grid` | Grid | Grille |
+| `aequorin.ctrl.gridColor` | Grid color | Couleur de la grille |
+| `aequorin.ctrl.xLabelAngle` | X label angle | Angle des étiquettes X |
+| `aequorin.ctrl.barWidth` | Bar width | Largeur de barre |
+| `aequorin.ctrl.barGap` | Bar gap | Espace entre barres |
+| `aequorin.ctrl.barFillOpacity` | Bar fill opacity | Opacité du remplissage des barres |
+| `aequorin.ctrl.barOutline` | Bar outline | Contour des barres |
+| `aequorin.ctrl.outlineWidth` | Outline width | Épaisseur du contour |
+| `aequorin.ctrl.outlineColor` | Outline color | Couleur du contour |
+| `aequorin.ctrl.errorBarsHead` | Error bars | Barres d’erreur |
+| `aequorin.ctrl.type` | Type | Type |
+| `aequorin.ctrl.errorBars` | Error bars | Barres d’erreur |
+| `aequorin.ctrl.none` | None | Aucune |
+| `aequorin.ctrl.errorStrokeWidth` | Error stroke width | Épaisseur des barres d’erreur |
+| `aequorin.ctrl.points` | Points | Points |
+| `aequorin.ctrl.show` | Show | Afficher |
+| `aequorin.ctrl.showPoints` | Show points | Afficher les points |
+| `aequorin.ctrl.color` | Color | Couleur |
+| `aequorin.ctrl.size` | Size | Taille |
+| `aequorin.steps.formulaAria` | Calibration formula with your parameter values substituted | Formule de calibration avec vos valeurs de paramètres substituées |
+| `aequorin.steps.withYourValues` | With your values | Avec vos valeurs |
+| `aequorin.steps.example.title` | Aequorin Ca²⁺ time-course | Chronologie Ca²⁺ aequorine |
+| `aequorin.steps.example.subtitle` | Mutant vs WT response to a CO7 elicitor pulse | Réponse mutant vs WT à une impulsion d’éliciteur CO7 |
+| `aequorin.steps.example.button` | Plot this example → | Tracer cet exemple → |
+| `aequorin.steps.uploadHint` | CSV · TSV · TXT · DAT — one column per sample, one row per time-point · 2 MB max | CSV · TSV · TXT · DAT — une colonne par échantillon, une ligne par point temporel · 2 Mo max |
+| `aequorin.steps.aes.calibration` | Aequorin calibration | Calibration aequorine |
+| `aequorin.steps.aes.time` | Time axis | Axe temporel |
+| `aequorin.steps.formula` | Formula | Formule |
+| `aequorin.steps.formula.none` | None (raw data) | Aucune (données brutes) |
+| `aequorin.steps.formula.allenBlinks` | Allen & Blinks (1978) | Allen & Blinks (1978) |
+| `aequorin.steps.formula.hill` | Hill equilibrium | Équilibre de Hill |
+| `aequorin.steps.formula.generalized` | Generalised Allen & Blinks | Allen & Blinks généralisé |
+| `aequorin.steps.kdLabel` | Kd (µM) | Kd (µM) |
+| `aequorin.steps.hillExp` | n (Hill exp.) | n (exp. Hill) |
+| `aequorin.steps.timeStep` | Time step (per row) | Pas de temps (par ligne) |
+| `aequorin.steps.baseUnit` | Base unit | Unité de base |
+| `aequorin.steps.range` | Range: 0 – {end} {unit} | Plage : 0 – {end} {unit} |
+| `aequorin.steps.loaded` | Loaded  | Chargé  |
+| `aequorin.steps.loadedSummary` |  — {samples} samples × {timepoints} time-points |  — {samples} échantillons × {timepoints} points temporels |
+| `aequorin.steps.previewRaw` | raw data | données brutes |
+| `aequorin.steps.previewCalibrated` | calibrated data | données calibrées |
+| `aequorin.steps.preview` | Preview — {kind} · {shown} of {total} columns (first 15 rows): | Aperçu — {kind} · {shown} sur {total} colonnes (15 premières lignes) : |
+| `aequorin.pa.perReplicate` | Per replicate | Par réplicat |
+| `aequorin.pa.openInBoxplot` | ↗ Open in Boxplot | ↗ Ouvrir dans Boxplot |
+| `aequorin.pa.openInBoxplotTitle` | Open this per-replicate Σ data directly in the Group Plot tool (boxplot / violin / raincloud / bar) | Ouvrir ces données Σ par réplicat directement dans l’outil Group Plot (boîte / violon / raincloud / barres) |
+| `aequorin.pa.dragTip` | Tip: drag across the plot to set the time window. Adjust it in Axes. | Astuce : glissez sur le tracé pour définir la fenêtre temporelle. Ajustez-la dans Axes. |
+| `aequorin.pa.dragTipClear` |  Click clear to reset. |  Cliquez sur effacer pour réinitialiser. |
+| `aequorin.pa.clear` | Clear | Effacer |
+| `aequorin.pa.resetTitle` | Reset the time window to the full data range | Réinitialiser la fenêtre temporelle à la plage complète des données |
+| `aequorin.pa.samples` | Samples | Échantillons |
+| `aequorin.pa.close` | ✕ Close | ✕ Fermer |
+| `aequorin.pa.sampleSelection` | 🔬 Sample selection | 🔬 Sélection d’échantillons |
+| `aequorin.test.studentT` | Student's t-test | Test t de Student |
+| `aequorin.test.welchT` | Welch's t-test | Test t de Welch |
+| `aequorin.test.mannWhitney` | Mann-Whitney U | Mann-Whitney U |
+| `aequorin.test.oneWayANOVA` | One-way ANOVA | ANOVA à un facteur |
+| `aequorin.test.welchANOVA` | Welch's ANOVA | ANOVA de Welch |
+| `aequorin.test.kruskalWallis` | Kruskal-Wallis | Kruskal-Wallis |
+| `aequorin.posthoc.tukeyHSD` | Tukey HSD | Tukey HSD |
+| `aequorin.posthoc.gamesHowell` | Games-Howell | Games-Howell |
+| `aequorin.posthoc.dunn` | Dunn (BH-adjusted) | Dunn (ajusté BH) |
+| `aequorin.sp.statistics` | Statistics | Statistiques |
+| `aequorin.sp.desc` | Click the row to inspect decision trace, assumptions, post-hoc and power. | Cliquez sur la ligne pour inspecter la trace de décision, les hypothèses, le post-hoc et la puissance. |
+| `aequorin.sp.txtTitle` | Download a plain-text stats report | Télécharger un rapport de statistiques en texte brut |
+| `aequorin.sp.rTitle` | Download a runnable R script reproducing this test | Télécharger un script R exécutable reproduisant ce test |
+| `aequorin.sp.displayOnPlot` | Display on plot | Afficher sur le tracé |
+| `aequorin.sp.off` | Off | Désact. |
+| `aequorin.sp.letters` | Letters | Lettres |
+| `aequorin.sp.brackets` | Brackets | Crochets |
+| `aequorin.sp.showNs` | Show ns | Afficher ns |
+| `aequorin.sp.printSummary` | Print summary below plot | Imprimer le résumé sous le tracé |
+| `aequorin.sp.groups` | Groups | Groupes |
+| `aequorin.sp.test` | Test | Test |
+| `aequorin.sp.statistic` | Statistic | Statistique |
+| `aequorin.sp.colP` | p | p |
+| `aequorin.sp.group` | Group | Groupe |
+| `aequorin.sp.n` | n | n |
+| `aequorin.sp.mean` | Mean | Moyenne |
+| `aequorin.sp.sd` | SD | SD |
+| `aequorin.sp.sem` | SEM | SEM |
+| `aequorin.sp.ci95` | 95% CI | IC 95 % |
+| `aequorin.sp.assumptions` | Assumptions | Hypothèses |
+| `aequorin.sp.shapiro` | Shapiro-Wilk (normality) | Shapiro-Wilk (normalité) |
+| `aequorin.sp.normal` | normal | normale |
+| `aequorin.sp.notNormal` | not normal | non normale |
+| `aequorin.sp.levene` | Levene | Levene |
+| `aequorin.sp.equalVar` | equal variance | variances égales |
+| `aequorin.sp.unequalVar` | unequal variance | variances inégales |
+| `aequorin.sp.recommendedSuffix` |   (recommended) |   (recommandé) |
+| `aequorin.sp.useRecommendation` | Use recommendation | Utiliser la recommandation |
+| `aequorin.sp.suggestedAlt` | Suggested alternative: | Alternative suggérée : |
+| `aequorin.sp.suggestConsider` | Shapiro-Wilk flagged non-normal data — consider  | Shapiro-Wilk a signalé des données non normales — envisagez  |
+| `aequorin.sp.useSuggestion` | Use suggestion | Utiliser la suggestion |
+| `aequorin.sp.posthocPrefix` | Post-hoc —  | Post-hoc —  |
+| `aequorin.sp.pair` | Pair | Paire |
+| `aequorin.sp.meanDiff` | Mean diff | Diff. moyennes |
+| `aequorin.sp.rankDiff` | Rank diff | Diff. rangs |
+| `aequorin.sp.signif` | Signif. | Signif. |
+| `aequorin.sp.vs` | vs | vs |
+| `aequorin.sp.replication` | Replication planning (n for 80% power) | Planification de réplication (n pour 80 % de puissance) |
+| `aequorin.sp.replicationDesc` | Given the observed effect size, sample size a future study would need to detect this effect at 80% power. | Étant donné la taille d’effet observée, taille d’échantillon qu’une étude future devrait avoir pour détecter cet effet à 80 % de puissance. |
+| `aequorin.sp.effectSize` | Effect size | Taille d’effet |
+| `aequorin.sp.nFor80` | n for 80% power | n pour 80 % de puissance |
+| `aequorin.sp.gt5000` | > 5000 | > 5000 |
+| `aequorin.sp.approxNote` | Approximation — rank-based test power estimated from its parametric analog. | Approximation — puissance du test sur rangs estimée à partir de son analogue paramétrique. |
+| `aequorin.howto.title` | RLU Timecourse — How to use | RLU Timecourse — Comment l’utiliser |
+| `aequorin.howto.subtitle` | Plot any time-series of replicates (luminescence, fluorescence, OD, …) with replicate-derived error ribbons | Tracez n’importe quelle série temporelle de réplicats (luminescence, fluorescence, DO, …) avec des rubans d’erreur dérivés des réplicats |
+| `aequorin.howto.purpose` | Plot a measurement against time, one trace per condition, with replicate spread shown as a ribbon. Calibration is optional — leave the formula on <strong>None</strong> for raw data, or pick an aequorin / Ca²⁺ formula when you have luminescence to convert. | Tracez une mesure en fonction du temps, un tracé par condition, avec la dispersion des réplicats montrée en ruban. La calibration est optionnelle — laissez la formule sur <strong>Aucune</strong> pour les données brutes, ou choisissez une formule aequorine / Ca²⁺ quand vous avez de la luminescence à convertir. |
+| `aequorin.howto.dataLayout` | Wide format — one column per sample, one row per time-point. Numeric matrix; no time-axis column required (rows are evenly-spaced; you set the per-row time step + base unit). <strong>Columns sharing the same header are pooled as replicates of one condition</strong> — the chart plots their <strong>mean ± SD</strong> ribbon automatically. Rename headers to change which samples group together. | Format large — une colonne par échantillon, une ligne par point temporel. Matrice numérique ; aucune colonne d’axe temporel requise (les lignes sont régulièrement espacées ; vous définissez le pas de temps par ligne + l’unité de base). <strong>Les colonnes partageant le même en-tête sont regroupées comme réplicats d’une même condition</strong> — le graphique trace automatiquement leur ruban <strong>moyenne ± SD</strong>. Renommez les en-têtes pour changer quels échantillons sont regroupés. |
+| `aequorin.howto.display` | Each unique header becomes a coloured trace; same-name columns collapse into a mean ± SD ribbon under it. View the combined chart or a faceted small-multiples grid. Optional inset bar plot of integrated Σ-area per condition. | Chaque en-tête unique devient un tracé coloré ; les colonnes de même nom se regroupent en un ruban moyenne ± SD en dessous. Affichez le graphique combiné ou une grille de petits multiples facettée. Diagramme en barres en médaillon optionnel de l’aire Σ intégrée par condition. |
+
+## power — Power Analysis calculator
+
+_79 strings · tools/power-app/i18n/en.ts_
+
+| Key | English | French |
+| --- | --- | --- |
+| `power.test.tInd.label` | Two-sample t-test | Test t à deux échantillons |
+| `power.test.tInd.question` | How many subjects per group to detect a difference between two independent groups? | Combien de sujets par groupe pour détecter une différence entre deux groupes indépendants ? |
+| `power.test.tInd.nLabel` | n per group | n par groupe |
+| `power.test.tPaired.label` | Paired t-test | Test t apparié |
+| `power.test.tPaired.question` | How many pairs to detect a difference between matched measurements? | Combien de paires pour détecter une différence entre mesures appariées ? |
+| `power.test.tPaired.nLabel` | n (pairs) | n (paires) |
+| `power.test.tOne.label` | One-sample t-test | Test t à un échantillon |
+| `power.test.tOne.question` | How many observations to detect a deviation from a known reference value? | Combien d’observations pour détecter un écart par rapport à une valeur de référence connue ? |
+| `power.test.tOne.nLabel` | n | n |
+| `power.test.anova.label` | One-way ANOVA | ANOVA à un facteur |
+| `power.test.anova.question` | How many subjects per group to detect differences among k group means? | Combien de sujets par groupe pour détecter des différences entre k moyennes de groupes ? |
+| `power.test.anova.nLabel` | n per group | n par groupe |
+| `power.test.correlation.label` | Correlation | Corrélation |
+| `power.test.correlation.question` | How many observations to detect a non-zero Pearson correlation? | Combien d’observations pour détecter une corrélation de Pearson non nulle ? |
+| `power.test.correlation.nLabel` | n (total) | n (total) |
+| `power.test.chi2.label` | Chi-square test | Test du khi-deux |
+| `power.test.chi2.question` | How many observations for a goodness-of-fit or independence test? | Combien d’observations pour un test d’ajustement ou d’indépendance ? |
+| `power.test.chi2.nLabel` | n (total) | n (total) |
+| `power.totalN.twoSample` | Total N = {total} ({n} per group × 2) | N total = {total} ({n} par groupe × 2) |
+| `power.totalN.anova` | Total N = {total} ({n} per group × {k} groups) | N total = {total} ({n} par groupe × {k} groupes) |
+| `power.size.small` | small | petit |
+| `power.size.medium` | medium | moyen |
+| `power.size.large` | large | grand |
+| `power.size.effectSuffix` | effect | effet |
+| `power.es.helperTab` | From my data | À partir de mes données |
+| `power.es.directTab` | Direct value | Valeur directe |
+| `power.es.expectedR` | Expected correlation \|r\| | Corrélation attendue \|r\| |
+| `power.es.rNote` | How strong a linear relationship do you expect? | Quelle force de relation linéaire attendez-vous ? |
+| `power.es.mean1` | Expected mean — group 1 | Moyenne attendue — groupe 1 |
+| `power.es.mean2` | Expected mean — group 2 | Moyenne attendue — groupe 2 |
+| `power.es.commonSd` | Common standard deviation | Écart-type commun |
+| `power.es.compute` | Compute effect size | Calculer la taille d’effet |
+| `power.es.tIndNote` | Use pilot data or literature values. The SD should be the pooled within-group SD. | Utilisez des données pilotes ou de la littérature. Le SD doit être le SD intra-groupe groupé. |
+| `power.es.meanDiff` | Expected mean difference | Différence de moyennes attendue |
+| `power.es.deviationRef` | Expected deviation from reference | Écart attendu par rapport à la référence |
+| `power.es.sdPairedDiff` | SD of paired differences | SD des différences appariées |
+| `power.es.sd` | Standard deviation | Écart-type |
+| `power.es.groupMeans` | Expected group means (comma-separated) | Moyennes de groupes attendues (séparées par des virgules) |
+| `power.es.withinSd` | Within-group standard deviation | Écart-type intra-groupe |
+| `power.es.anovaNote` | Enter the means you expect for each treatment group, and the common within-group SD (from pilot data or literature). | Saisissez les moyennes attendues pour chaque groupe de traitement, et le SD intra-groupe commun (à partir de données pilotes ou de la littérature). |
+| `power.es.baselineProps` | Baseline proportions (what the theory predicts) | Proportions de référence (ce que la théorie prédit) |
+| `power.es.actualProps` | Actual proportions (what you think is really happening) | Proportions réelles (ce qui se passe vraiment selon vous) |
+| `power.es.chi2Note` | Use ratios (3:1) or proportions (0.75, 0.25). Common for Mendelian segregation tests. | Utilisez des ratios (3:1) ou des proportions (0.75, 0.25). Courant pour les tests de ségrégation mendélienne. |
+| `power.es.directF` | Effect size (f) | Taille d’effet (f) |
+| `power.es.directW` | Effect size (w) | Taille d’effet (w) |
+| `power.es.directD` | Effect size (d) | Taille d’effet (d) |
+| `power.es.formulaF` | f = SD of group means / within-group SD | f = SD des moyennes de groupes / SD intra-groupe |
+| `power.es.formulaW` | w = √(Σ (p_obs − p_exp)² / p_exp) | w = √(Σ (p_obs − p_att)² / p_att) |
+| `power.es.formulaD` | d = \|difference in means\| / pooled SD | d = \|différence de moyennes\| / SD groupé |
+| `power.es.computed` | Effect size =  | Taille d’effet =  |
+| `power.curve.title` | Power curve | Courbe de puissance |
+| `power.curve.desc` | Statistical power as a function of sample size | Puissance statistique en fonction de la taille d’échantillon |
+| `power.curve.yAxis` | Power (1 − β) | Puissance (1 − β) |
+| `power.ctrl.statisticalTest` | Statistical test | Test statistique |
+| `power.ctrl.whatToFind` | What do you need to find? | Que devez-vous trouver ? |
+| `power.ctrl.sampleSize` | Sample size | Taille d’échantillon |
+| `power.ctrl.power` | Power | Puissance |
+| `power.ctrl.expectedEffect` | Expected effect size | Taille d’effet attendue |
+| `power.ctrl.significance` | Significance level (α) | Niveau de signification (α) |
+| `power.ctrl.desiredPower` | Desired power (1 − β) | Puissance souhaitée (1 − β) |
+| `power.ctrl.standardTitle` | 0.80 (standard) | 0.80 (standard) |
+| `power.ctrl.direction` | Direction of the test | Direction du test |
+| `power.ctrl.twoSided` | Two-sided | Bilatéral |
+| `power.ctrl.oneSided` | One-sided | Unilatéral |
+| `power.ctrl.directionNote` | Two-sided: the difference could go either way. One-sided: you expect a specific direction. | Bilatéral : la différence peut aller dans les deux sens. Unilatéral : vous attendez une direction précise. |
+| `power.ctrl.numGroups` | Number of groups | Nombre de groupes |
+| `power.ctrl.df` | Degrees of freedom | Degrés de liberté |
+| `power.ctrl.dfNote` | Goodness-of-fit: categories − 1.<br/>Independence: (rows−1)(cols−1). | Ajustement : catégories − 1.<br/>Indépendance : (lignes−1)(colonnes−1). |
+| `power.result.requiredN` | Required {nLabel} | {nLabel} requis |
+| `power.result.statisticalPower` | Statistical power | Puissance statistique |
+| `power.result.rTitle` | Download a runnable R script reproducing this power calculation with the pwr package | Télécharger un script R exécutable reproduisant ce calcul de puissance avec le package pwr |
+| `power.explain.heading` | What do these numbers mean? | Que signifient ces nombres ? |
+| `power.explain.body` | <b>Power</b> is the probability that you will correctly reject the null hypothesis (i.e. to claim a result is significant). A power of 0.80 (the dashed line) means an 80% chance of success — this is the standard minimum. Higher is better but costs more subjects.<br/><br/><b>Significance level (α)</b> is the risk of a false positive — concluding there is an effect when there is none. The standard α&nbsp;=&nbsp;0.05 means you accept a 5% chance of a false alarm. Lowering α (e.g. to 0.01) makes you more conservative but requires more subjects to keep power high.<br/><br/><b>Sample size ({nLabel})</b> is the number of observations you need to collect. More subjects give you more power to detect a given effect.<br/><br/><b>Effect size</b> measures how large the real difference or relationship is, scaled by variability. Use the "From my data" tab to compute it from values you expect (e.g. group means and standard deviation from pilot data or published studies). | La <b>puissance</b> est la probabilité de rejeter correctement l’hypothèse nulle (c.-à-d. de déclarer un résultat significatif). Une puissance de 0,80 (la ligne pointillée) signifie 80 % de chances de réussite — c’est le minimum standard. Plus élevée est préférable mais coûte plus de sujets.<br/><br/>Le <b>niveau de signification (α)</b> est le risque de faux positif — conclure à un effet alors qu’il n’y en a pas. Le standard α&nbsp;=&nbsp;0,05 signifie que vous acceptez 5 % de risque de fausse alerte. Abaisser α (p. ex. à 0,01) vous rend plus conservateur mais nécessite plus de sujets pour garder une puissance élevée.<br/><br/>La <b>taille d’échantillon ({nLabel})</b> est le nombre d’observations à collecter. Plus de sujets donnent plus de puissance pour détecter un effet donné.<br/><br/>La <b>taille d’effet</b> mesure l’ampleur de la différence ou de la relation réelle, mise à l’échelle par la variabilité. Utilisez l’onglet « À partir de mes données » pour la calculer à partir des valeurs attendues (p. ex. moyennes de groupes et écart-type de données pilotes ou d’études publiées). |
+| `power.explain.tInd` | For a <b>two-sample t-test</b>, the effect size (Cohen's d) is the difference between the two group means divided by their common standard deviation. A d of 0.2 is small, 0.5 is medium, and 0.8 is large. | Pour un <b>test t à deux échantillons</b>, la taille d’effet (d de Cohen) est la différence entre les deux moyennes de groupes divisée par leur écart-type commun. Un d de 0,2 est petit, 0,5 moyen et 0,8 grand. |
+| `power.explain.tPaired` | For a <b>paired t-test</b>, the effect size (Cohen's d) is the expected mean of the paired differences divided by the standard deviation of those differences. | Pour un <b>test t apparié</b>, la taille d’effet (d de Cohen) est la moyenne attendue des différences appariées divisée par l’écart-type de ces différences. |
+| `power.explain.tOne` | For a <b>one-sample t-test</b>, the effect size (Cohen's d) is how far the true mean deviates from the reference value, divided by the standard deviation. | Pour un <b>test t à un échantillon</b>, la taille d’effet (d de Cohen) est l’écart de la vraie moyenne par rapport à la valeur de référence, divisé par l’écart-type. |
+| `power.explain.anova` | For <b>ANOVA</b>, the effect size (Cohen's f) captures how spread out the group means are relative to within-group variability. An f of 0.10 is small, 0.25 is medium, and 0.40 is large. | Pour l’<b>ANOVA</b>, la taille d’effet (f de Cohen) capture la dispersion des moyennes de groupes par rapport à la variabilité intra-groupe. Un f de 0,10 est petit, 0,25 moyen et 0,40 grand. |
+| `power.explain.correlation` | For <b>correlation</b>, the effect size is simply the expected Pearson r. An r of 0.1 is small, 0.3 is medium, and 0.5 is large. | Pour la <b>corrélation</b>, la taille d’effet est simplement le r de Pearson attendu. Un r de 0,1 est petit, 0,3 moyen et 0,5 grand. |
+| `power.explain.chi2` | For a <b>chi-square test</b>, the effect size (Cohen's w) measures how far the observed category proportions deviate from expected. A w of 0.1 is small, 0.3 is medium, and 0.5 is large.<br/><br/>Degrees of freedom:<br/>&bull; Goodness-of-fit: <b>df = categories − 1</b><br/>&bull; Independence: <b>df = (rows − 1) × (cols − 1)</b> | Pour un <b>test du khi-deux</b>, la taille d’effet (w de Cohen) mesure l’écart des proportions de catégories observées par rapport aux attendues. Un w de 0,1 est petit, 0,3 moyen et 0,5 grand.<br/><br/>Degrés de liberté :<br/>&bull; Ajustement : <b>df = catégories − 1</b><br/>&bull; Indépendance : <b>df = (lignes − 1) × (colonnes − 1)</b> |
+
+## molarity — Calculator (molarity) tool
+
+_60 strings · tools/molarity-app/i18n/en.ts_
+
+| Key | English | French |
+| --- | --- | --- |
+| `molarity.section.solutions` | Solutions | Solutions |
+| `molarity.section.dna` | DNA | ADN |
+| `molarity.mode.molarity` | Molarity | Molarité |
+| `molarity.mode.molarity.desc` | MW / mass / volume / concentration | MM / masse / volume / concentration |
+| `molarity.mode.dilution` | Dilution | Dilution |
+| `molarity.mode.dilution.desc` | C1×V1 = C2×V2 | C1×V1 = C2×V2 |
+| `molarity.mode.batch` | Batch | Lot |
+| `molarity.mode.batch.desc` | Paste a table, get a prep sheet | Collez un tableau, obtenez une feuille de préparation |
+| `molarity.mode.ligation` | Ligation | Ligature |
+| `molarity.mode.ligation.desc` | Insert mass from vector:insert ratio | Masse d’insert à partir du ratio vecteur:insert |
+| `molarity.solveFor` | Solve for: | Résoudre pour : |
+| `molarity.inputs` | Inputs: | Entrées : |
+| `molarity.calculated` | calculated | calculé |
+| `molarity.mol.field.mw` | Mol. weight (g/mol) | Masse molaire (g/mol) |
+| `molarity.mol.field.mass` | Mass | Masse |
+| `molarity.mol.field.volume` | Volume | Volume |
+| `molarity.mol.field.conc` | Concentration | Concentration |
+| `molarity.mol.mwLabel` | MW (g/mol) | MM (g/mol) |
+| `molarity.dil.equation` | C1 × V1 = C2 × V2 — Solve for: | C1 × V1 = C2 × V2 — Résoudre pour : |
+| `molarity.dil.field.c1` | C1 (stock conc.) | C1 (conc. stock) |
+| `molarity.dil.field.v1` | V1 (stock vol.) | V1 (vol. stock) |
+| `molarity.dil.field.c2` | C2 (final conc.) | C2 (conc. finale) |
+| `molarity.dil.field.v2` | V2 (final vol.) | V2 (vol. final) |
+| `molarity.dil.stock` | Stock solution | Solution stock |
+| `molarity.dil.final` | Final solution | Solution finale |
+| `molarity.dil.c1` | C1 (concentration) | C1 (concentration) |
+| `molarity.dil.v1` | V1 (volume) | V1 (volume) |
+| `molarity.dil.c2` | C2 (concentration) | C2 (concentration) |
+| `molarity.dil.v2` | V2 (volume) | V2 (volume) |
+| `molarity.batch.errPaste` | Paste your data above. | Collez vos données ci-dessus. |
+| `molarity.batch.errTooLarge` | Pasted data too large ({mb} MB). Maximum is 2 MB — paste fewer rows. | Données collées trop volumineuses ({mb} Mo). Maximum 2 Mo — collez moins de lignes. |
+| `molarity.batch.errNoRows` | No data rows found. | Aucune ligne de données trouvée. |
+| `molarity.batch.errCols` | Need at least 4 columns: Name, MW, Concentration, Volume. | Au moins 4 colonnes requises : Nom, MM, Concentration, Volume. |
+| `molarity.batch.errInvalidMw` | Invalid MW: {v} | MM invalide : {v} |
+| `molarity.batch.errInvalidVol` | Invalid volume: {v} | Volume invalide : {v} |
+| `molarity.batch.errCannotParseConc` | Cannot parse concentration: {v} | Impossible d’analyser la concentration : {v} |
+| `molarity.batch.rowFallback` | Row {n} | Ligne {n} |
+| `molarity.batch.instruction` | Paste a table: Name, MW (g/mol), Concentration (with unit), Volume (with unit) | Collez un tableau : Nom, MM (g/mol), Concentration (avec unité), Volume (avec unité) |
+| `molarity.batch.unitsNote` | Units can be inline (e.g. "150 mM", "500 mL", "50 mg/mL"). Supported: M, mM, µM, nM, g/L, mg/mL, µg/µL, L, mL, µL. | Les unités peuvent être en ligne (p. ex. « 150 mM », « 500 mL », « 50 mg/mL »). Prises en charge : M, mM, µM, nM, g/L, mg/mL, µg/µL, L, mL, µL. |
+| `molarity.batch.separator` | Separator: | Séparateur : |
+| `molarity.batch.autoDetect` | Auto-detect | Détection auto |
+| `molarity.batch.comma` | Comma (,) | Virgule (,) |
+| `molarity.batch.semicolon` | Semicolon (;) | Point-virgule (;) |
+| `molarity.batch.tab` | Tab (\t) | Tabulation (\t) |
+| `molarity.batch.calculate` | Calculate | Calculer |
+| `molarity.batch.loadExample` | Load example | Charger l’exemple |
+| `molarity.batch.prepSheet` | Prep Sheet | Feuille de préparation |
+| `molarity.batch.col.name` | Name | Nom |
+| `molarity.batch.col.mw` | MW | MM |
+| `molarity.batch.col.conc` | Concentration | Concentration |
+| `molarity.batch.col.vol` | Volume | Volume |
+| `molarity.batch.col.mass` | Mass to weigh | Masse à peser |
+| `molarity.lig.title` | Ligation insert calculator | Calculateur d’insert de ligature |
+| `molarity.lig.formula` | insert (ng) = (insert bp / vector bp) × vector ng × (insert:vector ratio) | insert (ng) = (insert pb / vecteur pb) × vecteur ng × (ratio insert:vecteur) |
+| `molarity.lig.vector` | Vector | Vecteur |
+| `molarity.lig.insert` | Insert | Insert |
+| `molarity.lig.molarRatio` | Molar ratio | Ratio molaire |
+| `molarity.lig.length` | Length | Longueur |
+| `molarity.lig.amount` | Amount | Quantité |
+| `molarity.lig.needed` | Insert amount needed: | Quantité d’insert nécessaire : |
