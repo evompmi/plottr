@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Landing toggles now match in size.** The language toggle inherited
+  `width: auto`, rendering ~34px wide against the theme toggle's 40px square;
+  it now shares the same 40×40px footprint (the 6px gap between them is
+  preserved).
+
 ## [1.7.1] - 2026-06-08
 
 > Long-form release notes — what shipped, why, and how — live in
