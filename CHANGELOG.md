@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Keyboard access to Venn / UpSet selection.** The Venn intersection-table
+  rows and SVG regions, and the UpSet intersection bars, are now focusable
+  `role="button"` targets with `Enter` / `Space` activation and `aria-pressed`
+  state — previously these click-to-select interactions were mouse-only, leaving
+  no keyboard route to extract Venn region members. (Volcano's per-point and
+  Heatmap's cell selection remain pointer-driven; their high element counts need
+  a roving/arrow-key design rather than per-element tab stops — Volcano already
+  offers keyboard search-by-name.) Verified with new Playwright e2e.
 - **Descriptive stats no longer corrupt on non-finite input.** `computeStats`,
   `quartiles`, and `kde` now drop `NaN` / `±Infinity` samples before reducing,
   instead of letting one poison the mean / SD / min / max / whisker / KDE curve

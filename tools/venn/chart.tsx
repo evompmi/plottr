@@ -149,8 +149,26 @@ export const VennChart = memo(
               <g
                 key={`label-${inter.mask}`}
                 id={`count-${labelId}`}
-                style={{ cursor: "pointer" }}
+                style={onRegionClick ? { cursor: "pointer" } : undefined}
                 onClick={() => onRegionClick && onRegionClick(isSelected ? null : inter.mask)}
+                onKeyDown={
+                  onRegionClick
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onRegionClick(isSelected ? null : inter.mask);
+                        }
+                      }
+                    : undefined
+                }
+                tabIndex={onRegionClick ? 0 : undefined}
+                role={onRegionClick ? "button" : undefined}
+                aria-pressed={onRegionClick ? isSelected : undefined}
+                aria-label={
+                  onRegionClick
+                    ? `${inter.setNames.join(" ∩ ") || `mask ${inter.mask}`}: ${inter.size}`
+                    : undefined
+                }
               >
                 {regionPath ? (
                   <path d={regionPath} fill="none" pointerEvents="all" />

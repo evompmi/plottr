@@ -19,3 +19,21 @@ test("venn: load example → chart renders set circles", async ({ page }) => {
   await expect(circles.first()).toBeVisible();
   expect(await circles.count()).toBeGreaterThanOrEqual(2);
 });
+
+test("venn: intersection table rows are keyboard-operable (Enter selects)", async ({ page }) => {
+  await page.goto("/index.html#/venn");
+  await page.getByTestId("load-example").click();
+  const plotStep = page.getByTestId("step-plot");
+  if (await plotStep.isVisible()) await plotStep.click();
+
+  // The Intersections table exposes each region as a focusable button row —
+  // the keyboard route to extracting region members (previously mouse-only).
+  const rows = page.locator('tr[role="button"]');
+  await expect(rows.first()).toBeVisible();
+  expect(await rows.first().getAttribute("tabindex")).toBe("0");
+
+  // Focus the first row and activate it with Enter; aria-pressed flips on.
+  await rows.first().focus();
+  await page.keyboard.press("Enter");
+  await expect(rows.first()).toHaveAttribute("aria-pressed", "true");
+});

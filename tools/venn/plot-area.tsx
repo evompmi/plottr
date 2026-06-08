@@ -60,8 +60,18 @@ export function IntersectionTable({
             <tr
               key={inter.mask}
               onClick={() => onSelect(inter.mask)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(inter.mask);
+                }
+              }}
               onMouseEnter={() => setHoveredMask(inter.mask)}
               onMouseLeave={() => setHoveredMask((m) => (m === inter.mask ? null : m))}
+              tabIndex={0}
+              role="button"
+              aria-pressed={selectedMask === inter.mask}
+              aria-label={`${regionLabel(inter.setNames, inter.mask, allSetNames)}, ${inter.size} items`}
               style={{
                 borderBottom: "1px solid var(--border)",
                 cursor: "pointer",

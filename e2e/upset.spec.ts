@@ -22,3 +22,20 @@ test("upset: load example → chart renders bars + matrix dots", async ({ page }
   const dots = page.locator("svg circle");
   expect(await dots.count()).toBeGreaterThan(0);
 });
+
+test("upset: intersection bars are keyboard-operable (Enter selects)", async ({ page }) => {
+  await page.goto("/index.html#/upset");
+  await page.getByTestId("load-example").click();
+  const plotStep = page.getByTestId("step-plot");
+  if (await plotStep.isVisible()) await plotStep.click();
+
+  // Each intersection bar is a focusable button so the toggle interaction
+  // (previously click-only) is reachable by keyboard.
+  const bars = page.locator('svg g[id^="intersection-bar-"][role="button"]');
+  await expect(bars.first()).toBeVisible();
+  expect(await bars.first().getAttribute("tabindex")).toBe("0");
+
+  await bars.first().focus();
+  await page.keyboard.press("Enter");
+  await expect(bars.first()).toHaveAttribute("aria-pressed", "true");
+});
