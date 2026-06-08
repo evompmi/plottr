@@ -97,6 +97,7 @@ const {
   powerAnova,
   chi2inv,
   chi2cdf,
+  chi2cdf_upper,
   pairwiseDistance,
   rowDistance,
   hclust,
@@ -225,6 +226,47 @@ test("chi2cdf grows monotonically with x for fixed df", () => {
       assert(cur > prev, `chi2cdf monotonicity broke at k=${k}, x=${x}`);
       prev = cur;
     }
+  }
+});
+
+test("chi2cdf_upper agrees with 1 − chi2cdf in the well-conditioned bulk", () => {
+  // Where the lower CDF is not saturated at 1, the upper tail must match its
+  // complement to high precision.
+  for (const k of [1, 2, 5, 30]) {
+    for (const x of [0.1, 1, 3, 7]) {
+      approx(chi2cdf_upper(x, k), 1 - chi2cdf(x, k), 1e-10);
+    }
+  }
+});
+
+test("chi2cdf_upper(x, 2) equals the closed form exp(−x/2)", () => {
+  // χ²₂ upper tail has the closed form e^{−x/2}; a sharp anchor for the helper.
+  for (const x of [1, 5, 20, 60, 120]) {
+    const ref = Math.exp(-x / 2);
+    assert(Math.abs(chi2cdf_upper(x, 2) - ref) <= 1e-12 * ref + 1e-300, `x=${x}`);
+  }
+});
+
+test("chi2cdf_upper stays strictly positive in the deep tail (the underflow bug)", () => {
+  // The regression: `1 - chi2cdf(H, df)` floors to exactly 0 once the lower CDF
+  // rounds to 1.0, zeroing a real p-value. chi2cdf_upper computes the tail
+  // directly and stays positive. Reference Q(2, 60) = 61·e^{−60} ≈ 5.34e-25.
+  assert(1 - chi2cdf(120, 4) === 0, "precondition: the naive form underflows to 0");
+  const tail = chi2cdf_upper(120, 4);
+  assert(tail > 0, "upper tail must be strictly positive");
+  assert(tail > 4e-25 && tail < 7e-25, `expected ~5.3e-25, got ${tail}`);
+});
+
+test("chi2cdf_upper boundary + domain guards", () => {
+  eq(chi2cdf_upper(0, 5), 1); // tail at 0 is the whole mass
+  eq(chi2cdf_upper(-3, 5), 1); // support is [0, ∞)
+  assert(Number.isNaN(chi2cdf_upper(5, 0)), "k ≤ 0 is undefined");
+  // Monotonically decreasing in x.
+  let prev = 2;
+  for (const x of [0.1, 1, 5, 20, 80]) {
+    const cur = chi2cdf_upper(x, 3);
+    assert(cur < prev, `chi2cdf_upper should decrease, broke at x=${x}`);
+    prev = cur;
   }
 });
 
@@ -1209,6 +1251,16 @@ test("InsectSprays — H=54.691 df=5", () => {
   approx(r.H, 54.691345, 5e-3);
   assert(r.df === 5);
   assert(r.p < 1e-8, "p tiny");
+});
+
+test("iris SL — strongly significant p stays strictly positive (no underflow)", () => {
+  // H ≈ 96.9, df=2 ⇒ true tail e^{−48.5} ≈ 8.9e-22. The old `1 - chi2cdf`
+  // returned exactly 0 here (the lower CDF rounds to 1.0); the `< 1e-15`
+  // assertion above passed anyway because 0 < 1e-15. Pin that the p-value is
+  // now a real, strictly-positive number.
+  const r = kruskalWallis(irisSL);
+  assert(r.p > 0, `p must be strictly positive, got ${r.p}`);
+  approx(r.p, Math.exp(-r.H / 2), 1e-3 * Math.exp(-r.H / 2));
 });
 
 test("kruskalWallis: all values tied → error (matches R warning + NaN)", () => {

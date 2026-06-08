@@ -457,6 +457,27 @@ export function chi2cdf(x: number, k: number): number {
   return gammainc(k / 2, x / 2);
 }
 
+// Upper-tail 1 − chi2cdf(x, k), computed directly as the regularized upper
+// incomplete gamma Q(k/2, x/2). Same rationale as `tcdf_upper` / `fcdf_upper`:
+// `1 - chi2cdf(x, k)` loses all precision in the deep tail because
+// `gammainc(a, x)` itself returns `1 - gammainc_upper(a, x)` there, so the
+// subtraction is `1 - (1 - tiny)` — catastrophic cancellation that floors a
+// genuinely-significant p-value to 0. Call this whenever you need the χ² tail
+// probability (e.g. a test statistic's p-value), never `1 - chi2cdf`.
+export function chi2cdf_upper(x: number, k: number): number {
+  if (k <= 0) return NaN;
+  if (x <= 0) return 1;
+  const a = k / 2;
+  const t = x / 2;
+  // Branch exactly like `gammainc`: the upper continued fraction is accurate
+  // only in the tail (t > 1 && t > a) — precisely where the lower series
+  // saturates at 1 and `1 - chi2cdf` would cancel to 0, so take Q directly
+  // there. Elsewhere the lower series is accurate and far from 1, so
+  // `1 - gammainc` has no cancellation and is sharper than the CF.
+  if (t > 1 && t > a) return gammainc_upper(a, t);
+  return 1 - gammainc(a, t);
+}
+
 // Chi-square PDF — used as the Newton derivative in chi2inv. Built in log
 // space to avoid overflow at large k or tiny x.
 export function chi2pdf(x: number, k: number): number {

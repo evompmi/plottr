@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Kruskal-Wallis p-value no longer underflows to 0.** For strongly
+  significant data the p-value was computed as `1 - chi2cdf(H, df)`, which
+  floors to exactly `0` once the lower CDF rounds to 1.0 (catastrophic
+  cancellation in the χ² deep tail) — so a genuinely tiny p collapsed to `0`.
+  Now computed directly via a new `chi2cdf_upper` (regularized upper incomplete
+  gamma), matching the existing `tcdf_upper` / `fcdf_upper` treatment and R's
+  `pchisq(lower.tail=FALSE)`. (regression: 5 tests)
 - **DOM XSS via pasted-CSV column headers.** A non-numeric column header
   pasted into Group Plot was interpolated into the configure/output hints via
   `dangerouslySetInnerHTML` without escaping, so a header like
