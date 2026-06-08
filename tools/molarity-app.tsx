@@ -6,50 +6,18 @@ import { parseRaw } from "./_core/csv";
 import { downloadCsv } from "./_core/download";
 import "./molarity-app/i18n";
 import { useT } from "./molarity-app/i18n";
+import {
+  type Unit,
+  CONC_UNITS,
+  VOL_UNITS,
+  MASS_UNITS,
+  formatResult,
+  solveMolarity,
+  solveDilution,
+  computeLigationInsertNg,
+  computeBatchMass,
+} from "./molarity-app/helpers";
 const { useState, useMemo, useCallback } = React;
-
-// ── Unit definitions & conversions ──────────────────────────────────────────
-
-const CONC_UNITS = [
-  { label: "M", factor: 1 },
-  { label: "mM", factor: 1e-3 },
-  { label: "µM", factor: 1e-6 },
-  { label: "nM", factor: 1e-9 },
-];
-
-const VOL_UNITS = [
-  { label: "L", factor: 1 },
-  { label: "mL", factor: 1e-3 },
-  { label: "µL", factor: 1e-6 },
-];
-
-type Unit = { label: string; factor: number };
-
-const MASS_UNITS: Unit[] = [
-  { label: "g", factor: 1 },
-  { label: "mg", factor: 1e-3 },
-  { label: "µg", factor: 1e-6 },
-];
-
-function toBase(value: number, unit: string, units: Unit[]): number {
-  const u = units.find((u) => u.label === unit);
-  return value * (u ? u.factor : 1);
-}
-
-function fromBase(value: number, unit: string, units: Unit[]): number {
-  const u = units.find((u) => u.label === unit);
-  return value / (u ? u.factor : 1);
-}
-
-function formatResult(val: number | null | undefined): string {
-  if (val === null || val === undefined || isNaN(val) || !isFinite(val)) return "—";
-  if (val === 0) return "0";
-  const abs = Math.abs(val);
-  if (abs >= 1e6 || abs < 0.001) return val.toExponential(4);
-  if (abs >= 100) return val.toFixed(2);
-  if (abs >= 1) return val.toFixed(4);
-  return val.toPrecision(4);
-}
 
 // ── Numeric input with unit selector ────────────────────────────────────────
 
@@ -143,63 +111,10 @@ function MolarityMode({ compact }: { compact?: boolean }) {
   const [concUnit, setConcUnit] = useState("mM");
   const [solveFor, setSolveFor] = useState("conc");
 
-  const result = useMemo(() => {
-    const mwVal = parseFloat(mw);
-    const massVal = parseFloat(mass);
-    const volVal = parseFloat(vol);
-    const concVal = parseFloat(conc);
-
-    if (solveFor === "conc") {
-      if (!isFinite(mwVal) || !isFinite(massVal) || !isFinite(volVal) || mwVal <= 0 || volVal <= 0)
-        return null;
-      const massG = toBase(massVal, massUnit, MASS_UNITS);
-      const volL = toBase(volVal, volUnit, VOL_UNITS);
-      const moles = massG / mwVal;
-      const concM = moles / volL;
-      return { value: fromBase(concM, concUnit, CONC_UNITS), label: concUnit };
-    }
-    if (solveFor === "mass") {
-      if (!isFinite(mwVal) || !isFinite(concVal) || !isFinite(volVal) || mwVal <= 0 || volVal <= 0)
-        return null;
-      const concM = toBase(concVal, concUnit, CONC_UNITS);
-      const volL = toBase(volVal, volUnit, VOL_UNITS);
-      const moles = concM * volL;
-      const massG = moles * mwVal;
-      return { value: fromBase(massG, massUnit, MASS_UNITS), label: massUnit };
-    }
-    if (solveFor === "volume") {
-      if (
-        !isFinite(mwVal) ||
-        !isFinite(concVal) ||
-        !isFinite(massVal) ||
-        mwVal <= 0 ||
-        concVal <= 0
-      )
-        return null;
-      const concM = toBase(concVal, concUnit, CONC_UNITS);
-      const massG = toBase(massVal, massUnit, MASS_UNITS);
-      const moles = massG / mwVal;
-      const volL = moles / concM;
-      return { value: fromBase(volL, volUnit, VOL_UNITS), label: volUnit };
-    }
-    if (solveFor === "mw") {
-      if (
-        !isFinite(massVal) ||
-        !isFinite(concVal) ||
-        !isFinite(volVal) ||
-        concVal <= 0 ||
-        volVal <= 0
-      )
-        return null;
-      const concM = toBase(concVal, concUnit, CONC_UNITS);
-      const volL = toBase(volVal, volUnit, VOL_UNITS);
-      const massG = toBase(massVal, massUnit, MASS_UNITS);
-      const moles = concM * volL;
-      const mwCalc = massG / moles;
-      return { value: mwCalc, label: "g/mol" };
-    }
-    return null;
-  }, [mw, mass, massUnit, vol, volUnit, conc, concUnit, solveFor]);
+  const result = useMemo(
+    () => solveMolarity({ solveFor, mw, mass, massUnit, vol, volUnit, conc, concUnit }),
+    [mw, mass, massUnit, vol, volUnit, conc, concUnit, solveFor]
+  );
 
   const fields = [
     { key: "mw", label: tr("molarity.mol.field.mw") },
@@ -401,43 +316,10 @@ function DilutionMode({ compact }: { compact?: boolean }) {
   const [v2Unit, setV2Unit] = useState("mL");
   const [solveFor, setSolveFor] = useState("v1");
 
-  const result = useMemo(() => {
-    const c1Val = parseFloat(c1);
-    const v1Val = parseFloat(v1);
-    const c2Val = parseFloat(c2);
-    const v2Val = parseFloat(v2);
-
-    // C1*V1 = C2*V2, all converted to base units (M, L)
-    if (solveFor === "c1") {
-      if (!isFinite(v1Val) || !isFinite(c2Val) || !isFinite(v2Val) || v1Val <= 0) return null;
-      const base =
-        (toBase(c2Val, c2Unit, CONC_UNITS) * toBase(v2Val, v2Unit, VOL_UNITS)) /
-        toBase(v1Val, v1Unit, VOL_UNITS);
-      return { value: fromBase(base, c1Unit, CONC_UNITS), label: c1Unit };
-    }
-    if (solveFor === "v1") {
-      if (!isFinite(c1Val) || !isFinite(c2Val) || !isFinite(v2Val) || c1Val <= 0) return null;
-      const base =
-        (toBase(c2Val, c2Unit, CONC_UNITS) * toBase(v2Val, v2Unit, VOL_UNITS)) /
-        toBase(c1Val, c1Unit, CONC_UNITS);
-      return { value: fromBase(base, v1Unit, VOL_UNITS), label: v1Unit };
-    }
-    if (solveFor === "c2") {
-      if (!isFinite(c1Val) || !isFinite(v1Val) || !isFinite(v2Val) || v2Val <= 0) return null;
-      const base =
-        (toBase(c1Val, c1Unit, CONC_UNITS) * toBase(v1Val, v1Unit, VOL_UNITS)) /
-        toBase(v2Val, v2Unit, VOL_UNITS);
-      return { value: fromBase(base, c2Unit, CONC_UNITS), label: c2Unit };
-    }
-    if (solveFor === "v2") {
-      if (!isFinite(c1Val) || !isFinite(v1Val) || !isFinite(c2Val) || c2Val <= 0) return null;
-      const base =
-        (toBase(c1Val, c1Unit, CONC_UNITS) * toBase(v1Val, v1Unit, VOL_UNITS)) /
-        toBase(c2Val, c2Unit, CONC_UNITS);
-      return { value: fromBase(base, v2Unit, VOL_UNITS), label: v2Unit };
-    }
-    return null;
-  }, [c1, c1Unit, v1, v1Unit, c2, c2Unit, v2, v2Unit, solveFor]);
+  const result = useMemo(
+    () => solveDilution({ solveFor, c1, c1Unit, v1, v1Unit, c2, c2Unit, v2, v2Unit }),
+    [c1, c1Unit, v1, v1Unit, c2, c2Unit, v2, v2Unit, solveFor]
+  );
 
   const fields = [
     { key: "c1", label: tr("molarity.dil.field.c1") },
@@ -626,47 +508,6 @@ NaCl\t58.44\t150 mM\t500 mL
 Sucrose\t342.3\t0.5 M\t1 L
 Kanamycin\t484.5\t50 mg/mL\t100 mL`;
 
-// Parse a value+unit string like "150 mM", "0.5 M", "500 mL", "50 mg/mL"
-function parseValueUnit(
-  str: string,
-  defaultUnit: string,
-  unitList: Unit[]
-): { value: number; unit: string } | null {
-  str = str.trim();
-  // Try matching number + optional space + unit
-  const m = str.match(/^([\d.eE+-]+)\s*(.+)?$/);
-  if (!m) return null;
-  const val = parseFloat(m[1]);
-  if (!isFinite(val)) return null;
-  const unitStr = (m[2] || defaultUnit).trim();
-  const found = unitList.find((u) => u.label === unitStr);
-  if (found) return { value: val, unit: unitStr };
-  return null;
-}
-
-// Special: also handle mg/mL, µg/µL etc (mass/vol concentration)
-function parseMassVolConc(
-  str: string
-): { gPerL: number; originalUnit: string; originalValue: number } | null {
-  str = str.trim();
-  const m = str.match(/^([\d.eE+-]+)\s*(mg\/mL|µg\/µL|g\/L|µg\/mL|mg\/L|g\/mL)$/i);
-  if (!m) return null;
-  const val = parseFloat(m[1]);
-  if (!isFinite(val)) return null;
-  // Convert mass/vol to g/L
-  const unit = m[2].toLowerCase();
-  const conversions: Record<string, number> = {
-    "g/l": 1,
-    "mg/ml": 1,
-    "µg/µl": 1,
-    "µg/ml": 1e-3,
-    "mg/l": 1e-3,
-    "g/ml": 1e3,
-  };
-  const gPerL = val * (conversions[unit] || 1);
-  return { gPerL, originalUnit: m[2], originalValue: val };
-}
-
 function BatchMode() {
   const tr = useT();
   const [raw, setRaw] = useState("");
@@ -708,60 +549,28 @@ function BatchMode() {
       return;
     }
 
+    const errMsg = {
+      mw: "molarity.batch.errInvalidMw",
+      vol: "molarity.batch.errInvalidVol",
+      conc: "molarity.batch.errCannotParseConc",
+    } as const;
     const output: MolarityRow[] = [];
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const name = r[0] || tr("molarity.batch.rowFallback", { n: i + 1 });
-      const mwVal = parseFloat(r[1]);
-      if (!isFinite(mwVal) || mwVal <= 0) {
-        output.push({ name, error: tr("molarity.batch.errInvalidMw", { v: r[1] }) });
+      const res = computeBatchMass(r[1], r[2], r[3]);
+      if (!res.ok) {
+        output.push({ name, error: tr(errMsg[res.errorCode], { v: res.value }) });
         continue;
       }
-
-      // Parse concentration — could be molar or mass/vol
-      const concStr = r[2];
-      const volStr = r[3];
-
-      const volParsed = parseValueUnit(volStr, "mL", VOL_UNITS);
-      if (!volParsed) {
-        output.push({ name, error: tr("molarity.batch.errInvalidVol", { v: volStr }) });
-        continue;
-      }
-      const volL = toBase(volParsed.value, volParsed.unit, VOL_UNITS);
-
-      // Try molar concentration first
-      const concParsed = parseValueUnit(concStr, "mM", CONC_UNITS);
-      if (concParsed) {
-        const concM = toBase(concParsed.value, concParsed.unit, CONC_UNITS);
-        const moles = concM * volL;
-        const massG = moles * mwVal;
-        output.push({
-          name,
-          mw: mwVal,
-          conc: concParsed.value + " " + concParsed.unit,
-          vol: volParsed.value + " " + volParsed.unit,
-          massG,
-          massDisplay: formatMass(massG),
-        });
-        continue;
-      }
-
-      // Try mass/vol concentration
-      const massVolParsed = parseMassVolConc(concStr);
-      if (massVolParsed) {
-        const massG = massVolParsed.gPerL * volL;
-        output.push({
-          name,
-          mw: mwVal,
-          conc: massVolParsed.originalValue + " " + massVolParsed.originalUnit,
-          vol: volParsed.value + " " + volParsed.unit,
-          massG,
-          massDisplay: formatMass(massG),
-        });
-        continue;
-      }
-
-      output.push({ name, error: tr("molarity.batch.errCannotParseConc", { v: concStr }) });
+      output.push({
+        name,
+        mw: res.mw,
+        conc: res.conc,
+        vol: res.vol,
+        massG: res.massG,
+        massDisplay: res.massDisplay,
+      });
     }
 
     setResults(output);
@@ -952,12 +761,6 @@ function BatchMode() {
   );
 }
 
-function formatMass(grams: number): string {
-  if (grams >= 1) return grams.toFixed(4) + " g";
-  if (grams >= 1e-3) return (grams * 1e3).toFixed(4) + " mg";
-  return (grams * 1e6).toFixed(4) + " µg";
-}
-
 // ── Ligation Mode ───────────────────────────────────────────────────────────
 
 function LigationMode({ compact }: { compact?: boolean }) {
@@ -968,19 +771,10 @@ function LigationMode({ compact }: { compact?: boolean }) {
   const [ratioVector, setRatioVector] = useState("1");
   const [ratioInsert, setRatioInsert] = useState("3");
 
-  const result = useMemo(() => {
-    const vBp = parseFloat(vectorBp);
-    const vNg = parseFloat(vectorNg);
-    const iBp = parseFloat(insertBp);
-    const rV = parseFloat(ratioVector);
-    const rI = parseFloat(ratioInsert);
-    if (!isFinite(vBp) || !isFinite(vNg) || !isFinite(iBp) || !isFinite(rV) || !isFinite(rI))
-      return null;
-    if (vBp <= 0 || vNg <= 0 || iBp <= 0 || rV <= 0 || rI <= 0) return null;
-    // insert ng = (insert bp / vector bp) × vector ng × (insert ratio / vector ratio)
-    const insertNg = (iBp / vBp) * vNg * (rI / rV);
-    return insertNg;
-  }, [vectorBp, vectorNg, insertBp, ratioVector, ratioInsert]);
+  const result = useMemo(
+    () => computeLigationInsertNg({ vectorBp, vectorNg, insertBp, ratioVector, ratioInsert }),
+    [vectorBp, vectorNg, insertBp, ratioVector, ratioInsert]
+  );
 
   // Override-only style object — `dv-input` className supplies the base.
   const fieldStyle: React.CSSProperties = {

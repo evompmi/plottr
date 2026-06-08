@@ -13,9 +13,9 @@ npm run mutation    # Stryker mutation testing — measures whether the suite *c
 
 The suite splits into four rough buckets:
 
-- **Shared/foundation** — `shared`, `parsing`, `integration`, `components`, `prefs`, `r-export`, `stats`, `power`, `stats-dispatch`, `discrete-palette`, `handoff`.
+- **Shared/foundation** — `shared`, `parsing`, `integration`, `components`, `prefs`, `r-export`, `stats`, `power`, `molarity`, `stats-dispatch`, `discrete-palette`, `handoff`. Both calculators are tested through a `tests/helpers/<calc>-loader.js`: `molarity` extracts its prep-sheet math into `tools/molarity-app/helpers.ts` (bundled standalone), while `power` vm-loads its converters straight from `tools/power-app.tsx`.
 - **Per-tool unit tests** — `aequorin`, `boxplot-helpers`, `boxplot-stats-reducer`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`.
-- **Per-tool property tests** (`tests/<tool>.property.test.js`, fast-check) — `aequorin`, `boxplot`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`. See "Property-based tests" below.
+- **Per-tool property tests** (`tests/<tool>.property.test.js`, fast-check) — `aequorin`, `boxplot`, `heatmap`, `lineplot`, `molarity`, `scatter`, `upset`, `venn`, `volcano`. See "Property-based tests" below.
 - **Build / hygiene** — `anti-clickjack`, `vendor-sri`, `write-version`, `formula-injection`.
 
 Each new plot tool adds a `tests/<tool>.test.js` covering its pure helpers and a `tests/<tool>.property.test.js` covering structural invariants (see below). New shared helpers go into the bucket that matches their domain — don't create a new file unless the domain is genuinely new.
