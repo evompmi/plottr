@@ -87,6 +87,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Landing-page language + theme toggles no longer touch.** The fixed EN/FR
+  button sat flush against the 40 px theme button (its `right: 56px` landed
+  exactly on the theme button's left edge); nudged to `right: 62px` for the
+  same 6 px gap the in-tool topbar uses between its buttons.
 - **Language toggle now shows the language it switches _to_.** The EN/FR button
   labelled itself with the _active_ language (FR while the page was French),
   which read backwards against its "switch to …" tooltip. It now shows the
