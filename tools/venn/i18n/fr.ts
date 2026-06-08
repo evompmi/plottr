@@ -35,6 +35,13 @@ const fr: Record<VennKey, string> = {
     "Les aires sont proportionnelles à la taille des ensembles (erreur de région max < 0,5 %)",
   "venn.area.maxErrorLabel": "Erreur de région max : ",
   "venn.area.meanSuffix": " · moyenne {mean} %",
+  "venn.table.region": "Région",
+  "venn.table.degree": "Degré",
+  "venn.table.count": "Nombre",
+  "venn.items.empty":
+    "Cliquez sur une région du diagramme de Venn ou une ligne du tableau pour afficher les éléments.",
+  "venn.items.count.one": "{count} élément",
+  "venn.items.count.other": "{count} éléments",
   "venn.chart.fallbackTitle": "Diagramme de Venn",
   "venn.chart.desc.one": "Diagramme de Venn avec {n} ensemble : {names}",
   "venn.chart.desc.other": "Diagramme de Venn avec {n} ensembles : {names}",

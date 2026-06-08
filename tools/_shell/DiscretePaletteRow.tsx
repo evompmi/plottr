@@ -108,8 +108,8 @@ export function DiscreteSwatchStrip({
             key={i}
             type="button"
             onClick={() => handleCopy(hex)}
-            title={hex + " — click to copy"}
-            aria-label={"Copy " + hex + " to clipboard"}
+            title={tr("shell.palette.swatchTitle", { hex })}
+            aria-label={tr("shell.palette.swatchAria", { hex })}
             style={{
               flex: 1,
               background: hex,
@@ -148,6 +148,7 @@ interface DiscretePaletteSelectProps {
 // select in the codebase — without it, the browser's default select chrome
 // shows up white-on-white in dark mode.
 export function DiscretePaletteSelect({ value, onChange }: DiscretePaletteSelectProps) {
+  const tr = useShellT();
   const keys = Object.keys(DISCRETE_PALETTES);
   return (
     <div>
@@ -156,7 +157,7 @@ export function DiscretePaletteSelect({ value, onChange }: DiscretePaletteSelect
         onChange={(e) => onChange(e.target.value)}
         className="dv-select"
         style={{ width: "100%", fontSize: 11, margin: "2px 0 6px" }}
-        title="Pick a discrete palette. Picking a palette overwrites every group's colour. 👁 marks colour-blind-safe palettes."
+        title={tr("shell.palette.pickerTitle")}
       >
         {keys.map((k) => (
           <option key={k} value={k}>

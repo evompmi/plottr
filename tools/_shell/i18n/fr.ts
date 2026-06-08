@@ -118,6 +118,10 @@ const fr: Record<ShellKey, string> = {
   "shell.rename.empty": "(vide)",
   "shell.palette.copied": "✓ Copié {hex}",
   "shell.palette.clickToCopy": "Cliquez sur une pastille pour copier son hex",
+  "shell.palette.swatchTitle": "{hex} — cliquer pour copier",
+  "shell.palette.swatchAria": "Copier {hex} dans le presse-papiers",
+  "shell.palette.pickerTitle":
+    "Choisissez une palette discrète. Choisir une palette remplace la couleur de chaque groupe. 👁 indique les palettes adaptées au daltonisme.",
   "shell.prefs.title": "Réglages visuels du graphe",
   "shell.prefs.save": "Enregistrer dans un fichier",
   "shell.prefs.saveTitle": "Télécharger les réglages visuels actuels dans un fichier JSON",

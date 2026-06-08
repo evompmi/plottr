@@ -114,6 +114,10 @@ const en = {
     "For <b>correlation</b>, the effect size is simply the expected Pearson r. An r of 0.1 is small, 0.3 is medium, and 0.5 is large.",
   "power.explain.chi2":
     "For a <b>chi-square test</b>, the effect size (Cohen's w) measures how far the observed category proportions deviate from expected. A w of 0.1 is small, 0.3 is medium, and 0.5 is large.<br/><br/>Degrees of freedom:<br/>&bull; Goodness-of-fit: <b>df = categories − 1</b><br/>&bull; Independence: <b>df = (rows − 1) × (cols − 1)</b>",
+  // Input placeholders ("e.g. …" example hints)
+  "power.eg": "e.g. {ex}",
+  "power.eg.ratio1": "e.g. 3:1 or 0.75, 0.25",
+  "power.eg.ratio2": "e.g. 2:1 or 0.67, 0.33",
 } as const satisfies Catalog;
 
 export default en;

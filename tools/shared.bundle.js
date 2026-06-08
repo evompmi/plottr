@@ -464,7 +464,7 @@ var __plottrShared = (() => {
     "landing.hiw.step3": "Ajustez le trac\xE9",
     "landing.hiw.step4": "T\xE9l\xE9chargez SVG + R",
     "landing.group.plotsKicker": "Graphes",
-    "landing.group.plotsText": "Huit types de graphiques, \xE0 un click pr\xE8s",
+    "landing.group.plotsText": "Huit types de graphiques, \xE0 un clic pr\xE8s",
     "landing.group.statsKicker": "Statistiques & calculatrices",
     "landing.group.statsText": "Calculs rapides \xE0 la paillasse",
     "landing.desc.boxplot": "Bo\xEEte / violon / barre<br/>avec stats &amp; facettes",

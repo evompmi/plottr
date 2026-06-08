@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **More UI strings now localized (EN/FR).** The Venn intersection table
+  (Region / Degree / Count headers, the empty item-list prompt, the item count)
+  and item-list panel, the Power calculator's `e.g.` input placeholders, and the
+  shared discrete-palette swatch tooltips / picker title were hardcoded English;
+  they now route through the i18n catalogs. Also fixed a French typo on the
+  landing page ("click" → "clic"). (The SPA topbar chrome and a few CSV export
+  headers remain English — tracked separately.)
 - **Keyboard access to Venn / UpSet selection.** The Venn intersection-table
   rows and SVG regions, and the UpSet intersection bars, are now focusable
   `role="button"` targets with `Enter` / `Space` activation and `aria-pressed`
