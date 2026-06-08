@@ -179,7 +179,7 @@ function LangButton() {
       onClick: () => setLang(next),
       style: { fontWeight: 700, fontSize: 11, letterSpacing: 0.5 },
     },
-    lang.toUpperCase()
+    next.toUpperCase()
   );
 }
 

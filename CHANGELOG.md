@@ -87,6 +87,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Language toggle now shows the language it switches _to_.** The EN/FR button
+  labelled itself with the _active_ language (FR while the page was French),
+  which read backwards against its "switch to …" tooltip. It now shows the
+  target language (EN while French is active, FR while English is active) across
+  the tool topbar, the static landing button, and the shared `LangToggle`.
 - **Upload-screen info hint shows a real info icon.** The separator-detection
   hint led with a bare `ℹ` (U+2139), which has a text-default presentation and
   rendered as a plain italic "i" in the mono chrome font. Replaced with an

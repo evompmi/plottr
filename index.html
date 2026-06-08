@@ -1713,7 +1713,7 @@
           var lang = currentLang();
           var title = lang === "fr" ? "Passer en anglais" : "Switch to French";
           document.querySelectorAll("[data-lang-toggle]").forEach(function (btn) {
-            btn.textContent = lang.toUpperCase();
+            btn.textContent = lang === "fr" ? "EN" : "FR";
             btn.title = title;
             btn.setAttribute("aria-label", title);
           });

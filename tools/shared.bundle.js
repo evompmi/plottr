@@ -367,6 +367,7 @@ var __plottrShared = (() => {
   function LangToggle(props) {
     const p = props || {};
     const lang = useLang();
+    const next = lang === "fr" ? "en" : "fr";
     const title = lang === "fr" ? "Passer en anglais" : "Switch to French";
     const style = Object.assign(
       {
@@ -396,7 +397,7 @@ var __plottrShared = (() => {
         "aria-label": title,
         style
       },
-      lang.toUpperCase()
+      next.toUpperCase()
     );
   }
 

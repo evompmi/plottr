@@ -295,6 +295,7 @@ interface LangToggleProps {
 export function LangToggle(props?: LangToggleProps): React.ReactElement {
   const p = props || {};
   const lang = useLang();
+  const next = lang === "fr" ? "en" : "fr";
   const title = lang === "fr" ? "Passer en anglais" : "Switch to French";
   const style: React.CSSProperties = Object.assign(
     {
@@ -324,6 +325,6 @@ export function LangToggle(props?: LangToggleProps): React.ReactElement {
       "aria-label": title,
       style,
     },
-    lang.toUpperCase()
+    next.toUpperCase()
   );
 }
