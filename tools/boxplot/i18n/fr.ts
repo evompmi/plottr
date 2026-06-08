@@ -163,7 +163,7 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.sp.replication": "Planification de réplication (n pour une puissance de 80 %)",
   "boxplot.sp.replicationDesc":
     "Étant donné la taille de l’effet observée, taille d’échantillon qu’une étude future devrait avoir pour détecter cet effet à 80 % de puissance.",
-  "boxplot.sp.effectSize": "Taille de l'effet",
+  "boxplot.sp.effectSize": "Taille de l’effet",
   "boxplot.sp.nFor80": "n pour 80 % de puissance",
   "boxplot.sp.gt5000": "> 5000",
   "boxplot.sp.approxNote":

@@ -169,7 +169,7 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.sp.replication": "Planification de réplication (n pour 80 % de puissance)",
   "aequorin.sp.replicationDesc":
     "Étant donné la taille de l’effet observée, taille d’échantillon qu’une étude future devrait avoir pour détecter cet effet avec une puissance de 80 %.",
-  "aequorin.sp.effectSize": "Taille de l'effet",
+  "aequorin.sp.effectSize": "Taille de l’effet",
   "aequorin.sp.nFor80": "n pour 80 % de puissance",
   "aequorin.sp.gt5000": "> 5000",
   "aequorin.sp.approxNote":
@@ -180,7 +180,7 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.howto.purpose":
     "Tracez une mesure en fonction du temps, un tracé par condition, avec la dispersion des réplicats montrée en ruban. La calibration est optionnelle — laissez la formule sur <strong>Aucune</strong> pour les données brutes, ou choisissez une formule aequorine / Ca²⁺ quand vous avez de la luminescence à convertir.",
   "aequorin.howto.dataLayout":
-    "Format large — une colonne par échantillon, une ligne par point temporel. Matrice numérique ; aucune colonne d’axe temporel requise (les lignes sont régulièrement espacées ; vous définissez le pas de temps par ligne + l’unité de base). <strong>Les colonnes partageant le même nom d'en-tête sont regroupées comme réplicats d’une même condition</strong> — le graphique trace automatiquement leur ruban <strong>moyenne ± SD</strong>. Renommez les en-têtes pour changer le regroupement des échantillons.",
+    "Format large — une colonne par échantillon, une ligne par point temporel. Matrice numérique ; aucune colonne d’axe temporel requise (les lignes sont régulièrement espacées ; vous définissez le pas de temps par ligne + l’unité de base). <strong>Les colonnes partageant le même nom d’en-tête sont regroupées comme réplicats d’une même condition</strong> — le graphique trace automatiquement leur ruban <strong>moyenne ± SD</strong>. Renommez les en-têtes pour changer le regroupement des échantillons.",
   "aequorin.howto.display":
     "Chaque en-tête unique devient un tracé coloré ; les colonnes de même nom se regroupent en un ruban moyenne ± SD en dessous. Affichez le graphique combiné ou une grille de petits multiples facettée. Diagramme en barres en médaillon optionnel de l’aire Σ intégrée par condition.",
 };

@@ -436,7 +436,7 @@ var __plottrShared = (() => {
 
   // tools/_core/i18n/landing.fr.ts
   var landingFr = {
-    "landing.eyebrow": "Tout est dans le navigateur \xB7 pas d' installation \xB7 vos donn\xE9es restent priv\xE9es",
+    "landing.eyebrow": "Tout est dans le navigateur \xB7 pas d\u2019installation \xB7 vos donn\xE9es restent priv\xE9es",
     "landing.tagline": "Collez un tableur. Obtenez une <b>figure pr\xEAte \xE0 publier</b> \u2014 et le <b>code R</b> des statistiques qui la sous-tendent.",
     "landing.trust.validated": "Valid\xE9 avec R + SciPy",
     "landing.trust.validatedTitle": "V\xE9rifi\xE9 avec R 4.5 + SciPy 1.17 \u2014 voir le benchmark public",

@@ -6,7 +6,7 @@ import type { LandingKey } from "./landing.en";
 
 const landingFr: Record<LandingKey, string> = {
   "landing.eyebrow":
-    "Tout est dans le navigateur · pas d' installation · vos données restent privées",
+    "Tout est dans le navigateur · pas d’installation · vos données restent privées",
   "landing.tagline":
     "Collez un tableur. Obtenez une <b>figure prête à publier</b> — et le <b>code R</b> des statistiques qui la sous-tendent.",
   "landing.trust.validated": "Validé avec R + SciPy",

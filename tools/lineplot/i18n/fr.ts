@@ -93,8 +93,8 @@ const fr: Record<LineplotKey, string> = {
   "lineplot.sp.vs": "vs",
   "lineplot.sp.replication": "Planification de répétition (n pour puiss. 80 %)",
   "lineplot.sp.replicationDesc":
-    "Compte tenu de la taille de l'effet observée, taille d’échantillon qu’une étude future devrait atteindre pour détecter cet effet avec 80 % de puissance.",
-  "lineplot.sp.effectSize": "Taille de l'effet",
+    "Compte tenu de la taille de l’effet observée, taille d’échantillon qu’une étude future devrait atteindre pour détecter cet effet avec 80 % de puissance.",
+  "lineplot.sp.effectSize": "Taille de l’effet",
   "lineplot.sp.nFor80": "n pour puiss. 80 %",
   "lineplot.sp.gt5000": "> 5000",
   "lineplot.sp.approxNote":
