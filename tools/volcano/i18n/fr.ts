@@ -10,20 +10,17 @@ const fr: Record<VolcanoKey, string> = {
   "volcano.example.subtitle": "200 caractéristiques · transcriptomique circadienne végétale",
   "volcano.upload.hint":
     "CSV · TSV · TXT · une ligne par caractéristique · attend des colonnes log2FC + p-value · 2 Mo max",
-
   "volcano.class.ns": "non significatif",
   "volcano.class.down": "sous-exprimé",
   "volcano.class.up": "surexprimé",
   "volcano.chart.fallbackTitle": "Volcano plot",
   "volcano.chart.pointsTotal.one": "{n} point au total",
   "volcano.chart.pointsTotal.other": "{n} points au total",
-
   "volcano.aes.x": "Axe X · log₂ de la variation d’expression",
   "volcano.aes.y": "Axe Y · p-value (−log₁₀)",
   "volcano.aes.label": "Étiquette de caractéristique (optionnel)",
   "volcano.aes.colorMap": "Couleur",
   "volcano.aes.sizeMap": "Taille",
-
   "volcano.thresh.title": "Seuils",
   "volcano.thresh.fcCutoff": "Seuil |log2FC|",
   "volcano.thresh.pCutoff": "Seuil de p-value",
@@ -31,16 +28,13 @@ const fr: Record<VolcanoKey, string> = {
   "volcano.thresh.showRefLines": "Afficher les lignes de référence",
   "volcano.on": "Activé",
   "volcano.off": "Désactivé",
-
   "volcano.colors.title": "Couleurs",
   "volcano.colors.up": "Surexprimé",
   "volcano.colors.down": "Sous-exprimé",
   "volcano.colors.ns": "Non significatif",
-
   "volcano.search.label": "Rechercher par nom",
   "volcano.search.placeholder": "nom de gène (ou collez une liste)",
-  "volcano.search.inputTitle":
-    "Séparés par virgule ou retour à la ligne. Sous-chaîne insensible à la casse.",
+  "volcano.search.inputTitle": "Séparés par virgule ou retour à la ligne. Insensible à la casse.",
   "volcano.search.add": "Ajouter",
   "volcano.search.disabledTitle":
     "Choisissez une colonne d’étiquettes dans Configurer pour activer la recherche",
@@ -59,7 +53,6 @@ const fr: Record<VolcanoKey, string> = {
   "volcano.search.showUnmatched": "afficher les non correspondants",
   "volcano.search.hideUnmatched": "masquer les non correspondants",
   "volcano.search.unmatchedToggleTitle": "Afficher/masquer la liste des termes sans correspondance",
-
   "volcano.cfg.adjusted":
     "Cette colonne est une p-value <strong>ajustée</strong> (FDR / BH / qvalue)",
   "volcano.cfg.adjustedNote":
@@ -68,23 +61,20 @@ const fr: Record<VolcanoKey, string> = {
   "volcano.cfg.labelNote":
     "Colonne catégorielle servant à annoter les top-N caractéristiques les plus significatives (symbole de gène, nom de protéine, accession). À ignorer si vos données n’ont pas de telle colonne.",
   "volcano.cfg.assignWarn":
-    "Attribuez à la fois une <strong>colonne log₂FC</strong> et une <strong>colonne p-value</strong> pour débloquer l’étape Tracé dans la navigation ci-dessus.",
+    "Attribuez à la fois une <strong>colonne log₂FC</strong> et une <strong>colonne p-value</strong> pour débloquer l’étape Graphe dans la navigation ci-dessus.",
   "volcano.cfg.pastedData": "(données collées)",
   "volcano.cfg.colsRows": " — {cols} colonnes × {rows} lignes",
   "volcano.cfg.preview": "Aperçu (8 premières lignes) :",
-
   "volcano.dl.csv": "CSV",
   "volcano.dl.csvTitle":
     "Télécharger la table de classification par caractéristique — caractéristique, log2FC, p, −log10(p), classe",
   "volcano.dl.r": "R",
   "volcano.dl.rTitle":
     "Télécharger un script R ggplot2 autonome qui reproduit ce volcano à partir des données sous-jacentes",
-
   "volcano.steps.clamped.one":
     "{count} caractéristique avait p = 0 ; bornée à un plancher fini pour l’affichage afin que l’axe Y reste borné.",
   "volcano.steps.clamped.other":
     "{count} caractéristiques avaient p = 0 ; bornées à un plancher fini pour l’affichage afin que l’axe Y reste borné.",
-
   "volcano.labels.title": "Étiquettes",
   "volcano.labels.annotateTop": "Annoter les caractéristiques principales",
   "volcano.labels.clicked.one": "{n} point cliqué",
@@ -101,7 +91,6 @@ const fr: Record<VolcanoKey, string> = {
   "volcano.labels.dropTitle":
     "Réduire le top-N à ({up} haut / {down} bas) pour que chaque étiquette se place sans chevauchement.",
   "volcano.labels.useSuggested": "Utiliser la suggestion ({up} / {down})",
-
   "volcano.style.title": "Style",
   "volcano.style.plotWidth": "Largeur du tracé",
   "volcano.style.pointRadius": "Rayon des points",
@@ -109,7 +98,6 @@ const fr: Record<VolcanoKey, string> = {
   "volcano.style.showGrid": "Afficher la grille",
   "volcano.style.plotTitle": "Titre du tracé",
   "volcano.style.optional": "(optionnel)",
-
   "volcano.map.none": "— Aucun —",
   "volcano.map.detected": "Détecté : ",
   "volcano.map.continuous": "numérique (continu)",
@@ -125,14 +113,12 @@ const fr: Record<VolcanoKey, string> = {
   "volcano.size.maxRadius": "Rayon max",
   "volcano.size.fallbackNote":
     "Les cellules non numériques / vides reviennent au rayon par défaut de la tuile Style.",
-
   "volcano.summary.up": "↑ haut",
   "volcano.summary.down": "↓ bas",
   "volcano.summary.ns": "· ns",
   "volcano.summary.ofValid": "sur {n} valides",
   "volcano.summary.discarded": " (+{n} écartés)",
   "volcano.summary.cutoffs": "|log2FC| > {fc} · p < {p}",
-
   "volcano.howto.title": "Volcano Plot — Comment l’utiliser",
   "volcano.howto.subtitle": "Une ligne par caractéristique · log₂FC en X · p-value (−log₁₀) en Y",
   "volcano.howto.purpose":

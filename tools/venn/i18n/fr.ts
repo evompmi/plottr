@@ -10,7 +10,6 @@ const fr: Record<VennKey, string> = {
   "venn.dl.regions": "Régions",
   "venn.dl.regionsTitle":
     "Télécharger un CSV par région non vide (déclenche plusieurs enregistrements — votre navigateur peut demander une autorisation)",
-
   "venn.tile.sets": "Ensembles",
   "venn.tile.display": "Affichage",
   "venn.ctrl.proportionalAreas": "Aires proportionnelles",
@@ -20,12 +19,10 @@ const fr: Record<VennKey, string> = {
   "venn.ctrl.circleOutline": "Contour des cercles",
   "venn.ctrl.fontSize": "Taille de police",
   "venn.ctrl.background": "Arrière-plan",
-
   "venn.example.title": "DEG de réponse au stress chez Arabidopsis",
   "venn.example.subtitle": "3 ensembles — Sécheresse · Chaleur · Sel",
   "venn.upload.hint":
     "CSV · TSV · TXT — large (une colonne par ensemble, 2–3) ou long (élément, ensemble) · 2 Mo max",
-
   "venn.picker.choose": "Choisir les ensembles à superposer",
   "venn.picker.pick": "Choisissez 2 ou 3 ensembles à superposer.",
   "venn.picker.one": "1 sélectionné — choisissez-en au moins un autre.",
@@ -34,24 +31,20 @@ const fr: Record<VennKey, string> = {
   "venn.nudge.rest":
     " — les diagrammes de Venn n’affichent que 2 ou 3 ensembles. Pour 4 ensembles ou plus, utilisez l’outil UpSet.",
   "venn.nudge.openUpset": "Ouvrir dans UpSet →",
-
   "venn.area.proportionalNote":
     "Les aires sont proportionnelles à la taille des ensembles (erreur de région max < 0,5 %)",
   "venn.area.maxErrorLabel": "Erreur de région max : ",
   "venn.area.meanSuffix": " · moyenne {mean} %",
-
   "venn.chart.fallbackTitle": "Diagramme de Venn",
   "venn.chart.desc.one": "Diagramme de Venn avec {n} ensemble : {names}",
   "venn.chart.desc.other": "Diagramme de Venn avec {n} ensembles : {names}",
-
   "venn.step.configure": "Configurer",
   "venn.step.importCheck": "Vérification d’import",
   "venn.err.empty": "Le fichier semble vide ou sans lignes de données.",
   "venn.err.needSets":
     "Il faut au moins 2 ensembles — chaque en-tête de colonne devient un ensemble.",
-
   "venn.howto.title": "Venn Diagram — Comment l’utiliser",
-  "venn.howto.subtitle": "Chevauchement d’éléments entre 2–3 ensembles, proportionnel ou classique",
+  "venn.howto.subtitle": "Intersection d’éléments entre 2–3 ensembles, proportionnel ou classique",
   "venn.howto.purpose":
     "Montrez quels éléments sont partagés entre 2 ou 3 ensembles (gènes surexprimés dans deux conditions ; taxons communs à plusieurs échantillons). Pour ≥ 4 ensembles, utilisez plutôt l’outil UpSet.",
   "venn.howto.dataLayout":

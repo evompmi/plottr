@@ -9,7 +9,6 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.dl.r": "Script R",
   "heatmap.dl.rTitle":
     "Télécharger un script R exécutable qui reproduit ce graphique avec pheatmap (inclut la matrice brute, le clustering, la normalisation, la palette)",
-
   "heatmap.cluster.none": "Aucun",
   "heatmap.cluster.hier": "Hiér.",
   "heatmap.cluster.kmeans": "K-means",
@@ -17,18 +16,15 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.cluster.rows": "Lignes",
   "heatmap.cluster.columns": "Colonnes",
   "heatmap.cluster.modeAria": "Mode de clustering {label}",
-
   "heatmap.sec.normalisation": "Normalisation",
   "heatmap.sec.clustering": "Clustering",
   "heatmap.sec.colourScale": "Échelle de couleurs",
   "heatmap.sec.cellBorders": "Bordures de cellule",
   "heatmap.sec.labels": "Étiquettes",
-
   "heatmap.norm.none": "Aucune",
   "heatmap.norm.zrow": "Z ligne",
   "heatmap.norm.zcol": "Z col",
   "heatmap.norm.log2": "log₂",
-
   "heatmap.dist.heading": "Hiérarchique · Distance",
   "heatmap.dist.aria": "Métrique de distance",
   "heatmap.dist.euclidean": "Euclidienne",
@@ -39,7 +35,6 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.link.average": "Moyenne",
   "heatmap.link.complete": "Complète",
   "heatmap.link.single": "Simple",
-
   "heatmap.dendro.rowHeading": "Hiérarchique · Dendrogramme des lignes",
   "heatmap.dendro.colHeading": "Hiérarchique · Dendrogramme des colonnes",
   "heatmap.dendro.rowAria": "Afficher le dendrogramme des lignes",
@@ -48,10 +43,8 @@ const fr: Record<HeatmapKey, string> = {
     "L’ordre des feuilles + la structure de clusters restent appliqués lorsqu’ils sont masqués. Glissez sur la heatmap pour ouvrir une sélection zoomée si vous avez besoin d’exports par cluster. S’applique aux tracés principal et zoomé.",
   "heatmap.on": "Activé",
   "heatmap.off": "Désactivé",
-
   "heatmap.kmeans.seed": "K-means · Graine",
-  "heatmap.kmeans.seedNote": "Changez la graine pour essayer une autre initialisation k-means++.",
-
+  "heatmap.kmeans.seedNote": 'Changez la "seed" pour essayer une autre initialisation k-means++.',
   "heatmap.colour.palette": "Palette",
   "heatmap.colour.diverging": "  (divergente)",
   "heatmap.colour.direction": "Direction",
@@ -61,9 +54,7 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.colour.min": "Min",
   "heatmap.colour.max": "Max",
   "heatmap.colour.auto": "Auto depuis les données",
-
   "heatmap.border.width": "Épaisseur",
-
   "heatmap.labels.title": "Titre",
   "heatmap.labels.subtitle": "Sous-titre",
   "heatmap.labels.xAxis": "Étiquette axe X",
@@ -72,10 +63,8 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.labels.colNames": "Noms des colonnes",
   "heatmap.labels.rowNamesAria": "Afficher les noms des lignes",
   "heatmap.labels.colNamesAria": "Afficher les noms des colonnes",
-
   "heatmap.chart.cluster": "Groupe n° {n}",
   "heatmap.chart.colorbarAria": "Barre de couleurs : valeurs de {min} à {max}",
-
   "heatmap.err.matrix":
     "Le fichier doit comporter au moins une colonne d’étiquettes de ligne et une colonne de données avec un en-tête.",
   "heatmap.step.importCheck": "Vérification d’import",
@@ -87,13 +76,11 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.plot.clear": "Effacer",
   "heatmap.plot.dragHint":
     "↳ Glissez sur la heatmap ou cliquez sur un dendrogramme / une bande k-means pour ouvrir une vue zoomée",
-
   "heatmap.example.title": "Matrice d’expression génique",
   "heatmap.example.subtitle":
     "500 gènes × 6 échantillons (3 Contrôle · 3 Stress) · démo clustérisée",
   "heatmap.upload.hint":
     "CSV · TSV · TXT — première colonne = étiquettes de ligne, première ligne = étiquettes de colonne, le reste numérique · 2 Mo max",
-
   "heatmap.howto.title": "Heatmap — Comment l’utiliser",
   "heatmap.howto.subtitle": "Matrice numérique avec clustering optionnel des lignes / colonnes",
   "heatmap.howto.purpose":

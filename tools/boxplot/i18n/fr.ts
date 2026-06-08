@@ -8,7 +8,6 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.set.facet": "Facette",
   "boxplot.set.subgroup": "Sous-groupe",
   "boxplot.set.facetSubgroup": "Facette × Sous-groupe",
-
   "boxplot.chart.boxPlot": "Boîte à moustaches",
   "boxplot.chart.barChart": "Diagramme en barres",
   "boxplot.chart.descBox.one": "Boîte à moustaches avec {count} groupe",
@@ -17,13 +16,10 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.chart.descBar.other": "Diagramme en barres avec {count} groupes",
   "boxplot.chart.descYAxis": ", axe Y : {y}",
   "boxplot.chart.mean": "moyenne",
-
   "boxplot.ctrl.wideDetected": "Format large détecté automatiquement",
   "boxplot.ctrl.switchLong": "Passer au pipeline long",
-
   "boxplot.ctrl.conditions": "Conditions ({sel}/{total})",
   "boxplot.ctrl.selectedObs": "{sel} sur {total} sélectionnées · {obs} obs",
-
   "boxplot.ctrl.plotStyle": "Style de tracé",
   "boxplot.ctrl.style.box": "Boîte",
   "boxplot.ctrl.style.violin": "Violon",
@@ -32,7 +28,6 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.ctrl.orientation": "Orientation",
   "boxplot.ctrl.vertical": "Vertical",
   "boxplot.ctrl.horizontal": "Horizontal",
-
   "boxplot.ctrl.shapeFill": "Forme & remplissage",
   "boxplot.ctrl.boxWidth": "Largeur de boîte",
   "boxplot.ctrl.barWidth": "Largeur de barre",
@@ -47,7 +42,6 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.ctrl.barOutline": "Contour des barres",
   "boxplot.ctrl.outlineWidth": "Épaisseur du contour",
   "boxplot.ctrl.outlineColor": "Couleur du contour",
-
   "boxplot.ctrl.dataPoints": "Points de données",
   "boxplot.ctrl.showPoints": "Afficher les points",
   "boxplot.ctrl.colorBy": "Colorer par",
@@ -56,12 +50,10 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.ctrl.size": "Taille",
   "boxplot.ctrl.jitter": "Dispersion",
   "boxplot.ctrl.opacity": "Opacité",
-
   "boxplot.ctrl.splitBy": "Diviser par",
   "boxplot.ctrl.facetBy": "Facette par",
   "boxplot.ctrl.subgroupBy": "Sous-groupe par",
   "boxplot.ctrl.noneParen": "(aucun)",
-
   "boxplot.ctrl.axesLabels": "Axes & étiquettes",
   "boxplot.ctrl.title": "Titre",
   "boxplot.ctrl.yLabel": "Étiquette Y",
@@ -71,20 +63,16 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.ctrl.yScale": "Échelle Y",
   "boxplot.ctrl.linear": "Linéaire",
   "boxplot.ctrl.groupLabelAngle": "Angle des étiquettes de groupe",
-
   "boxplot.steps.aes.group": "Groupe (axe X)",
   "boxplot.steps.aes.value": "Valeur (axe Y)",
-
   "boxplot.steps.example.title": "Biomasse végétale sous sécheresse & sel",
   "boxplot.steps.example.subtitle": "3 génotypes × 3 traitements × 8 réplicats · 72 lignes",
   "boxplot.steps.example.button": "Tracer cet exemple →",
   "boxplot.steps.uploadHint": "CSV · TSV · TXT · DAT — une ligne par observation · 2 Mo max",
-
   "boxplot.steps.otherCols": "Autres colonnes",
   "boxplot.steps.otherColsDesc":
-    'Activez <strong style="color:{c}">filtre</strong> pour garder la colonne disponible pour l’étape Filtrer et pour le mappage couleur / facette / sous-groupe sur le tracé. Sinon la colonne est ignorée.',
+    'Activez <strong style="color:{c}">filtre</strong> pour garder la colonne disponible pour l’étape Filtrer et pour le mapping couleur / facette / sous-groupe sur le tracé. Sinon la colonne est ignorée.',
   "boxplot.steps.filter": "filtre",
-
   "boxplot.steps.chooseGroup": "— choisir une colonne de groupe —",
   "boxplot.steps.chooseValue": "— choisir une colonne de valeur —",
   "boxplot.steps.displayAs": "Afficher comme",
@@ -102,11 +90,9 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.steps.colsRows": "{cols} cols × {rows} lignes",
   "boxplot.steps.noHeader": " (pas d’en-tête)",
   "boxplot.steps.preview8": "Aperçu (8 premières lignes) :",
-
   "boxplot.steps.preview": "Aperçu",
   "boxplot.steps.previewOf": "sur {total} lignes",
   "boxplot.steps.filteredOut": "filtrées",
-
   "boxplot.steps.filteredLong": "Données filtrées (long)",
   "boxplot.steps.longCsv": "⬇ CSV long",
   "boxplot.steps.reshapedWide": "Remodelé (large)",
@@ -119,7 +105,6 @@ const fr: Record<BoxplotKey, string> = {
     "⚠ Assignez les colonnes <strong>groupe</strong> + <strong>valeur</strong> pour activer le remodelage & les stats.",
   "boxplot.steps.nonNumericOutput":
     '⚠ La colonne <strong>"{name}"</strong> est assignée comme <strong>valeur</strong> mais semble non numérique — le tracé sera vide. Retournez à Configurer et assignez une colonne numérique comme valeur.',
-
   "boxplot.test.studentT": "Test t de Student",
   "boxplot.test.welchT": "Test t de Welch",
   "boxplot.test.mannWhitney": "Mann-Whitney U",
@@ -129,7 +114,6 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.posthoc.tukeyHSD": "Tukey HSD",
   "boxplot.posthoc.gamesHowell": "Games-Howell",
   "boxplot.posthoc.dunn": "Dunn (ajusté BH)",
-
   "boxplot.sp.statsAtEach": "Statistiques à chaque {label}",
   "boxplot.sp.statistics": "Statistiques",
   "boxplot.sp.desc":
@@ -146,14 +130,12 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.sp.brackets": "Crochets",
   "boxplot.sp.showNs": "Afficher ns",
   "boxplot.sp.printSummary": "Imprimer le résumé sous le tracé",
-
   "boxplot.sp.set": "Ensemble",
   "boxplot.sp.groups": "Groupes",
   "boxplot.sp.test": "Test",
   "boxplot.sp.statistic": "Statistique",
   "boxplot.sp.colP": "p",
   "boxplot.sp.needsGroups": "Nécessite ≥ 2 groupes avec n ≥ 2 pour lancer un test.",
-
   "boxplot.sp.group": "Groupe",
   "boxplot.sp.n": "n",
   "boxplot.sp.mean": "Moyenne",
@@ -178,19 +160,18 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.sp.rankDiff": "Diff. rangs",
   "boxplot.sp.signif": "Signif.",
   "boxplot.sp.vs": "vs",
-  "boxplot.sp.replication": "Planification de réplication (n pour 80 % de puissance)",
+  "boxplot.sp.replication": "Planification de réplication (n pour une puissance de 80 %)",
   "boxplot.sp.replicationDesc":
-    "Étant donné la taille d’effet observée, taille d’échantillon qu’une étude future devrait avoir pour détecter cet effet à 80 % de puissance.",
-  "boxplot.sp.effectSize": "Taille d’effet",
+    "Étant donné la taille de l’effet observée, taille d’échantillon qu’une étude future devrait avoir pour détecter cet effet à 80 % de puissance.",
+  "boxplot.sp.effectSize": "Taille de l'effet",
   "boxplot.sp.nFor80": "n pour 80 % de puissance",
   "boxplot.sp.gt5000": "> 5000",
   "boxplot.sp.approxNote":
     "Approximation — puissance du test sur rangs estimée à partir de son analogue paramétrique.",
-
   "boxplot.howto.title": "Group Plot — Comment l’utiliser",
   "boxplot.howto.subtitle": "Comparer une mesure numérique entre des groupes catégoriels",
   "boxplot.howto.purpose":
-    "Comparaison côte à côte d’une mesure numérique entre deux groupes ou plus (génotypes, traitements, conditions). Achemine le bon test statistique selon la forme des données et superpose le résultat.",
+    "Comparaison côte à côte d’une mesure numérique entre deux groupes ou plus (génotypes, traitements, conditions). Choisit le bon test statistique selon la forme des données et superpose le résultat.",
   "boxplot.howto.dataLayout":
     "<strong>Long</strong> (préféré) — une ligne par observation, avec une colonne catégorielle <strong>groupe</strong> et une colonne numérique <strong>valeur</strong>. Le format <strong>large</strong> (une colonne par groupe) est détecté et remodelé à la volée. Les colonnes supplémentaires optionnelles deviennent des filtres / facettes / sous-groupes.",
   "boxplot.howto.display":

@@ -15,8 +15,18 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 // namespace label, human title, en path, fr path
 const CATALOGS = [
-  ["landing", "Static landing page", "tools/_core/i18n/landing.en.ts", "tools/_core/i18n/landing.fr.ts"],
-  ["shell", "Shared shell (chrome, upload, steps, stats tile/table)", "tools/_shell/i18n/en.ts", "tools/_shell/i18n/fr.ts"],
+  [
+    "landing",
+    "Static landing page",
+    "tools/_core/i18n/landing.en.ts",
+    "tools/_core/i18n/landing.fr.ts",
+  ],
+  [
+    "shell",
+    "Shared shell (chrome, upload, steps, stats tile/table)",
+    "tools/_shell/i18n/en.ts",
+    "tools/_shell/i18n/fr.ts",
+  ],
   ["venn", "Venn tool", "tools/venn/i18n/en.ts", "tools/venn/i18n/fr.ts"],
   ["volcano", "Volcano tool", "tools/volcano/i18n/en.ts", "tools/volcano/i18n/fr.ts"],
   ["heatmap", "Heatmap tool", "tools/heatmap/i18n/en.ts", "tools/heatmap/i18n/fr.ts"],
@@ -24,9 +34,24 @@ const CATALOGS = [
   ["lineplot", "Line Plot tool", "tools/lineplot/i18n/en.ts", "tools/lineplot/i18n/fr.ts"],
   ["scatter", "Scatter tool", "tools/scatter/i18n/en.ts", "tools/scatter/i18n/fr.ts"],
   ["boxplot", "Group Plot (boxplot) tool", "tools/boxplot/i18n/en.ts", "tools/boxplot/i18n/fr.ts"],
-  ["aequorin", "RLU Timecourse (aequorin) tool", "tools/aequorin/i18n/en.ts", "tools/aequorin/i18n/fr.ts"],
-  ["power", "Power Analysis calculator", "tools/power-app/i18n/en.ts", "tools/power-app/i18n/fr.ts"],
-  ["molarity", "Calculator (molarity) tool", "tools/molarity-app/i18n/en.ts", "tools/molarity-app/i18n/fr.ts"],
+  [
+    "aequorin",
+    "RLU Timecourse (aequorin) tool",
+    "tools/aequorin/i18n/en.ts",
+    "tools/aequorin/i18n/fr.ts",
+  ],
+  [
+    "power",
+    "Power Analysis calculator",
+    "tools/power-app/i18n/en.ts",
+    "tools/power-app/i18n/fr.ts",
+  ],
+  [
+    "molarity",
+    "Calculator (molarity) tool",
+    "tools/molarity-app/i18n/en.ts",
+    "tools/molarity-app/i18n/fr.ts",
+  ],
 ];
 
 // Load a catalog TS module's default export by transpiling to CJS and evaluating.
@@ -34,7 +59,6 @@ function loadCatalog(relPath) {
   const src = readFileSync(resolve(ROOT, relPath), "utf8");
   const { code } = transformSync(src, { loader: "ts", format: "cjs" });
   const module = { exports: {} };
-  // eslint-disable-next-line no-new-func
   new Function("module", "exports", code)(module, module.exports);
   return module.exports.default;
 }
@@ -54,7 +78,7 @@ parts.push(
     "intact. Leave the English column unchanged.\n"
 );
 parts.push(
-  "Notes on conventions already applied (so you don't need to \"fix\" them): " +
+  'Notes on conventions already applied (so you don\'t need to "fix" them): ' +
     "statistical test / post-hoc names, CSV & R-export column headers, chart " +
     "default axis labels, and tool proper-names are intentionally English; " +
     "`{...}` placeholders and inline HTML (`<strong>`, `<br/>`, `style=...`) " +

@@ -5,53 +5,43 @@ import type { LineplotKey } from "./en";
 const fr: Record<LineplotKey, string> = {
   "lineplot.err.empty":
     "Le fichier semble vide ou sans lignes de données. Vérifiez votre fichier et réessayez.",
-
   "lineplot.chart.fallbackTitle": "Graphique linéaire",
   "lineplot.chart.traceAria.one": "{name} : {n} point en x",
   "lineplot.chart.traceAria.other": "{name} : {n} points en x",
-
   "lineplot.dl.statsCsv": "CSV stats",
   "lineplot.dl.statsCsvTitle":
     "Télécharger les statistiques de synthèse par x (n, moyenne, SD, SEM, IC 95 %) pour chaque groupe",
-
   "lineplot.tile.variables": "Variables",
   "lineplot.var.xAxis": "Axe X",
   "lineplot.var.yAxis": "Axe Y",
   "lineplot.var.groupBy": "Grouper par",
   "lineplot.var.singleLine": "(ligne unique)",
-
   "lineplot.sec.groups": "Groupes",
   "lineplot.groups.empty": "Aucun groupe — choisissez une colonne de regroupement.",
-
   "lineplot.sec.errorBars": "Barres d’erreur",
   "lineplot.errorBars.aria": "Type de barre d’erreur",
   "lineplot.err.none": "Aucune",
   "lineplot.err.sem": "SEM",
   "lineplot.err.sd": "SD",
   "lineplot.err.ci95": "IC 95 %",
-
   "lineplot.sec.axes": "Axes",
   "lineplot.axes.xMin": "X min",
   "lineplot.axes.xMax": "X max",
   "lineplot.axes.yMin": "Y min",
   "lineplot.axes.yMax": "Y max",
-
   "lineplot.sec.labels": "Étiquettes",
   "lineplot.labels.title": "Titre",
   "lineplot.labels.subtitle": "Sous-titre",
   "lineplot.labels.xLabel": "Étiquette X",
   "lineplot.labels.yLabel": "Étiquette Y",
-
   "lineplot.sec.style": "Style",
   "lineplot.style.lineWidth": "Épaisseur de ligne",
   "lineplot.style.pointRadius": "Rayon des points",
   "lineplot.style.errorCapWidth": "Largeur des embouts d’erreur",
-
   "lineplot.example.title": "Courbes de croissance bactérienne",
   "lineplot.example.subtitle": "3 souches × 5 points de temps × 3 réplicats",
   "lineplot.upload.hint":
     "CSV · TSV · TXT — une ligne par observation, colonnes pour X, Y et le regroupement · 2 Mo max",
-
   "lineplot.test.studentT": "test t de Student",
   "lineplot.test.welchT": "test t de Welch",
   "lineplot.test.mannWhitney": "Mann-Whitney U",
@@ -61,7 +51,6 @@ const fr: Record<LineplotKey, string> = {
   "lineplot.posthoc.tukeyHSD": "Tukey HSD",
   "lineplot.posthoc.gamesHowell": "Games-Howell",
   "lineplot.posthoc.dunn": "Dunn (ajusté BH)",
-
   "lineplot.sp.title": "Statistiques à chaque {x}",
   "lineplot.sp.xFallback": "x",
   "lineplot.sp.desc":
@@ -75,7 +64,6 @@ const fr: Record<LineplotKey, string> = {
   "lineplot.sp.colStatistic": "Statistique",
   "lineplot.sp.colP": "p",
   "lineplot.sp.colPBH": "p (BH)",
-
   "lineplot.sp.groups": "Groupes",
   "lineplot.sp.group": "Groupe",
   "lineplot.sp.n": "n",
@@ -103,15 +91,14 @@ const fr: Record<LineplotKey, string> = {
   "lineplot.sp.rankDiff": "Diff. rang",
   "lineplot.sp.signif": "Signif.",
   "lineplot.sp.vs": "vs",
-  "lineplot.sp.replication": "Planification de réplication (n pour puiss. 80 %)",
+  "lineplot.sp.replication": "Planification de répétition (n pour puiss. 80 %)",
   "lineplot.sp.replicationDesc":
-    "Compte tenu de la taille d’effet observée, taille d’échantillon qu’une étude future devrait atteindre pour détecter cet effet à 80 % de puissance.",
-  "lineplot.sp.effectSize": "Taille d’effet",
+    "Compte tenu de la taille de l'effet observée, taille d’échantillon qu’une étude future devrait atteindre pour détecter cet effet avec 80 % de puissance.",
+  "lineplot.sp.effectSize": "Taille de l'effet",
   "lineplot.sp.nFor80": "n pour puiss. 80 %",
   "lineplot.sp.gt5000": "> 5000",
   "lineplot.sp.approxNote":
     "Approximation — puissance du test sur rangs estimée à partir de son analogue paramétrique.",
-
   "lineplot.howto.title": "Line Plot — Comment l’utiliser",
   "lineplot.howto.subtitle":
     "Moyenne ± erreur par groupe sur un axe des x, avec significativité par x",
@@ -120,7 +107,7 @@ const fr: Record<LineplotKey, string> = {
   "lineplot.howto.dataLayout":
     "Format long — une ligne par observation, avec un <strong>X</strong> numérique, un <strong>Y</strong> numérique et une colonne <strong>groupe</strong> catégorielle. Les réplicats partagent le même couple (X, groupe). Les barres d’erreur ne s’affichent que lorsqu’un groupe a ≥ 2 réplicats à ce X.",
   "lineplot.howto.display":
-    "Choisissez <strong>SEM</strong> (par défaut), <strong>SD</strong> ou <strong>IC 95 %</strong> pour les rubans d’erreur. À chaque X partagé par ≥ 2 groupes, le bon test est routé automatiquement (t / Welch / Mann-Whitney ; ANOVA / Welch-ANOVA / Kruskal-Wallis) ; les p-values sont <strong>corrigées BH</strong> sur l’axe des X et des étoiles de significativité se superposent au graphique.",
+    "Choisissez <strong>SEM</strong> (par défaut), <strong>SD</strong> ou <strong>IC 95 %</strong> pour les rubans d’erreur. À chaque X partagé par ≥ 2 groupes, le test adéquat est choisi automatiquement (t / Welch / Mann-Whitney ; ANOVA / Welch-ANOVA / Kruskal-Wallis) ; les p-values sont <strong>corrigées BH</strong> sur l’axe des X et des étoiles de significativité se superposent au graphique.",
 };
 
 export default fr;

@@ -27,15 +27,12 @@ const fr: Record<PowerKey, string> = {
   "power.test.chi2.question":
     "Combien d’observations pour un test d’ajustement ou d’indépendance ?",
   "power.test.chi2.nLabel": "n (total)",
-
   "power.totalN.twoSample": "N total = {total} ({n} par groupe × 2)",
   "power.totalN.anova": "N total = {total} ({n} par groupe × {k} groupes)",
-
   "power.size.small": "petit",
   "power.size.medium": "moyen",
   "power.size.large": "grand",
   "power.size.effectSuffix": "effet",
-
   "power.es.helperTab": "À partir de mes données",
   "power.es.directTab": "Valeur directe",
   "power.es.expectedR": "Corrélation attendue |r|",
@@ -65,11 +62,9 @@ const fr: Record<PowerKey, string> = {
   "power.es.formulaW": "w = √(Σ (p_obs − p_att)² / p_att)",
   "power.es.formulaD": "d = |différence de moyennes| / SD groupé",
   "power.es.computed": "Taille d’effet = ",
-
   "power.curve.title": "Courbe de puissance",
   "power.curve.desc": "Puissance statistique en fonction de la taille d’échantillon",
   "power.curve.yAxis": "Puissance (1 − β)",
-
   "power.ctrl.statisticalTest": "Test statistique",
   "power.ctrl.whatToFind": "Que devez-vous trouver ?",
   "power.ctrl.sampleSize": "Taille d’échantillon",
@@ -86,15 +81,13 @@ const fr: Record<PowerKey, string> = {
   "power.ctrl.numGroups": "Nombre de groupes",
   "power.ctrl.df": "Degrés de liberté",
   "power.ctrl.dfNote": "Ajustement : catégories − 1.<br/>Indépendance : (lignes−1)(colonnes−1).",
-
   "power.result.requiredN": "{nLabel} requis",
   "power.result.statisticalPower": "Puissance statistique",
   "power.result.rTitle":
     "Télécharger un script R exécutable reproduisant ce calcul de puissance avec le package pwr",
-
   "power.explain.heading": "Que signifient ces nombres ?",
   "power.explain.body":
-    "La <b>puissance</b> est la probabilité de rejeter correctement l’hypothèse nulle (c.-à-d. de déclarer un résultat significatif). Une puissance de 0,80 (la ligne pointillée) signifie 80 % de chances de réussite — c’est le minimum standard. Plus élevée est préférable mais coûte plus de sujets.<br/><br/>Le <b>niveau de signification (α)</b> est le risque de faux positif — conclure à un effet alors qu’il n’y en a pas. Le standard α&nbsp;=&nbsp;0,05 signifie que vous acceptez 5 % de risque de fausse alerte. Abaisser α (p. ex. à 0,01) vous rend plus conservateur mais nécessite plus de sujets pour garder une puissance élevée.<br/><br/>La <b>taille d’échantillon ({nLabel})</b> est le nombre d’observations à collecter. Plus de sujets donnent plus de puissance pour détecter un effet donné.<br/><br/>La <b>taille d’effet</b> mesure l’ampleur de la différence ou de la relation réelle, mise à l’échelle par la variabilité. Utilisez l’onglet « À partir de mes données » pour la calculer à partir des valeurs attendues (p. ex. moyennes de groupes et écart-type de données pilotes ou d’études publiées).",
+    "La <b>puissance</b> est la probabilité de rejeter correctement l’hypothèse nulle (c.-à-d. de déclarer un résultat significatif). Une puissance de 0,80 (la ligne pointillée) signifie 80 % de chances de réussite — c’est le minimum standard. Plus élevée est préférable mais demande plus d'observations.<br/><br/>Le <b>niveau de signification (α)</b> est le risque de faux positif — conclure à un effet alors qu’il n’y en a pas. Le standard α&nbsp;=&nbsp;0,05 signifie que vous acceptez 5 % de risque de fausse alerte. Abaisser α (p. ex. à 0,01) vous rend plus conservateur mais nécessite plus d'observations pour garder une puissance élevée.<br/><br/>La <b>taille d’échantillon ({nLabel})</b> est le nombre d’observations à collecter. Plus de sujets donnent plus de puissance pour détecter un effet donné.<br/><br/>La <b>taille de l’effet</b> mesure l’ampleur de la différence ou de la relation réelle, mise à l’échelle par la variabilité. Utilisez l’onglet « À partir de mes données » pour la calculer à partir des valeurs attendues (p. ex. moyennes de groupes et écart-type de données pilotes ou d’études publiées).",
   "power.explain.tInd":
     "Pour un <b>test t à deux échantillons</b>, la taille d’effet (d de Cohen) est la différence entre les deux moyennes de groupes divisée par leur écart-type commun. Un d de 0,2 est petit, 0,5 moyen et 0,8 grand.",
   "power.explain.tPaired":
@@ -106,7 +99,7 @@ const fr: Record<PowerKey, string> = {
   "power.explain.correlation":
     "Pour la <b>corrélation</b>, la taille d’effet est simplement le r de Pearson attendu. Un r de 0,1 est petit, 0,3 moyen et 0,5 grand.",
   "power.explain.chi2":
-    "Pour un <b>test du khi-deux</b>, la taille d’effet (w de Cohen) mesure l’écart des proportions de catégories observées par rapport aux attendues. Un w de 0,1 est petit, 0,3 moyen et 0,5 grand.<br/><br/>Degrés de liberté :<br/>&bull; Ajustement : <b>df = catégories − 1</b><br/>&bull; Indépendance : <b>df = (lignes − 1) × (colonnes − 1)</b>",
+    "Pour un <b>test du Chi2</b>, la taille d’effet (w de Cohen) mesure l’écart des proportions de catégories observées par rapport aux attendues. Un w de 0,1 est petit, 0,3 moyen et 0,5 grand.<br/><br/>Degrés de liberté :<br/>&bull; Ajustement : <b>df = catégories − 1</b><br/>&bull; Indépendance : <b>df = (lignes − 1) × (colonnes − 1)</b>",
 };
 
 export default fr;

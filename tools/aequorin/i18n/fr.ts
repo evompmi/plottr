@@ -6,7 +6,7 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.err.empty":
     "Le fichier semble vide ou sans lignes de données. Vérifiez votre fichier et réessayez.",
   "aequorin.err.oneColumn":
-    "Une seule colonne détectée — cet outil attend des données au format large avec une colonne par échantillon. Vérifiez votre séparateur ou le format du fichier.",
+    "Une seule colonne détectée — cet outil attend des données au format large uniquement, avec une colonne par échantillon. Vérifiez votre séparateur ou le format du fichier.",
   "aequorin.err.notNumeric":
     "Moins de 30 % des valeurs sont numériques. Cet outil attend une matrice numérique (une colonne par échantillon, une ligne par point temporel). Votre fichier est peut-être au format long ou contient surtout du texte.",
   "aequorin.err.exampleNotLoaded":
@@ -14,8 +14,7 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.warn.longFormat":
     "⚠️ Cela ressemble à des données au format long (peu de colonnes, mélange de texte et de nombres). Cet outil attend le format large — une colonne par échantillon, une ligne par point temporel.",
   "aequorin.warn.differentLengths":
-    "⚠️ Les colonnes ont des longueurs différentes ({min}–{max} valeurs numériques). Certains échantillons peuvent avoir des points temporels manquants, ce qui peut affecter les calculs de moyenne/SD.",
-
+    "⚠️ Les colonnes ont des longueurs différentes ({min}–{max} valeurs numériques). Certains échantillons peuvent avoir des points manquants, ce qui peut affecter les calculs de moyenne/SD (ou la calibration calcique).",
   "aequorin.app.series": "Séries",
   "aequorin.app.seriesDef": "Définition des séries",
   "aequorin.app.poolByName": "Regrouper par nom",
@@ -24,7 +23,6 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.app.plotLayout": "Disposition du tracé",
   "aequorin.app.combined": "Combiné",
   "aequorin.app.faceted": "Facetté",
-
   "aequorin.chart.fallbackTitle": "Graphique chronologique RLU",
   "aequorin.chart.desc.one": "Graphique de série temporelle avec {count} série",
   "aequorin.chart.desc.other": "Graphique de série temporelle avec {count} séries",
@@ -35,10 +33,8 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.chart.barTitle": "Diagramme en barres en médaillon",
   "aequorin.chart.barDesc.one": "Diagramme en barres en médaillon de {count} condition",
   "aequorin.chart.barDesc.other": "Diagramme en barres en médaillon de {count} conditions",
-
   "aequorin.ctrl.csvTitle":
     "Télécharger [Ca²⁺] calibré au cours du temps — une ligne par point temporel, une colonne par échantillon (calibration appliquée)",
-
   "aequorin.ctrl.conditions": "Conditions",
   "aequorin.ctrl.axes": "Axes",
   "aequorin.ctrl.xStart": "Début X ({unit})",
@@ -52,16 +48,13 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.ctrl.smooth": "Lissage (±pts)",
   "aequorin.ctrl.smoothValue": "{n} pts",
   "aequorin.ctrl.displayUnit": "Unité d’affichage",
-
   "aequorin.ctrl.labels": "Étiquettes",
   "aequorin.ctrl.title": "Titre",
   "aequorin.ctrl.subtitle": "Sous-titre",
-
   "aequorin.ctrl.style": "Style",
   "aequorin.ctrl.lineWidth": "Épaisseur de ligne",
   "aequorin.ctrl.sdOpacity": "Opacité SD",
   "aequorin.ctrl.plotHeight": "Hauteur du tracé",
-
   "aequorin.ctrl.summaryBarplot": "Diagramme en barres récapitulatif",
   "aequorin.ctrl.summaryBarplotTitle":
     "Diagramme en barres de la somme (Σ) des valeurs tracées par condition",
@@ -88,11 +81,10 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.ctrl.showPoints": "Afficher les points",
   "aequorin.ctrl.color": "Couleur",
   "aequorin.ctrl.size": "Taille",
-
   "aequorin.steps.formulaAria": "Formule de calibration avec vos valeurs de paramètres substituées",
   "aequorin.steps.withYourValues": "Avec vos valeurs",
-  "aequorin.steps.example.title": "Chronologie Ca²⁺ aequorine",
-  "aequorin.steps.example.subtitle": "Réponse mutant vs WT à une impulsion d’éliciteur CO7",
+  "aequorin.steps.example.title": "Réponse Ca²⁺ aequorine",
+  "aequorin.steps.example.subtitle": "Réponse mutant vs WT à un traitement d’éliciteur CO7",
   "aequorin.steps.example.button": "Tracer cet exemple →",
   "aequorin.steps.uploadHint":
     "CSV · TSV · TXT · DAT — une colonne par échantillon, une ligne par point temporel · 2 Mo max",
@@ -105,7 +97,7 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.steps.formula.generalized": "Allen & Blinks généralisé",
   "aequorin.steps.kdLabel": "Kd (µM)",
   "aequorin.steps.hillExp": "n (exp. Hill)",
-  "aequorin.steps.timeStep": "Pas de temps (par ligne)",
+  "aequorin.steps.timeStep": "Temps écoulé (par ligne)",
   "aequorin.steps.baseUnit": "Unité de base",
   "aequorin.steps.range": "Plage : 0 – {end} {unit}",
   "aequorin.steps.loaded": "Chargé ",
@@ -114,9 +106,8 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.steps.previewCalibrated": "données calibrées",
   "aequorin.steps.preview":
     "Aperçu — {kind} · {shown} sur {total} colonnes (15 premières lignes) :",
-
   "aequorin.pa.perReplicate": "Par réplicat",
-  "aequorin.pa.openInBoxplot": "↗ Ouvrir dans Boxplot",
+  "aequorin.pa.openInBoxplot": "↗ Ouvrir dans Group plot",
   "aequorin.pa.openInBoxplotTitle":
     "Ouvrir ces données Σ par réplicat directement dans l’outil Group Plot (boîte / violon / raincloud / barres)",
   "aequorin.pa.dragTip":
@@ -127,7 +118,6 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.pa.samples": "Échantillons",
   "aequorin.pa.close": "✕ Fermer",
   "aequorin.pa.sampleSelection": "🔬 Sélection d’échantillons",
-
   "aequorin.test.studentT": "Test t de Student",
   "aequorin.test.welchT": "Test t de Welch",
   "aequorin.test.mannWhitney": "Mann-Whitney U",
@@ -137,7 +127,6 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.posthoc.tukeyHSD": "Tukey HSD",
   "aequorin.posthoc.gamesHowell": "Games-Howell",
   "aequorin.posthoc.dunn": "Dunn (ajusté BH)",
-
   "aequorin.sp.statistics": "Statistiques",
   "aequorin.sp.desc":
     "Cliquez sur la ligne pour inspecter la trace de décision, les hypothèses, le post-hoc et la puissance.",
@@ -153,7 +142,6 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.sp.test": "Test",
   "aequorin.sp.statistic": "Statistique",
   "aequorin.sp.colP": "p",
-
   "aequorin.sp.group": "Groupe",
   "aequorin.sp.n": "n",
   "aequorin.sp.mean": "Moyenne",
@@ -180,20 +168,19 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.sp.vs": "vs",
   "aequorin.sp.replication": "Planification de réplication (n pour 80 % de puissance)",
   "aequorin.sp.replicationDesc":
-    "Étant donné la taille d’effet observée, taille d’échantillon qu’une étude future devrait avoir pour détecter cet effet à 80 % de puissance.",
-  "aequorin.sp.effectSize": "Taille d’effet",
+    "Étant donné la taille de l’effet observée, taille d’échantillon qu’une étude future devrait avoir pour détecter cet effet avec une puissance de 80 %.",
+  "aequorin.sp.effectSize": "Taille de l'effet",
   "aequorin.sp.nFor80": "n pour 80 % de puissance",
   "aequorin.sp.gt5000": "> 5000",
   "aequorin.sp.approxNote":
     "Approximation — puissance du test sur rangs estimée à partir de son analogue paramétrique.",
-
   "aequorin.howto.title": "RLU Timecourse — Comment l’utiliser",
   "aequorin.howto.subtitle":
     "Tracez n’importe quelle série temporelle de réplicats (luminescence, fluorescence, DO, …) avec des rubans d’erreur dérivés des réplicats",
   "aequorin.howto.purpose":
     "Tracez une mesure en fonction du temps, un tracé par condition, avec la dispersion des réplicats montrée en ruban. La calibration est optionnelle — laissez la formule sur <strong>Aucune</strong> pour les données brutes, ou choisissez une formule aequorine / Ca²⁺ quand vous avez de la luminescence à convertir.",
   "aequorin.howto.dataLayout":
-    "Format large — une colonne par échantillon, une ligne par point temporel. Matrice numérique ; aucune colonne d’axe temporel requise (les lignes sont régulièrement espacées ; vous définissez le pas de temps par ligne + l’unité de base). <strong>Les colonnes partageant le même en-tête sont regroupées comme réplicats d’une même condition</strong> — le graphique trace automatiquement leur ruban <strong>moyenne ± SD</strong>. Renommez les en-têtes pour changer quels échantillons sont regroupés.",
+    "Format large — une colonne par échantillon, une ligne par point temporel. Matrice numérique ; aucune colonne d’axe temporel requise (les lignes sont régulièrement espacées ; vous définissez le pas de temps par ligne + l’unité de base). <strong>Les colonnes partageant le même nom d'en-tête sont regroupées comme réplicats d’une même condition</strong> — le graphique trace automatiquement leur ruban <strong>moyenne ± SD</strong>. Renommez les en-têtes pour changer le regroupement des échantillons.",
   "aequorin.howto.display":
     "Chaque en-tête unique devient un tracé coloré ; les colonnes de même nom se regroupent en un ruban moyenne ± SD en dessous. Affichez le graphique combiné ou une grille de petits multiples facettée. Diagramme en barres en médaillon optionnel de l’aire Σ intégrée par condition.",
 };

@@ -8,7 +8,6 @@ const fr: Record<ScatterKey, string> = {
   "scatter.set.all": "Tout",
   "scatter.shapeWarning":
     "Cette colonne a {n} valeurs uniques — seulement 4 formes sont disponibles. Les catégories au-delà de la 4ᵉ réutiliseront les mêmes formes.",
-
   "scatter.aes.color": "Couleur",
   "scatter.aes.size": "Taille",
   "scatter.aes.shape": "Forme",
@@ -16,7 +15,6 @@ const fr: Record<ScatterKey, string> = {
   "scatter.example.subtitle": "150 fleurs × 4 mesures · 3 espèces",
   "scatter.upload.hint":
     "CSV · TSV · TXT — une colonne par variable, une ligne par point · 2 Mo max",
-
   "scatter.dl.csv": "CSV",
   "scatter.dl.csvTitle":
     "Télécharger la table de données filtrée — seulement les colonnes et lignes actuellement tracées",
@@ -26,7 +24,6 @@ const fr: Record<ScatterKey, string> = {
   "scatter.tile.variables": "Variables",
   "scatter.var.xAxis": "Axe X",
   "scatter.var.yAxis": "Axe Y",
-
   "scatter.sec.pointStyle": "Style des points",
   "scatter.pt.color": "Couleur",
   "scatter.pt.size": "Taille",
@@ -35,7 +32,6 @@ const fr: Record<ScatterKey, string> = {
   "scatter.pt.strokeWidth": "Épaisseur du contour",
   "scatter.on": "Activé",
   "scatter.off": "Désact.",
-
   "scatter.reg.title": "Droite de régression",
   "scatter.reg.needPoints": "Il faut ≥ 2 points avec de la variation en X.",
   "scatter.reg.slope": "pente : ",
@@ -52,10 +48,9 @@ const fr: Record<ScatterKey, string> = {
   "scatter.reg.tr": "haut-droite",
   "scatter.reg.bl": "bas-gauche",
   "scatter.reg.br": "bas-droite",
-
   "scatter.ref.title": "Ligne de référence",
-  "scatter.ref.addH": "+ H",
-  "scatter.ref.addV": "+ V",
+  "scatter.ref.addH": "+ Horiz.",
+  "scatter.ref.addV": "+ Vert.",
   "scatter.ref.none": "Aucune ligne de référence.",
   "scatter.ref.yEq": "Y =",
   "scatter.ref.xEq": "X =",
@@ -66,7 +61,6 @@ const fr: Record<ScatterKey, string> = {
   "scatter.ref.left": "gauche",
   "scatter.ref.top": "haut",
   "scatter.ref.bottom": "bas",
-
   "scatter.aes.none": "— Aucun —",
   "scatter.aes.detected": "Détecté : ",
   "scatter.aes.continuous": "numérique (continu)",
@@ -75,7 +69,6 @@ const fr: Record<ScatterKey, string> = {
   "scatter.aes.range": "plage : {min} → {max}",
   "scatter.size.min": "Taille min",
   "scatter.size.max": "Taille max",
-
   "scatter.sec.axes": "Axes",
   "scatter.axes.xMin": "X min",
   "scatter.axes.xMax": "X max",
@@ -85,22 +78,18 @@ const fr: Record<ScatterKey, string> = {
   "scatter.axes.xLabel": "Étiquette X",
   "scatter.axes.yLabel": "Étiquette Y",
   "scatter.axes.title": "Titre",
-
   "scatter.sec.style": "Style",
   "scatter.filters.title": "Filtres",
   "scatter.filters.rows": "{shown} sur {total} lignes",
   "scatter.filters.all": "tout",
-
   "scatter.chart.fallbackTitle": "Nuage de points",
   "scatter.chart.pointsAria.one": "{n} point de données",
   "scatter.chart.pointsAria.other": "{n} points de données",
   "scatter.chart.regressionAria":
     "Régression linéaire : pente {slope}, ordonnée {intercept}, R² {r2}, n={n}",
-
   "scatter.corr.pearson": "Pearson r",
   "scatter.corr.spearman": "Spearman ρ",
   "scatter.corr.kendall": "Kendall τ",
-
   "scatter.sp.variables": "Variables",
   "scatter.sp.axis": "Axe",
   "scatter.sp.n": "n",
@@ -117,7 +106,6 @@ const fr: Record<ScatterKey, string> = {
   "scatter.sp.useSuggestion": "Utiliser la suggestion",
   "scatter.sp.kendallNote":
     "Kendall τ ne fournit pas d’IC analytique — utilisez le bootstrap si un IC est requis.",
-
   "scatter.sp.headingSingle": "Corrélation",
   "scatter.sp.headingGroup": "Corrélation par groupe",
   "scatter.sp.desc":
@@ -134,15 +122,14 @@ const fr: Record<ScatterKey, string> = {
   "scatter.sp.colTest": "Test",
   "scatter.sp.colStatistic": "Statistique",
   "scatter.sp.colP": "p",
-
   "scatter.howto.title": "Scatter Plot — Comment l’utiliser",
   "scatter.howto.subtitle": "Nuage XY avec mappage optionnel couleur / taille / forme",
   "scatter.howto.purpose":
     "Tracez une colonne numérique contre une autre. Mappez une troisième (ou quatrième, ou cinquième) colonne à la couleur, la taille ou la forme des points pour révéler une structure multivariée en une seule vue.",
   "scatter.howto.dataLayout":
-    "Une ligne par point. Au moins deux colonnes <strong>numériques</strong> (les axes X et Y). Les colonnes supplémentaires — catégorielles ou numériques — deviennent des mappages esthétiques ou des filtres.",
+    "Une ligne par point. Au moins deux colonnes <strong>numériques</strong> (les axes X et Y). Les colonnes supplémentaires — catégorielles ou numériques — deviennent des catégories esthétiques ou des filtres.",
   "scatter.howto.display":
-    "Couleur-par-colonne optionnelle (dégradé continu ou pastilles discrètes), taille-par-colonne et forme-par-colonne. Ajoutez des <strong>lignes de référence</strong> à des valeurs X / Y fixes, superposez une <strong>régression linéaire</strong> avec R² + p-value. Filtrez les lignes par n’importe quelle colonne catégorielle.",
+    "Couleur-par-colonne optionnelle (dégradé continu ou discrètes), taille-par-colonne et forme-par-colonne. Ajoutez des <strong>lignes de référence</strong> à des valeurs X / Y fixes, superposez une <strong>régression linéaire</strong> avec R² + p-value. Filtrez les lignes par n’importe quelle colonne catégorielle.",
 };
 
 export default fr;

@@ -5,44 +5,36 @@
 import type { ShellKey } from "./en";
 
 const fr: Record<ShellKey, string> = {
-  // CommaFixBanner
-  "shell.commaFix.title": "Virgules décimales converties automatiquement en points",
+  "shell.commaFix.title": "Virgules décimales automatiquement converties en points",
   "shell.commaFix.detail.one":
     "{count} valeur utilisait la virgule comme séparateur décimal (p. ex. « 0,5 » → « 0.5 »).",
   "shell.commaFix.detail.other":
     "{count} valeurs utilisaient la virgule comme séparateur décimal (p. ex. « 0,5 » → « 0.5 »).",
-
-  // DetectedSeparatorBadge
   "shell.separator.comma": "virgule",
   "shell.separator.semicolon": "point-virgule",
   "shell.separator.tab": "tabulation",
   "shell.separator.space": "espace",
   "shell.separator.whitespace": "espace",
   "shell.separator.badge": "· détecté : {sep}",
-
-  // FormulaInjectionBanner
   "shell.formula.title.one": "Cellule suspecte dans les données importées ({count} cellule)",
   "shell.formula.title.other": "Cellules suspectes dans les données importées ({count} cellules)",
   "shell.formula.explain":
-    "Les cellules commençant par = + - @ tab CR sont interprétées comme des formules par Excel / LibreOffice / Sheets et pourraient exfiltrer des données ou exécuter du code si vous rouvrez ces données là-bas. Les exports Plöttr les préfixent d’une apostrophe pour les neutraliser — mais le fichier d’origine reste inchangé, donc soyez prudent.",
+    "Les cellules commençant par = + - @ tab CR sont interprétées comme des formules par Excel / LibreOffice / Sheets et pourraient exfiltrer des données ou exécuter du code malveillant. Les exports Plöttr les préfixent d’une apostrophe pour les neutraliser — mais le fichier d’origine reste inchangé. Soyez prudent !",
   "shell.formula.headerLabel": "En-tête — ",
   "shell.formula.colLabel": "colonne {n}",
   "shell.formula.cellWithHeader": "« {header} » ligne {row}",
   "shell.formula.cellNoHeader": "ligne {row} col {col}",
   "shell.formula.overflow": "… et {count} de plus.",
-
-  // ErrorBoundary
   "shell.error.heading": "Une erreur est survenue",
   "shell.error.body":
-    "{tool} a rencontré une erreur inattendue et ne peut pas continuer. Vos données sont toujours sur votre machine — rien n’a été envoyé où que ce soit. Essayez de recharger ; si le problème persiste, utilisez « Copier les détails de l’erreur » et ouvrez un ticket.",
+    "{tool} a rencontré une erreur inattendue et ne peut pas continuer. Vos données sont toujours sur votre machine — rien n’a été envoyé où que ce soit. Essayez de recharger la page ; si le problème persiste, utilisez « Copier les détails de l’erreur » et ouvrez un ticket.",
   "shell.error.toolFallback": "Cet outil",
   "shell.error.technical": "Détails techniques",
   "shell.error.reload": "Recharger l’outil",
   "shell.error.copy": "Copier les détails de l’erreur",
-
-  // FileDropZone
-  "shell.upload.dropAria": "Déposez un fichier de données ici ou appuyez sur Entrée pour parcourir",
-  "shell.upload.dropMain": "Déposez un CSV, TSV ou TXT — ou cliquez pour parcourir",
+  "shell.upload.dropAria":
+    "Déposez un fichier de données ici ou appuyez sur Entrée pour parcourir votre disque",
+  "shell.upload.dropMain": "Déposez un CSV, TSV ou TXT — ou cliquez pour parcourir votre disque",
   "shell.upload.dropHint": "CSV · TSV · TXT · DAT — 2 Mo max",
   "shell.upload.tooLarge":
     "Fichier trop volumineux ({mb} Mo). Le maximum est 2 Mo — divisez le fichier ou échantillonnez des lignes et réessayez.",
@@ -51,11 +43,7 @@ const fr: Record<ShellKey, string> = {
     "Impossible de lire le fichier ({msg}). Vérifiez les autorisations et réessayez.",
   "shell.upload.unknownError": "erreur inconnue",
   "shell.upload.reading": "Lecture du fichier…",
-
-  // DataPreview
   "shell.preview.more": "… {n} de plus ({total} au total)",
-
-  // ColumnRoleEditor
   "shell.roles.group": "groupe",
   "shell.roles.value": "valeur",
   "shell.roles.filter": "filtre",
@@ -67,20 +55,16 @@ const fr: Record<ShellKey, string> = {
   "shell.cols.help.or": " ou ",
   "shell.cols.help.demotesTo": " sur une autre colonne rétrograde la précédente en ",
   "shell.cols.help.period": ".",
-
-  // StepNavBar
   "shell.step.upload": "Importer",
   "shell.step.configure": "Configurer",
   "shell.step.filter": "Filtrer",
   "shell.step.output": "Sortie",
   "shell.step.plot": "Tracé",
   "shell.step.aria": "Étape {n} sur {total} : {label}",
-
-  // UploadPanel — separator picker + options
   "shell.sep.label": "Séparateur de colonnes",
-  "shell.sep.force": "Forcer le séparateur",
+  "shell.sep.force": "Choisir le séparateur",
   "shell.sep.select": "— Sélectionner —",
-  "shell.sep.auto": "Détection auto",
+  "shell.sep.auto": "Détection automatique",
   "shell.sep.comma": "Virgule (,)",
   "shell.sep.semicolon": "Point-virgule (;)",
   "shell.sep.tab": "Tabulation (\\t)",
@@ -93,15 +77,11 @@ const fr: Record<ShellKey, string> = {
     "Plöttr détecte automatiquement le séparateur de colonnes (virgule, tabulation, point-virgule, …) à partir des données.",
   "shell.sep.overrideShow": "Forcer ▾",
   "shell.sep.overrideHide": "Masquer ▴",
-
-  // UploadPanel — sample-dataset CTA
-  "shell.sample.try": "Essayer des données d’exemple :",
+  "shell.sample.try": "Essayer avec les données exemple :",
   "shell.sample.loadExample": "Charger l’exemple →",
-  "shell.sample.tryDataset": "Essayer un jeu de données d’exemple",
+  "shell.sample.tryDataset": "Essayer aevc un jeu de données exemple",
   "shell.sample.plotThis": "Tracer cet exemple →",
   "shell.sample.quickStart": "Nouveau ici ? Démarrage rapide",
-
-  // UploadPanel — paste card
   "shell.paste.dropTitle": "Déposer un fichier",
   "shell.paste.pasteTitle": "Coller des données",
   "shell.paste.placeholder":
@@ -115,44 +95,30 @@ const fr: Record<ShellKey, string> = {
   "shell.paste.tooLarge":
     "Données collées trop volumineuses ({mb} Mo). Le maximum est 2 Mo — divisez les données ou échantillonnez des lignes et réessayez.",
   "shell.paste.largeWarn": "Collage volumineux ({mb} Mo) — l’analyse peut prendre un moment.",
-
-  // ActionsPanel
   "shell.actions.title": "Actions",
   "shell.actions.svgTitle":
-    "Télécharger le tracé en SVG — graphique vectoriel, modifiable dans Inkscape ou Illustrator",
+    "Télécharger le graphe en SVG — graphique vectoriel, modifiable dans Inkscape ou Illustrator",
   "shell.actions.pngTitle":
-    "Télécharger le tracé en PNG — raster 2× à la résolution native du tracé",
+    "Télécharger le graphe en PNG — raster 2× à la résolution native du graphe",
   "shell.actions.startOver": "Recommencer",
   "shell.actions.resetTitle":
-    "Effacer toutes les données, les réglages et la session en cours — retour à l’étape d’import",
-
-  // HowTo
+    "Effacer toutes les données, les réglages et la session en cours — retour à l’étape d’importation",
   "shell.howto.purpose": "Objectif",
   "shell.howto.dataLayout": "Disposition des données",
   "shell.howto.display": "Affichage",
   "shell.howto.tips": "Astuces",
-
-  // SegToggle / OnOffToggle
   "shell.toggle.on": "Activé",
   "shell.toggle.off": "Désactivé",
-
-  // FilterCheckboxPanel
   "shell.filter.heading": "Filtrer les lignes ({shown}/{total})",
   "shell.filter.all": "Tout",
   "shell.filter.none": "Aucun",
-  "shell.filter.numericHint": "numérique — utiliser la plage de l’axe dans le tracé",
-
-  // RenameReorderPanel
+  "shell.filter.numericHint": "numérique — utiliser la plage de l’axe dans le graphe",
   "shell.rename.heading": "Renommer les valeurs & réordonner les groupes ",
-  "shell.rename.hint": "(glissez ☰ pour réordonner les groupes sur le tracé)",
+  "shell.rename.hint": "(glissez ☰ pour réordonner les groupes sur le graphe)",
   "shell.rename.empty": "(vide)",
-
-  // DiscretePaletteRow
   "shell.palette.copied": "✓ Copié {hex}",
   "shell.palette.clickToCopy": "Cliquez sur une pastille pour copier son hex",
-
-  // PrefsPanel
-  "shell.prefs.title": "Réglages visuels du tracé",
+  "shell.prefs.title": "Réglages visuels du graphe",
   "shell.prefs.save": "Enregistrer dans un fichier",
   "shell.prefs.saveTitle": "Télécharger les réglages visuels actuels dans un fichier JSON",
   "shell.prefs.load": "Charger depuis un fichier",
@@ -161,8 +127,6 @@ const fr: Record<ShellKey, string> = {
   "shell.prefs.resetTitle":
     "Restaurer les réglages visuels par défaut et effacer les préférences enregistrées",
   "shell.prefs.loadError": "Impossible de charger le fichier de réglages.",
-
-  // StatsTable
   "shell.stats.summaryBy": "Résumé — groupé par « {group} »",
   "shell.stats.group": "Groupe",
   "shell.stats.n": "n",
@@ -172,8 +136,6 @@ const fr: Record<ShellKey, string> = {
   "shell.stats.sem": "SEM",
   "shell.stats.min": "Min",
   "shell.stats.max": "Max",
-
-  // StatsTile — test + post-hoc display names
   "shell.test.studentT": "test t de Student",
   "shell.test.welchT": "test t de Welch",
   "shell.test.mannWhitney": "Mann-Whitney U",
@@ -183,8 +145,6 @@ const fr: Record<ShellKey, string> = {
   "shell.posthoc.tukeyHSD": "Tukey HSD",
   "shell.posthoc.gamesHowell": "Games-Howell",
   "shell.posthoc.dunn": "Dunn (ajusté BH)",
-
-  // StatsTile — assessment labels + captions + column headers
   "shell.assess.normal": "normale",
   "shell.assess.notNormal": "non normale",
   "shell.assess.unknown": "inconnu",
@@ -199,19 +159,17 @@ const fr: Record<ShellKey, string> = {
   "shell.stats.signif": "Signif.",
   "shell.stats.meanDiff": "Diff. moy.",
   "shell.stats.rankDiff": "Diff. rang",
-  "shell.stats.effectSize": "Taille d’effet",
-  "shell.stats.nFor80": "n pour puiss. 80 %",
+  "shell.stats.effectSize": "Taille de l'effet",
+  "shell.stats.nFor80": "n pour puiss. de 80 %",
   "shell.stats.vs": "vs",
-
-  // StatsTile — on-screen controls + panel
   "shell.statsui.displayTitle": "Affichage des statistiques",
-  "shell.statsui.summaryTitle": "Résumé statistique",
+  "shell.statsui.summaryTitle": "Résumé des statistiques",
   "shell.statsui.txtTitle": "Télécharger un rapport statistique en texte brut",
   "shell.statsui.rTitle": "Télécharger un script R exécutable reproduisant ces tests",
   "shell.statsui.letters": "Lettres",
   "shell.statsui.brackets": "Crochets",
-  "shell.statsui.displayOnPlot": "Afficher sur le tracé",
-  "shell.statsui.printSummary": "Imprimer le résumé sous le tracé",
+  "shell.statsui.displayOnPlot": "Afficher sur le graphe",
+  "shell.statsui.printSummary": "Imprimer le résumé sous le graphe",
   "shell.statsui.style": "Style :",
   "shell.statsui.showNs": "Afficher ns",
   "shell.statsui.assumptions": "Hypothèses",
@@ -222,19 +180,15 @@ const fr: Record<ShellKey, string> = {
   "shell.statsui.suggestConsider": "Shapiro-Wilk a signalé des données non normales — envisagez ",
   "shell.statsui.useSuggestion": "Utiliser la suggestion",
   "shell.statsui.posthocPrefix": "Post-hoc — ",
-  "shell.statsui.replication": "Planification de réplication (n pour puiss. 80 %)",
+  "shell.statsui.replication": "Planification de répétition (n pour puiss. de 80 %)",
   "shell.statsui.replicationDesc":
-    "Compte tenu de la taille d’effet observée, taille d’échantillon qu’une étude future devrait atteindre pour détecter cet effet à 80 % de puissance.",
+    "Compte tenu de l’effet observée, taille d’échantillon qu’une étude future devrait atteindre pour détecter cet effet avec 80 % de puissance.",
   "shell.statsui.approxNote":
     "Approximation — puissance du test sur rangs estimée à partir de son analogue paramétrique.",
   "shell.statsui.gt5000": "> 5000",
-
-  // StatsTile — below-plot text summary
   "shell.summary.posthoc": "Post-hoc : ",
-  "shell.summary.effectSize": "Taille d’effet : ",
+  "shell.summary.effectSize": "Taille de l’effet :",
   "shell.summary.nPerGroup": "n par groupe : ",
-
-  // StatsTile — downloadable plain-text report
   "shell.report.title": "Rapport d’analyse statistique",
   "shell.report.generated": "Généré : ",
   "shell.report.groups": "GROUPES",
@@ -246,9 +200,9 @@ const fr: Record<ShellKey, string> = {
   "shell.report.chosen": "Choisi :     ",
   "shell.report.result": "Résultat : ",
   "shell.report.errorPrefix": "erreur : ",
-  "shell.report.replication": "PLANIFICATION DE RÉPLICATION (cible 80 % de puissance)",
-  "shell.report.effectSize": "Taille d’effet :    ",
-  "shell.report.futureStudy": "Pour une étude future à la taille d’effet observée :",
+  "shell.report.replication": "PLANIFICATION DE REPETITION (cible 80 % de puissance)",
+  "shell.report.effectSize": "Taille de l’effet : ",
+  "shell.report.futureStudy": "Pour une étude future à la taille de l’effet observée :",
   "shell.report.alpha": "alpha",
   "shell.report.rankNote":
     "Note : test sur rangs — puissance estimée à partir de son analogue paramétrique.",
@@ -258,17 +212,11 @@ const fr: Record<ShellKey, string> = {
   "shell.report.whyNot3": "elle n’ajoute donc aucune information au-delà de p. Les estimations",
   "shell.report.whyNot4": "prospectives du n nécessaire ci-dessus sont le signal exploitable.",
   "shell.report.posthoc": "POST-HOC — ",
-
-  // BaseStyleControls
   "shell.style.background": "Arrière-plan",
   "shell.style.grid": "Grille",
   "shell.style.gridColor": "Couleur de la grille",
-
-  // NumberInput stepper
   "shell.num.increment": "Augmenter",
   "shell.num.decrement": "Diminuer",
-
-  // ScrollablePlotCard
   "shell.scroll.more": "Défiler pour voir plus →",
 };
 
