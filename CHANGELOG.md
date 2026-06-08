@@ -7,119 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-06-08
+
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md). The
+> entries below are summary bullets that link there.
+>
+> The localization release: Plöttr is now fully bilingual (English ·
+> French) across chrome, all tools, both calculators, the landing page,
+> chart labels, and the stats rationale — plus a rebuilt landing page,
+> refreshed accent UI, self-hosted fonts, and accessible toggles.
+
 ### Added
 
-- **French localization — app chrome + landing page (English · French).** A
-  lightweight, zero-dependency translation layer (`tools/_core/i18n.ts`) mirroring
-  the theme wiring: `plottr-lang` persisted in localStorage, cross-tab sync via
-  BroadcastChannel, `<html lang>` pinned no-FOUC from the `<head>`, and a `t()`
-  lookup with `{var}` interpolation + `Intl.PluralRules` plurals. An EN/FR toggle
-  sits beside the theme button in the tool topbar and on the landing page. The
-  **entire shared shell is bilingual**: upload / paste / separator picker,
-  column-role editor, data preview, step navigator, filter + rename/reorder +
-  palette + group-colour panels, how-to cards, prefs panel, comma-fix /
-  formula-injection / parse-error banners, error boundary, plot-step download +
-  reset actions, the summary stats table, and the in-app statistics tile —
-  including its downloadable plain-text report (test names localized on screen
-  while the R-script export stays English for portability). The static landing
-  (hero, "how it works", tile descriptions, trust badges, footer) is localized
-  via `data-i18n` attributes. **All eight plot tools and both calculators
-  (Power Analysis, molarity/dilution/batch/ligation) are now fully bilingual** —
-  controls, step panels, configure/filter/output banners, chart titles +
-  descriptions + ARIA, per-tool stats panels, and how-to cards. Statistical
-  test / post-hoc display names are localized on screen via registry→key maps
-  while the English registry labels stay the fallback and R-script + CSV exports
-  keep English column names for portability. Remaining for a following phase:
-  chart default axis-label localization (with an English-figure export toggle),
-  the file-protocol help page, and the tool display names in the topbar /
-  landing tiles.
-- **Test-selection rationale is bilingual.** The Welch-by-default explanation
-  shown beneath the stats panels (Shapiro-Wilk / Levene diagnostics, the
-  recommended test + citations, the rank-based suggestion, and the override
-  hint) and scatter's correlation rationale now follow the UI language. The
-  numeric stats kernel still emits the canonical English `reason` (consumed by
-  tests + plain-text / R-script exports); a component-tier builder
-  (`_shell/select-test-narrative.ts`) reconstructs the prose from the kernel's
-  structured diagnostics, verified to match the English verbatim across every
-  branch.
-- **Drag-to-window on the RLU timecourse plot.** Click and drag across the main
-  time-course chart to set the X window (`X start` / `X end`) directly, instead
-  of typing the bounds in the Axes tile. The selection follows the displayed
-  time unit and maps back to the underlying time-points; once a window is set
-  (via the brush or the Axes inputs) a **Clear** button next to the chart resets
-  it to the full data range without opening the control panel. Faceted
-  mini-charts are unaffected.
-- **Self-hosted display + mono typefaces.** Fraunces (display — reserved for
-  the landing "Plöttr" wordmark) and IBM Plex Mono (the functional default for
-  all other chrome) are vendored as woff2 under `tools/fonts/` and declared in
-  `tools/fonts.css` (new `scripts/vendor-fonts.mjs` fetches them). No
-  third-party font request at runtime — same zero-external-call stance as the
-  SRI-pinned React bundle.
-- **Landing-page footer** — Cite (Zenodo DOI `10.5281/zenodo.20245057`,
-  always-latest) · GitHub · MIT · "cross-checked vs R + SciPy". Self-contained,
-  no hot-linked third-party shield.
+- **Full English · French localization.** A zero-dependency i18n layer
+  (`plottr-lang` + BroadcastChannel + no-FOUC `<html lang>`, code-split
+  per-tool catalogs) makes the entire app bilingual: chrome, all eight plot
+  tools, both calculators, the static landing, chart titles/descriptions, and
+  the stats panels — with an EN/FR toggle beside the theme button. See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-added).
+- **Bilingual test-selection rationale.** The Welch-by-default explanation and
+  scatter's correlation rationale follow the UI language, rebuilt on the
+  component tier from the kernel's structured diagnostics (the kernel keeps
+  canonical English for tests + exports). See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-added).
+- **Drag-to-window on the RLU timecourse plot** — drag across the chart to set
+  the X window, with a **Clear** button to reset. See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-added).
+- **Self-hosted display + mono typefaces** (Fraunces + IBM Plex Mono, vendored
+  as woff2) — zero third-party font requests at runtime. See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-added).
+- **Landing-page footer** — Cite (Zenodo DOI) · GitHub · MIT · "cross-checked
+  vs R + SciPy", self-contained. See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-added).
 
 ### Changed
 
-- **Accessible, unified segmented toggles.** Introduced a shared `SegToggle` /
-  `OnOffToggle` control (the canonical `.dv-seg` chrome) and migrated the
-  inline-styled Off/On and segmented toggles that several tools had each
-  re-implemented by hand (aequorin, boxplot, scatter, upset, venn, and the
-  shared grid control). All segmented controls — including the boxplot plot-style
-  switch and the power calculator's mode/solve-for/α/power/tails selectors — now
-  expose their selected state to assistive tech via `aria-pressed`, and pick up
-  the shared focus-visible / disabled styling they previously lacked. No visual
-  change to the controls.
-- **UI consistency pass — copy & symbols.** Aligned tool names so the header,
-  registry, and How-to agree ("RLU Timecourse", "UpSet Plot"); the Group Plot
-  empty state now says "No groups selected" (was "conditions"); and Volcano's
-  exported axis labels / hover read use proper subscripts (`log₂`, `−log₁₀`)
-  to match the rest of that tool's UI.
-- **Refreshed UI language across the app.** The chrome accent moves from the
-  near-greyscale slate to Plöttr blue (`#648fff`, the brand-rune hue) via
-  `theme.css` tokens, so every tool re-skins from one place; press targets use a
-  deeper `#4a72e8` for ~4.3:1 white-text contrast (light + dark, never brighter
-  in dark). A faint accent vignette sits behind the landing and every tool page.
-- **Rebuilt landing page.** A two-column hero pairs the copy (eyebrow, big
-  Fraunces wordmark with the version as an accent chip, a statement tagline)
-  with a live grouped-boxplot **specimen** so visitors see what they'll make;
-  display-font section headers with mono kickers; a bold full-width tool-tile
-  grid where each tile carries its own tool colour (icon, hover glow, left-edge
-  accent bar); and an orchestrated page-load (the rune draws itself on, sections
-  rise in sequence) gated behind `prefers-reduced-motion`.
-- **Editorial tool shells.** Each tool's topbar (and upload-panel) icon now
-  carries that tool's accent colour, matching its landing tile — driven by a
-  central `TOOL_ACCENT` map in `_core/icons.tsx`. The shared upload screen gets
-  a bolder prompt and the sidebar section headers (`.dv-tile-title`, every tool)
-  read as confident kickers. Chart output is untouched — all 16 SVG snapshot
-  baselines unchanged.
+- **Accessible, unified segmented toggles** — a shared `SegToggle` /
+  `OnOffToggle` replaces the hand-rolled per-tool toggles, adding `aria-pressed`
+  - focus-visible / disabled styling. No visual change. See
+    [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-changed).
+- **UI consistency pass — copy & symbols** — aligned tool names across header /
+  registry / How-to and proper subscripts (`log₂`, `−log₁₀`) in Volcano. See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-changed).
+- **Refreshed UI language across the app** — chrome accent moves to Plöttr blue
+  (`#648fff`) via `theme.css` tokens, with accessible press-target contrast. See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-changed).
+- **Rebuilt landing page** — two-column hero with a live boxplot specimen, a
+  bold tool-tile grid, and a reduced-motion-gated page-load animation. See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-changed).
+- **Editorial tool shells** — per-tool accent colours on topbar / upload icons
+  (central `TOOL_ACCENT` map); chart output untouched (16 snapshots unchanged).
+  See [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-changed).
 
 ### Fixed
 
-- **Landing-page language + theme toggles no longer touch.** The fixed EN/FR
-  button sat flush against the 40 px theme button (its `right: 56px` landed
-  exactly on the theme button's left edge); nudged to `right: 62px` for the
-  same 6 px gap the in-tool topbar uses between its buttons.
-- **Language toggle now shows the language it switches _to_.** The EN/FR button
-  labelled itself with the _active_ language (FR while the page was French),
-  which read backwards against its "switch to …" tooltip. It now shows the
-  target language (EN while French is active, FR while English is active) across
-  the tool topbar, the static landing button, and the shared `LangToggle`.
-- **Upload-screen info hint shows a real info icon.** The separator-detection
-  hint led with a bare `ℹ` (U+2139), which has a text-default presentation and
-  rendered as a plain italic "i" in the mono chrome font. Replaced with an
-  inline `currentColor` SVG info mark that themes in both light and dark.
-- **Venn → UpSet handoff link no longer 404s on middle/ctrl-click.** The
-  "use the UpSet tool" link pointed at `upset.html`; in the hash-routed SPA a
-  new-tab open hit a non-existent page. It now targets `#/upset`.
-- **Power calculator effect-size badge adapts to dark mode.** The
-  small/medium/large effect label used raw Okabe-Ito hexes that stayed
-  full-brightness in dark mode; it now uses the themed status tokens.
-- **RLU timecourse legend no longer clips long condition names.** The trace
-  legend was hard-truncating each entry at 14 characters, so a name plus its
-  `(n=NN)` count showed as `Control siR…`. Labels now render in full — each
-  legend column is sized to the full label, and long names simply reduce the
-  per-row count (down to one-per-row) instead of being cut.
+- **Landing language + theme toggles no longer touch** — 6 px gap to match the
+  topbar. See [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-fixed).
+- **Language toggle shows the language it switches _to_** (EN while French is
+  active, and vice-versa). See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-fixed).
+- **Upload-screen info hint shows a real (themed SVG) info icon.** See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-fixed).
+- **Venn → UpSet handoff link no longer 404s** on middle / ctrl-click (now
+  targets `#/upset`). See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-fixed).
+- **Power calculator effect-size badge adapts to dark mode.** See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-fixed).
+- **RLU timecourse legend no longer clips long condition names.** See
+  [`docs/release-notes/v1.7.1.md`](docs/release-notes/v1.7.1.md#-fixed).
 
 ## [1.7.0] - 2026-06-01
 
