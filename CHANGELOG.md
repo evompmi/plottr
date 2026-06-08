@@ -33,6 +33,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   chart default axis-label localization (with an English-figure export toggle),
   the file-protocol help page, and the tool display names in the topbar /
   landing tiles.
+- **Test-selection rationale is bilingual.** The Welch-by-default explanation
+  shown beneath the stats panels (Shapiro-Wilk / Levene diagnostics, the
+  recommended test + citations, the rank-based suggestion, and the override
+  hint) and scatter's correlation rationale now follow the UI language. The
+  numeric stats kernel still emits the canonical English `reason` (consumed by
+  tests + plain-text / R-script exports); a component-tier builder
+  (`_shell/select-test-narrative.ts`) reconstructs the prose from the kernel's
+  structured diagnostics, verified to match the English verbatim across every
+  branch.
 - **Drag-to-window on the RLU timecourse plot.** Click and drag across the main
   time-course chart to set the X window (`X start` / `X end`) directly, instead
   of typing the bounds in the Axes tile. The selection follows the displayed

@@ -218,6 +218,39 @@ const fr: Record<ShellKey, string> = {
   "shell.num.increment": "Augmenter",
   "shell.num.decrement": "Diminuer",
   "shell.scroll.more": "Défiler pour voir plus →",
+
+  "shell.selreason.base2":
+    "Choix par défaut : test t de Welch. Le test t de Welch est le choix par défaut recommandé pour deux groupes indépendants (Rasch, Kubinger & Moder 2011 ; Zimmerman 2004) — il ne suppose pas l’égalité des variances et correspond étroitement au test t de Student lorsque les variances sont en fait égales.",
+  "shell.selreason.baseK":
+    "Choix par défaut : ANOVA de Welch avec post-hoc de Games-Howell. L’ANOVA de Welch est le choix par défaut recommandé pour k ≥ 3 groupes indépendants (Delacre et al. 2019 ; Rasch et al. 2011) — elle ne suppose pas l’égalité des variances entre groupes et correspond étroitement à l’ANOVA à un facteur lorsque les variances sont en fait égales.",
+  "shell.selreason.swNormalAll":
+    "Shapiro-Wilk n’a rejeté la normalité dans aucun groupe à α = {alpha}.",
+  "shell.selreason.swFlaggedLabel": "groupe {i} (W={w}, p={p})",
+  "shell.selreason.swFlagged":
+    "Shapiro-Wilk a signalé {n} groupe(s) sur {k} comme non normaux à α = {alpha} : {labels}.",
+  "shell.selreason.swCannotRun":
+    "Shapiro-Wilk n’a pas pu s’exécuter sur chaque groupe (n < 3 dans au moins un).",
+  "shell.selreason.levError": "Levene (Brown-Forsythe) n’a pas pu s’exécuter : {err}.",
+  "shell.selreason.levRejected":
+    "Levene (Brown-Forsythe) a rejeté l’égalité des variances (F={f}, p={p}) ; Welch gère cela sans intervention supplémentaire.",
+  "shell.selreason.levNotRejected":
+    "Levene (Brown-Forsythe) n’a pas rejeté l’égalité des variances (F={f}, p={p}) ; Welch reste le choix par défaut sûr et correspond étroitement ici au test à variances égales.",
+  "shell.selreason.suggest":
+    " Si la non-normalité semble substantielle (queues lourdes, forte asymétrie, données ordinales), envisagez de passer à {test} via le menu déroulant des tests.",
+  "shell.selreason.override":
+    " Vous pouvez remplacer ce choix depuis le menu déroulant par test du panneau de statistiques ; la trace ci-dessous montre les diagnostics sur lesquels repose la recommandation.",
+
+  "shell.correason.needPairs": "Il faut ≥3 paires complètes pour tester une corrélation.",
+  "shell.correason.base":
+    "Choix par défaut : corrélation de Pearson (produit-moment). Pearson est le test le plus puissant lorsque les deux axes sont approximativement normaux ; Spearman et Kendall restent disponibles comme alternatives sur rangs.",
+  "shell.correason.swNormal":
+    "Shapiro-Wilk n’a rejeté la normalité ni sur x ni sur y à α = {alpha}.",
+  "shell.correason.swFlaggedLabel": "{axis} (W={w}, p={p})",
+  "shell.correason.swFlagged": "Shapiro-Wilk a signalé {labels} comme non normaux à α = {alpha}.",
+  "shell.correason.swCannotRun":
+    "Shapiro-Wilk n’a pas pu s’exécuter sur un ou les deux axes (n < 3).",
+  "shell.correason.suggest":
+    " Si la non-normalité semble substantielle (queues lourdes, forte asymétrie, données ordinales), envisagez de passer à Spearman ρ via le menu déroulant des tests ; pour de très petits échantillons ou fortement ex æquo, Kendall τ-b est une autre alternative.",
 };
 
 export default fr;

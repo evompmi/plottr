@@ -8,6 +8,7 @@ import {
   STATS_TESTS_FOR_K2,
   TestResult,
   buildRScript,
+  buildSelectTestReason,
   computePowerFromData,
   postHocForTest,
   runPostHoc,
@@ -75,7 +76,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
   // an `if` early-return that would skip the assumptions panel entirely.
   const res = row.result ?? ({} as TestResult);
   const rec = (row.rec ?? {}) as SelectTestResult;
-  const recReason = rec.recommendation?.reason;
+  const recReason = buildSelectTestReason(rec);
   const recTest = rec.recommendation?.test ?? null;
   const suggestion = rec.suggestion ?? null;
   const testOptions = k === 2 ? STATS_TESTS_FOR_K2 : STATS_TESTS_FOR_K;

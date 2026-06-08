@@ -25,6 +25,7 @@ import {
 import {
   TestResult,
   buildRScript,
+  buildSelectTestReason,
   computePowerFromData,
   postHocForTest,
   runPostHoc,
@@ -87,7 +88,7 @@ export function AequorinStatsDetail({
   const k = names.length;
   const res = row.testResult ?? ({} as TestResult);
   const rec = (row.rec ?? {}) as SelectTestResult;
-  const recReason = rec.recommendation?.reason;
+  const recReason = buildSelectTestReason(rec);
   const recTest = rec.recommendation?.test ?? null;
   const suggestion = rec.suggestion ?? null;
   const testOptions = k === 2 ? TEST_OPTIONS_AQ_2 : TEST_OPTIONS_AQ_K;

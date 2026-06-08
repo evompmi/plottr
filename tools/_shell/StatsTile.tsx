@@ -23,6 +23,7 @@ import { svgSafeId } from "../_core/svg-export";
 import { downloadText, flashSaved } from "../_core/download";
 import { compactLetterDisplay, selectTest } from "../_core/stats/posthoc";
 import { formatP, pStars } from "../_core/stats/format";
+import { buildSelectTestReason } from "./select-test-narrative";
 import { tt, useShellT, type ShellKey } from "./i18n";
 
 // Aliased here so component code reads as `SelectTestResult | null` instead
@@ -877,8 +878,7 @@ export function StatsTile({
   const testOptions = k === 2 ? STATS_TESTS_FOR_K2 : STATS_TESTS_FOR_K;
   const recTest =
     recommendation && recommendation.recommendation && recommendation.recommendation.test;
-  const recReason =
-    recommendation && recommendation.recommendation && recommendation.recommendation.reason;
+  const recReason = buildSelectTestReason(recommendation);
   const suggestion = recommendation && recommendation.suggestion;
   const testPicker = h(
     "div",

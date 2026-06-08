@@ -28,6 +28,7 @@ import {
   runCorrelation,
 } from "./helpers";
 import { buildScatterAggregateReport, buildScatterAggregateRScript } from "./reports";
+import { buildCorrelationReason } from "../_shell";
 
 import { svgSafeId } from "../_core/svg-export";
 import { downloadText, flashSaved } from "../_core/download";
@@ -67,7 +68,7 @@ function ScatterStatsDetail({
   const tr = useT();
   const res = row.testResult;
   const rec = row.rec;
-  const recReason = rec?.recommendation?.reason;
+  const recReason = buildCorrelationReason(rec);
   const recTest = rec?.recommendation?.test ?? null;
   const suggestion = rec?.suggestion ?? null;
 

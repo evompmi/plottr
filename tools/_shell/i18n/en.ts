@@ -271,6 +271,41 @@ const en = {
 
   // ScrollablePlotCard
   "shell.scroll.more": "Scroll for more →",
+
+  // Test-selection rationale — rebuilt on the component tier from the kernel's
+  // structured diagnostics (the kernel keeps the canonical English `reason` for
+  // tests + exports). EN text matches the kernel string verbatim.
+  "shell.selreason.base2":
+    "Default pick: Welch's t-test. Welch's t is the recommended default for two independent groups (Rasch, Kubinger & Moder 2011; Zimmerman 2004) — it does not assume equal variances and matches Student's t closely when variances are in fact equal.",
+  "shell.selreason.baseK":
+    "Default pick: Welch's ANOVA with Games-Howell post-hoc. Welch's ANOVA is the recommended default for k ≥ 3 independent groups (Delacre et al. 2019; Rasch et al. 2011) — it does not assume equal variances across groups and matches one-way ANOVA closely when variances are in fact equal.",
+  "shell.selreason.swNormalAll":
+    "Shapiro-Wilk did not reject normality in any group at α = {alpha}.",
+  "shell.selreason.swFlaggedLabel": "group {i} (W={w}, p={p})",
+  "shell.selreason.swFlagged":
+    "Shapiro-Wilk flagged {n} of {k} group(s) as non-normal at α = {alpha}: {labels}.",
+  "shell.selreason.swCannotRun":
+    "Shapiro-Wilk could not run on every group (n < 3 in at least one).",
+  "shell.selreason.levError": "Levene (Brown-Forsythe) could not run: {err}.",
+  "shell.selreason.levRejected":
+    "Levene (Brown-Forsythe) rejected equal variances (F={f}, p={p}); Welch handles this without further intervention.",
+  "shell.selreason.levNotRejected":
+    "Levene (Brown-Forsythe) did not reject equal variances (F={f}, p={p}); Welch is still the safe default and matches the equal-variance test closely here.",
+  "shell.selreason.suggest":
+    " If the non-normality looks substantive (heavy tails, strong skew, ordinal data), consider switching to {test} from the test dropdown.",
+  "shell.selreason.override":
+    " You can override this pick from the stats panel's per-test dropdown; the trace below shows the diagnostics the recommendation is based on.",
+
+  // Correlation-selection rationale (scatter; selectCorrelation narrative).
+  "shell.correason.needPairs": "Need ≥3 complete pairs to test a correlation.",
+  "shell.correason.base":
+    "Default pick: Pearson product-moment correlation. Pearson is the most powerful test when both axes are approximately normal; Spearman and Kendall stay available as rank-based alternatives.",
+  "shell.correason.swNormal": "Shapiro-Wilk did not reject normality on x or y at α = {alpha}.",
+  "shell.correason.swFlaggedLabel": "{axis} (W={w}, p={p})",
+  "shell.correason.swFlagged": "Shapiro-Wilk flagged {labels} as non-normal at α = {alpha}.",
+  "shell.correason.swCannotRun": "Shapiro-Wilk could not run on one or both axes (n < 3).",
+  "shell.correason.suggest":
+    " If the non-normality looks substantive (heavy tails, strong skew, ordinal data), consider switching to Spearman ρ from the test dropdown; for very small or heavily-tied samples Kendall τ-b is a further alternative.",
 } as const satisfies Catalog;
 
 export default en;

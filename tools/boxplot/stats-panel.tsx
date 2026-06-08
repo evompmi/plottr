@@ -27,6 +27,7 @@
 import {
   TestResult,
   buildRScript,
+  buildSelectTestReason,
   computePowerFromData,
   postHocForTest,
   runPostHoc,
@@ -94,7 +95,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
   const k = names.length;
   const res = row.testResult ?? ({} as TestResult);
   const rec = (row.rec ?? {}) as SelectTestResult;
-  const recReason = rec.recommendation?.reason;
+  const recReason = buildSelectTestReason(rec);
   const recTest = rec.recommendation?.test ?? null;
   const suggestion = rec.suggestion ?? null;
   const testOptions = k === 2 ? TEST_OPTIONS_BP_2 : TEST_OPTIONS_BP_K;
