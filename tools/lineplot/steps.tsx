@@ -4,7 +4,8 @@
 
 import type { UploadStepProps, ConfigureStepProps } from "./helpers";
 import { DataPreview, DetectedSeparatorBadge, HowTo, UploadPanel } from "../_shell";
-import { LINEPLOT_HOWTO } from "./howto";
+import { useLineplotHowTo } from "./howto";
+import { useT, type LineplotKey } from "./i18n";
 
 // ── UploadStep ─────────────────────────────────────────────────────────────
 
@@ -17,6 +18,8 @@ export function UploadStep({
   handleTextPaste,
   onLoadExample,
 }: UploadStepProps) {
+  const tr = useT();
+  const howto = useLineplotHowTo();
   return (
     <div>
       <UploadPanel
@@ -30,13 +33,12 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          title: "Bacterial growth curves",
-          subtitle: "3 strains × 5 timepoints × 3 replicates",
-          buttonLabel: "Plot this example →",
+          title: tr("lineplot.example.title"),
+          subtitle: tr("lineplot.example.subtitle"),
         }}
-        hint="CSV · TSV · TXT — one row per observation, columns for X, Y, and grouping · 2 MB max"
+        hint={tr("lineplot.upload.hint")}
       />
-      <HowTo {...LINEPLOT_HOWTO} />
+      <HowTo {...howto} />
     </div>
   );
 }
@@ -72,7 +74,14 @@ const LP_AES_THEMES = {
   },
 };
 
+const LP_AES_LABEL_KEYS: Record<"x" | "y" | "group", LineplotKey> = {
+  x: "lineplot.var.xAxis",
+  y: "lineplot.var.yAxis",
+  group: "lineplot.var.groupBy",
+};
+
 function LpAesBox({ theme, children }: { theme: "x" | "y" | "group"; children?: React.ReactNode }) {
+  const tr = useT();
   const t = LP_AES_THEMES[theme];
   return (
     <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
@@ -86,7 +95,7 @@ function LpAesBox({ theme, children }: { theme: "x" | "y" | "group"; children?: 
             letterSpacing: "0.8px",
           }}
         >
-          {t.label}
+          {tr(LP_AES_LABEL_KEYS[theme])}
         </span>
       </div>
       <div style={{ padding: "12px 14px", minHeight: 40 }}>{children}</div>

@@ -6,6 +6,7 @@
 // `isNumericValue` is read off the ambient browser globals.
 
 import { isNumericValue } from "../_core/numeric";
+import { useShellT } from "./i18n";
 
 import type { ColumnRole } from "../_core/csv";
 const h = React.createElement;
@@ -22,6 +23,7 @@ interface FilterCheckboxPanelProps {
 }
 
 export function FilterCheckboxPanel(props: FilterCheckboxPanelProps) {
+  const tr = useShellT();
   const headers = props.headers;
   const colNames = props.colNames;
   const colRoles = props.colRoles;
@@ -46,7 +48,7 @@ export function FilterCheckboxPanel(props: FilterCheckboxPanelProps) {
     h(
       "p",
       { style: { margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "var(--info-text)" } },
-      "Filter rows (" + filteredCount + "/" + totalCount + ")"
+      tr("shell.filter.heading", { shown: filteredCount, total: totalCount })
     ),
     h(
       "div",
@@ -96,7 +98,7 @@ export function FilterCheckboxPanel(props: FilterCheckboxPanelProps) {
                     color: "var(--text-muted)",
                   },
                 },
-                "All"
+                tr("shell.filter.all")
               )
             ),
             h(
@@ -109,7 +111,7 @@ export function FilterCheckboxPanel(props: FilterCheckboxPanelProps) {
                   fontStyle: "italic",
                 },
               },
-              "numeric — use axis range in plot"
+              tr("shell.filter.numericHint")
             )
           );
         }
@@ -149,7 +151,7 @@ export function FilterCheckboxPanel(props: FilterCheckboxPanelProps) {
                   color: "var(--text-muted)",
                 },
               },
-              "All"
+              tr("shell.filter.all")
             ),
             h(
               "button",
@@ -166,7 +168,7 @@ export function FilterCheckboxPanel(props: FilterCheckboxPanelProps) {
                   color: "var(--text-muted)",
                 },
               },
-              "None"
+              tr("shell.filter.none")
             )
           ),
           u.map((v) => {

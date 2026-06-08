@@ -10,6 +10,8 @@
 // window-level pointerup listener so the user can drag off the button
 // mid-hold without breaking the gesture.
 
+import { useShellT } from "./i18n";
+
 const h = React.createElement;
 
 const { useRef, useEffect } = React;
@@ -35,6 +37,7 @@ interface HoldState {
 }
 
 export function NumberInput(props: NumberInputProps) {
+  const tr = useShellT();
   const value = props.value != null ? props.value : "";
   const onChange = props.onChange;
   const min = props.min != null ? Number(props.min) : null;
@@ -147,7 +150,7 @@ export function NumberInput(props: NumberInputProps) {
         onPointerDown: onMinusDown,
         disabled: minusDisabled,
         tabIndex: -1,
-        "aria-label": "Decrement",
+        "aria-label": tr("shell.num.decrement"),
       },
       "−"
     ),
@@ -171,7 +174,7 @@ export function NumberInput(props: NumberInputProps) {
         onPointerDown: onPlusDown,
         disabled: plusDisabled,
         tabIndex: -1,
-        "aria-label": "Increment",
+        "aria-label": tr("shell.num.increment"),
       },
       "+"
     )

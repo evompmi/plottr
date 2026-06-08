@@ -11,6 +11,10 @@
 // bundle time.
 import "../_core/stats";
 import "../_core/shared";
+// Eagerly register the shared shell i18n catalog (en/fr) into the entry
+// chunk — every tool reuses the shell chrome, so its strings belong in
+// the always-loaded bundle rather than a per-tool chunk.
+import "../_shell/i18n";
 
 import { App } from "./App";
 import { navigate } from "./Router";

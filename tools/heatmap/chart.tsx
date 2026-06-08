@@ -22,6 +22,7 @@ import {
 
 import { COLOR_PALETTES, interpolateColor } from "../_core/color";
 import { registerSvgExportMutator, unregisterSvgExportMutator } from "../_core/svg-export";
+import { tt } from "./i18n";
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef, memo } = React;
 
 // Ephemeral pointer-interaction state (see the block comment at the
@@ -745,7 +746,7 @@ export const HeatmapChart = memo(
                   paintOrder="stroke"
                   style={{ pointerEvents: "none" }}
                 >
-                  {`Cluster n° ${b.id + 1}`}
+                  {tt("heatmap.chart.cluster", { n: b.id + 1 })}
                 </text>
               );
             })}
@@ -827,7 +828,7 @@ export const HeatmapChart = memo(
                   paintOrder="stroke"
                   style={{ pointerEvents: "none" }}
                 >
-                  {`Cluster n° ${b.id + 1}`}
+                  {tt("heatmap.chart.cluster", { n: b.id + 1 })}
                 </text>
               );
             })}
@@ -1332,7 +1333,10 @@ export const HeatmapChart = memo(
           {/* Colourbar — vertical, high values on top. */}
           <g
             id="colorbar"
-            aria-label={`Colourbar: values range from ${vmin.toPrecision(3)} to ${vmax.toPrecision(3)}`}
+            aria-label={tt("heatmap.chart.colorbarAria", {
+              min: vmin.toPrecision(3),
+              max: vmax.toPrecision(3),
+            })}
           >
             <defs>
               <linearGradient id={cbGradId} x1="0%" y1="100%" x2="0%" y2="0%">

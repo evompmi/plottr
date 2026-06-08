@@ -4,6 +4,7 @@
 
 import { ColorInput } from "./ColorInput";
 import { OnOffToggle } from "./SegToggle";
+import { useShellT } from "./i18n";
 
 const h = React.createElement;
 
@@ -17,6 +18,7 @@ interface BaseStyleControlsProps {
 }
 
 export function BaseStyleControls(props: BaseStyleControlsProps) {
+  const tr = useShellT();
   const plotBg = props.plotBg;
   const onPlotBgChange = props.onPlotBgChange;
   const showGrid = props.showGrid;
@@ -30,14 +32,18 @@ export function BaseStyleControls(props: BaseStyleControlsProps) {
         key: "bg",
         style: { display: "flex", alignItems: "center", justifyContent: "space-between" },
       },
-      h("span", { className: "dv-label" }, "Background"),
+      h("span", { className: "dv-label" }, tr("shell.style.background")),
       h(ColorInput, { value: plotBg, onChange: onPlotBgChange, size: 24 })
     ),
     h(
       "div",
       { key: "grid" },
-      h("span", { className: "dv-label" }, "Grid"),
-      h(OnOffToggle, { value: showGrid, onChange: onShowGridChange, ariaLabel: "Grid" })
+      h("span", { className: "dv-label" }, tr("shell.style.grid")),
+      h(OnOffToggle, {
+        value: showGrid,
+        onChange: onShowGridChange,
+        ariaLabel: tr("shell.style.grid"),
+      })
     ),
   ];
   if (showGrid) {
@@ -48,7 +54,7 @@ export function BaseStyleControls(props: BaseStyleControlsProps) {
           key: "gc",
           style: { display: "flex", alignItems: "center", justifyContent: "space-between" },
         },
-        h("span", { className: "dv-label" }, "Grid color"),
+        h("span", { className: "dv-label" }, tr("shell.style.gridColor")),
         h(ColorInput, { value: gridColor, onChange: onGridColorChange, size: 24 })
       )
     );

@@ -10,6 +10,8 @@ import {
   detectLongFormat,
   usePlotToolState,
 } from "../_shell";
+import "./i18n";
+import { tt } from "./i18n";
 import {
   computeMemberships,
   enumerateIntersections,
@@ -424,7 +426,7 @@ export function App() {
       const { headers, rows, injectionWarnings } = parseRaw(dc.text, effectiveSep);
       setInjectionWarning(injectionWarnings);
       if (!headers.length || !rows.length) {
-        setParseError("The file appears to be empty or has no data rows.");
+        setParseError(tt("upset.err.empty"));
         return;
       }
       // Auto-detect long format for 2-column input. 3+ columns are
@@ -447,15 +449,13 @@ export function App() {
             : parseSetData(headers, rows);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "";
-        setParseError(msg || "Unable to parse set membership.");
+        setParseError(msg || tt("upset.err.parse"));
         return;
       }
       const { setNames: sn, sets: ss } = parsed;
       if (sn.length < 2) {
         setParseError(
-          effectiveFmt === "long"
-            ? "Need at least 2 distinct set names in the second column."
-            : "Need at least 2 non-empty set columns."
+          effectiveFmt === "long" ? tt("upset.err.longSets") : tt("upset.err.wideSets")
         );
         return;
       }

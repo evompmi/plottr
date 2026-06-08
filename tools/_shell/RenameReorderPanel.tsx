@@ -1,4 +1,5 @@
 import type { ColumnRole } from "../_core/csv";
+import { useShellT } from "./i18n";
 
 // `RenameReorderPanel` — per-column rename + drag-to-reorder list. Used
 // in the configure step of long-format tools to (a) rename observed
@@ -28,6 +29,7 @@ interface RenameReorderPanelProps {
 }
 
 export function RenameReorderPanel(props: RenameReorderPanelProps) {
+  const tr = useShellT();
   const headers = props.headers;
   const colNames = props.colNames;
   const colRoles = props.colRoles;
@@ -53,11 +55,11 @@ export function RenameReorderPanel(props: RenameReorderPanelProps) {
     h(
       "p",
       { style: { margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" } },
-      "Rename values & reorder groups ",
+      tr("shell.rename.heading"),
       h(
         "span",
         { style: { fontSize: 10, color: "var(--text-faint)", fontWeight: 400 } },
-        "(drag ☰ to reorder groups on plot)"
+        tr("shell.rename.hint")
       )
     ),
     h(
@@ -153,7 +155,7 @@ export function RenameReorderPanel(props: RenameReorderPanelProps) {
                     whiteSpace: "nowrap",
                   },
                 },
-                v || "(empty)"
+                v || tr("shell.rename.empty")
               ),
               h("span", { style: { fontSize: 10, color: "var(--text-faint)" } }, "→"),
               h("input", {

@@ -102,6 +102,7 @@ export {
 } from "./stats-registry";
 export { postHocForTest, runPostHoc, runTest, testStatistic } from "./stats-dispatch";
 export type { PostHocPair, PostHocResult, TestResult } from "./stats-dispatch";
+export { buildSelectTestReason, buildCorrelationReason } from "./select-test-narrative";
 export { computeLegendHeight, renderSvgLegend } from "./svg-legend";
 export type { LegendBlock, LegendItemWidth } from "./svg-legend";
 export { usePlotToolState } from "./usePlotToolState";

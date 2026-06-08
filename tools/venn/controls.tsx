@@ -14,6 +14,7 @@ import {
 } from "../_shell";
 import { regionLabel, regionFilenamePart } from "./helpers";
 import type { PlotControlsProps, Region, VennVis } from "./helpers";
+import { useT } from "./i18n";
 
 import { PALETTE } from "../_core/color";
 import { downloadCsv, fileBaseName } from "../_core/download";
@@ -35,6 +36,7 @@ export function PlotControls({
   onProportionalChange,
   fileName,
 }: PlotControlsProps) {
+  const tr = useT();
   const baseName = fileBaseName(fileName, "venn");
   const sv = (k: keyof VennVis) => (v: unknown) => updVis({ [k]: v } as Partial<VennVis>);
   return (
@@ -45,9 +47,8 @@ export function PlotControls({
         onReset={resetAll}
         extraDownloads={[
           {
-            label: "CSV",
-            title:
-              "Download the membership matrix — one row per item, a 0/1 column for each active set (long/tidy format)",
+            label: tr("venn.dl.csv"),
+            title: tr("venn.dl.csvTitle"),
             onClick: () => {
               const allItems = new Set<string>();
               for (const n of activeSetNames) {
@@ -70,9 +71,8 @@ export function PlotControls({
             // allow multiple downloads from a single user gesture — accepting
             // is expected. Empty regions are skipped (an empty CSV is noise,
             // not a useful record).
-            label: "Regions",
-            title:
-              "Download one CSV per non-empty region (fires multiple saves — your browser may ask once to allow them)",
+            label: tr("venn.dl.regions"),
+            title: tr("venn.dl.regionsTitle"),
             onClick: () => {
               const nonEmpty = intersections.filter((r: Region) => r.size > 0);
               nonEmpty.forEach((r: Region, i: number) => {
@@ -98,7 +98,7 @@ export function PlotControls({
 
       <div className="dv-panel">
         <p className="dv-tile-title" style={{ margin: "0 0 8px" }}>
-          Sets
+          {tr("venn.tile.sets")}
         </p>
         <DiscretePaletteRow
           value={vis.discretePalette || "okabe-ito"}
@@ -194,20 +194,20 @@ export function PlotControls({
 
       <div className="dv-panel">
         <p className="dv-tile-title" style={{ margin: "0 0 8px" }}>
-          Display
+          {tr("venn.tile.display")}
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
-            <span className="dv-label">Proportional areas</span>
+            <span className="dv-label">{tr("venn.ctrl.proportionalAreas")}</span>
             <OnOffToggle
               value={proportional}
               onChange={onProportionalChange}
-              ariaLabel="Proportional areas"
+              ariaLabel={tr("venn.ctrl.proportionalAreas")}
             />
           </div>
           {proportional && (
             <SliderControl
-              label="Proportional ↔ Readable"
+              label={tr("venn.ctrl.propReadable")}
               value={vis.readabilityBlend}
               min={0}
               max={1}
@@ -217,7 +217,7 @@ export function PlotControls({
             />
           )}
           <div>
-            <div className="dv-label">Title</div>
+            <div className="dv-label">{tr("venn.ctrl.title")}</div>
             <input
               value={vis.plotTitle}
               onChange={(e) => updVis({ plotTitle: e.target.value })}
@@ -226,7 +226,7 @@ export function PlotControls({
             />
           </div>
           <SliderControl
-            label="Fill opacity"
+            label={tr("venn.ctrl.fillOpacity")}
             value={vis.fillOpacity}
             min={0.05}
             max={0.8}
@@ -234,15 +234,15 @@ export function PlotControls({
             onChange={sv("fillOpacity")}
           />
           <div>
-            <span className="dv-label">Circle outline</span>
+            <span className="dv-label">{tr("venn.ctrl.circleOutline")}</span>
             <OnOffToggle
               value={vis.showOutline}
               onChange={(v) => updVis({ showOutline: v })}
-              ariaLabel="Circle outline"
+              ariaLabel={tr("venn.ctrl.circleOutline")}
             />
           </div>
           <SliderControl
-            label="Font size"
+            label={tr("venn.ctrl.fontSize")}
             value={vis.fontSize}
             min={8}
             max={24}
@@ -250,7 +250,7 @@ export function PlotControls({
             onChange={sv("fontSize")}
           />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span className="dv-label">Background</span>
+            <span className="dv-label">{tr("venn.ctrl.background")}</span>
             <ColorInput value={vis.plotBg} onChange={sv("plotBg")} size={24} />
           </div>
         </div>

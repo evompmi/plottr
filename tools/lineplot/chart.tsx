@@ -9,6 +9,7 @@ import type { LegendBlock } from "../_shell";
 import { makeTicks } from "../_core/scale";
 import { pStars } from "../_core/stats/format";
 import { svgSafeId } from "../_core/svg-export";
+import { tt } from "./i18n";
 const { forwardRef, memo } = React;
 
 export const Chart = memo(
@@ -78,9 +79,9 @@ export const Chart = memo(
         style={{ width: "100%", height: "auto", display: "block" }}
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label={plotTitle || "Line chart"}
+        aria-label={plotTitle || tt("lineplot.chart.fallbackTitle")}
       >
-        <title>{plotTitle || "Line chart"}</title>
+        <title>{plotTitle || tt("lineplot.chart.fallbackTitle")}</title>
         <desc>{`Line chart with ${series.length} group${series.length === 1 ? "" : "s"}`}</desc>
         <g id="background">
           <rect x={0} y={0} width={vbW} height={vbH + legendH + topPad} fill={plotBg || "#fff"} />
@@ -166,7 +167,11 @@ export const Chart = memo(
                   stroke={s.color}
                   strokeWidth={lineWidth}
                   role="img"
-                  aria-label={`${s.name}: ${s.points.length} x-point${s.points.length !== 1 ? "s" : ""}`}
+                  aria-label={tt("lineplot.chart.traceAria", {
+                    name: s.name,
+                    n: s.points.length,
+                    count: s.points.length,
+                  })}
                 />
               );
             })}

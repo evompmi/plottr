@@ -7,6 +7,7 @@
 // save-to-file / load-from-file / reset flow.
 
 import { clearAutoPrefs, exportPrefsFile, importPrefsFile } from "./prefs-store";
+import { useShellT } from "./i18n";
 
 const { useState, useRef, useEffect } = React;
 
@@ -23,6 +24,7 @@ interface PrefsPanelProps<T extends object> {
 }
 
 export function PrefsPanel<T extends object>({ tool, vis, visInit, updVis }: PrefsPanelProps<T>) {
+  const tr = useShellT();
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -53,7 +55,7 @@ export function PrefsPanel<T extends object>({ tool, vis, visInit, updVis }: Pre
     importPrefsFile<T>(tool, visInit, (merged, errMsg) => {
       if (errMsg || !merged) {
         // Keep popover open to show the error inline.
-        setError(errMsg ?? "Could not load settings file.");
+        setError(errMsg ?? tr("shell.prefs.loadError"));
         setOpen(true);
         return;
       }
@@ -81,10 +83,10 @@ export function PrefsPanel<T extends object>({ tool, vis, visInit, updVis }: Pre
       <button
         type="button"
         onClick={() => setOpen((x) => !x)}
-        aria-label="Visual plot settings"
+        aria-label={tr("shell.prefs.title")}
         aria-expanded={open}
         aria-haspopup="menu"
-        title="Visual plot settings"
+        title={tr("shell.prefs.title")}
         style={{
           width: 40,
           height: 40,
@@ -144,34 +146,34 @@ export function PrefsPanel<T extends object>({ tool, vis, visInit, updVis }: Pre
               padding: "2px 4px 4px",
             }}
           >
-            Visual plot settings
+            {tr("shell.prefs.title")}
           </span>
           <button
             role="menuitem"
             onClick={handleSave}
             className="dv-btn dv-btn-dl"
             style={menuBtnStyle}
-            title="Download current visual plot settings as a JSON file"
+            title={tr("shell.prefs.saveTitle")}
           >
-            Save to file
+            {tr("shell.prefs.save")}
           </button>
           <button
             role="menuitem"
             onClick={handleLoad}
             className="dv-btn dv-btn-dl"
             style={menuBtnStyle}
-            title="Apply visual plot settings from a previously saved JSON file"
+            title={tr("shell.prefs.loadTitle")}
           >
-            Load from file
+            {tr("shell.prefs.load")}
           </button>
           <button
             role="menuitem"
             onClick={handleReset}
             className="dv-btn dv-btn-danger"
             style={menuBtnStyle}
-            title="Restore default visual plot settings and clear stored preferences"
+            title={tr("shell.prefs.resetTitle")}
           >
-            Reset to defaults
+            {tr("shell.prefs.reset")}
           </button>
           {error && (
             <p

@@ -26,6 +26,8 @@ import type { CalibrationFormula } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
 import { PlotControls } from "./controls";
 import { PlotPanel, SampleSelectionOverlay } from "./plot-area";
+import "./i18n";
+import { tt, useT } from "./i18n";
 
 import { autoDetectSep, fixDecimalCommas, parseData } from "../_core/csv";
 import { downloadCsv, fileBaseName } from "../_core/download";
@@ -1291,6 +1293,7 @@ const EXAMPLE_TSV = `mutant_CO7	WT_CO7	WT_CO7	mutant_CO7	mutant_CO7	WT_CO7	WT_CO
 2551	1240	526	3174	2319	887	886`;
 
 export function App() {
+  const trApp = useT();
   const shell = usePlotToolState("aequorin", VIS_INIT_AEQUORIN);
   const {
     step,
@@ -1563,16 +1566,12 @@ export function App() {
       const { headers, data, injectionWarnings } = parseData(dc.text, effectiveSep);
       setInjectionWarning(injectionWarnings);
       if (!headers.length || !data.length) {
-        setParseMessage(
-          "The file appears to be empty or has no data rows. Please check your file and try again."
-        );
+        setParseMessage(tt("aequorin.err.empty"));
         return;
       }
       // Check for single-column files
       if (headers.length === 1) {
-        setParseMessage(
-          "Only one column detected — this tool expects wide-format data with one column per sample. Check your separator setting or file format."
-        );
+        setParseMessage(tt("aequorin.err.oneColumn"));
         return;
       }
       // Check how much of the data is numeric
@@ -1583,9 +1582,7 @@ export function App() {
       );
       const numericRatio = totalCells > 0 ? numericCells / totalCells : 0;
       if (numericRatio < 0.3) {
-        setParseMessage(
-          "Less than 30% of values are numeric. This tool expects a numeric matrix (one column per sample, one row per time-point). Your file may be in long format or contain mostly text."
-        );
+        setParseMessage(tt("aequorin.err.notNumeric"));
         return;
       }
       // Warn if the file looks like long format (few columns, one text + one numeric pattern)
@@ -1597,17 +1594,13 @@ export function App() {
       const textCols = colTypes.filter((t) => t === "text").length;
       const warnings: string[] = [];
       if (headers.length <= 3 && textCols >= 1 && numCols >= 1)
-        warnings.push(
-          "⚠️ This looks like it could be long-format data (few columns, mix of text and numbers). This tool expects wide format — one column per sample, one row per time-point."
-        );
+        warnings.push(tt("aequorin.warn.longFormat"));
       // Detect ragged columns (different number of valid values per column)
       const colLengths = headers.map((_, ci) => data.filter((r) => r[ci] != null).length);
       const maxLen = Math.max(...colLengths);
       const minLen = Math.min(...colLengths);
       if (maxLen > 0 && minLen < maxLen) {
-        warnings.push(
-          `⚠️ Columns have different lengths (${minLen}–${maxLen} numeric values). Some samples may have missing time-points, which can affect mean/SD calculations.`
-        );
+        warnings.push(tt("aequorin.warn.differentLengths", { min: minLen, max: maxLen }));
       }
       setParseMessage(warnings.length > 0 ? warnings.join("\n") : null);
       const ce: Record<number, boolean> = {};
@@ -1657,7 +1650,7 @@ export function App() {
   const loadExample = useCallback(() => {
     const text = EXAMPLE_TSV;
     if (!text) {
-      setParseMessage("Example dataset not loaded. Please try uploading a file instead.");
+      setParseMessage(tt("aequorin.err.exampleNotLoaded"));
       return;
     }
     // Leave sepOverride empty so the Override disclosure stays closed on
@@ -1808,11 +1801,11 @@ export function App() {
                       marginBottom: 2,
                     }}
                   >
-                    Series
+                    {trApp("aequorin.app.series")}
                   </span>
                   <div
                     role="group"
-                    aria-label="Series definition"
+                    aria-label={trApp("aequorin.app.seriesDef")}
                     style={{
                       display: "inline-flex",
                       border: "1px solid var(--step-active-border)",
@@ -1836,7 +1829,7 @@ export function App() {
                         borderRight: "1px solid var(--step-active-border)",
                       }}
                     >
-                      Pool by name
+                      {trApp("aequorin.app.poolByName")}
                     </button>
                     <button
                       onClick={() => handlePoolChange(false)}
@@ -1852,7 +1845,7 @@ export function App() {
                         border: "none",
                       }}
                     >
-                      Individual
+                      {trApp("aequorin.app.individual")}
                     </button>
                   </div>
                 </div>
@@ -1867,11 +1860,11 @@ export function App() {
                       marginBottom: 2,
                     }}
                   >
-                    Layout
+                    {trApp("aequorin.app.layout")}
                   </span>
                   <div
                     role="group"
-                    aria-label="Plot layout"
+                    aria-label={trApp("aequorin.app.plotLayout")}
                     style={{
                       display: "inline-flex",
                       border: "1px solid var(--step-active-border)",
@@ -1895,7 +1888,7 @@ export function App() {
                         borderRight: "1px solid var(--step-active-border)",
                       }}
                     >
-                      Combined
+                      {trApp("aequorin.app.combined")}
                     </button>
                     <button
                       onClick={() => updVis({ faceted: true })}
@@ -1911,7 +1904,7 @@ export function App() {
                         border: "none",
                       }}
                     >
-                      Faceted
+                      {trApp("aequorin.app.faceted")}
                     </button>
                   </div>
                 </div>

@@ -12,17 +12,19 @@ import type { ClusterMode, ClusterModeControlProps, PlotControlsProps } from "./
 
 import { COLOR_PALETTES, DIVERGING_PALETTES } from "../_core/color";
 import { downloadCsv, downloadText, fileBaseName } from "../_core/download";
+import { useT } from "./i18n";
 
 export function ClusterModeControl({ label, mode, setMode, k, setK }: ClusterModeControlProps) {
+  const tr = useT();
   const OPTIONS: Array<{ k: ClusterMode; label: string }> = [
-    { k: "none", label: "None" },
-    { k: "hierarchical", label: "Hier." },
-    { k: "kmeans", label: "K-means" },
+    { k: "none", label: tr("heatmap.cluster.none") },
+    { k: "hierarchical", label: tr("heatmap.cluster.hier") },
+    { k: "kmeans", label: tr("heatmap.cluster.kmeans") },
   ];
   return (
     <div style={{ marginBottom: 8 }}>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
-      <div className="dv-seg" role="group" aria-label={`${label} clustering mode`}>
+      <div className="dv-seg" role="group" aria-label={tr("heatmap.cluster.modeAria", { label })}>
         {OPTIONS.map((o) => (
           <button
             key={o.k}
@@ -37,7 +39,7 @@ export function ClusterModeControl({ label, mode, setMode, k, setK }: ClusterMod
       </div>
       {mode === "kmeans" && (
         <div style={{ fontSize: 11, marginTop: 6 }}>
-          <div style={{ marginBottom: 2 }}>k</div>
+          <div style={{ marginBottom: 2 }}>{tr("heatmap.cluster.k")}</div>
           <NumberInput
             value={k}
             step="1"
@@ -82,25 +84,26 @@ export function PlotControls({
   setLinkageMethod,
   autoVRange,
 }: PlotControlsProps) {
+  const tr = useT();
   const paletteKeys = Object.keys(COLOR_PALETTES);
   const anyHier = rowMode === "hierarchical" || colMode === "hierarchical";
   const anyKmeans = rowMode === "kmeans" || colMode === "kmeans";
   const baseName = fileBaseName(fileName, "heatmap");
   const NORM_OPTIONS: Array<{ k: "none" | "zrow" | "zcol" | "log2"; label: string }> = [
-    { k: "none", label: "None" },
-    { k: "zrow", label: "Z row" },
-    { k: "zcol", label: "Z col" },
-    { k: "log2", label: "log₂" },
+    { k: "none", label: tr("heatmap.norm.none") },
+    { k: "zrow", label: tr("heatmap.norm.zrow") },
+    { k: "zcol", label: tr("heatmap.norm.zcol") },
+    { k: "log2", label: tr("heatmap.norm.log2") },
   ];
   const DIST_OPTIONS: Array<{ k: "euclidean" | "manhattan" | "correlation"; label: string }> = [
-    { k: "euclidean", label: "Euclidean" },
-    { k: "manhattan", label: "Manhattan" },
-    { k: "correlation", label: "1 − r" },
+    { k: "euclidean", label: tr("heatmap.dist.euclidean") },
+    { k: "manhattan", label: tr("heatmap.dist.manhattan") },
+    { k: "correlation", label: tr("heatmap.dist.correlation") },
   ];
   const LINK_OPTIONS: Array<{ k: "average" | "complete" | "single"; label: string }> = [
-    { k: "average", label: "Average" },
-    { k: "complete", label: "Complete" },
-    { k: "single", label: "Single" },
+    { k: "average", label: tr("heatmap.link.average") },
+    { k: "complete", label: tr("heatmap.link.complete") },
+    { k: "single", label: tr("heatmap.link.single") },
   ];
   return (
     <PlotSidebar sticky={false} width={280}>
@@ -108,9 +111,8 @@ export function PlotControls({
         onReset={resetAll}
         extraDownloads={[
           {
-            label: "CSV",
-            title:
-              "Download the plotted matrix as CSV — normalisation and row / column reordering applied",
+            label: tr("heatmap.dl.csv"),
+            title: tr("heatmap.dl.csvTitle"),
             onClick: () => {
               if (!matrixRef.current) return;
               const { headers, rows } = buildCsvExport(matrixRef.current);
@@ -118,9 +120,8 @@ export function PlotControls({
             },
           },
           {
-            label: "R script",
-            title:
-              "Download a runnable R script that reproduces this plot with pheatmap (includes the raw matrix, clustering, normalisation, palette)",
+            label: tr("heatmap.dl.r"),
+            title: tr("heatmap.dl.rTitle"),
             onClick: () => {
               if (!rawMatrix || !rawMatrix.rowLabels.length) return;
               const script = buildHeatmapRScript({
@@ -146,8 +147,8 @@ export function PlotControls({
         ]}
       />
 
-      <ControlSection title="Normalisation">
-        <div className="dv-seg" role="group" aria-label="Normalisation">
+      <ControlSection title={tr("heatmap.sec.normalisation")}>
+        <div className="dv-seg" role="group" aria-label={tr("heatmap.sec.normalisation")}>
           {NORM_OPTIONS.map((o) => (
             <button
               key={o.k}
@@ -162,16 +163,16 @@ export function PlotControls({
         </div>
       </ControlSection>
 
-      <ControlSection title="Clustering" defaultOpen={true}>
+      <ControlSection title={tr("heatmap.sec.clustering")} defaultOpen={true}>
         <ClusterModeControl
-          label="Rows"
+          label={tr("heatmap.cluster.rows")}
           mode={rowMode}
           setMode={setRowMode}
           k={rowK}
           setK={setRowK}
         />
         <ClusterModeControl
-          label="Columns"
+          label={tr("heatmap.cluster.columns")}
           mode={colMode}
           setMode={setColMode}
           k={colK}
@@ -180,9 +181,9 @@ export function PlotControls({
         {anyHier && (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
-              Hierarchical · Distance
+              {tr("heatmap.dist.heading")}
             </div>
-            <div className="dv-seg" role="group" aria-label="Distance metric">
+            <div className="dv-seg" role="group" aria-label={tr("heatmap.dist.aria")}>
               {DIST_OPTIONS.map((o) => (
                 <button
                   key={o.k}
@@ -196,9 +197,9 @@ export function PlotControls({
               ))}
             </div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 4px" }}>
-              Hierarchical · Linkage
+              {tr("heatmap.link.heading")}
             </div>
-            <div className="dv-seg" role="group" aria-label="Linkage method">
+            <div className="dv-seg" role="group" aria-label={tr("heatmap.link.aria")}>
               {LINK_OPTIONS.map((o) => (
                 <button
                   key={o.k}
@@ -214,13 +215,13 @@ export function PlotControls({
             {rowMode === "hierarchical" && (
               <>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 4px" }}>
-                  Hierarchical · Row dendrogram
+                  {tr("heatmap.dendro.rowHeading")}
                 </div>
-                <div className="dv-seg" role="group" aria-label="Show row dendrogram">
+                <div className="dv-seg" role="group" aria-label={tr("heatmap.dendro.rowAria")}>
                   {(
                     [
-                      [false, "Off"],
-                      [true, "On"],
+                      [false, tr("heatmap.off")],
+                      [true, tr("heatmap.on")],
                     ] as const
                   ).map(([value, label]) => {
                     const active = !!vis.showRowDendrogram === value;
@@ -242,13 +243,13 @@ export function PlotControls({
             {colMode === "hierarchical" && (
               <>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 4px" }}>
-                  Hierarchical · Column dendrogram
+                  {tr("heatmap.dendro.colHeading")}
                 </div>
-                <div className="dv-seg" role="group" aria-label="Show column dendrogram">
+                <div className="dv-seg" role="group" aria-label={tr("heatmap.dendro.colAria")}>
                   {(
                     [
-                      [false, "Off"],
-                      [true, "On"],
+                      [false, tr("heatmap.off")],
+                      [true, tr("heatmap.on")],
                     ] as const
                   ).map(([value, label]) => {
                     const active = !!vis.showColDendrogram === value;
@@ -268,15 +269,13 @@ export function PlotControls({
               </>
             )}
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
-              Leaf order + cluster structure stay applied when hidden. Drag on the heatmap to open a
-              zoomed selection if you still need per-cluster exports. Applies to both the main and
-              zoomed plots.
+              {tr("heatmap.dendro.note")}
             </div>
           </div>
         )}
         {anyKmeans && (
           <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 11, marginBottom: 2 }}>K-means · Seed</div>
+            <div style={{ fontSize: 11, marginBottom: 2 }}>{tr("heatmap.kmeans.seed")}</div>
             <NumberInput
               value={kmeansSeed}
               step="1"
@@ -285,15 +284,15 @@ export function PlotControls({
               style={{ width: "100%" }}
             />
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
-              Change the seed to try a different k-means++ initialisation.
+              {tr("heatmap.kmeans.seedNote")}
             </div>
           </div>
         )}
       </ControlSection>
 
-      <ControlSection title="Colour scale">
+      <ControlSection title={tr("heatmap.sec.colourScale")}>
         <label style={{ fontSize: 11, display: "block", marginBottom: 6 }}>
-          Palette
+          {tr("heatmap.colour.palette")}
           <select
             value={vis.palette}
             onChange={(e) => updVis({ palette: e.target.value })}
@@ -302,7 +301,7 @@ export function PlotControls({
             {paletteKeys.map((p) => (
               <option key={p} value={p}>
                 {p}
-                {DIVERGING_PALETTES.has(p) ? "  (diverging)" : ""}
+                {DIVERGING_PALETTES.has(p) ? tr("heatmap.colour.diverging") : ""}
               </option>
             ))}
           </select>
@@ -310,9 +309,9 @@ export function PlotControls({
         </label>
         <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
           <span className="dv-label" style={{ fontSize: 11, flexShrink: 0 }}>
-            Direction
+            {tr("heatmap.colour.direction")}
           </span>
-          <div className="dv-seg" role="group" aria-label="Palette direction">
+          <div className="dv-seg" role="group" aria-label={tr("heatmap.colour.directionAria")}>
             <button
               type="button"
               aria-pressed={!vis.invertPalette}
@@ -320,7 +319,7 @@ export function PlotControls({
               onClick={() => updVis({ invertPalette: false })}
               style={{ fontSize: 11, padding: "3px 8px" }}
             >
-              Normal
+              {tr("heatmap.colour.normal")}
             </button>
             <button
               type="button"
@@ -329,13 +328,13 @@ export function PlotControls({
               onClick={() => updVis({ invertPalette: true })}
               style={{ fontSize: 11, padding: "3px 8px" }}
             >
-              Inverted
+              {tr("heatmap.colour.inverted")}
             </button>
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "flex-end", marginBottom: 6 }}>
           <label style={{ fontSize: 11, flex: 1, display: "block" }}>
-            <span className="dv-label">Min</span>
+            <span className="dv-label">{tr("heatmap.colour.min")}</span>
             <NumberInput
               value={vis.vmin}
               step="0.1"
@@ -344,7 +343,7 @@ export function PlotControls({
             />
           </label>
           <label style={{ fontSize: 11, flex: 1, display: "block" }}>
-            <span className="dv-label">Max</span>
+            <span className="dv-label">{tr("heatmap.colour.max")}</span>
             <NumberInput
               value={vis.vmax}
               step="0.1"
@@ -354,19 +353,19 @@ export function PlotControls({
           </label>
         </div>
         <button onClick={autoVRange} className="dv-btn dv-btn-secondary" style={{ fontSize: 11 }}>
-          Auto from data
+          {tr("heatmap.colour.auto")}
         </button>
       </ControlSection>
 
-      <ControlSection title="Cell borders">
-        <div className="dv-seg" role="group" aria-label="Cell borders">
+      <ControlSection title={tr("heatmap.sec.cellBorders")}>
+        <div className="dv-seg" role="group" aria-label={tr("heatmap.sec.cellBorders")}>
           <button
             type="button"
             aria-pressed={!cellBorder.on}
             className={"dv-seg-btn" + (!cellBorder.on ? " dv-seg-btn-active" : "")}
             onClick={() => updCellBorder({ on: false })}
           >
-            Off
+            {tr("heatmap.off")}
           </button>
           <button
             type="button"
@@ -374,7 +373,7 @@ export function PlotControls({
             className={"dv-seg-btn" + (cellBorder.on ? " dv-seg-btn-active" : "")}
             onClick={() => updCellBorder({ on: true })}
           >
-            On
+            {tr("heatmap.on")}
           </button>
         </div>
         {cellBorder.on && (
@@ -385,7 +384,7 @@ export function PlotControls({
               size={18}
             />
             <label style={{ fontSize: 11, flex: 1 }}>
-              Width
+              {tr("heatmap.border.width")}
               <input
                 type="number"
                 value={cellBorder.width}
@@ -400,9 +399,9 @@ export function PlotControls({
         )}
       </ControlSection>
 
-      <ControlSection title="Labels">
+      <ControlSection title={tr("heatmap.sec.labels")}>
         <label style={{ display: "block" }}>
-          <span className="dv-label">Title</span>
+          <span className="dv-label">{tr("heatmap.labels.title")}</span>
           <input
             type="text"
             value={vis.plotTitle}
@@ -412,7 +411,7 @@ export function PlotControls({
           />
         </label>
         <label style={{ display: "block" }}>
-          <span className="dv-label">Subtitle</span>
+          <span className="dv-label">{tr("heatmap.labels.subtitle")}</span>
           <input
             type="text"
             value={vis.plotSubtitle}
@@ -422,7 +421,7 @@ export function PlotControls({
           />
         </label>
         <label style={{ display: "block" }}>
-          <span className="dv-label">X-axis label</span>
+          <span className="dv-label">{tr("heatmap.labels.xAxis")}</span>
           <input
             type="text"
             value={vis.colAxisLabel}
@@ -432,7 +431,7 @@ export function PlotControls({
           />
         </label>
         <label style={{ display: "block" }}>
-          <span className="dv-label">Y-axis label</span>
+          <span className="dv-label">{tr("heatmap.labels.yAxis")}</span>
           <input
             type="text"
             value={vis.rowAxisLabel}
@@ -442,15 +441,17 @@ export function PlotControls({
           />
         </label>
         <div style={{ marginTop: 8 }}>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Row names</div>
-          <div className="dv-seg" role="group" aria-label="Show row names">
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
+            {tr("heatmap.labels.rowNames")}
+          </div>
+          <div className="dv-seg" role="group" aria-label={tr("heatmap.labels.rowNamesAria")}>
             <button
               type="button"
               aria-pressed={!vis.showRowLabels}
               className={"dv-seg-btn" + (!vis.showRowLabels ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showRowLabels: false })}
             >
-              Off
+              {tr("heatmap.off")}
             </button>
             <button
               type="button"
@@ -458,22 +459,22 @@ export function PlotControls({
               className={"dv-seg-btn" + (vis.showRowLabels ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showRowLabels: true })}
             >
-              On
+              {tr("heatmap.on")}
             </button>
           </div>
         </div>
         <div style={{ marginTop: 8 }}>
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
-            Column names
+            {tr("heatmap.labels.colNames")}
           </div>
-          <div className="dv-seg" role="group" aria-label="Show column names">
+          <div className="dv-seg" role="group" aria-label={tr("heatmap.labels.colNamesAria")}>
             <button
               type="button"
               aria-pressed={!vis.showColLabels}
               className={"dv-seg-btn" + (!vis.showColLabels ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showColLabels: false })}
             >
-              Off
+              {tr("heatmap.off")}
             </button>
             <button
               type="button"
@@ -481,7 +482,7 @@ export function PlotControls({
               className={"dv-seg-btn" + (vis.showColLabels ? " dv-seg-btn-active" : "")}
               onClick={() => updVis({ showColLabels: true })}
             >
-              On
+              {tr("heatmap.on")}
             </button>
           </div>
         </div>

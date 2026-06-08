@@ -2,6 +2,8 @@
 // converted decimal commas to dots during ingest. `commaFixed` is the
 // boolean toggle, `commaFixCount` is the number of values fixed.
 
+import { useShellT } from "./i18n";
+
 const h = React.createElement;
 
 interface CommaFixBannerProps {
@@ -10,6 +12,7 @@ interface CommaFixBannerProps {
 }
 
 export function CommaFixBanner(props: CommaFixBannerProps) {
+  const tr = useShellT();
   if (!props.commaFixed) return null;
   return h(
     "div",
@@ -32,17 +35,14 @@ export function CommaFixBanner(props: CommaFixBannerProps) {
       h(
         "p",
         { style: { margin: 0, fontSize: 12, color: "var(--warning-text)", fontWeight: 600 } },
-        "Decimal commas automatically converted to dots"
+        tr("shell.commaFix.title")
       ),
       h(
         "p",
         {
           style: { margin: "2px 0 0", fontSize: 11, color: "var(--warning-text)", opacity: 0.85 },
         },
-        props.commaFixCount +
-          " value" +
-          (props.commaFixCount > 1 ? "s" : "") +
-          ' had commas as decimal separators (e.g. "0,5" → "0.5").'
+        tr("shell.commaFix.detail", { count: props.commaFixCount })
       )
     )
   );

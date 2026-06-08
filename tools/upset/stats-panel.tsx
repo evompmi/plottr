@@ -5,6 +5,7 @@
 
 import { intersectionShortLabel } from "./helpers";
 import type { IntersectionStatsPanelProps } from "./helpers";
+import { useT } from "./i18n";
 
 import { multisetExclusiveExpected } from "../_core/stats/msi";
 /* ── Intersection significance panel ────────────────────────────────────────
@@ -36,6 +37,7 @@ export function IntersectionStatsPanel({
   universeSize,
   intersectionTests,
 }: IntersectionStatsPanelProps) {
+  const tr = useT();
   // Inclusive count: items whose bitmask covers every selected set.
   // Hook MUST run before any early-return so call order stays stable
   // across renders (rules-of-hooks).
@@ -98,11 +100,9 @@ export function IntersectionStatsPanel({
     >
       <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
         <p className="dv-tile-title" style={{ margin: 0 }}>
-          Intersection significance
+          {tr("upset.sp.title")}
         </p>
-        <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
-          SuperExactTest-style exact test against the fixed-margin null
-        </span>
+        <span style={{ fontSize: 11, color: "var(--text-faint)" }}>{tr("upset.sp.subtitle")}</span>
       </div>
 
       {(() => {
@@ -135,11 +135,11 @@ export function IntersectionStatsPanel({
               : "depleted";
         const directionGlyph =
           direction === "enriched"
-            ? "↑ enriched"
+            ? tr("upset.sp.enriched")
             : direction === "depleted"
-              ? "↓ depleted"
+              ? tr("upset.sp.depleted")
               : direction === "neutral"
-                ? "≈ as expected"
+                ? tr("upset.sp.asExpected")
                 : "";
         const directionColor =
           direction === "enriched"
@@ -156,13 +156,13 @@ export function IntersectionStatsPanel({
         return (
           <div style={{ display: "grid", gap: 4, fontSize: 12 }}>
             {sidebarSection(
-              "Sets tested",
+              tr("upset.sp.setsTested"),
               intersectionShortLabel(intersection.setIndices),
               selectedSetNames.join(" ∩ ")
             )}
-            {sidebarSection("Set sizes (nᵢ)", selectedSetSizes.join(", "))}
+            {sidebarSection(tr("upset.sp.setSizes"), selectedSetSizes.join(", "))}
             {sidebarSection(
-              "Exclusive overlap (bar)",
+              tr("upset.sp.exclusiveOverlap"),
               <span style={{ display: "inline-flex", gap: 8, alignItems: "baseline" }}>
                 <span>{xExclusive}</span>
                 {direction && (
@@ -174,24 +174,19 @@ export function IntersectionStatsPanel({
             )}
             {expectedKnown &&
               sidebarSection(
-                "Expected under null",
+                tr("upset.sp.expectedNull"),
                 <span style={{ display: "inline-flex", gap: 6, alignItems: "baseline" }}>
                   <span>{fmtExpected(expected)}</span>
                   <span
                     style={{ fontSize: 10, color: "var(--text-faint)" }}
-                    title={
-                      "E[exclusive] = N · Π(nᵢ/N) · Π(1 − nⱼ/N) under the " +
-                      "independence approximation (each item falls in each set with " +
-                      "its marginal probability). Inside: sets the bar covers. " +
-                      "Outside: the other uploaded sets."
-                    }
+                    title={tr("upset.sp.expectedTitle")}
                   >
                     = N · Π(nᵢ/N) · Π(1 − nⱼ/N)
                   </span>
                 </span>
               )}
             {sidebarSection(
-              <span style={{ color: "var(--text-faint)" }}>Inclusive overlap</span>,
+              <span style={{ color: "var(--text-faint)" }}>{tr("upset.sp.inclusiveOverlap")}</span>,
               <span style={{ color: "var(--text-faint)" }}>{inclusiveSize}</span>
             )}
           </div>
@@ -247,31 +242,25 @@ export function IntersectionStatsPanel({
             );
             return (
               <>
-                {renderRow(
-                  "Two-sided",
-                  "min(2·pUpper, 2·pLower, 1) — headline p, drives plot markers + bar colour",
-                  two,
-                  twoAdj
-                )}
-                {renderRow("Enrichment", "P(X ≥ bar) — Binomial(N, p_M), upper tail", enr, enrAdj)}
-                {renderRow("Depletion", "P(X ≤ bar) — lower tail", dep, depAdj)}
+                {renderRow(tr("upset.sp.twoSided"), tr("upset.sp.twoSidedHint"), two, twoAdj)}
+                {renderRow(tr("upset.sp.enrichment"), tr("upset.sp.enrichmentHint"), enr, enrAdj)}
+                {renderRow(tr("upset.sp.depletion"), tr("upset.sp.depletionHint"), dep, depAdj)}
                 <span style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>
-                  Each family BH-adjusted separately across {intersectionTests.size} intersection
-                  {intersectionTests.size === 1 ? "" : "s"} cached for N={universeN}. The two-sided
-                  p is the honest headline (one test per bar, no cherry-picking); the per-tail rows
-                  are there for directional breakdown. The Binomial null assumes each item is
-                  independently placed in every set at its marginal rate.
+                  {tr("upset.sp.familyNote", {
+                    n: intersectionTests.size,
+                    count: intersectionTests.size,
+                    universe: universeN,
+                  })}
                 </span>
               </>
             );
           })()}
         </div>
       ) : (
-        <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
-          No p-value for this intersection yet — use <strong>Compute stats</strong> in the sidebar
-          to run the two-sided Binomial test (plus the per-tail enrichment / depletion breakdown) on
-          the exclusive bar height for every intersection in the current set selection in one pass.
-        </div>
+        <div
+          style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}
+          dangerouslySetInnerHTML={{ __html: tr("upset.sp.noPvalue") }}
+        />
       )}
     </div>
   );

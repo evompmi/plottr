@@ -17,6 +17,7 @@
 
 import type { ReactNode } from "react";
 import { HowToCard } from "./HowToCard";
+import { useShellT } from "./i18n";
 
 export interface HowToContent {
   /** Drives the tool icon + the collapsible's localStorage key. */
@@ -85,15 +86,16 @@ function SubCard({
 }
 
 export function HowTo(props: HowToContent) {
+  const tr = useShellT();
   return (
     <HowToCard toolName={props.toolName} title={props.title} subtitle={props.subtitle}>
-      <SubCard label="Purpose" fullWidth>
+      <SubCard label={tr("shell.howto.purpose")} fullWidth>
         {props.purpose}
       </SubCard>
-      <SubCard label="Data layout">{props.dataLayout}</SubCard>
-      <SubCard label="Display">{props.display}</SubCard>
+      <SubCard label={tr("shell.howto.dataLayout")}>{props.dataLayout}</SubCard>
+      <SubCard label={tr("shell.howto.display")}>{props.display}</SubCard>
       {props.tips && (
-        <SubCard label="Tips" fullWidth>
+        <SubCard label={tr("shell.howto.tips")} fullWidth>
           {props.tips}
         </SubCard>
       )}

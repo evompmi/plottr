@@ -9,6 +9,7 @@ import { computeLegendHeight, renderSvgLegend } from "../_shell";
 import type { LegendBlock } from "../_shell";
 import { COLOR_PALETTES, interpolateColor } from "../_core/color";
 import { makeTicks } from "../_core/scale";
+import { tt } from "./i18n";
 const { forwardRef, memo } = React;
 
 export const ScatterChart = memo(
@@ -129,9 +130,9 @@ export const ScatterChart = memo(
         style={{ width: "100%", height: "auto", display: "block" }}
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label={title || "Scatter plot"}
+        aria-label={title || tt("scatter.chart.fallbackTitle")}
       >
-        <title>{title || "Scatter plot"}</title>
+        <title>{title || tt("scatter.chart.fallbackTitle")}</title>
         <desc>{`Scatter plot with ${data.length} data point${data.length !== 1 ? "s" : ""}${xLabel ? `, X: ${xLabel}` : ""}${yLabel ? `, Y: ${yLabel}` : ""}`}</desc>
         <defs>
           <clipPath id="sc-clip">
@@ -246,7 +247,7 @@ export const ScatterChart = memo(
           id="data-points"
           clipPath="url(#sc-clip)"
           role="group"
-          aria-label={`${data.length} data points`}
+          aria-label={tt("scatter.chart.pointsAria", { n: data.length, count: data.length })}
         >
           {data.map((row, ri) => {
             const xVal = row[xCol],
@@ -267,7 +268,12 @@ export const ScatterChart = memo(
             id="regression-line"
             clipPath="url(#sc-clip)"
             role="img"
-            aria-label={`Linear regression: slope ${regressionStats.slope.toFixed(3)}, intercept ${regressionStats.intercept.toFixed(3)}, R² ${regressionStats.r2.toFixed(3)}, n=${regressionStats.n}`}
+            aria-label={tt("scatter.chart.regressionAria", {
+              slope: regressionStats.slope.toFixed(3),
+              intercept: regressionStats.intercept.toFixed(3),
+              r2: regressionStats.r2.toFixed(3),
+              n: regressionStats.n,
+            })}
           >
             <line
               x1={sx(xMin)}
