@@ -149,6 +149,10 @@ const en = {
   // DiscretePaletteRow
   "shell.palette.copied": "✓ Copied {hex}",
   "shell.palette.clickToCopy": "Click a swatch to copy its hex",
+  "shell.palette.swatchTitle": "{hex} — click to copy",
+  "shell.palette.swatchAria": "Copy {hex} to clipboard",
+  "shell.palette.pickerTitle":
+    "Pick a discrete palette. Picking a palette overwrites every group's colour. 👁 marks colour-blind-safe palettes.",
 
   // PrefsPanel
   "shell.prefs.title": "Visual plot settings",

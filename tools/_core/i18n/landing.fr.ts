@@ -19,7 +19,7 @@ const landingFr: Record<LandingKey, string> = {
   "landing.hiw.step3": "Ajustez le tracé",
   "landing.hiw.step4": "Téléchargez SVG + R",
   "landing.group.plotsKicker": "Graphes",
-  "landing.group.plotsText": "Huit types de graphiques, à un click près",
+  "landing.group.plotsText": "Huit types de graphiques, à un clic près",
   "landing.group.statsKicker": "Statistiques & calculatrices",
   "landing.group.statsText": "Calculs rapides à la paillasse",
   "landing.desc.boxplot": "Boîte / violon / barre<br/>avec stats &amp; facettes",

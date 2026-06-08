@@ -91,7 +91,7 @@ All numerics (`tools/_core/stats/*.ts`) are cross-validated against **two indepe
 - **R 4.5** on real built-in datasets (`iris`, `PlantGrowth`, `ToothGrowth`, `mtcars`, …). Current run: **529 comparisons, 0 failures**, plus 5 boundary-regime rows where R and Plöttr both saturate at different ends of the precision floor — 4 cases where R's `ptukey` cancels to ~2.2 × 10⁻¹⁵ while Plöttr's `ptukey_upper` continues the true tail past it (cross-checked against SciPy and Monte Carlo), plus 1 Spearman case on exactly-monotonic ranks where Plöttr returns the honest `p = 0` and R's S-statistic path emits a fake-tail artefact via log-scale `pt()`. Reproducible via `npm run benchmark`. Results render as a public page at `benchmark.html` — failing rows would be shown in red, not hidden.
 - **SciPy 1.17** on synthetic targeted grids over the (df, λ) regimes the R bank only touches indirectly: `nctcdf` at deep δ, `ncf_sf` / `ncchi2cdf` at large λ across the noncentral normal-approx threshold, `qtukey` at extreme corners. **1,083 comparisons, 0 failures**, with 92 deep-tail / underflow rows (both values < 10⁻¹³, informational) and 1 pathological annotation (`qtukey` at df = 1, documented as outside the design envelope in `tools/_core/stats/posthoc.ts`). Reproducible via `npm run benchmark:scipy`.
 
-On top of that, a deterministic test suite of **1,755 tests** (Vitest 4, CI-gated on every commit alongside ESLint, Prettier, `tsc --noEmit`, and `npm run build`) spanning unit, integration, render-smoke (real React 18 + happy-dom), and per-tool property suites (fast-check, with automatic shrinking on failure). A Playwright e2e suite (`npm run e2e`) covers paste → configure → plot golden paths per tool. Mutation testing is wired up via Stryker (`npm run mutation`) for on-demand meta-tests of whether the suite _catches_ bugs, not just whether tests pass.
+On top of that, a deterministic test suite of **1,800+ tests** (Vitest 4, CI-gated on every commit alongside ESLint, Prettier, `tsc --noEmit`, and `npm run build`) spanning unit, integration, render-smoke (real React 18 + happy-dom), and per-tool property suites (fast-check, with automatic shrinking on failure). A Playwright e2e suite (`npm run e2e`) covers paste → configure → plot golden paths per tool. Mutation testing is wired up via Stryker (`npm run mutation`) for on-demand meta-tests of whether the suite _catches_ bugs, not just whether tests pass.
 
 Covers: Shapiro–Wilk, Brown–Forsythe Levene, Student / Welch t, Mann–Whitney U, one-way ANOVA, Welch ANOVA, Kruskal–Wallis, Pearson r / Spearman ρ / Kendall τ-b correlations, Tukey HSD (studentised range), Games–Howell, Dunn + Benjamini–Hochberg, Cohen's _d_ (with 95 % CI), Hedges' _g_, η², ε², compact letter display.
 
@@ -128,7 +128,7 @@ Node.js ≥ 20 for the tooling (not for running the app):
 npm install
 npm run build       # compile tools/*.tsx → tools/*.js
 npm run watch       # recompile on save
-npm test            # full deterministic suite (1,755 tests, Vitest 4)
+npm test            # full deterministic suite (Vitest 4)
 npm run typecheck   # tsc --noEmit
 npm run lint        # ESLint
 npm run benchmark   # R + SciPy cross-validation (R 4.5, SciPy 1.17)
@@ -156,7 +156,7 @@ Plöttr is released under the [MIT License](LICENSE). Vendored copies of React +
 
 ## AI Usage
 
-Plöttr was built collaboratively with Anthropic's Claude (Anthropic Claude Opus 4.7 [Large language model]. https://claude.ai) under researcher direction. The bulk of the JavaScript, tests, and documentation is Claude-written; the researcher specifies needs, reviews proposals, picks scope, sets methodology, and approves every commit before it lands. Architectural conventions are encoded in folder-level `CLAUDE.md` files so the workflow is reproducible.
+Plöttr was built collaboratively with Anthropic's Claude (Anthropic Claude Opus 4.8 [Large language model]. https://claude.ai) under researcher direction. The bulk of the JavaScript, tests, and documentation is Claude-written; the researcher specifies needs, reviews proposals, picks scope, sets methodology, and approves every commit before it lands. Architectural conventions are encoded in folder-level `CLAUDE.md` files so the workflow is reproducible.
 
 **What is independently verified.** Every statistical function is cross-validated against R 4.5.3 and SciPy 1.17.1 on each `npm run benchmark`. Mutation testing (`npm run mutation`, Stryker) probes whether the test suite catches regressions. These checks exist precisely because the implementation is AI-generated.
 

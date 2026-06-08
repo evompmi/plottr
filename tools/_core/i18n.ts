@@ -80,15 +80,29 @@ function _lookup(key: string, lang: Lang): string | undefined {
   return _registry[ns]?.[lang]?.[key];
 }
 
-function _interpolate(s: string, vars: TVars): string {
-  return s.replace(/\{(\w+)\}/g, (_m, k: string) => (k in vars ? String(vars[k]) : `{${k}}`));
+// HTML-escape a substituted value. Applied only by `tHtml` (the variant whose
+// result is injected via `dangerouslySetInnerHTML`): the catalog *template* is
+// authored by us and may legitimately carry markup, but `{var}` substitutions
+// can be user data (e.g. a pasted CSV column header), so each interpolated
+// value is escaped to neutralise injected tags.
+function _escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
-// Translate `key` in the current language. Falls back to English, then to
-// the key itself (so a missing translation is visible, never a blank). When
-// `vars.count` is a number, prefers the plural sibling key
-// `${key}.${category}` (then `.other`) resolved via `Intl.PluralRules`.
-export function t(key: string, vars?: TVars): string {
+function _interpolate(s: string, vars: TVars, escape: boolean): string {
+  return s.replace(/\{(\w+)\}/g, (_m, k: string) => {
+    if (!(k in vars)) return `{${k}}`;
+    const v = String(vars[k]);
+    return escape ? _escapeHtml(v) : v;
+  });
+}
+
+function _translate(key: string, vars: TVars | undefined, escape: boolean): string {
   let raw = _lookup(key, _lang) ?? _lookup(key, DEFAULT_LANG);
   if (vars && typeof vars.count === "number") {
     const cat = _pluralRules(_lang).select(vars.count);
@@ -100,7 +114,27 @@ export function t(key: string, vars?: TVars): string {
       raw;
   }
   if (raw === undefined) return key;
-  return vars ? _interpolate(raw, vars) : raw;
+  return vars ? _interpolate(raw, vars, escape) : raw;
+}
+
+// Translate `key` in the current language. Falls back to English, then to
+// the key itself (so a missing translation is visible, never a blank). When
+// `vars.count` is a number, prefers the plural sibling key
+// `${key}.${category}` (then `.other`) resolved via `Intl.PluralRules`.
+//
+// `t` does NOT escape interpolated values — it targets plain-text contexts
+// (React text children, `textContent`, `title` attributes) where the renderer
+// already escapes. For results fed to `dangerouslySetInnerHTML`, use `tHtml`.
+export function t(key: string, vars?: TVars): string {
+  return _translate(key, vars, false);
+}
+
+// HTML-safe sibling of `t`: identical lookup/plural/fallback behaviour, but
+// every interpolated `{var}` value is HTML-escaped. Use this — never `t` —
+// whenever the returned string is injected via `dangerouslySetInnerHTML` AND
+// carries interpolation vars, so user-supplied values can't inject markup.
+export function tHtml(key: string, vars?: TVars): string {
+  return _translate(key, vars, true);
 }
 
 // ---------------------------------------------------------------------------
@@ -272,14 +306,20 @@ export function useT(): typeof t {
 // re-render on toggle. Cuts the per-tool boilerplate to three lines.
 export function makeT<K extends string>(): {
   tt: (key: TranslatableKey<K>, vars?: TVars) => string;
+  ttHtml: (key: TranslatableKey<K>, vars?: TVars) => string;
   useT: () => (key: TranslatableKey<K>, vars?: TVars) => string;
 } {
   const tt = (key: TranslatableKey<K>, vars?: TVars): string => t(key, vars);
+  // Key-checked twin of `tt` that HTML-escapes interpolated values; use at
+  // `dangerouslySetInnerHTML` sites. Not a hook — call it inside a component
+  // that already subscribes via `useT()`/`useLang()` so it re-renders on the
+  // language toggle and `ttHtml` reads the current language at call time.
+  const ttHtml = (key: TranslatableKey<K>, vars?: TVars): string => tHtml(key, vars);
   const useTHook = (): ((key: TranslatableKey<K>, vars?: TVars) => string) => {
     useLang();
     return tt;
   };
-  return { tt, useT: useTHook };
+  return { tt, ttHtml, useT: useTHook };
 }
 
 export function toggleLang(): void {

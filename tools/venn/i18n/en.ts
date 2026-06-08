@@ -45,6 +45,14 @@ const en = {
   "venn.area.maxErrorLabel": "Max region error: ",
   "venn.area.meanSuffix": " · mean {mean}%",
 
+  // Intersections table + item list
+  "venn.table.region": "Region",
+  "venn.table.degree": "Degree",
+  "venn.table.count": "Count",
+  "venn.items.empty": "Click a region in the Venn diagram or a row in the table to view items.",
+  "venn.items.count.one": "{count} item",
+  "venn.items.count.other": "{count} items",
+
   // Chart
   "venn.chart.fallbackTitle": "Venn diagram",
   "venn.chart.desc.one": "Venn diagram with {n} set: {names}",

@@ -12,7 +12,16 @@
 //                                selectCorrelation auto-picker
 //  10. k-sample effect sizes   — η², ε²
 
-import { bisect, chi2cdf, fcdf_upper, gammaln, nctcdf, norminv, normsf, tcdf_upper } from "./dist";
+import {
+  bisect,
+  chi2cdf_upper,
+  fcdf_upper,
+  gammaln,
+  nctcdf,
+  norminv,
+  normsf,
+  tcdf_upper,
+} from "./dist";
 import { formatP } from "./format";
 import type {
   ANOVAResult,
@@ -504,7 +513,9 @@ export function kruskalWallis(groups: number[][]): KruskalWallisResult {
   const C = 1 - tieCorrection / (N * N * N - N);
   if (C > 0) H /= C;
   const df = k - 1;
-  const p = 1 - chi2cdf(H, df);
+  // Upper tail directly — `1 - chi2cdf(H, df)` underflows to 0 for strongly
+  // significant H (the χ² approximation's deep tail), zeroing a real p-value.
+  const p = chi2cdf_upper(H, df);
   return { H, df, p };
 }
 

@@ -319,9 +319,21 @@ export const UpsetChart = memo(
               <g
                 key={`tb-${inter.mask}`}
                 id={`intersection-bar-${idKey}`}
-                style={{ cursor: "pointer" }}
+                style={onColumnClick ? { cursor: "pointer" } : undefined}
                 onClick={() => onColumnClick && onColumnClick(isSelected ? null : inter.mask)}
-                role="img"
+                onKeyDown={
+                  onColumnClick
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onColumnClick(isSelected ? null : inter.mask);
+                        }
+                      }
+                    : undefined
+                }
+                tabIndex={onColumnClick ? 0 : undefined}
+                role={onColumnClick ? "button" : "img"}
+                aria-pressed={onColumnClick ? isSelected : undefined}
                 aria-label={tt("upset.chart.barAria", {
                   label: intersectionLabel(inter.setIndices, setNames),
                   size: inter.size,

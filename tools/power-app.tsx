@@ -15,7 +15,7 @@ import {
   powerTwoSample,
 } from "./_core/stats/dist";
 import "./power-app/i18n";
-import { tt, useT, type PowerKey } from "./power-app/i18n";
+import { tt, ttHtml, useT, type PowerKey } from "./power-app/i18n";
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
 
 // Per-test catalog-key maps. The TESTS registry stays the structural source of
@@ -354,7 +354,7 @@ function EffectSizePanel({
               onChange={(e) => setMean1(e.target.value)}
               disabled={disabled}
               style={inputStyle}
-              placeholder="e.g. 15.2"
+              placeholder={tr("power.eg", { ex: "15.2" })}
             />
           </div>
           <div>
@@ -365,7 +365,7 @@ function EffectSizePanel({
               onChange={(e) => setMean2(e.target.value)}
               disabled={disabled}
               style={inputStyle}
-              placeholder="e.g. 12.8"
+              placeholder={tr("power.eg", { ex: "12.8" })}
             />
           </div>
           <div>
@@ -377,7 +377,7 @@ function EffectSizePanel({
               onChange={(e) => setSd(e.target.value)}
               disabled={disabled}
               style={inputStyle}
-              placeholder="e.g. 4.5"
+              placeholder={tr("power.eg", { ex: "4.5" })}
             />
           </div>
           <button
@@ -404,7 +404,7 @@ function EffectSizePanel({
               onChange={(e) => setDiffMean(e.target.value)}
               disabled={disabled}
               style={inputStyle}
-              placeholder="e.g. 2.5"
+              placeholder={tr("power.eg", { ex: "2.5" })}
             />
           </div>
           <div>
@@ -418,7 +418,7 @@ function EffectSizePanel({
               onChange={(e) => setDiffSd(e.target.value)}
               disabled={disabled}
               style={inputStyle}
-              placeholder="e.g. 5.0"
+              placeholder={tr("power.eg", { ex: "5.0" })}
             />
           </div>
           <button
@@ -443,7 +443,7 @@ function EffectSizePanel({
               disabled={disabled}
               className="dv-input-num"
               style={inputStyle}
-              placeholder="e.g. 10, 12, 15"
+              placeholder={tr("power.eg", { ex: "10, 12, 15" })}
             />
           </div>
           <div>
@@ -455,7 +455,7 @@ function EffectSizePanel({
               onChange={(e) => setWithinSd(e.target.value)}
               disabled={disabled}
               style={inputStyle}
-              placeholder="e.g. 4.0"
+              placeholder={tr("power.eg", { ex: "4.0" })}
             />
           </div>
           <button
@@ -481,7 +481,7 @@ function EffectSizePanel({
               disabled={disabled}
               className="dv-input-num"
               style={inputStyle}
-              placeholder="e.g. 3:1 or 0.75, 0.25"
+              placeholder={tr("power.eg.ratio1")}
             />
           </div>
           <div>
@@ -493,7 +493,7 @@ function EffectSizePanel({
               disabled={disabled}
               className="dv-input-num"
               style={inputStyle}
-              placeholder="e.g. 2:1 or 0.67, 0.33"
+              placeholder={tr("power.eg.ratio2")}
             />
           </div>
           <button
@@ -859,7 +859,7 @@ export function App() {
     chi2: "power.explain.chi2",
   };
   const explainHtml =
-    tr("power.explain.body", { nLabel: tr(TEST_I18N[testKey].nLabel) }) +
+    ttHtml("power.explain.body", { nLabel: tr(TEST_I18N[testKey].nLabel) }) +
     "<br/><br/>" +
     tr(EXPLAIN_TEST_KEYS[testKey]);
 

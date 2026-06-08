@@ -15,7 +15,19 @@ export interface ComputeStatsResult {
   median: number;
 }
 
-export function computeStats(arr: number[]): ComputeStatsResult | null {
+// Drop non-finite samples (NaN / ±Infinity) before any reduction. The string
+// parser can't emit these — `isNumericValue` rejects "NaN" / "Infinity" /
+// "1e999" — so the group path (`computeGroupStats`) is already clean, but
+// direct-array callers (z-score-normalised handoff data, programmatic input)
+// can pass them, and a single non-finite value otherwise poisons mean / sd /
+// min / max / the whole KDE curve. Filtering treats them as missing, the same
+// way `computeGroupStats` drops non-numeric cells.
+function finiteOnly(arr: number[]): number[] {
+  return arr.filter((v) => Number.isFinite(v));
+}
+
+export function computeStats(input: number[]): ComputeStatsResult | null {
+  const arr = finiteOnly(input);
   const n = arr.length;
   if (n === 0) return null;
   const mean = arr.reduce((a, b) => a + b, 0) / n;
@@ -44,7 +56,7 @@ export interface QuartilesResult {
 }
 
 export function quartiles(arr: number[]): QuartilesResult | null {
-  const s = [...arr].sort((a, b) => a - b);
+  const s = finiteOnly(arr).sort((a, b) => a - b);
   const n = s.length;
   if (n === 0) return null;
   const q = (p: number): number => {
@@ -75,7 +87,8 @@ export interface KdePoint {
   d: number;
 }
 
-export function kde(values: number[], nPoints: number = 50): KdePoint[] {
+export function kde(input: number[], nPoints: number = 50): KdePoint[] {
+  const values = finiteOnly(input);
   const n = values.length;
   if (n === 0) return [];
   const sorted = [...values].sort((a, b) => a - b);

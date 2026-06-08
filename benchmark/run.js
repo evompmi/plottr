@@ -1,6 +1,6 @@
 // benchmark/run.js — read benchmark/results-r.json (produced by run-r.R),
-// run the same tests through tools/stats-*.js on bit-identical inputs, and
-// emit benchmark.html at the repo root with per-category comparison tables.
+// run the same tests through the tools/_core/stats/*.ts kernel on bit-identical
+// inputs, and emit benchmark.html at the repo root with per-category tables.
 //
 // Honest-by-design: rows where |Δ| exceeds the target tolerance are flagged
 // as failures and rendered red. We don't pretend they passed.
@@ -10,6 +10,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const esbuild = require("esbuild");
 
 // Tolerance model:
 //   Test statistics (t, F, H, W, U) → absolute delta ≤ TOL. These have natural
@@ -24,23 +25,25 @@ const TOL = 5e-3; // ±0.5 % — same bar as the in-repo stats tests
 const P_ABS_CEILING = 1e-2; // switch to log-space comparison below this
 const P_LOG_TOL = Math.log(1 + 0.1); // ratio within [1/1.1, 1.1] on log-p
 
-// ── Load tools/stats-*.js into a sandbox ───────────────────────────────────
-// Load order mirrors the FILES array in scripts/build-shared.js (and
-// STATS_FILES in tests/helpers/stats-source.js). Inlined here rather than
-// imported from tests/ so the benchmark stays self-contained.
-const STATS_FILES = [
-  "stats-dist.js",
-  "stats-tests.js",
-  "stats-posthoc.js",
-  "stats-cluster.js",
-  "stats-msi.js",
-];
-const code = STATS_FILES.map((name) =>
-  fs.readFileSync(path.join(__dirname, "../tools", name), "utf-8")
-).join("\n");
+// ── Load the _core/stats kernel into a sandbox ─────────────────────────────
+// The stats kernel is TypeScript ESM under tools/_core/stats/*.ts. Bundle its
+// barrel (index.ts) to an IIFE with esbuild, then evaluate it in a vm context;
+// the synthetic footer spreads the barrel's named exports onto the context's
+// globalThis so we can destructure the stats functions below. This mirrors
+// `readStatsSource()` in tests/helpers/stats-source.js, but is inlined here so
+// the benchmark stays self-contained (no tests/ import).
+const statsBundle = esbuild.buildSync({
+  entryPoints: [path.join(__dirname, "../tools/_core/stats/index.ts")],
+  bundle: true,
+  format: "iife",
+  globalName: "__plottrStats",
+  platform: "neutral",
+  target: "es2022",
+  write: false,
+}).outputFiles[0].text;
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(code, ctx);
+vm.runInContext(statsBundle + "\nObject.assign(globalThis, __plottrStats);\n", ctx);
 
 const {
   shapiroWilk,
@@ -78,7 +81,7 @@ const data = JSON.parse(fs.readFileSync(resultsPath, "utf-8"));
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 // Convert R's named groups object to a sorted array-of-arrays + key list.
-// stats-*.js operates on plain arrays of arrays; group identity is by index.
+// the stats kernel operates on plain arrays of arrays; group identity is by index.
 function groupsToArrays(obj) {
   const keys = Object.keys(obj).sort();
   return { keys, arrays: keys.map((k) => obj[k]) };
@@ -1039,8 +1042,8 @@ const html = `<!doctype html>
   <header>
     <h1>statistical cross-validation${scipy ? " vs R + SciPy" : ` vs R ${escapeHtml(data.meta.r_version.replace(/^R version /, ""))}`}</h1>
     <ul class="lede">
-      <li><strong>Two independent references.</strong> Plöttr's <code>tools/stats-*.js</code> is cross-checked against (a) R 4.5.3 on real built-in datasets and${scipy ? ` (b) SciPy ${escapeHtml(scipy.meta.scipy_version)} on synthetic targeted grids over the (df, λ) regimes the R bank only touches indirectly` : " (b) SciPy on synthetic targeted grids (run <code>npm run benchmark:scipy</code> to populate this section)"}.</li>
-      <li>Plöttr reruns every function in <code>tools/stats-*.js</code> against its R ${escapeHtml(data.meta.r_version.replace(/^R version /, "").split(" ")[0])} counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
+      <li><strong>Two independent references.</strong> Plöttr's <code>tools/_core/stats/*.ts</code> is cross-checked against (a) R 4.5.3 on real built-in datasets and${scipy ? ` (b) SciPy ${escapeHtml(scipy.meta.scipy_version)} on synthetic targeted grids over the (df, λ) regimes the R bank only touches indirectly` : " (b) SciPy on synthetic targeted grids (run <code>npm run benchmark:scipy</code> to populate this section)"}.</li>
+      <li>Plöttr reruns every function in <code>tools/_core/stats/*.ts</code> against its R ${escapeHtml(data.meta.r_version.replace(/^R version /, "").split(" ")[0])} counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
       <li>Inputs are bit-identical between R and Plöttr.</li>
       <li>Tolerance: |Δ| ≤ ${TOL} on test statistics and on p-values ≥ ${P_ABS_CEILING}. Deep-tail p-values (&lt; ${P_ABS_CEILING}) are compared in log space, so the ratio between R's p and Plöttr's stays within [1/1.1, 1.1].</li>
       <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons. Brown-Forsythe Levene is validated against <code>car::leveneTest(center = median)</code>, the canonical R reference for that test family.</li>
@@ -1112,7 +1115,7 @@ const html = `<!doctype html>
 
   <footer>
     R reference generated ${escapeHtml(data.meta.generated)}.
-    Tolerance ${TOL}. Tool source: <code>tools/stats-*.js</code>.
+    Tolerance ${TOL}. Tool source: <code>tools/_core/stats/*.ts</code>.
   </footer>
 </div>
 <script>
@@ -1173,6 +1176,14 @@ const html = `<!doctype html>
 
 const outPath = path.join(__dirname, "../benchmark.html");
 fs.writeFileSync(outPath, html);
+
+// Inject the Content-Security-Policy meta (the HTML template above doesn't
+// carry it). Reuse the canonical generator so the page's script-src hashes
+// match its inline scripts — otherwise tests/csp.test.js flags benchmark.html
+// as drifted on every regeneration.
+const { rewriteFile: cspRewrite } = require("../scripts/csp-sync");
+const csp = cspRewrite(outPath);
+if (csp.changed) fs.writeFileSync(outPath, csp.after);
 
 console.log(`wrote ${outPath}`);
 console.log(`  ${total} comparisons across ${cats.length} categories`);

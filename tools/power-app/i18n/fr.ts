@@ -100,6 +100,9 @@ const fr: Record<PowerKey, string> = {
     "Pour la <b>corrélation</b>, la taille d’effet est simplement le r de Pearson attendu. Un r de 0,1 est petit, 0,3 moyen et 0,5 grand.",
   "power.explain.chi2":
     "Pour un <b>test du Chi2</b>, la taille d’effet (w de Cohen) mesure l’écart des proportions de catégories observées par rapport aux attendues. Un w de 0,1 est petit, 0,3 moyen et 0,5 grand.<br/><br/>Degrés de liberté :<br/>&bull; Ajustement : <b>df = catégories − 1</b><br/>&bull; Indépendance : <b>df = (lignes − 1) × (colonnes − 1)</b>",
+  "power.eg": "p. ex. {ex}",
+  "power.eg.ratio1": "p. ex. 3:1 ou 0,75, 0,25",
+  "power.eg.ratio2": "p. ex. 2:1 ou 0,67, 0,33",
 };
 
 export default fr;

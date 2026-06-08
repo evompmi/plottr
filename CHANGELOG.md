@@ -7,8 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Content-Security-Policy on every page.** Each static page now carries a
+  `<meta http-equiv="Content-Security-Policy">` with a strict `script-src`
+  (`'self'` + a per-inline-script `'sha256-…'` hash, no `'unsafe-inline'`), so
+  the browser refuses injected inline handlers as a defence-in-depth backstop to
+  the XSS escaping fix. Hashes are generated and kept in sync by
+  `scripts/csp-sync.js` (wired into `prebuild`, checkable via `npm run lint:csp`)
+  and drift-guarded by `tests/csp.test.js`. Verified in a real browser: all 18
+  Playwright e2e flows pass under the enforced policy.
+
 ### Fixed
 
+- **More UI strings now localized (EN/FR).** The Venn intersection table
+  (Region / Degree / Count headers, the empty item-list prompt, the item count)
+  and item-list panel, the Power calculator's `e.g.` input placeholders, and the
+  shared discrete-palette swatch tooltips / picker title were hardcoded English;
+  they now route through the i18n catalogs. Also fixed a French typo on the
+  landing page ("click" → "clic"). (The SPA topbar chrome and a few CSV export
+  headers remain English — tracked separately.)
+- **Keyboard access to Venn / UpSet selection.** The Venn intersection-table
+  rows and SVG regions, and the UpSet intersection bars, are now focusable
+  `role="button"` targets with `Enter` / `Space` activation and `aria-pressed`
+  state — previously these click-to-select interactions were mouse-only, leaving
+  no keyboard route to extract Venn region members. (Volcano's per-point and
+  Heatmap's cell selection remain pointer-driven; their high element counts need
+  a roving/arrow-key design rather than per-element tab stops — Volcano already
+  offers keyboard search-by-name.) Verified with new Playwright e2e.
+- **Descriptive stats no longer corrupt on non-finite input.** `computeStats`,
+  `quartiles`, and `kde` now drop `NaN` / `±Infinity` samples before reducing,
+  instead of letting one poison the mean / SD / min / max / whisker / KDE curve
+  (`sort` parks `NaN` last, so `max` came back `NaN`). The string parser can't
+  emit these, so this hardens direct-array callers (normalised / handoff data).
+  (regression: 6 tests)
+- **Kruskal-Wallis p-value no longer underflows to 0.** For strongly
+  significant data the p-value was computed as `1 - chi2cdf(H, df)`, which
+  floors to exactly `0` once the lower CDF rounds to 1.0 (catastrophic
+  cancellation in the χ² deep tail) — so a genuinely tiny p collapsed to `0`.
+  Now computed directly via a new `chi2cdf_upper` (regularized upper incomplete
+  gamma), matching the existing `tcdf_upper` / `fcdf_upper` treatment and R's
+  `pchisq(lower.tail=FALSE)`. (regression: 5 tests)
+- **DOM XSS via pasted-CSV column headers.** A non-numeric column header
+  pasted into Group Plot was interpolated into the configure/output hints via
+  `dangerouslySetInnerHTML` without escaping, so a header like
+  `<img src=x onerror=…>` could run script. Added an HTML-escaping translate
+  variant (`tHtml` / `ttHtml`) in the i18n layer and routed every
+  variable-interpolating `dangerouslySetInnerHTML` site through it. (regression:
+  5 tests)
 - **Landing toggles now match in size.** The language toggle inherited
   `width: auto`, rendering ~34px wide against the theme toggle's 40px square;
   it now shares the same 40×40px footprint (the 6px gap between them is

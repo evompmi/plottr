@@ -17,6 +17,7 @@ export function IntersectionTable({
   selectedMask,
   onSelect,
 }: IntersectionTableProps) {
+  const tr = useT();
   const [hoveredMask, setHoveredMask] = useState<number | null>(null);
   return (
     <div style={{ overflowX: "auto" }}>
@@ -31,7 +32,7 @@ export function IntersectionTable({
                 fontWeight: 700,
               }}
             >
-              Region
+              {tr("venn.table.region")}
             </th>
             <th
               style={{
@@ -41,7 +42,7 @@ export function IntersectionTable({
                 fontWeight: 700,
               }}
             >
-              Degree
+              {tr("venn.table.degree")}
             </th>
             <th
               style={{
@@ -51,7 +52,7 @@ export function IntersectionTable({
                 fontWeight: 700,
               }}
             >
-              Count
+              {tr("venn.table.count")}
             </th>
           </tr>
         </thead>
@@ -60,8 +61,18 @@ export function IntersectionTable({
             <tr
               key={inter.mask}
               onClick={() => onSelect(inter.mask)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(inter.mask);
+                }
+              }}
               onMouseEnter={() => setHoveredMask(inter.mask)}
               onMouseLeave={() => setHoveredMask((m) => (m === inter.mask ? null : m))}
+              tabIndex={0}
+              role="button"
+              aria-pressed={selectedMask === inter.mask}
+              aria-label={`${regionLabel(inter.setNames, inter.mask, allSetNames)}, ${tr("venn.items.count", { count: inter.size })}`}
               style={{
                 borderBottom: "1px solid var(--border)",
                 cursor: "pointer",
@@ -100,6 +111,7 @@ export function IntersectionTable({
 }
 
 export function ItemListPanel({ intersection, allSetNames, fileName }: ItemListPanelProps) {
+  const tr = useT();
   const baseName = fileBaseName(fileName, "venn");
   if (!intersection)
     return (
@@ -111,7 +123,7 @@ export function ItemListPanel({ intersection, allSetNames, fileName }: ItemListP
           fontSize: 13,
         }}
       >
-        Click a region in the Venn diagram or a row in the table to view items.
+        {tr("venn.items.empty")}
       </div>
     );
   const label = regionLabel(intersection.setNames, intersection.mask, allSetNames);
@@ -128,7 +140,7 @@ export function ItemListPanel({ intersection, allSetNames, fileName }: ItemListP
         <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
           {label}{" "}
           <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>
-            ({intersection.size} items)
+            ({tr("venn.items.count", { count: intersection.size })})
           </span>
         </p>
         <button

@@ -13,10 +13,10 @@ npm run mutation    # Stryker mutation testing — measures whether the suite *c
 
 The suite splits into four rough buckets:
 
-- **Shared/foundation** — `shared`, `parsing`, `integration`, `components`, `prefs`, `r-export`, `stats`, `power`, `stats-dispatch`, `discrete-palette`, `handoff`.
+- **Shared/foundation** — `shared`, `parsing`, `integration`, `components`, `prefs`, `r-export`, `stats`, `power`, `molarity`, `stats-dispatch`, `discrete-palette`, `handoff`. Both calculators are tested through a `tests/helpers/<calc>-loader.js`: `molarity` extracts its prep-sheet math into `tools/molarity-app/helpers.ts` (bundled standalone), while `power` vm-loads its converters straight from `tools/power-app.tsx`.
 - **Per-tool unit tests** — `aequorin`, `boxplot-helpers`, `boxplot-stats-reducer`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`.
-- **Per-tool property tests** (`tests/<tool>.property.test.js`, fast-check) — `aequorin`, `boxplot`, `heatmap`, `lineplot`, `scatter`, `upset`, `venn`, `volcano`. See "Property-based tests" below.
-- **Build / hygiene** — `anti-clickjack`, `vendor-sri`, `write-version`, `formula-injection`.
+- **Per-tool property tests** (`tests/<tool>.property.test.js`, fast-check) — `aequorin`, `boxplot`, `heatmap`, `lineplot`, `molarity`, `scatter`, `upset`, `venn`, `volcano`. See "Property-based tests" below.
+- **Build / hygiene** — `csp`, `vendor-sri`, `write-version`, `formula-injection`, `chart-snapshots`.
 
 Each new plot tool adds a `tests/<tool>.test.js` covering its pure helpers and a `tests/<tool>.property.test.js` covering structural invariants (see below). New shared helpers go into the bucket that matches their domain — don't create a new file unless the domain is genuinely new.
 
@@ -104,7 +104,7 @@ The tag sits in the line of sight of whoever is about to "simplify" the code, an
 
 **Scope expansion path.** The `mutate:` array in `stryker.conf.mjs` is a single-target switch — uncomment one entry, comment the others, run, document. Already-validated entries listed in a comment block above the array. To expand to a new tool: (a) check that its helpers.ts doesn't reference shared globals as free vars; if it does, keep the vm.runInContext path and accept that Stryker will only see render-bundle coverage; (b) if it doesn't, refactor that tool's loader to the require()-based pattern (see `tests/helpers/scatter-loader.js`); (c) swap the active scope and run; (d) drive the score up by adding sharp boundary properties for each non-equivalent survivor; (e) document the final score and equivalent-mutant count in the table above + commit.
 
-**When NOT to run mutation testing.** Day-to-day editing — the existing 1,734-test suite catches most regressions in seconds, mutation testing is a quarterly exercise. Run it after a substantial test-suite expansion (to validate the new properties have bite), before a release (to confirm coverage didn't regress), or when investigating a class of bug the suite missed (to find the gap that let it through).
+**When NOT to run mutation testing.** Day-to-day editing — the existing deterministic suite catches most regressions in seconds, mutation testing is a quarterly exercise. Run it after a substantial test-suite expansion (to validate the new properties have bite), before a release (to confirm coverage didn't regress), or when investigating a class of bug the suite missed (to find the gap that let it through).
 
 ## Operational notes — property tests, Stryker, coverage
 

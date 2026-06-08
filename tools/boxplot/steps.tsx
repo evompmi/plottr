@@ -21,7 +21,7 @@ import {
   UploadPanel,
 } from "../_shell";
 import { useBoxplotHowTo } from "./howto";
-import { useT, type BoxplotKey } from "./i18n";
+import { useT, ttHtml, type BoxplotKey } from "./i18n";
 
 import { roleColors } from "../_core/color";
 import { downloadCsv, fileBaseName, flashSaved } from "../_core/download";
@@ -115,7 +115,7 @@ function OtherColumnsPanel({
       <p
         style={{ margin: "0 0 10px", fontSize: 11, color: "var(--text-faint)", lineHeight: 1.4 }}
         dangerouslySetInnerHTML={{
-          __html: tr("boxplot.steps.otherColsDesc", { c: roleColors.filter }),
+          __html: ttHtml("boxplot.steps.otherColsDesc", { c: roleColors.filter }),
         }}
       />
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -363,7 +363,7 @@ export function ConfigureStep({
           <p
             style={{ fontSize: 12, color: "var(--danger-text)" }}
             dangerouslySetInnerHTML={{
-              __html: tr("boxplot.steps.nonNumericConfigure", { name: colNames[valueColIdx] }),
+              __html: ttHtml("boxplot.steps.nonNumericConfigure", { name: colNames[valueColIdx] }),
             }}
           />
         </div>
@@ -380,7 +380,7 @@ export function ConfigureStep({
           <p
             style={{ fontSize: 12, color: "var(--warning-text)" }}
             dangerouslySetInnerHTML={{
-              __html: tr("boxplot.steps.assignGroupValue", {
+              __html: ttHtml("boxplot.steps.assignGroupValue", {
                 gc: roleColors.group,
                 vc: roleColors.value,
               }),
@@ -625,7 +625,7 @@ export function OutputStep({
           <p
             style={{ fontSize: 12, color: "var(--danger-text)" }}
             dangerouslySetInnerHTML={{
-              __html: tr("boxplot.steps.nonNumericOutput", { name: colNames[valueColIdx] }),
+              __html: ttHtml("boxplot.steps.nonNumericOutput", { name: colNames[valueColIdx] }),
             }}
           />
         </div>

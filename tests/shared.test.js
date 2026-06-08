@@ -16,6 +16,7 @@ const {
   reshapeWide,
   computeStats,
   quartiles,
+  kde,
   computeGroupStats,
   fileBaseName,
 } = require("./helpers/shared-loader");
@@ -407,6 +408,23 @@ test("sem equals sd / sqrt(n)", () => {
   approx(s.sem, s.sd / Math.sqrt(5), 1e-9);
 });
 
+test("drops non-finite samples (NaN / ±Infinity) instead of poisoning the result", () => {
+  // A single non-finite value used to propagate through mean / sd / min / max.
+  // Now it's filtered, so the result equals the finite subset's stats.
+  const withGarbage = computeStats([1, 2, NaN, 3, Infinity, 4, -Infinity, 5]);
+  const clean = computeStats([1, 2, 3, 4, 5]);
+  eq(withGarbage.n, 5);
+  approx(withGarbage.mean, clean.mean, 1e-12);
+  approx(withGarbage.sd, clean.sd, 1e-12);
+  eq(withGarbage.min, 1);
+  eq(withGarbage.max, 5);
+  assert(Number.isFinite(withGarbage.median), "median must be finite");
+});
+
+test("returns null when every sample is non-finite", () => {
+  eq(computeStats([NaN, Infinity, -Infinity]), null);
+});
+
 // ── quartiles ─────────────────────────────────────────────────────────────────
 
 suite("quartiles");
@@ -431,6 +449,41 @@ test("wLo and wHi are within 1.5×IQR of the box", () => {
 test("iqr equals q3 - q1", () => {
   const q = quartiles([1, 2, 3, 4, 5]);
   approx(q.iqr, q.q3 - q.q1, 1e-9);
+});
+
+test("drops non-finite samples so min / max / whiskers stay finite", () => {
+  // sort() pushes NaN to the end, so max used to come back NaN; ±Infinity
+  // poisoned the whiskers. Filtering first keeps every field finite.
+  const q = quartiles([5, 1, NaN, 3, Infinity, 2, 4, -Infinity]);
+  eq(q.n, 5);
+  eq(q.min, 1);
+  eq(q.max, 5);
+  for (const k of ["q1", "med", "q3", "iqr", "wLo", "wHi"]) {
+    assert(Number.isFinite(q[k]), `${k} must be finite, got ${q[k]}`);
+  }
+});
+
+test("returns null when every sample is non-finite", () => {
+  eq(quartiles([NaN, Infinity]), null);
+});
+
+// ── kde ───────────────────────────────────────────────────────────────────────
+
+suite("kde");
+
+test("drops non-finite samples so the density curve stays finite", () => {
+  const pts = kde([1, 2, NaN, 3, Infinity, 4, 5], 16);
+  assert(pts.length === 16, "expected nPoints density samples");
+  for (const p of pts) {
+    assert(
+      Number.isFinite(p.x) && Number.isFinite(p.d),
+      `non-finite KDE point ${JSON.stringify(p)}`
+    );
+  }
+});
+
+test("returns [] when every sample is non-finite", () => {
+  eq(kde([NaN, Infinity, -Infinity]).length, 0);
 });
 
 // ── computeGroupStats ────────────────────────────────────────────────────────

@@ -29,6 +29,7 @@ const api = runCjs(ctx, cjs);
 module.exports = {
   registerCatalog: api.registerCatalog,
   t: api.t,
+  tHtml: api.tHtml,
   getLang: api.getLang,
   setLang: api.setLang,
   toggleLang: api.toggleLang,

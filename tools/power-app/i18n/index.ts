@@ -9,4 +9,4 @@ registerCatalog("power", "en", en);
 registerCatalog("power", "fr", fr);
 
 export type { PowerKey };
-export const { tt, useT } = makeT<PowerKey>();
+export const { tt, ttHtml, useT } = makeT<PowerKey>();
