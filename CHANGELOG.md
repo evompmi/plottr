@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Descriptive stats no longer corrupt on non-finite input.** `computeStats`,
+  `quartiles`, and `kde` now drop `NaN` / `±Infinity` samples before reducing,
+  instead of letting one poison the mean / SD / min / max / whisker / KDE curve
+  (`sort` parks `NaN` last, so `max` came back `NaN`). The string parser can't
+  emit these, so this hardens direct-array callers (normalised / handoff data).
+  (regression: 6 tests)
 - **Kruskal-Wallis p-value no longer underflows to 0.** For strongly
   significant data the p-value was computed as `1 - chi2cdf(H, df)`, which
   floors to exactly `0` once the lower CDF rounds to 1.0 (catastrophic
