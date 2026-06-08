@@ -4,7 +4,8 @@
 
 import type { UploadStepProps, ConfigureStepProps } from "./helpers";
 import { DataPreview, DetectedSeparatorBadge, HowTo, UploadPanel, navigateToTool } from "../_shell";
-import { VENN_HOWTO } from "./howto";
+import { useVennHowTo } from "./howto";
+import { useT } from "./i18n";
 
 export function UploadStep({
   sepOverride,
@@ -13,6 +14,8 @@ export function UploadStep({
   handleTextPaste,
   onLoadExample,
 }: UploadStepProps) {
+  const tr = useT();
+  const howto = useVennHowTo();
   return (
     <div>
       <UploadPanel
@@ -23,13 +26,12 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          title: "Arabidopsis stress-response DEGs",
-          subtitle: "3 sets — Drought · Heat · Salt",
-          buttonLabel: "Plot this example →",
+          title: tr("venn.example.title"),
+          subtitle: tr("venn.example.subtitle"),
         }}
-        hint="CSV · TSV · TXT — wide (one column per set, 2–3) or long (item, set) · 2 MB max"
+        hint={tr("venn.upload.hint")}
       />
-      <HowTo {...VENN_HOWTO} />
+      <HowTo {...howto} />
     </div>
   );
 }
@@ -45,6 +47,7 @@ export function ConfigureStep({
   setPendingSelection,
   isLongFormat,
 }: ConfigureStepProps) {
+  const tr = useT();
   const needsPicker = allColumnNames.length > 3;
   const selectedCount = pendingSelection.length;
 
@@ -105,13 +108,13 @@ export function ConfigureStep({
     });
   };
 
-  let pickerStatusText = "Pick 2 or 3 sets to overlap.";
+  let pickerStatusText = tr("venn.picker.pick");
   let pickerStatusColor = "var(--text-muted)";
   if (selectedCount === 1) {
-    pickerStatusText = "1 selected — pick at least one more.";
+    pickerStatusText = tr("venn.picker.one");
     pickerStatusColor = "var(--warning-text)";
   } else if (selectedCount === 2 || selectedCount === 3) {
-    pickerStatusText = `${selectedCount} selected — ready to plot.`;
+    pickerStatusText = tr("venn.picker.ready", { n: selectedCount });
     pickerStatusColor = "var(--success-text)";
   }
 
@@ -134,8 +137,8 @@ export function ConfigureStep({
         >
           <span style={{ fontSize: 16 }}>💡</span>
           <span style={{ flex: 1 }}>
-            <strong>{allColumnNames.length} sets detected</strong> — Venn diagrams only render 2 or
-            3 sets. For 4+ sets, use the UpSet tool.
+            <strong>{tr("venn.nudge.count", { n: allColumnNames.length })}</strong>
+            {tr("venn.nudge.rest")}
           </span>
           <a
             href="#/upset"
@@ -155,14 +158,14 @@ export function ConfigureStep({
               boxShadow: "var(--cta-primary-shadow)",
             }}
           >
-            Open in UpSet →
+            {tr("venn.nudge.openUpset")}
           </a>
         </div>
       )}
       {needsPicker && (
         <div className="dv-panel">
           <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
-            Choose sets to overlap
+            {tr("venn.picker.choose")}
           </p>
           <p style={{ margin: "0 0 10px", fontSize: 11, color: pickerStatusColor }}>
             {pickerStatusText}

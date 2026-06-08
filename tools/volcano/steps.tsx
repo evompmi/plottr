@@ -18,6 +18,7 @@ import {
 } from "./controls";
 import type { ConfigureStepProps, PlotStepProps } from "./helpers";
 import { VolcanoChart } from "./chart";
+import { useT } from "./i18n";
 
 import { fileBaseName } from "../_core/download";
 // ── Configure step ─────────────────────────────────────────────────────
@@ -42,6 +43,7 @@ export function ConfigureStep({
   setLabelCol,
   setYIsAdjusted,
 }: ConfigureStepProps) {
+  const tr = useT();
   const xValid = xCol >= 0;
   const yValid = yCol >= 0;
   return (
@@ -113,13 +115,10 @@ export function ConfigureStep({
               onChange={(e) => setYIsAdjusted(e.target.checked)}
               style={{ accentColor: "var(--cta-primary-bg)", margin: 0, flexShrink: 0 }}
             />
-            <span>
-              This column is an <strong>adjusted</strong> p-value (FDR / BH / qvalue)
-            </span>
+            <span dangerouslySetInnerHTML={{ __html: tr("volcano.cfg.adjusted") }} />
           </label>
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
-            Plotted as −log₁₀(p). Auto-detect prefers an adjusted column when both raw and adjusted
-            are present.
+            {tr("volcano.cfg.adjustedNote")}
           </div>
         </VolcanoAesBox>
         <VolcanoAesBox theme="label">
@@ -129,7 +128,7 @@ export function ConfigureStep({
             value={labelCol}
             onChange={(e) => setLabelCol(parseInt(e.target.value))}
           >
-            <option value={-1}>— none —</option>
+            <option value={-1}>{tr("volcano.cfg.labelNone")}</option>
             {parsed.headers.map((h, i) => (
               <option key={i} value={i}>
                 {h}
@@ -137,8 +136,7 @@ export function ConfigureStep({
             ))}
           </select>
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
-            Categorical column used to annotate the top-N most-significant features (gene symbol,
-            protein name, accession). Skip if your data has no such column.
+            {tr("volcano.cfg.labelNote")}
           </div>
         </VolcanoAesBox>
       </div>
@@ -155,22 +153,27 @@ export function ConfigureStep({
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--warning-text)", margin: 0 }}>
-            Assign both a <strong>log₂FC column</strong> and a <strong>p-value column</strong> to
-            unlock the Plot step in the navigation above.
-          </p>
+          <p
+            style={{ fontSize: 12, color: "var(--warning-text)", margin: 0 }}
+            dangerouslySetInnerHTML={{ __html: tr("volcano.cfg.assignWarn") }}
+          />
         </div>
       )}
 
       {/* Data preview at the bottom — same shape as boxplot's. */}
       <div className="dv-panel">
         <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-muted)" }}>
-          <strong style={{ color: "var(--text)" }}>{fileName || "(pasted data)"}</strong> —{" "}
-          {parsed.headers.length} cols × {parsed.rawData.length} rows
+          <strong style={{ color: "var(--text)" }}>
+            {fileName || tr("volcano.cfg.pastedData")}
+          </strong>
+          {tr("volcano.cfg.colsRows", {
+            cols: parsed.headers.length,
+            rows: parsed.rawData.length,
+          })}
           <DetectedSeparatorBadge sep={detectedSep} />
         </p>
         <p style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>
-          Preview (first 8 rows):
+          {tr("volcano.cfg.preview")}
         </p>
         <DataPreview headers={parsed.headers} rows={parsed.rawData} maxRows={8} />
       </div>
@@ -218,6 +221,7 @@ export function PlotStep({
   labelDensity,
   onLabelLayoutInfo,
 }: PlotStepProps) {
+  const tr = useT();
   return (
     <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
       <PlotSidebar>
@@ -227,15 +231,13 @@ export function PlotStep({
           onReset={onReset}
           extraDownloads={[
             {
-              label: "CSV",
-              title:
-                "Download the per-feature classification table — feature, log2FC, p, −log10(p), class",
+              label: tr("volcano.dl.csv"),
+              title: tr("volcano.dl.csvTitle"),
               onClick: onDownloadCsv,
             },
             {
-              label: "R",
-              title:
-                "Download a self-contained ggplot2 R script that reproduces this volcano from the underlying data",
+              label: tr("volcano.dl.r"),
+              title: tr("volcano.dl.rTitle"),
               onClick: onDownloadR,
             },
           ]}
@@ -291,8 +293,7 @@ export function PlotStep({
               color: "var(--warning-text)",
             }}
           >
-            ⚠️ {clampedCount} feature{clampedCount === 1 ? "" : "s"} had p = 0; clamped to a finite
-            floor for display so the y-axis stays bounded.
+            ⚠️ {tr("volcano.steps.clamped", { count: clampedCount })}
           </div>
         )}
         <div

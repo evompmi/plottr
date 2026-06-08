@@ -4,6 +4,7 @@
 // just composes the chart with the data-extraction panels.
 
 import { VennChart } from "./chart";
+import { useT } from "./i18n";
 import { regionLabel, regionFilenamePart } from "./helpers";
 import type { IntersectionTableProps, ItemListPanelProps, PlotAreaProps, Region } from "./helpers";
 
@@ -191,6 +192,7 @@ export function LayoutInfoBanner({
   proportional: boolean;
   layoutInfo: { warnings: string[]; proportional: boolean; maxError: number; meanError: number };
 }) {
+  const tr = useT();
   if (!proportional) return null;
   const pctMax = (layoutInfo.maxError * 100).toFixed(1);
   const pctMean = (layoutInfo.meanError * 100).toFixed(1);
@@ -220,10 +222,12 @@ export function LayoutInfoBanner({
       }}
     >
       {exact ? (
-        <div>Areas are proportional to set sizes (max region error &lt; 0.5%)</div>
+        <div>{tr("venn.area.proportionalNote")}</div>
       ) : (
         <div>
-          Max region error: <strong>{pctMax}%</strong> · mean {pctMean}%
+          {tr("venn.area.maxErrorLabel")}
+          <strong>{pctMax}%</strong>
+          {tr("venn.area.meanSuffix", { mean: pctMean })}
         </div>
       )}
       {hasWarnings &&

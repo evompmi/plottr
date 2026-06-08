@@ -15,7 +15,8 @@ import type {
   ItemListPanelProps,
   UploadStepProps,
 } from "./helpers";
-import { UPSET_HOWTO } from "./howto";
+import { useUpsetHowTo } from "./howto";
+import { useT } from "./i18n";
 
 import { downloadCsv, fileBaseName } from "../_core/download";
 const { useEffect, useMemo } = React;
@@ -29,6 +30,8 @@ export function UploadStep({
   handleTextPaste,
   onLoadExample,
 }: UploadStepProps) {
+  const tr = useT();
+  const howto = useUpsetHowTo();
   // The previous "Data format" wide/long picker is gone — `doParse` in
   // app.tsx auto-detects via `detectLongFormat` for 2-column inputs and
   // always treats 3+ columns as wide. The hint covers both shapes so a
@@ -44,14 +47,13 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          title: "Arabidopsis stress-response DEGs",
-          subtitle: "5 sets — Drought · Heat · Salt · Cold · ABA",
-          buttonLabel: "Plot this example →",
+          title: tr("upset.example.title"),
+          subtitle: tr("upset.example.subtitle"),
         }}
-        hint="CSV · TSV · TXT — wide (one column per set, 2+) or long (item, set) · 2 MB max"
+        hint={tr("upset.upload.hint")}
       />
 
-      <HowTo {...UPSET_HOWTO} />
+      <HowTo {...howto} />
     </div>
   );
 }
@@ -72,6 +74,7 @@ export function ConfigureStep({
   maxDegree,
   setMaxDegree,
 }: ConfigureStepProps) {
+  const tr = useT();
   const selectedCount = pendingSelection.length;
   const needsCutoff = selectedCount > 8;
   // Reset the cutoff window back to "all degrees" whenever the gate disappears
@@ -112,20 +115,20 @@ export function ConfigureStep({
       prev.includes(name) ? prev.filter((n: string) => n !== name) : [...prev, name]
     );
   };
-  let pickerStatusText = "Pick at least 2 sets to plot.";
+  let pickerStatusText = tr("upset.picker.pick");
   let pickerStatusColor = "var(--text-muted)";
   if (selectedCount === 1) {
-    pickerStatusText = "1 selected — pick at least one more.";
+    pickerStatusText = tr("upset.picker.one");
     pickerStatusColor = "var(--warning-text)";
   } else if (selectedCount >= 2) {
-    pickerStatusText = `${selectedCount} selected — ready to plot.`;
+    pickerStatusText = tr("upset.picker.ready", { n: selectedCount });
     pickerStatusColor = "var(--success-text)";
   }
   return (
     <div>
       <div className="dv-panel">
         <p className="dv-tile-title" style={{ margin: "0 0 4px" }}>
-          Sets to include
+          {tr("upset.picker.heading")}
         </p>
         <p style={{ margin: "0 0 10px", fontSize: 11, color: pickerStatusColor }}>
           {pickerStatusText}
@@ -186,14 +189,18 @@ export function ConfigureStep({
       {needsCutoff && (
         <div className="dv-panel" style={{ marginTop: 16 }}>
           <p className="dv-tile-title" style={{ margin: "0 0 4px" }}>
-            Intersection cutoff
+            {tr("upset.cutoff.title")}
           </p>
           <p style={{ margin: "0 0 10px", fontSize: 11, color: "var(--text-muted)" }}>
-            With {selectedCount} sets, up to {allPossible.toLocaleString()} intersections are
-            possible. Keep only intersections whose degree falls in this window:
+            {tr("upset.cutoff.intro", {
+              sets: selectedCount,
+              max: allPossible.toLocaleString(),
+            })}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <label style={{ fontSize: 11, color: "var(--text-muted)" }}>Min</label>
+            <label style={{ fontSize: 11, color: "var(--text-muted)" }}>
+              {tr("upset.cutoff.min")}
+            </label>
             <NumberInput
               min={1}
               max={selectedCount}
@@ -208,7 +215,9 @@ export function ConfigureStep({
               }}
               style={{ width: 96 }}
             />
-            <label style={{ fontSize: 11, color: "var(--text-muted)" }}>Max</label>
+            <label style={{ fontSize: 11, color: "var(--text-muted)" }}>
+              {tr("upset.cutoff.max")}
+            </label>
             <NumberInput
               min={1}
               max={selectedCount}
@@ -225,25 +234,27 @@ export function ConfigureStep({
             />
             <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
               {cutoffPreview
-                ? `${cutoffPreview.kept.toLocaleString()} of ${cutoffPreview.nonEmpty.toLocaleString()} non-empty intersections kept.`
+                ? tr("upset.cutoff.kept", {
+                    kept: cutoffPreview.kept.toLocaleString(),
+                    total: cutoffPreview.nonEmpty.toLocaleString(),
+                  })
                 : ""}
             </span>
           </div>
           <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
-            Degree 1 keeps singletons (items unique to one set); degree = {selectedCount} keeps the
-            all-sets intersection. You can change this later in the plot controls.
+            {tr("upset.cutoff.note", { sets: selectedCount })}
           </p>
         </div>
       )}
 
       <div className="dv-panel" style={{ marginTop: 16 }}>
         <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-muted)" }}>
-          <strong style={{ color: "var(--text)" }}>{fileName}</strong> — {parsedHeaders.length} cols
-          × {parsedRows.length} rows
+          <strong style={{ color: "var(--text)" }}>{fileName}</strong>
+          {tr("upset.cfg.colsRows", { cols: parsedHeaders.length, rows: parsedRows.length })}
           <DetectedSeparatorBadge sep={detectedSep} />
         </p>
         <p style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>
-          Preview (first 8 rows):
+          {tr("upset.cfg.preview")}
         </p>
         <DataPreview headers={parsedHeaders} rows={parsedRows} maxRows={8} />
       </div>
@@ -254,6 +265,7 @@ export function ConfigureStep({
 // ── ItemListPanel ──────────────────────────────────────────────────────────
 
 export function ItemListPanel({ intersection, setNames, fileName, columnId }: ItemListPanelProps) {
+  const tr = useT();
   const baseName = fileBaseName(fileName, "upset");
   if (!intersection)
     return (
@@ -265,7 +277,7 @@ export function ItemListPanel({ intersection, setNames, fileName, columnId }: It
           fontSize: 13,
         }}
       >
-        Click an intersection bar or matrix column to view items.
+        {tr("upset.items.empty")}
       </div>
     );
   const label = intersectionLabel(intersection.setIndices, setNames);
@@ -293,7 +305,7 @@ export function ItemListPanel({ intersection, setNames, fileName, columnId }: It
           )}
           {label}{" "}
           <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>
-            ({intersection.size} items)
+            {tr("upset.items.count", { n: intersection.size, count: intersection.size })}
           </span>
         </p>
         <button

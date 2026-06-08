@@ -3,6 +3,8 @@
 // copy-error-details buttons. Wired in `tools/_app/App.tsx` so a crashed
 // tool doesn't take the whole SPA down.
 
+import { tt } from "./i18n";
+
 interface ErrorBoundaryProps {
   // Optional human-readable name for the failing tool — surfaced in the
   // error UI ("This tool" used as a fallback).
@@ -45,7 +47,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         navigator.clipboard.writeText(details).catch(() => {});
       }
     };
-    const toolName = this.props.toolName || "This tool";
+    const toolName = this.props.toolName || tt("shell.error.toolFallback");
     return (
       <div
         role="alert"
@@ -58,11 +60,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         }}
       >
         <h2 style={{ marginTop: 0, color: "var(--danger-text)", fontSize: 20 }}>
-          Something went wrong
+          {tt("shell.error.heading")}
         </h2>
         <p style={{ fontSize: 14, lineHeight: 1.5 }}>
-          {toolName +
-            " hit an unexpected error and can't continue. Your data is still on your machine — nothing was sent anywhere. Try reloading; if it keeps crashing, use “Copy error details” and open an issue."}
+          {tt("shell.error.body", { tool: toolName })}
         </p>
         <pre
           style={{
@@ -82,7 +83,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         </pre>
         <details style={{ marginBottom: 16 }}>
           <summary style={{ cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}>
-            Technical details
+            {tt("shell.error.technical")}
           </summary>
           <pre
             style={{
@@ -104,10 +105,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         </details>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button type="button" onClick={reload} className="dv-btn dv-btn-primary">
-            Reload tool
+            {tt("shell.error.reload")}
           </button>
           <button type="button" onClick={copy} className="dv-btn dv-btn-secondary">
-            Copy error details
+            {tt("shell.error.copy")}
           </button>
         </div>
       </div>

@@ -6,6 +6,7 @@
 // strings, each `extraDownloads` entry passes its own `title`.
 
 import { flashSaved } from "../_core/download";
+import { useShellT } from "./i18n";
 
 const h = React.createElement;
 
@@ -23,18 +24,19 @@ interface ActionsPanelProps {
 }
 
 export function ActionsPanel(props: ActionsPanelProps) {
+  const tr = useShellT();
   const downloads: ActionsPanelDownload[] = [];
   if (props.onDownloadSvg) {
     downloads.push({
       label: "SVG",
-      title: "Download the plot as SVG — vector graphics, editable in Inkscape or Illustrator",
+      title: tr("shell.actions.svgTitle"),
       onClick: props.onDownloadSvg,
     });
   }
   if (props.onDownloadPng) {
     downloads.push({
       label: "PNG",
-      title: "Download the plot as PNG — 2× raster at the plot's native resolution",
+      title: tr("shell.actions.pngTitle"),
       onClick: props.onDownloadPng,
     });
   }
@@ -66,7 +68,7 @@ export function ActionsPanel(props: ActionsPanelProps) {
         className: "dv-tile-title",
         style: { margin: "0 0 8px" },
       },
-      "Actions"
+      tr("shell.actions.title")
     ),
     dlButtons.length > 0
       ? h(
@@ -86,10 +88,10 @@ export function ActionsPanel(props: ActionsPanelProps) {
       "button",
       {
         onClick: props.onReset,
-        title: "Clear all data, controls, and current session — returns to the upload step",
+        title: tr("shell.actions.resetTitle"),
         className: "dv-btn dv-btn-danger",
       },
-      "↺ Start over"
+      "↺ " + tr("shell.actions.startOver")
     )
   );
 }

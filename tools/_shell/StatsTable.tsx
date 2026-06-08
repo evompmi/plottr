@@ -4,6 +4,7 @@
 // `PALETTE` is read off the ambient browser globals.
 
 import { PALETTE } from "../_core/color";
+import { useShellT } from "./i18n";
 
 import type { GroupStats } from "../_core/descriptive";
 const h = React.createElement;
@@ -14,15 +15,25 @@ interface StatsTableProps {
 }
 
 export function StatsTable({ stats, groupLabel }: StatsTableProps) {
+  const tr = useShellT();
   if (!stats || stats.length === 0) return null;
-  const headers = ["Group", "n", "Mean", "Median", "SD", "SEM", "Min", "Max"];
+  const headers = [
+    tr("shell.stats.group"),
+    tr("shell.stats.n"),
+    tr("shell.stats.mean"),
+    tr("shell.stats.median"),
+    tr("shell.stats.sd"),
+    tr("shell.stats.sem"),
+    tr("shell.stats.min"),
+    tr("shell.stats.max"),
+  ];
   return h(
     "div",
     { className: "dv-panel" },
     h(
       "p",
       { style: { margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" } },
-      `Summary — grouped by "${groupLabel}"`
+      tr("shell.stats.summaryBy", { group: groupLabel })
     ),
     h(
       "div",

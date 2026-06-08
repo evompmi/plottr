@@ -23,6 +23,8 @@ import { svgSafeId } from "../_core/svg-export";
 import { downloadText, flashSaved } from "../_core/download";
 import { compactLetterDisplay, selectTest } from "../_core/stats/posthoc";
 import { formatP, pStars } from "../_core/stats/format";
+import { buildSelectTestReason } from "./select-test-narrative";
+import { tt, useShellT, type ShellKey } from "./i18n";
 
 // Aliased here so component code reads as `SelectTestResult | null` instead
 // of an inlined `ReturnType<typeof selectTest>`.
@@ -40,6 +42,34 @@ const STATS_LABELS: Record<string, string> = Object.fromEntries(
 const POSTHOC_LABELS: Record<string, string> = Object.fromEntries(
   Object.entries(STATS_POSTHOC_REGISTRY).map((entry) => [entry[0], entry[1].label])
 );
+
+// Localized display names for tests / post-hocs. The registry labels stay
+// English (R-script export must remain portable); these map a test key to a
+// shell catalog key, falling back to the registry label for any unmapped key.
+const TEST_LABEL_KEYS: Record<string, ShellKey> = {
+  studentT: "shell.test.studentT",
+  welchT: "shell.test.welchT",
+  mannWhitney: "shell.test.mannWhitney",
+  oneWayANOVA: "shell.test.oneWayANOVA",
+  welchANOVA: "shell.test.welchANOVA",
+  kruskalWallis: "shell.test.kruskalWallis",
+};
+const POSTHOC_LABEL_KEYS: Record<string, ShellKey> = {
+  tukeyHSD: "shell.posthoc.tukeyHSD",
+  gamesHowell: "shell.posthoc.gamesHowell",
+  dunn: "shell.posthoc.dunn",
+};
+function testLabel(key: string | null | undefined): string {
+  if (!key) return "—";
+  return TEST_LABEL_KEYS[key] ? tt(TEST_LABEL_KEYS[key]) : STATS_LABELS[key] || key;
+}
+function posthocLabel(key: string): string {
+  return POSTHOC_LABEL_KEYS[key] ? tt(POSTHOC_LABEL_KEYS[key]) : POSTHOC_LABELS[key] || key;
+}
+// "{a} vs {b}" pair label, localized conjunction.
+function vsPair(a: string, b: string): string {
+  return a + " " + tt("shell.stats.vs") + " " + b;
+}
 
 function _runTest(name: string | null | undefined, values: number[][]): TestResult | null {
   if (!name) return null;
@@ -126,12 +156,12 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const nameW = Math.max(8, ...names.map((n) => n.length));
 
-  lines.push("Statistical analysis report");
-  lines.push("Generated: " + now);
+  lines.push(tt("shell.report.title"));
+  lines.push(tt("shell.report.generated") + now);
   lines.push("");
 
   lines.push(sep);
-  lines.push("GROUPS");
+  lines.push(tt("shell.report.groups"));
   lines.push(sep);
   for (let i = 0; i < names.length; i++) {
     const vs = values[i];
@@ -143,7 +173,8 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
         _padR(names[i], nameW) +
         "  n = " +
         _padR(String(n), 4) +
-        "  mean = " +
+        "  " +
+        tt("shell.report.meanEq") +
         _padR(m.toFixed(3), 10) +
         "  SD = " +
         sd.toFixed(3)
@@ -152,27 +183,31 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
   lines.push("");
 
   lines.push(sep);
-  lines.push("ASSUMPTIONS");
+  lines.push(tt("shell.report.assumptions"));
   lines.push(sep);
   lines.push("");
-  lines.push("Shapiro-Wilk test for normality");
+  lines.push(tt("shell.stats.shapiro"));
   const norm = (recommendation && recommendation.normality) || [];
   lines.push(
     "  " +
-      _padR("Group", nameW) +
+      _padR(tt("shell.stats.group"), nameW) +
       "  " +
-      _padR("n", 4) +
+      _padR(tt("shell.stats.n"), 4) +
       "  " +
-      _padR("W", 8) +
+      _padR(tt("shell.stats.w"), 8) +
       "  " +
-      _padR("p", 10) +
-      "Assessment"
+      _padR(tt("shell.stats.p"), 10) +
+      tt("shell.stats.assessment")
   );
   lines.push("  " + "-".repeat(nameW + 2 + 4 + 2 + 8 + 2 + 10 + 10));
   for (const r of norm) {
     const gname = names[r.group];
     const assessment =
-      r.normal === true ? "normal" : r.normal === false ? "not normal" : r.note || "unknown";
+      r.normal === true
+        ? tt("shell.assess.normal")
+        : r.normal === false
+          ? tt("shell.assess.notNormal")
+          : r.note || tt("shell.assess.unknown");
     lines.push(
       "  " +
         _padR(gname, nameW) +
@@ -195,9 +230,9 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
     equalVar?: boolean | null;
     error?: string;
   };
-  lines.push("Levene (Brown-Forsythe) test for equal variance");
+  lines.push(tt("shell.stats.levene"));
   if (lev.error) {
-    lines.push("  error: " + lev.error);
+    lines.push("  " + tt("shell.report.errorPrefix") + lev.error);
   } else if (lev.F != null) {
     lines.push(
       "  F(" +
@@ -209,7 +244,7 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
         ",  p = " +
         formatP(lev.p) +
         "   -> " +
-        (lev.equalVar ? "equal variance" : "unequal variance")
+        (lev.equalVar ? tt("shell.assess.equalVar") : tt("shell.assess.unequalVar"))
     );
   } else {
     lines.push("  —");
@@ -217,72 +252,82 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
   lines.push("");
 
   lines.push(sep);
-  lines.push("TEST");
+  lines.push(tt("shell.report.test"));
   lines.push(sep);
   lines.push("");
   const recTest =
     recommendation && recommendation.recommendation && recommendation.recommendation.test;
   const recReason =
     recommendation && recommendation.recommendation && recommendation.recommendation.reason;
-  lines.push("Recommended: " + (recTest ? STATS_LABELS[recTest] : "—"));
-  if (recReason) lines.push("Reason:      " + recReason);
-  lines.push("Chosen:      " + (chosenTest ? STATS_LABELS[chosenTest] : "—"));
+  lines.push(tt("shell.report.recommended") + (recTest ? testLabel(recTest) : "—"));
+  if (recReason) lines.push(tt("shell.report.reason") + recReason);
+  lines.push(tt("shell.report.chosen") + (chosenTest ? testLabel(chosenTest) : "—"));
   lines.push("");
-  lines.push("Result: " + _formatTestLine(chosenTest, testResult));
+  lines.push(tt("shell.report.result") + _formatTestLine(chosenTest, testResult));
   lines.push("");
 
   if (powerResult) {
     lines.push(sep);
-    lines.push("REPLICATION PLANNING (target 80% power)");
+    lines.push(tt("shell.report.replication"));
     lines.push(sep);
     lines.push("");
     const ciStr = powerResult.effectCI
       ? `, 95% CI [${powerResult.effectCI.lo.toFixed(3)}, ${powerResult.effectCI.hi.toFixed(3)}]`
       : "";
     lines.push(
-      "Effect size:       " +
+      tt("shell.report.effectSize") +
         powerResult.effectLabel +
         " = " +
         powerResult.effect.toFixed(3) +
         ciStr
     );
     lines.push("");
-    lines.push("For a future study at the observed effect size:");
+    lines.push(tt("shell.report.futureStudy"));
     lines.push("");
     const aW = 8;
     const nW = 24;
-    lines.push(_padR("alpha", aW) + "n for 80% power");
+    lines.push(_padR(tt("shell.report.alpha"), aW) + tt("shell.stats.nFor80"));
     lines.push("-".repeat(aW + nW));
     for (let ri = 0; ri < powerResult.rows.length; ri++) {
       const row = powerResult.rows[ri];
       const aStr = String(row.alpha);
-      const nStr = row.nForTarget != null ? row.nForTarget + " " + powerResult.nLabel : "> 5000";
+      const nStr =
+        row.nForTarget != null
+          ? row.nForTarget + " " + powerResult.nLabel
+          : tt("shell.statsui.gt5000");
       lines.push(_padR(aStr, aW) + nStr);
     }
     if (powerResult.approximate) {
       lines.push("");
-      lines.push("  Note: rank-based test — power estimated from its parametric analog.");
+      lines.push("  " + tt("shell.report.rankNote"));
     }
     lines.push("");
-    lines.push("  Why not 'achieved power'? Post-hoc / observed power is a");
-    lines.push("  deterministic transformation of p (Hoenig & Heisey 2001),");
-    lines.push("  so it adds no information beyond p itself. The forward-");
-    lines.push("  looking n-needed estimates above are the actionable signal.");
+    lines.push("  " + tt("shell.report.whyNot1"));
+    lines.push("  " + tt("shell.report.whyNot2"));
+    lines.push("  " + tt("shell.report.whyNot3"));
+    lines.push("  " + tt("shell.report.whyNot4"));
     lines.push("");
   }
 
   if (postHocResult && !postHocResult.error && postHocName) {
     lines.push(sep);
-    lines.push("POST-HOC — " + POSTHOC_LABELS[postHocName]);
+    lines.push(tt("shell.report.posthoc") + posthocLabel(postHocName));
     lines.push(sep);
     lines.push("");
     const pairW = Math.max(
       10,
-      ...postHocResult.pairs.map((pr) => (names[pr.i] + " vs " + names[pr.j]).length)
+      ...postHocResult.pairs.map((pr) => vsPair(names[pr.i], names[pr.j]).length)
     );
-    const diffLabel = postHocName === "dunn" ? "Rank diff" : "Mean diff";
+    const diffLabel =
+      postHocName === "dunn" ? tt("shell.stats.rankDiff") : tt("shell.stats.meanDiff");
     lines.push(
-      "  " + _padR("Pair", pairW) + "  " + _padR(diffLabel, 12) + "  " + _padR("p", 10) + "Signif."
+      "  " +
+        _padR(tt("shell.stats.pair"), pairW) +
+        "  " +
+        _padR(diffLabel, 12) +
+        "  " +
+        _padR(tt("shell.stats.p"), 10) +
+        tt("shell.stats.signif")
     );
     lines.push("  " + "-".repeat(pairW + 2 + 12 + 2 + 10 + 8));
     for (const pr of postHocResult.pairs) {
@@ -291,7 +336,7 @@ function _buildStatsReport(ctx: StatsReportCtx): string {
         pr.diff != null ? pr.diff.toFixed(3) : pr.z != null ? "z = " + pr.z.toFixed(3) : "—";
       lines.push(
         "  " +
-          _padR(names[pr.i] + " vs " + names[pr.j], pairW) +
+          _padR(vsPair(names[pr.i], names[pr.j]), pairW) +
           "  " +
           _padR(diff, 12) +
           "  " +
@@ -330,6 +375,7 @@ export function StatsTile({
   renderLayout,
   fileStem,
 }: StatsTileProps) {
+  const tr = useShellT();
   const scale = compact ? 0.85 : 1;
   const fs = (n: number) => Math.round(n * scale * 10) / 10;
   const validGroups = (groups || []).filter(
@@ -408,23 +454,27 @@ export function StatsTile({
     if (!showOnPlot || !showSummaryOnPlot || !chosenTest || !testResult || testResult.error)
       return null;
     const parts: string[] = [];
-    parts.push(
-      (STATS_LABELS[chosenTest] || chosenTest) + ": " + _formatTestLine(chosenTest, testResult)
-    );
+    parts.push(testLabel(chosenTest) + ": " + _formatTestLine(chosenTest, testResult));
     if (k > 2 && postHocResult && !postHocResult.error && postHocName) {
-      const phLabel = POSTHOC_LABELS[postHocName] || postHocName;
-      parts.push("Post-hoc: " + phLabel);
+      parts.push(tt("shell.summary.posthoc") + posthocLabel(postHocName));
       postHocResult.pairs.forEach((pr) => {
         const p = pr.pAdj != null ? pr.pAdj : pr.p;
         parts.push(
-          "  " + names[pr.i] + " vs " + names[pr.j] + ": p = " + formatP(p) + " " + pStars(p)
+          "  " + vsPair(names[pr.i], names[pr.j]) + ": p = " + formatP(p) + " " + pStars(p)
         );
       });
     }
     if (powerResult) {
-      parts.push("Effect size: " + powerResult.effectLabel + " = " + powerResult.effect.toFixed(3));
+      parts.push(
+        tt("shell.summary.effectSize") +
+          powerResult.effectLabel +
+          " = " +
+          powerResult.effect.toFixed(3)
+      );
     }
-    parts.push("n per group: " + names.map((n, i) => n + "=" + values[i].length).join(", "));
+    parts.push(
+      tt("shell.summary.nPerGroup") + names.map((n, i) => n + "=" + values[i].length).join(", ")
+    );
     return parts.join("\n");
   }, [
     showOnPlot,
@@ -537,7 +587,7 @@ export function StatsTile({
   };
 
   // ── Header rows ───────────────────────────────────────────────────────
-  const displayTileHeader = h("h3", { style: h3style }, "Statistics display");
+  const displayTileHeader = h("h3", { style: h3style }, tr("shell.statsui.displayTitle"));
   const _safeStem =
     typeof fileStem === "string" && fileStem.trim()
       ? (typeof svgSafeId === "function" ? svgSafeId(fileStem) : fileStem).replace(/^-+|-+$/g, "")
@@ -561,7 +611,7 @@ export function StatsTile({
         flashSaved(e.currentTarget);
       },
       className: "dv-btn dv-btn-dl",
-      title: "Download a plain-text stats report",
+      title: tr("shell.statsui.txtTitle"),
     },
     "⬇ TXT"
   );
@@ -574,7 +624,7 @@ export function StatsTile({
         flashSaved(e.currentTarget);
       },
       className: "dv-btn dv-btn-dl",
-      title: "Download a runnable R script reproducing these tests",
+      title: tr("shell.statsui.rTitle"),
     },
     "⬇ R"
   );
@@ -601,7 +651,7 @@ export function StatsTile({
         className: "dv-disclosure" + (open ? " dv-disclosure-open" : ""),
         "aria-hidden": "true",
       }),
-      h("h3", { style: h3style }, title || "Statistics summary")
+      h("h3", { style: h3style }, title || tr("shell.statsui.summaryTitle"))
     ),
     downloadChipsEl
   );
@@ -671,7 +721,7 @@ export function StatsTile({
               transition: "background 120ms ease, color 120ms ease",
             },
           },
-          value === "cld" ? "Letters" : "Brackets"
+          value === "cld" ? tr("shell.statsui.letters") : tr("shell.statsui.brackets")
         );
       })
     );
@@ -686,8 +736,13 @@ export function StatsTile({
         flexWrap: "wrap",
       },
     },
-    checkboxLabel(showOnPlot, setShowOnPlot, "Display on plot", false),
-    checkboxLabel(showSummaryOnPlot, setShowSummaryOnPlot, "Print summary below plot", subDisabled),
+    checkboxLabel(showOnPlot, setShowOnPlot, tr("shell.statsui.displayOnPlot"), false),
+    checkboxLabel(
+      showSummaryOnPlot,
+      setShowSummaryOnPlot,
+      tr("shell.statsui.printSummary"),
+      subDisabled
+    ),
     k > 2
       ? h(
           "div",
@@ -695,12 +750,12 @@ export function StatsTile({
           h(
             "span",
             { style: { color: subDisabled ? "var(--text-faint)" : "var(--text-muted)" } },
-            "Style:"
+            tr("shell.statsui.style")
           ),
           segmentedToggle(subDisabled)
         )
       : null,
-    checkboxLabel(showNs, setShowNs, "Show ns", nsDisabled)
+    checkboxLabel(showNs, setShowNs, tr("shell.statsui.showNs"), nsDisabled)
   );
 
   const displayTile = h(
@@ -739,10 +794,10 @@ export function StatsTile({
         "td",
         { style: td },
         r.normal === true
-          ? h("span", { style: pillOk }, "normal")
+          ? h("span", { style: pillOk }, tr("shell.assess.normal"))
           : r.normal === false
-            ? h("span", { style: pillBad }, "not normal")
-            : h("span", { style: pillNeutral }, "unknown")
+            ? h("span", { style: pillBad }, tr("shell.assess.notNormal"))
+            : h("span", { style: pillNeutral }, tr("shell.assess.unknown"))
       )
     )
   );
@@ -757,7 +812,7 @@ export function StatsTile({
         marginTop: 4,
       },
     },
-    "Shapiro-Wilk test for normality"
+    tr("shell.stats.shapiro")
   );
   const normalityTable = h(
     "table",
@@ -768,11 +823,11 @@ export function StatsTile({
       h(
         "tr",
         null,
-        h("th", { style: th }, "Group"),
-        h("th", { style: th }, "n"),
-        h("th", { style: th }, "W"),
-        h("th", { style: th }, "p"),
-        h("th", { style: th }, "Assessment")
+        h("th", { style: th }, tr("shell.stats.group")),
+        h("th", { style: th }, tr("shell.stats.n")),
+        h("th", { style: th }, tr("shell.stats.w")),
+        h("th", { style: th }, tr("shell.stats.p")),
+        h("th", { style: th }, tr("shell.stats.assessment"))
       )
     ),
     h("tbody", null, normalityRows)
@@ -789,7 +844,7 @@ export function StatsTile({
         marginBottom: 2,
       },
     },
-    "Levene (Brown-Forsythe) test for equal variance"
+    tr("shell.stats.levene")
   );
   const leveneLine = h(
     "div",
@@ -814,7 +869,7 @@ export function StatsTile({
           h(
             "span",
             { style: lev.equalVar ? pillOk : pillBad },
-            lev.equalVar ? "equal variance" : "unequal variance"
+            lev.equalVar ? tr("shell.assess.equalVar") : tr("shell.assess.unequalVar")
           )
         )
   );
@@ -823,8 +878,7 @@ export function StatsTile({
   const testOptions = k === 2 ? STATS_TESTS_FOR_K2 : STATS_TESTS_FOR_K;
   const recTest =
     recommendation && recommendation.recommendation && recommendation.recommendation.test;
-  const recReason =
-    recommendation && recommendation.recommendation && recommendation.recommendation.reason;
+  const recReason = buildSelectTestReason(recommendation);
   const suggestion = recommendation && recommendation.suggestion;
   const testPicker = h(
     "div",
@@ -842,7 +896,7 @@ export function StatsTile({
         h(
           "option",
           { key: t, value: t },
-          STATS_LABELS[t] + (t === recTest ? "  (recommended)" : "")
+          testLabel(t) + (t === recTest ? tr("shell.statsui.recommendedSuffix") : "")
         )
       )
     ),
@@ -854,7 +908,7 @@ export function StatsTile({
             className: "dv-btn dv-btn-secondary",
             style: { padding: "4px 10px", fontSize: 11 },
           },
-          "Use recommendation"
+          tr("shell.statsui.useRecommendation")
         )
       : null
   );
@@ -886,12 +940,12 @@ export function StatsTile({
               color: "var(--info-text)",
             },
           },
-          h("span", { style: { fontWeight: 700 } }, "Suggested alternative:"),
+          h("span", { style: { fontWeight: 700 } }, tr("shell.statsui.suggestedAlt")),
           h(
             "span",
             null,
-            "Shapiro-Wilk flagged non-normal data — consider ",
-            h("strong", null, STATS_LABELS[suggestion.test] || suggestion.test),
+            tr("shell.statsui.suggestConsider"),
+            h("strong", null, testLabel(suggestion.test)),
             "."
           ),
           h(
@@ -901,7 +955,7 @@ export function StatsTile({
               className: "dv-btn dv-btn-secondary",
               style: { padding: "4px 10px", fontSize: 11, marginLeft: "auto" },
             },
-            "Use suggestion"
+            tr("shell.statsui.useSuggestion")
           )
         )
       : null;
@@ -931,7 +985,7 @@ export function StatsTile({
       return h(
         "tr",
         { key: idx },
-        h("td", { style: td }, names[pr.i] + " vs " + names[pr.j]),
+        h("td", { style: td }, vsPair(names[pr.i], names[pr.j])),
         h(
           "td",
           { style: td },
@@ -954,7 +1008,7 @@ export function StatsTile({
     postHocBlock = h(
       "div",
       null,
-      h("div", { style: subhead }, "Post-hoc — " + POSTHOC_LABELS[postHocName]),
+      h("div", { style: subhead }, tr("shell.statsui.posthocPrefix") + posthocLabel(postHocName)),
       h(
         "table",
         { style: table },
@@ -964,10 +1018,14 @@ export function StatsTile({
           h(
             "tr",
             null,
-            h("th", { style: th }, "Pair"),
-            h("th", { style: th }, postHocName === "dunn" ? "Rank diff" : "Mean diff"),
-            h("th", { style: th }, "p"),
-            h("th", { style: th }, "Signif.")
+            h("th", { style: th }, tr("shell.stats.pair")),
+            h(
+              "th",
+              { style: th },
+              postHocName === "dunn" ? tr("shell.stats.rankDiff") : tr("shell.stats.meanDiff")
+            ),
+            h("th", { style: th }, tr("shell.stats.p")),
+            h("th", { style: th }, tr("shell.stats.signif"))
           )
         ),
         h("tbody", null, rows)
@@ -986,15 +1044,15 @@ export function StatsTile({
   if (powerResult) {
     const fmtAlpha = (a: number) => String(a);
     const nNeededText = (r: PowerFromDataRow) =>
-      r.nForTarget != null ? r.nForTarget + " " + powerResult.nLabel : "> 5000";
+      r.nForTarget != null ? r.nForTarget + " " + powerResult.nLabel : tr("shell.statsui.gt5000");
     powerBlock = h(
       "div",
       null,
-      h("div", { style: subhead }, "Replication planning (n for 80% power)"),
+      h("div", { style: subhead }, tr("shell.statsui.replication")),
       h(
         "div",
         { style: { fontSize: 11, color: "var(--text-muted)", marginBottom: 6 } },
-        "Given the observed effect size, sample size a future study would need to detect this effect at 80% power."
+        tr("shell.statsui.replicationDesc")
       ),
       h(
         "table",
@@ -1005,9 +1063,9 @@ export function StatsTile({
           h(
             "tr",
             null,
-            h("th", { style: th }, "Effect size"),
+            h("th", { style: th }, tr("shell.stats.effectSize")),
             h("th", { style: th }, "α"),
-            h("th", { style: th }, "n for 80% power")
+            h("th", { style: th }, tr("shell.stats.nFor80"))
           )
         ),
         h(
@@ -1046,7 +1104,7 @@ export function StatsTile({
                 marginTop: 4,
               },
             },
-            "Approximation — rank-based test power estimated from its parametric analog."
+            tr("shell.statsui.approxNote")
           )
         : null
     );
@@ -1060,12 +1118,12 @@ export function StatsTile({
     h(
       "div",
       { style: { marginTop: 10 } },
-      h("div", { style: subhead }, "Assumptions"),
+      h("div", { style: subhead }, tr("shell.statsui.assumptions")),
       normalityCaption,
       normalityTable,
       leveneCaption,
       leveneLine,
-      h("div", { style: subhead }, "Test"),
+      h("div", { style: subhead }, tr("shell.statsui.test")),
       testPicker,
       reasonLine,
       suggestionLine,

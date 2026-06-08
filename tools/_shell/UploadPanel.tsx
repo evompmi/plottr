@@ -19,6 +19,7 @@
 
 import { DatasheetIcon } from "./DatasheetIcon";
 import { FILE_LIMIT_BYTES, FILE_WARN_BYTES, FileDropZone } from "./FileDropZone";
+import { useShellT } from "./i18n";
 
 const h = React.createElement;
 const { useState } = React;
@@ -63,6 +64,7 @@ interface UploadPanelProps {
 }
 
 export function UploadPanel(props: UploadPanelProps) {
+  const tr = useShellT();
   if (props.autoDetect) {
     return <AutoDetectUploadPanel {...props} />;
   }
@@ -90,7 +92,7 @@ export function UploadPanel(props: UploadPanelProps) {
           htmlFor: "dv-separator-select",
           style: { fontSize: 13, fontWeight: 600, color: "var(--accent-primary)" },
         },
-        "Column separator"
+        tr("shell.sep.label")
       ),
       h(
         "select",
@@ -100,11 +102,11 @@ export function UploadPanel(props: UploadPanelProps) {
           onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onSepChange(e.target.value),
           className: "dv-select-sep",
         },
-        h("option", { value: "" }, "— Select —"),
-        h("option", { value: "," }, "Comma (,)"),
-        h("option", { value: ";" }, "Semicolon (;)"),
-        h("option", { value: "\t" }, "Tab (\\t)"),
-        h("option", { value: " " }, "Space")
+        h("option", { value: "" }, tr("shell.sep.select")),
+        h("option", { value: "," }, tr("shell.sep.comma")),
+        h("option", { value: ";" }, tr("shell.sep.semicolon")),
+        h("option", { value: "\t" }, tr("shell.sep.tab")),
+        h("option", { value: " " }, tr("shell.sep.space"))
       )
     ),
     !sepOverride
@@ -124,13 +126,13 @@ export function UploadPanel(props: UploadPanelProps) {
           h(
             "p",
             { style: { margin: 0, fontSize: 15, color: "var(--text-faint)" } },
-            "Pick a column separator above to enable file loading"
+            tr("shell.sep.pickToEnable")
           )
         )
       : h(FileDropZone, {
           onFileLoad,
           accept: ".csv,.tsv,.txt,.dat,.tab",
-          hint: hint || "CSV · TSV · TXT · DAT — 2 MB max",
+          hint: hint || tr("shell.upload.dropHint"),
         }),
     onLoadExample
       ? h(
@@ -146,7 +148,7 @@ export function UploadPanel(props: UploadPanelProps) {
               color: "var(--text-muted)",
             },
           },
-          h("span", null, "Try sample data:"),
+          h("span", null, tr("shell.sample.try")),
           h(
             "button",
             {
@@ -155,7 +157,7 @@ export function UploadPanel(props: UploadPanelProps) {
               onClick: onLoadExample,
               "data-testid": "load-example",
             },
-            exampleLabel || "Load example →"
+            exampleLabel || tr("shell.sample.loadExample")
           )
         )
       : null
@@ -176,6 +178,7 @@ export function UploadPanel(props: UploadPanelProps) {
 // - "Try sample data" stays in the same position as the legacy panel so
 //   muscle memory and the load-example test selector still work.
 function AutoDetectUploadPanel(props: UploadPanelProps) {
+  const tr = useShellT();
   const {
     sepOverride,
     onSepChange,
@@ -197,10 +200,10 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
   const renderSamplePromo = () => {
     if (!onLoadExample) return null;
     const summary: ExampleSummary = exampleSummary ?? {
-      title: "Try a sample dataset",
+      title: tr("shell.sample.tryDataset"),
       subtitle: typeof exampleLabel === "string" ? exampleLabel : undefined,
     };
-    const buttonLabel = summary.buttonLabel ?? "Plot this example →";
+    const buttonLabel = summary.buttonLabel ?? tr("shell.sample.plotThis");
     return (
       <div
         style={{
@@ -242,7 +245,7 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
               marginBottom: 2,
             }}
           >
-            New here? Quick start
+            {tr("shell.sample.quickStart")}
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--success-text)" }}>
             {summary.title}
@@ -278,20 +281,16 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
     setPasteWarn(null);
     const text = pasteText;
     if (!text || text.trim() === "") {
-      setPasteError("Paste some data first — copy a selection from Excel, Sheets, or any CSV.");
+      setPasteError(tr("shell.paste.empty"));
       return;
     }
     const bytes = new Blob([text]).size;
     if (bytes > FILE_LIMIT_BYTES) {
-      setPasteError(
-        `Pasted data too large (${(bytes / 1024 / 1024).toFixed(1)} MB). Maximum is 2 MB — split the data or sample rows and try again.`
-      );
+      setPasteError(tr("shell.paste.tooLarge", { mb: (bytes / 1024 / 1024).toFixed(1) }));
       return;
     }
     if (bytes > FILE_WARN_BYTES) {
-      setPasteWarn(
-        `Large paste (${(bytes / 1024 / 1024).toFixed(1)} MB) — parsing may take a moment.`
-      );
+      setPasteWarn(tr("shell.paste.largeWarn", { mb: (bytes / 1024 / 1024).toFixed(1) }));
     }
     if (onTextPaste) onTextPaste(text, "pasted_data.csv");
   };
@@ -351,9 +350,7 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
             <circle cx="8" cy="4.6" r="1" fill="currentColor" />
             <rect x="7.15" y="6.8" width="1.7" height="5" rx="0.85" fill="currentColor" />
           </svg>
-          <span>
-            Plöttr auto-detects the column separator (comma, tab, semicolon, …) from the data.
-          </span>
+          <span>{tr("shell.sep.autoInfo")}</span>
           <button
             type="button"
             onClick={() => setOverrideOpen((v) => !v)}
@@ -366,7 +363,7 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
             }}
             aria-expanded={overrideOpen}
           >
-            {overrideOpen ? "Hide override ▴" : "Override ▾"}
+            {overrideOpen ? tr("shell.sep.overrideHide") : tr("shell.sep.overrideShow")}
           </button>
         </div>
         {overrideOpen && (
@@ -384,7 +381,7 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
               htmlFor="dv-separator-select"
               style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-primary)" }}
             >
-              Force separator
+              {tr("shell.sep.force")}
             </label>
             <select
               id="dv-separator-select"
@@ -392,14 +389,14 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
               onChange={(e) => onSepChange(e.target.value)}
               className="dv-select-sep"
             >
-              <option value="">Auto-detect</option>
-              <option value=",">Comma (,)</option>
-              <option value=";">Semicolon (;)</option>
-              <option value={"\t"}>Tab (\t)</option>
-              <option value=" ">Space</option>
+              <option value="">{tr("shell.sep.auto")}</option>
+              <option value=",">{tr("shell.sep.comma")}</option>
+              <option value=";">{tr("shell.sep.semicolon")}</option>
+              <option value={"\t"}>{tr("shell.sep.tab")}</option>
+              <option value=" ">{tr("shell.sep.space")}</option>
             </select>
             <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
-              Only needed when the detector picks the wrong delimiter.
+              {tr("shell.sep.overrideHint")}
             </span>
           </div>
         )}
@@ -416,13 +413,13 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
         <div style={cardWrap}>
           <div style={cardHeader}>
             <span aria-hidden="true">📂</span>
-            <span style={cardHeaderLabel}>Drop a file</span>
+            <span style={cardHeaderLabel}>{tr("shell.paste.dropTitle")}</span>
           </div>
           <div style={cardBody}>
             <FileDropZone
               onFileLoad={onFileLoad}
               accept=".csv,.tsv,.txt,.dat,.tab"
-              hint={hint || "CSV · TSV · TXT · DAT — 2 MB max"}
+              hint={hint || tr("shell.upload.dropHint")}
             />
           </div>
         </div>
@@ -431,16 +428,13 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
           <div style={cardWrap}>
             <div style={cardHeader}>
               <span aria-hidden="true">📋</span>
-              <span style={cardHeaderLabel}>Paste data</span>
+              <span style={cardHeaderLabel}>{tr("shell.paste.pasteTitle")}</span>
             </div>
             <div style={cardBody}>
               <textarea
                 value={pasteText}
                 onChange={(e) => setPasteText(e.target.value)}
-                placeholder={
-                  "Paste comma-, tab-, or semicolon-separated rows here.\n" +
-                  "Tip: a selection copied from Excel or Google Sheets becomes tab-separated automatically."
-                }
+                placeholder={tr("shell.paste.placeholder")}
                 className="dv-input"
                 spellCheck={false}
                 style={{
@@ -455,7 +449,7 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
                   background: "var(--surface)",
                   color: "var(--text)",
                 }}
-                aria-label="Paste tabular data"
+                aria-label={tr("shell.paste.aria")}
               />
               <div
                 style={{
@@ -473,7 +467,7 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
                   disabled={pasteText.trim() === ""}
                   data-testid="paste-parse"
                 >
-                  Parse pasted data
+                  {tr("shell.paste.parse")}
                 </button>
                 <button
                   type="button"
@@ -485,9 +479,11 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
                   className="dv-btn dv-btn-secondary"
                   disabled={pasteText === ""}
                 >
-                  Clear
+                  {tr("shell.paste.clear")}
                 </button>
-                <span style={{ fontSize: 11, color: "var(--text-faint)" }}>2 MB max</span>
+                <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
+                  {tr("shell.paste.maxSize")}
+                </span>
               </div>
               {pasteError && (
                 <div

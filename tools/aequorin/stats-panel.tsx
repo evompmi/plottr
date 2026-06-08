@@ -25,6 +25,7 @@ import {
 import {
   TestResult,
   buildRScript,
+  buildSelectTestReason,
   computePowerFromData,
   postHocForTest,
   runPostHoc,
@@ -47,19 +48,47 @@ import { tinv } from "../_core/stats/dist";
 import { sampleMean, sampleSD } from "../_core/stats/tests";
 import { selectTest } from "../_core/stats/posthoc";
 import { formatP, pStars } from "../_core/stats/format";
+import { tt, useT, type AequorinKey } from "./i18n";
 const { useState, useMemo, useEffect, useRef } = React;
+
+// Map the kernel's test / post-hoc registry ids to catalog keys. The English
+// registry labels (TEST_LABELS_AQ / POSTHOC_LABELS_AQ) stay the fallback so an
+// unmapped id still renders, and so R-script exports keep their English names.
+const TEST_LABEL_KEYS_AQ: Record<string, AequorinKey> = {
+  studentT: "aequorin.test.studentT",
+  welchT: "aequorin.test.welchT",
+  mannWhitney: "aequorin.test.mannWhitney",
+  oneWayANOVA: "aequorin.test.oneWayANOVA",
+  welchANOVA: "aequorin.test.welchANOVA",
+  kruskalWallis: "aequorin.test.kruskalWallis",
+};
+const POSTHOC_LABEL_KEYS_AQ: Record<string, AequorinKey> = {
+  tukeyHSD: "aequorin.posthoc.tukeyHSD",
+  gamesHowell: "aequorin.posthoc.gamesHowell",
+  dunn: "aequorin.posthoc.dunn",
+};
+function aqTestLabel(key: string | null | undefined): string {
+  if (!key) return "—";
+  return TEST_LABEL_KEYS_AQ[key] ? tt(TEST_LABEL_KEYS_AQ[key]) : TEST_LABELS_AQ[key] || key;
+}
+function aqPosthocLabel(key: string): string {
+  return POSTHOC_LABEL_KEYS_AQ[key]
+    ? tt(POSTHOC_LABEL_KEYS_AQ[key])
+    : POSTHOC_LABELS_AQ[key] || key;
+}
 
 export function AequorinStatsDetail({
   row,
   onOverrideTest,
   isOverridden,
 }: AequorinStatsDetailProps) {
+  const tr = useT();
   const names = row.names;
   const values = row.values;
   const k = names.length;
   const res = row.testResult ?? ({} as TestResult);
   const rec = (row.rec ?? {}) as SelectTestResult;
-  const recReason = rec.recommendation?.reason;
+  const recReason = buildSelectTestReason(rec);
   const recTest = rec.recommendation?.test ?? null;
   const suggestion = rec.suggestion ?? null;
   const testOptions = k === 2 ? TEST_OPTIONS_AQ_2 : TEST_OPTIONS_AQ_K;
@@ -128,16 +157,16 @@ export function AequorinStatsDetail({
 
   return (
     <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>
-      <div style={subhead}>Groups</div>
+      <div style={subhead}>{tr("aequorin.sp.groups")}</div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th style={thS}>Group</th>
-            <th style={thS}>n</th>
-            <th style={thS}>Mean</th>
-            <th style={thS}>SD</th>
-            <th style={thS}>SEM</th>
-            <th style={thS}>95% CI</th>
+            <th style={thS}>{tr("aequorin.sp.group")}</th>
+            <th style={thS}>{tr("aequorin.sp.n")}</th>
+            <th style={thS}>{tr("aequorin.sp.mean")}</th>
+            <th style={thS}>{tr("aequorin.sp.sd")}</th>
+            <th style={thS}>{tr("aequorin.sp.sem")}</th>
+            <th style={thS}>{tr("aequorin.sp.ci95")}</th>
           </tr>
         </thead>
         <tbody>
@@ -162,20 +191,24 @@ export function AequorinStatsDetail({
         </tbody>
       </table>
 
-      <div style={subhead}>Assumptions</div>
+      <div style={subhead}>{tr("aequorin.sp.assumptions")}</div>
       {norm.length > 0 && (
         <div style={{ marginBottom: 6 }}>
           <div
             style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 2 }}
           >
-            Shapiro-Wilk (normality)
+            {tr("aequorin.sp.shapiro")}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {norm.map((r, i) => {
               const label = names[r.group] || `g${r.group}`;
               const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
               const verdict =
-                r.normal === true ? "normal" : r.normal === false ? "not normal" : "—";
+                r.normal === true
+                  ? tr("aequorin.sp.normal")
+                  : r.normal === false
+                    ? tr("aequorin.sp.notNormal")
+                    : "—";
               return (
                 <span key={i} style={{ fontSize: 11, color: "var(--text)" }}>
                   {label}: <span style={pill}>{verdict}</span>
@@ -187,15 +220,15 @@ export function AequorinStatsDetail({
       )}
       {lev.F != null && (
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-          <span style={{ fontWeight: 600 }}>Levene</span> — F({lev.df1}, {lev.df2}) ={" "}
-          {lev.F.toFixed(3)}, p = {formatP(lev.p)}{" "}
+          <span style={{ fontWeight: 600 }}>{tr("aequorin.sp.levene")}</span> — F({lev.df1},{" "}
+          {lev.df2}) = {lev.F.toFixed(3)}, p = {formatP(lev.p)}{" "}
           <span style={lev.equalVar ? pillOk : pillBad}>
-            {lev.equalVar ? "equal variance" : "unequal variance"}
+            {lev.equalVar ? tr("aequorin.sp.equalVar") : tr("aequorin.sp.unequalVar")}
           </span>
         </div>
       )}
 
-      <div style={subhead}>Test</div>
+      <div style={subhead}>{tr("aequorin.sp.test")}</div>
       <div
         style={{
           display: "flex",
@@ -217,8 +250,8 @@ export function AequorinStatsDetail({
         >
           {testOptions.map((t) => (
             <option key={t} value={t}>
-              {TEST_LABELS_AQ[t]}
-              {t === recTest ? "  (recommended)" : ""}
+              {aqTestLabel(t)}
+              {t === recTest ? tr("aequorin.sp.recommendedSuffix") : ""}
             </option>
           ))}
         </select>
@@ -232,7 +265,7 @@ export function AequorinStatsDetail({
             className="dv-btn dv-btn-secondary"
             style={{ padding: "2px 8px", fontSize: 10 }}
           >
-            Use recommendation
+            {tr("aequorin.sp.useRecommendation")}
           </button>
         )}
       </div>
@@ -259,10 +292,10 @@ export function AequorinStatsDetail({
             color: "var(--info-text)",
           }}
         >
-          <span style={{ fontWeight: 700 }}>Suggested alternative:</span>
+          <span style={{ fontWeight: 700 }}>{tr("aequorin.sp.suggestedAlt")}</span>
           <span>
-            Shapiro-Wilk flagged non-normal data — consider{" "}
-            <strong>{TEST_LABELS_AQ[suggestion.test] || suggestion.test}</strong>.
+            {tr("aequorin.sp.suggestConsider")}
+            <strong>{aqTestLabel(suggestion.test)}</strong>.
           </span>
           <button
             type="button"
@@ -273,7 +306,7 @@ export function AequorinStatsDetail({
             className="dv-btn dv-btn-secondary"
             style={{ padding: "2px 8px", fontSize: 10, marginLeft: "auto" }}
           >
-            Use suggestion
+            {tr("aequorin.sp.useSuggestion")}
           </button>
         </div>
       )}
@@ -298,15 +331,20 @@ export function AequorinStatsDetail({
       {k >= 3 && postHoc && !postHoc.error && row.postHocName && (
         <>
           <div style={subhead}>
-            Post-hoc — {POSTHOC_LABELS_AQ[row.postHocName] || row.postHocName}
+            {tr("aequorin.sp.posthocPrefix")}
+            {aqPosthocLabel(row.postHocName)}
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={thS}>Pair</th>
-                <th style={thS}>{row.postHocName === "dunn" ? "Rank diff" : "Mean diff"}</th>
-                <th style={thS}>p</th>
-                <th style={thS}>Signif.</th>
+                <th style={thS}>{tr("aequorin.sp.pair")}</th>
+                <th style={thS}>
+                  {row.postHocName === "dunn"
+                    ? tr("aequorin.sp.rankDiff")
+                    : tr("aequorin.sp.meanDiff")}
+                </th>
+                <th style={thS}>{tr("aequorin.sp.colP")}</th>
+                <th style={thS}>{tr("aequorin.sp.signif")}</th>
               </tr>
             </thead>
             <tbody>
@@ -321,7 +359,7 @@ export function AequorinStatsDetail({
                 return (
                   <tr key={i}>
                     <td style={tdS}>
-                      {names[pr.i]} vs {names[pr.j]}
+                      {names[pr.i]} {tr("aequorin.sp.vs")} {names[pr.j]}
                     </td>
                     <td style={tdS}>{diff}</td>
                     <td style={tdS}>{formatP(p)}</td>
@@ -343,17 +381,16 @@ export function AequorinStatsDetail({
       )}
       {power && (
         <>
-          <div style={subhead}>Replication planning (n for 80% power)</div>
+          <div style={subhead}>{tr("aequorin.sp.replication")}</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>
-            Given the observed effect size, sample size a future study would need to detect this
-            effect at 80% power.
+            {tr("aequorin.sp.replicationDesc")}
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={thS}>Effect size</th>
+                <th style={thS}>{tr("aequorin.sp.effectSize")}</th>
                 <th style={thS}>α</th>
-                <th style={thS}>n for 80% power</th>
+                <th style={thS}>{tr("aequorin.sp.nFor80")}</th>
               </tr>
             </thead>
             <tbody>
@@ -369,7 +406,9 @@ export function AequorinStatsDetail({
                   ) : null}
                   <td style={tdS}>{String(pr.alpha)}</td>
                   <td style={tdS}>
-                    {pr.nForTarget != null ? `${pr.nForTarget} ${power.nLabel}` : "> 5000"}
+                    {pr.nForTarget != null
+                      ? `${pr.nForTarget} ${power.nLabel}`
+                      : tr("aequorin.sp.gt5000")}
                   </td>
                 </tr>
               ))}
@@ -384,7 +423,7 @@ export function AequorinStatsDetail({
                 marginTop: 4,
               }}
             >
-              Approximation — rank-based test power estimated from its parametric analog.
+              {tr("aequorin.sp.approxNote")}
             </div>
           )}
         </>
@@ -406,6 +445,7 @@ export function AequorinStatsPanel({
   onSummaryChange,
   errorBarLabel,
 }: AequorinStatsPanelProps) {
+  const tr = useT();
   const singleKey = "_global";
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ [singleKey]: true });
   const [hovered, setHovered] = useState<string | null>(null);
@@ -565,10 +605,10 @@ export function AequorinStatsPanel({
               letterSpacing: "0.2px",
             }}
           >
-            Statistics
+            {tr("aequorin.sp.statistics")}
           </h3>
           <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
-            Click the row to inspect decision trace, assumptions, post-hoc and power.
+            {tr("aequorin.sp.desc")}
           </p>
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
@@ -576,7 +616,7 @@ export function AequorinStatsPanel({
             type="button"
             className="dv-btn dv-btn-dl"
             onClick={downloadReport}
-            title="Download a plain-text stats report"
+            title={tr("aequorin.sp.txtTitle")}
           >
             ⬇ TXT
           </button>
@@ -585,7 +625,7 @@ export function AequorinStatsPanel({
               type="button"
               className="dv-btn dv-btn-dl"
               onClick={downloadR}
-              title="Download a runnable R script reproducing this test"
+              title={tr("aequorin.sp.rTitle")}
             >
               ⬇ R
             </button>
@@ -605,7 +645,7 @@ export function AequorinStatsPanel({
         }}
       >
         <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>
-          Display on plot
+          {tr("aequorin.sp.displayOnPlot")}
         </span>
         <div
           style={{
@@ -615,9 +655,9 @@ export function AequorinStatsPanel({
             border: "1px solid var(--border-strong)",
           }}
         >
-          {segBtn("none", "Off")}
-          {anyMulti && segBtn("cld", "Letters")}
-          {segBtn("brackets", "Brackets")}
+          {segBtn("none", tr("aequorin.sp.off"))}
+          {anyMulti && segBtn("cld", tr("aequorin.sp.letters"))}
+          {segBtn("brackets", tr("aequorin.sp.brackets"))}
         </div>
         <label
           style={{
@@ -637,7 +677,7 @@ export function AequorinStatsPanel({
             onChange={(e) => setShowNs(e.target.checked)}
             style={{ accentColor: "var(--cta-primary-bg)" }}
           />
-          Show ns
+          {tr("aequorin.sp.showNs")}
         </label>
         <label
           style={{
@@ -655,17 +695,17 @@ export function AequorinStatsPanel({
             onChange={(e) => setShowSummary(e.target.checked)}
             style={{ accentColor: "var(--cta-primary-bg)" }}
           />
-          Print summary below plot
+          {tr("aequorin.sp.printSummary")}
         </label>
       </div>
 
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th style={thS}>Groups</th>
-            <th style={thS}>Test</th>
-            <th style={thS}>Statistic</th>
-            <th style={thS}>p</th>
+            <th style={thS}>{tr("aequorin.sp.groups")}</th>
+            <th style={thS}>{tr("aequorin.sp.test")}</th>
+            <th style={thS}>{tr("aequorin.sp.statistic")}</th>
+            <th style={thS}>{tr("aequorin.sp.colP")}</th>
             <th style={{ ...thS, width: 60 }}></th>
           </tr>
         </thead>
@@ -685,11 +725,7 @@ export function AequorinStatsPanel({
             }}
           >
             <td style={tdS}>{enriched.k}</td>
-            <td style={tdS}>
-              {(enriched.chosenTest && TEST_LABELS_AQ[enriched.chosenTest]) ||
-                enriched.chosenTest ||
-                "—"}
-            </td>
+            <td style={tdS}>{aqTestLabel(enriched.chosenTest)}</td>
             <td style={{ ...tdS, ...mono }}>
               {formatAqStatShort(enriched.chosenTest, enriched.testResult)}
             </td>

@@ -28,6 +28,7 @@ import {
   makeRadiusFor,
 } from "./chart-layout";
 import { ColorLegend, SizeLegend } from "./chart-legends";
+import { tt } from "./i18n";
 
 import { makeTicks } from "../_core/scale";
 import { registerSvgExportMutator, unregisterSvgExportMutator } from "../_core/svg-export";
@@ -371,9 +372,9 @@ export const VolcanoChart = memo(
           .querySelectorAll(":scope > image, :scope > rect, :scope > g[id^='points-']")
           .forEach((node) => node.parentNode && node.parentNode.removeChild(node));
         const classMeta: { cls: VolcanoClass; count: number; label: string }[] = [
-          { cls: "ns", count: snapshot.summaryNs, label: "not significant" },
-          { cls: "down", count: snapshot.summaryDown, label: "downregulated" },
-          { cls: "up", count: snapshot.summaryUp, label: "upregulated" },
+          { cls: "ns", count: snapshot.summaryNs, label: tt("volcano.class.ns") },
+          { cls: "down", count: snapshot.summaryDown, label: tt("volcano.class.down") },
+          { cls: "up", count: snapshot.summaryUp, label: tt("volcano.class.up") },
         ];
         for (const meta of classMeta) {
           const g = doc.createElementNS(NS, "g");
@@ -405,9 +406,9 @@ export const VolcanoChart = memo(
         style={{ width: "100%", height: "auto", display: "block" }}
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label={title || "Volcano plot"}
+        aria-label={title || tt("volcano.chart.fallbackTitle")}
       >
-        <title>{title || "Volcano plot"}</title>
+        <title>{title || tt("volcano.chart.fallbackTitle")}</title>
         <desc>{`Volcano plot of ${summary.total} point${summary.total !== 1 ? "s" : ""}: ${summary.up} up, ${summary.down} down, ${summary.ns} not significant${summary.discarded > 0 ? `, ${summary.discarded} discarded` : ""}`}</desc>
         <g id="background">
           <rect x={0} y={0} width={VBW} height={VBH} fill={plotBg || "#fff"} />
@@ -605,7 +606,7 @@ export const VolcanoChart = memo(
              is active. */}
         <g
           id="data-points"
-          aria-label={`${summary.total} point${summary.total !== 1 ? "s" : ""} total`}
+          aria-label={tt("volcano.chart.pointsTotal", { n: summary.total, count: summary.total })}
         >
           {useRasterize ? (
             <>

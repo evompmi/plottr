@@ -22,6 +22,7 @@ import {
 import { TIME_UNITS, convertTime } from "./helpers";
 import type { Condition, PlotControlsProps } from "./helpers";
 import { ConditionEditor } from "./plot-area";
+import { useT } from "./i18n";
 
 export function SubHeading({ children }: { children?: React.ReactNode }) {
   return (
@@ -49,6 +50,7 @@ export function PlotControls({
   downloadCalibrated,
   resetAll,
 }: PlotControlsProps) {
+  const tr = useT();
   // X start / X end are stored in `vis` as row indices (integers — used to
   // slice calData rows downstream). The chart converts them to display-unit
   // time via `displayX = xRow * timeStep * convFactor`. The input fields
@@ -80,15 +82,14 @@ export function PlotControls({
         extraDownloads={[
           {
             label: "CSV",
-            title:
-              "Download calibrated [Ca²⁺] over time — one row per time-point, one column per sample (calibration applied)",
+            title: tr("aequorin.ctrl.csvTitle"),
             onClick: () => downloadCalibrated(),
           },
         ]}
       />
 
       {/* Conditions */}
-      <ControlSection title="Conditions" defaultOpen>
+      <ControlSection title={tr("aequorin.ctrl.conditions")} defaultOpen>
         <DiscretePaletteRow
           value={vis.discretePalette || "okabe-ito"}
           onChange={(next: string) => {
@@ -110,10 +111,10 @@ export function PlotControls({
       </ControlSection>
 
       {/* Axes */}
-      <ControlSection title="Axes">
+      <ControlSection title={tr("aequorin.ctrl.axes")}>
         <div style={{ display: "flex", gap: 6 }}>
           <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">X start ({unitLabel})</span>
+            <span className="dv-label">{tr("aequorin.ctrl.xStart", { unit: unitLabel })}</span>
             <NumberInput
               value={displayXStart}
               onChange={(e) => updVis({ xStart: Number(e.target.value) / tsConvSafe })}
@@ -122,7 +123,7 @@ export function PlotControls({
             />
           </label>
           <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">X end ({unitLabel})</span>
+            <span className="dv-label">{tr("aequorin.ctrl.xEnd", { unit: unitLabel })}</span>
             <NumberInput
               value={displayXEnd}
               onChange={(e) => updVis({ xEnd: Number(e.target.value) / tsConvSafe })}
@@ -133,7 +134,7 @@ export function PlotControls({
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
           <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">Y min</span>
+            <span className="dv-label">{tr("aequorin.ctrl.yMin")}</span>
             <NumberInput
               value={vis.yMin}
               onChange={(e) => updVis({ yMin: Number(e.target.value), autoYRange: false })}
@@ -142,7 +143,7 @@ export function PlotControls({
             />
           </label>
           <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">Y max</span>
+            <span className="dv-label">{tr("aequorin.ctrl.yMax")}</span>
             <NumberInput
               value={vis.yMax}
               onChange={(e) => updVis({ yMax: Number(e.target.value), autoYRange: false })}
@@ -157,25 +158,25 @@ export function PlotControls({
             disabled={vis.autoYRange !== false}
             title={
               vis.autoYRange === false
-                ? "Re-enable auto-scaling of Y to the visible X window"
-                : "Auto-scaling is on — Y follows the visible X window"
+                ? tr("aequorin.ctrl.autoOnTitle")
+                : tr("aequorin.ctrl.autoOffTitle")
             }
             style={{ height: 28, padding: "0 10px", whiteSpace: "nowrap" }}
           >
-            {vis.autoYRange === false ? "Auto" : "Auto ✓"}
+            {vis.autoYRange === false ? tr("aequorin.ctrl.auto") : tr("aequorin.ctrl.autoOn")}
           </button>
         </div>
         <SliderControl
-          label="Smooth (±pts)"
+          label={tr("aequorin.ctrl.smooth")}
           value={vis.smoothWidth}
-          displayValue={`${vis.smoothWidth} pts`}
+          displayValue={tr("aequorin.ctrl.smoothValue", { n: vis.smoothWidth })}
           min={0}
           max={20}
           step={1}
           onChange={(v) => updVis({ smoothWidth: v })}
         />
         <label style={{ display: "block" }}>
-          <span className="dv-label">Display unit</span>
+          <span className="dv-label">{tr("aequorin.ctrl.displayUnit")}</span>
           <select
             value={vis.displayUnit}
             onChange={(e) => updVis({ displayUnit: e.target.value })}
@@ -192,9 +193,9 @@ export function PlotControls({
       </ControlSection>
 
       {/* Labels */}
-      <ControlSection title="Labels">
+      <ControlSection title={tr("aequorin.ctrl.labels")}>
         <label style={{ display: "block" }}>
-          <span className="dv-label">Title</span>
+          <span className="dv-label">{tr("aequorin.ctrl.title")}</span>
           <input
             value={vis.plotTitle}
             onChange={(e) => updVis({ plotTitle: e.target.value })}
@@ -203,7 +204,7 @@ export function PlotControls({
           />
         </label>
         <label style={{ display: "block" }}>
-          <span className="dv-label">Subtitle</span>
+          <span className="dv-label">{tr("aequorin.ctrl.subtitle")}</span>
           <input
             value={vis.plotSubtitle}
             onChange={(e) => updVis({ plotSubtitle: e.target.value })}
@@ -214,7 +215,7 @@ export function PlotControls({
       </ControlSection>
 
       {/* Style controls */}
-      <ControlSection title="Style">
+      <ControlSection title={tr("aequorin.ctrl.style")}>
         <BaseStyleControls
           plotBg={vis.plotBg}
           onPlotBgChange={(v) => updVis({ plotBg: v })}
@@ -224,7 +225,7 @@ export function PlotControls({
           onGridColorChange={(v) => updVis({ gridColor: v })}
         />
         <SliderControl
-          label="Line width"
+          label={tr("aequorin.ctrl.lineWidth")}
           value={vis.lineWidth}
           min={0.5}
           max={5}
@@ -232,7 +233,7 @@ export function PlotControls({
           onChange={(v) => updVis({ lineWidth: v })}
         />
         <SliderControl
-          label="SD opacity"
+          label={tr("aequorin.ctrl.sdOpacity")}
           value={vis.ribbonOpacity}
           displayValue={vis.ribbonOpacity.toFixed(2)}
           min={0}
@@ -241,7 +242,7 @@ export function PlotControls({
           onChange={(v) => updVis({ ribbonOpacity: v })}
         />
         <SliderControl
-          label="Plot height"
+          label={tr("aequorin.ctrl.plotHeight")}
           value={vis.plotHeight}
           displayValue={`${(vis.plotHeight / 800).toFixed(2)} : 1`}
           min={250}
@@ -253,7 +254,7 @@ export function PlotControls({
 
       {/* Barplot controls */}
       <ControlSection
-        title="Summary barplot"
+        title={tr("aequorin.ctrl.summaryBarplot")}
         headerRight={
           <div
             style={{
@@ -262,7 +263,7 @@ export function PlotControls({
               overflow: "hidden",
               border: "1px solid var(--border-strong)",
             }}
-            title="Barplot of the sum (Σ) of plotted values per condition"
+            title={tr("aequorin.ctrl.summaryBarplotTitle")}
           >
             {(["off", "on"] as const).map((mode) => {
               const active = mode === "on" ? vis.showInset : !vis.showInset;
@@ -283,7 +284,7 @@ export function PlotControls({
                     transition: "background 120ms ease, color 120ms ease",
                   }}
                 >
-                  {mode === "off" ? "Off" : "On"}
+                  {mode === "off" ? tr("aequorin.ctrl.off") : tr("aequorin.ctrl.on")}
                 </button>
               );
             })}
@@ -292,39 +293,39 @@ export function PlotControls({
       >
         {vis.showInset && (
           <>
-            <SubHeading>Layout</SubHeading>
+            <SubHeading>{tr("aequorin.ctrl.layout")}</SubHeading>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <label style={{ display: "block" }}>
-                <span className="dv-label">Y min</span>
+                <span className="dv-label">{tr("aequorin.ctrl.yMin")}</span>
                 <input
                   value={vis.insetYMinCustom}
                   onChange={(e) => updVis({ insetYMinCustom: e.target.value })}
                   className="dv-input-num"
                   style={{ width: "100%", textAlign: "left" }}
-                  placeholder="auto"
+                  placeholder={tr("aequorin.ctrl.autoPlaceholder")}
                 />
               </label>
               <label style={{ display: "block" }}>
-                <span className="dv-label">Y max</span>
+                <span className="dv-label">{tr("aequorin.ctrl.yMax")}</span>
                 <input
                   value={vis.insetYMaxCustom}
                   onChange={(e) => updVis({ insetYMaxCustom: e.target.value })}
                   className="dv-input-num"
                   style={{ width: "100%", textAlign: "left" }}
-                  placeholder="auto"
+                  placeholder={tr("aequorin.ctrl.autoPlaceholder")}
                 />
               </label>
               <div>
-                <span className="dv-label">Grid</span>
+                <span className="dv-label">{tr("aequorin.ctrl.grid")}</span>
                 <OnOffToggle
                   value={vis.insetShowGrid}
                   onChange={(v) => updVis({ insetShowGrid: v })}
-                  ariaLabel="Grid"
+                  ariaLabel={tr("aequorin.ctrl.grid")}
                 />
               </div>
               {vis.insetShowGrid && (
                 <label style={{ display: "block" }}>
-                  <span className="dv-label">Grid color</span>
+                  <span className="dv-label">{tr("aequorin.ctrl.gridColor")}</span>
                   <ColorInput
                     value={vis.insetGridColor}
                     onChange={(v) => updVis({ insetGridColor: v })}
@@ -333,7 +334,7 @@ export function PlotControls({
                 </label>
               )}
               <SliderControl
-                label="X label angle"
+                label={tr("aequorin.ctrl.xLabelAngle")}
                 value={vis.insetXLabelAngle}
                 displayValue={`${vis.insetXLabelAngle}°`}
                 min={-90}
@@ -344,7 +345,7 @@ export function PlotControls({
             </div>
 
             <SliderControl
-              label="Bar width"
+              label={tr("aequorin.ctrl.barWidth")}
               value={vis.insetBarWidth}
               displayValue={`${vis.insetBarWidth}%`}
               min={20}
@@ -353,7 +354,7 @@ export function PlotControls({
               onChange={(v) => updVis({ insetBarWidth: v })}
             />
             <SliderControl
-              label="Bar gap"
+              label={tr("aequorin.ctrl.barGap")}
               value={vis.insetBarGap}
               displayValue={`${vis.insetBarGap}%`}
               min={0}
@@ -362,7 +363,7 @@ export function PlotControls({
               onChange={(v) => updVis({ insetBarGap: v })}
             />
             <SliderControl
-              label="Bar fill opacity"
+              label={tr("aequorin.ctrl.barFillOpacity")}
               value={vis.insetFillOpacity}
               displayValue={vis.insetFillOpacity.toFixed(2)}
               min={0}
@@ -371,17 +372,17 @@ export function PlotControls({
               onChange={(v) => updVis({ insetFillOpacity: v })}
             />
             <div>
-              <span className="dv-label">Bar outline</span>
+              <span className="dv-label">{tr("aequorin.ctrl.barOutline")}</span>
               <OnOffToggle
                 value={vis.insetShowBarOutline}
                 onChange={(v) => updVis({ insetShowBarOutline: v })}
-                ariaLabel="Bar outline"
+                ariaLabel={tr("aequorin.ctrl.barOutline")}
               />
             </div>
             {vis.insetShowBarOutline && (
               <>
                 <SliderControl
-                  label="Outline width"
+                  label={tr("aequorin.ctrl.outlineWidth")}
                   value={vis.insetBarStrokeWidth}
                   displayValue={vis.insetBarStrokeWidth.toFixed(1)}
                   min={0.2}
@@ -390,7 +391,7 @@ export function PlotControls({
                   onChange={(v) => updVis({ insetBarStrokeWidth: v })}
                 />
                 <label style={{ display: "block" }}>
-                  <span className="dv-label">Outline color</span>
+                  <span className="dv-label">{tr("aequorin.ctrl.outlineColor")}</span>
                   <ColorInput
                     value={vis.insetBarOutlineColor}
                     onChange={(v) => updVis({ insetBarOutlineColor: v })}
@@ -400,16 +401,16 @@ export function PlotControls({
               </>
             )}
 
-            <SubHeading>Error bars</SubHeading>
+            <SubHeading>{tr("aequorin.ctrl.errorBarsHead")}</SubHeading>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div>
-                <span className="dv-label">Type</span>
+                <span className="dv-label">{tr("aequorin.ctrl.type")}</span>
                 <SegToggle<string>
-                  ariaLabel="Error bars"
+                  ariaLabel={tr("aequorin.ctrl.errorBars")}
                   value={vis.insetErrorType}
                   onChange={(v) => updVis({ insetErrorType: v })}
                   options={[
-                    { value: "none", label: "None" },
+                    { value: "none", label: tr("aequorin.ctrl.none") },
                     { value: "sem", label: "SEM" },
                     { value: "sd", label: "SD" },
                     { value: "ci95", label: "95% CI" },
@@ -418,7 +419,7 @@ export function PlotControls({
               </div>
               {vis.insetErrorType !== "none" && (
                 <SliderControl
-                  label="Error stroke width"
+                  label={tr("aequorin.ctrl.errorStrokeWidth")}
                   value={vis.insetErrorStrokeWidth}
                   min={0.2}
                   max={3}
@@ -428,20 +429,20 @@ export function PlotControls({
               )}
             </div>
 
-            <SubHeading>Points</SubHeading>
+            <SubHeading>{tr("aequorin.ctrl.points")}</SubHeading>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div>
-                <span className="dv-label">Show</span>
+                <span className="dv-label">{tr("aequorin.ctrl.show")}</span>
                 <OnOffToggle
                   value={vis.insetShowPoints}
                   onChange={(v) => updVis({ insetShowPoints: v })}
-                  ariaLabel="Show points"
+                  ariaLabel={tr("aequorin.ctrl.showPoints")}
                 />
               </div>
               {vis.insetShowPoints && (
                 <>
                   <label style={{ display: "block" }}>
-                    <span className="dv-label">Color</span>
+                    <span className="dv-label">{tr("aequorin.ctrl.color")}</span>
                     <ColorInput
                       value={vis.insetPointColor}
                       onChange={(v) => updVis({ insetPointColor: v })}
@@ -449,7 +450,7 @@ export function PlotControls({
                     />
                   </label>
                   <SliderControl
-                    label="Size"
+                    label={tr("aequorin.ctrl.size")}
                     value={vis.insetPointSize}
                     displayValue={vis.insetPointSize}
                     min={1}

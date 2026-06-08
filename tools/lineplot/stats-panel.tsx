@@ -8,6 +8,7 @@ import {
   STATS_TESTS_FOR_K2,
   TestResult,
   buildRScript,
+  buildSelectTestReason,
   computePowerFromData,
   postHocForTest,
   runPostHoc,
@@ -37,9 +38,36 @@ import { tinv } from "../_core/stats/dist";
 import { sampleMean, sampleSD } from "../_core/stats/tests";
 import { bhAdjust, selectTest } from "../_core/stats/posthoc";
 import { formatP, pStars } from "../_core/stats/format";
+import { tt, useT, type LineplotKey } from "./i18n";
 const { useState, useMemo } = React;
 
+// Localized test / post-hoc display names (registry labels stay English for
+// R export; these are the on-screen copies).
+const TEST_LABEL_KEYS_LP: Record<string, LineplotKey> = {
+  studentT: "lineplot.test.studentT",
+  welchT: "lineplot.test.welchT",
+  mannWhitney: "lineplot.test.mannWhitney",
+  oneWayANOVA: "lineplot.test.oneWayANOVA",
+  welchANOVA: "lineplot.test.welchANOVA",
+  kruskalWallis: "lineplot.test.kruskalWallis",
+};
+const POSTHOC_LABEL_KEYS_LP: Record<string, LineplotKey> = {
+  tukeyHSD: "lineplot.posthoc.tukeyHSD",
+  gamesHowell: "lineplot.posthoc.gamesHowell",
+  dunn: "lineplot.posthoc.dunn",
+};
+function lpTestLabel(key: string | null | undefined): string {
+  if (!key) return "—";
+  return TEST_LABEL_KEYS_LP[key] ? tt(TEST_LABEL_KEYS_LP[key]) : TEST_LABELS_LP[key] || key;
+}
+function lpPosthocLabel(key: string): string {
+  return POSTHOC_LABEL_KEYS_LP[key]
+    ? tt(POSTHOC_LABEL_KEYS_LP[key])
+    : POSTHOC_LABELS_LP[key] || key;
+}
+
 export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProps) {
+  const tr = useT();
   const names = row.names;
   const values = row.values;
   const k = names.length;
@@ -48,7 +76,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
   // an `if` early-return that would skip the assumptions panel entirely.
   const res = row.result ?? ({} as TestResult);
   const rec = (row.rec ?? {}) as SelectTestResult;
-  const recReason = rec.recommendation?.reason;
+  const recReason = buildSelectTestReason(rec);
   const recTest = rec.recommendation?.test ?? null;
   const suggestion = rec.suggestion ?? null;
   const testOptions = k === 2 ? STATS_TESTS_FOR_K2 : STATS_TESTS_FOR_K;
@@ -119,16 +147,16 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
 
   return (
     <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>
-      <div style={subhead}>Groups</div>
+      <div style={subhead}>{tr("lineplot.sp.groups")}</div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th style={thS}>Group</th>
-            <th style={thS}>n</th>
-            <th style={thS}>Mean</th>
-            <th style={thS}>SD</th>
-            <th style={thS}>SEM</th>
-            <th style={thS}>95% CI</th>
+            <th style={thS}>{tr("lineplot.sp.group")}</th>
+            <th style={thS}>{tr("lineplot.sp.n")}</th>
+            <th style={thS}>{tr("lineplot.sp.mean")}</th>
+            <th style={thS}>{tr("lineplot.sp.sd")}</th>
+            <th style={thS}>{tr("lineplot.sp.sem")}</th>
+            <th style={thS}>{tr("lineplot.sp.ci95")}</th>
           </tr>
         </thead>
         <tbody>
@@ -153,20 +181,24 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
         </tbody>
       </table>
 
-      <div style={subhead}>Assumptions</div>
+      <div style={subhead}>{tr("lineplot.sp.assumptions")}</div>
       {norm.length > 0 && (
         <div style={{ marginBottom: 6 }}>
           <div
             style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 2 }}
           >
-            Shapiro-Wilk (normality)
+            {tr("lineplot.sp.shapiro")}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {norm.map((r, i) => {
               const label = names[r.group] || `g${r.group}`;
               const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
               const verdict =
-                r.normal === true ? "normal" : r.normal === false ? "not normal" : "—";
+                r.normal === true
+                  ? tr("lineplot.sp.normal")
+                  : r.normal === false
+                    ? tr("lineplot.sp.notNormal")
+                    : "—";
               return (
                 <span key={i} style={{ fontSize: 11, color: "var(--text)" }}>
                   {label}: <span style={pill}>{verdict}</span>
@@ -178,15 +210,15 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
       )}
       {lev.F != null && (
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-          <span style={{ fontWeight: 600 }}>Levene</span> — F({lev.df1}, {lev.df2}) ={" "}
-          {lev.F.toFixed(3)}, p = {formatP(lev.p)}{" "}
+          <span style={{ fontWeight: 600 }}>{tr("lineplot.sp.levene")}</span> — F({lev.df1},{" "}
+          {lev.df2}) = {lev.F.toFixed(3)}, p = {formatP(lev.p)}{" "}
           <span style={lev.equalVar ? pillOk : pillBad}>
-            {lev.equalVar ? "equal variance" : "unequal variance"}
+            {lev.equalVar ? tr("lineplot.sp.equalVar") : tr("lineplot.sp.unequalVar")}
           </span>
         </div>
       )}
 
-      <div style={subhead}>Test</div>
+      <div style={subhead}>{tr("lineplot.sp.test")}</div>
       <div
         style={{
           display: "flex",
@@ -210,8 +242,8 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
         >
           {testOptions.map((t) => (
             <option key={t} value={t}>
-              {TEST_LABELS_LP[t]}
-              {t === recTest ? "  (recommended)" : ""}
+              {lpTestLabel(t)}
+              {t === recTest ? tr("lineplot.sp.recommendedSuffix") : ""}
             </option>
           ))}
         </select>
@@ -225,7 +257,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
             className="dv-btn dv-btn-secondary"
             style={{ padding: "2px 8px", fontSize: 10 }}
           >
-            Use recommendation
+            {tr("lineplot.sp.useRecommendation")}
           </button>
         )}
       </div>
@@ -252,10 +284,10 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
             color: "var(--info-text)",
           }}
         >
-          <span style={{ fontWeight: 700 }}>Suggested alternative:</span>
+          <span style={{ fontWeight: 700 }}>{tr("lineplot.sp.suggestedAlt")}</span>
           <span>
-            Shapiro-Wilk flagged non-normal data — consider{" "}
-            <strong>{TEST_LABELS_LP[suggestion.test] || suggestion.test}</strong>.
+            {tr("lineplot.sp.suggestConsider")}
+            <strong>{lpTestLabel(suggestion.test)}</strong>.
           </span>
           <button
             type="button"
@@ -266,7 +298,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
             className="dv-btn dv-btn-secondary"
             style={{ padding: "2px 8px", fontSize: 10, marginLeft: "auto" }}
           >
-            Use suggestion
+            {tr("lineplot.sp.useSuggestion")}
           </button>
         </div>
       )}
@@ -284,22 +316,27 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
         {res.error
           ? `⚠ ${res.error}`
           : `${formatStat(row.chosenTest, res)},  p = ${formatP(res.p)}${
-              row.pAdj != null ? ` · BH-adjusted p = ${formatP(row.pAdj)}` : ""
+              row.pAdj != null ? tr("lineplot.sp.bhAdj", { p: formatP(row.pAdj) }) : ""
             }`}
       </div>
 
       {k >= 3 && postHoc && !postHoc.error && row.postHocName && (
         <>
           <div style={subhead}>
-            Post-hoc — {POSTHOC_LABELS_LP[row.postHocName] || row.postHocName}
+            {tr("lineplot.sp.posthocPrefix")}
+            {lpPosthocLabel(row.postHocName)}
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={thS}>Pair</th>
-                <th style={thS}>{row.postHocName === "dunn" ? "Rank diff" : "Mean diff"}</th>
-                <th style={thS}>p</th>
-                <th style={thS}>Signif.</th>
+                <th style={thS}>{tr("lineplot.sp.pair")}</th>
+                <th style={thS}>
+                  {row.postHocName === "dunn"
+                    ? tr("lineplot.sp.rankDiff")
+                    : tr("lineplot.sp.meanDiff")}
+                </th>
+                <th style={thS}>{tr("lineplot.sp.colP")}</th>
+                <th style={thS}>{tr("lineplot.sp.signif")}</th>
               </tr>
             </thead>
             <tbody>
@@ -314,7 +351,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
                 return (
                   <tr key={i}>
                     <td style={tdS}>
-                      {names[pr.i]} vs {names[pr.j]}
+                      {names[pr.i]} {tr("lineplot.sp.vs")} {names[pr.j]}
                     </td>
                     <td style={tdS}>{diff}</td>
                     <td style={tdS}>{formatP(p)}</td>
@@ -337,17 +374,16 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
 
       {power && (
         <>
-          <div style={subhead}>Replication planning (n for 80% power)</div>
+          <div style={subhead}>{tr("lineplot.sp.replication")}</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>
-            Given the observed effect size, sample size a future study would need to detect this
-            effect at 80% power.
+            {tr("lineplot.sp.replicationDesc")}
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={thS}>Effect size</th>
+                <th style={thS}>{tr("lineplot.sp.effectSize")}</th>
                 <th style={thS}>α</th>
-                <th style={thS}>n for 80% power</th>
+                <th style={thS}>{tr("lineplot.sp.nFor80")}</th>
               </tr>
             </thead>
             <tbody>
@@ -363,7 +399,9 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
                   ) : null}
                   <td style={tdS}>{String(pr.alpha)}</td>
                   <td style={tdS}>
-                    {pr.nForTarget != null ? `${pr.nForTarget} ${power.nLabel}` : "> 5000"}
+                    {pr.nForTarget != null
+                      ? `${pr.nForTarget} ${power.nLabel}`
+                      : tr("lineplot.sp.gt5000")}
                   </td>
                 </tr>
               ))}
@@ -378,7 +416,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
                 marginTop: 4,
               }}
             >
-              Approximation — rank-based test power estimated from its parametric analog.
+              {tr("lineplot.sp.approxNote")}
             </div>
           )}
         </>
@@ -394,6 +432,7 @@ export function PerXStatsPanel({
   showStars,
   setShowStars,
 }: PerXStatsPanelProps) {
+  const tr = useT();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [hovered, setHovered] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Record<string, RecommendedTest>>({});
@@ -511,11 +550,10 @@ export function PerXStatsPanel({
               letterSpacing: "0.2px",
             }}
           >
-            Statistics at each {xLabel || "x"}
+            {tr("lineplot.sp.title", { x: xLabel || tr("lineplot.sp.xFallback") })}
           </h3>
           <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
-            Click a row to see the decision trace, assumptions, and post-hoc details. P-values are
-            BH-adjusted across the x-axis.
+            {tr("lineplot.sp.desc")}
           </p>
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
@@ -526,7 +564,7 @@ export function PerXStatsPanel({
               downloadReport();
               flashSaved(e.currentTarget);
             }}
-            title="Download a plain-text report covering every x"
+            title={tr("lineplot.sp.reportTitle")}
           >
             ⬇ TXT
           </button>
@@ -538,7 +576,7 @@ export function PerXStatsPanel({
                 downloadR();
                 flashSaved(e.currentTarget);
               }}
-              title="Download a runnable R script reproducing every per-x test"
+              title={tr("lineplot.sp.rTitle")}
             >
               ⬇ R
             </button>
@@ -564,7 +602,7 @@ export function PerXStatsPanel({
           }}
         >
           <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>
-            Display on plot
+            {tr("lineplot.sp.displayOnPlot")}
           </span>
           <div
             style={{
@@ -576,8 +614,8 @@ export function PerXStatsPanel({
           >
             {(
               [
-                [false, "Off"],
-                [true, "Stars"],
+                [false, tr("lineplot.sp.off")],
+                [true, tr("lineplot.sp.stars")],
               ] as const
             ).map(([value, label]) => {
               const active = !!showStars === value;
@@ -610,11 +648,11 @@ export function PerXStatsPanel({
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th style={thS}>{xLabel || "x"}</th>
-            <th style={thS}>Test</th>
-            <th style={thS}>Statistic</th>
-            <th style={thS}>p</th>
-            <th style={thS}>p (BH)</th>
+            <th style={thS}>{xLabel || tr("lineplot.sp.xFallback")}</th>
+            <th style={thS}>{tr("lineplot.sp.colTest")}</th>
+            <th style={thS}>{tr("lineplot.sp.colStatistic")}</th>
+            <th style={thS}>{tr("lineplot.sp.colP")}</th>
+            <th style={thS}>{tr("lineplot.sp.colPBH")}</th>
             <th style={{ ...thS, width: 60 }}></th>
           </tr>
         </thead>
@@ -644,9 +682,7 @@ export function PerXStatsPanel({
                   <td style={{ ...tdS, fontFamily: "ui-monospace, Menlo, monospace" }}>
                     {formatX(r.x)}
                   </td>
-                  <td style={tdS}>
-                    {r.chosenTest ? TEST_LABELS_LP[r.chosenTest] || r.chosenTest : "—"}
-                  </td>
+                  <td style={tdS}>{r.chosenTest ? lpTestLabel(r.chosenTest) : "—"}</td>
                   <td style={{ ...tdS, fontFamily: "ui-monospace, Menlo, monospace" }}>
                     {formatStat(r.chosenTest, r.result)}
                   </td>

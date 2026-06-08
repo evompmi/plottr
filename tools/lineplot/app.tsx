@@ -4,6 +4,8 @@
 // in sibling modules under tools/lineplot/.
 
 import { PlotToolShell, resolveDiscretePalette, usePlotToolState } from "../_shell";
+import "./i18n";
+import { tt } from "./i18n";
 import { computeSeries, computePerXStats, round2, ErrorKind, LineplotVis } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
 import { PlotStep } from "./plot-area";
@@ -276,9 +278,7 @@ export function App() {
       const { headers, data, rawData, injectionWarnings } = parseData(fixedText, effectiveSep);
       setInjectionWarning(injectionWarnings);
       if (headers.length < 2 || data.length === 0) {
-        setParseError(
-          "The file appears to be empty or has no data rows. Please check your file and try again."
-        );
+        setParseError(tt("lineplot.err.empty"));
         return;
       }
       setParseError(null);

@@ -9,6 +9,8 @@
 // `onChange` stays fully typed with no cast at the call site). `OnOffToggle` is
 // the boolean-backed convenience wrapper for the ubiquitous Off/On case.
 
+import { useShellT } from "./i18n";
+
 export interface SegOption<T extends string> {
   value: T;
   label: React.ReactNode;
@@ -71,19 +73,20 @@ export interface OnOffToggleProps {
 export function OnOffToggle({
   value,
   onChange,
-  offLabel = "Off",
-  onLabel = "On",
+  offLabel,
+  onLabel,
   ariaLabel,
   disabled,
   style,
 }: OnOffToggleProps): React.ReactElement {
+  const tr = useShellT();
   return (
     <SegToggle<"off" | "on">
       value={value ? "on" : "off"}
       onChange={(v) => onChange(v === "on")}
       options={[
-        { value: "off", label: offLabel },
-        { value: "on", label: onLabel },
+        { value: "off", label: offLabel ?? tr("shell.toggle.off") },
+        { value: "on", label: onLabel ?? tr("shell.toggle.on") },
       ]}
       ariaLabel={ariaLabel}
       disabled={disabled}

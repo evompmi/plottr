@@ -8,7 +8,8 @@
 import { TIME_UNITS } from "./helpers";
 import type { CalibrationFormula, ConfigureStepProps, UploadStepProps } from "./helpers";
 import { DataPreview, DetectedSeparatorBadge, HowTo, NumberInput, UploadPanel } from "../_shell";
-import { AEQUORIN_HOWTO } from "./howto";
+import { useAequorinHowTo } from "./howto";
+import { useT, type AequorinKey } from "./i18n";
 
 import { flashSaved } from "../_core/download";
 // Render a coefficient as a clean numeric string for the formula
@@ -79,6 +80,7 @@ function CalibrationFormulaPreview({
   Kd: number;
   hillN: number;
 }) {
+  const tr = useT();
   if (formula === "none") return null;
 
   // Exponent denominator string — 1/3 for the fixed-cube-root forms,
@@ -142,7 +144,7 @@ function CalibrationFormulaPreview({
 
   return (
     <div
-      aria-label="Calibration formula with your parameter values substituted"
+      aria-label={tr("aequorin.steps.formulaAria")}
       style={{
         marginTop: 12,
         padding: "10px 14px",
@@ -165,7 +167,7 @@ function CalibrationFormulaPreview({
           whiteSpace: "nowrap",
         }}
       >
-        With your values
+        {tr("aequorin.steps.withYourValues")}
       </span>
       <span
         style={{
@@ -198,7 +200,8 @@ function CalibrationFormulaPreview({
 }
 
 export function HowToSection() {
-  return <HowTo {...AEQUORIN_HOWTO} />;
+  const howto = useAequorinHowTo();
+  return <HowTo {...howto} />;
 }
 
 export function UploadStep({
@@ -210,6 +213,7 @@ export function UploadStep({
   handleTextPaste,
   onLoadExample,
 }: UploadStepProps) {
+  const tr = useT();
   return (
     <div>
       <UploadPanel
@@ -223,11 +227,11 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          title: "Aequorin Ca²⁺ time-course",
-          subtitle: "Mutant vs WT response to a CO7 elicitor pulse",
-          buttonLabel: "Plot this example →",
+          title: tr("aequorin.steps.example.title"),
+          subtitle: tr("aequorin.steps.example.subtitle"),
+          buttonLabel: tr("aequorin.steps.example.button"),
         }}
-        hint="CSV · TSV · TXT · DAT — one column per sample, one row per time-point · 2 MB max"
+        hint={tr("aequorin.steps.uploadHint")}
       />
       <HowToSection />
     </div>
@@ -246,14 +250,14 @@ const AQ_AES_THEMES = {
     border: "var(--aes-color-border)",
     header: "var(--aes-color-header)",
     headerText: "var(--aes-color-header-text)",
-    label: "Aequorin calibration",
+    labelKey: "aequorin.steps.aes.calibration" as AequorinKey,
   },
   time: {
     bg: "var(--aes-size-bg)",
     border: "var(--aes-size-border)",
     header: "var(--aes-size-header)",
     headerText: "var(--aes-size-header-text)",
-    label: "Time axis",
+    labelKey: "aequorin.steps.aes.time" as AequorinKey,
   },
 };
 
@@ -264,6 +268,7 @@ function AqAesBox({
   theme: "calibration" | "time";
   children?: React.ReactNode;
 }) {
+  const tr = useT();
   const t = AQ_AES_THEMES[theme];
   return (
     <div
@@ -286,7 +291,7 @@ function AqAesBox({
             letterSpacing: "0.8px",
           }}
         >
-          {t.label}
+          {tr(t.labelKey)}
         </span>
       </div>
       <div style={{ padding: "12px 14px", flex: 1 }}>{children}</div>
@@ -314,22 +319,23 @@ export function ConfigureStep({
   columnEnabled,
   downloadCalibrated,
 }: ConfigureStepProps) {
+  const tr = useT();
   return (
     <div>
       <div style={{ display: "flex", gap: 16, marginBottom: 16, alignItems: "stretch" }}>
         <AqAesBox theme="calibration">
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
             <div>
-              <div className="dv-label">Formula</div>
+              <div className="dv-label">{tr("aequorin.steps.formula")}</div>
               <select
                 value={formula}
                 onChange={(e) => setFormula(e.target.value as typeof formula)}
                 className="dv-select"
               >
-                <option value="none">None (raw data)</option>
-                <option value="allen-blinks">Allen &amp; Blinks (1978)</option>
-                <option value="hill">Hill equilibrium</option>
-                <option value="generalized">Generalised Allen &amp; Blinks</option>
+                <option value="none">{tr("aequorin.steps.formula.none")}</option>
+                <option value="allen-blinks">{tr("aequorin.steps.formula.allenBlinks")}</option>
+                <option value="hill">{tr("aequorin.steps.formula.hill")}</option>
+                <option value="generalized">{tr("aequorin.steps.formula.generalized")}</option>
               </select>
             </div>
             {(formula === "allen-blinks" || formula === "generalized") && (
@@ -354,7 +360,7 @@ export function ConfigureStep({
             )}
             {formula === "hill" && (
               <div>
-                <div className="dv-label">Kd (µM)</div>
+                <div className="dv-label">{tr("aequorin.steps.kdLabel")}</div>
                 <NumberInput
                   value={Kd}
                   onChange={(e) => setKd(Number(e.target.value))}
@@ -365,7 +371,7 @@ export function ConfigureStep({
             )}
             {formula === "generalized" && (
               <div>
-                <div className="dv-label">n (Hill exp.)</div>
+                <div className="dv-label">{tr("aequorin.steps.hillExp")}</div>
                 <NumberInput
                   value={hillN}
                   onChange={(e) => setHillN(Number(e.target.value))}
@@ -380,7 +386,7 @@ export function ConfigureStep({
         <AqAesBox theme="time">
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
             <div>
-              <div className="dv-label">Time step (per row)</div>
+              <div className="dv-label">{tr("aequorin.steps.timeStep")}</div>
               <NumberInput
                 value={vis.timeStep}
                 onChange={(e) => updVis({ timeStep: Number(e.target.value) || 1 })}
@@ -390,7 +396,7 @@ export function ConfigureStep({
               />
             </div>
             <div>
-              <div className="dv-label">Base unit</div>
+              <div className="dv-label">{tr("aequorin.steps.baseUnit")}</div>
               <select
                 value={vis.baseUnit}
                 onChange={(e) => updVis({ baseUnit: e.target.value })}
@@ -405,7 +411,10 @@ export function ConfigureStep({
             </div>
             {parsed && (
               <div style={{ fontSize: 12, color: "var(--text-faint)", paddingBottom: 4 }}>
-                Range: 0 – {(parsed.data.length * vis.timeStep).toFixed(3)} {vis.baseUnit}
+                {tr("aequorin.steps.range", {
+                  end: (parsed.data.length * vis.timeStep).toFixed(3),
+                  unit: vis.baseUnit,
+                })}
               </div>
             )}
           </div>
@@ -421,8 +430,12 @@ export function ConfigureStep({
           }}
         >
           <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>
-            Loaded <strong style={{ color: "var(--text)" }}>{fileName}</strong> —{" "}
-            {parsed.headers.length} samples × {parsed.data.length} time-points
+            {tr("aequorin.steps.loaded")}
+            <strong style={{ color: "var(--text)" }}>{fileName}</strong>
+            {tr("aequorin.steps.loadedSummary", {
+              samples: parsed.headers.length,
+              timepoints: parsed.data.length,
+            })}
             <DetectedSeparatorBadge sep={detectedSep} />
           </p>
           <button
@@ -452,8 +465,14 @@ export function ConfigureStep({
                     color: "var(--text-muted)",
                   }}
                 >
-                  Preview — {formula === "none" ? "raw data" : "calibrated data"} · {ei.length} of{" "}
-                  {parsed.headers.length} columns (first 15 rows):
+                  {tr("aequorin.steps.preview", {
+                    kind:
+                      formula === "none"
+                        ? tr("aequorin.steps.previewRaw")
+                        : tr("aequorin.steps.previewCalibrated"),
+                    shown: ei.length,
+                    total: parsed.headers.length,
+                  })}
                 </p>
                 <DataPreview
                   headers={ei.map((i: number) => parsed.headers[i])}

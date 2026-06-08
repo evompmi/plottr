@@ -5,6 +5,8 @@
 // tools/heatmap/.
 
 import { DataPreview, DetectedSeparatorBadge, PlotToolShell, usePlotToolState } from "../_shell";
+import "./i18n";
+import { tt, useT } from "./i18n";
 import { normalizeMatrix, autoRange } from "./helpers";
 import type {
   AxisClusterMeta,
@@ -92,6 +94,7 @@ const EXAMPLE_CSV = (() => {
 // ── App ──────────────────────────────────────────────────────────────────────
 
 export function App() {
+  const tr = useT();
   const shell = usePlotToolState("heatmap", VIS_INIT_HEATMAP);
   const {
     step,
@@ -361,9 +364,7 @@ export function App() {
       const parsed = parseWideMatrix(dc.text, effectiveSep);
       setInjectionWarning(parsed.injectionWarnings);
       if (!parsed.rowLabels.length || !parsed.colLabels.length) {
-        setParseError(
-          "The file needs at least one row label column and one data column with a header."
-        );
+        setParseError(tt("heatmap.err.matrix"));
         return;
       }
       setParseError(null);
@@ -444,7 +445,7 @@ export function App() {
       title="Heatmap"
       visInit={VIS_INIT_HEATMAP}
       steps={["upload", "configure", "plot"]}
-      stepLabels={{ configure: "Import check" }}
+      stepLabels={{ configure: tr("heatmap.step.importCheck") }}
       canNavigate={canNavigate}
     >
       {step === "upload" && (
@@ -466,25 +467,25 @@ export function App() {
               color: "var(--text-muted)",
             }}
           >
-            <strong>{fileName || "Pasted data"}</strong> — parsed {nRows} rows × {nCols} columns
+            <strong>{fileName || tr("heatmap.cfg.pastedData")}</strong>
+            {tr("heatmap.cfg.parsed", { rows: nRows, cols: nCols })}
             <DetectedSeparatorBadge sep={detectedSep} />
             {warnings.nonNumeric > 0 && (
               <>
                 {" "}
                 ·{" "}
                 <span style={{ color: "var(--warning-text)" }}>
-                  {warnings.nonNumeric} non-numeric cell{warnings.nonNumeric > 1 ? "s" : ""}{" "}
-                  rendered as NaN
+                  {tr("heatmap.cfg.nonNumeric", {
+                    n: warnings.nonNumeric,
+                    count: warnings.nonNumeric,
+                  })}
                 </span>
               </>
             )}
             {oversize && (
               <>
                 {" "}
-                ·{" "}
-                <span style={{ color: "var(--warning-text)" }}>
-                  matrix is large — clustering may take a few seconds
-                </span>
+                · <span style={{ color: "var(--warning-text)" }}>{tr("heatmap.cfg.large")}</span>
               </>
             )}
           </p>
@@ -574,7 +575,7 @@ export function App() {
                           className="dv-btn dv-btn-secondary"
                           style={{ padding: "4px 10px", fontSize: 11 }}
                         >
-                          Clear
+                          {tr("heatmap.plot.clear")}
                         </button>
                       ) : (
                         <span
@@ -584,8 +585,7 @@ export function App() {
                             fontStyle: "italic",
                           }}
                         >
-                          ↳ Drag on the heatmap or click a dendrogram / k-means band to open a
-                          zoomed view
+                          {tr("heatmap.plot.dragHint")}
                         </span>
                       )}
                     </div>

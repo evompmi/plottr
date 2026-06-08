@@ -106,7 +106,21 @@ const ctx = {
     memo: (fn) => fn,
   },
   ReactDOM: { render: () => {}, createRoot: () => ({ render: () => {} }) },
-  document: { getElementById: () => ({}) },
+  // power-app.tsx now transitively bundles _core/i18n.ts (via the shared
+  // NumberInput → useShellT), whose module-load side effects touch
+  // document/window. Provide enough of a stub that those no-op cleanly.
+  document: {
+    getElementById: () => ({}),
+    documentElement: { lang: "" },
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    visibilityState: "visible",
+  },
+  window: {
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => {},
+  },
   toolIcon: () => null,
   // shared.js helpers referenced by power-app — provide minimal
   // implementations; the property tests exercise the math, not these.

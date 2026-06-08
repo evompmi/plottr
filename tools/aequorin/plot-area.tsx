@@ -27,6 +27,7 @@ import {
 
 import { downloadPng, downloadSvg, fileBaseName } from "../_core/download";
 import { downloadCsv, flashSaved } from "../_core/download";
+import { useT } from "./i18n";
 const { useState, useMemo, useRef, useEffect, useCallback } = React;
 
 // ── PlotPanel ────────────────────────────────────────────────────────────────
@@ -81,6 +82,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
   },
   ref
 ) {
+  const tr = useT();
   const activeStats = stats.filter((s) => s.enabled);
   const combinedRef = useRef<SVGSVGElement | null>(null);
   const facetRefs = useRef<Record<string, SVGSVGElement | null>>({});
@@ -407,7 +409,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                       letterSpacing: "0.2px",
                     }}
                   >
-                    Per replicate
+                    {tr("aequorin.pa.perReplicate")}
                   </h3>
                 </div>
                 <div
@@ -483,9 +485,9 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                     // padding (`6px 14px`) makes this button visibly
                     // shorter when they sit next to each other.
                     style={{ flexShrink: 0, padding: "8px 14px" }}
-                    title="Open this per-replicate Σ data directly in the Group Plot tool (boxplot / violin / raincloud / bar)"
+                    title={tr("aequorin.pa.openInBoxplotTitle")}
                   >
-                    ↗ Open in Boxplot
+                    {tr("aequorin.pa.openInBoxplot")}
                   </button>
                   <button
                     onClick={(e) => {
@@ -732,8 +734,8 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
               }}
             >
               <p style={{ margin: 0, fontSize: 11, color: "var(--text-faint)" }}>
-                Tip: drag across the plot to set the time window. Adjust it in Axes.
-                {xZoomed ? " Click clear to reset." : ""}
+                {tr("aequorin.pa.dragTip")}
+                {xZoomed ? tr("aequorin.pa.dragTipClear") : ""}
               </p>
               {onResetXRange && xZoomed && (
                 <button
@@ -741,9 +743,9 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                   onClick={onResetXRange}
                   className="dv-btn dv-btn-secondary"
                   style={{ padding: "4px 10px", fontSize: 11, flexShrink: 0 }}
-                  title="Reset the time window to the full data range"
+                  title={tr("aequorin.pa.resetTitle")}
                 >
-                  Clear
+                  {tr("aequorin.pa.clear")}
                 </button>
               )}
             </div>
@@ -825,6 +827,7 @@ export function SampleSelectionOverlay({
   handleColumnToggle,
   conditions,
 }: SampleSelectionOverlayProps) {
+  const tr = useT();
   const labelByPrefix: Record<string, string> = {};
   (conditions || []).forEach((c) => {
     if (c && c.prefix != null) labelByPrefix[c.prefix] = c.label ?? c.prefix;
@@ -841,7 +844,7 @@ export function SampleSelectionOverlay({
           marginBottom: 2,
         }}
       >
-        Samples
+        {tr("aequorin.pa.samples")}
       </span>
       <div style={{ position: "relative", display: "inline-block" }}>
         <button
@@ -859,7 +862,7 @@ export function SampleSelectionOverlay({
             border: `1px solid ${showColumnOverlay ? "var(--warning-text)" : "var(--warning-border)"}`,
           }}
         >
-          {showColumnOverlay ? "✕ Close" : "🔬 Sample selection"}
+          {showColumnOverlay ? tr("aequorin.pa.close") : tr("aequorin.pa.sampleSelection")}
         </button>
         {showColumnOverlay && (
           <div

@@ -20,7 +20,8 @@ import {
   StatsTable,
   UploadPanel,
 } from "../_shell";
-import { BOXPLOT_HOWTO } from "./howto";
+import { useBoxplotHowTo } from "./howto";
+import { useT, type BoxplotKey } from "./i18n";
 
 import { roleColors } from "../_core/color";
 import { downloadCsv, fileBaseName, flashSaved } from "../_core/download";
@@ -35,14 +36,14 @@ const BP_AES_THEMES = {
     border: "var(--aes-shape-border)",
     header: "var(--aes-shape-header)",
     headerText: "var(--aes-shape-header-text)",
-    label: "Group (X axis)",
+    labelKey: "boxplot.steps.aes.group" as BoxplotKey,
   },
   value: {
     bg: "var(--aes-size-bg)",
     border: "var(--aes-size-border)",
     header: "var(--aes-size-header)",
     headerText: "var(--aes-size-header-text)",
-    label: "Value (Y axis)",
+    labelKey: "boxplot.steps.aes.value" as BoxplotKey,
   },
 };
 
@@ -51,10 +52,11 @@ interface BpAesTheme {
   border: string;
   header: string;
   headerText: string;
-  label: string;
+  labelKey: BoxplotKey;
 }
 
 function BpAesBox({ theme, children }: { theme: string; children?: React.ReactNode }) {
+  const tr = useT();
   const t = (BP_AES_THEMES as Record<string, BpAesTheme>)[theme];
   return (
     <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
@@ -68,7 +70,7 @@ function BpAesBox({ theme, children }: { theme: string; children?: React.ReactNo
             letterSpacing: "0.8px",
           }}
         >
-          {t.label}
+          {tr(t.labelKey)}
         </span>
       </div>
       <div style={{ padding: "12px 14px", minHeight: 40 }}>{children}</div>
@@ -99,6 +101,7 @@ function OtherColumnsPanel({
   onRoleChange,
   onNameChange,
 }: OtherColumnsPanelProps) {
+  const tr = useT();
   const groupColIdx = colRoles.indexOf("group");
   const valueColIdx = colRoles.indexOf("value");
   const otherIdxs = headers.map((_, i) => i).filter((i) => i !== groupColIdx && i !== valueColIdx);
@@ -107,13 +110,14 @@ function OtherColumnsPanel({
   return (
     <div className="dv-panel">
       <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-        Other columns
+        {tr("boxplot.steps.otherCols")}
       </p>
-      <p style={{ margin: "0 0 10px", fontSize: 11, color: "var(--text-faint)", lineHeight: 1.4 }}>
-        Toggle <strong style={{ color: roleColors.filter }}>filter</strong> to keep the column
-        available for the Filter step and for color / facet / subgroup mapping on the plot.
-        Otherwise the column is ignored.
-      </p>
+      <p
+        style={{ margin: "0 0 10px", fontSize: 11, color: "var(--text-faint)", lineHeight: 1.4 }}
+        dangerouslySetInnerHTML={{
+          __html: tr("boxplot.steps.otherColsDesc", { c: roleColors.filter }),
+        }}
+      />
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {otherIdxs.map((i) => {
           const seen = new Set<string>();
@@ -168,7 +172,7 @@ function OtherColumnsPanel({
                   onChange={(e) => onRoleChange(i, e.target.checked ? "filter" : "ignore")}
                   style={{ accentColor: roleColors.filter, cursor: "pointer" }}
                 />
-                filter
+                {tr("boxplot.steps.filter")}
               </label>
               <span
                 style={{
@@ -201,6 +205,8 @@ export function UploadStep({
   setStep,
   onLoadExample,
 }: UploadStepProps) {
+  const tr = useT();
+  const howto = useBoxplotHowTo();
   return (
     <div>
       <UploadPanel
@@ -217,13 +223,13 @@ export function UploadStep({
         autoDetect
         onLoadExample={onLoadExample}
         exampleSummary={{
-          title: "Plant biomass under drought & salt",
-          subtitle: "3 genotypes × 3 treatments × 8 replicates · 72 rows",
-          buttonLabel: "Plot this example →",
+          title: tr("boxplot.steps.example.title"),
+          subtitle: tr("boxplot.steps.example.subtitle"),
+          buttonLabel: tr("boxplot.steps.example.button"),
         }}
-        hint="CSV · TSV · TXT · DAT — one row per observation · 2 MB max"
+        hint={tr("boxplot.steps.uploadHint")}
       />
-      <HowTo {...BOXPLOT_HOWTO} />
+      <HowTo {...howto} />
     </div>
   );
 }
@@ -241,6 +247,7 @@ export function ConfigureStep({
   onRoleChange,
   onNameChange,
 }: ConfigureStepProps) {
+  const tr = useT();
   const groupColIdx = colRoles.indexOf("group");
   return (
     <div>
@@ -270,7 +277,7 @@ export function ConfigureStep({
             className="dv-select"
             style={{ width: "100%" }}
           >
-            {groupColIdx < 0 && <option value="">— choose a group column —</option>}
+            {groupColIdx < 0 && <option value="">{tr("boxplot.steps.chooseGroup")}</option>}
             {parsedHeaders.map((_: unknown, i: number) => (
               <option key={i} value={i}>
                 {colNames[i]}
@@ -280,10 +287,10 @@ export function ConfigureStep({
           {groupColIdx >= 0 && (
             <label
               style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}
-              title="Rename the selected column. The new name is used on the X-axis label and in exports."
+              title={tr("boxplot.steps.renameGroupTitle")}
             >
               <span style={{ fontSize: 10, color: "var(--text-faint)", whiteSpace: "nowrap" }}>
-                Display as
+                {tr("boxplot.steps.displayAs")}
               </span>
               <input
                 value={colNames[groupColIdx]}
@@ -294,7 +301,7 @@ export function ConfigureStep({
             </label>
           )}
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
-            Categorical column that defines the X-axis groups (genotypes, treatments, …).
+            {tr("boxplot.steps.groupHint")}
           </div>
         </BpAesBox>
         <BpAesBox theme="value">
@@ -308,7 +315,7 @@ export function ConfigureStep({
             className="dv-select"
             style={{ width: "100%" }}
           >
-            {valueColIdx < 0 && <option value="">— choose a value column —</option>}
+            {valueColIdx < 0 && <option value="">{tr("boxplot.steps.chooseValue")}</option>}
             {parsedHeaders.map((_: unknown, i: number) => (
               <option key={i} value={i}>
                 {colNames[i]}
@@ -318,10 +325,10 @@ export function ConfigureStep({
           {valueColIdx >= 0 && (
             <label
               style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}
-              title="Rename the selected column. The new name is used on the Y-axis label and in exports."
+              title={tr("boxplot.steps.renameValueTitle")}
             >
               <span style={{ fontSize: 10, color: "var(--text-faint)", whiteSpace: "nowrap" }}>
-                Display as
+                {tr("boxplot.steps.displayAs")}
               </span>
               <input
                 value={colNames[valueColIdx]}
@@ -332,7 +339,7 @@ export function ConfigureStep({
             </label>
           )}
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
-            Numeric column plotted as the Y-axis measurement.
+            {tr("boxplot.steps.valueHint")}
           </div>
         </BpAesBox>
       </div>
@@ -353,11 +360,12 @@ export function ConfigureStep({
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--danger-text)" }}>
-            ⚠ Column <strong>"{colNames[valueColIdx]}"</strong> is assigned as{" "}
-            <strong>value</strong> but appears to be non-numeric — the plot will be empty. Please
-            assign a numeric column as value.
-          </p>
+          <p
+            style={{ fontSize: 12, color: "var(--danger-text)" }}
+            dangerouslySetInnerHTML={{
+              __html: tr("boxplot.steps.nonNumericConfigure", { name: colNames[valueColIdx] }),
+            }}
+          />
         </div>
       )}
       {(colRoles.indexOf("group") < 0 || colRoles.indexOf("value") < 0) && (
@@ -369,20 +377,26 @@ export function ConfigureStep({
             marginBottom: 12,
           }}
         >
-          <p style={{ fontSize: 12, color: "var(--warning-text)" }}>
-            Assign at least one <strong style={{ color: roleColors.group }}>group</strong> and one{" "}
-            <strong style={{ color: roleColors.value }}>value</strong> column to continue.
-          </p>
+          <p
+            style={{ fontSize: 12, color: "var(--warning-text)" }}
+            dangerouslySetInnerHTML={{
+              __html: tr("boxplot.steps.assignGroupValue", {
+                gc: roleColors.group,
+                vc: roleColors.value,
+              }),
+            }}
+          />
         </div>
       )}
       <div className="dv-panel">
         <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-muted)" }}>
-          <strong style={{ color: "var(--text)" }}>{fileName}</strong> — {parsedHeaders.length} cols
-          × {parsedRows.length} rows{hasHeader ? "" : " (no header)"}
+          <strong style={{ color: "var(--text)" }}>{fileName}</strong> —{" "}
+          {tr("boxplot.steps.colsRows", { cols: parsedHeaders.length, rows: parsedRows.length })}
+          {hasHeader ? "" : tr("boxplot.steps.noHeader")}
           <DetectedSeparatorBadge sep={detectedSep} />
         </p>
         <p style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>
-          Preview (first 8 rows):
+          {tr("boxplot.steps.preview8")}
         </p>
         <DataPreview headers={parsedHeaders} rows={parsedRows} maxRows={8} />
       </div>
@@ -408,6 +422,7 @@ export function FilterStep({
   dragState,
   setDragState,
 }: FilterStepProps) {
+  const tr = useT();
   // Feedback for filters whose effect falls past the first preview rows:
   // (1) live delta in the title ("N of M rows · K filtered out"), (2) a
   // brief 300 ms background flash on the preview card whenever the kept-
@@ -466,13 +481,13 @@ export function FilterStep({
         }}
       >
         <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-          Preview · <strong>{keptCount.toLocaleString()}</strong> of {totalCount.toLocaleString()}{" "}
-          rows
+          {tr("boxplot.steps.preview")} · <strong>{keptCount.toLocaleString()}</strong>{" "}
+          {tr("boxplot.steps.previewOf", { total: totalCount.toLocaleString() })}
           {filteredOut > 0 && (
             <>
               {" · "}
               <span style={{ color: "var(--warning-text)" }}>
-                <strong>{filteredOut.toLocaleString()}</strong> filtered out
+                <strong>{filteredOut.toLocaleString()}</strong> {tr("boxplot.steps.filteredOut")}
               </span>
             </>
           )}
@@ -504,6 +519,7 @@ export function OutputStep({
   wideData,
   fileName,
 }: OutputStepProps) {
+  const tr = useT();
   return (
     <div>
       {groupColIdx >= 0 && valueColIdx >= 0 && stats.length > 0 && (
@@ -519,7 +535,7 @@ export function OutputStep({
           }}
         >
           <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-            Filtered data (long)
+            {tr("boxplot.steps.filteredLong")}
           </p>
           <button
             className="dv-btn dv-btn-dl"
@@ -533,7 +549,7 @@ export function OutputStep({
               flashSaved(e.currentTarget);
             }}
           >
-            ⬇ Long CSV
+            {tr("boxplot.steps.longCsv")}
           </button>
         </div>
         <DataPreview
@@ -553,7 +569,7 @@ export function OutputStep({
             }}
           >
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-              Reshaped (wide)
+              {tr("boxplot.steps.reshapedWide")}
             </p>
             <button
               className="dv-btn dv-btn-dl"
@@ -567,7 +583,7 @@ export function OutputStep({
                 flashSaved(e.currentTarget);
               }}
             >
-              ⬇ Wide CSV
+              {tr("boxplot.steps.wideCsv")}
             </button>
           </div>
           {(wideData.unlabelled ?? 0) > 0 && (
@@ -579,8 +595,12 @@ export function OutputStep({
                 fontStyle: "italic",
               }}
             >
-              ⚠ {wideData.unlabelled} {wideData.unlabelled === 1 ? "row had" : "rows had"} an empty
-              group cell — all merged under the &quot;?&quot; column.
+              {tr(
+                wideData.unlabelled === 1
+                  ? "boxplot.steps.unlabelled.one"
+                  : "boxplot.steps.unlabelled.other",
+                { count: wideData.unlabelled ?? 0 }
+              )}
             </p>
           )}
           <DataPreview headers={wideData.headers} rows={wideData.rows} maxRows={8} />
@@ -591,10 +611,10 @@ export function OutputStep({
           className="dv-panel"
           style={{ background: "var(--warning-bg)", borderColor: "var(--warning-border)" }}
         >
-          <p style={{ fontSize: 12, color: "var(--warning-text)" }}>
-            ⚠ Assign <strong>group</strong> + <strong>value</strong> columns to enable reshaping &
-            stats.
-          </p>
+          <p
+            style={{ fontSize: 12, color: "var(--warning-text)" }}
+            dangerouslySetInnerHTML={{ __html: tr("boxplot.steps.assignReshape") }}
+          />
         </div>
       )}
       {valueColIdx >= 0 && !valueColIsNumeric && (
@@ -602,11 +622,12 @@ export function OutputStep({
           className="dv-panel"
           style={{ background: "var(--danger-bg)", borderColor: "var(--danger-border)" }}
         >
-          <p style={{ fontSize: 12, color: "var(--danger-text)" }}>
-            ⚠ Column <strong>"{colNames[valueColIdx]}"</strong> is assigned as{" "}
-            <strong>value</strong> but appears to be non-numeric — the plot will be empty. Go back
-            to Configure and assign a numeric column as value.
-          </p>
+          <p
+            style={{ fontSize: 12, color: "var(--danger-text)" }}
+            dangerouslySetInnerHTML={{
+              __html: tr("boxplot.steps.nonNumericOutput", { name: colNames[valueColIdx] }),
+            }}
+          />
         </div>
       )}
     </div>

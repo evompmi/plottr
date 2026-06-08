@@ -1,4 +1,5 @@
 import type { FormulaInjectionWarning } from "../_core/csv";
+import { useShellT } from "./i18n";
 
 // `FormulaInjectionBanner` — yellow alert banner that surfaces the
 // result of `scanForFormulaInjection` at ingest time. Shows up when the
@@ -14,6 +15,7 @@ interface FormulaInjectionBannerProps {
 }
 
 export function FormulaInjectionBanner(props: FormulaInjectionBannerProps) {
+  const tr = useShellT();
   const w = props.warning;
   if (!w || !w.count) return null;
   const trim = (v: unknown) => {
@@ -22,15 +24,16 @@ export function FormulaInjectionBanner(props: FormulaInjectionBannerProps) {
   };
   const fmtCell = (c: { header?: string | null; row: number; col: number; value: unknown }) => {
     const where = c.header
-      ? "“" + c.header + "” row " + (c.row + 1)
-      : "row " + (c.row + 1) + " col " + (c.col + 1);
+      ? tr("shell.formula.cellWithHeader", { header: c.header, row: c.row + 1 })
+      : tr("shell.formula.cellNoHeader", { row: c.row + 1, col: c.col + 1 });
     return where + ": " + trim(c.value);
   };
   const fmtHeader = (hdr: { idx: number; value: unknown }) => {
-    return "column " + (hdr.idx + 1) + ": " + trim(hdr.value);
+    return tr("shell.formula.colLabel", { n: hdr.idx + 1 }) + ": " + trim(hdr.value);
   };
   const examples: string[] = [];
-  for (let i = 0; i < w.headers.length; i++) examples.push("Header — " + fmtHeader(w.headers[i]));
+  for (let i = 0; i < w.headers.length; i++)
+    examples.push(tr("shell.formula.headerLabel") + fmtHeader(w.headers[i]));
   for (let i = 0; i < w.cells.length; i++) examples.push(fmtCell(w.cells[i]));
   const shown = examples.length;
   const overflow = w.count - shown;
@@ -56,7 +59,7 @@ export function FormulaInjectionBanner(props: FormulaInjectionBannerProps) {
       h(
         "p",
         { style: { margin: 0, fontSize: 12, color: "var(--warning-text)", fontWeight: 700 } },
-        "Suspicious cells in uploaded data (" + w.count + (w.count === 1 ? " cell" : " cells") + ")"
+        tr("shell.formula.title", { count: w.count })
       ),
       h(
         "p",
@@ -68,9 +71,7 @@ export function FormulaInjectionBanner(props: FormulaInjectionBannerProps) {
             opacity: 0.9,
           },
         },
-        "Cells starting with " +
-          "= + - @ tab CR" +
-          " are treated as formulas by Excel / LibreOffice / Sheets and could exfiltrate or run code if you re-open this data there. Plöttr exports prefix them with a leading apostrophe to neutralise them — but the original file is unchanged, so handle with care."
+        tr("shell.formula.explain")
       ),
       h(
         "ul",
@@ -98,7 +99,7 @@ export function FormulaInjectionBanner(props: FormulaInjectionBannerProps) {
                 opacity: 0.85,
               },
             },
-            "…and " + overflow + " more."
+            tr("shell.formula.overflow", { count: overflow })
           )
         : null
     )

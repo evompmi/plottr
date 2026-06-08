@@ -7,7 +7,8 @@
     "tools/_core/*.ts",
     "tools/_core/*.tsx",
     "tools/_core/shared.ts",
-    "tools/_core/theme.ts"
+    "tools/_core/theme.ts",
+    "tools/**/i18n/index.ts"
   ],
   "license": "MIT",
   "scripts": {

@@ -18,6 +18,7 @@ import {
   applyDiscretePalette,
 } from "../_shell";
 import type { BoxplotGroup, BoxplotVis, PlotControlsProps } from "./helpers";
+import { useT } from "./i18n";
 
 export function PlotControls({
   dataFormat,
@@ -46,6 +47,7 @@ export function PlotControls({
   onDownloadSvg,
   onDownloadPng,
 }: PlotControlsProps) {
+  const tr = useT();
   const sv = (k: keyof BoxplotVis) => (v: unknown) => updVis({ [k]: v } as Partial<BoxplotVis>);
   const handleColorChange = (i: number, c: string) => {
     const name = boxplotGroups[i].name;
@@ -98,7 +100,7 @@ export function PlotControls({
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             <span style={{ fontSize: 15 }}>⚡</span>
             <p style={{ margin: 0, fontSize: 11, color: "var(--success-text)", fontWeight: 600 }}>
-              Wide format auto-detected
+              {tr("boxplot.ctrl.wideDetected")}
             </p>
           </div>
           <button
@@ -119,7 +121,7 @@ export function PlotControls({
               width: "100%",
             }}
           >
-            Switch to long pipeline
+            {tr("boxplot.ctrl.switchLong")}
           </button>
         </div>
       )}
@@ -133,12 +135,18 @@ export function PlotControls({
 
       {/* Conditions / group color editor */}
       <ControlSection
-        title={`Conditions (${allDisplayGroups.filter((g: BoxplotGroup) => g.enabled).length}/${allDisplayGroups.length})`}
+        title={tr("boxplot.ctrl.conditions", {
+          sel: allDisplayGroups.filter((g: BoxplotGroup) => g.enabled).length,
+          total: allDisplayGroups.length,
+        })}
         defaultOpen
       >
         <p style={{ margin: "0 0 6px", fontSize: 11, color: "var(--text-faint)" }}>
-          {allDisplayGroups.filter((g: BoxplotGroup) => g.enabled).length} of{" "}
-          {allDisplayGroups.length} selected · {renamedRows.length} obs
+          {tr("boxplot.ctrl.selectedObs", {
+            sel: allDisplayGroups.filter((g: BoxplotGroup) => g.enabled).length,
+            total: allDisplayGroups.length,
+            obs: renamedRows.length,
+          })}
         </p>
         <DiscretePaletteRow
           value={vis.discretePalette || "okabe-ito"}
@@ -159,17 +167,17 @@ export function PlotControls({
         style={{ padding: 12, display: "flex", flexDirection: "column", gap: 9 }}
       >
         <div>
-          <div className="dv-label">Plot style</div>
+          <div className="dv-label">{tr("boxplot.ctrl.plotStyle")}</div>
           <div
             role="group"
-            aria-label="Plot style"
+            aria-label={tr("boxplot.ctrl.plotStyle")}
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4 }}
           >
             {(
               [
                 {
                   key: "box",
-                  label: "Box",
+                  label: tr("boxplot.ctrl.style.box"),
                   icon: (
                     <svg width="22" height="22" viewBox="0 0 22 22">
                       <line x1="11" y1="2" x2="11" y2="6" stroke="currentColor" strokeWidth="1.2" />
@@ -204,7 +212,7 @@ export function PlotControls({
                 },
                 {
                   key: "violin",
-                  label: "Violin",
+                  label: tr("boxplot.ctrl.style.violin"),
                   icon: (
                     <svg width="22" height="22" viewBox="0 0 22 22">
                       <path
@@ -226,7 +234,7 @@ export function PlotControls({
                 },
                 {
                   key: "raincloud",
-                  label: "Rain",
+                  label: tr("boxplot.ctrl.style.rain"),
                   icon: (
                     <svg width="22" height="22" viewBox="0 0 22 22">
                       <path
@@ -245,7 +253,7 @@ export function PlotControls({
                 },
                 {
                   key: "bar",
-                  label: "Bar",
+                  label: tr("boxplot.ctrl.style.bar"),
                   icon: (
                     <svg width="22" height="22" viewBox="0 0 22 22">
                       <rect
@@ -323,19 +331,19 @@ export function PlotControls({
           </div>
         </div>
         <div>
-          <div className="dv-label">Orientation</div>
+          <div className="dv-label">{tr("boxplot.ctrl.orientation")}</div>
           <OnOffToggle
             value={vis.horizontal}
             onChange={(v) => updVis({ horizontal: v })}
-            offLabel="Vertical"
-            onLabel="Horizontal"
-            ariaLabel="Orientation"
+            offLabel={tr("boxplot.ctrl.vertical")}
+            onLabel={tr("boxplot.ctrl.horizontal")}
+            ariaLabel={tr("boxplot.ctrl.orientation")}
           />
         </div>
       </div>
 
       {/* Shape & fill */}
-      <ControlSection title="Shape & fill" defaultOpen>
+      <ControlSection title={tr("boxplot.ctrl.shapeFill")} defaultOpen>
         <BaseStyleControls
           plotBg={vis.plotBg}
           onPlotBgChange={sv("plotBg")}
@@ -346,7 +354,11 @@ export function PlotControls({
         />
         <SliderControl
           label={
-            vis.plotStyle === "box" ? "Box width" : vis.plotStyle === "bar" ? "Bar width" : "Width"
+            vis.plotStyle === "box"
+              ? tr("boxplot.ctrl.boxWidth")
+              : vis.plotStyle === "bar"
+                ? tr("boxplot.ctrl.barWidth")
+                : tr("boxplot.ctrl.width")
           }
           value={vis.boxWidth}
           displayValue={vis.boxWidth + "%"}
@@ -356,7 +368,13 @@ export function PlotControls({
           onChange={sv("boxWidth")}
         />
         <SliderControl
-          label={vis.plotStyle === "box" ? "Box gap" : vis.plotStyle === "bar" ? "Bar gap" : "Gap"}
+          label={
+            vis.plotStyle === "box"
+              ? tr("boxplot.ctrl.boxGap")
+              : vis.plotStyle === "bar"
+                ? tr("boxplot.ctrl.barGap")
+                : tr("boxplot.ctrl.gap")
+          }
           value={vis.boxGap}
           displayValue={vis.boxGap + "%"}
           min={0}
@@ -367,7 +385,7 @@ export function PlotControls({
         {vis.plotStyle === "bar" ? (
           <>
             <SliderControl
-              label="Fill opacity"
+              label={tr("boxplot.ctrl.fillOpacity")}
               value={vis.barOpacity}
               displayValue={vis.barOpacity.toFixed(2)}
               min={0}
@@ -376,13 +394,13 @@ export function PlotControls({
               onChange={sv("barOpacity")}
             />
             <div>
-              <div className="dv-label">Error bars</div>
+              <div className="dv-label">{tr("boxplot.ctrl.errorBars")}</div>
               <SegToggle<string>
-                ariaLabel="Error bars"
+                ariaLabel={tr("boxplot.ctrl.errorBars")}
                 value={vis.errorType}
                 onChange={(v) => updVis({ errorType: v })}
                 options={[
-                  { value: "none", label: "None" },
+                  { value: "none", label: tr("boxplot.ctrl.none") },
                   { value: "sem", label: "SEM" },
                   { value: "sd", label: "SD" },
                   { value: "ci95", label: "95% CI" },
@@ -391,7 +409,7 @@ export function PlotControls({
             </div>
             {vis.errorType !== "none" && (
               <SliderControl
-                label="Error bar stroke"
+                label={tr("boxplot.ctrl.errStroke")}
                 value={vis.errStrokeWidth}
                 displayValue={vis.errStrokeWidth.toFixed(1)}
                 min={0.5}
@@ -401,17 +419,17 @@ export function PlotControls({
               />
             )}
             <div>
-              <div className="dv-label">Bar outline</div>
+              <div className="dv-label">{tr("boxplot.ctrl.barOutline")}</div>
               <OnOffToggle
                 value={vis.showBarOutline}
                 onChange={(v) => updVis({ showBarOutline: v })}
-                ariaLabel="Bar outline"
+                ariaLabel={tr("boxplot.ctrl.barOutline")}
               />
             </div>
             {vis.showBarOutline && (
               <>
                 <SliderControl
-                  label="Outline width"
+                  label={tr("boxplot.ctrl.outlineWidth")}
                   value={vis.barOutlineWidth}
                   displayValue={vis.barOutlineWidth.toFixed(1)}
                   min={0.5}
@@ -420,7 +438,7 @@ export function PlotControls({
                   onChange={sv("barOutlineWidth")}
                 />
                 <div>
-                  <div className="dv-label">Outline color</div>
+                  <div className="dv-label">{tr("boxplot.ctrl.outlineColor")}</div>
                   <ColorInput
                     value={vis.barOutlineColor}
                     onChange={sv("barOutlineColor")}
@@ -432,7 +450,7 @@ export function PlotControls({
           </>
         ) : (
           <SliderControl
-            label="Fill opacity"
+            label={tr("boxplot.ctrl.fillOpacity")}
             value={vis.boxFillOpacity}
             displayValue={vis.boxFillOpacity.toFixed(2)}
             min={0}
@@ -444,26 +462,26 @@ export function PlotControls({
       </ControlSection>
 
       {/* Data points */}
-      <ControlSection title="Data points">
+      <ControlSection title={tr("boxplot.ctrl.dataPoints")}>
         <div>
-          <div className="dv-label">Show points</div>
+          <div className="dv-label">{tr("boxplot.ctrl.showPoints")}</div>
           <OnOffToggle
             value={vis.showPoints}
             onChange={(v) => updVis({ showPoints: v })}
-            ariaLabel="Show points"
+            ariaLabel={tr("boxplot.ctrl.showPoints")}
           />
         </div>
         {vis.showPoints && (
           <>
             <div>
-              <div className="dv-label">Color by</div>
+              <div className="dv-label">{tr("boxplot.ctrl.colorBy")}</div>
               <select
                 value={colorByCol}
                 onChange={handleColorByChange}
                 className="dv-input"
                 style={{ cursor: "pointer", fontSize: 11, width: "100%" }}
               >
-                <option value={-1}>— none —</option>
+                <option value={-1}>{tr("boxplot.ctrl.noneOption")}</option>
                 {colorByCandidates.map((ci: number) => (
                   <option key={ci} value={ci}>
                     {colNames[ci]}
@@ -473,11 +491,11 @@ export function PlotControls({
             </div>
             {colorByCol >= 0 && (
               <div>
-                <div className="dv-label">Composition pies</div>
+                <div className="dv-label">{tr("boxplot.ctrl.compPies")}</div>
                 <OnOffToggle
                   value={vis.showCompPie}
                   onChange={(v) => updVis({ showCompPie: v })}
-                  ariaLabel="Composition pies"
+                  ariaLabel={tr("boxplot.ctrl.compPies")}
                 />
               </div>
             )}
@@ -505,7 +523,7 @@ export function PlotControls({
                 </div>
               ))}
             <SliderControl
-              label="Size"
+              label={tr("boxplot.ctrl.size")}
               value={vis.pointSize}
               displayValue={vis.pointSize}
               min={1}
@@ -514,7 +532,7 @@ export function PlotControls({
               onChange={sv("pointSize")}
             />
             <SliderControl
-              label="Jitter"
+              label={tr("boxplot.ctrl.jitter")}
               value={vis.jitterWidth}
               displayValue={vis.jitterWidth.toFixed(2)}
               min={0}
@@ -523,7 +541,7 @@ export function PlotControls({
               onChange={sv("jitterWidth")}
             />
             <SliderControl
-              label="Opacity"
+              label={tr("boxplot.ctrl.opacity")}
               value={vis.pointOpacity}
               displayValue={vis.pointOpacity.toFixed(2)}
               min={0.1}
@@ -541,9 +559,9 @@ export function PlotControls({
           same column can't drive both axes (degenerate — every facet would
           contain a single subgroup). When both are active, each facet
           renders as its own chart with subgroup bands inside. */}
-      <ControlSection title="Split by">
+      <ControlSection title={tr("boxplot.ctrl.splitBy")}>
         <label style={{ display: "block" }}>
-          <span className="dv-label">Facet by</span>
+          <span className="dv-label">{tr("boxplot.ctrl.facetBy")}</span>
           <select
             value={facetByCol >= 0 ? facetByCol : ""}
             onChange={(e) => {
@@ -553,7 +571,7 @@ export function PlotControls({
             className="dv-select"
             style={{ width: "100%" }}
           >
-            <option value="">(none)</option>
+            <option value="">{tr("boxplot.ctrl.noneParen")}</option>
             {colorByCandidates
               .filter((ci: number) => ci !== subgroupByCol)
               .map((ci: number) => (
@@ -564,7 +582,7 @@ export function PlotControls({
           </select>
         </label>
         <label style={{ display: "block" }}>
-          <span className="dv-label">Subgroup by</span>
+          <span className="dv-label">{tr("boxplot.ctrl.subgroupBy")}</span>
           <select
             value={subgroupByCol >= 0 ? subgroupByCol : ""}
             onChange={(e) => {
@@ -574,7 +592,7 @@ export function PlotControls({
             className="dv-select"
             style={{ width: "100%" }}
           >
-            <option value="">(none)</option>
+            <option value="">{tr("boxplot.ctrl.noneParen")}</option>
             {colorByCandidates
               .filter((ci: number) => ci !== facetByCol)
               .map((ci: number) => (
@@ -587,9 +605,9 @@ export function PlotControls({
       </ControlSection>
 
       {/* Axes & labels */}
-      <ControlSection title="Axes & labels">
+      <ControlSection title={tr("boxplot.ctrl.axesLabels")}>
         <div>
-          <div className="dv-label">Title</div>
+          <div className="dv-label">{tr("boxplot.ctrl.title")}</div>
           <input
             value={vis.plotTitle}
             onChange={(e) => updVis({ plotTitle: e.target.value })}
@@ -598,7 +616,7 @@ export function PlotControls({
           />
         </div>
         <div>
-          <div className="dv-label">Y label</div>
+          <div className="dv-label">{tr("boxplot.ctrl.yLabel")}</div>
           <input
             value={vis.yLabel}
             onChange={(e) => updVis({ yLabel: e.target.value })}
@@ -608,34 +626,34 @@ export function PlotControls({
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <div style={{ flex: 1 }}>
-            <div className="dv-label">Y min</div>
+            <div className="dv-label">{tr("boxplot.ctrl.yMin")}</div>
             <input
               value={vis.yMinCustom}
               onChange={(e) => updVis({ yMinCustom: e.target.value })}
               className="dv-input"
               style={{ width: "100%", fontSize: 11 }}
-              placeholder="auto"
+              placeholder={tr("boxplot.ctrl.auto")}
             />
           </div>
           <div style={{ flex: 1 }}>
-            <div className="dv-label">Y max</div>
+            <div className="dv-label">{tr("boxplot.ctrl.yMax")}</div>
             <input
               value={vis.yMaxCustom}
               onChange={(e) => updVis({ yMaxCustom: e.target.value })}
               className="dv-input"
               style={{ width: "100%", fontSize: 11 }}
-              placeholder="auto"
+              placeholder={tr("boxplot.ctrl.auto")}
             />
           </div>
         </div>
         <div>
-          <div className="dv-label">Y scale</div>
+          <div className="dv-label">{tr("boxplot.ctrl.yScale")}</div>
           <SegToggle<string>
-            ariaLabel="Y scale"
+            ariaLabel={tr("boxplot.ctrl.yScale")}
             value={vis.yScale || "linear"}
             onChange={(v) => updVis({ yScale: v })}
             options={[
-              { value: "linear", label: "Linear" },
+              { value: "linear", label: tr("boxplot.ctrl.linear") },
               { value: "log10", label: "Log\u2081\u2080" },
               { value: "log2", label: "Log\u2082" },
               { value: "ln", label: "Ln" },
@@ -643,7 +661,7 @@ export function PlotControls({
           />
         </div>
         <SliderControl
-          label="Group label angle"
+          label={tr("boxplot.ctrl.groupLabelAngle")}
           value={vis.xLabelAngle}
           displayValue={vis.xLabelAngle + "°"}
           min={-90}

@@ -22,6 +22,7 @@ import {
 } from "../_shell";
 import { COLOR_PALETTES, PALETTE } from "../_core/color";
 import { downloadCsv, fileBaseName } from "../_core/download";
+import { useT } from "./i18n";
 const { useState, useRef, useEffect } = React;
 
 export function PlotStep({
@@ -94,6 +95,7 @@ export function PlotStep({
   statsSets,
   fileStem,
 }: PlotStepProps) {
+  const tr = useT();
   const hasColorMap = colorMapCol != null;
   const hasSizeMap = sizeMapCol != null;
   const hasShapeMap = shapeMapCol != null;
@@ -130,8 +132,12 @@ export function PlotStep({
           color: "var(--text-muted)",
         }}
       >
-        Loaded <strong style={{ color: "var(--text)" }}>{fileName || "pasted data"}</strong> —{" "}
-        {parsed.rawData.length} rows × {parsed.headers.length} columns
+        {tr("scatter.loaded")}
+        <strong style={{ color: "var(--text)" }}>{fileName || tr("scatter.pastedData")}</strong>
+        {tr("scatter.colsRows", {
+          rows: parsed.rawData.length,
+          cols: parsed.headers.length,
+        })}
         <DetectedSeparatorBadge sep={detectedSep} />
       </p>
       <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
@@ -144,9 +150,8 @@ export function PlotStep({
             onReset={resetAll}
             extraDownloads={[
               {
-                label: "CSV",
-                title:
-                  "Download the filtered data table — only the columns and rows currently drawn on the plot",
+                label: tr("scatter.dl.csv"),
+                title: tr("scatter.dl.csvTitle"),
                 onClick: () =>
                   downloadCsv(
                     activeColIdxs.map((i: number) => parsed.headers[i]),
@@ -160,11 +165,11 @@ export function PlotStep({
           {/* X / Y selection */}
           <div className="dv-panel">
             <p className="dv-tile-title" style={{ margin: "0 0 8px" }}>
-              Variables
+              {tr("scatter.tile.variables")}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <label style={{ display: "block" }}>
-                <span className="dv-label">X axis</span>
+                <span className="dv-label">{tr("scatter.var.xAxis")}</span>
                 <select
                   value={xCol}
                   onChange={(e) => setXCol(parseInt(e.target.value))}
@@ -179,7 +184,7 @@ export function PlotStep({
                 </select>
               </label>
               <label style={{ display: "block" }}>
-                <span className="dv-label">Y axis</span>
+                <span className="dv-label">{tr("scatter.var.yAxis")}</span>
                 <select
                   value={yCol}
                   onChange={(e) => setYCol(parseInt(e.target.value))}
@@ -197,16 +202,18 @@ export function PlotStep({
           </div>
 
           {/* Point defaults */}
-          <ControlSection title="Point style" defaultOpen>
+          <ControlSection title={tr("scatter.sec.pointStyle")} defaultOpen>
             {!hasColorMap && (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Color</span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  {tr("scatter.pt.color")}
+                </span>
                 <ColorInput value={pointColor} onChange={setPointColor} size={22} />
               </div>
             )}
             {!hasSizeMap && (
               <SliderControl
-                label="Size"
+                label={tr("scatter.pt.size")}
                 value={pointSize}
                 min={1}
                 max={20}
@@ -215,7 +222,7 @@ export function PlotStep({
               />
             )}
             <SliderControl
-              label="Opacity"
+              label={tr("scatter.pt.opacity")}
               value={pointOpacity}
               displayValue={pointOpacity.toFixed(2)}
               min={0.05}
@@ -224,11 +231,13 @@ export function PlotStep({
               onChange={setPointOpacity}
             />
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Stroke</span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                {tr("scatter.pt.stroke")}
+              </span>
               <ColorInput value={strokeColor} onChange={setStrokeColor} size={20} />
             </div>
             <SliderControl
-              label="Stroke width"
+              label={tr("scatter.pt.strokeWidth")}
               value={strokeWidth}
               min={0}
               max={3}
@@ -249,7 +258,7 @@ export function PlotStep({
               }}
             >
               <p className="dv-tile-title" style={{ margin: 0 }}>
-                Regression line
+                {tr("scatter.reg.title")}
               </p>
               <div
                 style={{
@@ -279,7 +288,7 @@ export function PlotStep({
                         transition: "background 120ms ease, color 120ms ease",
                       }}
                     >
-                      {mode === "off" ? "Off" : "On"}
+                      {mode === "off" ? tr("scatter.off") : tr("scatter.on")}
                     </button>
                   );
                 })}
@@ -289,7 +298,7 @@ export function PlotStep({
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {!regressionStats.valid && (
                   <div style={{ fontSize: 11, color: "var(--danger-text)" }}>
-                    Need ≥ 2 points with variation in X.
+                    {tr("scatter.reg.needPoints")}
                   </div>
                 )}
                 {regressionStats.valid && (
@@ -305,24 +314,29 @@ export function PlotStep({
                     }}
                   >
                     <div>
-                      slope: <strong>{fmtTick(regressionStats.slope)}</strong>
+                      {tr("scatter.reg.slope")}
+                      <strong>{fmtTick(regressionStats.slope)}</strong>
                     </div>
                     <div>
-                      intercept: <strong>{fmtTick(regressionStats.intercept)}</strong>
+                      {tr("scatter.reg.intercept")}
+                      <strong>{fmtTick(regressionStats.intercept)}</strong>
                     </div>
                     <div>
-                      R²:{" "}
+                      {tr("scatter.reg.r2")}
                       <strong>
                         {Number.isFinite(regressionStats.r2)
                           ? regressionStats.r2.toFixed(4)
-                          : "undefined"}
+                          : tr("scatter.reg.undefined")}
                       </strong>{" "}
-                      &nbsp; n = {regressionStats.n}
+                      &nbsp; {tr("scatter.reg.nEq")}
+                      {regressionStats.n}
                     </div>
                   </div>
                 )}
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Color</span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                    {tr("scatter.reg.color")}
+                  </span>
                   <ColorInput
                     value={regression.color}
                     onChange={(v) => updRegression({ color: v })}
@@ -330,7 +344,7 @@ export function PlotStep({
                   />
                 </div>
                 <SliderControl
-                  label="Width"
+                  label={tr("scatter.reg.width")}
                   value={regression.strokeWidth}
                   min={0.5}
                   max={6}
@@ -338,24 +352,24 @@ export function PlotStep({
                   onChange={(v) => updRegression({ strokeWidth: v })}
                 />
                 <div>
-                  <span className="dv-label">Dashed</span>
+                  <span className="dv-label">{tr("scatter.reg.dashed")}</span>
                   <OnOffToggle
                     value={regression.dashed}
                     onChange={(v) => updRegression({ dashed: v })}
-                    ariaLabel="Dashed regression line"
+                    ariaLabel={tr("scatter.reg.dashed")}
                   />
                 </div>
                 <div>
-                  <span className="dv-label">Show equation &amp; R² on plot</span>
+                  <span className="dv-label">{tr("scatter.reg.showEq")}</span>
                   <OnOffToggle
                     value={regression.showStats}
                     onChange={(v) => updRegression({ showStats: v })}
-                    ariaLabel="Show equation and R² on plot"
+                    ariaLabel={tr("scatter.reg.showEq")}
                   />
                 </div>
                 {regression.showStats && (
                   <div>
-                    <div className="dv-label">Label position</div>
+                    <div className="dv-label">{tr("scatter.reg.labelPos")}</div>
                     <div
                       style={{
                         display: "flex",
@@ -375,12 +389,12 @@ export function PlotStep({
                             type="button"
                             title={
                               pos === "tl"
-                                ? "top-left"
+                                ? tr("scatter.reg.tl")
                                 : pos === "tr"
-                                  ? "top-right"
+                                  ? tr("scatter.reg.tr")
                                   : pos === "bl"
-                                    ? "bottom-left"
-                                    : "bottom-right"
+                                    ? tr("scatter.reg.bl")
+                                    : tr("scatter.reg.br")
                             }
                             onClick={() => updRegression({ position: pos })}
                             style={{
@@ -419,7 +433,7 @@ export function PlotStep({
           </div>
 
           {/* Reference lines */}
-          <ControlSection title="Reference line">
+          <ControlSection title={tr("scatter.ref.title")}>
             <div
               style={{
                 display: "flex",
@@ -433,19 +447,19 @@ export function PlotStep({
                 className="dv-btn dv-btn-secondary"
                 style={{ fontSize: 11, padding: "4px 10px" }}
               >
-                + H
+                {tr("scatter.ref.addH")}
               </button>
               <button
                 onClick={() => addRefLine("v")}
                 className="dv-btn dv-btn-secondary"
                 style={{ fontSize: 11, padding: "4px 10px" }}
               >
-                + V
+                {tr("scatter.ref.addV")}
               </button>
             </div>
             {refLines.length === 0 && (
               <p style={{ margin: 0, fontSize: 12, color: "var(--text-faint)" }}>
-                No reference lines.
+                {tr("scatter.ref.none")}
               </p>
             )}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -473,7 +487,7 @@ export function PlotStep({
                         color: "var(--info-text)",
                       }}
                     >
-                      {rl.dir === "h" ? "Y =" : "X ="}
+                      {rl.dir === "h" ? tr("scatter.ref.yEq") : tr("scatter.ref.xEq")}
                     </span>
                     <NumberInput
                       value={rl.value}
@@ -503,7 +517,7 @@ export function PlotStep({
                     size={22}
                   />
                   <SliderControl
-                    label="Width"
+                    label={tr("scatter.ref.width")}
                     value={rl.strokeWidth}
                     min={0.5}
                     max={6}
@@ -511,11 +525,11 @@ export function PlotStep({
                     onChange={(v) => updateRefLine(rl.id, "strokeWidth", v)}
                   />
                   <div>
-                    <span className="dv-label">Dashed</span>
+                    <span className="dv-label">{tr("scatter.ref.dashed")}</span>
                     <OnOffToggle
                       value={rl.dashed}
                       onChange={(v) => updateRefLine(rl.id, "dashed", v)}
-                      ariaLabel="Dashed reference line"
+                      ariaLabel={tr("scatter.ref.dashed")}
                     />
                   </div>
                   {rl.dashed && (
@@ -534,7 +548,7 @@ export function PlotStep({
                   )}
                   <input
                     value={rl.label}
-                    placeholder="label"
+                    placeholder={tr("scatter.ref.labelPlaceholder")}
                     onChange={(e) => updateRefLine(rl.id, "label", e.target.value)}
                     className="dv-input-num"
                     style={{ width: "100%", textAlign: "left" }}
@@ -548,13 +562,13 @@ export function PlotStep({
                     >
                       {rl.dir === "h" ? (
                         <>
-                          <option value="right">right</option>
-                          <option value="left">left</option>
+                          <option value="right">{tr("scatter.ref.right")}</option>
+                          <option value="left">{tr("scatter.ref.left")}</option>
                         </>
                       ) : (
                         <>
-                          <option value="top">top</option>
-                          <option value="bottom">bottom</option>
+                          <option value="top">{tr("scatter.ref.top")}</option>
+                          <option value="bottom">{tr("scatter.ref.bottom")}</option>
                         </>
                       )}
                     </select>
@@ -574,7 +588,7 @@ export function PlotStep({
               className="dv-select"
               style={{ width: "100%", marginBottom: hasColorMap ? 8 : 0 }}
             >
-              <option value="">— None —</option>
+              <option value="">{tr("scatter.aes.none")}</option>
               {mappableCols
                 .filter((i: number) => i !== sizeMapCol && i !== shapeMapCol)
                 .map((i: number) => (
@@ -587,7 +601,7 @@ export function PlotStep({
             {hasColorMap && colorMapType && (
               <>
                 <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 6 }}>
-                  Detected:{" "}
+                  {tr("scatter.aes.detected")}
                   <strong
                     style={{
                       color:
@@ -595,8 +609,11 @@ export function PlotStep({
                     }}
                   >
                     {colorMapType === "continuous"
-                      ? "numeric (continuous)"
-                      : `categorical (${colorMapCategories.length} groups)`}
+                      ? tr("scatter.aes.continuous")
+                      : tr("scatter.aes.categorical", {
+                          n: colorMapCategories.length,
+                          count: colorMapCategories.length,
+                        })}
                   </strong>
                 </div>
 
@@ -616,7 +633,10 @@ export function PlotStep({
                     </select>
                     <PaletteStrip palette={colorMapPalette} />
                     <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
-                      range: {fmtTick(colorMapRange[0])} → {fmtTick(colorMapRange[1])}
+                      {tr("scatter.aes.range", {
+                        min: fmtTick(colorMapRange[0]),
+                        max: fmtTick(colorMapRange[1]),
+                      })}
                     </span>
                   </div>
                 )}
@@ -667,7 +687,7 @@ export function PlotStep({
               className="dv-select"
               style={{ width: "100%", marginBottom: hasSizeMap ? 8 : 0 }}
             >
-              <option value="">— None —</option>
+              <option value="">{tr("scatter.aes.none")}</option>
               {mappableCols
                 .filter((i: number) => i !== colorMapCol && i !== shapeMapCol)
                 .map((i: number) => (
@@ -680,7 +700,7 @@ export function PlotStep({
             {hasSizeMap && sizeMapType && (
               <>
                 <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 6 }}>
-                  Detected:{" "}
+                  {tr("scatter.aes.detected")}
                   <strong
                     style={{
                       color:
@@ -688,15 +708,18 @@ export function PlotStep({
                     }}
                   >
                     {sizeMapType === "continuous"
-                      ? "numeric (continuous)"
-                      : `categorical (${sizeMapCategories.length} groups)`}
+                      ? tr("scatter.aes.continuous")
+                      : tr("scatter.aes.categorical", {
+                          n: sizeMapCategories.length,
+                          count: sizeMapCategories.length,
+                        })}
                   </strong>
                 </div>
 
                 {sizeMapType === "continuous" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     <SliderControl
-                      label="Min size"
+                      label={tr("scatter.size.min")}
                       value={sizeMapMin}
                       min={1}
                       max={20}
@@ -704,7 +727,7 @@ export function PlotStep({
                       onChange={setSizeMapMin}
                     />
                     <SliderControl
-                      label="Max size"
+                      label={tr("scatter.size.max")}
                       value={sizeMapMax}
                       min={1}
                       max={30}
@@ -712,7 +735,10 @@ export function PlotStep({
                       onChange={setSizeMapMax}
                     />
                     <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
-                      range: {fmtTick(sizeMapRange[0])} → {fmtTick(sizeMapRange[1])}
+                      {tr("scatter.aes.range", {
+                        min: fmtTick(sizeMapRange[0]),
+                        max: fmtTick(sizeMapRange[1]),
+                      })}
                     </span>
                   </div>
                 )}
@@ -757,7 +783,7 @@ export function PlotStep({
               className="dv-select"
               style={{ width: "100%", marginBottom: hasShapeMap ? 8 : 0 }}
             >
-              <option value="">— None —</option>
+              <option value="">{tr("scatter.aes.none")}</option>
               {mappableCols
                 .filter((i: number) => i !== colorMapCol && i !== sizeMapCol)
                 .map((i: number) => (
@@ -822,16 +848,16 @@ export function PlotStep({
           </AesBox>
 
           {/* Axes */}
-          <ControlSection title="Axes">
+          <ControlSection title={tr("scatter.sec.axes")}>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ display: "flex", gap: 8 }}>
                 <div style={{ flex: 1 }}>
-                  <div className="dv-label">X min</div>
+                  <div className="dv-label">{tr("scatter.axes.xMin")}</div>
                   <input
                     type="text"
                     inputMode="decimal"
                     value={vis.xMin != null ? vis.xMin : ""}
-                    placeholder={"auto (" + fmtTick(autoAxis.xMin) + ")"}
+                    placeholder={tr("scatter.axes.auto", { v: fmtTick(autoAxis.xMin) })}
                     onChange={(e) => {
                       const v = e.target.value.trim();
                       updVis({ xMin: v === "" ? null : Number(v) });
@@ -841,12 +867,12 @@ export function PlotStep({
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div className="dv-label">X max</div>
+                  <div className="dv-label">{tr("scatter.axes.xMax")}</div>
                   <input
                     type="text"
                     inputMode="decimal"
                     value={vis.xMax != null ? vis.xMax : ""}
-                    placeholder={"auto (" + fmtTick(autoAxis.xMax) + ")"}
+                    placeholder={tr("scatter.axes.auto", { v: fmtTick(autoAxis.xMax) })}
                     onChange={(e) => {
                       const v = e.target.value.trim();
                       updVis({ xMax: v === "" ? null : Number(v) });
@@ -858,12 +884,12 @@ export function PlotStep({
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <div style={{ flex: 1 }}>
-                  <div className="dv-label">Y min</div>
+                  <div className="dv-label">{tr("scatter.axes.yMin")}</div>
                   <input
                     type="text"
                     inputMode="decimal"
                     value={vis.yMin != null ? vis.yMin : ""}
-                    placeholder={"auto (" + fmtTick(autoAxis.yMin) + ")"}
+                    placeholder={tr("scatter.axes.auto", { v: fmtTick(autoAxis.yMin) })}
                     onChange={(e) => {
                       const v = e.target.value.trim();
                       updVis({ yMin: v === "" ? null : Number(v) });
@@ -873,12 +899,12 @@ export function PlotStep({
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div className="dv-label">Y max</div>
+                  <div className="dv-label">{tr("scatter.axes.yMax")}</div>
                   <input
                     type="text"
                     inputMode="decimal"
                     value={vis.yMax != null ? vis.yMax : ""}
-                    placeholder={"auto (" + fmtTick(autoAxis.yMax) + ")"}
+                    placeholder={tr("scatter.axes.auto", { v: fmtTick(autoAxis.yMax) })}
                     onChange={(e) => {
                       const v = e.target.value.trim();
                       updVis({ yMax: v === "" ? null : Number(v) });
@@ -889,7 +915,7 @@ export function PlotStep({
                 </div>
               </div>
               <div>
-                <div className="dv-label">X label</div>
+                <div className="dv-label">{tr("scatter.axes.xLabel")}</div>
                 <input
                   value={vis.xLabel}
                   onChange={(e) => updVis({ xLabel: e.target.value })}
@@ -898,7 +924,7 @@ export function PlotStep({
                 />
               </div>
               <div>
-                <div className="dv-label">Y label</div>
+                <div className="dv-label">{tr("scatter.axes.yLabel")}</div>
                 <input
                   value={vis.yLabel}
                   onChange={(e) => updVis({ yLabel: e.target.value })}
@@ -907,7 +933,7 @@ export function PlotStep({
                 />
               </div>
               <div>
-                <div className="dv-label">Title</div>
+                <div className="dv-label">{tr("scatter.axes.title")}</div>
                 <input
                   value={vis.plotTitle}
                   onChange={(e) => updVis({ plotTitle: e.target.value })}
@@ -919,7 +945,7 @@ export function PlotStep({
           </ControlSection>
 
           {/* Style */}
-          <ControlSection title="Style">
+          <ControlSection title={tr("scatter.sec.style")}>
             <BaseStyleControls
               plotBg={vis.plotBg}
               onPlotBgChange={(v) => updVis({ plotBg: v })}
@@ -942,10 +968,13 @@ export function PlotStep({
                   aria-hidden="true"
                 />
                 <p className="dv-tile-title" style={{ margin: 0 }}>
-                  Filters
+                  {tr("scatter.filters.title")}
                 </p>
                 <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
-                  {filteredData.length} of {parsed.data.length} rows
+                  {tr("scatter.filters.rows", {
+                    shown: filteredData.length,
+                    total: parsed.data.length,
+                  })}
                 </span>
               </div>
               {filtersOpen && (
@@ -987,7 +1016,7 @@ export function PlotStep({
                               fontFamily: "inherit",
                             }}
                           >
-                            all
+                            {tr("scatter.filters.all")}
                           </button>
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>

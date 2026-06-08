@@ -14,7 +14,45 @@ import {
   powerPaired,
   powerTwoSample,
 } from "./_core/stats/dist";
+import "./power-app/i18n";
+import { tt, useT, type PowerKey } from "./power-app/i18n";
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
+
+// Per-test catalog-key maps. The TESTS registry stays the structural source of
+// truth (power fns, effect maxima); display strings resolve through these keys
+// so the UI is bilingual while the registry keeps its English fallbacks.
+const TEST_I18N: Record<TestKey, { label: PowerKey; question: PowerKey; nLabel: PowerKey }> = {
+  "t-ind": {
+    label: "power.test.tInd.label",
+    question: "power.test.tInd.question",
+    nLabel: "power.test.tInd.nLabel",
+  },
+  "t-paired": {
+    label: "power.test.tPaired.label",
+    question: "power.test.tPaired.question",
+    nLabel: "power.test.tPaired.nLabel",
+  },
+  "t-one": {
+    label: "power.test.tOne.label",
+    question: "power.test.tOne.question",
+    nLabel: "power.test.tOne.nLabel",
+  },
+  anova: {
+    label: "power.test.anova.label",
+    question: "power.test.anova.question",
+    nLabel: "power.test.anova.nLabel",
+  },
+  correlation: {
+    label: "power.test.correlation.label",
+    question: "power.test.correlation.question",
+    nLabel: "power.test.correlation.nLabel",
+  },
+  chi2: {
+    label: "power.test.chi2.label",
+    question: "power.test.chi2.question",
+    nLabel: "power.test.chi2.nLabel",
+  },
+};
 
 // Distribution functions, noncentral distributions, `bisect`,
 // Shapiro-Wilk, power functions (powerTwoSample / powerPaired /
@@ -72,7 +110,7 @@ const TESTS: Record<TestKey, TestDef> = {
     power: (es, n, alpha, tails) => powerTwoSample(es, n, alpha, tails),
     effectMax: 3,
     totalN: (n) => n * 2,
-    totalLabel: (n) => `Total N = ${n * 2} (${n} per group \u00d7 2)`,
+    totalLabel: (n) => tt("power.totalN.twoSample", { total: n * 2, n }),
   },
   "t-paired": {
     label: "Paired t-test",
@@ -96,7 +134,7 @@ const TESTS: Record<TestKey, TestDef> = {
     power: (es, n, alpha, _tails, k) => powerAnova(es, n, alpha, k ?? 2),
     effectMax: 2,
     totalN: (n, k) => n * k,
-    totalLabel: (n, k) => `Total N = ${n * k} (${n} per group \u00d7 ${k} groups)`,
+    totalLabel: (n, k) => tt("power.totalN.anova", { total: n * k, n, k }),
   },
   correlation: {
     label: "Correlation",
@@ -129,6 +167,7 @@ function EffectSizePanel({
   onEffectChange: (v: string) => void;
   disabled?: boolean;
 }) {
+  const tr = useT();
   const [mode, setMode] = useState("helper"); // "helper" or "direct"
   // t-test helper state
   const [mean1, setMean1] = useState("");
@@ -257,12 +296,15 @@ function EffectSizePanel({
         : sizeLabel === "large"
           ? "var(--danger-text)"
           : "var(--text-faint)";
+  // sizeLabel stays an English token for the colour logic above; this is its
+  // localized display form.
+  const sizeLabelDisplay = sizeLabel ? tr(("power.size." + sizeLabel) as PowerKey) : "";
 
   // Correlation uses direct input only (r is intuitive)
   if (testKey === "correlation") {
     return (
       <div style={{ opacity: disabled ? 0.4 : 1 }}>
-        <div style={smallLabel}>Expected correlation |r|</div>
+        <div style={smallLabel}>{tr("power.es.expectedR")}</div>
         <NumberInput
           min="0.01"
           max="0.99"
@@ -273,9 +315,11 @@ function EffectSizePanel({
           style={inputStyle}
         />
         {sizeLabel && (
-          <div style={{ ...note, color: sizeColor, fontWeight: 600 }}>{sizeLabel} effect</div>
+          <div style={{ ...note, color: sizeColor, fontWeight: 600 }}>
+            {sizeLabelDisplay} {tr("power.size.effectSuffix")}
+          </div>
         )}
-        <div style={note}>How strong a linear relationship do you expect?</div>
+        <div style={note}>{tr("power.es.rNote")}</div>
       </div>
     );
   }
@@ -294,7 +338,7 @@ function EffectSizePanel({
               aria-pressed={active}
               className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
             >
-              {m === "helper" ? "From my data" : "Direct value"}
+              {m === "helper" ? tr("power.es.helperTab") : tr("power.es.directTab")}
             </button>
           );
         })}
@@ -303,7 +347,7 @@ function EffectSizePanel({
       {mode === "helper" && testKey === "t-ind" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div>
-            <div style={smallLabel}>Expected mean — group 1</div>
+            <div style={smallLabel}>{tr("power.es.mean1")}</div>
             <NumberInput
               step="any"
               value={mean1}
@@ -314,7 +358,7 @@ function EffectSizePanel({
             />
           </div>
           <div>
-            <div style={smallLabel}>Expected mean — group 2</div>
+            <div style={smallLabel}>{tr("power.es.mean2")}</div>
             <NumberInput
               step="any"
               value={mean2}
@@ -325,7 +369,7 @@ function EffectSizePanel({
             />
           </div>
           <div>
-            <div style={smallLabel}>Common standard deviation</div>
+            <div style={smallLabel}>{tr("power.es.commonSd")}</div>
             <NumberInput
               step="any"
               min="0"
@@ -342,11 +386,9 @@ function EffectSizePanel({
             className="dv-btn dv-btn-primary"
             style={{ fontSize: 12, padding: "5px 10px" }}
           >
-            Compute effect size
+            {tr("power.es.compute")}
           </button>
-          <div style={note}>
-            Use pilot data or literature values. The SD should be the pooled within-group SD.
-          </div>
+          <div style={note}>{tr("power.es.tIndNote")}</div>
         </div>
       )}
 
@@ -354,9 +396,7 @@ function EffectSizePanel({
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div>
             <div style={smallLabel}>
-              {testKey === "t-paired"
-                ? "Expected mean difference"
-                : "Expected deviation from reference"}
+              {testKey === "t-paired" ? tr("power.es.meanDiff") : tr("power.es.deviationRef")}
             </div>
             <NumberInput
               step="any"
@@ -369,7 +409,7 @@ function EffectSizePanel({
           </div>
           <div>
             <div style={smallLabel}>
-              {testKey === "t-paired" ? "SD of paired differences" : "Standard deviation"}
+              {testKey === "t-paired" ? tr("power.es.sdPairedDiff") : tr("power.es.sd")}
             </div>
             <NumberInput
               step="any"
@@ -387,7 +427,7 @@ function EffectSizePanel({
             className="dv-btn dv-btn-primary"
             style={{ fontSize: 12, padding: "5px 10px" }}
           >
-            Compute effect size
+            {tr("power.es.compute")}
           </button>
         </div>
       )}
@@ -395,7 +435,7 @@ function EffectSizePanel({
       {mode === "helper" && testKey === "anova" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div>
-            <div style={smallLabel}>Expected group means (comma-separated)</div>
+            <div style={smallLabel}>{tr("power.es.groupMeans")}</div>
             <input
               type="text"
               value={groupMeansStr}
@@ -407,7 +447,7 @@ function EffectSizePanel({
             />
           </div>
           <div>
-            <div style={smallLabel}>Within-group standard deviation</div>
+            <div style={smallLabel}>{tr("power.es.withinSd")}</div>
             <NumberInput
               step="any"
               min="0"
@@ -424,19 +464,16 @@ function EffectSizePanel({
             className="dv-btn dv-btn-primary"
             style={{ fontSize: 12, padding: "5px 10px" }}
           >
-            Compute effect size
+            {tr("power.es.compute")}
           </button>
-          <div style={note}>
-            Enter the means you expect for each treatment group, and the common within-group SD
-            (from pilot data or literature).
-          </div>
+          <div style={note}>{tr("power.es.anovaNote")}</div>
         </div>
       )}
 
       {mode === "helper" && testKey === "chi2" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div>
-            <div style={smallLabel}>Baseline proportions (what the theory predicts)</div>
+            <div style={smallLabel}>{tr("power.es.baselineProps")}</div>
             <input
               type="text"
               value={expectedStr}
@@ -448,7 +485,7 @@ function EffectSizePanel({
             />
           </div>
           <div>
-            <div style={smallLabel}>Actual proportions (what you think is really happening)</div>
+            <div style={smallLabel}>{tr("power.es.actualProps")}</div>
             <input
               type="text"
               value={observedStr}
@@ -465,11 +502,9 @@ function EffectSizePanel({
             className="dv-btn dv-btn-primary"
             style={{ fontSize: 12, padding: "5px 10px" }}
           >
-            Compute effect size
+            {tr("power.es.compute")}
           </button>
-          <div style={note}>
-            Use ratios (3:1) or proportions (0.75, 0.25). Common for Mendelian segregation tests.
-          </div>
+          <div style={note}>{tr("power.es.chi2Note")}</div>
         </div>
       )}
 
@@ -477,10 +512,10 @@ function EffectSizePanel({
         <div>
           <div style={smallLabel}>
             {testKey === "anova"
-              ? "Effect size (f)"
+              ? tr("power.es.directF")
               : testKey === "chi2"
-                ? "Effect size (w)"
-                : "Effect size (d)"}
+                ? tr("power.es.directW")
+                : tr("power.es.directD")}
           </div>
           <NumberInput
             min="0.01"
@@ -492,10 +527,10 @@ function EffectSizePanel({
           />
           <div style={note}>
             {testKey === "anova"
-              ? "f = SD of group means / within-group SD"
+              ? tr("power.es.formulaF")
               : testKey === "chi2"
-                ? "w = \u221A(\u03A3 (p_obs \u2212 p_exp)\u00B2 / p_exp)"
-                : "d = |difference in means| / pooled SD"}
+                ? tr("power.es.formulaW")
+                : tr("power.es.formulaD")}
           </div>
         </div>
       )}
@@ -515,10 +550,13 @@ function EffectSizePanel({
           }}
         >
           <span style={{ fontSize: 12, color: "var(--text)" }}>
-            Effect size = <b>{parseFloat(String(effectSize)).toFixed(3)}</b>
+            {tr("power.es.computed")}
+            <b>{parseFloat(String(effectSize)).toFixed(3)}</b>
           </span>
           {sizeLabel && (
-            <span style={{ fontSize: 11, fontWeight: 600, color: sizeColor }}>{sizeLabel}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: sizeColor }}>
+              {sizeLabelDisplay}
+            </span>
           )}
         </div>
       )}
@@ -546,6 +584,7 @@ const PowerCurve = forwardRef<
     result: number | null;
   }
 >(function PowerCurve({ testKey, powerFn, params, solveFor, result }, ref) {
+  const tr = useT();
   const test = TESTS[testKey];
   if (!test) return null;
 
@@ -595,10 +634,10 @@ const PowerCurve = forwardRef<
       style={{ width: "100%", height: "100%", display: "block" }}
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label="Power curve"
+      aria-label={tr("power.curve.title")}
     >
-      <title>Power curve</title>
-      <desc>Statistical power as a function of sample size</desc>
+      <title>{tr("power.curve.title")}</title>
+      <desc>{tr("power.curve.desc")}</desc>
       <rect id="background" x={0} y={0} width={VBW} height={VBH} fill="#ffffff" />
       <rect id="plot-area-background" x={M.left} y={M.top} width={w} height={h} fill="#fafafa" />
       <g id="grid">
@@ -690,7 +729,7 @@ const PowerCurve = forwardRef<
           fontFamily="sans-serif"
           transform={`rotate(-90,14,${M.top + h / 2})`}
         >
-          Power (1 − β)
+          {tr("power.curve.yAxis")}
         </text>
       </g>
       <g id="axis-x">
@@ -717,7 +756,7 @@ const PowerCurve = forwardRef<
           fill="#333"
           fontFamily="sans-serif"
         >
-          {test.nLabel}
+          {tr(TEST_I18N[testKey].nLabel)}
         </text>
       </g>
     </svg>
@@ -727,6 +766,7 @@ const PowerCurve = forwardRef<
 // ── Main App ────────────────────────────────────────────────────────────────
 
 export function App() {
+  const tr = useT();
   const isMobile = useIsMobile(900);
   const [testKey, setTestKey] = useState<TestKey>("t-ind");
   const [solveFor, setSolveFor] = useState("n");
@@ -778,8 +818,8 @@ export function App() {
 
   const resultLabel = (
     {
-      n: `Required ${test.nLabel}`,
-      power: "Statistical power",
+      n: tr("power.result.requiredN", { nLabel: tr(TEST_I18N[testKey].nLabel) }),
+      power: tr("power.result.statisticalPower"),
     } as Record<string, string>
   )[solveFor];
 
@@ -810,6 +850,19 @@ export function App() {
 
   const inputStyle = { width: "100%" };
 
+  const EXPLAIN_TEST_KEYS: Record<TestKey, PowerKey> = {
+    "t-ind": "power.explain.tInd",
+    "t-paired": "power.explain.tPaired",
+    "t-one": "power.explain.tOne",
+    anova: "power.explain.anova",
+    correlation: "power.explain.correlation",
+    chi2: "power.explain.chi2",
+  };
+  const explainHtml =
+    tr("power.explain.body", { nLabel: tr(TEST_I18N[testKey].nLabel) }) +
+    "<br/><br/>" +
+    tr(EXPLAIN_TEST_KEYS[testKey]);
+
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 32px" }}>
       <PageHeader toolName="power" title="Power Analysis" />
@@ -821,29 +874,29 @@ export function App() {
           two pickers (avoids an extra wrapper just to break a row). */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
         <div className="dv-panel" style={{ padding: 12, flex: 1, minWidth: 200 }}>
-          <div className="dv-label">Statistical test</div>
+          <div className="dv-label">{tr("power.ctrl.statisticalTest")}</div>
           <select
             value={testKey}
             onChange={handleTestChange}
             className="dv-select"
             style={{ width: "100%" }}
           >
-            {Object.entries(TESTS).map(([key, t]) => (
+            {Object.keys(TESTS).map((key) => (
               <option key={key} value={key}>
-                {t.label}
+                {tr(TEST_I18N[key as TestKey].label)}
               </option>
             ))}
           </select>
         </div>
         <div className="dv-panel" style={{ padding: 12, flex: 1, minWidth: 200 }}>
           <div className="dv-label" style={{ marginBottom: 6 }}>
-            What do you need to find?
+            {tr("power.ctrl.whatToFind")}
           </div>
           <div className="dv-seg">
             {(
               [
-                ["n", "Sample size"],
-                ["power", "Power"],
+                ["n", tr("power.ctrl.sampleSize")],
+                ["power", tr("power.ctrl.power")],
               ] as const
             ).map(([key, label]) => {
               const active = solveFor === key;
@@ -870,7 +923,9 @@ export function App() {
             flex: "1 1 100%",
           }}
         >
-          <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>{test.question}</div>
+          <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>
+            {tr(TEST_I18N[testKey].question)}
+          </div>
         </div>
       </div>
 
@@ -902,7 +957,7 @@ export function App() {
           {/* Effect size */}
           <div className="dv-panel" style={{ padding: 12 }}>
             <div className="dv-label" style={{ marginBottom: 6 }}>
-              Expected effect size
+              {tr("power.ctrl.expectedEffect")}
             </div>
             <EffectSizePanel
               testKey={testKey}
@@ -925,7 +980,7 @@ export function App() {
           >
             {/* Sample size */}
             <div style={{ opacity: solveFor === "n" ? 0.4 : 1 }}>
-              <div className="dv-label">{test.nLabel}</div>
+              <div className="dv-label">{tr(TEST_I18N[testKey].nLabel)}</div>
               <NumberInput
                 min="2"
                 step="1"
@@ -938,7 +993,7 @@ export function App() {
 
             {/* Significance */}
             <div>
-              <div className="dv-label">Significance level (α)</div>
+              <div className="dv-label">{tr("power.ctrl.significance")}</div>
               <div className="dv-seg">
                 {(["0.10", "0.05", "0.01", "0.001"] as const).map((a) => {
                   const active = alphaInput === a;
@@ -959,7 +1014,7 @@ export function App() {
 
             {/* Power */}
             <div style={{ opacity: solveFor === "power" ? 0.4 : 1 }}>
-              <div className="dv-label">Desired power (1 − β)</div>
+              <div className="dv-label">{tr("power.ctrl.desiredPower")}</div>
               <div className="dv-seg">
                 {(["0.70", "0.80", "0.90", "0.95"] as const).map((p) => {
                   const active = powerInput === p;
@@ -969,7 +1024,7 @@ export function App() {
                       type="button"
                       onClick={() => setPowerInput(p)}
                       disabled={solveFor === "power"}
-                      title={p === "0.80" ? "0.80 (standard)" : undefined}
+                      title={p === "0.80" ? tr("power.ctrl.standardTitle") : undefined}
                       aria-pressed={active}
                       className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
                     >
@@ -983,12 +1038,12 @@ export function App() {
             {/* Tails */}
             {testKey !== "anova" && testKey !== "chi2" && (
               <div>
-                <div className="dv-label">Direction of the test</div>
+                <div className="dv-label">{tr("power.ctrl.direction")}</div>
                 <div className="dv-seg">
                   {(
                     [
-                      [2, "Two-sided"],
-                      [1, "One-sided"],
+                      [2, tr("power.ctrl.twoSided")],
+                      [1, tr("power.ctrl.oneSided")],
                     ] as const
                   ).map(([t, label]) => {
                     const active = tails === t;
@@ -1006,8 +1061,7 @@ export function App() {
                   })}
                 </div>
                 <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 4 }}>
-                  Two-sided: the difference could go either way. One-sided: you expect a specific
-                  direction.
+                  {tr("power.ctrl.directionNote")}
                 </div>
               </div>
             )}
@@ -1015,7 +1069,7 @@ export function App() {
             {/* ANOVA groups */}
             {test.hasGroups && (
               <div>
-                <div className="dv-label">Number of groups</div>
+                <div className="dv-label">{tr("power.ctrl.numGroups")}</div>
                 <NumberInput
                   min="2"
                   max="20"
@@ -1030,7 +1084,7 @@ export function App() {
             {/* Chi-square df */}
             {test.hasDf && (
               <div>
-                <div className="dv-label">Degrees of freedom</div>
+                <div className="dv-label">{tr("power.ctrl.df")}</div>
                 <NumberInput
                   min="1"
                   max="100"
@@ -1039,11 +1093,10 @@ export function App() {
                   onChange={(e) => setDfInput(e.target.value)}
                   style={inputStyle}
                 />
-                <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>
-                  Goodness-of-fit: categories − 1.
-                  <br />
-                  Independence: (rows−1)(cols−1).
-                </div>
+                <div
+                  style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}
+                  dangerouslySetInnerHTML={{ __html: tr("power.ctrl.dfNote") }}
+                />
               </div>
             )}
           </div>
@@ -1152,7 +1205,7 @@ export function App() {
                   downloadText(script, `power_${testKey}_${solveFor}.R`);
                   flashSaved(e.currentTarget);
                 }}
-                title="Download a runnable R script reproducing this power calculation with the pwr package"
+                title={tr("power.result.rTitle")}
                 style={{ position: "absolute", top: 10, right: 10 }}
               >
                 {"\u2B07 R"}
@@ -1174,86 +1227,12 @@ export function App() {
             letterSpacing: "0.5px",
           }}
         >
-          What do these numbers mean?
+          {tr("power.explain.heading")}
         </div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.7 }}>
-          <b>Power</b> is the probability that you will correctly reject the null hypothesis (i.e.
-          to claim a result is significant). A power of 0.80 (the dashed line) means an 80% chance
-          of success — this is the standard minimum. Higher is better but costs more subjects.
-          <br />
-          <br />
-          <b>Significance level (α)</b> is the risk of a false positive — concluding there is an
-          effect when there is none. The standard α&nbsp;=&nbsp;0.05 means you accept a 5% chance of
-          a false alarm. Lowering α (e.g. to 0.01) makes you more conservative but requires more
-          subjects to keep power high.
-          <br />
-          <br />
-          <b>Sample size ({test.nLabel})</b> is the number of observations you need to collect. More
-          subjects give you more power to detect a given effect.
-          <br />
-          <br />
-          <b>Effect size</b> measures how large the real difference or relationship is, scaled by
-          variability. Use the "From my data" tab to compute it from values you expect (e.g. group
-          means and standard deviation from pilot data or published studies).
-          {testKey === "t-ind" && (
-            <>
-              <br />
-              <br />
-              For a <b>two-sample t-test</b>, the effect size (Cohen's d) is the difference between
-              the two group means divided by their common standard deviation. A d of 0.2 is small,
-              0.5 is medium, and 0.8 is large.
-            </>
-          )}
-          {testKey === "t-paired" && (
-            <>
-              <br />
-              <br />
-              For a <b>paired t-test</b>, the effect size (Cohen's d) is the expected mean of the
-              paired differences divided by the standard deviation of those differences.
-            </>
-          )}
-          {testKey === "t-one" && (
-            <>
-              <br />
-              <br />
-              For a <b>one-sample t-test</b>, the effect size (Cohen's d) is how far the true mean
-              deviates from the reference value, divided by the standard deviation.
-            </>
-          )}
-          {testKey === "anova" && (
-            <>
-              <br />
-              <br />
-              For <b>ANOVA</b>, the effect size (Cohen's f) captures how spread out the group means
-              are relative to within-group variability. An f of 0.10 is small, 0.25 is medium, and
-              0.40 is large.
-            </>
-          )}
-          {testKey === "correlation" && (
-            <>
-              <br />
-              <br />
-              For <b>correlation</b>, the effect size is simply the expected Pearson r. An r of 0.1
-              is small, 0.3 is medium, and 0.5 is large.
-            </>
-          )}
-          {testKey === "chi2" && (
-            <>
-              <br />
-              <br />
-              For a <b>chi-square test</b>, the effect size (Cohen's w) measures how far the
-              observed category proportions deviate from expected. A w of 0.1 is small, 0.3 is
-              medium, and 0.5 is large.
-              <br />
-              <br />
-              Degrees of freedom:
-              <br />
-              &bull; Goodness-of-fit: <b>df = categories − 1</b>
-              <br />
-              &bull; Independence: <b>df = (rows − 1) × (cols − 1)</b>
-            </>
-          )}
-        </div>
+        <div
+          style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.7 }}
+          dangerouslySetInnerHTML={{ __html: explainHtml }}
+        />
       </div>
     </div>
   );
