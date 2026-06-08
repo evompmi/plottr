@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **DOM XSS via pasted-CSV column headers.** A non-numeric column header
+  pasted into Group Plot was interpolated into the configure/output hints via
+  `dangerouslySetInnerHTML` without escaping, so a header like
+  `<img src=x onerror=…>` could run script. Added an HTML-escaping translate
+  variant (`tHtml` / `ttHtml`) in the i18n layer and routed every
+  variable-interpolating `dangerouslySetInnerHTML` site through it. (regression:
+  5 tests)
 - **Landing toggles now match in size.** The language toggle inherited
   `width: auto`, rendering ~34px wide against the theme toggle's 40px square;
   it now shares the same 40×40px footprint (the 6px gap between them is

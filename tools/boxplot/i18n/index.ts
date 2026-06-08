@@ -9,4 +9,4 @@ registerCatalog("boxplot", "en", en);
 registerCatalog("boxplot", "fr", fr);
 
 export type { BoxplotKey };
-export const { tt, useT } = makeT<BoxplotKey>();
+export const { tt, ttHtml, useT } = makeT<BoxplotKey>();

@@ -36,6 +36,7 @@ var __plottrShared = (() => {
     setLang: () => setLang,
     setTheme: () => setTheme,
     t: () => t,
+    tHtml: () => tHtml,
     toggleLang: () => toggleLang,
     toggleTheme: () => toggleTheme,
     useLang: () => useLang,
@@ -221,17 +222,30 @@ var __plottrShared = (() => {
     const ns = dot === -1 ? key : key.slice(0, dot);
     return _registry[ns]?.[lang]?.[key];
   }
-  function _interpolate(s, vars) {
-    return s.replace(/\{(\w+)\}/g, (_m, k) => k in vars ? String(vars[k]) : `{${k}}`);
+  function _escapeHtml(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
-  function t(key, vars) {
+  function _interpolate(s, vars, escape) {
+    return s.replace(/\{(\w+)\}/g, (_m, k) => {
+      if (!(k in vars)) return `{${k}}`;
+      const v = String(vars[k]);
+      return escape ? _escapeHtml(v) : v;
+    });
+  }
+  function _translate(key, vars, escape) {
     let raw = _lookup(key, _lang) ?? _lookup(key, DEFAULT_LANG);
     if (vars && typeof vars.count === "number") {
       const cat = _pluralRules(_lang).select(vars.count);
       raw = _lookup(`${key}.${cat}`, _lang) ?? _lookup(`${key}.other`, _lang) ?? _lookup(`${key}.${cat}`, DEFAULT_LANG) ?? _lookup(`${key}.other`, DEFAULT_LANG) ?? raw;
     }
     if (raw === void 0) return key;
-    return vars ? _interpolate(raw, vars) : raw;
+    return vars ? _interpolate(raw, vars, escape) : raw;
+  }
+  function t(key, vars) {
+    return _translate(key, vars, false);
+  }
+  function tHtml(key, vars) {
+    return _translate(key, vars, true);
   }
   function _readStoredLang() {
     try {
@@ -355,11 +369,12 @@ var __plottrShared = (() => {
   }
   function makeT() {
     const tt = (key, vars) => t(key, vars);
+    const ttHtml = (key, vars) => tHtml(key, vars);
     const useTHook = () => {
       useLang();
       return tt;
     };
-    return { tt, useT: useTHook };
+    return { tt, ttHtml, useT: useTHook };
   }
   function toggleLang() {
     setLang(getLang() === "fr" ? "en" : "fr");

@@ -7,6 +7,7 @@ const { suite, test, assert, eq } = require("./harness");
 const {
   registerCatalog,
   t,
+  tHtml,
   getLang,
   setLang,
   toggleLang,
@@ -60,6 +61,42 @@ test("substitutes {var} placeholders", () => {
 
 test("leaves unknown placeholders intact", () => {
   eq(t("smoke.greet", {}), "Hello, {name}");
+});
+
+test("t does NOT escape interpolated values (plain-text contexts)", () => {
+  // `t` targets React text children / textContent / title attrs, where the
+  // renderer escapes — so `t` must pass raw values through verbatim, or an
+  // ampersand in a group name would show up as "&amp;".
+  eq(t("smoke.greet", { name: "A & B" }), "Hello, A & B");
+});
+
+// ── HTML-safe interpolation (tHtml) ───────────────────────────────────
+//
+// `tHtml` is the variant whose result is injected via dangerouslySetInnerHTML.
+// It must HTML-escape every interpolated value so a user-supplied string (e.g.
+// a pasted CSV column header) cannot inject markup — while preserving the
+// authored template text itself.
+
+suite("i18n — tHtml escaping");
+
+test("tHtml escapes <, >, &, \" and ' in interpolated values", () => {
+  eq(
+    tHtml("smoke.greet", { name: '<img src=x onerror="alert(1)">' }),
+    "Hello, &lt;img src=x onerror=&quot;alert(1)&quot;&gt;"
+  );
+});
+
+test("tHtml escapes a bare ampersand and a single quote", () => {
+  eq(tHtml("smoke.greet", { name: "A & B's" }), "Hello, A &amp; B&#39;s");
+});
+
+test("tHtml leaves the authored template (and benign values) unchanged", () => {
+  eq(tHtml("smoke.greet", { name: "Ada" }), "Hello, Ada");
+  eq(tHtml("smoke.hello"), "Hello");
+});
+
+test("tHtml still resolves plurals, with the count escaped harmlessly", () => {
+  eq(tHtml("smoke.items", { count: 5 }), "5 items");
 });
 
 // ── pluralization ─────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ import {
   powerTwoSample,
 } from "./_core/stats/dist";
 import "./power-app/i18n";
-import { tt, useT, type PowerKey } from "./power-app/i18n";
+import { tt, ttHtml, useT, type PowerKey } from "./power-app/i18n";
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef } = React;
 
 // Per-test catalog-key maps. The TESTS registry stays the structural source of
@@ -859,7 +859,7 @@ export function App() {
     chi2: "power.explain.chi2",
   };
   const explainHtml =
-    tr("power.explain.body", { nLabel: tr(TEST_I18N[testKey].nLabel) }) +
+    ttHtml("power.explain.body", { nLabel: tr(TEST_I18N[testKey].nLabel) }) +
     "<br/><br/>" +
     tr(EXPLAIN_TEST_KEYS[testKey]);
 
