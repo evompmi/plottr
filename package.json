@@ -12,7 +12,7 @@
   ],
   "license": "MIT",
   "scripts": {
-    "prebuild": "rm -rf tools/_app/chunks && node scripts/write-version.js && node scripts/build-shared.js && node scripts/vendor-sri.js",
+    "prebuild": "rm -rf tools/_app/chunks && node scripts/write-version.js && node scripts/build-shared.js && node scripts/vendor-sri.js && node scripts/csp-sync.js",
     "build": "esbuild tools/_app/index.tsx --bundle --splitting --format=esm --outdir=tools/_app --chunk-names=chunks/[name]-[hash] --jsx=transform --minify-syntax --minify-whitespace --sourcemap",
     "build:shared": "node scripts/build-shared.js",
     "prewatch": "node scripts/write-version.js",
@@ -27,6 +27,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:sri": "node scripts/vendor-sri.js --check",
+    "lint:csp": "node scripts/csp-sync.js --check",
     "lint:boundaries": "depcruise tools --config .dependency-cruiser.cjs",
     "audit:contrast": "node scripts/audit-palette-contrast.js",
     "lint:fix": "eslint . --fix",

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Content-Security-Policy on every page.** Each static page now carries a
+  `<meta http-equiv="Content-Security-Policy">` with a strict `script-src`
+  (`'self'` + a per-inline-script `'sha256-…'` hash, no `'unsafe-inline'`), so
+  the browser refuses injected inline handlers as a defence-in-depth backstop to
+  the XSS escaping fix. Hashes are generated and kept in sync by
+  `scripts/csp-sync.js` (wired into `prebuild`, checkable via `npm run lint:csp`)
+  and drift-guarded by `tests/csp.test.js`. Verified in a real browser: all 18
+  Playwright e2e flows pass under the enforced policy.
+
 ### Fixed
 
 - **DOM XSS via pasted-CSV column headers.** A non-numeric column header

@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta
+  http-equiv="Content-Security-Policy"
+  content="default-src 'self'; script-src 'self' 'sha256-e8IBABKT1Obdz45AnbSPlCS2i8YWTRNfdqlJ/6cfVo8=' 'sha256-liQwaGUWPuhu4pgU747UaxW1Isb7IzHEmmAgDreY5kM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'"
+/>
 <script>
   // file:// origins partition localStorage per-file, so the landing page's
   // stored theme can't be read here directly. We accept a ?theme=dark|light
