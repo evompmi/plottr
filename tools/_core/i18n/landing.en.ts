@@ -41,6 +41,11 @@ const landingEn = {
   "landing.desc.power": "Sample size &amp; power<br/>for t, ANOVA, χ², r",
   "landing.desc.molarity": "Molarity, dilution<br/>&amp; batch prep sheets",
 
+  // Theme toggle (title/aria) — set dynamically by index.html's inline
+  // theme IIFE via t(); changes with the current mode.
+  "landing.theme.toLight": "Switch to light mode",
+  "landing.theme.toDark": "Switch to dark mode",
+
   "landing.footer.cite": "Cite — Zenodo DOI",
   "landing.footer.citeTitle": "Archived on Zenodo — cite Plöttr via DOI 10.5281/zenodo.20245057",
   "landing.footer.mit": "MIT licensed",

@@ -443,6 +443,10 @@ var __plottrShared = (() => {
     "landing.desc.volcano": "log\u2082FC vs \u2212log\u2081\u2080p<br/>for \u2014omics hits",
     "landing.desc.power": "Sample size &amp; power<br/>for t, ANOVA, \u03C7\xB2, r",
     "landing.desc.molarity": "Molarity, dilution<br/>&amp; batch prep sheets",
+    // Theme toggle (title/aria) — set dynamically by index.html's inline
+    // theme IIFE via t(); changes with the current mode.
+    "landing.theme.toLight": "Switch to light mode",
+    "landing.theme.toDark": "Switch to dark mode",
     "landing.footer.cite": "Cite \u2014 Zenodo DOI",
     "landing.footer.citeTitle": "Archived on Zenodo \u2014 cite Pl\xF6ttr via DOI 10.5281/zenodo.20245057",
     "landing.footer.mit": "MIT licensed",
@@ -477,6 +481,8 @@ var __plottrShared = (() => {
     "landing.desc.volcano": "log\u2082FC vs \u2212log\u2081\u2080p<br/>pour donn\xE9es \u2014omiques",
     "landing.desc.power": "Taille d\u2019\xE9chantillon &amp; puissance<br/>pour t, ANOVA, \u03C7\xB2, r",
     "landing.desc.molarity": "Molarit\xE9, dilution<br/>&amp; feuilles de pr\xE9paration",
+    "landing.theme.toLight": "Passer en mode clair",
+    "landing.theme.toDark": "Passer en mode sombre",
     "landing.footer.cite": "Citer \u2014 DOI Zenodo",
     "landing.footer.citeTitle": "Archiv\xE9 sur Zenodo \u2014 citez Pl\xF6ttr via le DOI 10.5281/zenodo.20245057",
     "landing.footer.mit": "Sous licence MIT",

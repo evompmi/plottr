@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'sha256-252wD4T/6roUdu4abRwhbwTxtXRsngzmzyyUFVwlTn0=' 'sha256-308DlEcoiJ3pjDzzqgeGNsdA41lX+FxX3IP7MAzSfMA=' 'sha256-rTpKQwjVhWC/FlI2aeTABKI90tBPk1Cs4X4BXh4XcHI=' 'sha256-Q4l5tEJBjGlf1rK/9uF78rjodpQS8SLBOrmxuOyjjng=' 'sha256-J19CJ9yR6HUILOj9Fz7eHJovwbcVRHYULE4nUPPDUmk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'"
+      content="default-src 'self'; script-src 'self' 'sha256-252wD4T/6roUdu4abRwhbwTxtXRsngzmzyyUFVwlTn0=' 'sha256-308DlEcoiJ3pjDzzqgeGNsdA41lX+FxX3IP7MAzSfMA=' 'sha256-rTpKQwjVhWC/FlI2aeTABKI90tBPk1Cs4X4BXh4XcHI=' 'sha256-Q4l5tEJBjGlf1rK/9uF78rjodpQS8SLBOrmxuOyjjng=' 'sha256-ilOt71lN/vPCgUvE9TgLWXK3cKkNa16YwfGLe8MNMTg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'"
     />
     <!-- BEGIN dv-anti-clickjack -->
     <!--
@@ -1615,7 +1615,16 @@
         }
         function render() {
           var mode = resolved();
-          var title = mode === "dark" ? "Switch to light mode" : "Switch to dark mode";
+          // Pull the title from the landing i18n catalog (global `t` from
+          // tools/shared.bundle.js) so the hover/aria localizes with the
+          // EN/FR toggle; fall back to English if the bundle isn't loaded.
+          var key = mode === "dark" ? "landing.theme.toLight" : "landing.theme.toDark";
+          var title =
+            typeof t === "function"
+              ? t(key)
+              : mode === "dark"
+                ? "Switch to light mode"
+                : "Switch to dark mode";
           document.querySelectorAll("[data-theme-toggle]").forEach(function (btn) {
             btn.innerHTML = mode === "dark" ? SUN : MOON;
             btn.title = title;
@@ -1688,6 +1697,13 @@
           if (mq.addEventListener) mq.addEventListener("change", onMq);
           else if (mq.addListener) mq.addListener(onMq);
         }
+        // Re-render the toggle's title/aria when the language changes
+        // (i18n.ts dispatches `plottr-lang-change`; `storage` covers other
+        // tabs writing `plottr-lang`).
+        window.addEventListener("plottr-lang-change", render);
+        window.addEventListener("storage", function (e) {
+          if (e.key === "plottr-lang") render();
+        });
         render();
       })();
 
