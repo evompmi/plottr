@@ -1761,4 +1761,66 @@ suite("VolcanoChart (raster ↔ vector export)");
   });
 })();
 
+// ════════════════════════════════════════════════════════════════════════════
+//  applyStaticI18n — static-page copy swap (landing / privacy)
+// ════════════════════════════════════════════════════════════════════════════
+//
+// applyStaticI18n is the primitive the landing + privacy pages' inline
+// scripts call to localize their data-i18n* markup. It is DOM-driven (not a
+// pure function), so it's covered here under happy-dom rather than in the vm
+// i18n-loader. Exercises all four attribute channels — including the SVG
+// nodes + aria-label path added for the privacy data-flow diagram.
+
+suite("applyStaticI18n — static-page copy swap");
+
+(function () {
+  // Register a throwaway namespace so the assertions don't depend on the
+  // real landing / privacy catalogs.
+  globalThis.registerCatalog("t18ntest", "en", {
+    "t18ntest.text": "Hello",
+    "t18ntest.html": "Bold <b>here</b>",
+    "t18ntest.title": "Tooltip text",
+    "t18ntest.aria": "Accessible name",
+    "t18ntest.svg": "Diagram label",
+  });
+  globalThis.registerCatalog("t18ntest", "fr", {
+    "t18ntest.text": "Bonjour",
+    "t18ntest.html": "Gras <b>ici</b>",
+    "t18ntest.title": "Texte d’infobulle",
+    "t18ntest.aria": "Nom accessible",
+    "t18ntest.svg": "Étiquette du schéma",
+  });
+
+  test("swaps textContent / innerHTML / title / aria-label, incl. SVG nodes", function () {
+    globalThis.setLang("en");
+    const host = document.createElement("div");
+    host.innerHTML =
+      '<span data-i18n="t18ntest.text">placeholder</span>' +
+      '<p data-i18n-html="t18ntest.html">placeholder</p>' +
+      '<a data-i18n-title="t18ntest.title" title="placeholder">x</a>' +
+      '<svg data-i18n-aria="t18ntest.aria" aria-label="placeholder">' +
+      '<text data-i18n="t18ntest.svg">placeholder</text></svg>';
+    document.body.appendChild(host);
+
+    globalThis.applyStaticI18n(host);
+    eq(host.querySelector("[data-i18n='t18ntest.text']").textContent, "Hello");
+    eq(host.querySelector("[data-i18n-html]").innerHTML, "Bold <b>here</b>");
+    eq(host.querySelector("[data-i18n-title]").getAttribute("title"), "Tooltip text");
+    eq(host.querySelector("[data-i18n-aria]").getAttribute("aria-label"), "Accessible name");
+    eq(host.querySelector("text").textContent, "Diagram label");
+
+    // Re-apply after a language switch — every channel updates in place.
+    globalThis.setLang("fr");
+    globalThis.applyStaticI18n(host);
+    eq(host.querySelector("[data-i18n='t18ntest.text']").textContent, "Bonjour");
+    eq(host.querySelector("[data-i18n-html]").innerHTML, "Gras <b>ici</b>");
+    eq(host.querySelector("[data-i18n-title]").getAttribute("title"), "Texte d’infobulle");
+    eq(host.querySelector("[data-i18n-aria]").getAttribute("aria-label"), "Nom accessible");
+    eq(host.querySelector("text").textContent, "Étiquette du schéma");
+
+    document.body.removeChild(host);
+    globalThis.setLang("en");
+  });
+})();
+
 summary();

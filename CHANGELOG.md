@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Privacy / data-flow page now localized (EN/FR).** `privacy.html` — the
+  trust page behind the landing privacy badge — was a fully English static
+  page; its breadcrumb, heading, the entire data-flow SVG diagram (node labels,
+  `<title>`/`<desc>`, and the two security-guard pills' `aria-label`s), the
+  three trust cards, the "clone and self-host" block, and the footer now route
+  through a new `privacy` i18n catalog. The page gained an EN/FR toggle beside
+  its theme toggle and a no-FOUC `<html lang>` snippet; the landing → privacy
+  link carries the active language via `?lang=` for the `file://` case (the
+  same trick the existing `?theme=` push uses, since `file://` partitions
+  localStorage). `applyStaticI18n` gained a `data-i18n-aria` channel (and SVG
+  text-node support) for the diagram's accessible names. (`benchmark.html`
+  stays English — it's a generated R-vs-JS report for a technical audience.)
 - **SPA topbar chrome now localized (EN/FR).** The home / theme-toggle button
   titles, the "Send feedback" button title plus its entire prefilled mailto
   draft (intro, the two prompt sections, and the Tool/Plöttr/Browser/Reported
@@ -32,8 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   toggle in the landing top bar had a hardcoded English `title` / `aria-label`
   ("Switch to light/dark mode") set by its inline script, and it never updated
   on language change. It now reads from the `landing` i18n catalog and
-  re-renders on `plottr-lang-change`. (privacy.html / benchmark.html are fully
-  English pages — not internationalized — and are left as-is.)
+  re-renders on `plottr-lang-change`. (benchmark.html is a fully English
+  generated page — not internationalized — and is left as-is; privacy.html is
+  now localized, see above.)
 - **More UI strings now localized (EN/FR).** The Venn intersection table
   (Region / Degree / Count headers, the empty item-list prompt, the item count)
   and item-list panel, the Power calculator's `e.g.` input placeholders, and the

@@ -205,21 +205,29 @@ export function setLang(lang: Lang): void {
 // Used by the landing / privacy pages (Phase 1); the catalog values are
 // authored by us, so `innerHTML` for the markup-bearing variant is safe.
 export function applyStaticI18n(root: ParentNode = document): void {
-  // `data-i18n` → textContent (plain text); `data-i18n-html` → innerHTML
-  // (for entries carrying authored markup like <b> / <br>; values are ours,
-  // not user input, so innerHTML is safe); `data-i18n-title` → the title
-  // attribute (tooltips on trust badges etc.).
-  root.querySelectorAll<HTMLElement>("[data-i18n]").forEach((el) => {
-    const key = el.dataset.i18n;
+  // `data-i18n` → textContent (plain text; also covers SVG <text> / <title> /
+  // <desc> nodes on the privacy data-flow diagram); `data-i18n-html` →
+  // innerHTML (for entries carrying authored markup like <b> / <br>; values
+  // are ours, not user input, so innerHTML is safe); `data-i18n-title` → the
+  // title attribute (tooltips on trust badges etc.); `data-i18n-aria` → the
+  // aria-label attribute (the diagram card + the SVG security-guard pills,
+  // whose accessible name is richer than their on-screen glyph). `dataset` is
+  // an HTMLElement-only API, so query SVG nodes via getAttribute too.
+  root.querySelectorAll<Element>("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
     if (key) el.textContent = t(key);
   });
-  root.querySelectorAll<HTMLElement>("[data-i18n-html]").forEach((el) => {
-    const key = el.dataset.i18nHtml;
+  root.querySelectorAll<Element>("[data-i18n-html]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-html");
     if (key) el.innerHTML = t(key);
   });
-  root.querySelectorAll<HTMLElement>("[data-i18n-title]").forEach((el) => {
-    const key = el.dataset.i18nTitle;
+  root.querySelectorAll<Element>("[data-i18n-title]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-title");
     if (key) el.setAttribute("title", t(key));
+  });
+  root.querySelectorAll<Element>("[data-i18n-aria]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-aria");
+    if (key) el.setAttribute("aria-label", t(key));
   });
 }
 
