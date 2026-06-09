@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **SPA topbar chrome now localized (EN/FR).** The home / theme-toggle button
+  titles, the "Send feedback" button title plus its entire prefilled mailto
+  draft (intro, the two prompt sections, and the Tool/Plöttr/Browser/Reported
+  footer), the lazy-chunk loading + stuck-fetch reload messages, and the landing
+  placeholder lead now route through the shell i18n catalog. The mailto section
+  underlines and footer-label padding are recomputed from the translated text so
+  the draft stays aligned in any language. (Tool display names and a few CSV
+  export headers remain English by design.)
 - **More UI strings now localized (EN/FR).** The Venn intersection table
   (Region / Degree / Count headers, the empty item-list prompt, the item count)
   and item-list panel, the Power calculator's `e.g.` input placeholders, and the

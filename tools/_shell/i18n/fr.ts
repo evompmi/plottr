@@ -255,6 +255,33 @@ const fr: Record<ShellKey, string> = {
     "Shapiro-Wilk n’a pas pu s’exécuter sur un ou les deux axes (n < 3).",
   "shell.correason.suggest":
     " Si la non-normalité semble substantielle (queues lourdes, forte asymétrie, données ordinales), envisagez de passer à Spearman ρ via le menu déroulant des tests ; pour de très petits échantillons ou fortement ex æquo, Kendall τ-b est une autre alternative.",
+
+  "shell.chrome.home": "Accueil",
+  "shell.chrome.themeToLight": "Passer en mode clair",
+  "shell.chrome.themeToDark": "Passer en mode sombre",
+
+  "shell.feedback.title":
+    "Envoyer un retour (ouvre un brouillon d’e-mail — rien n’est envoyé automatiquement)",
+  "shell.feedback.aria": "Envoyer un retour",
+  "shell.feedback.subject": "[Retour Plöttr] {tool}",
+  "shell.feedback.intro":
+    "Merci pour votre retour ! Ceci est un brouillon dans votre client de messagerie —\nPlöttr lui-même n’envoie rien. Les lignes ci-dessous ont été remplies\ncôté client pour nous permettre de reproduire le problème ; modifiez ou\nsupprimez-en avant de cliquer sur Envoyer si vous préférez ne pas les partager.",
+  "shell.feedback.whatHappened": "Ce qui s’est passé",
+  "shell.feedback.whatHappenedHint": "(décrivez ce que vous avez vu)",
+  "shell.feedback.whatExpected": "Ce que vous attendiez",
+  "shell.feedback.whatExpectedHint":
+    "(décrivez ce qui aurait dû se produire, ou ce que vous aimeriez voir à la place)",
+  "shell.feedback.fieldTool": "Outil :",
+  "shell.feedback.fieldVersion": "Plöttr :",
+  "shell.feedback.fieldBrowser": "Navigateur :",
+  "shell.feedback.fieldReported": "Signalé :",
+
+  "shell.chunk.loading": "Chargement de {label}…",
+  "shell.chunk.slow": "Le chargement de {label} prend plus de temps que prévu.",
+  "shell.chunk.reload": "Recharger la page",
+  "shell.chunk.persist": "Vos données, réglages et thème restent dans le stockage du navigateur.",
+
+  "shell.landing.lead": "Choisissez un outil dans le registre.",
 };
 
 export default fr;
