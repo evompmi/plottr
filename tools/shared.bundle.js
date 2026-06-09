@@ -296,16 +296,20 @@ var __plottrShared = (() => {
   }
   function applyStaticI18n(root = document) {
     root.querySelectorAll("[data-i18n]").forEach((el) => {
-      const key = el.dataset.i18n;
+      const key = el.getAttribute("data-i18n");
       if (key) el.textContent = t(key);
     });
     root.querySelectorAll("[data-i18n-html]").forEach((el) => {
-      const key = el.dataset.i18nHtml;
+      const key = el.getAttribute("data-i18n-html");
       if (key) el.innerHTML = t(key);
     });
     root.querySelectorAll("[data-i18n-title]").forEach((el) => {
-      const key = el.dataset.i18nTitle;
+      const key = el.getAttribute("data-i18n-title");
       if (key) el.setAttribute("title", t(key));
+    });
+    root.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+      const key = el.getAttribute("data-i18n-aria");
+      if (key) el.setAttribute("aria-label", t(key));
     });
   }
   _applyLangAttr(_lang);
@@ -490,9 +494,94 @@ var __plottrShared = (() => {
   };
   var landing_fr_default = landingFr;
 
+  // tools/_core/i18n/privacy.en.ts
+  var privacyEn = {
+    // Document <title> + page chrome
+    "privacy.docTitle": "Pl\xF6ttr \xB7 how your data is handled",
+    "privacy.breadcrumb": "\u2190 Pl\xF6ttr",
+    "privacy.h1": "How Pl\xF6ttr handles your data, in one diagram",
+    // Theme toggle (title) — set dynamically by privacy.html's inline IIFE via
+    // t(); changes with the current mode. Mirrors landing.theme.*.
+    "privacy.theme.toLight": "Switch to light mode",
+    "privacy.theme.toDark": "Switch to dark mode",
+    // ── Data-flow diagram (SVG) ──
+    "privacy.diagram.cardLabel": "Data-flow diagram",
+    "privacy.diagram.title": "Pl\xF6ttr data flow",
+    "privacy.diagram.desc": "A static-file host (e.g. GitHub Pages) sends the Pl\xF6ttr HTML, CSS, and JavaScript once to your browser at page load. From then on, the trust boundary is your own computer: you drop a CSV file in or paste table cells from Excel / Sheets, Pl\xF6ttr runs the analysis locally, and the resulting SVG / PNG / CSV / R-script files download to the same machine. No outbound connection ever carries your data. Two security guards sit on the data path itself: every ingested payload is scanned for hostile cells (CSV / Excel formula injection, hostile column names targeting the R-script export) and surfaced in a warning banner; every downloaded CSV / R-script is sanitised so that any leftover trigger characters stay inert when re-opened in Excel or RStudio.",
+    "privacy.diagram.hostSub": "(or any static host)",
+    "privacy.diagram.pageLoad": "page load",
+    "privacy.diagram.yourComputer": "YOUR COMPUTER",
+    "privacy.diagram.boundaryNote": "\u2014 nothing inside this box ever leaves it",
+    "privacy.diagram.csvLabel": "your CSV / TSV",
+    "privacy.diagram.csvSub": "local disk or clipboard",
+    "privacy.diagram.dropOrPaste": "drop or paste",
+    "privacy.diagram.appProcesses": "parses \xB7 computes \xB7 renders",
+    "privacy.diagram.appWhere": "entirely in your browser",
+    "privacy.diagram.youDownload": "you download",
+    "privacy.diagram.scanned": "\u2713 scanned",
+    "privacy.diagram.sanitised": "\u2713 sanitised",
+    "privacy.diagram.ingressAria": "Pl\xF6ttr scans every uploaded file for hostile cells before any chart is rendered",
+    "privacy.diagram.egressAria": "Pl\xF6ttr sanitises every CSV and R-script download against formula injection",
+    "privacy.diagram.outputsSub": "to your local disk",
+    // ── Trust statements ──
+    "privacy.trust.safe.h": "Your data is safe",
+    "privacy.trust.safe.p": "When you drop a file in or paste table cells, the chart and the statistics are built right there, inside your browser tab. Pl\xF6ttr has no servers.",
+    "privacy.trust.noMonitoring.h": "No monitoring",
+    "privacy.trust.noMonitoring.p": "No analytics, no cookies, no trackers. The page doesn't record what you click, what you upload, or how long you stayed.",
+    "privacy.trust.openScrutiny.h": "Open to scrutiny",
+    "privacy.trust.openScrutiny.p": 'Pl\xF6ttr is open source. The whole codebase \u2014 including this page \u2014 is on <a href="https://github.com/evompmi/plottr">GitHub</a>. Read it, fork it, or run a local copy.',
+    // ── Inspect / clone block ──
+    "privacy.inspect.html": `<strong>Want zero network at all?</strong> Pl\xF6ttr is a static site, so you can clone it once and serve it locally for the rest of its lifetime \u2014 every request stays on your machine:<br/><br/><code>git clone https://github.com/evompmi/plottr.git</code><br/><code>cd plottr &amp;&amp; python3 -m http.server</code> &nbsp;\xB7&nbsp; <span style="color: var(--text-faint)">then open <code>http://localhost:8000</code> in any browser</span><br/><br/>Any static-file server works (Python, <code>npx serve</code>, nginx, \u2026); the compiled JS is checked into <code>tools/</code> so there's no build step.`,
+    // ── Footer ──
+    "privacy.footer.back": "\u2190 Back to Pl\xF6ttr",
+    "privacy.footer.benchmark": "statistical benchmark vs R 4.5",
+    "privacy.footer.source": "source on GitHub"
+  };
+  var privacy_en_default = privacyEn;
+
+  // tools/_core/i18n/privacy.fr.ts
+  var privacyFr = {
+    "privacy.docTitle": "Pl\xF6ttr \xB7 comment vos donn\xE9es sont trait\xE9es",
+    "privacy.breadcrumb": "\u2190 Pl\xF6ttr",
+    "privacy.h1": "Comment Pl\xF6ttr traite vos donn\xE9es, en un sch\xE9ma",
+    "privacy.theme.toLight": "Passer en mode clair",
+    "privacy.theme.toDark": "Passer en mode sombre",
+    "privacy.diagram.cardLabel": "Sch\xE9ma de circulation des donn\xE9es",
+    "privacy.diagram.title": "Circulation des donn\xE9es dans Pl\xF6ttr",
+    "privacy.diagram.desc": "Un h\xE9bergeur de fichiers statiques (par ex. GitHub Pages) envoie une seule fois le HTML, le CSS et le JavaScript de Pl\xF6ttr \xE0 votre navigateur au chargement de la page. \xC0 partir de l\xE0, la fronti\xE8re de confiance est votre propre ordinateur : vous d\xE9posez un fichier CSV ou collez des cellules depuis Excel / Sheets, Pl\xF6ttr ex\xE9cute l\u2019analyse localement, et les fichiers SVG / PNG / CSV / script R produits sont t\xE9l\xE9charg\xE9s sur la m\xEAme machine. Aucune connexion sortante ne transporte jamais vos donn\xE9es. Deux gardes de s\xE9curit\xE9 veillent sur le chemin des donn\xE9es : chaque contenu import\xE9 est analys\xE9 \xE0 la recherche de cellules hostiles (injection de formules CSV / Excel, noms de colonnes hostiles visant l\u2019export du script R) et signal\xE9 dans une banni\xE8re d\u2019avertissement ; chaque CSV / script R t\xE9l\xE9charg\xE9 est assaini afin que tout caract\xE8re d\xE9clencheur r\xE9siduel reste inerte \xE0 la r\xE9ouverture dans Excel ou RStudio.",
+    "privacy.diagram.hostSub": "(ou tout h\xE9bergeur statique)",
+    "privacy.diagram.pageLoad": "chargement",
+    "privacy.diagram.yourComputer": "VOTRE ORDINATEUR",
+    "privacy.diagram.boundaryNote": "\u2014 rien dans ce cadre n\u2019en sort jamais",
+    "privacy.diagram.csvLabel": "votre CSV / TSV",
+    "privacy.diagram.csvSub": "disque ou presse-papiers",
+    "privacy.diagram.dropOrPaste": "d\xE9poser ou coller",
+    "privacy.diagram.appProcesses": "analyse \xB7 calcule \xB7 trace",
+    "privacy.diagram.appWhere": "tout dans le navigateur",
+    "privacy.diagram.youDownload": "vous t\xE9l\xE9chargez",
+    "privacy.diagram.scanned": "\u2713 analys\xE9",
+    "privacy.diagram.sanitised": "\u2713 assaini",
+    "privacy.diagram.ingressAria": "Pl\xF6ttr analyse chaque fichier import\xE9 \xE0 la recherche de cellules hostiles avant de tracer le moindre graphique",
+    "privacy.diagram.egressAria": "Pl\xF6ttr assainit chaque t\xE9l\xE9chargement CSV et script R contre l\u2019injection de formules",
+    "privacy.diagram.outputsSub": "sur votre disque local",
+    "privacy.trust.safe.h": "Vos donn\xE9es sont en s\xE9curit\xE9",
+    "privacy.trust.safe.p": "Lorsque vous d\xE9posez un fichier ou collez des cellules, le graphique et les statistiques sont construits sur place, dans l\u2019onglet de votre navigateur. Pl\xF6ttr n\u2019a aucun serveur.",
+    "privacy.trust.noMonitoring.h": "Aucun suivi",
+    "privacy.trust.noMonitoring.p": "Pas d\u2019analytique, pas de cookies, pas de traceurs. La page n\u2019enregistre ni ce que vous cliquez, ni ce que vous importez, ni combien de temps vous restez.",
+    "privacy.trust.openScrutiny.h": "Ouvert \xE0 l\u2019examen",
+    "privacy.trust.openScrutiny.p": 'Pl\xF6ttr est open source. Tout le code \u2014 y compris cette page \u2014 est sur <a href="https://github.com/evompmi/plottr">GitHub</a>. Lisez-le, forkez-le, ou faites-en tourner une copie locale.',
+    "privacy.inspect.html": '<strong>Vous voulez z\xE9ro r\xE9seau du tout ?</strong> Pl\xF6ttr est un site statique : vous pouvez le cloner une fois et le servir localement pour le reste de sa vie \u2014 chaque requ\xEAte reste sur votre machine :<br/><br/><code>git clone https://github.com/evompmi/plottr.git</code><br/><code>cd plottr &amp;&amp; python3 -m http.server</code> &nbsp;\xB7&nbsp; <span style="color: var(--text-faint)">puis ouvrez <code>http://localhost:8000</code> dans n\u2019importe quel navigateur</span><br/><br/>N\u2019importe quel serveur de fichiers statiques convient (Python, <code>npx serve</code>, nginx, \u2026) ; le JS compil\xE9 est versionn\xE9 dans <code>tools/</code>, donc aucune \xE9tape de build n\u2019est n\xE9cessaire.',
+    "privacy.footer.back": "\u2190 Retour \xE0 Pl\xF6ttr",
+    "privacy.footer.benchmark": "benchmark statistique vs R 4.5",
+    "privacy.footer.source": "code source sur GitHub"
+  };
+  var privacy_fr_default = privacyFr;
+
   // tools/_core/shared-bundle-entry.ts
   registerCatalog("landing", "en", landing_en_default);
   registerCatalog("landing", "fr", landing_fr_default);
+  registerCatalog("privacy", "en", privacy_en_default);
+  registerCatalog("privacy", "fr", privacy_fr_default);
   return __toCommonJS(shared_bundle_entry_exports);
 })();
 

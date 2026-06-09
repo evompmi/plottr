@@ -13,12 +13,16 @@
 export * from "./theme";
 export * from "./i18n";
 
-// Register the static-landing catalog into this bundle's i18n registry so
-// the page's inline script can call applyStaticI18n() against it. (The SPA
-// doesn't render landing copy, so this namespace lives only here.)
+// Register the static-page catalogs into this bundle's i18n registry so each
+// page's inline script can call applyStaticI18n() against them. (The SPA
+// doesn't render this copy, so these namespaces live only here.)
 import { registerCatalog } from "./i18n";
 import landingEn from "./i18n/landing.en";
 import landingFr from "./i18n/landing.fr";
+import privacyEn from "./i18n/privacy.en";
+import privacyFr from "./i18n/privacy.fr";
 
 registerCatalog("landing", "en", landingEn);
 registerCatalog("landing", "fr", landingFr);
+registerCatalog("privacy", "en", privacyEn);
+registerCatalog("privacy", "fr", privacyFr);

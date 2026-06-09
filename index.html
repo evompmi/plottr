@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'sha256-252wD4T/6roUdu4abRwhbwTxtXRsngzmzyyUFVwlTn0=' 'sha256-308DlEcoiJ3pjDzzqgeGNsdA41lX+FxX3IP7MAzSfMA=' 'sha256-rTpKQwjVhWC/FlI2aeTABKI90tBPk1Cs4X4BXh4XcHI=' 'sha256-Q4l5tEJBjGlf1rK/9uF78rjodpQS8SLBOrmxuOyjjng=' 'sha256-ilOt71lN/vPCgUvE9TgLWXK3cKkNa16YwfGLe8MNMTg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'"
+      content="default-src 'self'; script-src 'self' 'sha256-252wD4T/6roUdu4abRwhbwTxtXRsngzmzyyUFVwlTn0=' 'sha256-308DlEcoiJ3pjDzzqgeGNsdA41lX+FxX3IP7MAzSfMA=' 'sha256-rTpKQwjVhWC/FlI2aeTABKI90tBPk1Cs4X4BXh4XcHI=' 'sha256-Q4l5tEJBjGlf1rK/9uF78rjodpQS8SLBOrmxuOyjjng=' 'sha256-wp1a2pMNt/T2CPEwIsZUFbJNrtbOvMu8dP68svkfZDc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'"
     />
     <!-- BEGIN dv-anti-clickjack -->
     <!--
@@ -1660,15 +1660,18 @@
             setTheme(resolved() === "dark" ? "light" : "dark");
           });
         });
-        // Cross-origin theme push for links that navigate away from this
-        // document (benchmark.html). On file:// origins Chrome partitions
-        // localStorage per-file, so the target page cannot read our stored
-        // theme — we smuggle it through a ?theme= query param, which the
-        // target's no-FOUC snippet reads and persists locally.
+        // Cross-origin theme + language push for links that navigate away
+        // from this document (benchmark.html, privacy.html). On file://
+        // origins Chrome partitions localStorage per-file, so the target page
+        // cannot read our stored theme / language — we smuggle them through
+        // ?theme= / ?lang= query params, which the target's no-FOUC snippets
+        // read and persist locally. (benchmark.html reads only ?theme=; the
+        // harmless ?lang= it ignores.)
         document.querySelectorAll("[data-benchmark-link]").forEach(function (a) {
           a.addEventListener("click", function () {
+            var lang = typeof getLang === "function" ? getLang() : "en";
             var base = a.getAttribute("href").split("?")[0].split("#")[0];
-            a.setAttribute("href", base + "?theme=" + resolved());
+            a.setAttribute("href", base + "?theme=" + resolved() + "&lang=" + lang);
           });
         });
         // Inbound channel messages — another tab (tool, benchmark) toggled,
