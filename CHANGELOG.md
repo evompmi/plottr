@@ -7,85 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-06-09
+
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.8.0.md`](docs/release-notes/v1.8.0.md). The
+> entries below are summary bullets that link there.
+>
+> The "Sentinel" hardening release: a strict Content-Security-Policy now
+> backs every page, a pasted-CSV XSS hole is closed, the last English-only
+> surfaces (privacy / data-flow page, SPA topbar chrome, landing toggle) are
+> localized EN/FR, Venn / UpSet selection is keyboard-reachable, and two
+> statistical deep-tail bugs (non-finite samples, Kruskal-Wallis p underflow)
+> are fixed.
+
 ### Added
 
-- **Content-Security-Policy on every page.** Each static page now carries a
-  `<meta http-equiv="Content-Security-Policy">` with a strict `script-src`
-  (`'self'` + a per-inline-script `'sha256-…'` hash, no `'unsafe-inline'`), so
-  the browser refuses injected inline handlers as a defence-in-depth backstop to
-  the XSS escaping fix. Hashes are generated and kept in sync by
-  `scripts/csp-sync.js` (wired into `prebuild`, checkable via `npm run lint:csp`)
-  and drift-guarded by `tests/csp.test.js`. Verified in a real browser: all 18
-  Playwright e2e flows pass under the enforced policy.
+- **Content-Security-Policy on every page.** Each static page carries a strict
+  `<meta http-equiv="Content-Security-Policy">` (`script-src 'self'` +
+  per-inline-script `'sha256-…'`, no `'unsafe-inline'`), so the browser refuses
+  injected inline handlers — a defence-in-depth backstop to the XSS escaping
+  fix. Synced by `scripts/csp-sync.js`, drift-guarded by `tests/csp.test.js`.
+  See [`docs/release-notes/v1.8.0.md`](docs/release-notes/v1.8.0.md#-added).
 
 ### Fixed
 
-- **Privacy / data-flow page now localized (EN/FR).** `privacy.html` — the
-  trust page behind the landing privacy badge — was a fully English static
-  page; its breadcrumb, heading, the entire data-flow SVG diagram (node labels,
-  `<title>`/`<desc>`, and the two security-guard pills' `aria-label`s), the
-  three trust cards, the "clone and self-host" block, and the footer now route
-  through a new `privacy` i18n catalog. The page gained an EN/FR toggle beside
-  its theme toggle and a no-FOUC `<html lang>` snippet; the landing → privacy
-  link carries the active language via `?lang=` for the `file://` case (the
-  same trick the existing `?theme=` push uses, since `file://` partitions
-  localStorage). `applyStaticI18n` gained a `data-i18n-aria` channel (and SVG
-  text-node support) for the diagram's accessible names. (`benchmark.html`
-  stays English — it's a generated R-vs-JS report for a technical audience.)
-- **SPA topbar chrome now localized (EN/FR).** The home / theme-toggle button
-  titles, the "Send feedback" button title plus its entire prefilled mailto
-  draft (intro, the two prompt sections, and the Tool/Plöttr/Browser/Reported
-  footer), the lazy-chunk loading + stuck-fetch reload messages, and the landing
-  placeholder lead now route through the shell i18n catalog. The mailto section
-  underlines and footer-label padding are recomputed from the translated text so
-  the draft stays aligned in any language. (Tool display names and a few CSV
-  export headers remain English by design.)
-- **Landing-page theme-toggle hover now localized (EN/FR).** The light/dark
-  toggle in the landing top bar had a hardcoded English `title` / `aria-label`
-  ("Switch to light/dark mode") set by its inline script, and it never updated
-  on language change. It now reads from the `landing` i18n catalog and
-  re-renders on `plottr-lang-change`. (benchmark.html is a fully English
-  generated page — not internationalized — and is left as-is; privacy.html is
-  now localized, see above.)
-- **More UI strings now localized (EN/FR).** The Venn intersection table
-  (Region / Degree / Count headers, the empty item-list prompt, the item count)
-  and item-list panel, the Power calculator's `e.g.` input placeholders, and the
-  shared discrete-palette swatch tooltips / picker title were hardcoded English;
-  they now route through the i18n catalogs. Also fixed a French typo on the
-  landing page ("click" → "clic"). (The SPA topbar chrome and a few CSV export
-  headers remain English — tracked separately.)
-- **Keyboard access to Venn / UpSet selection.** The Venn intersection-table
-  rows and SVG regions, and the UpSet intersection bars, are now focusable
-  `role="button"` targets with `Enter` / `Space` activation and `aria-pressed`
-  state — previously these click-to-select interactions were mouse-only, leaving
-  no keyboard route to extract Venn region members. (Volcano's per-point and
-  Heatmap's cell selection remain pointer-driven; their high element counts need
-  a roving/arrow-key design rather than per-element tab stops — Volcano already
-  offers keyboard search-by-name.) Verified with new Playwright e2e.
+- **DOM XSS via pasted-CSV column headers.** A non-numeric header pasted into
+  Group Plot was interpolated into hints via `dangerouslySetInnerHTML` without
+  escaping (`<img src=x onerror=…>` could run script). A new HTML-escaping
+  translate variant (`tHtml` / `ttHtml`) now backs every interpolating site.
+  (regression: 5 tests) See
+  [`docs/release-notes/v1.8.0.md`](docs/release-notes/v1.8.0.md#-fixed).
+- **Privacy / data-flow page now localized (EN/FR).** `privacy.html` — chrome,
+  the whole data-flow SVG diagram (labels, `<title>` / `<desc>`, guard
+  `aria-label`s), trust cards, self-host block, footer — now routes through a
+  new `privacy` i18n catalog, with an EN/FR toggle, no-FOUC `<html lang>`, and a
+  `?lang=` cross-page push. `applyStaticI18n` gained `data-i18n-aria` + SVG
+  support. (`benchmark.html` stays English — generated report.) See
+  [`docs/release-notes/v1.8.0.md`](docs/release-notes/v1.8.0.md#-fixed).
+- **SPA topbar chrome now localized (EN/FR).** Home / theme-toggle titles, the
+  "Send feedback" button + its entire prefilled mailto draft, the lazy-chunk
+  loading / stuck-fetch messages, and the landing placeholder now route through
+  the shell catalog (with the mailto layout recomputed from the translated
+  text). See [`docs/release-notes/v1.8.0.md`](docs/release-notes/v1.8.0.md#-fixed).
+- **Landing-page theme-toggle hover now localized (EN/FR).** The light / dark
+  toggle's hardcoded English `title` / `aria-label` now reads from the `landing`
+  catalog and re-renders on `plottr-lang-change`. See
+  [`docs/release-notes/v1.8.0.md`](docs/release-notes/v1.8.0.md#-fixed).
+- **More UI strings now localized (EN/FR).** The Venn intersection table +
+  item-list panel, the Power calculator's `e.g.` placeholders, and the shared
+  discrete-palette tooltips / picker title now route through the catalogs; also
+  a French typo fix ("click" → "clic"). See
+  [`docs/release-notes/v1.8.0.md`](docs/release-notes/v1.8.0.md#-fixed).
+- **Keyboard access to Venn / UpSet selection.** The Venn table rows + SVG
+  regions and the UpSet bars are now focusable `role="button"` targets with
+  `Enter` / `Space` activation and `aria-pressed` state — previously mouse-only.
+  Verified with new Playwright e2e. See
+  [`docs/release-notes/v1.8.0.md`](docs/release-notes/v1.8.0.md#-fixed).
 - **Descriptive stats no longer corrupt on non-finite input.** `computeStats`,
-  `quartiles`, and `kde` now drop `NaN` / `±Infinity` samples before reducing,
-  instead of letting one poison the mean / SD / min / max / whisker / KDE curve
-  (`sort` parks `NaN` last, so `max` came back `NaN`). The string parser can't
-  emit these, so this hardens direct-array callers (normalised / handoff data).
-  (regression: 6 tests)
-- **Kruskal-Wallis p-value no longer underflows to 0.** For strongly
-  significant data the p-value was computed as `1 - chi2cdf(H, df)`, which
-  floors to exactly `0` once the lower CDF rounds to 1.0 (catastrophic
-  cancellation in the χ² deep tail) — so a genuinely tiny p collapsed to `0`.
-  Now computed directly via a new `chi2cdf_upper` (regularized upper incomplete
-  gamma), matching the existing `tcdf_upper` / `fcdf_upper` treatment and R's
-  `pchisq(lower.tail=FALSE)`. (regression: 5 tests)
-- **DOM XSS via pasted-CSV column headers.** A non-numeric column header
-  pasted into Group Plot was interpolated into the configure/output hints via
-  `dangerouslySetInnerHTML` without escaping, so a header like
-  `<img src=x onerror=…>` could run script. Added an HTML-escaping translate
-  variant (`tHtml` / `ttHtml`) in the i18n layer and routed every
-  variable-interpolating `dangerouslySetInnerHTML` site through it. (regression:
-  5 tests)
-- **Landing toggles now match in size.** The language toggle inherited
-  `width: auto`, rendering ~34px wide against the theme toggle's 40px square;
-  it now shares the same 40×40px footprint (the 6px gap between them is
-  preserved).
+  `quartiles`, and `kde` drop `NaN` / `±Infinity` samples before reducing,
+  instead of letting one poison the mean / SD / min / max / whisker / KDE curve.
+  (regression: 6 tests) See
+  [`docs/release-notes/v1.8.0.md`](docs/release-notes/v1.8.0.md#-fixed).
+- **Kruskal-Wallis p-value no longer underflows to 0.** Computed directly via a
+  new `chi2cdf_upper` (regularized upper incomplete gamma) instead of
+  `1 - chi2cdf(H, df)`, which floored to `0` in the χ² deep tail. (regression: 5
+  tests) See [`docs/release-notes/v1.8.0.md`](docs/release-notes/v1.8.0.md#-fixed).
+- **Landing toggles now match in size.** The language toggle (previously
+  `width: auto`, ~34px) now shares the theme toggle's 40×40px footprint. See
+  [`docs/release-notes/v1.8.0.md`](docs/release-notes/v1.8.0.md#-fixed).
 
 ## [1.7.1] - 2026-06-08
 
