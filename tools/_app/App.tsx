@@ -15,6 +15,7 @@ import { TOOL_REGISTRY, findToolEntry } from "./tool-registry";
 import { ErrorBoundary } from "../_shell";
 import { toggleTheme, useThemeMode } from "../_core/theme";
 import { useLang, setLang } from "../_core/i18n";
+import { useShellT } from "../_shell/i18n";
 import { TOOL_ACCENT, tintIcon } from "../_core/icons";
 // Inline SVG icons reused across the SPA shell. Visual identity mirrors
 // the landing markup in `index.html`.
@@ -85,33 +86,39 @@ function IconButton({
 // decoding back to spaces. Using `encodeURIComponent` on each field
 // yields `%20` for spaces, which every client handles correctly.
 function FeedbackButton({ currentKey }: { currentKey: string | null }) {
+  const tr = useShellT();
   const onClick = () => {
     const tool = currentKey || "landing";
     const version =
       (typeof window !== "undefined" && (window as { __APP_VERSION__?: string }).__APP_VERSION__) ||
       "v?";
     const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "unknown";
+    // Section underlines and field-label padding are computed from the
+    // translated text so the draft stays aligned in any language.
+    const whatHappened = tr("shell.feedback.whatHappened");
+    const whatExpected = tr("shell.feedback.whatExpected");
+    const fields: [string, string][] = [
+      [tr("shell.feedback.fieldTool"), tool],
+      [tr("shell.feedback.fieldVersion"), version],
+      [tr("shell.feedback.fieldBrowser"), ua],
+      [tr("shell.feedback.fieldReported"), new Date().toISOString()],
+    ];
+    const labelWidth = Math.max(...fields.map(([label]) => label.length));
     const body = [
-      "Thanks for sending feedback! This is a draft in your mail client —",
-      "Plöttr itself sends nothing. The lines below were filled in",
-      "client-side so we can reproduce; edit or strip any of them before",
-      "clicking Send if you'd rather not share that detail.",
+      tr("shell.feedback.intro"),
       "",
-      "What happened",
-      "-------------",
-      "(describe what you saw)",
+      whatHappened,
+      "-".repeat(whatHappened.length),
+      tr("shell.feedback.whatHappenedHint"),
       "",
-      "What you expected",
-      "-----------------",
-      "(describe what you thought would happen, or what you'd like to see instead)",
+      whatExpected,
+      "-".repeat(whatExpected.length),
+      tr("shell.feedback.whatExpectedHint"),
       "",
       "---",
-      "- Tool:     " + tool,
-      "- Plöttr:   " + version,
-      "- Browser:  " + ua,
-      "- Reported: " + new Date().toISOString(),
+      ...fields.map(([label, value]) => "- " + label.padEnd(labelWidth + 1) + value),
     ].join("\n");
-    const subject = "[Plöttr feedback] " + tool;
+    const subject = tr("shell.feedback.subject", { tool });
     const url =
       "mailto:" +
       encodeURIComponent(FEEDBACK_EMAIL) +
@@ -128,8 +135,8 @@ function FeedbackButton({ currentKey }: { currentKey: string | null }) {
   return React.createElement("button", {
     type: "button",
     className: "tb-icon-btn",
-    title: "Send feedback (opens an email draft — nothing is sent automatically)",
-    "aria-label": "Send feedback",
+    title: tr("shell.feedback.title"),
+    "aria-label": tr("shell.feedback.aria"),
     onClick,
     dangerouslySetInnerHTML: { __html: FEEDBACK_SVG },
     // `data-feedback` is a no-op for the existing mobile-strip CSS rule
@@ -147,9 +154,10 @@ function FeedbackButton({ currentKey }: { currentKey: string | null }) {
 // `_core/theme`, kept visually consistent with the rest of the
 // topbar's `tb-icon-btn` siblings.
 function ThemeButton() {
+  const tr = useShellT();
   const mode = useThemeMode();
   const isDark = mode === "dark";
-  const title = isDark ? "Switch to light mode" : "Switch to dark mode";
+  const title = isDark ? tr("shell.chrome.themeToLight") : tr("shell.chrome.themeToDark");
   return React.createElement("button", {
     type: "button",
     className: "tb-icon-btn",
@@ -186,6 +194,7 @@ function LangButton() {
 // Topbar rendered above an active tool. Theme toggle + language toggle +
 // home button + sibling-tool quick-jump icons.
 function ToolTopbar({ currentKey }: { currentKey: string }) {
+  const tr = useShellT();
   const others = TOOL_REGISTRY.filter((t) => t.key !== currentKey);
   return React.createElement(
     "div",
@@ -204,7 +213,7 @@ function ToolTopbar({ currentKey }: { currentKey: string }) {
     React.createElement(LangButton),
     React.createElement("div", { className: "tb-sep" }),
     IconButton({
-      title: "Home",
+      title: tr("shell.chrome.home"),
       svg: HOME_SVG,
       onClick: () => navigate(null),
       // `data-back` + `data-tool` are read by the @media (max-width: 900px)
@@ -264,6 +273,7 @@ const CHUNK_LOAD_STUCK_MS = 6000;
 // throttling on a backgrounded tab, transient CDN tarpit) where the
 // user's only recourse is otherwise a manual reload.
 function ChunkLoadingFallback({ label }: { label: string }) {
+  const tr = useShellT();
   const [stuck, setStuck] = React.useState(false);
   React.useEffect(() => {
     const timer = window.setTimeout(() => setStuck(true), CHUNK_LOAD_STUCK_MS);
@@ -292,9 +302,7 @@ function ChunkLoadingFallback({ label }: { label: string }) {
       React.createElement(
         "div",
         { style: { color: "var(--text-muted)" } },
-        "Loading ",
-        label,
-        " is taking longer than expected."
+        tr("shell.chunk.slow", { label })
       ),
       React.createElement(
         "button",
@@ -303,12 +311,12 @@ function ChunkLoadingFallback({ label }: { label: string }) {
           className: "dv-btn dv-btn-primary",
           onClick: () => window.location.reload(),
         },
-        "Reload page"
+        tr("shell.chunk.reload")
       ),
       React.createElement(
         "div",
         { style: { color: "var(--text-faint)", fontSize: 11 } },
-        "Your data, settings, and theme stay in browser storage."
+        tr("shell.chunk.persist")
       )
     );
   }
@@ -331,7 +339,7 @@ function ChunkLoadingFallback({ label }: { label: string }) {
       },
     },
     React.createElement("div", { className: "dv-chunk-spinner", "aria-hidden": "true" }),
-    React.createElement("div", null, "Loading ", label, "…")
+    React.createElement("div", null, tr("shell.chunk.loading", { label }))
   );
 }
 
@@ -341,6 +349,7 @@ function ChunkLoadingFallback({ label }: { label: string }) {
 // fails (e.g. a `?theme=` redirect to a tool route that wasn't
 // recognised).
 function LandingPlaceholder() {
+  const tr = useShellT();
   return React.createElement(
     "div",
     {
@@ -358,7 +367,7 @@ function LandingPlaceholder() {
     React.createElement(
       "p",
       { style: { color: "var(--text-muted)", margin: "0 0 16px" } },
-      "Pick a tool from the registry."
+      tr("shell.landing.lead")
     ),
     React.createElement(
       "ul",

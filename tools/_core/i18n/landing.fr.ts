@@ -32,6 +32,9 @@ const landingFr: Record<LandingKey, string> = {
   "landing.desc.volcano": "log₂FC vs −log₁₀p<br/>pour données —omiques",
   "landing.desc.power": "Taille d’échantillon &amp; puissance<br/>pour t, ANOVA, χ², r",
   "landing.desc.molarity": "Molarité, dilution<br/>&amp; feuilles de préparation",
+  "landing.theme.toLight": "Passer en mode clair",
+  "landing.theme.toDark": "Passer en mode sombre",
+
   "landing.footer.cite": "Citer — DOI Zenodo",
   "landing.footer.citeTitle":
     "Archivé sur Zenodo — citez Plöttr via le DOI 10.5281/zenodo.20245057",

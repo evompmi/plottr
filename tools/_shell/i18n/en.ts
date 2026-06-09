@@ -276,6 +276,40 @@ const en = {
   // ScrollablePlotCard
   "shell.scroll.more": "Scroll for more →",
 
+  // SPA topbar chrome + shell-level fallbacks (tools/_app/App.tsx)
+  "shell.chrome.home": "Home",
+  "shell.chrome.themeToLight": "Switch to light mode",
+  "shell.chrome.themeToDark": "Switch to dark mode",
+
+  // FeedbackButton — title/aria + the prefilled mailto draft. The body is
+  // assembled in App.tsx from these pieces; the section underlines and the
+  // field-label padding are computed in code so they stay aligned in any
+  // language. Field labels keep "Plöttr" as the product name.
+  "shell.feedback.title": "Send feedback (opens an email draft — nothing is sent automatically)",
+  "shell.feedback.aria": "Send feedback",
+  "shell.feedback.subject": "[Plöttr feedback] {tool}",
+  "shell.feedback.intro":
+    "Thanks for sending feedback! This is a draft in your mail client —\nPlöttr itself sends nothing. The lines below were filled in\nclient-side so we can reproduce; edit or strip any of them before\nclicking Send if you'd rather not share that detail.",
+  "shell.feedback.whatHappened": "What happened",
+  "shell.feedback.whatHappenedHint": "(describe what you saw)",
+  "shell.feedback.whatExpected": "What you expected",
+  "shell.feedback.whatExpectedHint":
+    "(describe what you thought would happen, or what you'd like to see instead)",
+  "shell.feedback.fieldTool": "Tool:",
+  "shell.feedback.fieldVersion": "Plöttr:",
+  "shell.feedback.fieldBrowser": "Browser:",
+  "shell.feedback.fieldReported": "Reported:",
+
+  // ChunkLoadingFallback — lazy-chunk spinner + stuck-fetch reload prompt.
+  "shell.chunk.loading": "Loading {label}…",
+  "shell.chunk.slow": "Loading {label} is taking longer than expected.",
+  "shell.chunk.reload": "Reload page",
+  "shell.chunk.persist": "Your data, settings, and theme stay in browser storage.",
+
+  // LandingPlaceholder — fallback shown only if index.html's route-toggle
+  // CSS fails ("Plöttr" wordmark stays untranslated by design).
+  "shell.landing.lead": "Pick a tool from the registry.",
+
   // Test-selection rationale — rebuilt on the component tier from the kernel's
   // structured diagnostics (the kernel keeps the canonical English `reason` for
   // tests + exports). EN text matches the kernel string verbatim.
