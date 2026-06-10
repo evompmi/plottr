@@ -96,6 +96,8 @@ const en = {
   "heatmap.cfg.nonNumeric.one": "{n} non-numeric cell rendered as NaN",
   "heatmap.cfg.nonNumeric.other": "{n} non-numeric cells rendered as NaN",
   "heatmap.cfg.large": "matrix is large — clustering may take a few seconds",
+  "heatmap.cfg.clusterCapped":
+    "matrix too large to cluster ({max}+ on an axis) — showing file order",
   "heatmap.plot.clear": "Clear",
   "heatmap.plot.dragHint":
     "↳ Drag on the heatmap or click a dendrogram / k-means band to open a zoomed view",

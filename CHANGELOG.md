@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Heatmap clustering no longer freezes the tab on huge matrices.** Hierarchical
+  and k-means clustering build an N×N distance matrix on the main thread; a
+  pathological-but-legal CSV (thousands of rows/columns, still under the 2 MB
+  ingest limit) could lock the tab for many seconds with no feedback. Clustering
+  is now capped at 5,000 observations per axis — above that the heatmap falls
+  back to file order and shows a note explaining why. Realistic heatmaps (the
+  bundled demo is 500×6) are unaffected.
+
 - **Sliders and colour pickers are now labelled for screen readers.** Every
   range slider (`SliderControl`) associates its visible label with the input
   via `aria-labelledby`, so it announces e.g. "Point size" instead of a bare

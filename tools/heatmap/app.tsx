@@ -32,6 +32,17 @@ import { downloadPng, downloadSvg, fileBaseName, flashSaved } from "../_core/dow
 import { hclust, kmeans, pairwiseDistance } from "../_core/stats/cluster";
 const { useState, useReducer, useMemo, useCallback, useRef } = React;
 
+// Hard ceiling on the number of observations (rows for row-clustering,
+// columns for column-clustering) we will cluster on the main thread.
+// `pairwiseDistance` builds an N×N matrix and `hclust` is O(N²–N³), with no
+// Web Worker — above a few thousand observations that locks the tab for
+// many seconds with no way to cancel. The 2 MB ingest gate alone permits a
+// matrix well past that, so cap clustering explicitly: above the limit we
+// fall back to the unclustered (file) order and surface a note. 5,000 is
+// comfortably above any realistic heatmap (the bundled demo is 500×6) while
+// staying well inside an interactive compute budget.
+const CLUSTER_MAX_OBS = 5000;
+
 const VIS_INIT_HEATMAP = {
   palette: "viridis",
   invertPalette: false,
@@ -191,6 +202,8 @@ export function App() {
 
   // Clustering — expensive; only recompute when relevant inputs change.
   const rowCluster = useMemo<ClusterResult | null>(() => {
+    // Too many rows to cluster on the main thread — fall back to file order.
+    if (rowMode !== "none" && normalized.length > CLUSTER_MAX_OBS) return null;
     if (rowMode === "hierarchical") {
       if (normalized.length < 2) return null;
       const D = pairwiseDistance(normalized, distanceMetric);
@@ -211,6 +224,8 @@ export function App() {
 
   const colCluster = useMemo<ClusterResult | null>(() => {
     if (normalized.length < 1 || normalized[0].length < 2) return null;
+    // Too many columns to cluster on the main thread — fall back to file order.
+    if (colMode !== "none" && normalized[0].length > CLUSTER_MAX_OBS) return null;
     // Transpose once — both hierarchical and k-means need column-as-observation.
     const nRows = normalized.length;
     const nCols = normalized[0].length;
@@ -437,6 +452,12 @@ export function App() {
   const nRows = rawMatrix.rowLabels.length;
   const nCols = rawMatrix.colLabels.length;
   const oversize = nRows > 500 || nCols > 500;
+  // Clustering was requested on an axis with more observations than we will
+  // cluster on the main thread (see CLUSTER_MAX_OBS) — it silently fell back
+  // to file order, so tell the user why.
+  const clusterCapped =
+    (rowMode !== "none" && nRows > CLUSTER_MAX_OBS) ||
+    (colMode !== "none" && nCols > CLUSTER_MAX_OBS);
 
   return (
     <PlotToolShell
@@ -482,10 +503,19 @@ export function App() {
                 </span>
               </>
             )}
-            {oversize && (
+            {oversize && !clusterCapped && (
               <>
                 {" "}
                 · <span style={{ color: "var(--warning-text)" }}>{tr("heatmap.cfg.large")}</span>
+              </>
+            )}
+            {clusterCapped && (
+              <>
+                {" "}
+                ·{" "}
+                <span style={{ color: "var(--warning-text)" }}>
+                  {tr("heatmap.cfg.clusterCapped", { max: CLUSTER_MAX_OBS })}
+                </span>
               </>
             )}
           </p>

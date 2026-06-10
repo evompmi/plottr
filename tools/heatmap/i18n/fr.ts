@@ -73,6 +73,8 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.cfg.nonNumeric.one": "{n} cellule non numérique rendue en NaN",
   "heatmap.cfg.nonNumeric.other": "{n} cellules non numériques rendues en NaN",
   "heatmap.cfg.large": "la matrice est grande — le clustering peut prendre quelques secondes",
+  "heatmap.cfg.clusterCapped":
+    "matrice trop grande pour le clustering ({max}+ sur un axe) — ordre du fichier affiché",
   "heatmap.plot.clear": "Effacer",
   "heatmap.plot.dragHint":
     "↳ Glissez sur la heatmap ou cliquez sur un dendrogramme / une bande k-means pour ouvrir une vue zoomée",
