@@ -9,14 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Multi-file downloads now land in one folder you pick.** Saving several
-  files at once (faceted SVG/PNG exports, per-region Venn CSVs, UpSet
+- **Multi-file downloads now land in one place instead of scattering.** Saving
+  several files at once (faceted SVG/PNG exports, per-region Venn CSVs, UpSet
   intersection CSVs, per-set stats reports) prompted once for a location and
   then silently dropped the rest into the default Downloads folder on recent
   Chromium/Windows — only the first file's save dialog held the user gesture.
-  Batch saves now ask once for a destination folder (`showDirectoryPicker`)
-  and write every file there; single-file saves keep the familiar Save As
-  dialog. Falls back to the classic anchor download on Firefox / Safari.
+  Now: two or three files ask once for a destination folder
+  (`showDirectoryPicker`) and write every file there; **more than three are
+  bundled into a single `.zip`** download. Single-file saves keep the familiar
+  Save As dialog. The zip is built in-browser with no new dependency and works
+  on every browser including Firefox / Safari.
 
 ## [1.8.0] - 2026-06-09
 
