@@ -4,7 +4,14 @@
 // detail view, reports, and pure helpers all live in sibling modules under
 // tools/heatmap/.
 
-import { DataPreview, DetectedSeparatorBadge, PlotToolShell, usePlotToolState } from "../_shell";
+import {
+  ChartDataTable,
+  DataPreview,
+  DetectedSeparatorBadge,
+  PlotToolShell,
+  usePlotToolState,
+} from "../_shell";
+import type { ChartDataTableRow } from "../_shell";
 import "./i18n";
 import { tt, useT } from "./i18n";
 import { normalizeMatrix, autoRange } from "./helpers";
@@ -42,6 +49,11 @@ const { useState, useReducer, useMemo, useCallback, useRef } = React;
 // comfortably above any realistic heatmap (the bundled demo is 500×6) while
 // staying well inside an interactive compute budget.
 const CLUSTER_MAX_OBS = 5000;
+
+// Cap the accessible data-table size — a `<table>` of a multi-thousand-square
+// matrix would balloon the DOM. Render rows up to this cell budget and note
+// the truncation; the chart itself is unaffected.
+const TABLE_MAX_CELLS = 20000;
 
 const VIS_INIT_HEATMAP = {
   palette: "viridis",
@@ -452,6 +464,32 @@ export function App() {
   const nRows = rawMatrix.rowLabels.length;
   const nCols = rawMatrix.colLabels.length;
   const oversize = nRows > 500 || nCols > 500;
+
+  // Accessible data-table model: the raw matrix in current display order, so
+  // keyboard / screen-reader users get the same values the (image-rendered)
+  // cells show. Truncated to a cell budget on huge matrices (see
+  // TABLE_MAX_CELLS); the `note` tells the user when that happens.
+  const tableModel = useMemo(() => {
+    const maxRows = nCols > 0 ? Math.max(1, Math.floor(TABLE_MAX_CELLS / nCols)) : nRows;
+    const shownRows = Math.min(nRows, maxRows);
+    const fmt = (v: number): string =>
+      Number.isFinite(v) ? String(Math.round(v * 1e4) / 1e4) : "";
+    const rows: ChartDataTableRow[] = [];
+    for (let ri = 0; ri < shownRows; ri++) {
+      const origRi = rowOrder[ri];
+      if (origRi == null) continue;
+      const cells: string[] = [];
+      for (let ci = 0; ci < nCols; ci++) {
+        const origCi = colOrder[ci];
+        cells.push(origCi == null ? "" : fmt(rawMatrix.matrix[origRi][origCi]));
+      }
+      rows.push({ header: rawMatrix.rowLabels[origRi], cells });
+    }
+    const columnHeaders = [vis.rowAxisLabel || tr("heatmap.table.rowHeader")].concat(
+      colOrder.map((origCi) => rawMatrix.colLabels[origCi])
+    );
+    return { rows, columnHeaders, truncated: shownRows < nRows, shownRows };
+  }, [rawMatrix, rowOrder, colOrder, nRows, nCols, vis.rowAxisLabel, tr]);
   // Clustering was requested on an axis with more observations than we will
   // cluster on the main thread (see CLUSTER_MAX_OBS) — it silently fell back
   // to file order, so tell the user why.
@@ -709,6 +747,17 @@ export function App() {
                   clusterId={selection.clusterId}
                 />
               )}
+              <ChartDataTable
+                summaryLabel={tr("heatmap.table.summary")}
+                caption={tr("heatmap.table.caption", { rows: nRows, cols: nCols })}
+                columnHeaders={tableModel.columnHeaders}
+                rows={tableModel.rows}
+                note={
+                  tableModel.truncated
+                    ? tr("heatmap.table.truncated", { shown: tableModel.shownRows, total: nRows })
+                    : null
+                }
+              />
             </div>
           </div>
         </div>

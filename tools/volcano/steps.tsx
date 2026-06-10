@@ -5,7 +5,15 @@
 // AesBox / sidebar tiles come from ./controls.tsx; the SVG renderer
 // comes from ./chart.tsx.
 
-import { DataPreview, DetectedSeparatorBadge, DownloadTiles, PlotSidebar } from "../_shell";
+import {
+  ChartDataTable,
+  DataPreview,
+  DetectedSeparatorBadge,
+  DownloadTiles,
+  PlotSidebar,
+} from "../_shell";
+import type { ChartDataTableRow } from "../_shell";
+import { classifyPoint } from "./helpers";
 import {
   VolcanoAesBox,
   ThresholdsTile,
@@ -19,6 +27,12 @@ import {
 import type { ConfigureStepProps, PlotStepProps } from "./helpers";
 import { VolcanoChart } from "./chart";
 import { useT } from "./i18n";
+
+const { useMemo } = React;
+
+// Cap the accessible points table so a transcriptomics-scale input doesn't
+// render tens of thousands of <tr> rows; the chart itself is unaffected.
+const TABLE_MAX_ROWS = 2000;
 
 import { fileBaseName } from "../_core/download";
 // ── Configure step ─────────────────────────────────────────────────────
@@ -222,6 +236,35 @@ export function PlotStep({
   onLabelLayoutInfo,
 }: PlotStepProps) {
   const tr = useT();
+
+  // Accessible data-table rows: every point's label, log₂FC, p, and computed
+  // significance class — so keyboard / screen-reader users get the values the
+  // (often rasterised) point cloud can't expose. Capped to TABLE_MAX_ROWS.
+  const tableRows = useMemo<ChartDataTableRow[]>(() => {
+    const classLabel = (cls: string): string =>
+      cls === "up"
+        ? tr("volcano.class.up")
+        : cls === "down"
+          ? tr("volcano.class.down")
+          : tr("volcano.class.ns");
+    const shown = Math.min(points.length, TABLE_MAX_ROWS);
+    const out: ChartDataTableRow[] = [];
+    for (let i = 0; i < shown; i++) {
+      const pt = points[i];
+      const cls = classifyPoint(pt.log2fc, pt.p, vis.fcCutoff, vis.pCutoff);
+      out.push({
+        header: pt.label || tr("volcano.table.noLabel"),
+        cells: [
+          Number.isFinite(pt.log2fc) ? pt.log2fc.toFixed(3) : "",
+          pt.p === 0 ? "0" : pt.p.toExponential(2),
+          classLabel(cls),
+        ],
+      });
+    }
+    return out;
+  }, [points, vis.fcCutoff, vis.pCutoff, tr]);
+  const tableTruncated = points.length > TABLE_MAX_ROWS;
+
   return (
     <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
       <PlotSidebar>
@@ -339,6 +382,22 @@ export function PlotStep({
           />
         </div>
         <SummaryTile summary={summary} fcCutoff={vis.fcCutoff} pCutoff={vis.pCutoff} />
+        <ChartDataTable
+          summaryLabel={tr("volcano.table.summary")}
+          caption={tr("volcano.table.caption", { n: points.length })}
+          columnHeaders={[
+            tr("volcano.table.colLabel"),
+            tr("volcano.table.colFc"),
+            tr("volcano.table.colP"),
+            tr("volcano.table.colClass"),
+          ]}
+          rows={tableRows}
+          note={
+            tableTruncated
+              ? tr("volcano.table.truncated", { shown: TABLE_MAX_ROWS, total: points.length })
+              : null
+          }
+        />
       </div>
     </div>
   );

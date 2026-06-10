@@ -45,6 +45,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keyboard / screen-reader access to heatmap & volcano data.** Both charts
+  render as SVG images with no per-value DOM, so keyboard and screen-reader
+  users had no way to read individual cell/point values. Each now offers a
+  collapsible "Show values as table" disclosure beneath the chart — a real
+  semantic `<table>` with `scope`-ed headers (heatmap: the matrix in display
+  order; volcano: each point's label, log₂FC, p-value, and significance class).
+  Capped for very large data with a note, fully translated.
+
 - **Colour-blind-safe markers on continuous colormaps.** The heatmap and
   scatter palette pickers now flag colour-blind-safe colormaps with 👁 (the
   same marker the discrete-palette picker uses) and a short legend, so users

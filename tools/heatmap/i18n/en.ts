@@ -113,6 +113,10 @@ const en = {
   "heatmap.cfg.large": "matrix is large — clustering may take a few seconds",
   "heatmap.cfg.clusterCapped":
     "matrix too large to cluster ({max}+ on an axis) — showing file order",
+  "heatmap.table.summary": "Show values as table",
+  "heatmap.table.caption": "Heatmap values — {rows} rows × {cols} columns, in display order",
+  "heatmap.table.truncated": "Large matrix — showing the first {shown} of {total} rows.",
+  "heatmap.table.rowHeader": "Row",
   "heatmap.plot.clear": "Clear",
   "heatmap.plot.dragHint":
     "↳ Drag on the heatmap or click a dendrogram / k-means band to open a zoomed view",

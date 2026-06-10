@@ -25,11 +25,18 @@ const en = {
   "volcano.chart.desc":
     "Volcano plot of {points}: {up} up, {down} down, {ns} not significant{discarded}",
   "volcano.chart.descDiscarded": ", {n} discarded",
-  "volcano.chart.classUp": "upregulated",
-  "volcano.chart.classDown": "downregulated",
-  "volcano.chart.classNs": "not significant",
   "volcano.chart.classPointsAria.one": "{count} {label} point",
   "volcano.chart.classPointsAria.other": "{count} {label} points",
+  // Accessible data table
+  "volcano.table.summary": "Show points as table",
+  "volcano.table.caption":
+    "{n} points with log₂ fold-change, p-value, and significance class, in file order",
+  "volcano.table.truncated": "Many points — showing the first {shown} of {total}.",
+  "volcano.table.colLabel": "Label",
+  "volcano.table.colFc": "log₂FC",
+  "volcano.table.colP": "p",
+  "volcano.table.colClass": "Class",
+  "volcano.table.noLabel": "(unlabelled)",
 
   // Aesthetic tile headers
   "volcano.aes.x": "X axis · log₂ fold change",

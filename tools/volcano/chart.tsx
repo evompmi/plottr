@@ -648,10 +648,10 @@ export const VolcanoChart = memo(
                   cls === "up" ? summary.up : cls === "down" ? summary.down : summary.ns;
                 const classLabel =
                   cls === "up"
-                    ? tt("volcano.chart.classUp")
+                    ? tt("volcano.class.up")
                     : cls === "down"
-                      ? tt("volcano.chart.classDown")
-                      : tt("volcano.chart.classNs");
+                      ? tt("volcano.class.down")
+                      : tt("volcano.class.ns");
                 return (
                   <g
                     key={cls}
@@ -686,10 +686,10 @@ export const VolcanoChart = memo(
               const count = cls === "up" ? summary.up : cls === "down" ? summary.down : summary.ns;
               const classLabel =
                 cls === "up"
-                  ? tt("volcano.chart.classUp")
+                  ? tt("volcano.class.up")
                   : cls === "down"
-                    ? tt("volcano.chart.classDown")
-                    : tt("volcano.chart.classNs");
+                    ? tt("volcano.class.down")
+                    : tt("volcano.class.ns");
               return (
                 <g
                   key={cls}

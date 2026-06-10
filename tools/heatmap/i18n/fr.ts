@@ -89,6 +89,11 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.cfg.large": "la matrice est grande — le clustering peut prendre quelques secondes",
   "heatmap.cfg.clusterCapped":
     "matrice trop grande pour le clustering ({max}+ sur un axe) — ordre du fichier affiché",
+  "heatmap.table.summary": "Afficher les valeurs en tableau",
+  "heatmap.table.caption":
+    "Valeurs de la carte — {rows} lignes × {cols} colonnes, dans l’ordre affiché",
+  "heatmap.table.truncated": "Grande matrice — affichage des {shown} premières lignes sur {total}.",
+  "heatmap.table.rowHeader": "Ligne",
   "heatmap.plot.clear": "Effacer",
   "heatmap.plot.dragHint":
     "↳ Glissez sur la heatmap ou cliquez sur un dendrogramme / une bande k-means pour ouvrir une vue zoomée",
