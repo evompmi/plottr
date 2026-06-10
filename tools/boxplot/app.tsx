@@ -32,7 +32,7 @@ import {
   wideToLong,
 } from "../_core/csv";
 import { computeGroupStats, computeStats, quartiles } from "../_core/descriptive";
-import { downloadPng, downloadSvg } from "../_core/download";
+import { downloadPng, downloadPngs, downloadSvg, downloadSvgs } from "../_core/download";
 import { fileBaseName } from "../_core/download";
 import type { ColumnRole } from "../_core/csv";
 const { useState, useReducer, useMemo, useCallback, useRef } = React;
@@ -1114,8 +1114,11 @@ export function App() {
   const fileStem = `${fileBaseName(fileName, "groupplot")}_groupplot`;
   const handleDownloadSvg = useCallback(() => {
     if (facetByCol >= 0 && facetedData.length > 0) {
-      facetedData.forEach((fd) =>
-        downloadSvg(facetRefs.current[fd.category], `${fileStem}_${fd.category}.svg`)
+      downloadSvgs(
+        facetedData.map((fd) => ({
+          svgEl: facetRefs.current[fd.category],
+          filename: `${fileStem}_${fd.category}.svg`,
+        }))
       );
     } else {
       downloadSvg(chartRef.current, `${fileStem}.svg`);
@@ -1124,8 +1127,11 @@ export function App() {
 
   const handleDownloadPng = useCallback(() => {
     if (facetByCol >= 0 && facetedData.length > 0) {
-      facetedData.forEach((fd) =>
-        downloadPng(facetRefs.current[fd.category], `${fileStem}_${fd.category}.png`)
+      downloadPngs(
+        facetedData.map((fd) => ({
+          svgEl: facetRefs.current[fd.category],
+          filename: `${fileStem}_${fd.category}.png`,
+        }))
       );
     } else {
       downloadPng(chartRef.current, `${fileStem}.png`);

@@ -31,7 +31,7 @@ import { buildScatterAggregateReport, buildScatterAggregateRScript } from "./rep
 import { buildCorrelationReason } from "../_shell";
 
 import { svgSafeId } from "../_core/svg-export";
-import { downloadText, flashSaved } from "../_core/download";
+import { downloadText, downloadTexts, flashSaved } from "../_core/download";
 import { sampleMean, sampleSD, selectCorrelation } from "../_core/stats/tests";
 import { formatP, pStars } from "../_core/stats/format";
 import type { CorrTest } from "../_core/stats/types";
@@ -355,11 +355,12 @@ export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterSta
         `${stem}_correlation.txt`
       );
     } else {
-      eligible.forEach((row, i) => {
-        const content = buildScatterAggregateReport([row], xLabel, yLabel);
-        const name = `${stem}_${rowSlug(row, i)}_correlation.txt`;
-        setTimeout(() => downloadText(content, name), i * 120);
-      });
+      downloadTexts(
+        eligible.map((row, i) => ({
+          text: buildScatterAggregateReport([row], xLabel, yLabel),
+          filename: `${stem}_${rowSlug(row, i)}_correlation.txt`,
+        }))
+      );
     }
     flashSaved(e.currentTarget);
   };
@@ -368,11 +369,12 @@ export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterSta
     if (eligible.length === 1) {
       downloadText(buildScatterAggregateRScript(eligible, xLabel, yLabel), `${stem}_correlation.R`);
     } else {
-      eligible.forEach((row, i) => {
-        const content = buildScatterAggregateRScript([row], xLabel, yLabel);
-        const name = `${stem}_${rowSlug(row, i)}_correlation.R`;
-        setTimeout(() => downloadText(content, name), i * 120);
-      });
+      downloadTexts(
+        eligible.map((row, i) => ({
+          text: buildScatterAggregateRScript([row], xLabel, yLabel),
+          filename: `${stem}_${rowSlug(row, i)}_correlation.R`,
+        }))
+      );
     }
     flashSaved(e.currentTarget);
   };

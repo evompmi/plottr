@@ -33,7 +33,7 @@ import {
 } from "./reports";
 
 import { svgSafeId } from "../_core/svg-export";
-import { downloadText, fileBaseName, flashSaved } from "../_core/download";
+import { downloadText, downloadTexts, fileBaseName, flashSaved } from "../_core/download";
 import { tinv } from "../_core/stats/dist";
 import { sampleMean, sampleSD } from "../_core/stats/tests";
 import { bhAdjust, selectTest } from "../_core/stats/posthoc";
@@ -495,22 +495,24 @@ export function PerXStatsPanel({
       downloadText(buildAggregateReport(enriched, xLabel), `${stem}_stats.txt`);
       return;
     }
-    enriched.forEach((row, i) => {
-      const content = buildAggregateReport([row], xLabel);
-      const name = `${stem}_${xSlug(row, i)}_stats.txt`;
-      setTimeout(() => downloadText(content, name), i * 120);
-    });
+    downloadTexts(
+      enriched.map((row, i) => ({
+        text: buildAggregateReport([row], xLabel),
+        filename: `${stem}_${xSlug(row, i)}_stats.txt`,
+      }))
+    );
   };
   const downloadR = () => {
     if (enriched.length <= 1) {
       downloadText(buildAggregateRScript(enriched, xLabel), `${stem}_stats.R`);
       return;
     }
-    enriched.forEach((row, i) => {
-      const content = buildAggregateRScript([row], xLabel);
-      const name = `${stem}_${xSlug(row, i)}_stats.R`;
-      setTimeout(() => downloadText(content, name), i * 120);
-    });
+    downloadTexts(
+      enriched.map((row, i) => ({
+        text: buildAggregateRScript([row], xLabel),
+        filename: `${stem}_${xSlug(row, i)}_stats.R`,
+      }))
+    );
   };
 
   const thS: React.CSSProperties = {

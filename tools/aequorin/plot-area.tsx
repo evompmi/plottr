@@ -25,7 +25,8 @@ import {
   SeriesRow,
 } from "./helpers";
 
-import { downloadPng, downloadSvg, fileBaseName } from "../_core/download";
+import { downloadPngs, downloadSvgs, fileBaseName } from "../_core/download";
+import type { SvgDownloadItem } from "../_core/download";
 import { downloadCsv, flashSaved } from "../_core/download";
 import { useT } from "./i18n";
 const { useState, useMemo, useRef, useEffect, useCallback } = React;
@@ -187,30 +188,30 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
     ref,
     () => ({
       downloadMain: () => {
-        if (faceted) {
-          displaySeries.forEach((s) =>
-            downloadSvg(facetRefs.current[s.prefix], `${baseName}_${s.label}.svg`)
-          );
-        } else {
-          downloadSvg(combinedRef.current, `${baseName}_combined.svg`);
-        }
+        const items: SvgDownloadItem[] = faceted
+          ? displaySeries.map((s) => ({
+              svgEl: facetRefs.current[s.prefix],
+              filename: `${baseName}_${s.label}.svg`,
+            }))
+          : [{ svgEl: combinedRef.current, filename: `${baseName}_combined.svg` }];
         if (showInset && barRef.current) {
           const suffix = statsDataMode === "raw" ? "raw" : "corrected";
-          downloadSvg(barRef.current, `${baseName}_barplot_${suffix}.svg`);
+          items.push({ svgEl: barRef.current, filename: `${baseName}_barplot_${suffix}.svg` });
         }
+        downloadSvgs(items);
       },
       downloadMainPng: () => {
-        if (faceted) {
-          displaySeries.forEach((s) =>
-            downloadPng(facetRefs.current[s.prefix], `${baseName}_${s.label}.png`)
-          );
-        } else {
-          downloadPng(combinedRef.current, `${baseName}_combined.png`);
-        }
+        const items: SvgDownloadItem[] = faceted
+          ? displaySeries.map((s) => ({
+              svgEl: facetRefs.current[s.prefix],
+              filename: `${baseName}_${s.label}.png`,
+            }))
+          : [{ svgEl: combinedRef.current, filename: `${baseName}_combined.png` }];
         if (showInset && barRef.current) {
           const suffix = statsDataMode === "raw" ? "raw" : "corrected";
-          downloadPng(barRef.current, `${baseName}_barplot_${suffix}.png`);
+          items.push({ svgEl: barRef.current, filename: `${baseName}_barplot_${suffix}.png` });
         }
+        downloadPngs(items);
       },
     }),
     [faceted, displaySeries, showInset, statsDataMode, baseName]
