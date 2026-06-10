@@ -17,7 +17,7 @@ import type { Intersection, PlotControlsProps, UpsetVis } from "./helpers";
 import { BAR_FILL_ENRICHED, BAR_FILL_DEPLETED } from "./chart";
 import { useT } from "./i18n";
 
-import { downloadCsv, fileBaseName } from "../_core/download";
+import { downloadCsv, downloadCsvs, fileBaseName } from "../_core/download";
 
 // ── PlotControls ────────────────────────────────────────────────────────────
 
@@ -102,22 +102,17 @@ export function PlotControls({
                 String(inter.degree),
                 String(inter.size),
               ]);
-              // Staggered downloads — without the gap, browsers tend to silently
-              // drop everything after the first file when a synchronous loop
-              // fires multiple <a>.click() events in the same tick.
-              downloadCsv(indexHeaders, indexRows, `${baseName}_upset_index.csv`);
-              intersections.forEach((inter: Intersection, i: number) => {
-                setTimeout(
-                  () => {
-                    downloadCsv(
-                      ["Item"],
-                      inter.items.map((item: string) => [item]),
-                      `${baseName}_upset_I${i + 1}.csv`
-                    );
-                  },
-                  40 * (i + 1)
-                );
-              });
+              // Index CSV + one CSV per intersection, saved as a single batch:
+              // the browser prompts once for a destination folder and writes
+              // every file there (see `saveBlobs`).
+              downloadCsvs([
+                { headers: indexHeaders, rows: indexRows, filename: `${baseName}_upset_index.csv` },
+                ...intersections.map((inter: Intersection, i: number) => ({
+                  headers: ["Item"],
+                  rows: inter.items.map((item: string) => [item]),
+                  filename: `${baseName}_upset_I${i + 1}.csv`,
+                })),
+              ]);
             },
           },
         ]}

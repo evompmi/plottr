@@ -54,7 +54,7 @@ import {
 import { buildBpAggregateReport, buildBpAggregateRScript } from "./reports";
 
 import { svgSafeId } from "../_core/svg-export";
-import { downloadText, flashSaved } from "../_core/download";
+import { downloadText, downloadTexts, flashSaved } from "../_core/download";
 import { tinv } from "../_core/stats/dist";
 import { sampleMean, sampleSD } from "../_core/stats/tests";
 import { selectTest } from "../_core/stats/posthoc";
@@ -577,11 +577,12 @@ export function BoxplotStatsPanel({
     if (eligible.length === 1) {
       downloadText(buildBpAggregateReport(eligible, setLabel), `${stem}_stats.txt`);
     } else {
-      eligible.forEach((row, i) => {
-        const content = buildBpAggregateReport([row], setLabel);
-        const name = `${stem}_${rowSlug(row, i)}_stats.txt`;
-        setTimeout(() => downloadText(content, name), i * 120);
-      });
+      downloadTexts(
+        eligible.map((row, i) => ({
+          text: buildBpAggregateReport([row], setLabel),
+          filename: `${stem}_${rowSlug(row, i)}_stats.txt`,
+        }))
+      );
     }
     flashSaved(e.currentTarget);
   };
@@ -589,11 +590,12 @@ export function BoxplotStatsPanel({
     if (eligible.length === 1) {
       downloadText(buildBpAggregateRScript(eligible, setLabel), `${stem}_stats.R`);
     } else {
-      eligible.forEach((row, i) => {
-        const content = buildBpAggregateRScript([row], setLabel);
-        const name = `${stem}_${rowSlug(row, i)}_stats.R`;
-        setTimeout(() => downloadText(content, name), i * 120);
-      });
+      downloadTexts(
+        eligible.map((row, i) => ({
+          text: buildBpAggregateRScript([row], setLabel),
+          filename: `${stem}_${rowSlug(row, i)}_stats.R`,
+        }))
+      );
     }
     flashSaved(e.currentTarget);
   };

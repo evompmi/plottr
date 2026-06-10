@@ -17,7 +17,7 @@ import type { PlotControlsProps, Region, VennVis } from "./helpers";
 import { useT } from "./i18n";
 
 import { PALETTE } from "../_core/color";
-import { downloadCsv, fileBaseName } from "../_core/download";
+import { downloadCsv, downloadCsvs, fileBaseName } from "../_core/download";
 export function PlotControls({
   allSetNames,
   allSets,
@@ -67,30 +67,24 @@ export function PlotControls({
             },
           },
           {
-            // One CSV per non-empty region. Browsers may prompt once to
-            // allow multiple downloads from a single user gesture — accepting
-            // is expected. Empty regions are skipped (an empty CSV is noise,
-            // not a useful record).
+            // One CSV per non-empty region. With several regions the browser
+            // prompts once for a destination folder and writes them all there
+            // (see `saveBlobs`). Empty regions are skipped (an empty CSV is
+            // noise, not a useful record).
             label: tr("venn.dl.regions"),
             title: tr("venn.dl.regionsTitle"),
             onClick: () => {
               const nonEmpty = intersections.filter((r: Region) => r.size > 0);
-              nonEmpty.forEach((r: Region, i: number) => {
-                const label = regionLabel(r.setNames, r.mask, activeSetNames);
-                const name = `${baseName}_venn_${regionFilenamePart(label)}.csv`;
-                // Stagger slightly so the browser reliably handles each as
-                // its own download (a single synchronous loop of <a>.click()
-                // can race inside some engines).
-                setTimeout(
-                  () =>
-                    downloadCsv(
-                      ["Item"],
-                      r.items.map((it: string) => [it]),
-                      name
-                    ),
-                  i * 40
-                );
-              });
+              downloadCsvs(
+                nonEmpty.map((r: Region) => {
+                  const label = regionLabel(r.setNames, r.mask, activeSetNames);
+                  return {
+                    headers: ["Item"],
+                    rows: r.items.map((it: string) => [it]),
+                    filename: `${baseName}_venn_${regionFilenamePart(label)}.csv`,
+                  };
+                })
+              );
             },
           },
         ]}
