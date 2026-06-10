@@ -3,6 +3,7 @@
 
 import { buildCsvString } from "./csv";
 import { buildExportSvg, PLOTTR_ATTRIBUTION_PAD, serializeSvgForExport } from "./svg-export";
+import { buildZip } from "./zip";
 
 // ── Filename helpers ───────────────────────────────────────────────────────
 
@@ -107,6 +108,31 @@ function uniqueFilename(name: string, used: Set<string>): string {
   return candidate;
 }
 
+// Name a zip archive after the common prefix of the files it bundles, so a
+// batch like "x_groupplot_Day1.svg" / "x_groupplot_Day2.svg" becomes
+// "x_groupplot_Day.zip". Realistic plottr filenames differ in their stem
+// before the extension, so the common prefix never reaches the ".ext" — but
+// the leading `\.[^.]*$` strip handles the rare extension-only difference
+// (e.g. "report.txt" / "report.R" → "report"). Falls back to a generic name
+// when there is no shared prefix.
+function archiveBaseName(names: string[]): string {
+  if (names.length === 0) return "plottr-export";
+  let prefix = names[0];
+  for (let i = 1; i < names.length; i++) {
+    const n = names[i];
+    let j = 0;
+    while (j < prefix.length && j < n.length && prefix[j] === n[j]) j += 1;
+    prefix = prefix.slice(0, j);
+  }
+  prefix = prefix.replace(/\.[^.]*$/, "").replace(/[._\-\s(]+$/, "");
+  return prefix || "plottr-export";
+}
+
+// More than this many files in one save → bundle into a single .zip instead
+// of writing them out individually. Keeps a large export (every Venn region,
+// a wide facet grid) to one download / one prompt.
+const ZIP_THRESHOLD = 3;
+
 // Save a Blob to disk. Tries the File System Access API
 // (`window.showSaveFilePicker`) first so the user can pick a target folder
 // + filename — supported in Chromium-based browsers (Chrome, Edge, Opera)
@@ -145,26 +171,41 @@ export async function saveBlob(blob: Blob, filename: string): Promise<void> {
   anchorDownload(blob, filename);
 }
 
-// Save several blobs at once. The single-picker flow that `saveBlob` uses
-// for one file degrades badly for many: only the first `showSaveFilePicker`
-// call gets the user-gesture activation, so on Chromium (notably recent
-// Windows) every subsequent file silently falls back to the Downloads
-// folder — the first prompts for a location, the rest don't.
+// Save several blobs at once, tiered by count:
 //
-// Instead we prompt once with `showDirectoryPicker` and write every file
-// into the chosen folder, so the whole batch lands in one place the user
-// actually picked. Falls back to staggered anchor downloads on
-// Firefox / Safari (no directory picker) or if the picker call fails for
-// any reason other than user cancel.
+//   1 file          → `saveBlob` (familiar "save as" dialog).
+//   2–3 files       → one `showDirectoryPicker` prompt, every file written
+//                     into the chosen folder.
+//   > ZIP_THRESHOLD → bundled into a single `.zip` and saved as one file.
 //
-// A single-item batch routes through `saveBlob` so the user still gets the
-// familiar "save as" dialog (pick name + folder) rather than a folder
-// picker for one file.
+// The single-picker flow `saveBlob` uses degrades badly for many files:
+// only the first `showSaveFilePicker` call gets the user-gesture
+// activation, so on Chromium (notably recent Windows) every subsequent file
+// silently falls back to the Downloads folder — the first prompts for a
+// location, the rest don't. The directory picker fixes that for a handful
+// of files; past that, a zip is tidier than scattering many files and works
+// on every browser (it's just one download). The directory-picker tier
+// falls back to staggered anchor downloads on Firefox / Safari (no
+// directory picker) or if the picker call fails for any reason other than
+// user cancel.
 export async function saveBlobs(files: NamedBlob[]): Promise<void> {
   const valid = files.filter((f) => f && f.blob);
   if (valid.length === 0) return;
   if (valid.length === 1) {
     await saveBlob(valid[0].blob, valid[0].filename);
+    return;
+  }
+  // Large batch → one .zip. Dedupe names first so two files can't collide
+  // into a single archive entry, then save the archive like any one file
+  // (Save-As dialog, or anchor download where the picker is unavailable).
+  if (valid.length > ZIP_THRESHOLD) {
+    const used = new Set<string>();
+    const entries = valid.map((f) => ({
+      blob: f.blob,
+      filename: uniqueFilename(f.filename, used),
+    }));
+    const zip = await buildZip(entries);
+    await saveBlob(zip, `${archiveBaseName(entries.map((e) => e.filename))}.zip`);
     return;
   }
   const w = window as DirectoryPickerWindow;
