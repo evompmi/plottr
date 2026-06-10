@@ -24,8 +24,13 @@ interface SliderControlProps {
   onChange: (v: number) => void;
 }
 
-function _SliderControlImpl(props: SliderControlProps) {
+function SliderControlImpl(props: SliderControlProps) {
   const { label, value, displayValue, min, max, step, onChange } = props;
+  // Associate the visible label with the range input so screen readers
+  // announce e.g. "Point size" instead of a bare "slider". `aria-labelledby`
+  // (rather than a string `aria-label`) works for ReactNode labels — the
+  // accessible name resolves to the span's text content.
+  const labelId = React.useId();
   const dv = displayValue != null ? displayValue : value;
   const pct = ((value - min) / (max - min)) * 100;
   const grad =
@@ -40,7 +45,7 @@ function _SliderControlImpl(props: SliderControlProps) {
     h(
       "div",
       { style: { display: "flex", justifyContent: "space-between", marginBottom: 2 } },
-      h("span", { className: "dv-label" }, label),
+      h("span", { className: "dv-label", id: labelId }, label),
       h("span", { style: { fontSize: 10, color: "var(--text-faint)" } }, dv)
     ),
     h("input", {
@@ -49,13 +54,14 @@ function _SliderControlImpl(props: SliderControlProps) {
       max,
       step,
       value,
+      "aria-labelledby": labelId,
       onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(Number(e.target.value)),
       style: { width: "100%", background: grad },
     })
   );
 }
 
-export const SliderControl = memo(_SliderControlImpl, (prev, next) => {
+export const SliderControl = memo(SliderControlImpl, (prev, next) => {
   return (
     prev.value === next.value &&
     prev.min === next.min &&

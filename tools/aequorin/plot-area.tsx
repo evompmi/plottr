@@ -793,7 +793,12 @@ export function ConditionEditor({ conditions, onChange }: ConditionEditorProps) 
             onChange={() => toggle(i)}
             style={{ accentColor: c.color, flexShrink: 0 }}
           />
-          <ColorInput value={c.color} onChange={(v) => update(i, "color", v)} size={20} />
+          <ColorInput
+            value={c.color}
+            onChange={(v) => update(i, "color", v)}
+            size={20}
+            label={c.label}
+          />
           <input
             value={c.label}
             onChange={(e) => update(i, "label", e.target.value)}

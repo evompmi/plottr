@@ -382,6 +382,7 @@ export function PlotControls({
               value={cellBorder.color}
               onChange={(c) => updCellBorder({ color: c })}
               size={18}
+              label={tr("heatmap.sec.cellBorders")}
             />
             <label style={{ fontSize: 11, flex: 1 }}>
               {tr("heatmap.border.width")}

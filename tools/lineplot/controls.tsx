@@ -165,7 +165,11 @@ export function PlotControls({
             />
             {series.map((s: Series) => (
               <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <ColorInput value={s.color} onChange={(c) => setGroupColor(s.name, c)} />
+                <ColorInput
+                  value={s.color}
+                  onChange={(c) => setGroupColor(s.name, c)}
+                  label={s.name}
+                />
                 <span style={{ fontSize: 12, color: "var(--text)" }}>{s.name}</span>
               </div>
             ))}

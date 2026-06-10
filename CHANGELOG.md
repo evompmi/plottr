@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `_core/download.ts`, and `buildZip` re-sanitises every entry name as
   defence-in-depth.
 
+### Fixed
+
+- **Sliders and colour pickers are now labelled for screen readers.** Every
+  range slider (`SliderControl`) associates its visible label with the input
+  via `aria-labelledby`, so it announces e.g. "Point size" instead of a bare
+  "slider"; every colour picker (`ColorInput`) takes a `label` and gives both
+  the swatch and the hex field an `aria-label` (the group/series/role name, or
+  a translated "Color" fallback), so a screen-reader user can tell which series
+  each control affects. Labels are threaded through the per-group, per-set, and
+  per-condition editors across all eight plot tools.
+
 ### Added
 
 - **Tick label size control.** Group Plot, Scatter, Line Plot and RLU

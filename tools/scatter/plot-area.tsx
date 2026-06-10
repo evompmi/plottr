@@ -208,7 +208,12 @@ export function PlotStep({
                 <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                   {tr("scatter.pt.color")}
                 </span>
-                <ColorInput value={pointColor} onChange={setPointColor} size={22} />
+                <ColorInput
+                  value={pointColor}
+                  onChange={setPointColor}
+                  size={22}
+                  label={tr("scatter.pt.color")}
+                />
               </div>
             )}
             {!hasSizeMap && (
@@ -234,7 +239,12 @@ export function PlotStep({
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                 {tr("scatter.pt.stroke")}
               </span>
-              <ColorInput value={strokeColor} onChange={setStrokeColor} size={20} />
+              <ColorInput
+                value={strokeColor}
+                onChange={setStrokeColor}
+                size={20}
+                label={tr("scatter.pt.stroke")}
+              />
             </div>
             <SliderControl
               label={tr("scatter.pt.strokeWidth")}
@@ -341,6 +351,7 @@ export function PlotStep({
                     value={regression.color}
                     onChange={(v) => updRegression({ color: v })}
                     size={22}
+                    label={tr("scatter.reg.color")}
                   />
                 </div>
                 <SliderControl
@@ -515,6 +526,7 @@ export function PlotStep({
                     value={rl.color}
                     onChange={(v) => updateRefLine(rl.id, "color", v)}
                     size={22}
+                    label={tr("scatter.ref.title")}
                   />
                   <SliderControl
                     label={tr("scatter.ref.width")}
@@ -666,6 +678,7 @@ export function PlotStep({
                             value={colorMapDiscrete[cat] || PALETTE[ci % PALETTE.length]}
                             onChange={(v) => setColorMapDiscrete((prev) => ({ ...prev, [cat]: v }))}
                             size={18}
+                            label={cat}
                           />
                           <span style={{ fontSize: 12, color: "var(--text)" }}>{cat}</span>
                         </div>

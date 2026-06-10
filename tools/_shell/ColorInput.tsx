@@ -8,6 +8,8 @@
 // valid hex colour. Exported separately so other call sites can validate
 // hex strings without instantiating the component.
 
+import { useShellT } from "./i18n";
+
 const { useState, useEffect } = React;
 
 export function normalizeHexColor(v: unknown): string | null {
@@ -25,9 +27,18 @@ interface ColorInputProps {
   onChange: (next: string) => void;
   // Square edge length in pixels for the colour-picker swatch. Default 22.
   size?: number;
+  // Accessible name for the pair — typically the group / series / role this
+  // colour belongs to (e.g. a group name, "Up-regulated", "Background"). Used
+  // to give both the swatch and the hex field an `aria-label` so screen-reader
+  // users can tell which series each picker controls. Falls back to a generic
+  // translated "Color" when omitted.
+  label?: string;
 }
 
-export function ColorInput({ value, onChange, size = 22 }: ColorInputProps) {
+export function ColorInput({ value, onChange, size = 22, label }: ColorInputProps) {
+  const tr = useShellT();
+  const swatchAria = label ? tr("shell.color.swatch", { label }) : tr("shell.color.swatchGeneric");
+  const hexAria = label ? tr("shell.color.hex", { label }) : tr("shell.color.hexGeneric");
   const [text, setText] = useState(value);
   // Only sync local text from parent `value` when the current text doesn't
   // already normalise to that value. Without this guard, typing `#abc` would
@@ -50,6 +61,7 @@ export function ColorInput({ value, onChange, size = 22 }: ColorInputProps) {
         type="color"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        aria-label={swatchAria}
         style={{
           width: size,
           height: size,
@@ -63,6 +75,7 @@ export function ColorInput({ value, onChange, size = 22 }: ColorInputProps) {
       <input
         type="text"
         value={text}
+        aria-label={hexAria}
         onChange={(e) => {
           setText(e.target.value);
           commit(e.target.value);
