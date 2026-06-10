@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Reload guard for in-progress data.** Plot data lives only in the browser's
+  memory, so a reflexive page reload or tab-close used to silently discard a
+  pasted/loaded dataset and the plot tuned on it. The plot tools now raise the
+  browser's "Leave site?" confirmation once a dataset is loaded (past the
+  upload step); tool-to-tool navigation inside the app is unaffected.
+
 - **Tick label size control.** Group Plot, Scatter, Line Plot and RLU
   timecourse now expose a "Tick label size" slider in their axes panel,
   scaling the x/y tick value text from the default 11 px up to 22 px for
