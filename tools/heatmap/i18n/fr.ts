@@ -47,6 +47,8 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.kmeans.seedNote": 'Changez la "seed" pour essayer une autre initialisation k-means++.',
   "heatmap.colour.palette": "Palette",
   "heatmap.colour.diverging": "  (divergente)",
+  "heatmap.colour.cbSafe": " · 👁",
+  "heatmap.colour.cbSafeNote": "👁 adapté au daltonisme",
   "heatmap.colour.direction": "Direction",
   "heatmap.colour.directionAria": "Direction de la palette",
   "heatmap.colour.normal": "Normale",

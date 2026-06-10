@@ -10,7 +10,7 @@ import { PaletteStrip } from "./chart";
 import { buildHeatmapRScript, buildCsvExport } from "./reports";
 import type { ClusterMode, ClusterModeControlProps, PlotControlsProps } from "./helpers";
 
-import { COLOR_PALETTES, DIVERGING_PALETTES } from "../_core/color";
+import { COLOR_PALETTES, COLORBLIND_SAFE_PALETTES, DIVERGING_PALETTES } from "../_core/color";
 import { downloadCsv, downloadText, fileBaseName } from "../_core/download";
 import { useT } from "./i18n";
 
@@ -302,10 +302,14 @@ export function PlotControls({
               <option key={p} value={p}>
                 {p}
                 {DIVERGING_PALETTES.has(p) ? tr("heatmap.colour.diverging") : ""}
+                {COLORBLIND_SAFE_PALETTES.has(p) ? tr("heatmap.colour.cbSafe") : ""}
               </option>
             ))}
           </select>
           <PaletteStrip palette={vis.palette} invert={vis.invertPalette} />
+          <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>
+            {tr("heatmap.colour.cbSafeNote")}
+          </div>
         </label>
         <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
           <span className="dv-label" style={{ fontSize: 11, flexShrink: 0 }}>

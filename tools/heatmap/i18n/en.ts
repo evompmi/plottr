@@ -62,6 +62,8 @@ const en = {
   // Colour scale
   "heatmap.colour.palette": "Palette",
   "heatmap.colour.diverging": "  (diverging)",
+  "heatmap.colour.cbSafe": " · 👁",
+  "heatmap.colour.cbSafeNote": "👁 colour-blind-safe",
   "heatmap.colour.direction": "Direction",
   "heatmap.colour.directionAria": "Palette direction",
   "heatmap.colour.normal": "Normal",

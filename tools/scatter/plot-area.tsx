@@ -20,7 +20,7 @@ import {
   applyDiscretePalette,
   scrollDisclosureIntoView,
 } from "../_shell";
-import { COLOR_PALETTES, PALETTE } from "../_core/color";
+import { COLOR_PALETTES, COLORBLIND_SAFE_PALETTES, PALETTE } from "../_core/color";
 import { downloadCsv, fileBaseName } from "../_core/download";
 import { useT } from "./i18n";
 const { useState, useRef, useEffect } = React;
@@ -640,10 +640,14 @@ export function PlotStep({
                       {Object.keys(COLOR_PALETTES).map((p) => (
                         <option key={p} value={p}>
                           {p}
+                          {COLORBLIND_SAFE_PALETTES.has(p) ? tr("scatter.aes.cbSafe") : ""}
                         </option>
                       ))}
                     </select>
                     <PaletteStrip palette={colorMapPalette} />
+                    <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
+                      {tr("scatter.aes.cbSafeNote")}
+                    </span>
                     <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
                       {tr("scatter.aes.range", {
                         min: fmtTick(colorMapRange[0]),

@@ -67,6 +67,8 @@ const fr: Record<ScatterKey, string> = {
   "scatter.aes.categorical.one": "catégoriel ({n} groupe)",
   "scatter.aes.categorical.other": "catégoriel ({n} groupes)",
   "scatter.aes.range": "plage : {min} → {max}",
+  "scatter.aes.cbSafe": " · 👁",
+  "scatter.aes.cbSafeNote": "👁 adapté au daltonisme",
   "scatter.size.min": "Taille min",
   "scatter.size.max": "Taille max",
   "scatter.sec.axes": "Axes",

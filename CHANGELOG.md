@@ -38,6 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Colour-blind-safe markers on continuous colormaps.** The heatmap and
+  scatter palette pickers now flag colour-blind-safe colormaps with 👁 (the
+  same marker the discrete-palette picker uses) and a short legend, so users
+  can avoid the one rainbow scheme (`spectral`) that relies on red–green
+  discrimination. Defaults are unchanged (viridis, already CB-safe).
+
 - **Reload guard for in-progress data.** Plot data lives only in the browser's
   memory, so a reflexive page reload or tab-close used to silently discard a
   pasted/loaded dataset and the plot tuned on it. The plot tools now raise the
