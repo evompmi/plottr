@@ -7,18 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-06-10
+
+> Long-form release notes live in
+> [`docs/release-notes/v1.8.1.md`](docs/release-notes/v1.8.1.md). The entries
+> below are summary bullets that link there.
+>
+> The "Zip it" release: multi-file downloads no longer scatter across folders,
+> and large exports come down as a single in-browser `.zip`.
+
 ### Fixed
 
-- **Multi-file downloads now land in one place instead of scattering.** Saving
-  several files at once (faceted SVG/PNG exports, per-region Venn CSVs, UpSet
-  intersection CSVs, per-set stats reports) prompted once for a location and
-  then silently dropped the rest into the default Downloads folder on recent
-  Chromium/Windows — only the first file's save dialog held the user gesture.
-  Now: two or three files ask once for a destination folder
-  (`showDirectoryPicker`) and write every file there; **more than three are
-  bundled into a single `.zip`** download. Single-file saves keep the familiar
-  Save As dialog. The zip is built in-browser with no new dependency and works
-  on every browser including Firefox / Safari.
+- **Multi-file downloads no longer scatter.** Saving several files at once
+  (faceted SVG/PNG exports, per-region Venn CSVs, UpSet intersection CSVs,
+  per-set stats reports) prompted once for a location and then silently dropped
+  the rest into the default Downloads folder on recent Chromium/Windows — only
+  the first file's save dialog held the user gesture. Now two or three files ask
+  once for a destination folder (`showDirectoryPicker`) and write every file
+  there, **more than three are bundled into a single in-browser `.zip`** (no new
+  dependency), and single-file saves keep the familiar Save As dialog. See
+  [`docs/release-notes/v1.8.1.md`](docs/release-notes/v1.8.1.md#-fixed).
 
 ## [1.8.0] - 2026-06-09
 
