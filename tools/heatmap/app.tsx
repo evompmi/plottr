@@ -39,16 +39,25 @@ import { downloadPng, downloadSvg, fileBaseName, flashSaved } from "../_core/dow
 import { hclust, kmeans, pairwiseDistance } from "../_core/stats/cluster";
 const { useState, useReducer, useMemo, useCallback, useRef } = React;
 
-// Hard ceiling on the number of observations (rows for row-clustering,
-// columns for column-clustering) we will cluster on the main thread.
-// `pairwiseDistance` builds an N×N matrix and `hclust` is O(N²–N³), with no
-// Web Worker — above a few thousand observations that locks the tab for
-// many seconds with no way to cancel. The 2 MB ingest gate alone permits a
-// matrix well past that, so cap clustering explicitly: above the limit we
-// fall back to the unclustered (file) order and surface a note. 5,000 is
-// comfortably above any realistic heatmap (the bundled demo is 500×6) while
-// staying well inside an interactive compute budget.
-const CLUSTER_MAX_OBS = 5000;
+// Per-mode ceilings on the number of observations (rows for row-clustering,
+// columns for column-clustering) we will cluster on the main thread — there
+// is no Web Worker, so the whole compute blocks the tab. The two modes scale
+// very differently, so a single shared cap is wrong:
+//
+//   • Hierarchical: `pairwiseDistance` builds an N×N matrix and `hclust` is
+//     naive-agglomerative O(N³). Measured (V8, ~12 features): N=2,000 ≈ 3.5s,
+//     N=3,000 ≈ 11s, N=5,000 ≈ 47s — and far worse (minutes) once the N×N
+//     distance matrix thrashes GC. 2,000 keeps the worst case to a few seconds.
+//   • K-means: near-linear in N and O(N) memory. Measured: N=5,000 ≈ 3s, so
+//     ~10,000 (≈6s) is a comfortable ceiling.
+//
+// Above the relevant cap we fall back to the unclustered (file) order and
+// surface a note. Both sit well above any realistic heatmap (the bundled demo
+// is 500×6); users who need to cluster more rows should prefer k-means.
+const HCLUST_MAX_OBS = 2000;
+const KMEANS_MAX_OBS = 10000;
+const clusterCapFor = (mode: ClusterMode): number =>
+  mode === "hierarchical" ? HCLUST_MAX_OBS : mode === "kmeans" ? KMEANS_MAX_OBS : Infinity;
 
 // Cap the accessible data-table size — a `<table>` of a multi-thousand-square
 // matrix would balloon the DOM. Render rows up to this cell budget and note
@@ -215,7 +224,7 @@ export function App() {
   // Clustering — expensive; only recompute when relevant inputs change.
   const rowCluster = useMemo<ClusterResult | null>(() => {
     // Too many rows to cluster on the main thread — fall back to file order.
-    if (rowMode !== "none" && normalized.length > CLUSTER_MAX_OBS) return null;
+    if (normalized.length > clusterCapFor(rowMode)) return null;
     if (rowMode === "hierarchical") {
       if (normalized.length < 2) return null;
       const D = pairwiseDistance(normalized, distanceMetric);
@@ -237,7 +246,7 @@ export function App() {
   const colCluster = useMemo<ClusterResult | null>(() => {
     if (normalized.length < 1 || normalized[0].length < 2) return null;
     // Too many columns to cluster on the main thread — fall back to file order.
-    if (colMode !== "none" && normalized[0].length > CLUSTER_MAX_OBS) return null;
+    if (normalized[0].length > clusterCapFor(colMode)) return null;
     // Transpose once — both hierarchical and k-means need column-as-observation.
     const nRows = normalized.length;
     const nCols = normalized[0].length;
@@ -490,12 +499,17 @@ export function App() {
     );
     return { rows, columnHeaders, truncated: shownRows < nRows, shownRows };
   }, [rawMatrix, rowOrder, colOrder, nRows, nCols, vis.rowAxisLabel, tr]);
-  // Clustering was requested on an axis with more observations than we will
-  // cluster on the main thread (see CLUSTER_MAX_OBS) — it silently fell back
-  // to file order, so tell the user why.
-  const clusterCapped =
-    (rowMode !== "none" && nRows > CLUSTER_MAX_OBS) ||
-    (colMode !== "none" && nCols > CLUSTER_MAX_OBS);
+  // Clustering was requested on an axis with more observations than the
+  // active mode's cap (see clusterCapFor) — it silently fell back to file
+  // order, so tell the user why, naming the limit that applied.
+  const rowClusterCapped = nRows > clusterCapFor(rowMode);
+  const colClusterCapped = nCols > clusterCapFor(colMode);
+  const clusterCapped = rowClusterCapped || colClusterCapped;
+  const clusterCapMax = rowClusterCapped
+    ? clusterCapFor(rowMode)
+    : colClusterCapped
+      ? clusterCapFor(colMode)
+      : 0;
 
   return (
     <PlotToolShell
@@ -552,7 +566,7 @@ export function App() {
                 {" "}
                 ·{" "}
                 <span style={{ color: "var(--warning-text)" }}>
-                  {tr("heatmap.cfg.clusterCapped", { max: CLUSTER_MAX_OBS })}
+                  {tr("heatmap.cfg.clusterCapped", { max: clusterCapMax })}
                 </span>
               </>
             )}

@@ -26,13 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   language. They now come from the i18n catalogues with proper `Intl.PluralRules`
   plurals in both locales.
 
-- **Heatmap clustering no longer freezes the tab on huge matrices.** Hierarchical
-  and k-means clustering build an N×N distance matrix on the main thread; a
-  pathological-but-legal CSV (thousands of rows/columns, still under the 2 MB
-  ingest limit) could lock the tab for many seconds with no feedback. Clustering
-  is now capped at 5,000 observations per axis — above that the heatmap falls
-  back to file order and shows a note explaining why. Realistic heatmaps (the
-  bundled demo is 500×6) are unaffected.
+- **Heatmap clustering no longer freezes the tab on huge matrices.** Clustering
+  runs on the main thread (no Web Worker), and a pathological-but-legal CSV
+  (thousands of rows/columns, still under the 2 MB ingest limit) could lock the
+  tab for tens of seconds to minutes. Clustering is now capped per axis by mode,
+  matched to each mode's measured cost: hierarchical (O(N³), N×N distance matrix)
+  at **2,000** observations, k-means (near-linear) at **10,000**. Above the cap
+  the heatmap falls back to file order and shows a note explaining why. Realistic
+  heatmaps (the bundled demo is 500×6) are unaffected.
 
 - **Sliders and colour pickers are now labelled for screen readers.** Every
   range slider (`SliderControl`) associates its visible label with the input
