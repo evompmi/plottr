@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Export filenames are sanitised against path traversal (Zip Slip).** A
+  user-supplied label embedded in an export name (an aequorin condition, a
+  boxplot facet value) could contain `/`, `\`, or `..` and escape the chosen
+  folder or `.zip` root on extraction. All save paths now strip path
+  separators, control characters, and leading dots at one chokepoint in
+  `_core/download.ts`, and `buildZip` re-sanitises every entry name as
+  defence-in-depth.
+
 ### Added
 
 - **Tick label size control.** Group Plot, Scatter, Line Plot and RLU

@@ -97,7 +97,18 @@ export async function buildZip(entries: ZipEntry[]): Promise<Blob> {
 
   for (const entry of entries) {
     const data = new Uint8Array(await entry.blob.arrayBuffer());
-    const nameBytes = enc.encode(entry.filename);
+    // Defence-in-depth against Zip Slip: callers in `download.ts` already
+    // sanitise, but normalise here too so no future caller can write a
+    // central-directory entry with a traversal / absolute path. Strip path
+    // separators and leading dots; never trust the name to be a clean leaf.
+    const safeName =
+      entry.filename
+        .replace(/[/\\]/g, "_")
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\x00-\x1f\x7f]/g, "")
+        .replace(/^\.+/, "")
+        .slice(0, 255) || "file";
+    const nameBytes = enc.encode(safeName);
     const crc = crc32(data);
     const localOffset = local.length;
 
