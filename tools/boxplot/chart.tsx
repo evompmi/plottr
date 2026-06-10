@@ -9,7 +9,7 @@
 // computeViewBox; chart.tsx still pulls STATS_LINE_H + STATS_FONT for its
 // internal SVG text rendering.
 import { STATS_LINE_H, STATS_FONT, ChartProps, BoxplotGroup, Subgroup } from "./helpers";
-import { CldLabels, SignificanceBrackets, renderSvgLegend } from "../_shell";
+import { CldLabels, SignificanceBrackets, renderSvgLegend, valueAxisLeftMargin } from "../_shell";
 import {
   computeAnnotationPadding,
   computeBandSizing,
@@ -127,6 +127,7 @@ export const BoxplotChart = memo(
       jitterWidth,
       pointOpacity,
       xLabelAngle,
+      tickFontSize,
       yMin: yMinP,
       yMax: yMaxP,
       categoryColors: catCols,
@@ -160,6 +161,11 @@ export const BoxplotChart = memo(
       showCompPie,
       colorByCol: cbc,
     });
+    // Bottom-axis tick labels grow upward from their baseline, so a larger
+    // font pushes the text into the axis line above it. Nudge the baseline
+    // down in proportion to the extra ascent; 0 at the 11 px default so the
+    // standard layout is unchanged.
+    const xTickDy = Math.max(0, (tickFontSize - 11) * 0.8);
     const {
       hasLabels: _hasLabels,
       hasPairs: _hasPairs,
@@ -207,6 +213,18 @@ export const BoxplotChart = memo(
     });
     let { yMin, yMax } = yDomain;
     const { isLog, logBase, safeLog } = yDomain;
+
+    // In vertical mode the value axis sits on the left, so wide tick numbers
+    // (or a larger tick font) can overrun the rotated y-axis label. Reserve
+    // room before the viewbox/scales are derived from M. hz mode keeps its
+    // value axis on the bottom, so its left side only holds group labels.
+    if (!hz) {
+      const _fmtVal = makeTickFormatter(isLog);
+      const _valTickLabels = computeYTicks({ yMin, yMax, isLog, logBase }).map((tk) =>
+        _fmtVal(tk.value)
+      );
+      M.left = valueAxisLeftMargin(M.left, _valTickLabels, tickFontSize);
+    }
 
     // ── Band sizing + viewbox ───────────────────────────────────────────────
     const { n, separatorGap, totalGap, catSize, valSize } = computeBandSizing({
@@ -408,9 +426,9 @@ export const BoxplotChart = memo(
                     {tk.major && (
                       <text
                         x={sy(v)}
-                        y={M.top + h + 16}
+                        y={M.top + h + 16 + xTickDy}
                         textAnchor="middle"
-                        fontSize="11"
+                        fontSize={tickFontSize}
                         fill="#555"
                         fontFamily="sans-serif"
                       >
@@ -433,7 +451,7 @@ export const BoxplotChart = memo(
                         x={M.left - 8}
                         y={sy(v) + 4}
                         textAnchor="end"
-                        fontSize="11"
+                        fontSize={tickFontSize}
                         fill="#555"
                         fontFamily="sans-serif"
                       >
@@ -887,7 +905,7 @@ export const BoxplotChart = memo(
                       y={gp}
                       textAnchor="end"
                       dominantBaseline="middle"
-                      fontSize="11"
+                      fontSize={tickFontSize}
                       fill="#333"
                       fontFamily="sans-serif"
                       fontWeight="600"
@@ -899,7 +917,7 @@ export const BoxplotChart = memo(
                       y={gp + 12}
                       textAnchor="end"
                       dominantBaseline="middle"
-                      fontSize="9"
+                      fontSize={tickFontSize - 2}
                       fill="#999"
                       fontFamily="sans-serif"
                     >
@@ -910,7 +928,7 @@ export const BoxplotChart = memo(
                 </React.Fragment>
               );
             }
-            const ly = M.top + h + 16;
+            const ly = M.top + h + 16 + xTickDy;
             const compBar = renderCompPie(g, gp, vbH_chart - 20 - 12, gi);
             return (
               <React.Fragment key={`xl-${gi}-${g.name}`}>
@@ -920,7 +938,7 @@ export const BoxplotChart = memo(
                       x={gp}
                       y={ly}
                       textAnchor="middle"
-                      fontSize="11"
+                      fontSize={tickFontSize}
                       fill="#333"
                       fontFamily="sans-serif"
                       fontWeight="600"
@@ -931,7 +949,7 @@ export const BoxplotChart = memo(
                       x={gp}
                       y={ly + 14}
                       textAnchor="middle"
-                      fontSize="9"
+                      fontSize={tickFontSize - 2}
                       fill="#999"
                       fontFamily="sans-serif"
                     >
@@ -945,7 +963,7 @@ export const BoxplotChart = memo(
                       y={ly}
                       textAnchor="end"
                       dominantBaseline="middle"
-                      fontSize="11"
+                      fontSize={tickFontSize}
                       fill="#333"
                       fontFamily="sans-serif"
                       fontWeight="600"
@@ -957,7 +975,7 @@ export const BoxplotChart = memo(
                       y={ly + 12}
                       textAnchor="end"
                       dominantBaseline="middle"
-                      fontSize="9"
+                      fontSize={tickFontSize - 2}
                       fill="#999"
                       fontFamily="sans-serif"
                     >

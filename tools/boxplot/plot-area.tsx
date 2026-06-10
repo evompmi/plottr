@@ -177,6 +177,7 @@ export function PlotArea({
             jitterWidth={vis.jitterWidth}
             pointOpacity={vis.pointOpacity}
             xLabelAngle={vis.xLabelAngle}
+            tickFontSize={vis.tickFontSize}
             yMin={yMinVal}
             yMax={yMaxVal}
             yScale={vis.yScale}
@@ -261,6 +262,7 @@ const FacetTrio = memo(function FacetTrio({
       jitterWidth: vis.jitterWidth,
       pointOpacity: vis.pointOpacity,
       xLabelAngle: vis.xLabelAngle,
+      tickFontSize: vis.tickFontSize,
       yMin: yMinVal,
       yMax: yMaxVal,
       yScale: vis.yScale,

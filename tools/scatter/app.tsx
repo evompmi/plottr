@@ -38,6 +38,7 @@ const VIS_INIT_SCATTER: ScatterVis = {
   plotBg: "#ffffff",
   showGrid: false,
   gridColor: "#e0e0e0",
+  tickFontSize: 11,
   // Per-style + per-mapping prefs auto-persist to localStorage and
   // round-trip through PrefsPanel save / load. Per-category dicts
   // (colorMapDiscrete / sizeMapDiscrete / shapeMapDiscrete) are keyed by

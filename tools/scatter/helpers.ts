@@ -252,6 +252,7 @@ export interface ScatterVis {
   plotBg: string;
   showGrid: boolean;
   gridColor: string;
+  tickFontSize: number;
   pointColor: string;
   pointSize: number;
   pointOpacity: number;
@@ -307,6 +308,7 @@ export interface ChartProps {
   plotBg: string;
   showGrid: boolean;
   gridColor: string;
+  tickFontSize: number;
   refLines: RefLine[];
   regression: ScatterRegression;
   regressionStats: RegressionStats;

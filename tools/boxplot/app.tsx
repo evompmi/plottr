@@ -51,6 +51,7 @@ const VIS_INIT_BOXPLOT = {
   jitterWidth: 0.6,
   pointOpacity: 0.6,
   xLabelAngle: 0,
+  tickFontSize: 11,
   yMinCustom: "",
   yMaxCustom: "",
   yScale: "linear",

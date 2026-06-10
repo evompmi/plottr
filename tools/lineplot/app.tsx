@@ -34,6 +34,7 @@ const VIS_INIT_LINEPLOT: LineplotVis = {
   pointRadius: 3.5,
   errorStrokeWidth: 1,
   errorCapWidth: 6,
+  tickFontSize: 11,
   // Per-group line colours, keyed by group name.
   groupColors: {},
   // Discrete-palette key driving the per-group colour seed. Default

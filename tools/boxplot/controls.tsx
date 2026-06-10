@@ -669,6 +669,15 @@ export function PlotControls({
           step={5}
           onChange={sv("xLabelAngle")}
         />
+        <SliderControl
+          label={tr("boxplot.ctrl.tickFontSize")}
+          value={vis.tickFontSize}
+          displayValue={vis.tickFontSize + " px"}
+          min={11}
+          max={22}
+          step={1}
+          onChange={sv("tickFontSize")}
+        />
       </ControlSection>
     </PlotSidebar>
   );

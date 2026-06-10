@@ -941,6 +941,15 @@ export function PlotStep({
                   style={{ width: "100%", textAlign: "left" }}
                 />
               </div>
+              <SliderControl
+                label={tr("scatter.axes.tickFontSize")}
+                value={vis.tickFontSize}
+                displayValue={vis.tickFontSize + " px"}
+                min={11}
+                max={22}
+                step={1}
+                onChange={(v) => updVis({ tickFontSize: v })}
+              />
             </div>
           </ControlSection>
 
@@ -1086,6 +1095,7 @@ export function PlotStep({
               plotBg={vis.plotBg}
               showGrid={vis.showGrid}
               gridColor={vis.gridColor}
+              tickFontSize={vis.tickFontSize}
               refLines={refLines}
               regression={regression}
               regressionStats={regressionStats}

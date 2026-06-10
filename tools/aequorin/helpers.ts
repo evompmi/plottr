@@ -419,6 +419,7 @@ export interface AequorinVis {
   lineWidth: number;
   ribbonOpacity: number;
   gridColor: string;
+  tickFontSize: number;
   plotHeight: number;
   timeStep: number;
   baseUnit: string;
@@ -571,6 +572,7 @@ export interface ChartProps {
   lineWidth: number;
   ribbonOpacity: number;
   gridColor: string;
+  tickFontSize: number;
   svgLegend: LegendBlock[] | null;
   // Both nullable — the facet view passes `s.label || null` and the main
   // combined chart passes title / subtitle which can be empty strings.
@@ -753,6 +755,7 @@ export interface PlotPanelProps {
   lineWidth: number;
   ribbonOpacity: number;
   gridColor: string;
+  tickFontSize: number;
   plotHeight: number;
   timeStep: number;
   baseUnit: string;
