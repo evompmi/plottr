@@ -19,6 +19,17 @@ const en = {
   "volcano.chart.fallbackTitle": "Volcano plot",
   "volcano.chart.pointsTotal.one": "{n} point total",
   "volcano.chart.pointsTotal.other": "{n} points total",
+  // Accessible chart description (role=img desc + per-class group aria-labels)
+  "volcano.chart.descPoints.one": "{n} point",
+  "volcano.chart.descPoints.other": "{n} points",
+  "volcano.chart.desc":
+    "Volcano plot of {points}: {up} up, {down} down, {ns} not significant{discarded}",
+  "volcano.chart.descDiscarded": ", {n} discarded",
+  "volcano.chart.classUp": "upregulated",
+  "volcano.chart.classDown": "downregulated",
+  "volcano.chart.classNs": "not significant",
+  "volcano.chart.classPointsAria.one": "{count} {label} point",
+  "volcano.chart.classPointsAria.other": "{count} {label} points",
 
   // Aesthetic tile headers
   "volcano.aes.x": "X axis · log₂ fold change",

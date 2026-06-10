@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Heatmap & volcano chart descriptions now translate.** The `role="img"`
+  title/description and the per-group `aria-label`s (matrix dimensions, row/
+  column-label groups, per-class point counts) were hard-coded English with
+  English-only pluralisation, so a French screen-reader user heard the wrong
+  language. They now come from the i18n catalogues with proper `Intl.PluralRules`
+  plurals in both locales.
+
 - **Heatmap clustering no longer freezes the tab on huge matrices.** Hierarchical
   and k-means clustering build an N×N distance matrix on the main thread; a
   pathological-but-legal CSV (thousands of rows/columns, still under the 2 MB

@@ -88,6 +88,19 @@ const en = {
   // Chart (baked into SVG export)
   "heatmap.chart.cluster": "Cluster n° {n}",
   "heatmap.chart.colorbarAria": "Colourbar: values range from {min} to {max}",
+  // Accessible chart description (role=img title/desc + group aria-labels)
+  "heatmap.chart.fallbackTitle": "Heatmap",
+  "heatmap.chart.descRows.one": "{n} row",
+  "heatmap.chart.descRows.other": "{n} rows",
+  "heatmap.chart.descCols.one": "{n} column",
+  "heatmap.chart.descCols.other": "{n} columns",
+  "heatmap.chart.desc": "Heatmap of {rows} × {cols}{clustering}",
+  "heatmap.chart.descClustering": ", with clustering",
+  "heatmap.chart.cellsAria": "Matrix of {rows} × {cols}, values from {min} to {max}",
+  "heatmap.chart.rowLabelsAria.one": "{n} row label",
+  "heatmap.chart.rowLabelsAria.other": "{n} row labels",
+  "heatmap.chart.colLabelsAria.one": "{n} column label",
+  "heatmap.chart.colLabelsAria.other": "{n} column labels",
 
   // App — parse error + step label
   "heatmap.err.matrix":

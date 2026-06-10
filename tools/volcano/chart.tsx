@@ -409,7 +409,18 @@ export const VolcanoChart = memo(
         aria-label={title || tt("volcano.chart.fallbackTitle")}
       >
         <title>{title || tt("volcano.chart.fallbackTitle")}</title>
-        <desc>{`Volcano plot of ${summary.total} point${summary.total !== 1 ? "s" : ""}: ${summary.up} up, ${summary.down} down, ${summary.ns} not significant${summary.discarded > 0 ? `, ${summary.discarded} discarded` : ""}`}</desc>
+        <desc>
+          {tt("volcano.chart.desc", {
+            points: tt("volcano.chart.descPoints", { n: summary.total, count: summary.total }),
+            up: summary.up,
+            down: summary.down,
+            ns: summary.ns,
+            discarded:
+              summary.discarded > 0
+                ? tt("volcano.chart.descDiscarded", { n: summary.discarded })
+                : "",
+          })}
+        </desc>
         <g id="background">
           <rect x={0} y={0} width={VBW} height={VBH} fill={plotBg || "#fff"} />
         </g>
@@ -637,15 +648,15 @@ export const VolcanoChart = memo(
                   cls === "up" ? summary.up : cls === "down" ? summary.down : summary.ns;
                 const classLabel =
                   cls === "up"
-                    ? "upregulated"
+                    ? tt("volcano.chart.classUp")
                     : cls === "down"
-                      ? "downregulated"
-                      : "not significant";
+                      ? tt("volcano.chart.classDown")
+                      : tt("volcano.chart.classNs");
                 return (
                   <g
                     key={cls}
                     id={`points-${cls}`}
-                    aria-label={`${count} ${classLabel} point${count !== 1 ? "s" : ""}`}
+                    aria-label={tt("volcano.chart.classPointsAria", { count, label: classLabel })}
                   />
                 );
               })}
@@ -674,13 +685,17 @@ export const VolcanoChart = memo(
             (["ns", "down", "up"] as VolcanoClass[]).map((cls) => {
               const count = cls === "up" ? summary.up : cls === "down" ? summary.down : summary.ns;
               const classLabel =
-                cls === "up" ? "upregulated" : cls === "down" ? "downregulated" : "not significant";
+                cls === "up"
+                  ? tt("volcano.chart.classUp")
+                  : cls === "down"
+                    ? tt("volcano.chart.classDown")
+                    : tt("volcano.chart.classNs");
               return (
                 <g
                   key={cls}
                   id={`points-${cls}`}
                   fillOpacity={pointAlpha}
-                  aria-label={`${count} ${classLabel} point${count !== 1 ? "s" : ""}`}
+                  aria-label={tt("volcano.chart.classPointsAria", { count, label: classLabel })}
                 >
                   {rendered
                     .filter((r) => r.cls === cls)
