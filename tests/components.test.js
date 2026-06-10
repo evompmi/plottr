@@ -1655,6 +1655,7 @@ suite("VolcanoChart (raster ↔ vector export)");
     topNDown: 0,
     labelFontSize: 10,
     showAxes: true,
+    tickFontSize: 11,
     plotBg: "#fff",
   };
 

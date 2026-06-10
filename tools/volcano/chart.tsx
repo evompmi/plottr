@@ -16,7 +16,7 @@ import type { VolcanoChartProps } from "./helpers";
 import {
   DEFAULT_VBW,
   VBH,
-  MARGIN,
+  MARGIN as BASE_MARGIN,
   SELECTION_RING_PAD,
   LEGEND_W,
   LEGEND_GAP,
@@ -30,6 +30,7 @@ import {
 import { ColorLegend, SizeLegend } from "./chart-legends";
 import { tt } from "./i18n";
 
+import { valueAxisLeftMargin } from "../_shell/chart-layout";
 import { makeTicks } from "../_core/scale";
 import { registerSvgExportMutator, unregisterSvgExportMutator } from "../_core/svg-export";
 // Re-export a few constants the rest of the volcano tool reaches for
@@ -96,6 +97,7 @@ export const VolcanoChart = memo(
       topNDown,
       labelFontSize,
       showAxes,
+      tickFontSize,
       manualSelection,
       onPointClick,
       colorMap,
@@ -115,8 +117,6 @@ export const VolcanoChart = memo(
     // aesthetic mapping is active. Inner plot width shrinks to fit.
     const hasLegend = !!colorMap || !!sizeMap;
     const legendW = hasLegend ? LEGEND_W : 0;
-    const w = VBW - MARGIN.left - MARGIN.right - legendW;
-    const h = VBH - MARGIN.top - MARGIN.bottom;
 
     const { xMin, xMax, yMin, yMax } = useMemo(
       () =>
@@ -133,12 +133,29 @@ export const VolcanoChart = memo(
       [points, pFloor, fcCutoff, pCutoff, userXMin, userXMax, userYMin, userYMax]
     );
 
+    const xTicks = makeTicks(xMin, xMax, 8);
+    const yTicks = makeTicks(yMin, yMax, 6);
+
+    // Grow the left margin so wide y-tick numbers or a larger tick font never
+    // collide with the rotated y-axis label (shared rule with scatter / line).
+    const MARGIN = {
+      ...BASE_MARGIN,
+      left: valueAxisLeftMargin(
+        BASE_MARGIN.left,
+        yTicks.map((t) => fmtTick(t)),
+        tickFontSize
+      ),
+    };
+    // Larger tick fonts grow upward into the axis line; nudge the x-tick
+    // baseline down by the extra ascent (0 at the 11 px default).
+    const xTickDy = Math.max(0, (tickFontSize - 11) * 0.8);
+
+    const w = VBW - MARGIN.left - MARGIN.right - legendW;
+    const h = VBH - MARGIN.top - MARGIN.bottom;
     const xRange = xMax - xMin || 1;
     const yRange = yMax - yMin || 1;
     const sx = (v: number) => MARGIN.left + ((v - xMin) / xRange) * w;
     const sy = (v: number) => MARGIN.top + (1 - (v - yMin) / yRange) * h;
-    const xTicks = makeTicks(xMin, xMax, 8);
-    const yTicks = makeTicks(yMin, yMax, 6);
 
     const rendered = useMemo(
       () => buildRenderedPoints(points, pFloor, fcCutoff, pCutoff, sx, sy),
@@ -475,9 +492,9 @@ export const VolcanoChart = memo(
               />
               <text
                 x={sx(t)}
-                y={MARGIN.top + h + 18}
+                y={MARGIN.top + h + 18 + xTickDy}
                 textAnchor="middle"
-                fontSize="11"
+                fontSize={tickFontSize}
                 fill="#555"
                 fontFamily="sans-serif"
               >
@@ -501,7 +518,7 @@ export const VolcanoChart = memo(
                 x={MARGIN.left - 8}
                 y={sy(t) + 4}
                 textAnchor="end"
-                fontSize="11"
+                fontSize={tickFontSize}
                 fill="#555"
                 fontFamily="sans-serif"
               >

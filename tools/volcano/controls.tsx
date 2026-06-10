@@ -629,6 +629,15 @@ export function StyleTile({ vis, updVis }: StyleTileProps) {
       <ToggleRow checked={vis.showAxes} onChange={(v) => updVis({ showAxes: v })}>
         {tr("volcano.style.showGrid")}
       </ToggleRow>
+      <SliderControl
+        label={tr("volcano.style.tickFontSize")}
+        value={vis.tickFontSize}
+        displayValue={vis.tickFontSize + " px"}
+        min={11}
+        max={22}
+        step={1}
+        onChange={(v) => updVis({ tickFontSize: Number(v) })}
+      />
       <label
         style={{
           display: "flex",

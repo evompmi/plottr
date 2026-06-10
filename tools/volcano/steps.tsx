@@ -370,6 +370,7 @@ export function PlotStep({
             topNDown={vis.topNDown}
             labelFontSize={vis.labelFontSize}
             showAxes={vis.showAxes}
+            tickFontSize={vis.tickFontSize}
             manualSelection={manualSelection}
             onPointClick={togglePointSelection}
             colorMap={colorMap}
