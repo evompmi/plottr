@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Tick label size control.** Group Plot, Scatter, Line Plot and RLU
+  timecourse now expose a "Tick label size" slider in their axes panel,
+  scaling the x/y tick value text from the default 11 px up to 22 px for
+  more legible charts and exports. The x-axis labels nudge down as the font
+  grows so larger text stays clear of the axis line above it, and the left
+  margin widens to fit big y-tick numbers (e.g. uncalibrated RLU) so they
+  never overrun the y-axis label.
+
 ## [1.8.1] - 2026-06-10
 
 > Long-form release notes live in

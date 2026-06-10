@@ -380,6 +380,7 @@ export interface BoxplotVis {
   jitterWidth: number;
   pointOpacity: number;
   xLabelAngle: number;
+  tickFontSize: number;
   yMinCustom: string;
   yMaxCustom: string;
   yScale: string;
@@ -543,6 +544,7 @@ export interface ChartProps {
   jitterWidth: number;
   pointOpacity: number;
   xLabelAngle: number;
+  tickFontSize: number;
   yMin: number | null;
   yMax: number | null;
   categoryColors?: Record<string, string>;

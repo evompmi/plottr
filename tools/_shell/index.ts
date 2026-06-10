@@ -51,7 +51,7 @@ export { UploadPanel } from "./UploadPanel";
 
 // ── Pure helpers / data / hooks ─────────────────────────────────────
 export { assignBracketLevels } from "./bracket-levels";
-export { CHART_MARGIN, buildLineD } from "./chart-layout";
+export { CHART_MARGIN, buildLineD, valueAxisLeftMargin } from "./chart-layout";
 export {
   COLORBLIND_SAFE_PALETTES,
   DISCRETE_PALETTES,

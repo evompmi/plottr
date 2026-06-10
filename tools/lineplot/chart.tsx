@@ -3,10 +3,11 @@
 // constants and pure helpers (computeSeries, computePerXStats, buildLineD)
 // live in tools/lineplot/helpers.ts.
 
-import { MARGIN, STAR_ROW_H, buildLineD, ChartProps, SeriesPoint } from "./helpers";
+import { MARGIN as BASE_MARGIN, STAR_ROW_H, buildLineD, ChartProps, SeriesPoint } from "./helpers";
 import { computeLegendHeight, renderSvgLegend } from "../_shell";
 import type { LegendBlock } from "../_shell";
 import { makeTicks } from "../_core/scale";
+import { valueAxisLeftMargin } from "../_shell/chart-layout";
 import { pStars } from "../_core/stats/format";
 import { svgSafeId } from "../_core/svg-export";
 import { tt } from "./i18n";
@@ -34,12 +35,23 @@ export const Chart = memo(
       pointRadius,
       errorStrokeWidth,
       errorCapWidth,
+      tickFontSize,
       errorType,
       svgLegend,
       showStars,
     },
     ref
   ) {
+    // Grow the left margin so wide y-tick numbers or a larger tick font never
+    // collide with the rotated y-axis label.
+    const MARGIN = {
+      ...BASE_MARGIN,
+      left: valueAxisLeftMargin(
+        BASE_MARGIN.left,
+        makeTicks(yMin, yMax, 6).map((t) => (t % 1 === 0 ? t : t.toFixed(1))),
+        tickFontSize
+      ),
+    };
     const itemW = (b: LegendBlock): number => {
       const maxLen = Math.max(0, ...(b.items || []).map((i) => (i.label || "").length));
       return Math.max(110, maxLen * 6 + 28);
@@ -52,6 +64,9 @@ export const Chart = memo(
     const h = vbH - MARGIN.top - MARGIN.bottom;
     const innerTop = MARGIN.top + starRowH;
     const innerH = h - starRowH;
+    // Larger tick fonts grow upward into the axis line; nudge the x-tick
+    // baseline down by the extra ascent (0 at the 11 px default).
+    const xTickDy = Math.max(0, (tickFontSize - 11) * 0.8);
     const xRange = xMax - xMin || 1;
     const yRange = yMax - yMin || 1;
     const sx = (v: number) => MARGIN.left + ((v - xMin) / xRange) * w;
@@ -285,9 +300,9 @@ export const Chart = memo(
                 />
                 <text
                   x={sx(t)}
-                  y={innerTop + innerH + 18}
+                  y={innerTop + innerH + 18 + xTickDy}
                   textAnchor="middle"
-                  fontSize="11"
+                  fontSize={tickFontSize}
                   fill="#555"
                   fontFamily="sans-serif"
                 >
@@ -311,7 +326,7 @@ export const Chart = memo(
                   x={MARGIN.left - 8}
                   y={sy(t) + 4}
                   textAnchor="end"
-                  fontSize="11"
+                  fontSize={tickFontSize}
                   fill="#555"
                   fontFamily="sans-serif"
                 >

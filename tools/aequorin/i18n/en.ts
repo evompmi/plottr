@@ -56,6 +56,7 @@ const en = {
   "aequorin.ctrl.auto": "Auto",
   "aequorin.ctrl.autoOn": "Auto ✓",
   "aequorin.ctrl.smooth": "Smooth (±pts)",
+  "aequorin.ctrl.tickFontSize": "Tick label size",
   "aequorin.ctrl.smoothValue": "{n} pts",
   "aequorin.ctrl.displayUnit": "Display unit",
 

@@ -128,6 +128,7 @@ export interface LineplotVis {
   pointRadius: number;
   errorStrokeWidth: number;
   errorCapWidth: number;
+  tickFontSize: number;
   groupColors: Record<string, string>;
   discretePalette: string;
   errorType: ErrorKind;
@@ -230,6 +231,7 @@ export interface ChartProps {
   pointRadius: number;
   errorStrokeWidth: number;
   errorCapWidth: number;
+  tickFontSize: number;
   errorType: ErrorKind;
   svgLegend: LegendBlock[] | null;
   showStars: boolean;

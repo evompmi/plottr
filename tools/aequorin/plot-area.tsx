@@ -49,6 +49,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
     lineWidth,
     ribbonOpacity,
     gridColor,
+    tickFontSize,
     plotHeight,
     timeStep,
     baseUnit,
@@ -670,6 +671,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                 lineWidth,
                 ribbonOpacity,
                 gridColor,
+                tickFontSize,
                 plotTitle: s.label,
                 svgLegend: null,
               };
@@ -709,6 +711,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
             lineWidth={lineWidth}
             ribbonOpacity={ribbonOpacity}
             gridColor={gridColor}
+            tickFontSize={tickFontSize}
             plotTitle={title || null}
             plotSubtitle={subtitle || null}
             svgLegend={[

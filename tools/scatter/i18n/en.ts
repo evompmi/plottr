@@ -92,6 +92,7 @@ const en = {
   "scatter.axes.xLabel": "X label",
   "scatter.axes.yLabel": "Y label",
   "scatter.axes.title": "Title",
+  "scatter.axes.tickFontSize": "Tick label size",
 
   // Style + filters
   "scatter.sec.style": "Style",

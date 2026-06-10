@@ -6,7 +6,7 @@
 // assignBracketLevels, seededRandom, tinv) resolved through shared.bundle.js.
 
 import {
-  MARGIN,
+  MARGIN as BASE_MARGIN,
   buildAreaD,
   buildLineD,
   ChartProps,
@@ -25,6 +25,7 @@ import {
 import type { LegendBlock } from "../_shell";
 import { seededRandom } from "../_core/numeric";
 import { makeTicks } from "../_core/scale";
+import { valueAxisLeftMargin } from "../_shell/chart-layout";
 import { tinv } from "../_core/stats/dist";
 import { svgSafeId } from "../_core/svg-export";
 import { useT } from "./i18n";
@@ -49,6 +50,7 @@ export const Chart = memo(
       lineWidth,
       ribbonOpacity,
       gridColor,
+      tickFontSize,
       svgLegend,
       plotTitle,
       plotSubtitle,
@@ -57,6 +59,16 @@ export const Chart = memo(
     ref
   ) {
     const tr = useT();
+    // Grow the left margin so wide y-tick numbers (e.g. uncalibrated RLU) or
+    // a larger tick font never collide with the rotated y-axis label.
+    const MARGIN = {
+      ...BASE_MARGIN,
+      left: valueAxisLeftMargin(
+        BASE_MARGIN.left,
+        makeTicks(yMin, yMax, 6).map((t) => (t % 1 === 0 ? t : t.toFixed(1))),
+        tickFontSize
+      ),
+    };
     const aequorinItemW = (b: LegendBlock): number => {
       const maxLen = Math.max(0, ...(b.items || []).map((i) => (i.label || "").length));
       return Math.max(110, maxLen * 6 + 28);
@@ -65,6 +77,9 @@ export const Chart = memo(
     const topPad = (plotTitle ? 20 : 0) + (plotSubtitle ? 16 : 0);
     const w = vbW - MARGIN.left - MARGIN.right;
     const h = vbH - MARGIN.top - MARGIN.bottom;
+    // Larger tick fonts grow upward into the axis line; nudge the x-tick
+    // baseline down by the extra ascent (0 at the 11 px default).
+    const xTickDy = Math.max(0, (tickFontSize - 11) * 0.8);
     const xRange = xEnd - xStart || 1;
     const yRange = yMax - yMin || 1;
     const sx = (v: number): number => MARGIN.left + ((v - xStart) / xRange) * w;
@@ -318,9 +333,9 @@ export const Chart = memo(
                 />
                 <text
                   x={sx(t)}
-                  y={MARGIN.top + h + 18}
+                  y={MARGIN.top + h + 18 + xTickDy}
                   textAnchor="middle"
-                  fontSize="11"
+                  fontSize={tickFontSize}
                   fill="#555"
                   fontFamily="sans-serif"
                 >
@@ -344,7 +359,7 @@ export const Chart = memo(
                   x={MARGIN.left - 8}
                   y={sy(t) + 4}
                   textAnchor="end"
-                  fontSize="11"
+                  fontSize={tickFontSize}
                   fill="#555"
                   fontFamily="sans-serif"
                 >

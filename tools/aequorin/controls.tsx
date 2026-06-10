@@ -175,6 +175,15 @@ export function PlotControls({
           step={1}
           onChange={(v) => updVis({ smoothWidth: v })}
         />
+        <SliderControl
+          label={tr("aequorin.ctrl.tickFontSize")}
+          value={vis.tickFontSize}
+          displayValue={vis.tickFontSize + " px"}
+          min={11}
+          max={22}
+          step={1}
+          onChange={(v) => updVis({ tickFontSize: v })}
+        />
         <label style={{ display: "block" }}>
           <span className="dv-label">{tr("aequorin.ctrl.displayUnit")}</span>
           <select

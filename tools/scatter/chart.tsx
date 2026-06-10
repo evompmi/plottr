@@ -3,12 +3,13 @@
 // computations the parent App built. Delegates per-point shape rendering
 // to renderPoint in shapes.tsx.
 
-import { fmtTick, MARGIN, VBW, VBH, ChartProps, RefLine } from "./helpers";
+import { fmtTick, MARGIN as BASE_MARGIN, VBW, VBH, ChartProps, RefLine } from "./helpers";
 import { renderPoint } from "./shapes";
 import { computeLegendHeight, renderSvgLegend } from "../_shell";
 import type { LegendBlock } from "../_shell";
 import { COLOR_PALETTES, interpolateColor } from "../_core/color";
 import { makeTicks } from "../_core/scale";
+import { valueAxisLeftMargin } from "../_shell/chart-layout";
 import { tt } from "./i18n";
 const { forwardRef, memo } = React;
 
@@ -29,6 +30,7 @@ export const ScatterChart = memo(
       plotBg,
       showGrid,
       gridColor,
+      tickFontSize,
       refLines,
       regression,
       regressionStats,
@@ -54,8 +56,21 @@ export const ScatterChart = memo(
     },
     ref
   ) {
+    // Grow the left margin so wide y-tick numbers or a larger tick font never
+    // collide with the rotated y-axis label.
+    const MARGIN = {
+      ...BASE_MARGIN,
+      left: valueAxisLeftMargin(
+        BASE_MARGIN.left,
+        makeTicks(yMin, yMax, 6).map((t) => fmtTick(t)),
+        tickFontSize
+      ),
+    };
     const w = VBW - MARGIN.left - MARGIN.right;
     const h = VBH - MARGIN.top - MARGIN.bottom;
+    // Larger tick fonts grow upward into the axis line; nudge the x-tick
+    // baseline down by the extra ascent (0 at the 11 px default).
+    const xTickDy = Math.max(0, (tickFontSize - 11) * 0.8);
     const legendItemWidth = (block: LegendBlock): number => {
       if (!block.items) return 88;
       const maxLen = block.items.reduce((m: number, it) => Math.max(m, (it.label || "").length), 0);
@@ -368,9 +383,9 @@ export const ScatterChart = memo(
               />
               <text
                 x={sx(t)}
-                y={MARGIN.top + h + 18}
+                y={MARGIN.top + h + 18 + xTickDy}
                 textAnchor="middle"
-                fontSize="11"
+                fontSize={tickFontSize}
                 fill="#555"
                 fontFamily="sans-serif"
               >
@@ -394,7 +409,7 @@ export const ScatterChart = memo(
                 x={MARGIN.left - 8}
                 y={sy(t) + 4}
                 textAnchor="end"
-                fontSize="11"
+                fontSize={tickFontSize}
                 fill="#555"
                 fontFamily="sans-serif"
               >

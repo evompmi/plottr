@@ -29,6 +29,7 @@ const fr: Record<LineplotKey, string> = {
   "lineplot.axes.xMax": "X max",
   "lineplot.axes.yMin": "Y min",
   "lineplot.axes.yMax": "Y max",
+  "lineplot.axes.tickFontSize": "Taille des graduations",
   "lineplot.sec.labels": "Étiquettes",
   "lineplot.labels.title": "Titre",
   "lineplot.labels.subtitle": "Sous-titre",

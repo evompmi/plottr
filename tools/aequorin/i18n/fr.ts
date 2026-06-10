@@ -46,6 +46,7 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.ctrl.auto": "Auto",
   "aequorin.ctrl.autoOn": "Auto ✓",
   "aequorin.ctrl.smooth": "Lissage (±pts)",
+  "aequorin.ctrl.tickFontSize": "Taille des graduations",
   "aequorin.ctrl.smoothValue": "{n} pts",
   "aequorin.ctrl.displayUnit": "Unité d’affichage",
   "aequorin.ctrl.labels": "Étiquettes",

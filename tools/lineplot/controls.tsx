@@ -230,6 +230,15 @@ export function PlotControls({
             />
           </label>
         </div>
+        <SliderControl
+          label={tr("lineplot.axes.tickFontSize")}
+          value={vis.tickFontSize}
+          displayValue={vis.tickFontSize + " px"}
+          min={11}
+          max={22}
+          step={1}
+          onChange={sv("tickFontSize")}
+        />
       </ControlSection>
 
       <ControlSection title={tr("lineplot.sec.labels")}>

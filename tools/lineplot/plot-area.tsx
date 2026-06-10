@@ -78,6 +78,7 @@ export function PlotStep(props: PlotStepProps) {
               pointRadius={vis.pointRadius}
               errorStrokeWidth={vis.errorStrokeWidth}
               errorCapWidth={vis.errorCapWidth}
+              tickFontSize={vis.tickFontSize}
               errorType={errorType}
               svgLegend={svgLegend}
               showStars={showStars}
