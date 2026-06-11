@@ -61,6 +61,24 @@ export function usePlotToolState<TVis extends object>(
     saveAutoPrefs(toolKey, vis);
   }, [toolKey, vis]);
 
+  // Warn before a reload / tab-close silently discards an in-progress
+  // dataset. Plot data lives only in memory — nothing but style prefs is
+  // persisted — so a reload loses the pasted/loaded data and the configured
+  // plot. Arm the guard only once the user has moved past the upload step
+  // (a dataset is actually loaded); an empty upload screen has nothing to
+  // lose, and tool-to-tool navigation is in-SPA so it never triggers
+  // `beforeunload`. Browsers show their own generic "Leave site?" prompt;
+  // custom text is no longer supported, hence the empty `returnValue`.
+  useEffect(() => {
+    if (step === "upload") return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [step]);
+
   return {
     step,
     setStep,

@@ -57,6 +57,7 @@ const VIS_INIT_VOLCANO: VolcanoVis = {
   showLabels: true,
   showRefLines: true,
   showAxes: true,
+  tickFontSize: 11,
   pointRadius: 3,
   pointAlpha: 0.7,
   labelFontSize: 11,

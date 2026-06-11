@@ -50,6 +50,7 @@ export function GroupColorEditor(props: GroupColorEditorProps) {
           value: g.color,
           onChange: (c: string) => onColorChange(i, c),
           size: 18,
+          label: g.displayName || g.name,
         })
       );
       children.push(

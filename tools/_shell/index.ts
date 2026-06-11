@@ -13,6 +13,8 @@
 export { ActionsPanel } from "./ActionsPanel";
 export type { ActionsPanelDownload } from "./ActionsPanel";
 export { BaseStyleControls } from "./BaseStyleControls";
+export { ChartDataTable } from "./ChartDataTable";
+export type { ChartDataTableRow } from "./ChartDataTable";
 export { CldLabels } from "./CldLabels";
 export { ColorInput, normalizeHexColor } from "./ColorInput";
 export { ColumnRoleEditor } from "./ColumnRoleEditor";

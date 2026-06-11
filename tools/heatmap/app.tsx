@@ -4,7 +4,14 @@
 // detail view, reports, and pure helpers all live in sibling modules under
 // tools/heatmap/.
 
-import { DataPreview, DetectedSeparatorBadge, PlotToolShell, usePlotToolState } from "../_shell";
+import {
+  ChartDataTable,
+  DataPreview,
+  DetectedSeparatorBadge,
+  PlotToolShell,
+  usePlotToolState,
+} from "../_shell";
+import type { ChartDataTableRow } from "../_shell";
 import "./i18n";
 import { tt, useT } from "./i18n";
 import { normalizeMatrix, autoRange } from "./helpers";
@@ -31,6 +38,31 @@ import { autoDetectSep, fixDecimalCommas, parseWideMatrix } from "../_core/csv";
 import { downloadPng, downloadSvg, fileBaseName, flashSaved } from "../_core/download";
 import { hclust, kmeans, pairwiseDistance } from "../_core/stats/cluster";
 const { useState, useReducer, useMemo, useCallback, useRef } = React;
+
+// Per-mode ceilings on the number of observations (rows for row-clustering,
+// columns for column-clustering) we will cluster on the main thread — there
+// is no Web Worker, so the whole compute blocks the tab. The two modes scale
+// very differently, so a single shared cap is wrong:
+//
+//   • Hierarchical: `pairwiseDistance` builds an N×N matrix and `hclust` is
+//     naive-agglomerative O(N³). Measured (V8, ~12 features): N=2,000 ≈ 3.5s,
+//     N=3,000 ≈ 11s, N=5,000 ≈ 47s — and far worse (minutes) once the N×N
+//     distance matrix thrashes GC. 2,000 keeps the worst case to a few seconds.
+//   • K-means: near-linear in N and O(N) memory. Measured: N=5,000 ≈ 3s, so
+//     ~10,000 (≈6s) is a comfortable ceiling.
+//
+// Above the relevant cap we fall back to the unclustered (file) order and
+// surface a note. Both sit well above any realistic heatmap (the bundled demo
+// is 500×6); users who need to cluster more rows should prefer k-means.
+const HCLUST_MAX_OBS = 2000;
+const KMEANS_MAX_OBS = 10000;
+const clusterCapFor = (mode: ClusterMode): number =>
+  mode === "hierarchical" ? HCLUST_MAX_OBS : mode === "kmeans" ? KMEANS_MAX_OBS : Infinity;
+
+// Cap the accessible data-table size — a `<table>` of a multi-thousand-square
+// matrix would balloon the DOM. Render rows up to this cell budget and note
+// the truncation; the chart itself is unaffected.
+const TABLE_MAX_CELLS = 20000;
 
 const VIS_INIT_HEATMAP = {
   palette: "viridis",
@@ -191,6 +223,8 @@ export function App() {
 
   // Clustering — expensive; only recompute when relevant inputs change.
   const rowCluster = useMemo<ClusterResult | null>(() => {
+    // Too many rows to cluster on the main thread — fall back to file order.
+    if (normalized.length > clusterCapFor(rowMode)) return null;
     if (rowMode === "hierarchical") {
       if (normalized.length < 2) return null;
       const D = pairwiseDistance(normalized, distanceMetric);
@@ -211,6 +245,8 @@ export function App() {
 
   const colCluster = useMemo<ClusterResult | null>(() => {
     if (normalized.length < 1 || normalized[0].length < 2) return null;
+    // Too many columns to cluster on the main thread — fall back to file order.
+    if (normalized[0].length > clusterCapFor(colMode)) return null;
     // Transpose once — both hierarchical and k-means need column-as-observation.
     const nRows = normalized.length;
     const nCols = normalized[0].length;
@@ -438,6 +474,43 @@ export function App() {
   const nCols = rawMatrix.colLabels.length;
   const oversize = nRows > 500 || nCols > 500;
 
+  // Accessible data-table model: the raw matrix in current display order, so
+  // keyboard / screen-reader users get the same values the (image-rendered)
+  // cells show. Truncated to a cell budget on huge matrices (see
+  // TABLE_MAX_CELLS); the `note` tells the user when that happens.
+  const tableModel = useMemo(() => {
+    const maxRows = nCols > 0 ? Math.max(1, Math.floor(TABLE_MAX_CELLS / nCols)) : nRows;
+    const shownRows = Math.min(nRows, maxRows);
+    const fmt = (v: number): string =>
+      Number.isFinite(v) ? String(Math.round(v * 1e4) / 1e4) : "";
+    const rows: ChartDataTableRow[] = [];
+    for (let ri = 0; ri < shownRows; ri++) {
+      const origRi = rowOrder[ri];
+      if (origRi == null) continue;
+      const cells: string[] = [];
+      for (let ci = 0; ci < nCols; ci++) {
+        const origCi = colOrder[ci];
+        cells.push(origCi == null ? "" : fmt(rawMatrix.matrix[origRi][origCi]));
+      }
+      rows.push({ header: rawMatrix.rowLabels[origRi], cells });
+    }
+    const columnHeaders = [vis.rowAxisLabel || tr("heatmap.table.rowHeader")].concat(
+      colOrder.map((origCi) => rawMatrix.colLabels[origCi])
+    );
+    return { rows, columnHeaders, truncated: shownRows < nRows, shownRows };
+  }, [rawMatrix, rowOrder, colOrder, nRows, nCols, vis.rowAxisLabel, tr]);
+  // Clustering was requested on an axis with more observations than the
+  // active mode's cap (see clusterCapFor) — it silently fell back to file
+  // order, so tell the user why, naming the limit that applied.
+  const rowClusterCapped = nRows > clusterCapFor(rowMode);
+  const colClusterCapped = nCols > clusterCapFor(colMode);
+  const clusterCapped = rowClusterCapped || colClusterCapped;
+  const clusterCapMax = rowClusterCapped
+    ? clusterCapFor(rowMode)
+    : colClusterCapped
+      ? clusterCapFor(colMode)
+      : 0;
+
   return (
     <PlotToolShell
       state={shell}
@@ -482,10 +555,19 @@ export function App() {
                 </span>
               </>
             )}
-            {oversize && (
+            {oversize && !clusterCapped && (
               <>
                 {" "}
                 · <span style={{ color: "var(--warning-text)" }}>{tr("heatmap.cfg.large")}</span>
+              </>
+            )}
+            {clusterCapped && (
+              <>
+                {" "}
+                ·{" "}
+                <span style={{ color: "var(--warning-text)" }}>
+                  {tr("heatmap.cfg.clusterCapped", { max: clusterCapMax })}
+                </span>
               </>
             )}
           </p>
@@ -679,6 +761,17 @@ export function App() {
                   clusterId={selection.clusterId}
                 />
               )}
+              <ChartDataTable
+                summaryLabel={tr("heatmap.table.summary")}
+                caption={tr("heatmap.table.caption", { rows: nRows, cols: nCols })}
+                columnHeaders={tableModel.columnHeaders}
+                rows={tableModel.rows}
+                note={
+                  tableModel.truncated
+                    ? tr("heatmap.table.truncated", { shown: tableModel.shownRows, total: nRows })
+                    : null
+                }
+              />
             </div>
           </div>
         </div>

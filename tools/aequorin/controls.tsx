@@ -339,6 +339,7 @@ export function PlotControls({
                     value={vis.insetGridColor}
                     onChange={(v) => updVis({ insetGridColor: v })}
                     size={24}
+                    label={tr("aequorin.ctrl.gridColor")}
                   />
                 </label>
               )}
@@ -405,6 +406,7 @@ export function PlotControls({
                     value={vis.insetBarOutlineColor}
                     onChange={(v) => updVis({ insetBarOutlineColor: v })}
                     size={24}
+                    label={tr("aequorin.ctrl.outlineColor")}
                   />
                 </label>
               </>
@@ -456,6 +458,7 @@ export function PlotControls({
                       value={vis.insetPointColor}
                       onChange={(v) => updVis({ insetPointColor: v })}
                       size={24}
+                      label={tr("aequorin.ctrl.color")}
                     />
                   </label>
                   <SliderControl

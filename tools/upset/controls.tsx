@@ -282,7 +282,12 @@ export function PlotControls({
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span className="dv-label">{tr("upset.disp.background")}</span>
-          <ColorInput value={vis.plotBg} onChange={sv("plotBg")} size={24} />
+          <ColorInput
+            value={vis.plotBg}
+            onChange={sv("plotBg")}
+            size={24}
+            label={tr("upset.disp.background")}
+          />
         </div>
       </ControlSection>
 

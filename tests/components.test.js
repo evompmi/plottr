@@ -105,6 +105,39 @@ test("renders slider with label and value", function () {
   assert(root.tagName === "DIV", "root should be a div");
 });
 
+suite("ChartDataTable");
+
+test("renders a semantic table with scoped headers and values", function () {
+  const html = renderHtml(sc.ChartDataTable, {
+    summaryLabel: "Show values as table",
+    caption: "Heatmap values",
+    columnHeaders: ["Row", "S1", "S2"],
+    rows: [
+      { header: "TP53", cells: ["2.13", "-0.88"] },
+      { header: "EGFR", cells: ["-1.04", "1.77"] },
+    ],
+    note: null,
+  });
+  assert(html.includes("<table"), "should render a table");
+  assert(html.includes('scope="col"'), "column headers should carry scope=col");
+  assert(html.includes('scope="row"'), "row headers should carry scope=row");
+  assert(html.includes("TP53"), "should include a row header value");
+  assert(html.includes("2.13"), "should include a data-cell value");
+  assert(html.includes("Show values as table"), "should include the summary label");
+});
+
+test("shows a truncation note when provided", function () {
+  const html = renderHtml(sc.ChartDataTable, {
+    summaryLabel: "Show",
+    caption: "cap",
+    columnHeaders: ["A"],
+    rows: [{ cells: ["1"] }],
+    note: "Showing the first 1 of 999 rows.",
+  });
+  assert(html.includes("Showing the first 1 of 999 rows."), "truncation note should render");
+  assert(html.includes('role="note"'), "note should have role=note");
+});
+
 suite("StepNavBar");
 
 test("renders step buttons", function () {
@@ -1622,6 +1655,7 @@ suite("VolcanoChart (raster ↔ vector export)");
     topNDown: 0,
     labelFontSize: 10,
     showAxes: true,
+    tickFontSize: 11,
     plotBg: "#fff",
   };
 

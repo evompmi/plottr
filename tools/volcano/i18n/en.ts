@@ -19,6 +19,24 @@ const en = {
   "volcano.chart.fallbackTitle": "Volcano plot",
   "volcano.chart.pointsTotal.one": "{n} point total",
   "volcano.chart.pointsTotal.other": "{n} points total",
+  // Accessible chart description (role=img desc + per-class group aria-labels)
+  "volcano.chart.descPoints.one": "{n} point",
+  "volcano.chart.descPoints.other": "{n} points",
+  "volcano.chart.desc":
+    "Volcano plot of {points}: {up} up, {down} down, {ns} not significant{discarded}",
+  "volcano.chart.descDiscarded": ", {n} discarded",
+  "volcano.chart.classPointsAria.one": "{count} {label} point",
+  "volcano.chart.classPointsAria.other": "{count} {label} points",
+  // Accessible data table
+  "volcano.table.summary": "Show points as table",
+  "volcano.table.caption":
+    "{n} points with log₂ fold-change, p-value, and significance class, in file order",
+  "volcano.table.truncated": "Many points — showing the first {shown} of {total}.",
+  "volcano.table.colLabel": "Label",
+  "volcano.table.colFc": "log₂FC",
+  "volcano.table.colP": "p",
+  "volcano.table.colClass": "Class",
+  "volcano.table.noLabel": "(unlabelled)",
 
   // Aesthetic tile headers
   "volcano.aes.x": "X axis · log₂ fold change",
@@ -113,6 +131,7 @@ const en = {
   "volcano.style.pointRadius": "Point radius",
   "volcano.style.pointAlpha": "Point alpha",
   "volcano.style.showGrid": "Show grid",
+  "volcano.style.tickFontSize": "Tick label size",
   "volcano.style.plotTitle": "Plot title",
   "volcano.style.optional": "(optional)",
 

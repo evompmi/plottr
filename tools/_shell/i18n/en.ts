@@ -269,6 +269,12 @@ const en = {
   "shell.style.grid": "Grid",
   "shell.style.gridColor": "Grid color",
 
+  // ColorInput accessible names
+  "shell.color.swatch": "{label}, color",
+  "shell.color.hex": "{label}, hex value",
+  "shell.color.swatchGeneric": "Color",
+  "shell.color.hexGeneric": "Color hex value",
+
   // NumberInput stepper
   "shell.num.increment": "Increment",
   "shell.num.decrement": "Decrement",

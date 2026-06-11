@@ -290,7 +290,7 @@ function ColorRow({ label, value, onChange }: ColorRowProps) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
       <span style={{ fontSize: 12, color: "var(--text)" }}>{label}</span>
-      <ColorInput value={value} onChange={onChange} size={20} />
+      <ColorInput value={value} onChange={onChange} size={20} label={label} />
     </div>
   );
 }
@@ -629,6 +629,15 @@ export function StyleTile({ vis, updVis }: StyleTileProps) {
       <ToggleRow checked={vis.showAxes} onChange={(v) => updVis({ showAxes: v })}>
         {tr("volcano.style.showGrid")}
       </ToggleRow>
+      <SliderControl
+        label={tr("volcano.style.tickFontSize")}
+        value={vis.tickFontSize}
+        displayValue={vis.tickFontSize + " px"}
+        min={11}
+        max={22}
+        step={1}
+        onChange={(v) => updVis({ tickFontSize: Number(v) })}
+      />
       <label
         style={{
           display: "flex",

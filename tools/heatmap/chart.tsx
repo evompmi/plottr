@@ -1189,10 +1189,16 @@ export const HeatmapChart = memo(
           height={vbH}
           style={{ maxWidth: "100%", height: "auto", display: "block" }}
           role="img"
-          aria-label={plotTitle || "Heatmap"}
+          aria-label={plotTitle || tt("heatmap.chart.fallbackTitle")}
         >
-          <title>{plotTitle || "Heatmap"}</title>
-          <desc>{`Heatmap of ${nRows} row${nRows !== 1 ? "s" : ""} × ${nCols} column${nCols !== 1 ? "s" : ""}${hasClustering ? ", with clustering" : ""}`}</desc>
+          <title>{plotTitle || tt("heatmap.chart.fallbackTitle")}</title>
+          <desc>
+            {tt("heatmap.chart.desc", {
+              rows: tt("heatmap.chart.descRows", { n: nRows, count: nRows }),
+              cols: tt("heatmap.chart.descCols", { n: nCols, count: nCols }),
+              clustering: hasClustering ? tt("heatmap.chart.descClustering") : "",
+            })}
+          </desc>
           <g id="background">
             <rect x={0} y={0} width={vbW} height={vbH} fill="#ffffff" />
           </g>
@@ -1271,7 +1277,12 @@ export const HeatmapChart = memo(
             </g>
             <g
               id="cells"
-              aria-label={`Matrix of ${nRows} row${nRows !== 1 ? "s" : ""} × ${nCols} column${nCols !== 1 ? "s" : ""}, values from ${vmin.toPrecision(3)} to ${vmax.toPrecision(3)}`}
+              aria-label={tt("heatmap.chart.cellsAria", {
+                rows: tt("heatmap.chart.descRows", { n: nRows, count: nRows }),
+                cols: tt("heatmap.chart.descCols", { n: nCols, count: nCols }),
+                min: vmin.toPrecision(3),
+                max: vmax.toPrecision(3),
+              })}
             >
               {cellsImageHref && (
                 <image
@@ -1289,7 +1300,10 @@ export const HeatmapChart = memo(
 
           {/* Column labels */}
           {showColLabels && (
-            <g id="col-labels" aria-label={`${nCols} column label${nCols !== 1 ? "s" : ""}`}>
+            <g
+              id="col-labels"
+              aria-label={tt("heatmap.chart.colLabelsAria", { n: nCols, count: nCols })}
+            >
               {colOrder.map((origCi: number, ci: number) => {
                 const cx = MARGIN.left + cellX(ci) + cellW / 2;
                 const cy = MARGIN.top - LABEL_GAP;
@@ -1313,7 +1327,10 @@ export const HeatmapChart = memo(
 
           {/* Row labels */}
           {showRowLabels && (
-            <g id="row-labels" aria-label={`${nRows} row label${nRows !== 1 ? "s" : ""}`}>
+            <g
+              id="row-labels"
+              aria-label={tt("heatmap.chart.rowLabelsAria", { n: nRows, count: nRows })}
+            >
               {rowOrder.map((origRi: number, ri: number) => (
                 <text
                   key={ri}

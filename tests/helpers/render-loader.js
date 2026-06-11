@@ -143,6 +143,7 @@ function ensureSharedBundleLoaded() {
       names: [
         "ActionsPanel",
         "BaseStyleControls",
+        "ChartDataTable",
         "CldLabels",
         "ColorInput",
         "ColumnRoleEditor",

@@ -33,7 +33,12 @@ export function BaseStyleControls(props: BaseStyleControlsProps) {
         style: { display: "flex", alignItems: "center", justifyContent: "space-between" },
       },
       h("span", { className: "dv-label" }, tr("shell.style.background")),
-      h(ColorInput, { value: plotBg, onChange: onPlotBgChange, size: 24 })
+      h(ColorInput, {
+        value: plotBg,
+        onChange: onPlotBgChange,
+        size: 24,
+        label: tr("shell.style.background"),
+      })
     ),
     h(
       "div",
@@ -55,7 +60,12 @@ export function BaseStyleControls(props: BaseStyleControlsProps) {
           style: { display: "flex", alignItems: "center", justifyContent: "space-between" },
         },
         h("span", { className: "dv-label" }, tr("shell.style.gridColor")),
-        h(ColorInput, { value: gridColor, onChange: onGridColorChange, size: 24 })
+        h(ColorInput, {
+          value: gridColor,
+          onChange: onGridColorChange,
+          size: 24,
+          label: tr("shell.style.gridColor"),
+        })
       )
     );
   }

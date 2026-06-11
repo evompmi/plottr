@@ -137,6 +137,7 @@ export function PlotControls({
                   value={setColors[name] || PALETTE[i % PALETTE.length]}
                   onChange={(v) => onColorChange(name, v)}
                   size={20}
+                  label={name}
                 />
                 <input
                   key={name}
@@ -245,7 +246,12 @@ export function PlotControls({
           />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span className="dv-label">{tr("venn.ctrl.background")}</span>
-            <ColorInput value={vis.plotBg} onChange={sv("plotBg")} size={24} />
+            <ColorInput
+              value={vis.plotBg}
+              onChange={sv("plotBg")}
+              size={24}
+              label={tr("venn.ctrl.background")}
+            />
           </div>
         </div>
       </div>

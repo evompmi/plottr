@@ -12,6 +12,25 @@ export function fileBaseName(fileName: unknown, fallback?: string): string {
   return fallback || "data";
 }
 
+// Strip path separators, control characters, and leading dots from a
+// filename so a user-derived component (a CSV group label, a pasted
+// aequorin condition name) can't escape the target folder or the zip
+// root. Without this a label like "../../evil" or "a/b" becomes a
+// traversal path in a `.zip` central-directory entry (Zip Slip), a
+// `showDirectoryPicker` `getFileHandle` subpath, or an `<a download>`
+// name. Internal dots (the extension) are preserved; only path-segment
+// structure is neutralised. Mirrors the handoff sanitiser in
+// `upset/app.tsx` and `venn/set-math.ts`'s `regionFilenamePart`, lifted
+// here so every export path is covered at one chokepoint.
+export function sanitizeFilename(name: string): string {
+  const cleaned = name
+    .replace(/[/\\]/g, "_") // path separators → underscore
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\x00-\x1f\x7f]/g, "") // control chars (incl. NUL)
+    .replace(/^\.+/, ""); // leading dots ("..", hidden files)
+  return cleaned.slice(0, 255) || "plottr-export";
+}
+
 // Accepts any HTMLElement (call sites use either a button or a wider
 // `EventTarget & HTMLElement` from React's MouseEvent.currentTarget).
 // `disabled` is set only on elements that have the property — most
@@ -79,7 +98,7 @@ function anchorDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename;
+  a.download = sanitizeFilename(filename);
   a.style.display = "none";
   document.body.appendChild(a);
   a.click();
@@ -144,7 +163,8 @@ const ZIP_THRESHOLD = 3;
 // than the user-cancelled `AbortError`. User cancel returns silently; we
 // don't downgrade to the fallback in that case because the user explicitly
 // chose "Cancel".
-export async function saveBlob(blob: Blob, filename: string): Promise<void> {
+export async function saveBlob(blob: Blob, rawFilename: string): Promise<void> {
+  const filename = sanitizeFilename(rawFilename);
   if (
     typeof window !== "undefined" &&
     typeof (window as SaveFilePickerWindow).showSaveFilePicker === "function"
@@ -189,7 +209,12 @@ export async function saveBlob(blob: Blob, filename: string): Promise<void> {
 // directory picker) or if the picker call fails for any reason other than
 // user cancel.
 export async function saveBlobs(files: NamedBlob[]): Promise<void> {
-  const valid = files.filter((f) => f && f.blob);
+  // Sanitise up front so every downstream path — zip entry names, the
+  // directory-picker `getFileHandle` subpath, and the anchor fallback —
+  // sees a name that can't escape the chosen folder.
+  const valid = files
+    .filter((f) => f && f.blob)
+    .map((f) => ({ blob: f.blob, filename: sanitizeFilename(f.filename) }));
   if (valid.length === 0) return;
   if (valid.length === 1) {
     await saveBlob(valid[0].blob, valid[0].filename);

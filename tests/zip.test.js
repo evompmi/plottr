@@ -139,4 +139,28 @@ test("marks filenames UTF-8 and preserves non-ASCII names", async () => {
   assert((z.entries[0].flags & 0x0800) !== 0, "UTF-8 general-purpose flag not set");
 });
 
+suite("buildZip — Zip Slip defence");
+
+test("neutralises path separators and traversal in entry names", async () => {
+  const z = readZip(
+    await zipBytes([
+      { filename: "../../evil.svg", blob: textBlob("a") },
+      { filename: "a/b/c.csv", blob: textBlob("b") },
+      { filename: "..\\..\\windows\\system32.txt", blob: textBlob("c") },
+    ])
+  );
+  // A Zip Slip needs a path separator or a leading-dot escape; a ".."
+  // substring with no separator is just a harmless single filename.
+  for (const e of z.entries) {
+    assert(!e.name.includes("/"), `entry name still has forward slash: ${e.name}`);
+    assert(!e.name.includes("\\"), `entry name still has backslash: ${e.name}`);
+    assert(!e.name.startsWith("."), `entry name still starts with a dot: ${e.name}`);
+  }
+});
+
+test("falls back to a non-empty name when sanitising leaves nothing", async () => {
+  const z = readZip(await zipBytes([{ filename: "..", blob: textBlob("x") }]));
+  assert(z.entries[0].name.length > 0, "empty entry name after sanitisation");
+});
+
 summary();

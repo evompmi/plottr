@@ -79,6 +79,8 @@ const en = {
   "scatter.aes.categorical.one": "categorical ({n} group)",
   "scatter.aes.categorical.other": "categorical ({n} groups)",
   "scatter.aes.range": "range: {min} → {max}",
+  "scatter.aes.cbSafe": " · 👁",
+  "scatter.aes.cbSafeNote": "👁 colour-blind-safe",
   "scatter.size.min": "Min size",
   "scatter.size.max": "Max size",
 

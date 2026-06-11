@@ -72,6 +72,27 @@ export const COLOR_PALETTES: Record<string, string[]> = {
 // Diverging palettes should be anchored at 0 when rendered (symmetric vmin/vmax).
 export const DIVERGING_PALETTES: Set<string> = new Set(["rdbu", "bwr", "rdylbu", "spectral"]);
 
+// Continuous palettes considered colour-blind-safe, so the picker can mark
+// them (mirroring the 👁 the discrete-palette picker already shows). The
+// perceptually-uniform sequential maps (viridis family + cividis), the
+// single-hue sequential ramps, and the blue↔red diverging maps all stay
+// legible across the common CVD types (the blue–red axis is the safe one).
+// `spectral` is the rainbow scheme that relies on red–green discrimination
+// and is deliberately excluded.
+export const COLORBLIND_SAFE_PALETTES: Set<string> = new Set([
+  "viridis",
+  "plasma",
+  "magma",
+  "inferno",
+  "cividis",
+  "rdbu",
+  "bwr",
+  "rdylbu",
+  "reds",
+  "blues",
+  "greens",
+]);
+
 export function interpolateColor(stops: string[], t: number): string {
   if (!stops || stops.length === 0) return "#000000";
   if (stops.length === 1) return stops[0];

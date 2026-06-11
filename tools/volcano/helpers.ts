@@ -1240,6 +1240,7 @@ export interface VolcanoVis {
   showLabels: boolean;
   showRefLines: boolean;
   showAxes: boolean;
+  tickFontSize: number;
   pointRadius: number;
   pointAlpha: number;
   labelFontSize: number;
@@ -1306,6 +1307,7 @@ export interface VolcanoChartProps {
   topNDown: number;
   labelFontSize: number;
   showAxes: boolean;
+  tickFontSize: number;
   manualSelection?: Set<number>;
   onPointClick?: (idx: number) => void;
   colorMap?: ColorMap;
