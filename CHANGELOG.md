@@ -7,72 +7,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-06-11
+
+> Long-form release notes — what shipped, why, and how — live in
+> [`docs/release-notes/v1.9.0.md`](docs/release-notes/v1.9.0.md). The entries
+> below are summary bullets that link there.
+>
+> The "Audible" release: the heatmap and volcano plot expose their data as a
+> keyboard- and screen-reader-readable table, sliders and colour pickers
+> announce what they control, and chart descriptions translate — plus a path-
+> traversal fix on export filenames, colour-blind-safe colormap markers, a
+> reload guard for in-progress data, and a tick label-size slider on five tools.
+
 ### Security
 
 - **Export filenames are sanitised against path traversal (Zip Slip).** A
   user-supplied label embedded in an export name (an aequorin condition, a
   boxplot facet value) could contain `/`, `\`, or `..` and escape the chosen
-  folder or `.zip` root on extraction. All save paths now strip path
-  separators, control characters, and leading dots at one chokepoint in
-  `_core/download.ts`, and `buildZip` re-sanitises every entry name as
-  defence-in-depth.
-
-### Fixed
-
-- **Heatmap & volcano chart descriptions now translate.** The `role="img"`
-  title/description and the per-group `aria-label`s (matrix dimensions, row/
-  column-label groups, per-class point counts) were hard-coded English with
-  English-only pluralisation, so a French screen-reader user heard the wrong
-  language. They now come from the i18n catalogues with proper `Intl.PluralRules`
-  plurals in both locales.
-
-- **Heatmap clustering no longer freezes the tab on huge matrices.** Clustering
-  runs on the main thread (no Web Worker), and a pathological-but-legal CSV
-  (thousands of rows/columns, still under the 2 MB ingest limit) could lock the
-  tab for tens of seconds to minutes. Clustering is now capped per axis by mode,
-  matched to each mode's measured cost: hierarchical (O(N³), N×N distance matrix)
-  at **2,000** observations, k-means (near-linear) at **10,000**. Above the cap
-  the heatmap falls back to file order and shows a note explaining why. Realistic
-  heatmaps (the bundled demo is 500×6) are unaffected.
-
-- **Sliders and colour pickers are now labelled for screen readers.** Every
-  range slider (`SliderControl`) associates its visible label with the input
-  via `aria-labelledby`, so it announces e.g. "Point size" instead of a bare
-  "slider"; every colour picker (`ColorInput`) takes a `label` and gives both
-  the swatch and the hex field an `aria-label` (the group/series/role name, or
-  a translated "Color" fallback), so a screen-reader user can tell which series
-  each control affects. Labels are threaded through the per-group, per-set, and
-  per-condition editors across all eight plot tools.
+  folder or `.zip` root on extraction. All save paths strip path separators,
+  control characters, and leading dots at one chokepoint in `_core/download.ts`,
+  and `buildZip` re-sanitises every entry name as defence-in-depth. See
+  [`docs/release-notes/v1.9.0.md`](docs/release-notes/v1.9.0.md#-security).
 
 ### Added
 
 - **Keyboard / screen-reader access to heatmap & volcano data.** Both charts
-  render as SVG images with no per-value DOM, so keyboard and screen-reader
-  users had no way to read individual cell/point values. Each now offers a
-  collapsible "Show values as table" disclosure beneath the chart — a real
-  semantic `<table>` with `scope`-ed headers (heatmap: the matrix in display
-  order; volcano: each point's label, log₂FC, p-value, and significance class).
-  Capped for very large data with a note, fully translated.
+  render as a single SVG image with no per-value DOM, so keyboard and
+  screen-reader users had no way to read individual cell/point values. Each now
+  offers a collapsible "Show values as table" disclosure — a semantic `<table>`
+  with `scope`-ed headers (heatmap: the matrix in display order; volcano: each
+  point's label, log₂FC, p-value, significance class). Capped for very large
+  data with a note, fully translated. See
+  [`docs/release-notes/v1.9.0.md`](docs/release-notes/v1.9.0.md#-added).
+- **Colour-blind-safe markers on continuous colormaps.** The heatmap and scatter
+  colormap pickers now flag colour-blind-safe schemes with 👁 (matching the
+  discrete-palette picker) and a short legend, so users can avoid the one rainbow
+  scheme (`spectral`) that relies on red–green discrimination. Defaults unchanged
+  (viridis, already CB-safe). See
+  [`docs/release-notes/v1.9.0.md`](docs/release-notes/v1.9.0.md#-added).
+- **Reload guard for in-progress data.** Plot data lives only in browser memory,
+  so a reflexive reload or tab-close silently discarded a loaded dataset and the
+  plot tuned on it. The plot tools now raise the browser's "Leave site?"
+  confirmation once a dataset is loaded; tool-to-tool navigation inside the app
+  is unaffected. See
+  [`docs/release-notes/v1.9.0.md`](docs/release-notes/v1.9.0.md#-added).
+- **Tick label-size control.** Group Plot, Scatter, Line Plot, RLU time-course
+  and Volcano now expose a "Tick label size" slider (in the style panel for
+  Volcano), scaling x/y tick value text from 11 px up to 22 px; x-axis labels
+  nudge down and the left margin widens to fit big y-tick numbers (e.g.
+  uncalibrated RLU). See
+  [`docs/release-notes/v1.9.0.md`](docs/release-notes/v1.9.0.md#-added).
 
-- **Colour-blind-safe markers on continuous colormaps.** The heatmap and
-  scatter palette pickers now flag colour-blind-safe colormaps with 👁 (the
-  same marker the discrete-palette picker uses) and a short legend, so users
-  can avoid the one rainbow scheme (`spectral`) that relies on red–green
-  discrimination. Defaults are unchanged (viridis, already CB-safe).
+### Fixed
 
-- **Reload guard for in-progress data.** Plot data lives only in the browser's
-  memory, so a reflexive page reload or tab-close used to silently discard a
-  pasted/loaded dataset and the plot tuned on it. The plot tools now raise the
-  browser's "Leave site?" confirmation once a dataset is loaded (past the
-  upload step); tool-to-tool navigation inside the app is unaffected.
-
-- **Tick label size control.** Group Plot, Scatter, Line Plot, RLU
-  timecourse and Volcano now expose a "Tick label size" slider (in the style
-  panel for Volcano), scaling the x/y tick value text from the default 11 px
-  up to 22 px for more legible charts and exports. The x-axis labels nudge
-  down as the font grows so larger text stays clear of the axis line above it,
-  and the left margin widens to fit big y-tick numbers (e.g. uncalibrated RLU)
-  so they never overrun the y-axis label.
+- **Heatmap & volcano chart descriptions now translate.** The `role="img"`
+  title/description and per-group `aria-label`s (matrix dimensions, row/column
+  groups, per-class point counts) were hard-coded English with English-only
+  pluralisation, so a French screen-reader user heard the wrong language. They
+  now come from the i18n catalogues with `Intl.PluralRules` plurals in both
+  locales. See
+  [`docs/release-notes/v1.9.0.md`](docs/release-notes/v1.9.0.md#-fixed).
+- **Heatmap clustering no longer freezes the tab on huge matrices.** Clustering
+  runs on the main thread, and a pathological-but-legal CSV (under the 2 MB
+  ingest limit) could lock the tab for minutes. It's now capped per axis by mode,
+  matched to measured cost: hierarchical (O(N³)) at **2,000** observations,
+  k-means (near-linear) at **10,000**; above the cap the axis falls back to file
+  order with a note. Realistic heatmaps (the bundled demo is 500×6) are
+  unaffected. See
+  [`docs/release-notes/v1.9.0.md`](docs/release-notes/v1.9.0.md#-fixed).
+- **Sliders and colour pickers are now labelled for screen readers.** Every
+  range slider (`SliderControl`) associates its visible label via
+  `aria-labelledby` (announcing e.g. "Point size", not "slider"); every colour
+  picker (`ColorInput`) gives its swatch and hex field an `aria-label` (the
+  group/series/role name, or a translated "Color" fallback). Threaded through the
+  per-group, per-set, and per-condition editors across all eight plot tools. See
+  [`docs/release-notes/v1.9.0.md`](docs/release-notes/v1.9.0.md#-fixed).
 
 ## [1.8.1] - 2026-06-10
 
