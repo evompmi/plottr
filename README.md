@@ -8,6 +8,10 @@ Static web app for common plot-and-test workflows. No server, no tracking, no da
 
 Originally built for the "Evolution of plant-microbes interactions" team members at Toulouse Plant Sciences (University of Toulouse, France). Released publicly for anyone with similar needs.
 
+## Project status
+
+Plöttr is **stable and feature-complete** as of v1.9.0. It is maintained on an as-needed basis — issues and pull requests are welcome, but no major new work is planned. Because it ships as static files with no runtime dependencies and no backend, it is designed to keep running indefinitely, and every release is archived for citation via [Zenodo](https://doi.org/10.5281/zenodo.20245057). Fork freely under the MIT license.
+
 ## Design goals
 
 - **Zero infrastructure.** Static HTML/CSS/JS. Runs from GitHub Pages or any static-file server (`python3 -m http.server`, `npx serve`, nginx, …) — no backend.
