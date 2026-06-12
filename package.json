@@ -11,6 +11,9 @@
     "tools/**/i18n/index.ts"
   ],
   "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "prebuild": "rm -rf tools/_app/chunks && node scripts/write-version.js && node scripts/build-shared.js && node scripts/vendor-sri.js && node scripts/csp-sync.js",
     "build": "esbuild tools/_app/index.tsx --bundle --splitting --format=esm --outdir=tools/_app --chunk-names=chunks/[name]-[hash] --jsx=transform --minify-syntax --minify-whitespace --sourcemap",
