@@ -31,7 +31,12 @@ export interface PlotToolState<TVis extends object> {
   injectionWarning: FormulaInjectionWarning | null;
   setInjectionWarning: (w: FormulaInjectionWarning | null) => void;
   vis: TVis;
-  updVis: (patch: Partial<TVis> | { _reset: true }) => void;
+  // A patch may be a plain object (shallow-merged), the `_reset` sentinel, or
+  // a functional updater `(prev) => Partial<TVis>`. The functional form lets a
+  // stable setter merge into a sub-object (e.g. scatter's `regression`) without
+  // closing over a stale snapshot — essential when the setter is handed to a
+  // `React.memo`'d control that retains its first `onChange` closure.
+  updVis: (patch: Partial<TVis> | { _reset: true } | ((prev: TVis) => Partial<TVis>)) => void;
 }
 
 export function usePlotToolState<TVis extends object>(
@@ -51,8 +56,10 @@ export function usePlotToolState<TVis extends object>(
   // per render doesn't re-seed state. `_reset` resets to the initial shape
   // without touching persisted auto-prefs.
   const [vis, updVis] = useReducer(
-    (s: TVis, a: Partial<TVis> | { _reset: true }) =>
-      "_reset" in a && a._reset ? { ...initialVis } : { ...s, ...(a as Partial<TVis>) },
+    (s: TVis, a: Partial<TVis> | { _reset: true } | ((prev: TVis) => Partial<TVis>)) => {
+      if (typeof a === "function") return { ...s, ...a(s) };
+      return "_reset" in a && a._reset ? { ...initialVis } : { ...s, ...(a as Partial<TVis>) };
+    },
     initialVis,
     (init) => loadAutoPrefs(toolKey, init)
   );

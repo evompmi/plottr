@@ -82,10 +82,10 @@ export function App() {
   const setColors: Record<string, string> = useMemo(() => vis.setColors || {}, [vis.setColors]);
   const setSetColors = useCallback(
     (updater: SetColorsUpdater) =>
-      updVis({
-        setColors: typeof updater === "function" ? updater(vis.setColors || {}) : updater || {},
-      }),
-    [updVis, vis.setColors]
+      updVis((s) => ({
+        setColors: typeof updater === "function" ? updater(s.setColors || {}) : updater || {},
+      })),
+    [updVis]
   );
   const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);
   const [parsedRows, setParsedRows] = useState<string[][]>([]);
