@@ -186,8 +186,8 @@ export function App() {
 
   const setGroupColor = useCallback(
     (name: string, color: string) =>
-      updVis({ groupColors: { ...(vis.groupColors || {}), [name]: color } }),
-    [updVis, vis.groupColors]
+      updVis((s) => ({ groupColors: { ...(s.groupColors || {}), [name]: color } })),
+    [updVis]
   );
 
   const statsRows = useMemo(() => (series.length >= 2 ? computePerXStats(series) : []), [series]);

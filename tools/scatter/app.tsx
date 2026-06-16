@@ -279,11 +279,11 @@ export function App() {
     (
       updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)
     ) =>
-      updVis({
+      updVis((s) => ({
         colorMapDiscrete:
-          typeof updater === "function" ? updater(vis.colorMapDiscrete || {}) : updater || {},
-      }),
-    [updVis, vis.colorMapDiscrete]
+          typeof updater === "function" ? updater(s.colorMapDiscrete || {}) : updater || {},
+      })),
+    [updVis]
   );
 
   const [sizeMapCol, setSizeMapCol] = useState<number | null>(null);
@@ -299,11 +299,11 @@ export function App() {
     (
       updater: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)
     ) =>
-      updVis({
+      updVis((s) => ({
         sizeMapDiscrete:
-          typeof updater === "function" ? updater(vis.sizeMapDiscrete || {}) : updater || {},
-      }),
-    [updVis, vis.sizeMapDiscrete]
+          typeof updater === "function" ? updater(s.sizeMapDiscrete || {}) : updater || {},
+      })),
+    [updVis]
   );
 
   const [shapeMapCol, setShapeMapCol] = useState<number | null>(null);
@@ -315,11 +315,11 @@ export function App() {
     (
       updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)
     ) =>
-      updVis({
+      updVis((s) => ({
         shapeMapDiscrete:
-          typeof updater === "function" ? updater(vis.shapeMapDiscrete || {}) : updater || {},
-      }),
-    [updVis, vis.shapeMapDiscrete]
+          typeof updater === "function" ? updater(s.shapeMapDiscrete || {}) : updater || {},
+      })),
+    [updVis]
   );
 
   // Filter state stays local — depends on the current dataset's column values.
@@ -328,10 +328,10 @@ export function App() {
   const refLines: RefLine[] = vis.refLines || [];
   const setRefLines = useCallback(
     (updater: RefLine[] | ((prev: RefLine[]) => RefLine[])) =>
-      updVis({
-        refLines: typeof updater === "function" ? updater(vis.refLines || []) : updater || [],
-      }),
-    [updVis, vis.refLines]
+      updVis((s) => ({
+        refLines: typeof updater === "function" ? updater(s.refLines || []) : updater || [],
+      })),
+    [updVis]
   );
 
   // Regression styling is a sub-object; merge patches via updRegression so
@@ -344,8 +344,17 @@ export function App() {
     showStats: true,
     position: "tl",
   };
-  const updRegression = (patch: Partial<ScatterRegression>) =>
-    updVis({ regression: { ...regression, ...patch } });
+  // Stable setter that merges into the *current* regression sub-object via a
+  // functional updater. It must not close over the `regression` snapshot above:
+  // the width slider is a `React.memo`'d SliderControl that ignores `onChange`
+  // and retains its first closure, so a snapshot-capturing setter would replay
+  // a stale regression (e.g. resetting a user-picked colour back to the default
+  // red) on the next edit.
+  const updRegression = useCallback(
+    (patch: Partial<ScatterRegression>) =>
+      updVis((s) => ({ regression: { ...s.regression, ...patch } })),
+    [updVis]
+  );
   const svgRef = useRef<SVGSVGElement>(null);
   const sepRef = useRef("");
   // Separator the auto-detector resolved on the most recent parse. Surfaced

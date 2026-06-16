@@ -178,11 +178,11 @@ export function App() {
     (
       updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)
     ) =>
-      updVis({
+      updVis((s) => ({
         boxplotColors:
-          typeof updater === "function" ? updater(vis.boxplotColors || {}) : updater || {},
-      }),
-    [updVis, vis.boxplotColors]
+          typeof updater === "function" ? updater(s.boxplotColors || {}) : updater || {},
+      })),
+    [updVis]
   );
   const [plotGroupRenames, setPlotGroupRenames] = useState<Record<string, string>>({});
   const [disabledGroups, setDisabledGroups] = useState<Record<string, boolean>>({});
@@ -199,11 +199,11 @@ export function App() {
     (
       updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)
     ) =>
-      updVis({
+      updVis((s) => ({
         categoryColors:
-          typeof updater === "function" ? updater(vis.categoryColors || {}) : updater || {},
-      }),
-    [updVis, vis.categoryColors]
+          typeof updater === "function" ? updater(s.categoryColors || {}) : updater || {},
+      })),
+    [updVis]
   );
   const [dragState, setDragState] = useState<DragState>(null);
   const [facetByCol, _setFacetByCol] = useState(-1);

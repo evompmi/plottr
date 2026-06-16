@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-06-16
+
+> Long-form release notes live in
+> [`docs/release-notes/v1.9.1.md`](docs/release-notes/v1.9.1.md). The entries
+> below are summary bullets that link there.
+>
+> The "True Colours" release: a custom regression-line colour in Scatter no
+> longer snaps back to red when you change the line width, and the same
+> stale-state class of bug is hardened across the colour and reference-line
+> controls in four tools.
+
+### Fixed
+
+- **Scatter: changing the regression line width no longer reverts its colour.**
+  After picking a custom trend-line colour, adjusting the width snapped the
+  colour back to the default red. The width slider is a `React.memo`'d control
+  that retains its first `onChange` closure; the regression setter captured a
+  stale `regression` snapshot and replayed the old colour. The setter now merges
+  into current state via a functional updater, and the same stale-snapshot
+  pattern was hardened in the per-series/category colour and reference-line
+  setters across scatter, boxplot, lineplot, and venn so they can't regress the
+  same way. See [`docs/release-notes/v1.9.1.md`](docs/release-notes/v1.9.1.md#-fixed).
+
 ## [1.9.0] - 2026-06-11
 
 > Long-form release notes — what shipped, why, and how — live in
