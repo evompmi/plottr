@@ -166,6 +166,14 @@ export const BoxplotChart = memo(
     // down in proportion to the extra ascent; 0 at the 11 px default so the
     // standard layout is unchanged.
     const xTickDy = Math.max(0, (tickFontSize - 11) * 0.8);
+    // Scale axis label and title proportionally to the tick-size slider
+    // (1× at the 11 px default, so the default renders unchanged).
+    const textScale = tickFontSize / 11;
+    // As that text grows it must not cross the canvas edge. Pin each label's
+    // outer edge by nudging its baseline inward by the extra ascent/descent
+    // (≈0.8/0.25 of a font's height); both are 0 at the default size.
+    const ascentNudge = 0.8 * (textScale - 1);
+    const descentNudge = 0.25 * (textScale - 1);
     const {
       hasLabels: _hasLabels,
       hasPairs: _hasPairs,
@@ -223,7 +231,7 @@ export const BoxplotChart = memo(
       const _valTickLabels = computeYTicks({ yMin, yMax, isLog, logBase }).map((tk) =>
         _fmtVal(tk.value)
       );
-      M.left = valueAxisLeftMargin(M.left, _valTickLabels, tickFontSize);
+      M.left = valueAxisLeftMargin(M.left, _valTickLabels, tickFontSize, textScale);
     }
 
     // ── Band sizing + viewbox ───────────────────────────────────────────────
@@ -1012,9 +1020,9 @@ export const BoxplotChart = memo(
             {hz ? (
               <text
                 x={M.left + w / 2}
-                y={M.top + h + 36}
+                y={M.top + h + 36 - descentNudge * 13}
                 textAnchor="middle"
-                fontSize="13"
+                fontSize={13 * textScale}
                 fill="#444"
                 fontFamily="sans-serif"
               >
@@ -1022,9 +1030,9 @@ export const BoxplotChart = memo(
               </text>
             ) : (
               <text
-                transform={`translate(14,${M.top + h / 2}) rotate(-90)`}
+                transform={`translate(${14 + ascentNudge * 13},${M.top + h / 2}) rotate(-90)`}
                 textAnchor="middle"
-                fontSize="13"
+                fontSize={13 * textScale}
                 fill="#444"
                 fontFamily="sans-serif"
               >
@@ -1038,9 +1046,9 @@ export const BoxplotChart = memo(
           <g id="title">
             <text
               x={M.left + w / 2}
-              y={14}
+              y={14 + ascentNudge * 15}
               textAnchor="middle"
-              fontSize="15"
+              fontSize={15 * textScale}
               fontWeight="700"
               fill="#222"
               fontFamily="sans-serif"

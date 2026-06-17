@@ -42,7 +42,7 @@ const en = {
   "lineplot.axes.xMax": "X max",
   "lineplot.axes.yMin": "Y min",
   "lineplot.axes.yMax": "Y max",
-  "lineplot.axes.tickFontSize": "Tick label size",
+  "lineplot.axes.tickFontSize": "Text size",
 
   // Labels section
   "lineplot.sec.labels": "Labels",

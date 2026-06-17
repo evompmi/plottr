@@ -80,7 +80,7 @@ const en = {
   "boxplot.ctrl.yScale": "Y scale",
   "boxplot.ctrl.linear": "Linear",
   "boxplot.ctrl.groupLabelAngle": "Group label angle",
-  "boxplot.ctrl.tickFontSize": "Tick label size",
+  "boxplot.ctrl.tickFontSize": "Text size",
 
   // Steps — aes boxes
   "boxplot.steps.aes.group": "Group (X axis)",

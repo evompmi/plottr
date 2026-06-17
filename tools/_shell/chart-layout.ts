@@ -17,20 +17,29 @@ export const CHART_MARGIN = { top: 20, right: 20, bottom: 48, left: 62 };
 // little padding. Returns `baseLeft` unchanged whenever the labels already
 // fit, so the default layout (small numbers at 11 px) is untouched.
 //
+// `labelScale` (1 at the default text size) widens the reserved label strip
+// in step with the "Text size" slider: the rotated y-axis label grows from
+// its 13 px base to 13·labelScale, and it is nudged the same amount rightward
+// at draw time (see each chart's y-axis-label block), so the strip must grow
+// by 13·(labelScale−1) to keep it clear of the tick numbers. At labelScale 1
+// the extra term is 0, so the default layout is byte-identical.
+//
 // This is the single source of truth for the "tick labels must not collide
 // with the axis label" rule — every chart that renders a left value axis
 // routes its left margin through here.
 export function valueAxisLeftMargin(
   baseLeft: number,
   tickLabels: Array<string | number>,
-  tickFontSize: number
+  tickFontSize: number,
+  labelScale = 1
 ): number {
   let maxChars = 0;
   for (const t of tickLabels) {
     const len = String(t).length;
     if (len > maxChars) maxChars = len;
   }
-  return Math.max(baseLeft, Math.ceil(maxChars * tickFontSize * 0.6) + 32);
+  const extraLabelStrip = Math.ceil(13 * (labelScale - 1));
+  return Math.max(baseLeft, Math.ceil(maxChars * tickFontSize * 0.6) + 32 + extraLabelStrip);
 }
 
 // Build an SVG polyline `d` attribute from an array of `{x, y}` points.

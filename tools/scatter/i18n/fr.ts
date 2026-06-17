@@ -80,7 +80,7 @@ const fr: Record<ScatterKey, string> = {
   "scatter.axes.xLabel": "Étiquette X",
   "scatter.axes.yLabel": "Étiquette Y",
   "scatter.axes.title": "Titre",
-  "scatter.axes.tickFontSize": "Taille des graduations",
+  "scatter.axes.tickFontSize": "Taille du texte",
   "scatter.sec.style": "Style",
   "scatter.filters.title": "Filtres",
   "scatter.filters.rows": "{shown} sur {total} lignes",
