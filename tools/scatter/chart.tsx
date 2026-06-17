@@ -63,7 +63,8 @@ export const ScatterChart = memo(
       left: valueAxisLeftMargin(
         BASE_MARGIN.left,
         makeTicks(yMin, yMax, 6).map((t) => fmtTick(t)),
-        tickFontSize
+        tickFontSize,
+        tickFontSize / 11
       ),
     };
     const w = VBW - MARGIN.left - MARGIN.right;
@@ -71,6 +72,14 @@ export const ScatterChart = memo(
     // Larger tick fonts grow upward into the axis line; nudge the x-tick
     // baseline down by the extra ascent (0 at the 11 px default).
     const xTickDy = Math.max(0, (tickFontSize - 11) * 0.8);
+    // Scale axis labels and title proportionally to the tick-size slider
+    // (1× at the 11 px default, so the default renders unchanged).
+    const textScale = tickFontSize / 11;
+    // As that text grows it must not cross the canvas edge. Pin each label's
+    // outer edge by nudging its baseline inward by the extra ascent/descent
+    // (≈0.8/0.25 of a font's height); both are 0 at the default size.
+    const ascentNudge = 0.8 * (textScale - 1);
+    const descentNudge = 0.25 * (textScale - 1);
     const legendItemWidth = (block: LegendBlock): number => {
       if (!block.items) return 88;
       const maxLen = block.items.reduce((m: number, it) => Math.max(m, (it.label || "").length), 0);
@@ -423,9 +432,9 @@ export const ScatterChart = memo(
           <g id="x-axis-label">
             <text
               x={MARGIN.left + w / 2}
-              y={VBH - 6}
+              y={VBH - 6 - descentNudge * 13}
               textAnchor="middle"
-              fontSize="13"
+              fontSize={13 * textScale}
               fill="#444"
               fontFamily="sans-serif"
             >
@@ -436,9 +445,9 @@ export const ScatterChart = memo(
         {yLabel && (
           <g id="y-axis-label">
             <text
-              transform={`translate(14,${MARGIN.top + h / 2}) rotate(-90)`}
+              transform={`translate(${14 + ascentNudge * 13},${MARGIN.top + h / 2}) rotate(-90)`}
               textAnchor="middle"
-              fontSize="13"
+              fontSize={13 * textScale}
               fill="#444"
               fontFamily="sans-serif"
             >
@@ -450,9 +459,9 @@ export const ScatterChart = memo(
           <g id="title">
             <text
               x={VBW / 2}
-              y={16}
+              y={16 + ascentNudge * 15}
               textAnchor="middle"
-              fontSize="15"
+              fontSize={15 * textScale}
               fontWeight="700"
               fill="#222"
               fontFamily="sans-serif"

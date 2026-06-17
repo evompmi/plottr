@@ -66,7 +66,8 @@ export const Chart = memo(
       left: valueAxisLeftMargin(
         BASE_MARGIN.left,
         makeTicks(yMin, yMax, 6).map((t) => (t % 1 === 0 ? t : t.toFixed(1))),
-        tickFontSize
+        tickFontSize,
+        tickFontSize / 11
       ),
     };
     const aequorinItemW = (b: LegendBlock): number => {
@@ -74,12 +75,24 @@ export const Chart = memo(
       return Math.max(110, maxLen * 6 + 28);
     };
     const legendH = computeLegendHeight(svgLegend, vbW - MARGIN.left - MARGIN.right, aequorinItemW);
-    const topPad = (plotTitle ? 20 : 0) + (plotSubtitle ? 16 : 0);
+    // The title/subtitle band scales with the "Text size" slider so larger
+    // headings get proportionally more room (× 1 at the 11 px default).
+    const topPad = ((plotTitle ? 20 : 0) + (plotSubtitle ? 16 : 0)) * (tickFontSize / 11);
     const w = vbW - MARGIN.left - MARGIN.right;
     const h = vbH - MARGIN.top - MARGIN.bottom;
     // Larger tick fonts grow upward into the axis line; nudge the x-tick
     // baseline down by the extra ascent (0 at the 11 px default).
     const xTickDy = Math.max(0, (tickFontSize - 11) * 0.8);
+    // Scale main-chart axis labels, title and subtitle proportionally to the
+    // tick-size slider (1× at the 11 px default, so the default is unchanged).
+    // The zoom inset keeps its own independent font sizing.
+    const textScale = tickFontSize / 11;
+    // Keep the growing axis labels off the canvas edge: pin each label's outer
+    // edge by nudging its baseline inward by the extra ascent/descent (≈0.8/0.25
+    // of a font's height; 0 at the default). The title/subtitle band grows via
+    // `topPad` above instead.
+    const ascentNudge = 0.8 * (textScale - 1);
+    const descentNudge = 0.25 * (textScale - 1);
     const xRange = xEnd - xStart || 1;
     const yRange = yMax - yMin || 1;
     const sx = (v: number): number => MARGIN.left + ((v - xStart) / xRange) * w;
@@ -198,9 +211,9 @@ export const Chart = memo(
           <g id="title">
             <text
               x={vbW / 2}
-              y={17}
+              y={17 * textScale}
               textAnchor="middle"
-              fontSize="15"
+              fontSize={15 * textScale}
               fontWeight="700"
               fill="#222"
               fontFamily="sans-serif"
@@ -213,9 +226,9 @@ export const Chart = memo(
           <g id="subtitle">
             <text
               x={vbW / 2}
-              y={plotTitle ? 34 : 17}
+              y={(plotTitle ? 34 : 17) * textScale}
               textAnchor="middle"
-              fontSize="12"
+              fontSize={12 * textScale}
               fill="#888"
               fontFamily="sans-serif"
             >
@@ -372,9 +385,9 @@ export const Chart = memo(
             <g id="x-axis-label">
               <text
                 x={MARGIN.left + w / 2}
-                y={vbH - 4}
+                y={vbH - 4 - descentNudge * 13}
                 textAnchor="middle"
-                fontSize="13"
+                fontSize={13 * textScale}
                 fill="#444"
                 fontFamily="sans-serif"
               >
@@ -385,9 +398,9 @@ export const Chart = memo(
           {yLabel && (
             <g id="y-axis-label">
               <text
-                transform={`translate(14,${MARGIN.top + h / 2}) rotate(-90)`}
+                transform={`translate(${14 + ascentNudge * 13},${MARGIN.top + h / 2}) rotate(-90)`}
                 textAnchor="middle"
-                fontSize="13"
+                fontSize={13 * textScale}
                 fill="#444"
                 fontFamily="sans-serif"
               >

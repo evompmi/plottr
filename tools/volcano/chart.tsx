@@ -143,12 +143,21 @@ export const VolcanoChart = memo(
       left: valueAxisLeftMargin(
         BASE_MARGIN.left,
         yTicks.map((t) => fmtTick(t)),
-        tickFontSize
+        tickFontSize,
+        tickFontSize / 11
       ),
     };
     // Larger tick fonts grow upward into the axis line; nudge the x-tick
     // baseline down by the extra ascent (0 at the 11 px default).
     const xTickDy = Math.max(0, (tickFontSize - 11) * 0.8);
+    // Scale axis labels, title and subtitle proportionally to the tick-size
+    // slider (1× at the 11 px default, so the default renders unchanged).
+    const textScale = tickFontSize / 11;
+    // As that text grows it must not cross the canvas edge. Pin each label's
+    // outer edge by nudging its baseline inward by the extra ascent/descent
+    // (≈0.8/0.25 of a font's height); both are 0 at the default size.
+    const ascentNudge = 0.8 * (textScale - 1);
+    const descentNudge = 0.25 * (textScale - 1);
 
     const w = VBW - MARGIN.left - MARGIN.right - legendW;
     const h = VBH - MARGIN.top - MARGIN.bottom;
@@ -531,9 +540,9 @@ export const VolcanoChart = memo(
         <g id="x-axis-label">
           <text
             x={MARGIN.left + w / 2}
-            y={VBH - 14}
+            y={VBH - 14 - descentNudge * 13}
             textAnchor="middle"
-            fontSize="13"
+            fontSize={13 * textScale}
             fill="#222"
             fontFamily="ui-monospace, Menlo, monospace"
           >
@@ -542,13 +551,13 @@ export const VolcanoChart = memo(
         </g>
         <g id="y-axis-label">
           <text
-            x={20}
+            x={20 + ascentNudge * 13}
             y={MARGIN.top + h / 2}
             textAnchor="middle"
-            fontSize="13"
+            fontSize={13 * textScale}
             fill="#222"
             fontFamily="ui-monospace, Menlo, monospace"
-            transform={`rotate(-90, 20, ${MARGIN.top + h / 2})`}
+            transform={`rotate(-90, ${20 + ascentNudge * 13}, ${MARGIN.top + h / 2})`}
           >
             {yLabel}
           </text>
@@ -558,9 +567,9 @@ export const VolcanoChart = memo(
           <g id="title">
             <text
               x={MARGIN.left + w / 2}
-              y={18}
+              y={18 + ascentNudge * 14}
               textAnchor="middle"
-              fontSize="14"
+              fontSize={14 * textScale}
               fontWeight="700"
               fill="#222"
               fontFamily="ui-monospace, Menlo, monospace"
@@ -573,9 +582,9 @@ export const VolcanoChart = memo(
           <g id="subtitle">
             <text
               x={MARGIN.left + w / 2}
-              y={VBH - 30}
+              y={VBH - 30 - descentNudge * 11}
               textAnchor="middle"
-              fontSize="11"
+              fontSize={11 * textScale}
               fill="#666"
               fontFamily="ui-monospace, Menlo, monospace"
             >

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Tick-size slider now scales all chart text.** The "Tick label size" control
+  (Group Plot, Scatter, Line Plot, RLU, Volcano) previously sized only the x/y
+  tick values; it now also scales the axis labels, title, and subtitle
+  proportionally, and is relabelled "Text size" (en) / "Taille du texte" (fr).
+  At larger sizes each label's outer edge is pinned (baseline nudged inward,
+  left margin and title band widened) so the bigger text no longer crops
+  against the canvas edge. Default (11 px) renders unchanged.
+
 ## [1.9.1] - 2026-06-16
 
 > Long-form release notes live in

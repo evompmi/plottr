@@ -131,7 +131,7 @@ const en = {
   "volcano.style.pointRadius": "Point radius",
   "volcano.style.pointAlpha": "Point alpha",
   "volcano.style.showGrid": "Show grid",
-  "volcano.style.tickFontSize": "Tick label size",
+  "volcano.style.tickFontSize": "Text size",
   "volcano.style.plotTitle": "Plot title",
   "volcano.style.optional": "(optional)",
 

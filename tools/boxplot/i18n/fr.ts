@@ -63,7 +63,7 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.ctrl.yScale": "Échelle Y",
   "boxplot.ctrl.linear": "Linéaire",
   "boxplot.ctrl.groupLabelAngle": "Angle des étiquettes de groupe",
-  "boxplot.ctrl.tickFontSize": "Taille des graduations",
+  "boxplot.ctrl.tickFontSize": "Taille du texte",
   "boxplot.steps.aes.group": "Groupe (axe X)",
   "boxplot.steps.aes.value": "Valeur (axe Y)",
   "boxplot.steps.example.title": "Biomasse végétale sous sécheresse & sel",

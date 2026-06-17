@@ -112,7 +112,7 @@ const fr: Record<VolcanoKey, string> = {
   "volcano.style.pointRadius": "Rayon des points",
   "volcano.style.pointAlpha": "Opacité des points",
   "volcano.style.showGrid": "Afficher la grille",
-  "volcano.style.tickFontSize": "Taille des graduations",
+  "volcano.style.tickFontSize": "Taille du texte",
   "volcano.style.plotTitle": "Titre du tracé",
   "volcano.style.optional": "(optionnel)",
   "volcano.map.none": "— Aucun —",
