@@ -70,81 +70,293 @@ function IconButton({
   });
 }
 
-// "Send feedback" affordance. Opt-in by design: clicking it opens a
-// mailto: draft in the user's default mail client; Plöttr itself sends
-// nothing. The prefilled body carries (a) two empty prompt sections
-// the user fills in, (b) the current tool key, Plöttr version, browser
-// UA and timestamp so we can reproduce — all visible in the draft
-// *before* the user clicks Send and editable / strippable in their
-// email client. No tracking, no telemetry, no fetches. Distinct visual
+// Builds the subject + prefilled body shared by the mailto: draft and the
+// in-app feedback dialog. The body carries (a) two empty prompt sections
+// the user fills in, (b) the current tool key, Plöttr version, browser UA
+// and timestamp so we can reproduce — all visible *before* anything is
+// sent, and editable / strippable wherever the user composes (their mail
+// client or a webmail compose box). Section underlines and field-label
+// padding are computed from the translated text so it stays aligned in any
+// language. No tracking, no telemetry, no fetches.
+function buildFeedbackContent(
+  tool: string,
+  tr: ReturnType<typeof useShellT>
+): { subject: string; body: string } {
+  const version =
+    (typeof window !== "undefined" && (window as { __APP_VERSION__?: string }).__APP_VERSION__) ||
+    "v?";
+  const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "unknown";
+  const whatHappened = tr("shell.feedback.whatHappened");
+  const whatExpected = tr("shell.feedback.whatExpected");
+  const fields: [string, string][] = [
+    [tr("shell.feedback.fieldTool"), tool],
+    [tr("shell.feedback.fieldVersion"), version],
+    [tr("shell.feedback.fieldBrowser"), ua],
+    [tr("shell.feedback.fieldReported"), new Date().toISOString()],
+  ];
+  const labelWidth = Math.max(...fields.map(([label]) => label.length));
+  const body = [
+    tr("shell.feedback.intro"),
+    "",
+    whatHappened,
+    "-".repeat(whatHappened.length),
+    tr("shell.feedback.whatHappenedHint"),
+    "",
+    whatExpected,
+    "-".repeat(whatExpected.length),
+    tr("shell.feedback.whatExpectedHint"),
+    "",
+    "---",
+    ...fields.map(([label, value]) => "- " + label.padEnd(labelWidth + 1) + value),
+  ].join("\n");
+  return { subject: tr("shell.feedback.subject", { tool }), body };
+}
+
+// `mailto:` URL for a subject + body. `URLSearchParams` would encode spaces
+// as `+`, which some mail clients (Outlook desktop in particular) take
+// literally rather than decoding back to spaces; `encodeURIComponent` on
+// each field yields `%20`, which every client handles correctly.
+function buildMailto(subject: string, body: string): string {
+  return (
+    "mailto:" +
+    encodeURIComponent(FEEDBACK_EMAIL) +
+    "?subject=" +
+    encodeURIComponent(subject) +
+    "&body=" +
+    encodeURIComponent(body)
+  );
+}
+
+// Small copy-to-clipboard button with transient "Copied!" feedback. Falls
+// back gracefully where `navigator.clipboard` is missing (older Safari,
+// non-HTTPS / file:// contexts) or `writeText` rejects (permission gated
+// behind a user gesture) — the adjacent text is selectable either way, so
+// the user can still copy by hand; we just flash the confirmation anyway so
+// the click never looks dead.
+function CopyButton({ text, label }: { text: string; label: string }) {
+  const tr = useShellT();
+  const [copied, setCopied] = React.useState(false);
+  const onClick = (): void => {
+    const flash = (): void => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    };
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(flash, flash);
+    } else {
+      flash();
+    }
+  };
+  return React.createElement(
+    "button",
+    { type: "button", className: "dv-btn dv-btn-secondary", onClick },
+    copied ? tr("shell.feedback.copied") : label
+  );
+}
+
+// In-app feedback dialog. Rendered instead of firing `window.location.href`
+// at a `mailto:` blind, because there is no browser API to detect whether a
+// mail handler exists — a user without one would otherwise click and see
+// nothing happen. The dialog gives two always-available paths: "Open in
+// email app" (the mailto, for users who do have a client) and copy buttons
+// for the address + message (paste into Gmail / Outlook web). Plöttr itself
+// still sends nothing.
+function FeedbackDialog({ tool, onClose }: { tool: string; onClose: () => void }) {
+  const tr = useShellT();
+  const { subject, body } = buildFeedbackContent(tool, tr);
+  // Escape-to-close, matching the rest of the shell's keyboard affordances.
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const labelStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    color: "var(--text-faint)",
+  };
+  return React.createElement(
+    "div",
+    {
+      // Backdrop. `rgba(...)` scrim is not a hex literal, so it doesn't trip
+      // the `no-chrome-hex-literal` ESLint rule; theming it isn't necessary
+      // (a translucent dark scrim reads correctly over either theme).
+      role: "presentation",
+      onClick: onClose,
+      style: {
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        background: "rgba(15, 18, 25, 0.55)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+      },
+    },
+    React.createElement(
+      "div",
+      {
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-labelledby": "feedback-dialog-title",
+        // Stop backdrop click-to-close from firing when interacting inside.
+        onClick: (e: React.MouseEvent) => e.stopPropagation(),
+        style: {
+          background: "var(--surface)",
+          color: "var(--text)",
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          boxShadow: "var(--cta-primary-shadow)",
+          width: "min(560px, 100%)",
+          maxHeight: "calc(100vh - 48px)",
+          overflowY: "auto",
+          padding: 24,
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+        },
+      },
+      React.createElement(
+        "h2",
+        {
+          id: "feedback-dialog-title",
+          style: { margin: 0, fontSize: 18, color: "var(--text)" },
+        },
+        tr("shell.feedback.dialogTitle")
+      ),
+      React.createElement(
+        "p",
+        { style: { margin: 0, fontSize: 13, lineHeight: 1.5, color: "var(--text-muted)" } },
+        tr("shell.feedback.dialogIntro")
+      ),
+      // To: address + copy.
+      React.createElement(
+        "div",
+        { style: { display: "flex", flexDirection: "column", gap: 6 } },
+        React.createElement("span", { style: labelStyle }, tr("shell.feedback.toLabel")),
+        React.createElement(
+          "div",
+          { style: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } },
+          React.createElement(
+            "code",
+            {
+              style: {
+                fontFamily: "var(--font-mono)",
+                fontSize: 13,
+                color: "var(--text)",
+                userSelect: "all",
+              },
+            },
+            FEEDBACK_EMAIL
+          ),
+          React.createElement(CopyButton, {
+            text: FEEDBACK_EMAIL,
+            label: tr("shell.feedback.copyAddress"),
+          })
+        )
+      ),
+      // Subject (short; shown so it can be retyped into webmail if needed).
+      React.createElement(
+        "div",
+        { style: { display: "flex", flexDirection: "column", gap: 6 } },
+        React.createElement("span", { style: labelStyle }, tr("shell.feedback.subjectLabel")),
+        React.createElement(
+          "span",
+          { style: { fontSize: 13, color: "var(--text)", userSelect: "all" } },
+          subject
+        )
+      ),
+      // Message body — read-only, selectable, scrollable.
+      React.createElement(
+        "div",
+        { style: { display: "flex", flexDirection: "column", gap: 6 } },
+        React.createElement("span", { style: labelStyle }, tr("shell.feedback.messageLabel")),
+        React.createElement("textarea", {
+          readOnly: true,
+          value: body,
+          rows: 9,
+          style: {
+            width: "100%",
+            resize: "vertical",
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            lineHeight: 1.5,
+            color: "var(--text)",
+            background: "var(--surface-sunken)",
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+            padding: 10,
+            boxSizing: "border-box",
+          },
+        })
+      ),
+      // Actions.
+      React.createElement(
+        "div",
+        {
+          style: {
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+            marginTop: 4,
+          },
+        },
+        React.createElement(CopyButton, {
+          text: body,
+          label: tr("shell.feedback.copyMessage"),
+        }),
+        React.createElement(
+          "a",
+          {
+            className: "dv-btn dv-btn-primary",
+            href: buildMailto(subject, body),
+            style: { textDecoration: "none", display: "inline-flex", alignItems: "center" },
+          },
+          tr("shell.feedback.openDraft")
+        ),
+        React.createElement(
+          "button",
+          { type: "button", className: "dv-btn dv-btn-secondary", onClick: onClose },
+          tr("shell.feedback.close")
+        )
+      )
+    )
+  );
+}
+
+// "Send feedback" affordance. Opt-in by design: clicking it opens the
+// in-app `FeedbackDialog` (Plöttr itself sends nothing). Distinct visual
 // region from the tool buttons (separated by a `tb-sep`, pushed to the
-// right edge of the topbar via `margin-left: auto`) so it reads as
-// chrome rather than another nav target.
-//
-// Note: `URLSearchParams` would encode spaces as `+`, which some mail
-// clients (Outlook desktop in particular) take literally rather than
-// decoding back to spaces. Using `encodeURIComponent` on each field
-// yields `%20` for spaces, which every client handles correctly.
+// right edge of the topbar via `margin-left: auto`) so it reads as chrome
+// rather than another nav target.
 function FeedbackButton({ currentKey }: { currentKey: string | null }) {
   const tr = useShellT();
-  const onClick = () => {
-    const tool = currentKey || "landing";
-    const version =
-      (typeof window !== "undefined" && (window as { __APP_VERSION__?: string }).__APP_VERSION__) ||
-      "v?";
-    const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "unknown";
-    // Section underlines and field-label padding are computed from the
-    // translated text so the draft stays aligned in any language.
-    const whatHappened = tr("shell.feedback.whatHappened");
-    const whatExpected = tr("shell.feedback.whatExpected");
-    const fields: [string, string][] = [
-      [tr("shell.feedback.fieldTool"), tool],
-      [tr("shell.feedback.fieldVersion"), version],
-      [tr("shell.feedback.fieldBrowser"), ua],
-      [tr("shell.feedback.fieldReported"), new Date().toISOString()],
-    ];
-    const labelWidth = Math.max(...fields.map(([label]) => label.length));
-    const body = [
-      tr("shell.feedback.intro"),
-      "",
-      whatHappened,
-      "-".repeat(whatHappened.length),
-      tr("shell.feedback.whatHappenedHint"),
-      "",
-      whatExpected,
-      "-".repeat(whatExpected.length),
-      tr("shell.feedback.whatExpectedHint"),
-      "",
-      "---",
-      ...fields.map(([label, value]) => "- " + label.padEnd(labelWidth + 1) + value),
-    ].join("\n");
-    const subject = tr("shell.feedback.subject", { tool });
-    const url =
-      "mailto:" +
-      encodeURIComponent(FEEDBACK_EMAIL) +
-      "?subject=" +
-      encodeURIComponent(subject) +
-      "&body=" +
-      encodeURIComponent(body);
-    // `window.location.href = url` is the canonical mailto-open path;
-    // `window.open` with `mailto:` is blocked by some browsers as a
-    // popup. Same-tab navigation triggers the OS mail-handler dialog
-    // without leaving Plöttr (the mail client opens alongside).
-    window.location.href = url;
-  };
-  return React.createElement("button", {
-    type: "button",
-    className: "tb-icon-btn",
-    title: tr("shell.feedback.title"),
-    "aria-label": tr("shell.feedback.aria"),
-    onClick,
-    dangerouslySetInnerHTML: { __html: FEEDBACK_SVG },
-    // `data-feedback` is a no-op for the existing mobile-strip CSS rule
-    // (which targets `[data-back]` / `[data-tool]` / `.tb-sep` only) —
-    // here only so the feedback button has a queryable hook if a future
-    // selector needs it.
-    "data-feedback": "true",
-  });
+  const [open, setOpen] = React.useState(false);
+  const tool = currentKey || "landing";
+  return React.createElement(
+    React.Fragment,
+    null,
+    React.createElement("button", {
+      type: "button",
+      className: "tb-icon-btn",
+      title: tr("shell.feedback.title"),
+      "aria-label": tr("shell.feedback.aria"),
+      onClick: () => setOpen(true),
+      dangerouslySetInnerHTML: { __html: FEEDBACK_SVG },
+      // `data-feedback` is a no-op for the existing mobile-strip CSS rule
+      // (which targets `[data-back]` / `[data-tool]` / `.tb-sep` only) —
+      // here only so the feedback button has a queryable hook if a future
+      // selector needs it.
+      "data-feedback": "true",
+    }),
+    open ? React.createElement(FeedbackDialog, { tool, onClose: () => setOpen(false) }) : null
+  );
 }
 
 // Theme toggle for the SPA topbar. The inline IIFE in `index.html`

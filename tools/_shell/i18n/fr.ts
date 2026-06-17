@@ -264,8 +264,7 @@ const fr: Record<ShellKey, string> = {
   "shell.chrome.themeToLight": "Passer en mode clair",
   "shell.chrome.themeToDark": "Passer en mode sombre",
 
-  "shell.feedback.title":
-    "Envoyer un retour (ouvre un brouillon d’e-mail — rien n’est envoyé automatiquement)",
+  "shell.feedback.title": "Envoyer un retour (rien n’est envoyé automatiquement)",
   "shell.feedback.aria": "Envoyer un retour",
   "shell.feedback.subject": "[Retour Plöttr] {tool}",
   "shell.feedback.intro":
@@ -279,6 +278,20 @@ const fr: Record<ShellKey, string> = {
   "shell.feedback.fieldVersion": "Plöttr :",
   "shell.feedback.fieldBrowser": "Navigateur :",
   "shell.feedback.fieldReported": "Signalé :",
+  // Fenêtre de retour — affichée dans l’app pour que les personnes sans
+  // client e-mail puissent copier le message vers un webmail plutôt que
+  // de cliquer sur un lien mailto: sans effet.
+  "shell.feedback.dialogTitle": "Envoyer un retour",
+  "shell.feedback.dialogIntro":
+    "Rien n’est envoyé automatiquement. Ouvrez ceci comme brouillon dans votre application e-mail — ou, si vous n’en avez pas, copiez le message et collez-le dans un webmail (Gmail, Outlook, …).",
+  "shell.feedback.toLabel": "À",
+  "shell.feedback.subjectLabel": "Objet",
+  "shell.feedback.messageLabel": "Message",
+  "shell.feedback.openDraft": "Ouvrir dans l’app e-mail",
+  "shell.feedback.copyAddress": "Copier l’adresse",
+  "shell.feedback.copyMessage": "Copier le message",
+  "shell.feedback.copied": "Copié !",
+  "shell.feedback.close": "Fermer",
 
   "shell.chunk.loading": "Chargement de {label}…",
   "shell.chunk.slow": "Le chargement de {label} prend plus de temps que prévu.",

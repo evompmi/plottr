@@ -291,7 +291,7 @@ const en = {
   // assembled in App.tsx from these pieces; the section underlines and the
   // field-label padding are computed in code so they stay aligned in any
   // language. Field labels keep "Plöttr" as the product name.
-  "shell.feedback.title": "Send feedback (opens an email draft — nothing is sent automatically)",
+  "shell.feedback.title": "Send feedback (nothing is sent automatically)",
   "shell.feedback.aria": "Send feedback",
   "shell.feedback.subject": "[Plöttr feedback] {tool}",
   "shell.feedback.intro":
@@ -305,6 +305,19 @@ const en = {
   "shell.feedback.fieldVersion": "Plöttr:",
   "shell.feedback.fieldBrowser": "Browser:",
   "shell.feedback.fieldReported": "Reported:",
+  // Feedback dialog — shown in-app so users without a mail client can copy
+  // the message into webmail instead of hitting a silent dead mailto: link.
+  "shell.feedback.dialogTitle": "Send feedback",
+  "shell.feedback.dialogIntro":
+    "Nothing is sent automatically. Open this as a draft in your email app — or, if you don't have one, copy the message and paste it into webmail (Gmail, Outlook, …).",
+  "shell.feedback.toLabel": "To",
+  "shell.feedback.subjectLabel": "Subject",
+  "shell.feedback.messageLabel": "Message",
+  "shell.feedback.openDraft": "Open in email app",
+  "shell.feedback.copyAddress": "Copy address",
+  "shell.feedback.copyMessage": "Copy message",
+  "shell.feedback.copied": "Copied!",
+  "shell.feedback.close": "Close",
 
   // ChunkLoadingFallback — lazy-chunk spinner + stuck-fetch reload prompt.
   "shell.chunk.loading": "Loading {label}…",
