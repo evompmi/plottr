@@ -164,6 +164,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 function FeedbackDialog({ tool, onClose }: { tool: string; onClose: () => void }) {
   const tr = useShellT();
   const { subject, body } = buildFeedbackContent(tool, tr);
+  const panelRef = React.useRef<HTMLDivElement>(null);
   // Escape-to-close, matching the rest of the shell's keyboard affordances.
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -172,6 +173,17 @@ function FeedbackDialog({ tool, onClose }: { tool: string; onClose: () => void }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+  // Honour the `aria-modal` contract: move focus into the dialog on open (so
+  // screen readers announce it and Tab proceeds from inside, not from the
+  // topbar button behind the scrim) and restore it to the trigger on close.
+  // The panel carries `tabIndex={-1}` so it can receive programmatic focus.
+  React.useEffect(() => {
+    const prevFocus = typeof document !== "undefined" ? document.activeElement : null;
+    panelRef.current?.focus();
+    return () => {
+      if (prevFocus instanceof HTMLElement) prevFocus.focus();
+    };
+  }, []);
   const labelStyle: React.CSSProperties = {
     fontSize: 11,
     fontWeight: 700,
@@ -201,6 +213,8 @@ function FeedbackDialog({ tool, onClose }: { tool: string; onClose: () => void }
     React.createElement(
       "div",
       {
+        ref: panelRef,
+        tabIndex: -1,
         role: "dialog",
         "aria-modal": "true",
         "aria-labelledby": "feedback-dialog-title",
@@ -212,6 +226,9 @@ function FeedbackDialog({ tool, onClose }: { tool: string; onClose: () => void }
           border: "1px solid var(--border)",
           borderRadius: 12,
           boxShadow: "var(--cta-primary-shadow)",
+          // Programmatic focus lands on this container (tabIndex -1); the
+          // visible focus ring belongs to the inner controls, not the panel.
+          outline: "none",
           width: "min(560px, 100%)",
           maxHeight: "calc(100vh - 48px)",
           overflowY: "auto",
