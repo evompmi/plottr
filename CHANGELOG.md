@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `window.location` navigation failed silently). The dialog shows the address,
   subject, and prefilled message with "Open in email app" (the mailto, for users
   who have a client) plus copy-to-clipboard buttons for the address and message
-  so anyone can paste into webmail. Plöttr still sends nothing automatically.
+  so anyone can paste into webmail. Keyboard-accessible: Escape closes it, focus
+  moves into the dialog on open and returns to the button on close. Plöttr still
+  sends nothing automatically.
 - **Tick-size slider now scales all chart text.** The "Tick label size" control
   (Group Plot, Scatter, Line Plot, RLU, Volcano) previously sized only the x/y
   tick values; it now also scales the axis labels, title, and subtitle
