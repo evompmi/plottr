@@ -7,45 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-06-19
+
+> Long-form release notes live in
+> [`docs/release-notes/v1.9.2.md`](docs/release-notes/v1.9.2.md). The entries
+> below are summary bullets that link there.
+>
+> The "Fine Print" release: the R cross-validation benchmark now uses
+> tolerances calibrated to its real agreement with R (tightened 4–8 orders of
+> magnitude) and reports normal- vs log-space deltas in separate columns;
+> "Send feedback" opens an in-app dialog instead of a dead `mailto:`; and the
+> chart "Text size" slider scales every label.
+
 ### Changed
 
-- **R cross-validation benchmark tightened from a single 5e-3 tolerance to
-  three calibrated tiers.** The old absolute bar was 4–8 orders of magnitude
-  looser than the measured Plöttr-vs-R agreement, so a regression that shifted
-  a statistic by ~1e-3 would have rendered green. Now: 1e-7 on test statistics
-  and point estimates (which actually agree to ~5e-11; Shapiro-Wilk W to
-  ~4e-9), 1e-5 on noncentral-t effect-size CIs (Cohen's d), and 1e-3 on
-  studentized-range CIs (Tukey HSD bounds, limited by the qtukey inversion
-  envelope). The absolute p-value tolerance (for p ≥ 0.01) likewise dropped
-  from 5e-3 to 1e-5 — the observed floor is ~8e-7 (rank/post-hoc adjustments),
-  and 5e-3 could mask a ~1e-3 p-shift large enough to flip a decision near α.
-  The deep-tail (p < 0.01) log-space rule is unchanged. All 524 comparisons
-  still pass.
-- **Benchmark report now shows normal-space and log-space deltas in separate
-  columns.** Previously a single "|Δ|" column carried whichever space governed
-  the row — an absolute difference for most rows but a log-ratio for deep-tail
-  p-values — so the headline "max |Δ|" silently mixed the two (a 3.16e-2 log
-  value looked like a normal-space delta). The table now has distinct `|Δ|` and
-  `|Δ ln p|` columns ("—" where a space doesn't apply) and the summary reports
-  both maxima. SciPy counts also format deterministically (locale-independent
-  thousands grouping), so regenerating the page no longer drifts between
-  machines.
-- **"Send feedback" now opens an in-app dialog instead of firing a blind
-  `mailto:`.** Users without a configured mail client previously clicked and saw
-  nothing happen (there is no browser API to detect a mail handler, so the old
-  `window.location` navigation failed silently). The dialog shows the address,
-  subject, and prefilled message with "Open in email app" (the mailto, for users
-  who have a client) plus copy-to-clipboard buttons for the address and message
-  so anyone can paste into webmail. Keyboard-accessible: Escape closes it, focus
-  moves into the dialog on open and returns to the button on close. Plöttr still
-  sends nothing automatically.
-- **Tick-size slider now scales all chart text.** The "Tick label size" control
-  (Group Plot, Scatter, Line Plot, RLU, Volcano) previously sized only the x/y
-  tick values; it now also scales the axis labels, title, and subtitle
-  proportionally, and is relabelled "Text size" (en) / "Taille du texte" (fr).
-  At larger sizes each label's outer edge is pinned (baseline nudged inward,
-  left margin and title band widened) so the bigger text no longer crops
-  against the canvas edge. Default (11 px) renders unchanged.
+- **Benchmark tolerances calibrated to observed agreement.** The R
+  cross-validation suite replaced its single absolute 5e-3 bar (4–8 orders
+  looser than reality) with three measured tiers — 1e-7 on test statistics and
+  point estimates, 1e-5 on Cohen's d CIs, 1e-3 on Tukey HSD CI bounds — and the
+  absolute p-value tolerance dropped 5e-3 → 1e-5. All 524 comparisons still
+  pass. See [`docs/release-notes/v1.9.2.md`](docs/release-notes/v1.9.2.md#benchmark-tolerances-calibrated-to-observed-agreement).
+- **Benchmark report splits normal-space and log-space deltas.** The single
+  "|Δ|" column mixed absolute differences with deep-tail log-ratios; it is now
+  distinct `|Δ|` and `|Δ ln p|` columns with both maxima in the summary, and the
+  SciPy counts format deterministically so the page no longer drifts on
+  regeneration. See [`docs/release-notes/v1.9.2.md`](docs/release-notes/v1.9.2.md#benchmark-report-separate-normal-space-and-log-space-delta-columns).
+- **"Send feedback" opens an in-app dialog instead of a blind `mailto:`.** Users
+  without a mail client previously saw nothing happen; the dialog now offers the
+  mailto plus copy-to-clipboard for the address and message, and is
+  keyboard-accessible. See [`docs/release-notes/v1.9.2.md`](docs/release-notes/v1.9.2.md#send-feedback-opens-an-in-app-dialog).
+- **"Text size" slider scales all chart text.** The control (Group Plot,
+  Scatter, Line Plot, RLU, Volcano) now scales axis labels, title, and subtitle
+  too — not just tick values — and is relabelled "Text size" / "Taille du
+  texte". See [`docs/release-notes/v1.9.2.md`](docs/release-notes/v1.9.2.md#text-size-slider-scales-all-chart-text).
 
 ## [1.9.1] - 2026-06-16
 
