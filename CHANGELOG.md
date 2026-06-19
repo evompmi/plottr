@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **R cross-validation benchmark tightened from a single 5e-3 tolerance to
+  three calibrated tiers.** The old absolute bar was 4–8 orders of magnitude
+  looser than the measured Plöttr-vs-R agreement, so a regression that shifted
+  a statistic by ~1e-3 would have rendered green. Now: 1e-7 on test statistics
+  and point estimates (which actually agree to ~5e-11; Shapiro-Wilk W to
+  ~4e-9), 1e-5 on noncentral-t effect-size CIs (Cohen's d), and 1e-3 on
+  studentized-range CIs (Tukey HSD bounds, limited by the qtukey inversion
+  envelope). The absolute p-value tolerance (for p ≥ 0.01) likewise dropped
+  from 5e-3 to 1e-5 — the observed floor is ~8e-7 (rank/post-hoc adjustments),
+  and 5e-3 could mask a ~1e-3 p-shift large enough to flip a decision near α.
+  The deep-tail (p < 0.01) log-space rule is unchanged. All 524 comparisons
+  still pass.
+- **Benchmark report now shows normal-space and log-space deltas in separate
+  columns.** Previously a single "|Δ|" column carried whichever space governed
+  the row — an absolute difference for most rows but a log-ratio for deep-tail
+  p-values — so the headline "max |Δ|" silently mixed the two (a 3.16e-2 log
+  value looked like a normal-space delta). The table now has distinct `|Δ|` and
+  `|Δ ln p|` columns ("—" where a space doesn't apply) and the summary reports
+  both maxima. SciPy counts also format deterministically (locale-independent
+  thousands grouping), so regenerating the page no longer drifts between
+  machines.
 - **"Send feedback" now opens an in-app dialog instead of firing a blind
   `mailto:`.** Users without a configured mail client previously clicked and saw
   nothing happen (there is no browser API to detect a mail handler, so the old

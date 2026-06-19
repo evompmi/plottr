@@ -12,16 +12,35 @@ const path = require("path");
 const vm = require("vm");
 const esbuild = require("esbuild");
 
-// Tolerance model:
-//   Test statistics (t, F, H, W, U) → absolute delta ≤ TOL. These have natural
-//   scales where "close enough" is a fixed number.
-//   P-values → hybrid: when both p-values are ≥ P_ABS_CEILING, use absolute
-//   tolerance (noise at p ≈ 0.3 vs 0.3005 is irrelevant). When at least one is
-//   smaller, compare in log space — a relative mismatch at p = 1e-10 matters
-//   exactly as much as one at p = 1e-3, but absolute Δ can't see it. Prior
-//   versions used a plain absolute tolerance, which rubber-stamped anything
-//   below TOL regardless of correctness in the deep tail.
-const TOL = 5e-3; // ±0.5 % — same bar as the in-repo stats tests
+// Tolerance model — calibrated to the *observed* Plöttr-vs-R agreement on
+// these fixtures, not to a round number. (A prior single absolute 5e-3 bar was
+// 4–8 orders of magnitude looser than the real agreement, so a regression that
+// shifted a statistic by ~1e-3 would still have rendered green.) Statistics
+// fall into three precision tiers:
+//
+//   TOL_STAT (1e-7) — test statistics and point estimates Plöttr computes by
+//     the same closed form as R (t, F, H, U, r/ρ/τ, Cohen's d/d_av/g, Tukey
+//     diff, pairwise distances, hclust heights, Pearson Fisher-z CI) plus
+//     Shapiro-Wilk W (Royston AS R94). Observed |Δ| ≤ 3.9e-9 — Shapiro is the
+//     loosest member (~25× margin); the algebraic statistics agree to ~5e-11.
+//   TOL_NCT_CI (1e-5) — noncentral-t effect-size CIs (Cohen's d CI95). The
+//     Cumming–Finch pivot and R's independent implementation agree to ~5e-7.
+//   TOL_QTUKEY_CI (1e-3) — studentized-range CIs (Tukey HSD lwr/upr). Bounded
+//     by the qtukey inversion envelope (see tools/_core/stats/posthoc.ts);
+//     observed |Δ| ~3e-5, looser than the other statistics by construction.
+//
+// P-values use a separate hybrid: when both are ≥ P_ABS_CEILING, compare with
+// an absolute P_ABS_TOL — calibrated to the observed agreement, whose floor is
+// the rank-based / post-hoc pAdj values (Dunn, Tukey, Games-Howell) at ~8e-7;
+// the parametric p-values themselves agree to ~1e-12. When either p is smaller,
+// compare in log space — a relative mismatch at p = 1e-10 matters exactly as
+// much as one at p = 1e-3, but absolute Δ can't see it. Prior versions used a
+// single plain 5e-3 absolute tolerance, which rubber-stamped a ~1e-3 p-shift
+// (enough to flip a decision near α) and anything below it in the deep tail.
+const TOL_STAT = 1e-7; // closed-form statistics + Shapiro-Wilk W
+const TOL_NCT_CI = 1e-5; // noncentral-t effect-size CIs (Cohen's d CI95)
+const TOL_QTUKEY_CI = 1e-3; // studentized-range CIs (Tukey HSD lwr/upr)
+const P_ABS_TOL = 1e-5; // p-values ≥ P_ABS_CEILING: absolute tolerance (floor ~8e-7)
 const P_ABS_CEILING = 1e-2; // switch to log-space comparison below this
 const P_LOG_TOL = Math.log(1 + 0.1); // ratio within [1/1.1, 1.1] on log-p
 
@@ -87,34 +106,43 @@ function groupsToArrays(obj) {
   return { keys, arrays: keys.map((k) => obj[k]) };
 }
 
-// Compare two scalar values; returns { delta, pass }.
-function cmp(jsVal, rVal) {
-  // Treat both 0 ⇒ delta 0. Otherwise absolute delta.
-  if (rVal === 0 && jsVal === 0) return { delta: 0, pass: true };
+// Compare two scalar values; returns { delta, pass }. `tol` defaults to the
+// closed-form-statistic tier; pass TOL_NCT_CI / TOL_QTUKEY_CI at the looser
+// effect-size / studentized-range CI call sites.
+function cmp(jsVal, rVal, tol = TOL_STAT) {
+  // Treat both 0 ⇒ delta 0. Otherwise absolute delta. `logDelta` is null —
+  // statistics are compared in normal space only (the log-space column on the
+  // report is meaningful for p-values, not for a t / F / W value).
+  if (rVal === 0 && jsVal === 0) return { delta: 0, logDelta: null, pass: true };
   const delta = Math.abs(jsVal - rVal);
-  return { delta, pass: delta <= TOL };
+  return { delta, logDelta: null, pass: delta <= tol };
 }
 
 // Compare two p-values. Above P_ABS_CEILING, use absolute tolerance. Below,
 // switch to log-space so a ratio of 10× at p=1e-10 is caught (a plain
-// absolute rule would rubber-stamp any p < TOL regardless of truth).
+// absolute rule would rubber-stamp any p < P_ABS_TOL regardless of truth).
 function cmpP(jsP, rP) {
+  // `delta` is ALWAYS the normal-space absolute difference and `logDelta` the
+  // log-space difference (|ln(rP/jsP)|, when both are positive) — the report
+  // shows them in two separate columns so it's never ambiguous which space a
+  // value lives in. `pass` is decided by whichever space governs the row:
+  // absolute above P_ABS_CEILING, log-space below.
   if (!Number.isFinite(jsP) || !Number.isFinite(rP)) {
-    return { delta: NaN, pass: false };
+    return { delta: NaN, logDelta: null, pass: false };
   }
-  if (rP === 0 && jsP === 0) return { delta: 0, pass: true };
+  if (rP === 0 && jsP === 0) return { delta: 0, logDelta: 0, pass: true };
   const absDelta = Math.abs(jsP - rP);
+  const logDelta = rP > 0 && jsP > 0 ? Math.abs(Math.log(rP) - Math.log(jsP)) : null;
   const maxP = Math.max(Math.abs(rP), Math.abs(jsP));
   if (maxP >= P_ABS_CEILING) {
-    return { delta: absDelta, pass: absDelta <= TOL };
+    return { delta: absDelta, logDelta, pass: absDelta <= P_ABS_TOL };
   }
   // Deep tail: one-sided zero is only acceptable if the other is subnormal.
   if (rP <= 0 || jsP <= 0) {
     const nonZero = rP <= 0 ? jsP : rP;
-    return { delta: absDelta, pass: nonZero < 1e-300 };
+    return { delta: absDelta, logDelta, pass: nonZero < 1e-300 };
   }
-  const logDelta = Math.abs(Math.log(rP) - Math.log(jsP));
-  return { delta: logDelta, pass: logDelta <= P_LOG_TOL };
+  return { delta: absDelta, logDelta, pass: logDelta <= P_LOG_TOL };
 }
 
 // For Tukey HSD / Games-Howell pAdj values below ~1e-9, R's `ptukey` hits
@@ -357,7 +385,7 @@ for (const t of data.tests) {
         metric: "CI95.lo",
         r: t.r.ci_lo,
         js: ci.lo,
-        ...cmp(ci.lo, t.r.ci_lo),
+        ...cmp(ci.lo, t.r.ci_lo, TOL_NCT_CI),
       });
       pushRow({
         category: cat,
@@ -366,7 +394,7 @@ for (const t of data.tests) {
         metric: "CI95.hi",
         r: t.r.ci_hi,
         js: ci.hi,
-        ...cmp(ci.hi, t.r.ci_hi),
+        ...cmp(ci.hi, t.r.ci_hi, TOL_NCT_CI),
       });
     } else if (cat === "Cohen's d_av") {
       // d_av = (mean(x) − mean(y)) / ((sd(x) + sd(y))/2). Lakens 2013
@@ -463,7 +491,8 @@ for (const t of data.tests) {
         r: failIdx >= 0 ? rSorted[failIdx] : rSorted[0],
         js: failIdx >= 0 ? js[failIdx] : js[0],
         delta: maxDelta,
-        pass: maxDelta <= TOL,
+        logDelta: null,
+        pass: maxDelta <= TOL_STAT,
       });
     } else if (cat === "hclust heights") {
       const mat = t.inputs.matrix.map((row) => row.slice());
@@ -496,7 +525,8 @@ for (const t of data.tests) {
         r: failIdx >= 0 ? rSorted[failIdx] : rSorted[0],
         js: failIdx >= 0 ? heights[failIdx] : heights[0],
         delta: maxDelta,
-        pass: maxDelta <= TOL,
+        logDelta: null,
+        pass: maxDelta <= TOL_STAT,
       });
     } else if (cat === "Tukey HSD" || cat === "Games-Howell" || cat === "Dunn (BH)") {
       const { keys, arrays } = groupsToArrays(t.inputs.groups);
@@ -528,6 +558,8 @@ for (const t of data.tests) {
             const rv = rp[metric];
             const jv = jp[metric];
             if (rv == null) continue;
+            // `diff` is a closed-form mean difference (tight tier); `lwr`/`upr`
+            // ride the qtukey inversion envelope, so they get the looser tier.
             pushRow({
               category: cat,
               label: `${lbl} [${rp.i} vs ${rp.j}]`,
@@ -535,7 +567,7 @@ for (const t of data.tests) {
               metric,
               r: rv,
               js: jv,
-              ...cmp(jv, rv),
+              ...cmp(jv, rv, metric === "diff" ? TOL_STAT : TOL_QTUKEY_CI),
             });
           }
         }
@@ -669,11 +701,14 @@ const rSaturatedRows = rows.filter((r) => !r.pass && r.rSaturated).length;
 const failed = total - passed - rSaturatedRows;
 // Exclude rSaturated rows from max-delta (their "delta" is R's distance from
 // truth, not ours).
-const finiteDeltas = rows
-  .filter((r) => !r.rSaturated)
-  .map((r) => r.delta)
-  .filter((d) => Number.isFinite(d));
+const nonSatRows = rows.filter((r) => !r.rSaturated);
+const finiteDeltas = nonSatRows.map((r) => r.delta).filter((d) => Number.isFinite(d));
 const maxDelta = finiteDeltas.length ? Math.max(...finiteDeltas) : 0;
+// Log-space spread is reported separately so the two never get conflated (a
+// deep-tail p-value can have a microscopic normal-space |Δ| but a meaningful
+// log-space one, and vice versa).
+const finiteLogDeltas = nonSatRows.map((r) => r.logDelta).filter((d) => Number.isFinite(d));
+const maxLogDelta = finiteLogDeltas.length ? Math.max(...finiteLogDeltas) : 0;
 
 // Group by category
 const byCategory = {};
@@ -696,6 +731,14 @@ function fmtDelta(d) {
   if (!Number.isFinite(d)) return "—";
   if (d === 0) return "0";
   return d.toExponential(2);
+}
+
+// Locale-independent thousands grouping (e.g. 1083 → "1,083"). Used instead of
+// Number.prototype.toLocaleString, whose separator is locale-dependent (comma
+// vs thin-space vs period) — that made the checked-in benchmark.html drift
+// between machines on every regeneration.
+function groupThousands(n) {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 function escapeHtml(s) {
@@ -742,6 +785,7 @@ const tableHtml = cats
         <td class="num">${fmt(r.r)}</td>
         <td class="num">${fmt(r.js)}</td>
         <td class="num">${fmtDelta(r.delta)}</td>
+        <td class="num">${fmtDelta(r.logDelta)}</td>
         ${okCell(r)}
       </tr>`
       )
@@ -758,6 +802,7 @@ const tableHtml = cats
           <col class="c-r" />
           <col class="c-js" />
           <col class="c-delta" />
+          <col class="c-delta" />
           <col class="c-ok" />
         </colgroup>
         <thead>
@@ -767,7 +812,8 @@ const tableHtml = cats
             <th>metric</th>
             <th class="num">R</th>
             <th class="num">Plöttr</th>
-            <th class="num">|Δ|</th>
+            <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
+            <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
             <th></th>
           </tr>
         </thead>
@@ -1045,12 +1091,12 @@ const html = `<!doctype html>
       <li><strong>Two independent references.</strong> Plöttr's <code>tools/_core/stats/*.ts</code> is cross-checked against (a) R 4.5.3 on real built-in datasets and${scipy ? ` (b) SciPy ${escapeHtml(scipy.meta.scipy_version)} on synthetic targeted grids over the (df, λ) regimes the R bank only touches indirectly` : " (b) SciPy on synthetic targeted grids (run <code>npm run benchmark:scipy</code> to populate this section)"}.</li>
       <li>Plöttr reruns every function in <code>tools/_core/stats/*.ts</code> against its R ${escapeHtml(data.meta.r_version.replace(/^R version /, "").split(" ")[0])} counterpart on real built-in datasets (iris, PlantGrowth, ToothGrowth, mtcars, chickwts, InsectSprays, sleep, women, trees, airquality, warpbreaks).</li>
       <li>Inputs are bit-identical between R and Plöttr.</li>
-      <li>Tolerance: |Δ| ≤ ${TOL} on test statistics and on p-values ≥ ${P_ABS_CEILING}. Deep-tail p-values (&lt; ${P_ABS_CEILING}) are compared in log space, so the ratio between R's p and Plöttr's stays within [1/1.1, 1.1].</li>
+      <li>Tolerance by metric tier (calibrated to the observed agreement): |Δ| ≤ ${TOL_STAT.toExponential()} on test statistics and point estimates, ≤ ${TOL_NCT_CI.toExponential()} on Cohen's d CIs, ≤ ${TOL_QTUKEY_CI.toExponential()} on Tukey HSD CI bounds. P-values: absolute ${P_ABS_TOL.toExponential()} above ${P_ABS_CEILING}, log-space below (ratio within [1/1.1, 1.1]).</li>
       <li>Post-hoc tests (Games-Howell, Dunn-BH) are validated against <code>PMCMRplus</code>, the canonical R package for non-parametric multiple comparisons. Brown-Forsythe Levene is validated against <code>car::leveneTest(center = median)</code>, the canonical R reference for that test family.</li>
       <li><strong>R-floor rows (amber)</strong>: R's <code>ptukey</code> saturates at ~<code>2.2e-15</code> due to a <code>1 − ptukey(q)</code> cancellation. Plöttr's <code>ptukey_upper</code> computes the survival directly and continues the true tail past that floor (cross-checked against scipy and Monte Carlo). These rows are not JS failures — R is simply no longer ground truth there.</li>${
         scipy
           ? `
-      <li><strong>SciPy benchmark.</strong> ${scipy.totals.total.toLocaleString()} comparisons across ${Object.keys(scipy.categories).length} categories specifically targeting the noncentral distributions (<code>nctcdf</code>, <code>ncf_sf</code>, <code>ncchi2cdf</code>) and <code>qtukey</code> at the (df, λ) corners the R bench can't reach. Tolerances calibrated to each routine's design envelope: 1e-6 relative for central distributions, 5 % relative for noncentral / qtukey, factor-of-1.5 log-space in the deep tail. Underflow / deep-tail / pathological rows are bucketed separately (see panel below).</li>`
+      <li><strong>SciPy benchmark.</strong> ${groupThousands(scipy.totals.total)} comparisons across ${Object.keys(scipy.categories).length} categories specifically targeting the noncentral distributions (<code>nctcdf</code>, <code>ncf_sf</code>, <code>ncchi2cdf</code>) and <code>qtukey</code> at the (df, λ) corners the R bench can't reach. Tolerances calibrated to each routine's design envelope: 1e-6 relative for central distributions, 5 % relative for noncentral / qtukey, factor-of-1.5 log-space in the deep tail. Underflow / deep-tail / pathological rows are bucketed separately (see panel below).</li>`
           : ""
       }
       <li>Real failures are flagged in red and counted honestly.</li>
@@ -1063,8 +1109,8 @@ const html = `<!doctype html>
     scipy
       ? `<h2 class="ref-heading">vs SciPy ${escapeHtml(scipy.meta.scipy_version)} on targeted (df, λ) grids</h2>
   <div class="summary ${scipyClass}">
-    <div><span class="k">comparisons</span><span class="v">${scipy.totals.total.toLocaleString()}</span></div>
-    <div><span class="k">passing</span><span class="v v-pass">${scipy.totals.pass.toLocaleString()} (${(
+    <div><span class="k">comparisons</span><span class="v">${groupThousands(scipy.totals.total)}</span></div>
+    <div><span class="k">passing</span><span class="v v-pass">${groupThousands(scipy.totals.pass)} (${(
       (scipy.totals.pass / scipy.totals.total) *
       100
     ).toFixed(1)}%)</span></div>
@@ -1106,7 +1152,8 @@ const html = `<!doctype html>
     <div><span class="k">passing</span><span class="v v-pass">${passed} (${passPct}%)</span></div>
     <div><span class="k">failing</span><span class="v ${failed === 0 ? "v-pass" : "v-fail"}">${failed}</span></div>
     <div><span class="k">past R's floor</span><span class="v v-rsat">${rSaturatedRows}</span></div>
-    <div><span class="k">max |Δ|</span><span class="v">${fmtDelta(maxDelta)}</span></div>
+    <div><span class="k">max |Δ| (normal)</span><span class="v">${fmtDelta(maxDelta)}</span></div>
+    <div><span class="k">max |Δ ln p| (log)</span><span class="v">${fmtDelta(maxLogDelta)}</span></div>
   </div>
 
   <button type="button" class="toggle-all" data-toggle-all aria-expanded="true">Collapse all</button>
@@ -1115,7 +1162,7 @@ const html = `<!doctype html>
 
   <footer>
     R reference generated ${escapeHtml(data.meta.generated)}.
-    Tolerance ${TOL}. Tool source: <code>tools/_core/stats/*.ts</code>.
+    Tolerance ${TOL_STAT.toExponential()}–${TOL_QTUKEY_CI.toExponential()} by metric tier (see above). Tool source: <code>tools/_core/stats/*.ts</code>.
   </footer>
 </div>
 <script>
@@ -1188,7 +1235,7 @@ if (csp.changed) fs.writeFileSync(outPath, csp.after);
 console.log(`wrote ${outPath}`);
 console.log(`  ${total} comparisons across ${cats.length} categories`);
 console.log(
-  `  ${passed} pass, ${failed} fail, ${rSaturatedRows} past R's floor, max |Δ| = ${fmtDelta(maxDelta)}`
+  `  ${passed} pass, ${failed} fail, ${rSaturatedRows} past R's floor, max |Δ| = ${fmtDelta(maxDelta)} (normal) / ${fmtDelta(maxLogDelta)} (log)`
 );
 if (failed > 0) {
   console.log("  failing rows:");
