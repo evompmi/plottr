@@ -409,46 +409,52 @@ export function App() {
   // The source tool already produced clean structured data and the
   // user has implicitly confirmed the column roles by choosing this
   // destination, so both paths skip the configure step.
-  React.useEffect(() => {
-    interface HandoffPayload {
-      csv?: string;
-      fileName?: string;
-      // Optional y-axis label override sent by the source tool when the
-      // auto-derived label (the value column's name) is an
-      // implementation detail rather than the standard scientific term.
-      // E.g. aequorin sends "A.U.C." instead of letting the boxplot
-      // read its CSV column header "Raw Sum" / "Corrected Sum".
-      yLabel?: string;
+  interface HandoffPayload {
+    csv?: string;
+    fileName?: string;
+    // Optional y-axis label override sent by the source tool when the
+    // auto-derived label (the value column's name) is an implementation
+    // detail rather than the standard scientific term. E.g. aequorin sends
+    // "A.U.C." instead of letting the boxplot read its CSV column header
+    // "Raw Sum" / "Corrected Sum".
+    yLabel?: string;
+  }
+  // Hand-off applier held in a ref that's refreshed every render. The
+  // listener effect below registers once on mount but always invokes the
+  // CURRENT closure through this ref — so it stays correct even if a future
+  // edit makes `apply` / `doParse` read live component state (the
+  // stale-closure class behind the v1.9.1 regression). Mirrors the
+  // ref-for-callback pattern in stats-panel.tsx.
+  const applyHandoffRef = useRef<(payload: HandoffPayload | null | undefined) => void>(() => {});
+  applyHandoffRef.current = (payload) => {
+    if (!payload || !payload.csv) return;
+    // Same reasoning as `loadExample`: leave sepOverride empty so the
+    // Override disclosure doesn't pop open if the user backtracks to
+    // upload. Handoff payloads are always emitted as comma-separated by
+    // the source tool, so `autoDetectSep` resolves correctly.
+    setSepOverride("");
+    setFileName(payload.fileName || "from_handoff.csv");
+    doParse(payload.csv, "");
+    // Apply the source-tool-supplied y-axis label after doParse so the
+    // batched update lands before the next render's valueColName useEffect
+    // fires. That effect treats the label as "auto" only when current ===
+    // "" || === VIS_INIT_BOXPLOT.yLabel || === prevAutoYLabel.current —
+    // none of which match a source-supplied override, so the auto-sync
+    // silently leaves it alone. The user can still rename via the Labels
+    // tile; the override doesn't lock anything.
+    if (typeof payload.yLabel === "string" && payload.yLabel.trim() !== "") {
+      updVis({ yLabel: payload.yLabel.trim() });
     }
-    const apply = (payload: HandoffPayload | null | undefined) => {
-      if (!payload || !payload.csv) return;
-      // Same reasoning as `loadExample`: leave sepOverride empty so the
-      // Override disclosure doesn't pop open if the user backtracks to
-      // upload. Handoff payloads are always emitted as comma-separated by
-      // the source tool, so `autoDetectSep` resolves correctly.
-      setSepOverride("");
-      setFileName(payload.fileName || "from_handoff.csv");
-      doParse(payload.csv, "");
-      // Apply the source-tool-supplied y-axis label after doParse so the
-      // batched update lands before the next render's valueColName
-      // useEffect fires. That effect treats the label as "auto" only
-      // when current === "" || === VIS_INIT_BOXPLOT.yLabel ||
-      // === prevAutoYLabel.current — none of which match a
-      // source-supplied override, so the auto-sync silently leaves it
-      // alone. The user can still rename via the Labels tile; the
-      // override doesn't lock anything.
-      if (typeof payload.yLabel === "string" && payload.yLabel.trim() !== "") {
-        updVis({ yLabel: payload.yLabel.trim() });
-      }
-      setStep("plot");
-    };
-    apply(consumeHandoff("boxplot"));
+    setStep("plot");
+  };
+  React.useEffect(() => {
+    applyHandoffRef.current(consumeHandoff("boxplot"));
     const onStorage = (e: StorageEvent) => {
       // Only react to a fresh write of the hand-off key; deletions
       // (newValue == null) come from our own consumeHandoff in another
       // tab and shouldn't trigger anything here.
       if (e.key !== "dataviz-handoff" || !e.newValue) return;
-      apply(consumeHandoff("boxplot"));
+      applyHandoffRef.current(consumeHandoff("boxplot"));
     };
     // Same-tab path under the SPA's keep-alive router: the `storage`
     // event never fires for writes from this same tab, so the source
@@ -456,7 +462,7 @@ export function App() {
     // localStorage.setItem. We listen for both to cover same-tab and
     // cross-tab handoffs.
     const onSameTabHandoff = () => {
-      apply(consumeHandoff("boxplot"));
+      applyHandoffRef.current(consumeHandoff("boxplot"));
     };
     window.addEventListener("storage", onStorage);
     window.addEventListener("plottr-handoff", onSameTabHandoff);
@@ -464,11 +470,11 @@ export function App() {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("plottr-handoff", onSameTabHandoff);
     };
-    // Mount-only effect: the inner `apply` references `doParse` and the
-    // setters, but re-running this effect every time those change would
-    // re-fire the storage listener registration and risk double-applying
-    // a hand-off. Stable on mount is what we want.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Mount-only registration: re-running would re-add the listeners and
+    // risk double-applying a hand-off. The body reads only `consumeHandoff`
+    // (a module import) and `applyHandoffRef` (a stable ref), so there are
+    // no reactive deps to list — the empty array is exhaustive, no
+    // suppression needed.
   }, []);
 
   const resetAll = () => {
