@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Group letters / brackets land on the right box when a condition has no data.**
+  In the Group Plot stats panel, conditions with fewer than two values are
+  excluded from testing, but they are still drawn. The compact-letter-display
+  labels (and significance brackets) were indexed against only the tested
+  conditions, so an empty condition in the middle shifted every letter one box
+  to the left. Annotations are now projected onto the full displayed-group
+  ordering, leaving the untested conditions blank.
+
 ## [1.9.2] - 2026-06-19
 
 > Long-form release notes live in

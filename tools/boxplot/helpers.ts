@@ -188,6 +188,15 @@ export interface EnrichedBoxplotStatsRow extends BoxplotStatsSet {
   powerResult: PowerFromDataResult | null;
   pAdj?: number | null;
   skip?: boolean;
+  // Groups with < 2 values are excluded from testing, so `names` / `values`
+  // (and the post-hoc pair indices built from them) live in a dense
+  // "valid-group" index space. The chart, however, positions annotations
+  // across *all* displayed groups. `displayNames` is the full displayed-group
+  // ordering and `groupIndexMap[validIdx] = displayedIdx` maps a valid-group
+  // position back to its slot in that ordering, so `computeBpAnnotationSpec`
+  // can emit labels / bracket indices in displayed-group space.
+  displayNames?: string[];
+  groupIndexMap?: number[];
 }
 
 export interface BoxplotStatsDetailProps {
@@ -222,6 +231,11 @@ interface AnnotationSpecRow {
   names: string[];
   testResult?: TestResult | null;
   postHocResult?: { pairs: PostHocPair[]; error?: string } | null;
+  // See `EnrichedBoxplotStatsRow` — full displayed-group ordering + the
+  // valid→displayed index map, so annotations land on the right boxes when
+  // some displayed groups were dropped from testing (< 2 values).
+  displayNames?: string[];
+  groupIndexMap?: number[];
 }
 
 // Build the annotation spec the chart consumes, from a row's test / post-hoc
@@ -233,29 +247,50 @@ export function computeBpAnnotationSpec(
   showNs: boolean
 ): AnnotationSpec | null {
   if (displayMode === "none" || !row || row.skip) return null;
-  const { k, names, testResult, postHocResult } = row;
+  const { k, names, testResult, postHocResult, displayNames, groupIndexMap } = row;
   if (k < 2) return null;
+  // Project a valid-group index onto the displayed-group ordering. Identity
+  // when no group was dropped from testing (map absent or 1:1).
+  const toDisplayIdx = (validIdx: number): number =>
+    groupIndexMap && groupIndexMap[validIdx] != null ? groupIndexMap[validIdx] : validIdx;
+  const outNames = displayNames ?? names;
+  // Scatter dense valid-group labels into a full displayed-length array,
+  // leaving `null` for the untested (dropped) groups so the chart's
+  // positional `axisCoord(i)` lands each letter on the right box.
+  const projectLabels = (labels: Array<string | null>): Array<string | null> => {
+    if (!displayNames || !groupIndexMap) return labels;
+    const full: Array<string | null> = new Array(displayNames.length).fill(null);
+    labels.forEach((lbl, i) => {
+      const di = groupIndexMap[i];
+      if (di != null) full[di] = lbl;
+    });
+    return full;
+  };
   if (k === 2) {
     const p = testResult && !testResult.error ? (testResult.p as number | undefined) : null;
     if (p == null) return null;
     if (!showNs && p >= 0.05) return null;
     return {
       kind: "brackets",
-      pairs: [{ i: 0, j: 1, p, label: pStars(p) }],
-      groupNames: names,
+      pairs: [{ i: toDisplayIdx(0), j: toDisplayIdx(1), p, label: pStars(p) }],
+      groupNames: outNames,
     };
   }
   if (!postHocResult || postHocResult.error) return null;
   if (displayMode === "cld") {
     const labels = compactLetterDisplay(postHocResult.pairs, k);
-    return { kind: "cld", labels, groupNames: names };
+    return { kind: "cld", labels: projectLabels(labels), groupNames: outNames };
   }
   const pairs = postHocResult.pairs
-    .map((pr) => ({ i: pr.i, j: pr.j, p: pr.pAdj != null ? pr.pAdj : pr.p }))
+    .map((pr) => ({
+      i: toDisplayIdx(pr.i),
+      j: toDisplayIdx(pr.j),
+      p: pr.pAdj != null ? pr.pAdj : pr.p,
+    }))
     .map((pr) => ({ ...pr, label: pStars(pr.p) }))
     .filter((pr) => showNs || pr.p < 0.05);
   if (pairs.length === 0) return null;
-  return { kind: "brackets", pairs, groupNames: names };
+  return { kind: "brackets", pairs, groupNames: outNames };
 }
 
 // ── Plain-text summaries ────────────────────────────────────────────────────

@@ -9,7 +9,11 @@
 // the left-margin reservation for rotated x-labels.
 
 const { suite, test, assert, eq, summary } = require("./harness");
-const { mergeSubgroupAnnotations, computeChartMargins } = require("./helpers/boxplot-loader");
+const {
+  mergeSubgroupAnnotations,
+  computeChartMargins,
+  computeBpAnnotationSpec,
+} = require("./helpers/boxplot-loader");
 
 const cellKey = (f, s) => `${f}::${s}`;
 
@@ -195,5 +199,89 @@ suite("computeChartMargins — rotated-label left margin");
     );
   });
 })();
+
+// ── computeBpAnnotationSpec — displayed-group index alignment ────────────────
+//
+// Regression: when a displayed condition has < 2 values it is dropped from
+// testing, so `names` / post-hoc pair indices live in a dense "valid-group"
+// index space. The chart positions annotations across *all* displayed groups
+// via `axisCoord(i)`, so a dropped group in the middle used to shift every
+// letter / bracket one box to the left. `displayNames` + `groupIndexMap`
+// project the annotation back onto the displayed ordering, with `null` for the
+// untested slots.
+
+suite("computeBpAnnotationSpec — displayed-group index alignment");
+
+const cldRow = (extra) => ({
+  k: 3,
+  names: ["A", "B", "C"],
+  testResult: null,
+  postHocResult: {
+    pairs: [
+      { i: 0, j: 1, p: 0.001, pAdj: 0.001 },
+      { i: 0, j: 2, p: 0.001, pAdj: 0.001 },
+      { i: 1, j: 2, p: 0.8, pAdj: 0.8 },
+    ],
+  },
+  ...extra,
+});
+
+test("CLD labels scatter onto displayed slots, null for the untested group", () => {
+  // Displayed order: A, <empty>, B, C — the empty group (index 1) has no data.
+  const identity = computeBpAnnotationSpec(cldRow({}), "cld", false);
+  eq(identity.kind, "cld");
+  eq(identity.labels.length, 3); // valid-group space when no map supplied
+
+  const mapped = computeBpAnnotationSpec(
+    cldRow({ displayNames: ["A", "empty", "B", "C"], groupIndexMap: [0, 2, 3] }),
+    "cld",
+    false
+  );
+  eq(mapped.kind, "cld");
+  eq(mapped.labels.length, 4); // one entry per displayed group
+  eq(mapped.labels[1], null); // the untested middle group carries no letter
+  // Each valid-group letter lands on its displayed slot, unchanged in value.
+  eq(mapped.labels[0], identity.labels[0]);
+  eq(mapped.labels[2], identity.labels[1]);
+  eq(mapped.labels[3], identity.labels[2]);
+});
+
+test("k=2 bracket spans the two tested boxes across an untested middle group", () => {
+  const spec = computeBpAnnotationSpec(
+    {
+      k: 2,
+      names: ["A", "B"],
+      testResult: { p: 0.01 },
+      displayNames: ["A", "empty", "B"],
+      groupIndexMap: [0, 2],
+    },
+    "brackets",
+    true
+  );
+  eq(spec.kind, "brackets");
+  eq(spec.pairs.length, 1);
+  eq(spec.pairs[0].i, 0);
+  eq(spec.pairs[0].j, 2); // not 1 — the empty group sits between the two tested boxes
+});
+
+test("k>=3 bracket indices remap into displayed-group space", () => {
+  const spec = computeBpAnnotationSpec(
+    cldRow({ displayNames: ["A", "empty", "B", "C"], groupIndexMap: [0, 2, 3] }),
+    "brackets",
+    true
+  );
+  eq(spec.kind, "brackets");
+  // showNs=true keeps all three pairs (0-1, 0-2, 1-2 in valid space), each
+  // remapped into displayed-group indices (0-2, 0-3, 2-3).
+  const asKeys = spec.pairs.map((pr) => `${pr.i}-${pr.j}`).sort();
+  eq(asKeys.join(","), "0-2,0-3,2-3");
+});
+
+test("no index map (nothing dropped) is unchanged identity behaviour", () => {
+  const spec = computeBpAnnotationSpec(cldRow({}), "brackets", true);
+  eq(spec.kind, "brackets");
+  const asKeys = spec.pairs.map((pr) => `${pr.i}-${pr.j}`).sort();
+  eq(asKeys.join(","), "0-1,0-2,1-2");
+});
 
 summary();
