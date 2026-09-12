@@ -11,6 +11,7 @@ const {
   formatX,
   computeSeries,
   computePerXStats,
+  lineDashArray,
 } = require("./helpers/lineplot-loader");
 
 // ── buildLineD ──────────────────────────────────────────────────────────────
@@ -156,6 +157,58 @@ test("groupColors override wins over palette cycling", () => {
   const raw = [{ g: "A" }];
   const [series] = computeSeries(data, raw, "x", "y", "g", { A: "#abcdef" }, ["#000"]);
   eq(series.color, "#abcdef");
+});
+
+// ── per-group line style / point shape ──────────────────────────────────────
+
+test("defaults to solid line + filled circle when no style maps are given", () => {
+  const data = [{ x: 1, y: 1 }];
+  const raw = [{ g: "A" }];
+  const [series] = computeSeries(data, raw, "x", "y", "g", {}, ["#000"]);
+  eq(series.lineStyle, "solid");
+  eq(series.pointShape, "circle");
+  eq(series.pointFilled, true);
+});
+
+test("per-group line style / point shape / filled overrides are picked up by name", () => {
+  const data = [
+    { x: 1, y: 1 },
+    { x: 1, y: 2 },
+  ];
+  const raw = [{ g: "A" }, { g: "B" }];
+  const series = computeSeries(
+    data,
+    raw,
+    "x",
+    "y",
+    "g",
+    {},
+    ["#000"],
+    { A: "dashed", B: "dotted" },
+    { A: "square", B: "diamond" },
+    { A: false }
+  );
+  const a = series.find((s) => s.name === "A");
+  const b = series.find((s) => s.name === "B");
+  eq(a.lineStyle, "dashed");
+  eq(a.pointShape, "square");
+  eq(a.pointFilled, false);
+  eq(b.lineStyle, "dotted");
+  eq(b.pointShape, "diamond");
+  eq(b.pointFilled, true); // untouched by the groupPointFilled map → default filled
+});
+
+// ── lineDashArray ────────────────────────────────────────────────────────────
+
+suite("lineDashArray");
+
+test("solid style has no dash array", () => {
+  eq(lineDashArray("solid", 1.5), undefined);
+});
+
+test("dashed / dotted scale proportionally with stroke width", () => {
+  eq(lineDashArray("dashed", 2), "8,5");
+  eq(lineDashArray("dotted", 2), "2,4");
 });
 
 // ── computePerXStats ───────────────────────────────────────────────────────

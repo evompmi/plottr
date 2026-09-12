@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Per-group line style and point shape in Line Plot.** Each group's row in
+  the Groups sidebar section now has a line-style picker (solid / dashed /
+  dotted) and a point-shape picker (circle / square / triangle / diamond)
+  alongside the existing colour swatch, plus a toggle for filled vs. open
+  markers. The legend and exported SVG/PNG reflect the chosen style.
+
 ### Fixed
 
 - **Group letters / brackets land on the right box when a condition has no data.**

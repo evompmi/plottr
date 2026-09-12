@@ -14,8 +14,9 @@ import {
   applyDiscretePalette,
   testStatistic,
 } from "../_shell";
-import { ERROR_KINDS, formatX, round2 } from "./helpers";
+import { ERROR_KINDS, LINE_STYLES, POINT_SHAPES, formatX, round2 } from "./helpers";
 import type { PerXRow, PlotControlsProps, Series } from "./helpers";
+import { LinePointPreview } from "./shapes";
 import { useT, type LineplotKey } from "./i18n";
 
 import { downloadCsv, fileBaseName } from "../_core/download";
@@ -27,6 +28,21 @@ const ERROR_KIND_KEYS: Record<string, LineplotKey> = {
   sem: "lineplot.err.sem",
   sd: "lineplot.err.sd",
   ci95: "lineplot.err.ci95",
+};
+
+// Localized labels for the per-group line style / point shape pickers
+// (values stay the LineStyle / PointShape enums from helpers.ts).
+const LINE_STYLE_KEYS: Record<string, LineplotKey> = {
+  solid: "lineplot.lineStyle.solid",
+  dashed: "lineplot.lineStyle.dashed",
+  dotted: "lineplot.lineStyle.dotted",
+};
+
+const POINT_SHAPE_KEYS: Record<string, LineplotKey> = {
+  circle: "lineplot.pointShape.circle",
+  square: "lineplot.pointShape.square",
+  triangle: "lineplot.pointShape.triangle",
+  diamond: "lineplot.pointShape.diamond",
 };
 
 export function PlotControls({
@@ -42,6 +58,9 @@ export function PlotControls({
   categoricalCols,
   series,
   setGroupColor,
+  setGroupLineStyle,
+  setGroupPointShape,
+  setGroupPointFilled,
   vis,
   updVis,
   autoAxis,
@@ -164,13 +183,73 @@ export function PlotControls({
               names={series.map((s: Series) => s.name)}
             />
             {series.map((s: Series) => (
-              <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <ColorInput
-                  value={s.color}
-                  onChange={(c) => setGroupColor(s.name, c)}
-                  label={s.name}
-                />
-                <span style={{ fontSize: 12, color: "var(--text)" }}>{s.name}</span>
+              <div
+                key={s.name}
+                style={{ display: "flex", flexDirection: "column", gap: 4, paddingBottom: 2 }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <ColorInput
+                    value={s.color}
+                    onChange={(c) => setGroupColor(s.name, c)}
+                    label={s.name}
+                  />
+                  <span style={{ fontSize: 12, color: "var(--text)" }}>{s.name}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 26 }}>
+                  <select
+                    className="dv-select"
+                    value={s.lineStyle}
+                    onChange={(e) =>
+                      setGroupLineStyle(s.name, e.target.value as Series["lineStyle"])
+                    }
+                    style={{ fontSize: 11, padding: "1px 3px" }}
+                    aria-label={tr("lineplot.groups.lineStyleAria", { name: s.name })}
+                  >
+                    {LINE_STYLES.map((ls) => (
+                      <option key={ls.value} value={ls.value}>
+                        {tr(LINE_STYLE_KEYS[ls.value])}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="dv-select"
+                    value={s.pointShape}
+                    onChange={(e) =>
+                      setGroupPointShape(s.name, e.target.value as Series["pointShape"])
+                    }
+                    style={{ fontSize: 11, padding: "1px 3px" }}
+                    aria-label={tr("lineplot.groups.pointShapeAria", { name: s.name })}
+                  >
+                    {POINT_SHAPES.map((ps) => (
+                      <option key={ps.value} value={ps.value}>
+                        {tr(POINT_SHAPE_KEYS[ps.value])}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setGroupPointFilled(s.name, !s.pointFilled)}
+                    title={tr(s.pointFilled ? "lineplot.groups.filled" : "lineplot.groups.open")}
+                    aria-pressed={s.pointFilled}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 3,
+                      background: "var(--surface)",
+                      border: "1px solid var(--border-strong)",
+                      borderRadius: 4,
+                      padding: "1px 5px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <LinePointPreview
+                      shape={s.pointShape}
+                      filled={s.pointFilled}
+                      color={s.color}
+                      size={12}
+                    />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
