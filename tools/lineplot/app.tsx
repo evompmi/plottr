@@ -6,7 +6,15 @@
 import { PlotToolShell, resolveDiscretePalette, usePlotToolState } from "../_shell";
 import "./i18n";
 import { tt } from "./i18n";
-import { computeSeries, computePerXStats, round2, ErrorKind, LineplotVis } from "./helpers";
+import {
+  computeSeries,
+  computePerXStats,
+  round2,
+  ErrorKind,
+  LineplotVis,
+  LineStyle,
+  PointShape,
+} from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
 import { PlotStep } from "./plot-area";
 
@@ -43,6 +51,12 @@ const VIS_INIT_LINEPLOT: LineplotVis = {
   discretePalette: "okabe-ito",
   errorType: "sem",
   showStars: true,
+  // Per-group line style (solid/dashed/dotted) and point marker
+  // (shape + filled/open), keyed by group name. Empty maps fall back to
+  // solid / filled circle in `computeSeries`.
+  groupLineStyles: {},
+  groupPointShapes: {},
+  groupPointFilled: {},
 };
 
 // ── Bundled example dataset ──
@@ -127,6 +141,9 @@ export function App() {
   const showStars = vis.showStars ?? true;
   const setShowStars = useCallback((v: boolean) => updVis({ showStars: v }), [updVis]);
   const groupColors = useMemo(() => vis.groupColors || {}, [vis.groupColors]);
+  const groupLineStyles = useMemo(() => vis.groupLineStyles || {}, [vis.groupLineStyles]);
+  const groupPointShapes = useMemo(() => vis.groupPointShapes || {}, [vis.groupPointShapes]);
+  const groupPointFilled = useMemo(() => vis.groupPointFilled || {}, [vis.groupPointFilled]);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const sepRef = useRef("");
@@ -180,13 +197,44 @@ export function App() {
       yCol,
       groupCol,
       groupColors,
-      seedColors
+      seedColors,
+      groupLineStyles,
+      groupPointShapes,
+      groupPointFilled
     );
-  }, [parsed, xCol, yCol, groupCol, groupColors, vis.discretePalette]);
+  }, [
+    parsed,
+    xCol,
+    yCol,
+    groupCol,
+    groupColors,
+    vis.discretePalette,
+    groupLineStyles,
+    groupPointShapes,
+    groupPointFilled,
+  ]);
 
   const setGroupColor = useCallback(
     (name: string, color: string) =>
       updVis((s) => ({ groupColors: { ...(s.groupColors || {}), [name]: color } })),
+    [updVis]
+  );
+
+  const setGroupLineStyle = useCallback(
+    (name: string, style: LineStyle) =>
+      updVis((s) => ({ groupLineStyles: { ...(s.groupLineStyles || {}), [name]: style } })),
+    [updVis]
+  );
+
+  const setGroupPointShape = useCallback(
+    (name: string, shape: PointShape) =>
+      updVis((s) => ({ groupPointShapes: { ...(s.groupPointShapes || {}), [name]: shape } })),
+    [updVis]
+  );
+
+  const setGroupPointFilled = useCallback(
+    (name: string, filled: boolean) =>
+      updVis((s) => ({ groupPointFilled: { ...(s.groupPointFilled || {}), [name]: filled } })),
     [updVis]
   );
 
@@ -244,7 +292,12 @@ export function App() {
       {
         id: "legend-group",
         title: groupCol != null && parsed ? parsed.headers[groupCol] : "",
-        items: series.map((s) => ({ label: s.name, color: s.color, shape: "dot" })),
+        items: series.map((s) => ({
+          label: s.name,
+          color: s.color,
+          shape: s.pointShape,
+          filled: s.pointFilled,
+        })),
       },
     ];
   }, [series, groupCol, parsed]);
@@ -294,7 +347,7 @@ export function App() {
       setXCol(nums[0] !== undefined ? nums[0] : 0);
       setYCol(nums[1] !== undefined ? nums[1] : nums[0] !== undefined ? nums[0] : 1);
       setGroupCol(cats[0] !== undefined ? cats[0] : null);
-      updVis({ groupColors: {} });
+      updVis({ groupColors: {}, groupLineStyles: {}, groupPointShapes: {}, groupPointFilled: {} });
       setStep("configure");
     },
     [setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep, updVis]
@@ -396,6 +449,9 @@ export function App() {
           numericCols={numericCols}
           categoricalCols={categoricalCols}
           setGroupColor={setGroupColor}
+          setGroupLineStyle={setGroupLineStyle}
+          setGroupPointShape={setGroupPointShape}
+          setGroupPointFilled={setGroupPointFilled}
           vis={vis}
           updVis={updVis}
           autoAxis={autoAxis}

@@ -1035,6 +1035,9 @@ suite("LineChart");
     {
       name: "WT",
       color: "#648FFF",
+      lineStyle: "solid",
+      pointShape: "circle",
+      pointFilled: true,
       points: [
         { x: 0, values: [0.05, 0.06, 0.05], n: 3, mean: 0.053, sd: 0.006, sem: 0.003, ci95: 0.014 },
         { x: 2, values: [0.18, 0.21, 0.19], n: 3, mean: 0.193, sd: 0.015, sem: 0.009, ci95: 0.038 },
@@ -1044,6 +1047,9 @@ suite("LineChart");
     {
       name: "mutant_A",
       color: "#DC267F",
+      lineStyle: "dashed",
+      pointShape: "triangle",
+      pointFilled: false,
       points: [
         { x: 0, values: [0.05, 0.06, 0.05], n: 3, mean: 0.053, sd: 0.006, sem: 0.003, ci95: 0.014 },
         { x: 2, values: [0.15, 0.17, 0.16], n: 3, mean: 0.16, sd: 0.01, sem: 0.006, ci95: 0.025 },
@@ -1079,6 +1085,24 @@ suite("LineChart");
     });
     assert(html.startsWith("<svg"), "root should be an SVG");
     assert(tagCount(html) > 10, "should produce a complex tree");
+    // mutant_A is dashed + open triangle points; WT is solid + filled circle —
+    // both must be reflected in the actual SVG output, not just accepted as
+    // props (regression for the line-style / point-shape feature).
+    assert(html.includes('id="trace-mutant_A"'), "mutant_A trace should render");
+    const mutantTraceStart = html.indexOf('id="trace-mutant_A"');
+    const mutantTraceTag = html.slice(mutantTraceStart - 40, mutantTraceStart + 200);
+    assert(
+      /stroke-dasharray/.test(mutantTraceTag),
+      "dashed series should carry a stroke-dasharray attribute"
+    );
+    assert(html.includes('id="trace-WT"'), "WT trace should render");
+    const wtTraceStart = html.indexOf('id="trace-WT"');
+    const wtTraceTag = html.slice(wtTraceStart - 40, wtTraceStart + 200);
+    assert(
+      !/stroke-dasharray/.test(wtTraceTag),
+      "solid series should not carry a stroke-dasharray attribute"
+    );
+    assert(html.includes("<polygon"), "triangle point shape should render as a polygon");
   });
 
   test("renders with empty series", function () {

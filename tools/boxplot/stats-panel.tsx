@@ -470,10 +470,20 @@ export function BoxplotStatsPanel({
   const enriched = useMemo<EnrichedOrSkip[]>(
     () =>
       sets.map((s): EnrichedOrSkip => {
-        const validGroups = (s.groups || []).filter(
-          (g): g is { name: string; values: number[] } =>
-            !!g && Array.isArray(g.values) && g.values.length >= 2
-        );
+        const allGroups = s.groups || [];
+        // Full displayed-group ordering + the valid→displayed index map. Groups
+        // with < 2 values can't be tested but are still drawn, so the chart
+        // positions annotations across `displayNames`; `groupIndexMap` lets the
+        // annotation builder scatter dense per-test results onto those slots.
+        const displayNames = allGroups.map((g) => g.name);
+        const groupIndexMap: number[] = [];
+        const validGroups: Array<{ name: string; values: number[] }> = [];
+        allGroups.forEach((g, idx) => {
+          if (!!g && Array.isArray(g.values) && g.values.length >= 2) {
+            validGroups.push(g);
+            groupIndexMap.push(idx);
+          }
+        });
         const names = validGroups.map((g) => g.name);
         const values = validGroups.map((g) => g.values.slice());
         const k = names.length;
@@ -492,6 +502,8 @@ export function BoxplotStatsPanel({
           names,
           values,
           k,
+          displayNames,
+          groupIndexMap,
           rec,
           recTest,
           chosenTest,

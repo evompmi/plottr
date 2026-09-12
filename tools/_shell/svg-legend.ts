@@ -29,8 +29,10 @@ export interface LegendBlock {
   // title via svgSafeId). Useful when a tool needs a stable hook into the
   // exported SVG.
   id?: string;
-  // Categorical legend items (circle / line / triangle / square / cross).
-  items?: Array<{ label: string; color: string; shape?: string }>;
+  // Categorical legend items (circle / line / triangle / square / diamond /
+  // cross). `filled: false` renders an open (white-fill, coloured-stroke)
+  // marker instead of a solid one — ignored for the "line" shape.
+  items?: Array<{ label: string; color: string; shape?: string; filled?: boolean }>;
   // Continuous colour-bar block.
   gradient?: { stops: string[]; min: string | number; max: string | number };
   // Scatter aesthetic — variable-radius circles with labels.
@@ -136,6 +138,12 @@ export function renderSvgLegend(
         if (truncateLabel && label.length > truncateLabel) {
           label = label.slice(0, truncateLabel - 2) + "…";
         }
+        // `filled: false` swaps to an open marker (white fill, coloured
+        // stroke) for every shape except "line", which has no fill concept.
+        const fillProps =
+          item.filled === false
+            ? { fill: "#fff", stroke: item.color, strokeWidth: "1.5" }
+            : { fill: item.color };
         let shape: React.ReactNode;
         if (item.shape === "line") {
           shape = h("line", {
@@ -148,9 +156,11 @@ export function renderSvgLegend(
             strokeWidth: "2.5",
           });
         } else if (item.shape === "triangle") {
-          shape = h("polygon", { key: "s", points: "6,1 1,12 11,12", fill: item.color });
+          shape = h("polygon", { key: "s", points: "6,1 1,12 11,12", ...fillProps });
         } else if (item.shape === "square") {
-          shape = h("rect", { key: "s", x: 1, y: 2, width: 10, height: 10, fill: item.color });
+          shape = h("rect", { key: "s", x: 1, y: 2, width: 10, height: 10, ...fillProps });
+        } else if (item.shape === "diamond") {
+          shape = h("polygon", { key: "s", points: "6,1 11,7 6,13 1,7", ...fillProps });
         } else if (item.shape === "cross") {
           shape = h("path", {
             key: "s",
@@ -158,7 +168,7 @@ export function renderSvgLegend(
             fill: item.color,
           });
         } else {
-          shape = h("circle", { key: "s", cx: 6, cy: 7, r: 5, fill: item.color });
+          shape = h("circle", { key: "s", cx: 6, cy: 7, r: 5, ...fillProps });
         }
         const text = h(
           "text",

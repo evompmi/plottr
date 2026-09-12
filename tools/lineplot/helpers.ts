@@ -27,6 +27,33 @@ export const ERROR_KINDS: ReadonlyArray<{ value: ErrorKind; label: string }> = [
   { value: "ci95", label: "95% CI" },
 ];
 
+// ── Per-group line style / point shape ──────────────────────────────────────
+
+export type LineStyle = "solid" | "dashed" | "dotted";
+export type PointShape = "circle" | "square" | "triangle" | "diamond";
+
+export const LINE_STYLES: ReadonlyArray<{ value: LineStyle; label: string }> = [
+  { value: "solid", label: "Solid" },
+  { value: "dashed", label: "Dashed" },
+  { value: "dotted", label: "Dotted" },
+];
+
+export const POINT_SHAPES: ReadonlyArray<{ value: PointShape; label: string }> = [
+  { value: "circle", label: "Circle" },
+  { value: "square", label: "Square" },
+  { value: "triangle", label: "Triangle" },
+  { value: "diamond", label: "Diamond" },
+];
+
+// SVG `stroke-dasharray` per line style, scaled by the current stroke width
+// so dashes stay proportional at any `lineWidth` setting. `undefined` for
+// solid omits the attribute entirely (React drops undefined DOM props).
+export function lineDashArray(style: LineStyle, strokeWidth: number): string | undefined {
+  if (style === "dashed") return `${strokeWidth * 4},${strokeWidth * 2.5}`;
+  if (style === "dotted") return `${strokeWidth},${strokeWidth * 2}`;
+  return undefined;
+}
+
 // ── Small helpers ──────────────────────────────────────────────────────────
 
 export function formatX(x: number | null | undefined): string {
@@ -48,7 +75,10 @@ export function computeSeries(
   yCol: number,
   groupCol: number | null,
   groupColors: Record<string, string>,
-  palette: readonly string[]
+  palette: readonly string[],
+  groupLineStyles: Record<string, LineStyle> = {},
+  groupPointShapes: Record<string, PointShape> = {},
+  groupPointFilled: Record<string, boolean> = {}
 ) {
   // Preserve first-seen group order so legend ordering matches the CSV.
   const groupOrder: string[] = [];
@@ -83,6 +113,9 @@ export function computeSeries(
     return {
       name,
       color: groupColors[name] || palette[idx % palette.length],
+      lineStyle: groupLineStyles[name] || "solid",
+      pointShape: groupPointShapes[name] || "circle",
+      pointFilled: groupPointFilled[name] !== false,
       points,
     };
   });
@@ -133,6 +166,9 @@ export interface LineplotVis {
   discretePalette: string;
   errorType: ErrorKind;
   showStars: boolean;
+  groupLineStyles: Record<string, LineStyle>;
+  groupPointShapes: Record<string, PointShape>;
+  groupPointFilled: Record<string, boolean>;
 }
 
 // The reducer signature emitted by `usePlotToolState` — accepts a partial
@@ -186,6 +222,9 @@ export interface PlotControlsProps {
   categoricalCols: number[];
   series: Series[];
   setGroupColor: (name: string, color: string) => void;
+  setGroupLineStyle: (name: string, style: LineStyle) => void;
+  setGroupPointShape: (name: string, shape: PointShape) => void;
+  setGroupPointFilled: (name: string, filled: boolean) => void;
   vis: LineplotVis;
   updVis: UpdVis;
   autoAxis: AutoAxis;

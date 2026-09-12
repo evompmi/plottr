@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.3] - 2026-09-12
+
+> Long-form release notes live in
+> [`docs/release-notes/v1.9.3.md`](docs/release-notes/v1.9.3.md). The entries
+> below are summary bullets that link there.
+>
+> The "Dash & Dot" release: every group in a Line Plot chart can now carry its
+> own line style and point marker, not just its colour, so figures stay
+> distinguishable in print or grayscale. Group Plot's significance letters
+> also got a correctness fix for charts with an empty condition.
+
+### Added
+
+- **Per-group line style and point shape in Line Plot.** Each group's row in
+  the Groups sidebar section now has a line-style picker (solid / dashed /
+  dotted) and a point-shape picker (circle / square / triangle / diamond)
+  alongside the existing colour swatch, plus a toggle for filled vs. open
+  markers. The legend and exported SVG/PNG reflect the chosen style. See
+  [`docs/release-notes/v1.9.3.md`](docs/release-notes/v1.9.3.md#-added).
+
+### Fixed
+
+- **Group letters / brackets land on the right box when a condition has no data.**
+  In the Group Plot stats panel, conditions with fewer than two values are
+  excluded from testing, but they are still drawn. The compact-letter-display
+  labels (and significance brackets) were indexed against only the tested
+  conditions, so an empty condition in the middle shifted every letter one box
+  to the left. Annotations are now projected onto the full displayed-group
+  ordering, leaving the untested conditions blank. See
+  [`docs/release-notes/v1.9.3.md`](docs/release-notes/v1.9.3.md#-fixed).
+
 ## [1.9.2] - 2026-06-19
 
 > Long-form release notes live in

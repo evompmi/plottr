@@ -27,6 +27,17 @@ const en = {
   // Groups section
   "lineplot.sec.groups": "Groups",
   "lineplot.groups.empty": "No groups yet — pick a grouping column.",
+  "lineplot.groups.lineStyleAria": "Line style for {name}",
+  "lineplot.groups.pointShapeAria": "Point shape for {name}",
+  "lineplot.groups.filled": "Filled marker — click for open",
+  "lineplot.groups.open": "Open marker — click for filled",
+  "lineplot.lineStyle.solid": "Solid",
+  "lineplot.lineStyle.dashed": "Dashed",
+  "lineplot.lineStyle.dotted": "Dotted",
+  "lineplot.pointShape.circle": "Circle",
+  "lineplot.pointShape.square": "Square",
+  "lineplot.pointShape.triangle": "Triangle",
+  "lineplot.pointShape.diamond": "Diamond",
 
   // Error bars section
   "lineplot.sec.errorBars": "Error bars",

@@ -3,7 +3,15 @@
 // constants and pure helpers (computeSeries, computePerXStats, buildLineD)
 // live in tools/lineplot/helpers.ts.
 
-import { MARGIN as BASE_MARGIN, STAR_ROW_H, buildLineD, ChartProps, SeriesPoint } from "./helpers";
+import {
+  MARGIN as BASE_MARGIN,
+  STAR_ROW_H,
+  buildLineD,
+  lineDashArray,
+  ChartProps,
+  SeriesPoint,
+} from "./helpers";
+import { renderLinePoint } from "./shapes";
 import { computeLegendHeight, renderSvgLegend } from "../_shell";
 import type { LegendBlock } from "../_shell";
 import { makeTicks } from "../_core/scale";
@@ -193,6 +201,7 @@ export const Chart = memo(
                   fill="none"
                   stroke={s.color}
                   strokeWidth={lineWidth}
+                  strokeDasharray={lineDashArray(s.lineStyle, lineWidth)}
                   role="img"
                   aria-label={tt("lineplot.chart.traceAria", {
                     name: s.name,
@@ -250,17 +259,17 @@ export const Chart = memo(
             {series.map((s) => (
               <g key={`pts-${s.name}`} id={`points-${svgSafeId(s.name)}`}>
                 {s.points.map((p, pi) =>
-                  p.mean == null ? null : (
-                    <circle
-                      key={`pt-${pi}`}
-                      cx={sx(p.x)}
-                      cy={sy(p.mean)}
-                      r={pointRadius}
-                      fill={s.color}
-                      stroke="#fff"
-                      strokeWidth="0.5"
-                    />
-                  )
+                  p.mean == null
+                    ? null
+                    : renderLinePoint(
+                        s.pointShape,
+                        s.pointFilled,
+                        sx(p.x),
+                        sy(p.mean),
+                        pointRadius,
+                        s.color,
+                        `pt-${pi}`
+                      )
                 )}
               </g>
             ))}
