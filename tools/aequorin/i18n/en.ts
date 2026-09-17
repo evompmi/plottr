@@ -42,7 +42,7 @@ const en = {
 
   // Controls — actions
   "aequorin.ctrl.csvTitle":
-    "Download calibrated [Ca²⁺] over time — one row per time-point, one column per sample (calibration applied)",
+    "Download calibrated values over time — one row per time-point, one column per sample (calibration applied)",
 
   // Controls — sections
   "aequorin.ctrl.conditions": "Conditions",
@@ -110,6 +110,7 @@ const en = {
   "aequorin.steps.formula.allenBlinks": "Allen & Blinks (1978)",
   "aequorin.steps.formula.hill": "Hill equilibrium",
   "aequorin.steps.formula.generalized": "Generalised Allen & Blinks",
+  "aequorin.steps.formula.lLmax": "L/Lmax (fractional rate)",
   "aequorin.steps.kdLabel": "Kd (µM)",
   "aequorin.steps.hillExp": "n (Hill exp.)",
   "aequorin.steps.timeStep": "Time step (per row)",
@@ -200,7 +201,7 @@ const en = {
   "aequorin.howto.subtitle":
     "Plot any time-series of replicates (luminescence, fluorescence, OD, …) with replicate-derived error ribbons",
   "aequorin.howto.purpose":
-    "Plot a measurement against time, one trace per condition, with replicate spread shown as a ribbon. Calibration is optional — leave the formula on <strong>None</strong> for raw data, or pick an aequorin / Ca²⁺ formula when you have luminescence to convert.",
+    "Plot a measurement against time, one trace per condition, with replicate spread shown as a ribbon. Calibration is optional — leave the formula on <strong>None</strong> for raw data, or pick an aequorin calibration when you have luminescence to convert (to [Ca²⁺], or to the dimensionless L/Lmax fractional rate).",
   "aequorin.howto.dataLayout":
     "Wide format — one column per sample, one row per time-point. Numeric matrix; no time-axis column required (rows are evenly-spaced; you set the per-row time step + base unit). <strong>Columns sharing the same header are pooled as replicates of one condition</strong> — the chart plots their <strong>mean ± SD</strong> ribbon automatically. Rename headers to change which samples group together.",
   "aequorin.howto.display":

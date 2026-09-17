@@ -34,7 +34,7 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.chart.barDesc.one": "Diagramme en barres en médaillon de {count} condition",
   "aequorin.chart.barDesc.other": "Diagramme en barres en médaillon de {count} conditions",
   "aequorin.ctrl.csvTitle":
-    "Télécharger [Ca²⁺] calibré au cours du temps — une ligne par point temporel, une colonne par échantillon (calibration appliquée)",
+    "Télécharger les valeurs calibrées au cours du temps — une ligne par point temporel, une colonne par échantillon (calibration appliquée)",
   "aequorin.ctrl.conditions": "Conditions",
   "aequorin.ctrl.axes": "Axes",
   "aequorin.ctrl.xStart": "Début X ({unit})",
@@ -96,6 +96,7 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.steps.formula.allenBlinks": "Allen & Blinks (1978)",
   "aequorin.steps.formula.hill": "Équilibre de Hill",
   "aequorin.steps.formula.generalized": "Allen & Blinks généralisé",
+  "aequorin.steps.formula.lLmax": "L/Lmax (taux fractionnel)",
   "aequorin.steps.kdLabel": "Kd (µM)",
   "aequorin.steps.hillExp": "n (exp. Hill)",
   "aequorin.steps.timeStep": "Temps écoulé (par ligne)",
@@ -179,7 +180,7 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.howto.subtitle":
     "Tracez n’importe quelle série temporelle de réplicats (luminescence, fluorescence, DO, …) avec des rubans d’erreur dérivés des réplicats",
   "aequorin.howto.purpose":
-    "Tracez une mesure en fonction du temps, un tracé par condition, avec la dispersion des réplicats montrée en ruban. La calibration est optionnelle — laissez la formule sur <strong>Aucune</strong> pour les données brutes, ou choisissez une formule aequorine / Ca²⁺ quand vous avez de la luminescence à convertir.",
+    "Tracez une mesure en fonction du temps, un tracé par condition, avec la dispersion des réplicats montrée en ruban. La calibration est optionnelle — laissez la formule sur <strong>Aucune</strong> pour les données brutes, ou choisissez une calibration aequorine quand vous avez de la luminescence à convertir (en [Ca²⁺], ou en taux fractionnel L/Lmax sans dimension).",
   "aequorin.howto.dataLayout":
     "Format large — une colonne par échantillon, une ligne par point temporel. Matrice numérique ; aucune colonne d’axe temporel requise (les lignes sont régulièrement espacées ; vous définissez le pas de temps par ligne + l’unité de base). <strong>Les colonnes partageant le même nom d’en-tête sont regroupées comme réplicats d’une même condition</strong> — le graphique trace automatiquement leur ruban <strong>moyenne ± SD</strong>. Renommez les en-têtes pour changer le regroupement des échantillons.",
   "aequorin.howto.display":

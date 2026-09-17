@@ -14,6 +14,7 @@ const {
   calibrate,
   calibrateHill,
   calibrateGeneralized,
+  calibrateFractionalRate,
   detectConditions,
   smooth,
   convertTime,
@@ -232,6 +233,22 @@ test("calibrateGeneralized returns a matrix matching the input shape", () => {
   );
 });
 
+test("calibrateFractionalRate returns a matrix matching the input shape", () => {
+  checkHeavy(
+    fc.property(arbWideCsv, (text) => {
+      const p = parseWideMatrix(text);
+      if (!p || p.matrix.length === 0) return true;
+      const data = nullifyNaN(p.matrix);
+      const out = calibrateFractionalRate(p.colLabels, data);
+      if (!Array.isArray(out) || out.length !== data.length) return false;
+      for (let r = 0; r < out.length; r++) {
+        if (!Array.isArray(out[r]) || out[r].length !== p.colLabels.length) return false;
+      }
+      return true;
+    })
+  );
+});
+
 test("calibration cells are either null or numbers (no string / undefined leaks)", () => {
   // Bar: no type leaks. Numerical NaN is allowed for degenerate inputs
   // (calibrateGeneralized's Math.pow(neg, fractional)).
@@ -244,6 +261,7 @@ test("calibration cells are either null or numbers (no string / undefined leaks)
         () => calibrate(p.colLabels, data, params.Kr, params.Ktr),
         () => calibrateHill(p.colLabels, data, params.Kd),
         () => calibrateGeneralized(p.colLabels, data, params.Kr, params.Ktr, params.n),
+        () => calibrateFractionalRate(p.colLabels, data),
       ]) {
         const out = fn();
         for (const row of out) {
@@ -271,6 +289,7 @@ test("calibration on null-only data returns all-null matrix", () => {
           () => calibrate(headers, data, params.Kr, params.Ktr),
           () => calibrateHill(headers, data, params.Kd),
           () => calibrateGeneralized(headers, data, params.Kr, params.Ktr, params.n),
+          () => calibrateFractionalRate(headers, data),
         ]) {
           const out = fn();
           for (const row of out) {

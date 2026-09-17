@@ -10,6 +10,8 @@ const {
   calibrate,
   calibrateHill,
   calibrateGeneralized,
+  calibrateFractionalRate,
+  fmtYTick,
   detectConditions,
   smooth,
   convertTime,
@@ -112,6 +114,77 @@ test("larger Hill n pulls all calibrated values toward a smaller magnitude", () 
     assert(Number.isFinite(gen5[r][0]));
     assert(gen3[r][0] !== gen5[r][0], "different n should produce different output");
   }
+});
+
+// ── calibrateFractionalRate (L/Lmax) ────────────────────────────────────────
+//
+// k(t) = L(t) / Σₜᵉⁿᵈ L — the denominator is the *remaining* light integral
+// from t to the end, not the whole-trace total the other three formulas use.
+
+suite("calibrateFractionalRate (L/Lmax)");
+
+test("uniform column [1,1,1] yields k = 1/(remaining count)", () => {
+  const out = calibrateFractionalRate(["A"], [[1], [1], [1]]);
+  approx(out[0][0], 1 / 3, 1e-12);
+  approx(out[1][0], 1 / 2, 1e-12);
+  approx(out[2][0], 1, 1e-12);
+});
+
+test("null stays null; a zero value is NOT nulled (k=0 is meaningful here)", () => {
+  const out = calibrateFractionalRate(["A"], [[null], [0], [1]]);
+  eq(out[0][0], null);
+  // Remaining sum at row 1 is 0 + 1 = 1 (nonzero) → 0/1 = 0, not null. This is
+  // the deliberate divergence from calibrate()'s v===0 short-circuit: a zero
+  // reading is a legitimate "no rate yet" value for a fractional rate, not a
+  // non-physical artifact the way a zero Ca²⁺-conversion input would be.
+  eq(out[1][0], 0);
+  eq(out[2][0], 1);
+});
+
+test("all-zero column short-circuits every row to null (remaining sum always 0)", () => {
+  const out = calibrateFractionalRate(["A"], [[0], [0], [0]]);
+  for (const row of out) eq(row[0], null);
+});
+
+test("the last non-null row always evaluates to k=1 (remaining sum = itself)", () => {
+  const out = calibrateFractionalRate(["A"], [[5], [3], [7]]);
+  eq(out[2][0], 1);
+});
+
+// ── fmtYTick ─────────────────────────────────────────────────────────────────
+//
+// Y-axis tick label formatting. Plain toFixed(1) rendered every small
+// magnitude (e.g. the L/Lmax fractional rate) as an indistinguishable "0.0";
+// this switches to exponential notation below 0.01 (and above 10000), the
+// same rule tools/scatter/helpers.ts's fmtTick already uses.
+
+suite("fmtYTick");
+
+test("zero renders as plain '0'", () => {
+  eq(fmtYTick(0), "0");
+});
+
+test("values ≥ 10000 switch to exponential notation", () => {
+  eq(fmtYTick(10000), "1.0e+4");
+  eq(fmtYTick(123456), "1.2e+5");
+});
+
+test("values < 0.01 switch to exponential notation (the L/Lmax case)", () => {
+  eq(fmtYTick(0.001), "1.0e-3");
+  eq(fmtYTick(0.0075), "7.5e-3");
+  eq(fmtYTick(-0.00005), "-5.0e-5");
+});
+
+test("values between 100 and 10000 render as integers", () => {
+  eq(fmtYTick(100), "100");
+  eq(fmtYTick(1234.56), "1235");
+});
+
+test("mid-range values use toPrecision(3) with trailing zeros stripped", () => {
+  eq(fmtYTick(1), "1");
+  eq(fmtYTick(1.5), "1.5");
+  eq(fmtYTick(0.5), "0.5");
+  eq(fmtYTick(0.0123456), "0.0123");
 });
 
 // ── detectConditions ───────────────────────────────────────────────────────
@@ -286,6 +359,23 @@ test("calibrateGeneralized(RUNDOWN, DEFAULT_*) reduces to Allen & Blinks at n=3"
   }
 });
 
+test("calibrateFractionalRate(RUNDOWN) matches pinned snapshot", () => {
+  const out = calibrateFractionalRate(["col0"], RUNDOWN_DATA);
+  // Independently derived from the definition (not the implementation's
+  // backward-accumulation loop) so this is a real pin, not a tautology.
+  const expected = [
+    [100 / (100 + 40 + 16 + 6.4 + 2.56)],
+    [40 / (40 + 16 + 6.4 + 2.56)],
+    [16 / (16 + 6.4 + 2.56)],
+    [6.4 / (6.4 + 2.56)],
+    [2.56 / 2.56],
+  ];
+  eq(out.length, expected.length);
+  for (let i = 0; i < expected.length; i++) {
+    approx(out[i][0], expected[i][0], 1e-9);
+  }
+});
+
 // ── computeAutoYRange ───────────────────────────────────────────────────────
 //
 // Pinned to guard against the "first-render glitch" regression: the auto-Y
@@ -352,10 +442,20 @@ test("xStart/xEnd are clamped to the data length, never producing NaN", () => {
   approx(r2.yMax, 2.2, 1e-9);
 });
 
-test("rounds to 2 decimal places", () => {
+test("rounds to 2 decimal places when the data magnitude is ≥ 1", () => {
   // hi = 1.23456 → 1.23456 * 1.1 = 1.358016 → round2 → 1.36
   const r = computeAutoYRange([[1.23456]], 0, 0);
   eq(r.yMax, 1.36);
+});
+
+test("scales rounding precision for small-magnitude data (e.g. L/Lmax in [0,1])", () => {
+  // hi = 0.015 → round2 would collapse both bounds to 0.00/0.02, indistinguishable
+  // from noise. Precision must scale with magnitude instead of a fixed 2 decimals.
+  const r = computeAutoYRange([[0.005], [0.015]], 0, 1);
+  assert(r.yMax > 0, `yMax ${r.yMax} must not collapse to zero`);
+  assert(r.yMax !== r.yMin, "padded bounds must stay distinguishable at small magnitude");
+  approx(r.yMax, 0.015 * 1.1, 1e-9);
+  approx(r.yMin, 0.005 * 0.9, 1e-9);
 });
 
 test("range is independent of any previously persisted vis.yMin / vis.yMax", () => {

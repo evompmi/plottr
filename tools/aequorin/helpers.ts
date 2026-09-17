@@ -5,12 +5,28 @@
 // tools/aequorin/ (chart.tsx, stats-panel.tsx, reports.ts, plot-area.tsx,
 // steps.tsx, controls.tsx, index.tsx).
 
-import { CHART_MARGIN, buildLineD, resolveDiscretePalette, round2 } from "../_shell";
+import { CHART_MARGIN, buildLineD, resolveDiscretePalette } from "../_shell";
 import type { LegendBlock, PowerFromDataResult, TestResult } from "../_shell";
 import { PALETTE } from "../_core/color";
 import { selectTest } from "../_core/stats/posthoc";
 import type { ParseDataResult } from "../_core/csv";
 export { buildLineD };
+
+// ── Y-axis tick formatting ───────────────────────────────────────────────────
+//
+// Plain `toFixed(1)` (the prior behaviour) renders every tick under 0.05 as
+// "0.0" — indistinguishable from an actual zero. This mirrors scatter's
+// `fmtTick` (tools/scatter/helpers.ts): small magnitudes (e.g. the L/Lmax
+// fractional rate, which lives in [0,1] and often clusters under 0.01) and
+// very large ones (raw RLU counts) switch to exponential notation instead of
+// losing precision to a fixed decimal count.
+export function fmtYTick(t: number): string {
+  if (t === 0) return "0";
+  const abs = Math.abs(t);
+  if (abs >= 10000 || abs < 0.01) return t.toExponential(1);
+  if (abs >= 100) return t.toFixed(0);
+  return parseFloat(t.toPrecision(3)).toString();
+}
 
 // ── Calibration defaults ─────────────────────────────────────────────────────
 //
@@ -100,6 +116,10 @@ export const FORMULA_DEFS = {
   generalized: {
     label: "Generalised Allen & Blinks",
     eq: "[Ca²⁺] = ((1+Ktr)·f^(1/n) − 1) / (Kr·(1−f^(1/n)))",
+  },
+  "l-lmax": {
+    label: "L/Lmax (fractional rate)",
+    eq: "k(t) = L(t) / Σ_{t}^{end} L",
   },
 };
 
@@ -240,6 +260,46 @@ export function calibrateGeneralized(
   return cal;
 }
 
+// Fractional luminescence rate:
+//   k(t) = L(t) / ∫ₜᵉⁿᵈ L·dt
+//
+// The classical aequorin rundown index. Unlike the three formulas above,
+// the denominator here is *time-varying*: it is the light still to be
+// emitted from t to the end of the recording (the "remaining pool" —
+// sometimes written Lmax(t), since it is the total light that would be
+// released if the remaining aequorin fully discharged at time t), not a
+// fixed whole-trace total. k(t) is a dimensionless ratio, not a calcium
+// concentration, so it needs no Kr/Ktr/Kd/n parameters.
+//
+//   Cobbold, P. H., & Rink, T. J. (1987). "Fluorescence and bioluminescence
+//     measurement of cytoplasmic free calcium." Biochemical Journal 248(2):
+//     313-328.
+//
+// Computed with one backward pass per column: walking rows from the last
+// to the first while accumulating a running suffix sum gives the O(n)
+// remaining integral per row without an O(n²) nested sum. A null input
+// stays null; a zero remaining-sum denominator (e.g. an all-null tail, or
+// the very last non-null row) also yields null to avoid dividing by zero.
+// Unlike the Ca²⁺-conversion formulas above, a zero *luminescence value*
+// is not itself nulled out — k(t) = 0 is a meaningful "no rate yet"
+// reading here, not a non-physical artifact.
+export function calibrateFractionalRate(headers: string[], data: DataMatrix): DataMatrix {
+  const nCols = headers.length,
+    nRows = data.length;
+  const cal: DataMatrix = new Array(nRows);
+  for (let r = 0; r < nRows; r++) cal[r] = new Array<number | null>(nCols).fill(null);
+  for (let c = 0; c < nCols; c++) {
+    let runningSum = 0;
+    for (let r = nRows - 1; r >= 0; r--) {
+      const v = data[r][c];
+      if (v != null) runningSum += v;
+      if (v == null || runningSum === 0) continue;
+      cal[r][c] = v / runningSum;
+    }
+  }
+  return cal;
+}
+
 export function detectConditions(
   headers: string[],
   poolReplicates = true,
@@ -326,9 +386,22 @@ export function buildAreaD(pts: RibbonPoint[]): string {
 // with lineplot's `MARGIN`).
 export const MARGIN = CHART_MARGIN;
 
+// Number of decimal places to round an auto-computed axis bound to, scaled
+// to the data's own magnitude. Fixed-to-2-decimals (the prior behaviour)
+// collapses small-magnitude datasets — e.g. the aequorin L/Lmax fractional
+// rate, which lives in [0,1] and often clusters well under 0.1 — to a
+// degenerate 0.00/0.00 range, forcing the user into manual axis entry.
+// Scaling keeps ~2-3 significant figures regardless of magnitude while
+// leaving values ≥ 1 (raw RLU, [Ca²⁺] in µM) at the original 2 decimals.
+function autoYDecimals(magnitude: number): number {
+  if (!Number.isFinite(magnitude) || magnitude === 0) return 2;
+  const decimals = 2 - Math.floor(Math.log10(Math.abs(magnitude)));
+  return Math.min(10, Math.max(2, decimals));
+}
+
 // ── Auto Y-axis range over a visible x-window ────────────────────────────────
-// Returns { yMin, yMax } padded ±10% (lower clamped at 0, both rounded to
-// 2 decimal places — matches the prior inline logic in index.tsx). Returns
+// Returns { yMin, yMax } padded ±10% (lower clamped at 0, rounded to a
+// magnitude-scaled decimal precision — see `autoYDecimals` above). Returns
 // `null` when calData is empty / window contains no finite values, so the
 // caller can short-circuit instead of pushing NaN through updVis.
 //
@@ -359,7 +432,10 @@ export function computeAutoYRange(
     }
   }
   if (!isFinite(lo) || !isFinite(hi)) return null;
-  return { yMin: round2(Math.max(0, lo * 0.9)), yMax: round2(hi * 1.1) };
+  const decimals = autoYDecimals(Math.max(Math.abs(lo), Math.abs(hi)));
+  const factor = Math.pow(10, decimals);
+  const roundN = (v: number): number => Math.round(v * factor) / factor;
+  return { yMin: roundN(Math.max(0, lo * 0.9)), yMax: roundN(hi * 1.1) };
 }
 
 // ── Ribbon-extent matrix for the auto Y-range ────────────────────────────────
@@ -391,7 +467,7 @@ export function ribbonEdgeMatrix(stats: AequorinSeriesStats[] | null): DataMatri
 
 // ── Public types for steps / controls prop interfaces ───────────────────────
 
-export type CalibrationFormula = "none" | "allen-blinks" | "hill" | "generalized";
+export type CalibrationFormula = "none" | "allen-blinks" | "hill" | "generalized" | "l-lmax";
 
 export interface Condition {
   prefix: string;
