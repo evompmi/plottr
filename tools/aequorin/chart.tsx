@@ -9,6 +9,7 @@ import {
   MARGIN as BASE_MARGIN,
   buildAreaD,
   buildLineD,
+  fmtYTick,
   ChartProps,
   InsetBarplotProps,
   FacetChartItemProps,
@@ -65,7 +66,7 @@ export const Chart = memo(
       ...BASE_MARGIN,
       left: valueAxisLeftMargin(
         BASE_MARGIN.left,
-        makeTicks(yMin, yMax, 6).map((t) => (t % 1 === 0 ? t : t.toFixed(1))),
+        makeTicks(yMin, yMax, 6).map(fmtYTick),
         tickFontSize,
         tickFontSize / 11
       ),
@@ -376,7 +377,7 @@ export const Chart = memo(
                   fill="#555"
                   fontFamily="sans-serif"
                 >
-                  {t % 1 === 0 ? t : t.toFixed(1)}
+                  {fmtYTick(t)}
                 </text>
               </g>
             ))}
@@ -651,7 +652,7 @@ export const InsetBarplot = memo(
                   fill="#555"
                   fontFamily="sans-serif"
                 >
-                  {t % 1 === 0 ? t : t.toFixed(1)}
+                  {fmtYTick(t)}
                 </text>
               </g>
             ))}

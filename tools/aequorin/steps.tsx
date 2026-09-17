@@ -138,6 +138,28 @@ function CalibrationFormulaPreview({
         />
       </>
     );
+  } else if (formula === "l-lmax") {
+    body = (
+      <>
+        <span style={{ fontStyle: "italic" }}>k</span>(
+        <span style={{ fontStyle: "italic" }}>t</span>) ={" "}
+        <Frac
+          num={
+            <>
+              <span style={{ fontStyle: "italic" }}>L</span>(
+              <span style={{ fontStyle: "italic" }}>t</span>)
+            </>
+          }
+          den={
+            <>
+              Σ<sub style={{ fontSize: "0.65em" }}>t</sub>
+              <sup style={{ fontSize: "0.65em", marginLeft: -4 }}>end</sup>{" "}
+              <span style={{ fontStyle: "italic" }}>L</span>
+            </>
+          }
+        />
+      </>
+    );
   } else {
     return null;
   }
@@ -182,19 +204,21 @@ function CalibrationFormulaPreview({
       >
         {body}
       </span>
-      <span
-        style={{
-          fontSize: 11,
-          color: "var(--text-faint)",
-          marginLeft: "auto",
-          whiteSpace: "nowrap",
-        }}
-      >
-        <span style={{ fontStyle: "italic" }}>f</span> ={" "}
-        <span style={{ fontStyle: "italic" }}>L</span>(
-        <span style={{ fontStyle: "italic" }}>t</span>) / Σ
-        <span style={{ fontStyle: "italic" }}>L</span>
-      </span>
+      {formula !== "l-lmax" && (
+        <span
+          style={{
+            fontSize: 11,
+            color: "var(--text-faint)",
+            marginLeft: "auto",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span style={{ fontStyle: "italic" }}>f</span> ={" "}
+          <span style={{ fontStyle: "italic" }}>L</span>(
+          <span style={{ fontStyle: "italic" }}>t</span>) / Σ
+          <span style={{ fontStyle: "italic" }}>L</span>
+        </span>
+      )}
     </div>
   );
 }
@@ -336,6 +360,7 @@ export function ConfigureStep({
                 <option value="allen-blinks">{tr("aequorin.steps.formula.allenBlinks")}</option>
                 <option value="hill">{tr("aequorin.steps.formula.hill")}</option>
                 <option value="generalized">{tr("aequorin.steps.formula.generalized")}</option>
+                <option value="l-lmax">{tr("aequorin.steps.formula.lLmax")}</option>
               </select>
             </div>
             {(formula === "allen-blinks" || formula === "generalized") && (

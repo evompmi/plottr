@@ -13,6 +13,7 @@ import {
   calibrate,
   calibrateHill,
   calibrateGeneralized,
+  calibrateFractionalRate,
   computeAutoYRange,
   ribbonEdgeMatrix,
   detectConditions,
@@ -1343,6 +1344,7 @@ export function App() {
     if (formula === "hill") return calibrateHill(parsed.headers, parsed.data, Kd);
     if (formula === "generalized")
       return calibrateGeneralized(parsed.headers, parsed.data, Kr, Ktr, hillN);
+    if (formula === "l-lmax") return calibrateFractionalRate(parsed.headers, parsed.data);
     return calibrate(parsed.headers, parsed.data, Kr, Ktr);
   }, [parsed, formula, Kr, Ktr, Kd, hillN]);
   // Signature of only the numerical inputs from `conditions` — i.e. which

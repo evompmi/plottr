@@ -15,6 +15,7 @@ import {
   convertTime,
   smooth,
   AnnotationSpec,
+  CalibrationFormula,
   ColInfo,
   Condition,
   ConditionEditorProps,
@@ -30,6 +31,15 @@ import type { SvgDownloadItem } from "../_core/download";
 import { downloadCsv, flashSaved } from "../_core/download";
 import { useT } from "./i18n";
 const { useState, useMemo, useRef, useEffect, useCallback } = React;
+
+// Y-axis label per calibration formula — "none" plots raw RLU, "l-lmax"
+// plots the dimensionless fractional rate k(t), and the remaining formulas
+// (allen-blinks / hill / generalized) all solve for a calcium concentration.
+function yLabelForFormula(formula: CalibrationFormula): string {
+  if (formula === "none") return "RLU (raw)";
+  if (formula === "l-lmax") return "L/Lmax (fractional rate)";
+  return "[Ca²⁺] (µM)";
+}
 
 // ── PlotPanel ────────────────────────────────────────────────────────────────
 
@@ -665,7 +675,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                 vbW: 400,
                 vbH: Math.max(80, Math.round((260 * plotHeight) / 420)),
                 xLabel: xLabelText,
-                yLabel: formula === "none" ? "RLU (raw)" : "[Ca²⁺] (µM)",
+                yLabel: yLabelForFormula(formula),
                 plotBg,
                 showGrid,
                 lineWidth,
@@ -705,7 +715,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
             vbW={800}
             vbH={plotHeight}
             xLabel={xLabelText}
-            yLabel={formula === "none" ? "RLU (raw)" : "[Ca²⁺] (µM)"}
+            yLabel={yLabelForFormula(formula)}
             plotBg={plotBg}
             showGrid={showGrid}
             lineWidth={lineWidth}

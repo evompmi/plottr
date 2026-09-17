@@ -26,6 +26,8 @@ module.exports = {
   calibrate: helpers.calibrate,
   calibrateHill: helpers.calibrateHill,
   calibrateGeneralized: helpers.calibrateGeneralized,
+  calibrateFractionalRate: helpers.calibrateFractionalRate,
+  fmtYTick: helpers.fmtYTick,
   detectConditions: helpers.detectConditions,
   smooth: helpers.smooth,
   convertTime: helpers.convertTime,

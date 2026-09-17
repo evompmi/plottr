@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-09-17
+
+> Long-form release notes live in
+> [`docs/release-notes/v1.10.0.md`](docs/release-notes/v1.10.0.md). The
+> entries below are summary bullets that link there.
+>
+> The "Vanishing Point" release: a fourth Aequorin calibration method for
+> labs that report relative rundown rather than absolute [Ca²⁺], plus a pair
+> of small-number display fixes so its near-zero values don't get crushed to
+> an uninformative "0" on the axis.
+
+### Added
+
+- **L/Lmax (fractional rate) calibration for the Aequorin tool.** A fourth
+  calibration option alongside Allen & Blinks / Hill / generalised Allen &
+  Blinks: `k(t) = L(t) / Σₜᵉⁿᵈ L`, the classical fractional luminescence rate
+  against the remaining light integral. Needs no Kr/Ktr/Kd/n parameters and
+  plots on a dimensionless axis instead of [Ca²⁺]. See
+  [`docs/release-notes/v1.10.0.md`](docs/release-notes/v1.10.0.md#-added).
+
+### Fixed
+
+- **Aequorin auto Y-axis range collapsed to zero for small-magnitude data.**
+  The auto-range padding always rounded to a fixed 2 decimal places, which
+  crushed sub-0.1 values (e.g. the new L/Lmax fractional rate, which lives
+  in [0,1]) to an indistinguishable 0.00/0.00 range, forcing manual axis
+  entry. Rounding precision now scales with the data's own magnitude.
+- **Aequorin Y-axis tick labels showed "0" for small-magnitude data.** Same
+  root cause as above, on the tick-label formatter this time: values under
+  0.01 now render in exponential notation (e.g. `1.5e-2`) instead of a
+  fixed one-decimal `toFixed(1)`, matching the convention already used by
+  the scatter tool's axis ticks. See
+  [`docs/release-notes/v1.10.0.md`](docs/release-notes/v1.10.0.md#-fixed).
+
 ## [1.9.3] - 2026-09-12
 
 > Long-form release notes live in
