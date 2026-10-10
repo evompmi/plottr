@@ -2,7 +2,7 @@
 // from shared.js / stats.js) plus the tool-specific pure helpers
 // (`tools/heatmap/helpers.ts` — normalizeMatrix, autoRange,
 // buildDendroLayout, pruneDendroTree, fmtColorbarTick, finiteMean,
-// finiteSD) into a Node vm context for fuzzing and unit tests.
+// finiteSD, detectRangeSkew + friends) into a Node vm context for fuzzing and unit tests.
 // helpers.ts is a pure ES module with no React/DOM use, so we transform
 // it to CommonJS with esbuild.
 
@@ -38,4 +38,14 @@ module.exports = {
   buildDendroLayout: helpers.buildDendroLayout,
   pruneDendroTree: helpers.pruneDendroTree,
   fmtColorbarTick: helpers.fmtColorbarTick,
+  sortedFiniteValues: helpers.sortedFiniteValues,
+  quantileSorted: helpers.quantileSorted,
+  detectRangeSkew: helpers.detectRangeSkew,
+  countClipped: helpers.countClipped,
+  SKEW_MIN_CELLS: helpers.SKEW_MIN_CELLS,
+  SKEW_LO_Q: helpers.SKEW_LO_Q,
+  SKEW_HI_Q: helpers.SKEW_HI_Q,
+  SKEW_OCCUPIED_MAX: helpers.SKEW_OCCUPIED_MAX,
+  SKEW_OUTLIER_FRAC_MAX: helpers.SKEW_OUTLIER_FRAC_MAX,
+  SKEW_FENCE: helpers.SKEW_FENCE,
 };

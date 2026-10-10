@@ -163,17 +163,36 @@ export function buildHeatmapRScript({
     "breaks <- seq(" + formatRNumber(vmin) + ", " + formatRNumber(vmax) + ", length.out = 101)"
   );
   lines.push("");
+  // pheatmap paints values outside `breaks` with its grey NA colour, while the
+  // browser tool saturates them to the end colours. Clip before plotting —
+  // but cluster on the unclipped matrix first, so the dendrograms still match.
+  const rowHier = rowMode === "hierarchical";
+  const colHier = colMode === "hierarchical";
+  lines.push("# ── Clip to the colour range ───────────────────────────────────────────────");
+  lines.push("# Cells beyond the colour range take the end colours, as in the browser");
+  lines.push("# tool (pheatmap would otherwise paint them grey).");
+  if (rowHier || colHier) {
+    lines.push("# Clustering runs on the unclipped values first, so the dendrograms match.");
+    lines.push(
+      "hc_dist <- function(x) " +
+        (pheatmapDist === "correlation"
+          ? "as.dist(1 - cor(t(x)))"
+          : 'dist(x, method = "' + pheatmapDist + '")')
+    );
+    const method = '"' + (linkageMethod || "average") + '"';
+    if (rowHier) lines.push("row_tree <- hclust(hc_dist(mat), method = " + method + ")");
+    if (colHier) lines.push("col_tree <- hclust(hc_dist(t(mat)), method = " + method + ")");
+  }
+  lines.push(
+    "mat_plot <- pmin(pmax(mat, " + formatRNumber(vmin) + "), " + formatRNumber(vmax) + ")"
+  );
+  lines.push("");
   lines.push("# ── Plot ───────────────────────────────────────────────────────────────────");
   lines.push("pheatmap(");
-  lines.push("  mat,");
+  lines.push("  mat_plot,");
   // K-means already reordered the matrix — let pheatmap render that axis as-is.
-  lines.push("  cluster_rows = " + (rowMode === "hierarchical" ? "TRUE" : "FALSE") + ",");
-  lines.push("  cluster_cols = " + (colMode === "hierarchical" ? "TRUE" : "FALSE") + ",");
-  if (rowMode === "hierarchical" || colMode === "hierarchical") {
-    lines.push('  clustering_distance_rows = "' + pheatmapDist + '",');
-    lines.push('  clustering_distance_cols = "' + pheatmapDist + '",');
-    lines.push('  clustering_method = "' + (linkageMethod || "average") + '",');
-  }
+  lines.push("  cluster_rows = " + (rowHier ? "row_tree" : "FALSE") + ",");
+  lines.push("  cluster_cols = " + (colHier ? "col_tree" : "FALSE") + ",");
   lines.push("  color = heat_colors,");
   lines.push("  breaks = breaks,");
   const borderR = cellBorder && cellBorder.on ? `"${cellBorder.color}"` : "NA";

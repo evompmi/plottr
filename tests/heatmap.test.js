@@ -1,6 +1,6 @@
 // Unit tests for the heatmap pure helpers (tools/heatmap/helpers.ts).
 // Covers normalisation math (z-row, z-col, log2), auto-range, dendrogram
-// layout + pruning, and colorbar tick formatting. The fuzz harness already
+// layout + pruning, colorbar tick formatting, and outlier-skew detection. The fuzz harness already
 // exercises these structurally; these tests pin down the exact numerical
 // behaviour with fixed inputs.
 
@@ -13,6 +13,16 @@ const {
   buildDendroLayout,
   pruneDendroTree,
   fmtColorbarTick,
+  sortedFiniteValues,
+  quantileSorted,
+  detectRangeSkew,
+  countClipped,
+  SKEW_MIN_CELLS,
+  SKEW_LO_Q,
+  SKEW_HI_Q,
+  SKEW_OCCUPIED_MAX,
+  SKEW_OUTLIER_FRAC_MAX,
+  SKEW_FENCE,
 } = require("./helpers/heatmap-loader");
 
 // ── finiteMean / finiteSD ───────────────────────────────────────────────────
@@ -219,6 +229,117 @@ test("values in [0.01, 1) use two decimals, values in [1, 1000) use one", () => 
   eq(fmtColorbarTick(0.12), "0.12");
   eq(fmtColorbarTick(1), "1.0");
   eq(fmtColorbarTick(42.1), "42.1");
+});
+
+// ── Outlier-skew detection ─────────────────────────────────────────────────
+
+suite("sortedFiniteValues / quantileSorted");
+
+test("sortedFiniteValues flattens, drops non-finite, sorts ascending", () => {
+  eq(sortedFiniteValues([[3, NaN], [1, Infinity, 2], [-Infinity]]), [1, 2, 3]);
+  eq(sortedFiniteValues([]), []);
+});
+
+test("quantileSorted interpolates linearly (R type 7)", () => {
+  eq(quantileSorted([1, 2, 3, 4], 0), 1);
+  eq(quantileSorted([1, 2, 3, 4], 0.5), 2.5);
+  eq(quantileSorted([1, 2, 3, 4], 1), 4);
+  approx(quantileSorted([0, 10], 0.98), 9.8, 1e-12);
+});
+
+suite("detectRangeSkew");
+
+const range = (lo, n) => Array.from({ length: n }, (_, i) => lo + i);
+
+test("thresholds are pinned", () => {
+  eq(SKEW_MIN_CELLS, 20);
+  eq(SKEW_LO_Q, 0.02);
+  eq(SKEW_HI_Q, 0.98);
+  eq(SKEW_OCCUPIED_MAX, 0.5);
+  eq(SKEW_OUTLIER_FRAC_MAX, 0.02);
+  eq(SKEW_FENCE, 0.5);
+});
+
+test("one extreme cell over a 0–99 bulk is flagged with the 2nd–98th percentile range", () => {
+  const sorted = range(0, 100).concat([1000]);
+  eq(detectRangeSkew(sorted, 0, 1000, false), {
+    nOutliers: 1,
+    nTotal: 101,
+    occupied: 0.096,
+    suggestedMin: 2,
+    suggestedMax: 98,
+  });
+});
+
+test("applying the suggestion clears the alert", () => {
+  const sorted = range(0, 100).concat([1000]);
+  eq(detectRangeSkew(sorted, 2, 98, false), null);
+});
+
+test("evenly spread data is not flagged", () => {
+  eq(detectRangeSkew(range(0, 100), 0, 99, false), null);
+});
+
+test("fewer than SKEW_MIN_CELLS values are never flagged", () => {
+  eq(detectRangeSkew(range(0, 18).concat([1000]), 0, 1000, false), null);
+});
+
+test("heavy tails (> 2 % of cells far out) are not 'a few outliers'", () => {
+  const sorted = range(0, 90).concat(new Array(10).fill(1000));
+  eq(detectRangeSkew(sorted, 0, 1000, false), null);
+});
+
+test("a manually widened range with no data out there is not flagged", () => {
+  eq(detectRangeSkew(range(0, 100), 0, 1000, false), null);
+});
+
+test("cells already beyond vmin / vmax do not count — they no longer stretch the scale", () => {
+  const sorted = range(0, 100).concat([1000]);
+  // vmax = 300: bulk occupies 96/300 = 0.32 of the scale but nothing in
+  // (146, 300] is far out, so there is no in-range outlier to blame.
+  eq(detectRangeSkew(sorted, 0, 300, false), null);
+});
+
+test("diverging scales get a symmetric suggestion around zero", () => {
+  const sorted = [-500].concat(range(-49, 100));
+  eq(detectRangeSkew(sorted, -500, 500, true), {
+    nOutliers: 1,
+    nTotal: 101,
+    occupied: 0.096,
+    suggestedMin: -48,
+    suggestedMax: 48,
+  });
+});
+
+test("suggestions are rounded to 4 significant digits, never collapsing tiny scales", () => {
+  const sorted = range(0, 100)
+    .map((v) => v * 1e-5 + 1.23456e-5)
+    .concat([1]);
+  const r = detectRangeSkew(sorted, 1.23456e-5, 1, false);
+  assert(r !== null, "tiny-scale skew is flagged");
+  eq(r.suggestedMin, 3.235e-5);
+  eq(r.suggestedMax, 0.0009923);
+});
+
+test("degenerate inputs return null", () => {
+  eq(detectRangeSkew([], 0, 1, false), null);
+  eq(detectRangeSkew(range(0, 100).concat([1000]), NaN, 1000, false), null);
+  eq(detectRangeSkew(range(0, 100).concat([1000]), 5, 5, false), null);
+  // Constant bulk: the robust range has zero width, nothing sensible to clip to.
+  eq(detectRangeSkew(new Array(100).fill(0).concat([50]), 0, 50, false), null);
+});
+
+suite("countClipped");
+
+test("counts saturated cells among the displayed rows × cols only", () => {
+  const m = [
+    [-1, 0, 5],
+    [NaN, 10, 2],
+  ];
+  eq(countClipped(m, 0, 5, [0, 1], [0, 1, 2]), { below: 1, above: 1 });
+  eq(countClipped(m, 0, 5, [1], [0, 1, 2]), { below: 0, above: 1 });
+  eq(countClipped(m, 0, 5, [0, 1], [0]), { below: 1, above: 0 });
+  eq(countClipped(m, -5, 50, [0, 1], [0, 1, 2]), { below: 0, above: 0 });
 });
 
 summary();

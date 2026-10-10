@@ -14,6 +14,7 @@ import {
   buildDendroLayout,
   CLUSTER_PALETTE,
   fmtColorbarTick,
+  countClipped,
   HeatmapChartProps,
   PaletteStripProps,
   type DendroLayoutNode,
@@ -348,6 +349,13 @@ export const HeatmapChart = memo(
       bordersOn ? cellW : Math.round((colIx(ci) + 1) * cellW) - Math.round(colIx(ci) * cellW);
     const cellHPx = (ri: number) =>
       bordersOn ? cellH : Math.round((rowIx(ri) + 1) * cellH) - Math.round(rowIx(ri) * cellH);
+
+    // Saturated cells → "≥ max" / "≤ min" colourbar ticks, so an exported
+    // figure with a clipped scale doesn't overstate the data range.
+    const clipped = useMemo(
+      () => countClipped(matrix, vmin, vmax, rowOrder, colOrder),
+      [matrix, vmin, vmax, rowOrder, colOrder]
+    );
 
     const valueToColor = (v: number) => {
       if (!Number.isFinite(v)) return NAN_FILL;
@@ -1350,10 +1358,15 @@ export const HeatmapChart = memo(
           {/* Colourbar — vertical, high values on top. */}
           <g
             id="colorbar"
-            aria-label={tt("heatmap.chart.colorbarAria", {
-              min: vmin.toPrecision(3),
-              max: vmax.toPrecision(3),
-            })}
+            aria-label={tt(
+              clipped.above || clipped.below
+                ? "heatmap.chart.colorbarClippedAria"
+                : "heatmap.chart.colorbarAria",
+              {
+                min: vmin.toPrecision(3),
+                max: vmax.toPrecision(3),
+              }
+            )}
           >
             <defs>
               <linearGradient id={cbGradId} x1="0%" y1="100%" x2="0%" y2="0%">
@@ -1378,7 +1391,7 @@ export const HeatmapChart = memo(
               textAnchor="start"
               dominantBaseline="hanging"
             >
-              {fmtColorbarTick(vmax)}
+              {(clipped.above ? "≥ " : "") + fmtColorbarTick(vmax)}
             </text>
             <text
               x={cbX + CB_W + 4}
@@ -1398,7 +1411,7 @@ export const HeatmapChart = memo(
               fill="#555555"
               textAnchor="start"
             >
-              {fmtColorbarTick(vmin)}
+              {(clipped.below ? "≤ " : "") + fmtColorbarTick(vmin)}
             </text>
           </g>
 

@@ -14,7 +14,7 @@ import {
 import type { ChartDataTableRow } from "../_shell";
 import "./i18n";
 import { tt, useT } from "./i18n";
-import { normalizeMatrix, autoRange } from "./helpers";
+import { normalizeMatrix, autoRange, sortedFiniteValues, detectRangeSkew } from "./helpers";
 import type {
   AxisClusterMeta,
   BrushBox,
@@ -29,7 +29,7 @@ import type {
 } from "./helpers";
 import { HeatmapChart } from "./chart";
 import { UploadStep } from "./steps";
-import { PlotControls } from "./controls";
+import { PlotControls, SkewAlert } from "./controls";
 import { DetailView, DetailPreviewCard } from "./plot-area";
 
 import { DIVERGING_PALETTES } from "../_core/color";
@@ -119,6 +119,20 @@ const EXAMPLE_CSV = (() => {
       for (let j = 0; j < 3; j++) cols.push((stressBase + (rand() - 0.5) * 2 * p.noise).toFixed(2));
       lines.push([geneName, ...cols].join(","));
     }
+  }
+  // Three "saturated well" spikes, so the sample demonstrates the outlier-skew
+  // alert: they stretch the raw colour scale to ~52 while every other value
+  // sits below ~6. Overwritten after generation so the seeded stream (and
+  // every other cell) is unchanged.
+  const spikes: [number, number, string][] = [
+    [42, 5, "48.70"], // gene042, Stress2
+    [217, 1, "36.20"], // gene217, Control1
+    [388, 6, "52.40"], // gene388, Stress3
+  ];
+  for (const [gene, col, value] of spikes) {
+    const cells = lines[gene].split(",");
+    cells[col] = value;
+    lines[gene] = cells.join(",");
   }
   return lines.join("\n");
 })();
@@ -340,11 +354,23 @@ export function App() {
     };
   }, [rawMatrix, normalized, rowOrder, colOrder, rowCluster, colCluster]);
 
+  const rangeIsDiverging = DIVERGING_PALETTES.has(vis.palette) || normalization.startsWith("z");
   const autoVRange = useCallback(() => {
-    const diverging = DIVERGING_PALETTES.has(vis.palette) || normalization.startsWith("z");
-    const [lo, hi] = autoRange(normalized, diverging);
+    const [lo, hi] = autoRange(normalized, rangeIsDiverging);
     updVis({ vmin: Number(lo.toFixed(3)), vmax: Number(hi.toFixed(3)) });
-  }, [normalized, vis.palette, normalization, updVis]);
+  }, [normalized, rangeIsDiverging, updVis]);
+
+  // Outlier-skew alert: a few extreme cells stretching the colour scale.
+  // The sort is keyed on the data only, so typing into Min / Max re-runs
+  // just the cheap linear scan.
+  const sortedValues = useMemo(() => sortedFiniteValues(normalized), [normalized]);
+  const skew = useMemo(
+    () => detectRangeSkew(sortedValues, vis.vmin, vis.vmax, rangeIsDiverging),
+    [sortedValues, vis.vmin, vis.vmax, rangeIsDiverging]
+  );
+  const applyRobustRange = useCallback(() => {
+    if (skew) updVis({ vmin: skew.suggestedMin, vmax: skew.suggestedMax });
+  }, [skew, updVis]);
 
   // The colorbar range must follow the normalization mode: switching
   // none → z-score (values ≈ ±3) or → log2 shifts the value scale
@@ -611,11 +637,14 @@ export function App() {
               linkageMethod={linkageMethod}
               setLinkageMethod={setLinkageMethod}
               autoVRange={autoVRange}
+              skew={skew}
+              applyRobustRange={applyRobustRange}
             />
 
             <div
               style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}
             >
+              {skew && <SkewAlert skew={skew} onApply={applyRobustRange} compact />}
               <div
                 style={{
                   display: "flex",
