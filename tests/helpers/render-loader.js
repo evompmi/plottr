@@ -306,6 +306,8 @@ function loadTool(toolName) {
     "VennChart: typeof VennChart !== 'undefined' ? VennChart : undefined," +
     "UpsetChart: typeof UpsetChart !== 'undefined' ? UpsetChart : undefined," +
     "HeatmapChart: typeof HeatmapChart !== 'undefined' ? HeatmapChart : undefined," +
+    "SkewAlert: typeof SkewAlert !== 'undefined' ? SkewAlert : undefined," +
+    "buildHeatmapRScript: typeof buildHeatmapRScript !== 'undefined' ? buildHeatmapRScript : undefined," +
     "App: typeof App !== 'undefined' ? App : undefined," +
     "};";
   const withReturn = compiled.slice(0, closingIdx) + returnObj + compiled.slice(closingIdx);

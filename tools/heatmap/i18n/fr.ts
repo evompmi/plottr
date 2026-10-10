@@ -56,6 +56,13 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.colour.min": "Min",
   "heatmap.colour.max": "Max",
   "heatmap.colour.auto": "Auto depuis les données",
+  "heatmap.colour.skewWarn.one":
+    "{n} cellule sur {total} ({pct}) étire l’échelle de couleurs — les autres valeurs n’en occupent que {occupied}.",
+  "heatmap.colour.skewWarn.other":
+    "{n} cellules sur {total} ({pct}) étirent l’échelle de couleurs — les autres valeurs n’en occupent que {occupied}.",
+  "heatmap.colour.skewFix": "Écrêter aux 2e–98e centiles",
+  "heatmap.colour.skewNote":
+    "Les valeurs hors de la nouvelle plage prennent la couleur extrême ; la barre de couleurs les signale par ≥ / ≤.",
   "heatmap.border.width": "Épaisseur",
   "heatmap.labels.title": "Titre",
   "heatmap.labels.subtitle": "Sous-titre",
@@ -67,6 +74,8 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.labels.colNamesAria": "Afficher les noms des colonnes",
   "heatmap.chart.cluster": "Groupe n° {n}",
   "heatmap.chart.colorbarAria": "Barre de couleurs : valeurs de {min} à {max}",
+  "heatmap.chart.colorbarClippedAria":
+    "Barre de couleurs : valeurs de {min} à {max} ; les valeurs hors de cette plage prennent les couleurs extrêmes",
   "heatmap.chart.fallbackTitle": "Carte de chaleur",
   "heatmap.chart.descRows.one": "{n} ligne",
   "heatmap.chart.descRows.other": "{n} lignes",

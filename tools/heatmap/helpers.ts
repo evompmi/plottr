@@ -94,6 +94,111 @@ export function autoRange(matrix: DataMatrix, diverging: boolean): [number, numb
   return [lo, hi];
 }
 
+// ── Outlier-skew detection ───────────────────────────────────────────────────
+//
+// A handful of extreme cells can stretch [vmin, vmax] so far that the bulk of
+// the matrix collapses into a thin band of the palette. `detectRangeSkew`
+// compares the robust [2nd, 98th] percentile range against the CURRENT colour
+// range (not the raw min/max), so the alert clears itself once the user clips
+// — by hand or via the suggested range.
+
+export const SKEW_MIN_CELLS = 20; // below this, percentiles are too coarse to judge
+export const SKEW_LO_Q = 0.02;
+export const SKEW_HI_Q = 0.98;
+export const SKEW_OCCUPIED_MAX = 0.5; // bulk uses < half the colour scale…
+export const SKEW_OUTLIER_FRAC_MAX = 0.02; // …because of ≤ 2 % of the cells
+export const SKEW_FENCE = 0.5; // outlier = beyond the robust range by > ½ its span
+
+export interface RangeSkew {
+  nOutliers: number;
+  nTotal: number;
+  occupied: number; // fraction of [vmin, vmax] the robust range spans
+  suggestedMin: number;
+  suggestedMax: number;
+}
+
+export function sortedFiniteValues(matrix: DataMatrix): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < matrix.length; i++) {
+    for (let j = 0; j < matrix[i].length; j++) {
+      if (Number.isFinite(matrix[i][j])) out.push(matrix[i][j]);
+    }
+  }
+  return out.sort((a, b) => a - b);
+}
+
+// Linear-interpolated quantile on an ascending array (R's type 7).
+export function quantileSorted(sorted: number[], p: number): number {
+  const h = (sorted.length - 1) * p;
+  const lo = Math.floor(h);
+  if (lo + 1 >= sorted.length) return sorted[sorted.length - 1];
+  return sorted[lo] + (h - lo) * (sorted[lo + 1] - sorted[lo]);
+}
+
+// Four significant digits: readable in the Min / Max inputs, and unlike a
+// fixed decimal count it can't collapse a 1e-4-scale range to zero width.
+const roundSig = (v: number): number => Number(v.toPrecision(4));
+
+export function detectRangeSkew(
+  sorted: number[],
+  vmin: number,
+  vmax: number,
+  diverging: boolean
+): RangeSkew | null {
+  const n = sorted.length;
+  const span = vmax - vmin;
+  if (n < SKEW_MIN_CELLS || !(span > 0)) return null;
+  let lo = quantileSorted(sorted, SKEW_LO_Q);
+  let hi = quantileSorted(sorted, SKEW_HI_Q);
+  if (diverging) {
+    const m = Math.max(Math.abs(lo), Math.abs(hi));
+    lo = -m;
+    hi = m;
+  }
+  const sugMin = Math.max(roundSig(lo), vmin);
+  const sugMax = Math.min(roundSig(hi), vmax);
+  const robustSpan = sugMax - sugMin;
+  if (!(robustSpan > 0)) return null;
+  const occupied = robustSpan / span;
+  if (occupied >= SKEW_OCCUPIED_MAX) return null;
+  // Only cells inside the current range stretch it — anything already beyond
+  // vmin / vmax is saturated and no longer moves the scale.
+  const fenceLo = sugMin - SKEW_FENCE * robustSpan;
+  const fenceHi = sugMax + SKEW_FENCE * robustSpan;
+  let nOutliers = 0;
+  for (let i = 0; i < n; i++) {
+    const v = sorted[i];
+    if ((v < fenceLo && v >= vmin) || (v > fenceHi && v <= vmax)) nOutliers++;
+  }
+  if (nOutliers === 0 || nOutliers > SKEW_OUTLIER_FRAC_MAX * n) return null;
+  return { nOutliers, nTotal: n, occupied, suggestedMin: sugMin, suggestedMax: sugMax };
+}
+
+// Cells the colour scale saturates (rendered in the end colours) among the
+// displayed rows × cols. Drives the "≥ / ≤" colourbar tick prefixes so a
+// clipped legend says so — the detail view passes its own subset so it only
+// flags clipping it actually draws.
+export function countClipped(
+  matrix: DataMatrix,
+  vmin: number,
+  vmax: number,
+  rows: number[],
+  cols: number[]
+): { below: number; above: number } {
+  let below = 0,
+    above = 0;
+  for (const ri of rows) {
+    const row = matrix[ri];
+    if (!row) continue;
+    for (const ci of cols) {
+      const v = row[ci];
+      if (v < vmin) below++;
+      else if (v > vmax) above++;
+    }
+  }
+  return { below, above };
+}
+
 // ── Dendrogram constants & layout ────────────────────────────────────────────
 
 export const DENDRO_STROKE = "#555555";
@@ -430,6 +535,12 @@ export interface DetailPreviewCardProps {
   clusterId: number | null;
 }
 
+export interface SkewAlertProps {
+  skew: RangeSkew;
+  onApply: () => void;
+  compact?: boolean;
+}
+
 export interface PlotControlsProps {
   vis: HeatmapVis;
   updVis: UpdVis;
@@ -456,4 +567,7 @@ export interface PlotControlsProps {
   linkageMethod: LinkageMethod;
   setLinkageMethod: (m: LinkageMethod) => void;
   autoVRange: () => void;
+  // Non-null when a few cells stretch the colour scale (see detectRangeSkew).
+  skew: RangeSkew | null;
+  applyRobustRange: () => void;
 }

@@ -8,7 +8,12 @@
 import { ActionsPanel, ColorInput, ControlSection, NumberInput, PlotSidebar } from "../_shell";
 import { PaletteStrip } from "./chart";
 import { buildHeatmapRScript, buildCsvExport } from "./reports";
-import type { ClusterMode, ClusterModeControlProps, PlotControlsProps } from "./helpers";
+import type {
+  ClusterMode,
+  ClusterModeControlProps,
+  PlotControlsProps,
+  SkewAlertProps,
+} from "./helpers";
 
 import { COLOR_PALETTES, COLORBLIND_SAFE_PALETTES, DIVERGING_PALETTES } from "../_core/color";
 import { downloadCsv, downloadText, fileBaseName } from "../_core/download";
@@ -57,6 +62,56 @@ export function ClusterModeControl({ label, mode, setMode, k, setK }: ClusterMod
   );
 }
 
+// Outlier-skew warning. The compact variant sits above the plot card (one
+// line + button); the full variant lives in the Colour scale section and
+// also explains what clipping does to the legend.
+export function SkewAlert({ skew, onApply, compact }: SkewAlertProps) {
+  const tr = useT();
+  const pct = (x: number): string => {
+    const p = x * 100;
+    return (p < 1 ? p.toFixed(1) : String(Math.round(p))) + "%";
+  };
+  return (
+    <div
+      role="status"
+      data-testid="heatmap-skew-alert"
+      style={{
+        background: "var(--warning-bg)",
+        border: "1px solid var(--warning-border)",
+        borderRadius: 6,
+        padding: compact ? "6px 12px" : "8px 10px",
+        marginTop: compact ? 0 : 8,
+        display: "flex",
+        flexDirection: compact ? "row" : "column",
+        alignItems: compact ? "center" : "stretch",
+        gap: compact ? 12 : 6,
+        fontSize: 11,
+        color: "var(--warning-text)",
+      }}
+    >
+      <span style={{ flex: 1 }}>
+        <span aria-hidden="true">⚠ </span>
+        {tr("heatmap.colour.skewWarn", {
+          n: skew.nOutliers,
+          count: skew.nOutliers,
+          total: skew.nTotal,
+          pct: pct(skew.nOutliers / skew.nTotal),
+          occupied: pct(skew.occupied),
+        })}
+      </span>
+      <button
+        type="button"
+        onClick={onApply}
+        className="dv-btn dv-btn-secondary"
+        style={{ fontSize: 11, padding: "3px 8px", flexShrink: 0 }}
+      >
+        {tr("heatmap.colour.skewFix")}
+      </button>
+      {!compact && <span style={{ opacity: 0.85 }}>{tr("heatmap.colour.skewNote")}</span>}
+    </div>
+  );
+}
+
 export function PlotControls({
   vis,
   updVis,
@@ -83,6 +138,8 @@ export function PlotControls({
   linkageMethod,
   setLinkageMethod,
   autoVRange,
+  skew,
+  applyRobustRange,
 }: PlotControlsProps) {
   const tr = useT();
   const paletteKeys = Object.keys(COLOR_PALETTES);
@@ -359,6 +416,7 @@ export function PlotControls({
         <button onClick={autoVRange} className="dv-btn dv-btn-secondary" style={{ fontSize: 11 }}>
           {tr("heatmap.colour.auto")}
         </button>
+        {skew && <SkewAlert skew={skew} onApply={applyRobustRange} />}
       </ControlSection>
 
       <ControlSection title={tr("heatmap.sec.cellBorders")}>

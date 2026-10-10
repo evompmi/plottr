@@ -21,6 +21,10 @@ const {
   fmtColorbarTick,
   buildDendroLayout,
   pruneDendroTree,
+  sortedFiniteValues,
+  detectRangeSkew,
+  SKEW_OCCUPIED_MAX,
+  SKEW_OUTLIER_FRAC_MAX,
 } = require("./helpers/heatmap-loader");
 const { arbAnyCsv, arbWideCsv } = require("./helpers/csv-arbitraries");
 
@@ -693,5 +697,72 @@ test("full keepSet returns a tree containing every original leaf", () => {
         return found.size === m.length;
       }
     )
+  );
+});
+
+// ── detectRangeSkew ────────────────────────────────────────────────────
+
+suite("heatmap property — detectRangeSkew");
+
+// A bulk of ordinary values plus 0–3 extreme ones, so both the flagged and
+// the quiet branch get exercised. vmin / vmax follow autoRange's rule.
+const arbSkewCase = fc.record({
+  bulk: fc.array(fc.double({ min: -10, max: 10, noNaN: true, noDefaultInfinity: true }), {
+    minLength: 0,
+    maxLength: 300,
+  }),
+  spikes: fc.array(
+    fc
+      .double({ min: 50, max: 1e6, noNaN: true, noDefaultInfinity: true })
+      .chain((v) => fc.constantFrom(v, -v)),
+    { maxLength: 3 }
+  ),
+  diverging: fc.boolean(),
+});
+
+const caseRange = (sorted, diverging) => {
+  if (!sorted.length) return [0, 1];
+  const lo = sorted[0],
+    hi = sorted[sorted.length - 1];
+  if (!diverging) return [lo, hi];
+  const m = Math.max(Math.abs(lo), Math.abs(hi));
+  return [-m, m];
+};
+
+test("a flagged result is internally consistent and its fix clears the alert", () => {
+  check(
+    fc.property(arbSkewCase, ({ bulk, spikes, diverging }) => {
+      const sorted = sortedFiniteValues([bulk.concat(spikes)]);
+      const [vmin, vmax] = caseRange(sorted, diverging);
+      const r = detectRangeSkew(sorted, vmin, vmax, diverging);
+      if (r === null) return true;
+      if (!(r.suggestedMin >= vmin && r.suggestedMax <= vmax)) return false;
+      if (!(r.suggestedMin < r.suggestedMax)) return false;
+      if (!(r.occupied > 0 && r.occupied < SKEW_OCCUPIED_MAX)) return false;
+      if (r.nTotal !== sorted.length) return false;
+      if (!(r.nOutliers >= 1 && r.nOutliers <= SKEW_OUTLIER_FRAC_MAX * r.nTotal)) return false;
+      if (diverging && r.suggestedMin !== -r.suggestedMax) return false;
+      return detectRangeSkew(sorted, r.suggestedMin, r.suggestedMax, diverging) === null;
+    })
+  );
+});
+
+test("a single far spike over a well-spread ≥ 50-cell bulk is always flagged", () => {
+  // Evenly spaced bulk + sub-step jitter: a genuinely spread distribution
+  // with no stragglers of its own, so the spike is the only far cell.
+  const arbSpreadBulk = fc
+    .integer({ min: 50, max: 300 })
+    .chain((n) =>
+      fc.array(fc.double({ min: 0, max: 1, noNaN: true }), { minLength: n, maxLength: n })
+    )
+    .map((jit) => jit.map((j, i) => i + j));
+  check(
+    fc.property(arbSpreadBulk, fc.double({ min: 3, max: 1e4, noNaN: true }), (bulk, k) => {
+      const sorted = sortedFiniteValues([bulk]);
+      const spread = sorted[sorted.length - 1] - sorted[0];
+      const spike = sorted[sorted.length - 1] + k * spread;
+      const withSpike = sortedFiniteValues([bulk.concat([spike])]);
+      return detectRangeSkew(withSpike, withSpike[0], spike, false) !== null;
+    })
   );
 });

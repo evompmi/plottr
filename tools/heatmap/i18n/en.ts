@@ -71,6 +71,13 @@ const en = {
   "heatmap.colour.min": "Min",
   "heatmap.colour.max": "Max",
   "heatmap.colour.auto": "Auto from data",
+  "heatmap.colour.skewWarn.one":
+    "{n} of {total} cells ({pct}) stretches the colour scale — the other values use only {occupied} of it.",
+  "heatmap.colour.skewWarn.other":
+    "{n} of {total} cells ({pct}) stretch the colour scale — the other values use only {occupied} of it.",
+  "heatmap.colour.skewFix": "Clip to 2nd–98th percentile",
+  "heatmap.colour.skewNote":
+    "Values beyond the new range show the end colour; the colourbar marks them with ≥ / ≤.",
 
   // Cell borders
   "heatmap.border.width": "Width",
@@ -88,6 +95,8 @@ const en = {
   // Chart (baked into SVG export)
   "heatmap.chart.cluster": "Cluster n° {n}",
   "heatmap.chart.colorbarAria": "Colourbar: values range from {min} to {max}",
+  "heatmap.chart.colorbarClippedAria":
+    "Colourbar: values range from {min} to {max}; values beyond this range are clipped to the end colours",
   // Accessible chart description (role=img title/desc + group aria-labels)
   "heatmap.chart.fallbackTitle": "Heatmap",
   "heatmap.chart.descRows.one": "{n} row",

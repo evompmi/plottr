@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Heatmap outlier-skew alert.** When a few cells (≤ 2 %) stretch the colour scale so the
+  rest of the matrix uses less than half of it, a warning names them and offers a one-click
+  clip to the 2nd–98th percentile. A clipped colourbar now reads "≥ max" / "≤ min", and the
+  R export colours clipped cells with the end colours instead of grey. The sample dataset
+  now includes three outlier spikes to demonstrate this.
+
 ## [1.10.0] - 2026-09-17
 
 > Long-form release notes live in

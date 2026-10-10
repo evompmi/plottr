@@ -1616,6 +1616,141 @@ suite("HeatmapChart (raster ↔ vector / high-density export)");
     const clone = globalThis.buildExportSvg(svg);
     auditRects(clone, "raster path");
   });
+
+  // ── Outlier-skew: honest colourbar + alert + R export ────────────────
+
+  function colorbarTicks(container) {
+    return Array.from(container.querySelectorAll("#colorbar text")).map((t) => t.textContent);
+  }
+
+  test("colourbar ticks carry no ≥ / ≤ when the range covers every cell", function () {
+    const { container } = renderWithEffects(HeatmapChart, baseProps(10, 10));
+    eq(colorbarTicks(container), ["1.0", "0.50", "0"]);
+  });
+
+  test("colourbar marks a clipped scale with ≥ max / ≤ min (and it survives export)", function () {
+    const props = { ...baseProps(10, 10), vmin: 0.1, vmax: 0.5 };
+    const { container } = renderWithEffects(HeatmapChart, props);
+    eq(colorbarTicks(container), ["≥ 0.50", "0.30", "≤ 0.10"]);
+    const clone = globalThis.buildExportSvg(container.querySelector("svg"));
+    eq(
+      Array.from(clone.querySelectorAll("#colorbar text")).map((t) => t.textContent),
+      ["≥ 0.50", "0.30", "≤ 0.10"]
+    );
+  });
+
+  test("colourbar only flags clipping among the displayed rows (detail view)", function () {
+    // Row 0 holds 0.00–0.09: nothing above 0.5, nothing below 0.
+    const props = { ...baseProps(10, 10), vmax: 0.5, rowOrder: [0] };
+    const { container } = renderWithEffects(HeatmapChart, props);
+    eq(colorbarTicks(container), ["0.50", "0.25", "0"]);
+  });
+
+  const SKEW = {
+    nOutliers: 3,
+    nTotal: 3000,
+    occupied: 0.112,
+    suggestedMin: 0.62,
+    suggestedMax: 5.31,
+  };
+
+  test("SkewAlert (sidebar) explains the skew, offers the clip, and notes the legend", function () {
+    const html = renderHtml(tool.exports.SkewAlert, { skew: SKEW, onApply: noop });
+    assert(
+      html.indexOf(
+        "3 of 3000 cells (0.1%) stretch the colour scale — the other values use only 11% of it."
+      ) !== -1,
+      "warning text with counts + percentages"
+    );
+    assert(html.indexOf("Clip to 2nd–98th percentile") !== -1, "clip button");
+    assert(html.indexOf("≥ / ≤") !== -1, "legend note in the full variant");
+  });
+
+  test("SkewAlert singular wording and compact variant without the legend note", function () {
+    const html = renderHtml(tool.exports.SkewAlert, {
+      skew: { ...SKEW, nOutliers: 1 },
+      onApply: noop,
+      compact: true,
+    });
+    assert(html.indexOf("1 of 3000 cells (0.0%) stretches") !== -1, "singular verb");
+    assert(html.indexOf("≥ / ≤") === -1, "compact variant omits the legend note");
+  });
+
+  test("SkewAlert's button applies the suggested range", function () {
+    let clicks = 0;
+    const { container, root } = renderWithEffects(tool.exports.SkewAlert, {
+      skew: SKEW,
+      onApply: () => clicks++,
+    });
+    React.act(() => container.querySelector("button").click());
+    eq(clicks, 1);
+    // Unmount so the useT language subscription can't fire outside act()
+    // when later suites flip the language.
+    React.act(() => root.unmount());
+  });
+
+  const rOpts = {
+    rawMatrix: {
+      rowLabels: ["a", "b"],
+      colLabels: ["x", "y"],
+      matrix: [
+        [1, 2],
+        [3, 40],
+      ],
+    },
+    normalization: "none",
+    rowMode: "hierarchical",
+    colMode: "hierarchical",
+    rowK: 3,
+    colK: 3,
+    kmeansSeed: 1,
+    distanceMetric: "correlation",
+    linkageMethod: "average",
+    palette: "viridis",
+    invertPalette: false,
+    vmin: 1,
+    vmax: 5,
+    plotTitle: "",
+    cellBorder: { on: false, color: "#ffffff", width: 0.5 },
+  };
+
+  test("R export clusters on the unclipped matrix, then clips to the colour range", function () {
+    const script = tool.exports.buildHeatmapRScript(rOpts);
+    const at = (needle) => {
+      const i = script.indexOf(needle);
+      assert(i !== -1, "R script contains: " + needle);
+      return i;
+    };
+    const dist = at("hc_dist <- function(x) as.dist(1 - cor(t(x)))");
+    const rowTree = at('row_tree <- hclust(hc_dist(mat), method = "average")');
+    const colTree = at('col_tree <- hclust(hc_dist(t(mat)), method = "average")');
+    const clip = at("mat_plot <- pmin(pmax(mat, 1), 5)");
+    assert(dist < rowTree && rowTree < colTree && colTree < clip, "trees built before clipping");
+    at("  mat_plot,");
+    at("  cluster_rows = row_tree,");
+    at("  cluster_cols = col_tree,");
+  });
+
+  test("R export without hierarchical clustering skips the trees but still clips", function () {
+    const script = tool.exports.buildHeatmapRScript({
+      ...rOpts,
+      rowMode: "none",
+      colMode: "none",
+      distanceMetric: "manhattan",
+    });
+    assert(script.indexOf("hc_dist") === -1, "no distance helper");
+    assert(script.indexOf("mat_plot <- pmin(pmax(mat, 1), 5)") !== -1, "still clips");
+    assert(script.indexOf("  cluster_rows = FALSE,") !== -1, "rows unclustered");
+    assert(script.indexOf("  cluster_cols = FALSE,") !== -1, "cols unclustered");
+  });
+
+  test("R export maps non-correlation metrics onto dist()", function () {
+    const script = tool.exports.buildHeatmapRScript({ ...rOpts, distanceMetric: "manhattan" });
+    assert(
+      script.indexOf('hc_dist <- function(x) dist(x, method = "manhattan")') !== -1,
+      "manhattan via dist()"
+    );
+  });
 })();
 
 suite("VolcanoChart (raster ↔ vector export)");
