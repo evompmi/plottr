@@ -842,14 +842,16 @@ test("histogram bins + stubs account for every cell; the track mapping is monoto
   );
 });
 
-test("colour position is monotone in value, in [0, 1], and puts 0 at the midpoint", () => {
+test("centred colour position is monotone, in [0, 1], and 0 is neutral whenever in range", () => {
   check(
     fc.property(
-      fc.double({ min: -1e4, max: -1e-6, noNaN: true }),
-      fc.double({ min: 1e-6, max: 1e4, noNaN: true }),
+      fc.double({ min: -1e4, max: 1e4, noNaN: true }),
+      fc.double({ min: -1e4, max: 1e4, noNaN: true }),
       fc.array(fc.double({ min: -2e4, max: 2e4, noNaN: true }), { minLength: 2, maxLength: 40 }),
-      (vmin, vmax, vals) => {
-        if (colourPosition(0, vmin, vmax, true) !== 0.5) return false;
+      (x, y, vals) => {
+        const vmin = Math.min(x, y),
+          vmax = Math.max(x, y);
+        if (vmin <= 0 && vmax >= 0 && colourPosition(0, vmin, vmax, true) !== 0.5) return false;
         const sorted = vals.slice().sort((a, b) => a - b);
         let prev = -Infinity;
         for (const v of sorted) {

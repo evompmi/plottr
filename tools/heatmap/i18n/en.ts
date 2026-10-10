@@ -110,6 +110,8 @@ const en = {
   // Chart (baked into SVG export)
   "heatmap.chart.cluster": "Cluster n° {n}",
   "heatmap.chart.colorbarAria": "Colourbar: values range from {min} to {max}",
+  // Lines separated by "\n"; {n} = cell count of the longest bar.
+  "heatmap.chart.legendHistCaption": "Grey bars = cells\nper colour band\n(longest: {n})",
   "heatmap.chart.legendHistAria": "Distribution of the displayed values along the colour scale",
   "heatmap.chart.colorbarClippedAria":
     "Colourbar: values range from {min} to {max}; values beyond this range are clipped to the end colours",

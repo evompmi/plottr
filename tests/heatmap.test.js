@@ -431,19 +431,34 @@ test("two-slope pins 0 to the palette midpoint; each side gets its own slope", (
   eq(colourPosition(20, -2, 8, true), 1);
 });
 
-test("linear map for sequential palettes and when 0 is outside the range", () => {
+test("linear map for sequential palettes", () => {
   eq(colourPosition(3, -2, 8, false), 0.5);
-  eq(colourPosition(4.5, 1, 8, true), 0.5);
   eq(colourPosition(5, 5, 5, false), 0);
 });
 
+test("0 stays neutral when it sits at or beyond a range end (regression)", () => {
+  // Min = 0: only the neutral → high half is used; 0 is the neutral colour.
+  eq(colourPosition(0, 0, 8, true), 0.5);
+  eq(colourPosition(4, 0, 8, true), 0.75);
+  eq(colourPosition(-3, 0, 8, true), 0.5); // clipped to Min's colour
+  // Max = 0 mirrors it.
+  eq(colourPosition(0, -8, 0, true), 0.5);
+  eq(colourPosition(-4, -8, 0, true), 0.25);
+  // 0 outside the range: Min / Max keep their place on the 0-pinned scale.
+  eq(colourPosition(1, 1, 8, true), 0.5625);
+  eq(colourPosition(8, 1, 8, true), 1);
+  eq(colourPosition(-5, 1, 8, true), 0.5625);
+  eq(colourPosition(0, 0, 0, true), 0.5);
+});
+
 test("valueAtPosition inverts colourPosition", () => {
-  for (const [lo, hi, c] of [
-    [-2, 8, true],
-    [-2, 8, false],
-    [1, 8, true],
+  for (const [lo, hi, c, ts] of [
+    [-2, 8, true, [0, 0.1, 0.25, 0.5, 0.8, 1]],
+    [-2, 8, false, [0, 0.1, 0.25, 0.5, 0.8, 1]],
+    [1, 8, true, [0.5625, 0.8, 1]],
+    [-8, 0, true, [0, 0.25, 0.5]],
   ]) {
-    for (const t of [0, 0.1, 0.25, 0.5, 0.8, 1]) {
+    for (const t of ts) {
       approx(colourPosition(valueAtPosition(t, lo, hi, c), lo, hi, c), t, 1e-12);
     }
   }
@@ -467,6 +482,17 @@ test("colourbarGradient stretches stops so the neutral colour sits at 0's height
     approx(g[i].offset, offset, 1e-12);
     approx(g[i].t, t, 1e-12);
   });
+  // Min = 0: only the neutral → high half of the palette, starting exactly
+  // at the neutral midpoint.
+  const half = colourbarGradient(["a", "b", "c", "d", "e"], 0, 8, true);
+  eq(
+    half.map((x) => [x.offset, x.t]),
+    [
+      [0, 0.5],
+      [0.5, 0.75],
+      [1, 1],
+    ]
+  );
   // Linear: offsets equal palette positions.
   eq(colourbarGradient(["a", "b", "c"], -2, 8, false), [
     { offset: 0, t: 0 },

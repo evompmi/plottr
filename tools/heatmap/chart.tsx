@@ -354,7 +354,15 @@ export const HeatmapChart = memo(
           : null,
       [showLegendHistogram, matrix, vmin, vmax, rowOrder, colOrder, legendBins]
     );
-    const vbH = MARGIN.top + Math.max(plotH, CB_H + 14) + MARGIN.bottom;
+    // Legend-histogram caption under the colourbar: what the grey bars are,
+    // plus a scale (the longest bar's count). Lines come from the catalog
+    // split on "\n" so each locale controls its own wrapping.
+    const CB_CAPTION_LINE_H = 10;
+    const cbCaptionLineCount = showLegendHistogram
+      ? tt("heatmap.chart.legendHistCaption", { n: 0 }).split("\n").length
+      : 0;
+    const CB_CAPTION_H = cbCaptionLineCount ? 12 + cbCaptionLineCount * CB_CAPTION_LINE_H : 0;
+    const vbH = MARGIN.top + Math.max(plotH, CB_H + 14 + CB_CAPTION_H) + MARGIN.bottom;
 
     const bordersOn = cellBorder && cellBorder.on;
 
@@ -1473,6 +1481,25 @@ export const HeatmapChart = memo(
                 ? `≤ ${fmtColorbarTick(vmin)} (n=${clipped.below})`
                 : fmtColorbarTick(vmin)}
             </text>
+            {legendHist && (
+              <g id="colorbar-histogram-caption">
+                {tt("heatmap.chart.legendHistCaption", { n: legendHist.maxCount })
+                  .split("\n")
+                  .map((line, i) => (
+                    <text
+                      key={i}
+                      x={cbX}
+                      y={cbY + CB_H + 26 + i * CB_CAPTION_LINE_H}
+                      fontFamily="sans-serif"
+                      fontSize="8"
+                      fill="#666666"
+                      textAnchor="start"
+                    >
+                      {line}
+                    </text>
+                  ))}
+              </g>
+            )}
           </g>
 
           {/* Selection mask — fades the unselected cells so the selected

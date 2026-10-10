@@ -392,39 +392,53 @@ export function histFracToValue(m: HistogramModel, f: number): number {
 //
 // Diverging palettes have a neutral middle colour that must mean 0. A linear
 // Min→Max map puts that colour at the range midpoint, so a lopsided range
-// (say −2 … +8) would paint +3 as "neutral". With `centred`, each side of 0
-// gets its own slope instead (matplotlib's TwoSlopeNorm): vmin → 0 uses the
-// low half of the palette, 0 → vmax the high half. Min / Max can then move
-// independently and the neutral colour stays pinned to 0. When 0 lies outside
-// (vmin, vmax) there is no neutral point to pin and the map stays linear.
+// (say −2 … +8) would paint +3 as "neutral". With `centred`, 0 is pinned to
+// the palette midpoint and each side of 0 gets its own slope (matplotlib's
+// TwoSlopeNorm): vmin → 0 uses the low half of the palette, 0 → vmax the high
+// half. Min / Max move independently and the neutral colour stays at 0 —
+// including when 0 sits at or beyond an end of the range: [0, 8] uses only
+// the neutral → high half, [2, 8] only part of it.
 
+// Whether 0 lies strictly inside the range (it then gets its own colourbar
+// tick). The pinning itself applies to every centred range.
 export function isTwoSlope(vmin: number, vmax: number, centred: boolean): boolean {
   return centred && vmin < 0 && vmax > 0;
 }
 
-// Palette position t ∈ [0, 1] for value v.
-export function colourPosition(v: number, vmin: number, vmax: number, centred: boolean): number {
-  let t: number;
-  if (isTwoSlope(vmin, vmax, centred)) {
-    t = v < 0 ? 0.5 * (1 - v / vmin) : 0.5 + (0.5 * v) / vmax;
-  } else {
-    t = (v - vmin) / (vmax - vmin || 1);
+// Palette position of v on the centred scale, no clamping.
+const pinned = (v: number, vmin: number, vmax: number): number => {
+  if (v < 0) {
+    const neg = Math.min(vmin, 0);
+    return neg < 0 ? 0.5 * (1 - v / neg) : 0.5;
   }
+  const pos = Math.max(vmax, 0);
+  return pos > 0 ? 0.5 + (0.5 * v) / pos : 0.5;
+};
+
+// Palette position t ∈ [0, 1] for value v. Values beyond the range take the
+// colour of the range end they exceed.
+export function colourPosition(v: number, vmin: number, vmax: number, centred: boolean): number {
+  if (centred) {
+    const c = Math.max(Math.min(vmin, vmax), Math.min(Math.max(vmin, vmax), v));
+    return Math.max(0, Math.min(1, pinned(c, vmin, vmax)));
+  }
+  const t = (v - vmin) / (vmax - vmin || 1);
   return Math.max(0, Math.min(1, t));
 }
 
 // Inverse: the value that lands at palette position t.
 export function valueAtPosition(t: number, vmin: number, vmax: number, centred: boolean): number {
-  if (isTwoSlope(vmin, vmax, centred)) {
-    return t < 0.5 ? vmin * (1 - 2 * t) : vmax * (2 * t - 1);
+  if (centred) {
+    return t < 0.5 ? Math.min(vmin, 0) * (1 - 2 * t) : Math.max(vmax, 0) * (2 * t - 1);
   }
   return vmin + t * (vmax - vmin);
 }
 
 // Colourbar gradient stops: the bar is linear in VALUE (ticks sit at their
-// value's height), so under two-slope the palette is stretched differently
-// above and below 0. An explicit stop at the palette midpoint keeps the
-// neutral colour exactly at 0. `offset` runs 0 (vmin, bottom) → 1 (vmax, top).
+// value's height), so on a centred scale the palette is stretched differently
+// above and below 0, and only the slice [t(vmin), t(vmax)] is shown. Explicit
+// stops at the slice ends and at the palette midpoint keep the colours exact.
+// `offset` runs 0 (vmin, bottom) → 1 (vmax, top).
 export function colourbarGradient(
   stops: string[],
   vmin: number,
@@ -433,11 +447,22 @@ export function colourbarGradient(
 ): { offset: number; t: number }[] {
   const n = stops.length;
   const ts = stops.map((_, i) => i / (n - 1));
-  if (!isTwoSlope(vmin, vmax, centred)) return ts.map((t) => ({ offset: t, t }));
-  if (!ts.includes(0.5)) ts.push(0.5);
-  ts.sort((x, y) => x - y);
+  if (!centred) return ts.map((t) => ({ offset: t, t }));
   const span = vmax - vmin;
-  return ts.map((t) => ({ offset: (valueAtPosition(t, vmin, vmax, true) - vmin) / span, t }));
+  const t0 = colourPosition(vmin, vmin, vmax, true);
+  const t1 = colourPosition(vmax, vmin, vmax, true);
+  if (!(span > 0) || !(t1 > t0))
+    return [
+      { offset: 0, t: t0 },
+      { offset: 1, t: t1 },
+    ];
+  const inner = ts.concat([0.5]).filter((t) => t > t0 && t < t1);
+  const all = [t0, ...Array.from(new Set(inner)).sort((x, y) => x - y), t1];
+  return all.map((t, i) => ({
+    offset:
+      i === 0 ? 0 : i === all.length - 1 ? 1 : (valueAtPosition(t, vmin, vmax, true) - vmin) / span,
+    t,
+  }));
 }
 
 // ── Legend histogram (figure) ───────────────────────────────────────────────

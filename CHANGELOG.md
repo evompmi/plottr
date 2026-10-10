@@ -17,14 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Heatmap colour-range histogram.** The Colour scale section shows the value distribution
   (outliers in a broken-axis stub) with draggable Min / Max handles and Full / Outliers /
   1–99 % / 5–95 % presets; "Full" replaces "Auto from data". The distribution is also drawn
-  beside the figure's colourbar (toggle: "Distribution in legend").
+  beside the figure's colourbar, with a caption giving its scale (toggle: "Distribution
+  in legend").
 
 ### Changed
 
 - **Heatmap diverging palettes keep their neutral colour at 0.** Each side of 0 now gets
   its own colour slope (two-slope map), so Min and Max can be set independently — e.g.
-  −2 … +8 — without the white/grey midpoint drifting off 0. The colourbar marks 0, and the
-  R export uses matching two-slope breaks. Lopsided ranges on diverging palettes render
+  −2 … +8, or 0 … 8 — and 0 always keeps the white/grey midpoint. The colourbar marks 0,
+  and the R export uses the same mapping. Lopsided ranges on diverging palettes render
   differently from before.
 
 ## [1.10.0] - 2026-09-17

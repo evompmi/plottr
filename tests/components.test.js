@@ -1681,9 +1681,36 @@ suite("HeatmapChart (raster ↔ vector / high-density export)");
     assert(offsets.indexOf("20.00%") !== -1, "neutral stop at 20 %: " + offsets.join(","));
   });
 
+  test("legend histogram carries a caption saying what the bars are, with a scale", function () {
+    // Every cell in one colour band → the longest bar holds all 100 cells.
+    const props = {
+      ...baseProps(10, 10),
+      matrix: baseProps(10, 10).matrix.map((r) => r.map(() => 0.5)),
+      showLegendHistogram: true,
+    };
+    const { container } = renderWithEffects(HeatmapChart, props);
+    const lines = Array.from(container.querySelectorAll("#colorbar-histogram-caption text")).map(
+      (t) => t.textContent
+    );
+    eq(lines, ["Grey bars = cells", "per colour band", "(longest: 100)"]);
+    // Caption sits below the bar, and the viewBox grows to fit it.
+    const bar = container.querySelector("#colorbar > rect");
+    const barBottom = Number(bar.getAttribute("y")) + Number(bar.getAttribute("height"));
+    const capYs = Array.from(container.querySelectorAll("#colorbar-histogram-caption text")).map(
+      (t) => Number(t.getAttribute("y"))
+    );
+    assert(capYs[0] > barBottom + 14, "caption clears the bottom tick label");
+    const vbH = Number(container.querySelector("svg").getAttribute("viewBox").split(" ")[3]);
+    assert(capYs[2] < vbH, "caption inside the viewBox");
+    // And it ships with the export.
+    const clone = globalThis.buildExportSvg(container.querySelector("svg"));
+    eq(clone.querySelectorAll("#colorbar-histogram-caption text").length, 3);
+  });
+
   test("legend histogram is absent when switched off", function () {
     const { container } = renderWithEffects(HeatmapChart, baseProps(10, 10));
     eq(container.querySelector("#colorbar-histogram"), null);
+    eq(container.querySelector("#colorbar-histogram-caption"), null);
     const bar = container.querySelector("#colorbar > rect");
     const tick = container.querySelector("#colorbar text");
     eq(Number(tick.getAttribute("x")) - Number(bar.getAttribute("x")), 16);
@@ -1890,18 +1917,39 @@ suite("HeatmapChart (raster ↔ vector / high-density export)");
     assert(script.indexOf("  cluster_cols = FALSE,") !== -1, "cols unclustered");
   });
 
-  test("R export uses two-slope breaks for a diverging palette spanning 0", function () {
+  test("R export pins the neutral colour to 0 for diverging palettes", function () {
     const two = tool.exports.buildHeatmapRScript({ ...rOpts, palette: "rdbu", vmin: -2, vmax: 5 });
-    assert(
-      two.indexOf("breaks <- c(seq(-2, 0, length.out = 51), seq(0, 5, length.out = 51)[-1])") !==
-        -1,
-      "two-slope breaks"
-    );
-    // Sequential palette, or 0 outside the range → plain linear breaks.
+    for (const line of [
+      "breaks <- seq(-2, 5, length.out = 101)",
+      "mids <- (head(breaks, -1) + tail(breaks, -1)) / 2",
+      "neg <- min(breaks[1], 0); pos <- max(breaks[101], 0)",
+      "pal_t <- ifelse(mids < 0, 0.5 * (1 - mids / neg), 0.5 + 0.5 * mids / pos)",
+      "heat_colors <- rgb(colorRamp(palette_stops)(pal_t), maxColorValue = 255)",
+    ]) {
+      assert(two.indexOf(line) !== -1, "R script contains: " + line);
+    }
+    assert(two.indexOf("heat_colors <- rgb(") > two.indexOf("breaks <- seq("), "after breaks");
+    // Sequential palette → the plain ramp, no centring.
     const seqR = tool.exports.buildHeatmapRScript({ ...rOpts, vmin: -2, vmax: 5 });
-    assert(seqR.indexOf("breaks <- seq(-2, 5, length.out = 101)") !== -1, "viridis linear");
-    const pos = tool.exports.buildHeatmapRScript({ ...rOpts, palette: "rdbu", vmin: 1, vmax: 5 });
-    assert(pos.indexOf("breaks <- seq(1, 5, length.out = 101)") !== -1, "no 0 inside → linear");
+    assert(seqR.indexOf("pal_t") === -1, "viridis is not centred");
+  });
+
+  test("diverging palette with Min = 0: the 0 cell keeps the neutral colour (regression)", function () {
+    const m = [[-2, -1, 0, 1, 2, 4, 8]];
+    const props = {
+      ...baseProps(1, 7),
+      matrix: m,
+      palette: "rdbu",
+      vmin: 0,
+      vmax: 8,
+    };
+    const { container } = renderWithEffects(HeatmapChart, props);
+    const clone = globalThis.buildExportSvg(container.querySelector("svg"));
+    const fills = Array.from(clone.querySelectorAll("#cells rect")).map((r) =>
+      r.getAttribute("fill")
+    );
+    // rdbu's neutral stop is #f7f7f7; negatives clip to Min's (neutral) colour.
+    eq(fills, ["#f7f7f7", "#f7f7f7", "#f7f7f7", "#e9f0f4", "#dbeaf2", "#9cc7e0", "#2166ac"]);
   });
 
   test("R export maps non-correlation metrics onto dist()", function () {

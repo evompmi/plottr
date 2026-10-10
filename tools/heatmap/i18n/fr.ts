@@ -89,6 +89,7 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.labels.colNamesAria": "Afficher les noms des colonnes",
   "heatmap.chart.cluster": "Groupe n° {n}",
   "heatmap.chart.colorbarAria": "Barre de couleurs : valeurs de {min} à {max}",
+  "heatmap.chart.legendHistCaption": "Barres grises =\ncellules par\nbande de couleur\n(max : {n})",
   "heatmap.chart.legendHistAria":
     "Distribution des valeurs affichées le long de l’échelle de couleurs",
   "heatmap.chart.colorbarClippedAria":
