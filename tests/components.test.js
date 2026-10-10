@@ -24,7 +24,7 @@
 // useEffect / useLayoutEffect / context — `renderToStaticMarkup` does
 // not run effects.
 
-const { suite, test, assert, eq, summary } = require("./harness");
+const { suite, test, assert, eq, approx, summary } = require("./harness");
 const {
   buildContext,
   loadTool,
@@ -1628,15 +1628,92 @@ suite("HeatmapChart (raster ↔ vector / high-density export)");
     eq(colorbarTicks(container), ["1.0", "0.50", "0"]);
   });
 
-  test("colourbar marks a clipped scale with ≥ max / ≤ min (and it survives export)", function () {
+  test("colourbar marks a clipped scale with ≥ max / ≤ min + counts (survives export)", function () {
+    // Cells are 0.00 … 0.99: 49 lie above 0.5, 10 below 0.1.
     const props = { ...baseProps(10, 10), vmin: 0.1, vmax: 0.5 };
     const { container } = renderWithEffects(HeatmapChart, props);
-    eq(colorbarTicks(container), ["≥ 0.50", "0.30", "≤ 0.10"]);
+    const expected = ["≥ 0.50 (n=49)", "0.30", "≤ 0.10 (n=10)"];
+    eq(colorbarTicks(container), expected);
     const clone = globalThis.buildExportSvg(container.querySelector("svg"));
     eq(
       Array.from(clone.querySelectorAll("#colorbar text")).map((t) => t.textContent),
-      ["≥ 0.50", "0.30", "≤ 0.10"]
+      expected
     );
+  });
+
+  test("legend histogram draws beside the colourbar and survives export", function () {
+    const props = { ...baseProps(10, 10), showLegendHistogram: true };
+    const { container } = renderWithEffects(HeatmapChart, props);
+    const bars = container.querySelectorAll("#colorbar-histogram rect");
+    assert(bars.length >= 8, "one rect per non-empty bin");
+    for (const r of bars) eq(r.getAttribute("fill"), "#9a9a9a");
+    // Uniform 0–0.99 data → every band holds cells; the longest bar is full width.
+    const widths = Array.from(bars).map((r) => Number(r.getAttribute("width")));
+    eq(Math.max(...widths), 22);
+    const clone = globalThis.buildExportSvg(container.querySelector("svg"));
+    eq(clone.querySelectorAll("#colorbar-histogram rect").length, bars.length);
+    // Tick labels move right past the histogram (bar 12 + gap 2 + hist 22 + 4).
+    const bar = container.querySelector("#colorbar > rect");
+    const tick = container.querySelector("#colorbar text");
+    eq(Number(tick.getAttribute("x")) - Number(bar.getAttribute("x")), 40);
+  });
+
+  test("diverging palette, lopsided range: neutral colour at 0 and a 0 tick", function () {
+    const props = {
+      ...baseProps(10, 10),
+      matrix: baseProps(10, 10).matrix.map((r) => r.map((v) => v * 10 - 2)), // −2 … 7.9
+      vmin: -2,
+      vmax: 8,
+      palette: "rdbu",
+    };
+    const { container } = renderWithEffects(HeatmapChart, props);
+    eq(colorbarTicks(container), ["8.0", "0", "-2.0"]);
+    // The 0 tick sits 20 % up the bar (2 of the 10 units lie below 0).
+    const bar = container.querySelector("#colorbar > rect");
+    const zeroTick = container.querySelectorAll("#colorbar text")[1];
+    const barY = Number(bar.getAttribute("y"));
+    const barH = Number(bar.getAttribute("height"));
+    approx(Number(zeroTick.getAttribute("y")) - 3, barY + barH * 0.8, 1e-9);
+    // Gradient: an explicit palette-midpoint stop placed at 0's height.
+    const offsets = Array.from(container.querySelectorAll("#colorbar stop")).map((st) =>
+      st.getAttribute("offset")
+    );
+    assert(offsets.indexOf("20.00%") !== -1, "neutral stop at 20 %: " + offsets.join(","));
+  });
+
+  test("legend histogram carries a caption saying what the bars are, with a scale", function () {
+    // Every cell in one colour band → the longest bar holds all 100 cells.
+    const props = {
+      ...baseProps(10, 10),
+      matrix: baseProps(10, 10).matrix.map((r) => r.map(() => 0.5)),
+      showLegendHistogram: true,
+    };
+    const { container } = renderWithEffects(HeatmapChart, props);
+    const lines = Array.from(container.querySelectorAll("#colorbar-histogram-caption text")).map(
+      (t) => t.textContent
+    );
+    eq(lines, ["Grey bars = cells", "per colour band", "(longest: 100)"]);
+    // Caption sits below the bar, and the viewBox grows to fit it.
+    const bar = container.querySelector("#colorbar > rect");
+    const barBottom = Number(bar.getAttribute("y")) + Number(bar.getAttribute("height"));
+    const capYs = Array.from(container.querySelectorAll("#colorbar-histogram-caption text")).map(
+      (t) => Number(t.getAttribute("y"))
+    );
+    assert(capYs[0] > barBottom + 14, "caption clears the bottom tick label");
+    const vbH = Number(container.querySelector("svg").getAttribute("viewBox").split(" ")[3]);
+    assert(capYs[2] < vbH, "caption inside the viewBox");
+    // And it ships with the export.
+    const clone = globalThis.buildExportSvg(container.querySelector("svg"));
+    eq(clone.querySelectorAll("#colorbar-histogram-caption text").length, 3);
+  });
+
+  test("legend histogram is absent when switched off", function () {
+    const { container } = renderWithEffects(HeatmapChart, baseProps(10, 10));
+    eq(container.querySelector("#colorbar-histogram"), null);
+    eq(container.querySelector("#colorbar-histogram-caption"), null);
+    const bar = container.querySelector("#colorbar > rect");
+    const tick = container.querySelector("#colorbar text");
+    eq(Number(tick.getAttribute("x")) - Number(bar.getAttribute("x")), 16);
   });
 
   test("colourbar only flags clipping among the displayed rows (detail view)", function () {
@@ -1662,7 +1739,7 @@ suite("HeatmapChart (raster ↔ vector / high-density export)");
       ) !== -1,
       "warning text with counts + percentages"
     );
-    assert(html.indexOf("Clip to 2nd–98th percentile") !== -1, "clip button");
+    assert(html.indexOf("Exclude 3 outliers from the colour scale") !== -1, "exclude button");
     assert(html.indexOf("≥ / ≤") !== -1, "legend note in the full variant");
   });
 
@@ -1673,6 +1750,7 @@ suite("HeatmapChart (raster ↔ vector / high-density export)");
       compact: true,
     });
     assert(html.indexOf("1 of 3000 cells (0.0%) stretches") !== -1, "singular verb");
+    assert(html.indexOf("Exclude 1 outlier from the colour scale") !== -1, "singular button");
     assert(html.indexOf("≥ / ≤") === -1, "compact variant omits the legend note");
   });
 
@@ -1714,6 +1792,101 @@ suite("HeatmapChart (raster ↔ vector / high-density export)");
     cellBorder: { on: false, color: "#ffffff", width: 0.5 },
   };
 
+  // ── RangeHistogram (sidebar) ─────────────────────────────────────────
+
+  const RangeHistogram = tool.exports.RangeHistogram;
+  const seq = (lo, n) => Array.from({ length: n }, (_, i) => lo + i);
+
+  function mountHist(extra) {
+    const calls = [];
+    const props = {
+      sortedValues: seq(0, 100).concat([1000]),
+      vmin: 0,
+      vmax: 1000,
+      palette: "viridis",
+      invertPalette: false,
+      symmetricAxis: false,
+      onChange: (lo, hi) => calls.push([lo, hi]),
+      ...extra,
+    };
+    const r = renderWithEffects(RangeHistogram, props);
+    return { ...r, calls, unmount: () => React.act(() => r.root.unmount()) };
+  }
+
+  test("RangeHistogram: outlier stub, two sliders, nothing clipped at full range", function () {
+    const { container, unmount } = mountHist();
+    const sliders = container.querySelectorAll('[role="slider"]');
+    eq(sliders.length, 2);
+    eq(sliders[0].getAttribute("aria-valuenow"), "0");
+    eq(sliders[1].getAttribute("aria-valuenow"), "1000");
+    eq(sliders[0].style.left, "0.000%");
+    eq(sliders[1].style.left, "100.000%");
+    // The stub carries the 1-cell outlier count and the broken-axis glyph.
+    assert(container.textContent.indexOf("⫽") !== -1, "broken-axis glyph");
+    eq(container.querySelector('[data-testid="heatmap-range-clipped"]').textContent, "");
+    unmount();
+  });
+
+  test("RangeHistogram: clipped counts on each side", function () {
+    const { container, unmount } = mountHist({ vmin: 5, vmax: 95 });
+    eq(
+      container.querySelector('[data-testid="heatmap-range-clipped"]').textContent,
+      "‹ 5 clipped5 clipped ›"
+    );
+    unmount();
+  });
+
+  test("RangeHistogram: keyboard nudges a handle by 1 % (Shift: 10 %) of the main span", function () {
+    const { container, calls, unmount } = mountHist();
+    const [lo, hi] = container.querySelectorAll('[role="slider"]');
+    const key = (el, k, shiftKey) =>
+      React.act(() => {
+        el.dispatchEvent(new window.KeyboardEvent("keydown", { key: k, shiftKey, bubbles: true }));
+      });
+    key(hi, "ArrowLeft", false); // main span 0–99 → step 0.99
+    key(lo, "ArrowRight", true); // step 9.9
+    eq(calls, [
+      [0, 999],
+      [9.9, 1000],
+    ]);
+    unmount();
+  });
+
+  test("RangeHistogram: handles stay independent on diverging data", function () {
+    const { container, calls, unmount } = mountHist({
+      sortedValues: [-500].concat(seq(-49, 100)),
+      vmin: -500,
+      vmax: 500,
+      palette: "rdbu",
+      symmetricAxis: true,
+    });
+    const hi = container.querySelectorAll('[role="slider"]')[1];
+    React.act(() => {
+      hi.dispatchEvent(new window.KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    });
+    // Main span −49…50 → step 0.99; Min is untouched.
+    eq(calls, [[-500, 499]]);
+    unmount();
+  });
+
+  test("RangeHistogram: dragging moves the nearer handle and commits on release", function () {
+    const { container, calls, unmount } = mountHist();
+    const track = container.querySelector('[role="group"]');
+    // happy-dom lays out nothing (width 0 → treated as 1 px), so clientX is
+    // the track fraction directly. 0.45 of the track = 49.5 in the main zone
+    // (which spans 0 → 0.9; the outlier stub takes the last 10 %).
+    const ptr = (type, clientX) =>
+      React.act(() => {
+        track.dispatchEvent(
+          new window.PointerEvent(type, { clientX, button: 0, pointerId: 1, bubbles: true })
+        );
+      });
+    ptr("pointerdown", 0.45);
+    ptr("pointerup", 0.45);
+    eq(calls[calls.length - 1], [49.5, 1000]);
+    unmount();
+  });
+
   test("R export clusters on the unclipped matrix, then clips to the colour range", function () {
     const script = tool.exports.buildHeatmapRScript(rOpts);
     const at = (needle) => {
@@ -1742,6 +1915,41 @@ suite("HeatmapChart (raster ↔ vector / high-density export)");
     assert(script.indexOf("mat_plot <- pmin(pmax(mat, 1), 5)") !== -1, "still clips");
     assert(script.indexOf("  cluster_rows = FALSE,") !== -1, "rows unclustered");
     assert(script.indexOf("  cluster_cols = FALSE,") !== -1, "cols unclustered");
+  });
+
+  test("R export pins the neutral colour to 0 for diverging palettes", function () {
+    const two = tool.exports.buildHeatmapRScript({ ...rOpts, palette: "rdbu", vmin: -2, vmax: 5 });
+    for (const line of [
+      "breaks <- seq(-2, 5, length.out = 101)",
+      "mids <- (head(breaks, -1) + tail(breaks, -1)) / 2",
+      "neg <- min(breaks[1], 0); pos <- max(breaks[101], 0)",
+      "pal_t <- ifelse(mids < 0, 0.5 * (1 - mids / neg), 0.5 + 0.5 * mids / pos)",
+      "heat_colors <- rgb(colorRamp(palette_stops)(pal_t), maxColorValue = 255)",
+    ]) {
+      assert(two.indexOf(line) !== -1, "R script contains: " + line);
+    }
+    assert(two.indexOf("heat_colors <- rgb(") > two.indexOf("breaks <- seq("), "after breaks");
+    // Sequential palette → the plain ramp, no centring.
+    const seqR = tool.exports.buildHeatmapRScript({ ...rOpts, vmin: -2, vmax: 5 });
+    assert(seqR.indexOf("pal_t") === -1, "viridis is not centred");
+  });
+
+  test("diverging palette with Min = 0: the 0 cell keeps the neutral colour (regression)", function () {
+    const m = [[-2, -1, 0, 1, 2, 4, 8]];
+    const props = {
+      ...baseProps(1, 7),
+      matrix: m,
+      palette: "rdbu",
+      vmin: 0,
+      vmax: 8,
+    };
+    const { container } = renderWithEffects(HeatmapChart, props);
+    const clone = globalThis.buildExportSvg(container.querySelector("svg"));
+    const fills = Array.from(clone.querySelectorAll("#cells rect")).map((r) =>
+      r.getAttribute("fill")
+    );
+    // rdbu's neutral stop is #f7f7f7; negatives clip to Min's (neutral) colour.
+    eq(fills, ["#f7f7f7", "#f7f7f7", "#f7f7f7", "#e9f0f4", "#dbeaf2", "#9cc7e0", "#2166ac"]);
   });
 
   test("R export maps non-correlation metrics onto dist()", function () {

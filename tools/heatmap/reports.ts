@@ -162,6 +162,16 @@ export function buildHeatmapRScript({
   lines.push(
     "breaks <- seq(" + formatRNumber(vmin) + ", " + formatRNumber(vmax) + ", length.out = 101)"
   );
+  if (DIVERGING_PALETTES.has(palette)) {
+    // Centred scale, as in the browser tool: the palette's neutral middle
+    // colour is pinned to 0 and each side of 0 gets its own slope.
+    lines.push("# Diverging palette: the neutral middle colour is pinned to 0, each side of 0");
+    lines.push("# gets its own slope (two-slope scale), matching the browser tool.");
+    lines.push("mids <- (head(breaks, -1) + tail(breaks, -1)) / 2");
+    lines.push("neg <- min(breaks[1], 0); pos <- max(breaks[101], 0)");
+    lines.push("pal_t <- ifelse(mids < 0, 0.5 * (1 - mids / neg), 0.5 + 0.5 * mids / pos)");
+    lines.push("heat_colors <- rgb(colorRamp(palette_stops)(pal_t), maxColorValue = 255)");
+  }
   lines.push("");
   // pheatmap paints values outside `breaks` with its grey NA colour, while the
   // browser tool saturates them to the end colours. Clip before plotting —

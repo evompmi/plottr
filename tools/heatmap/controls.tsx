@@ -5,13 +5,24 @@
 // imported from ./chart so the sidebar's palette picker and the
 // heatmap's colourbar stay visually in sync.
 
-import { ActionsPanel, ColorInput, ControlSection, NumberInput, PlotSidebar } from "../_shell";
+import {
+  ActionsPanel,
+  ColorInput,
+  ControlSection,
+  NumberInput,
+  OnOffToggle,
+  PlotSidebar,
+  SegToggle,
+} from "../_shell";
 import { PaletteStrip } from "./chart";
 import { buildHeatmapRScript, buildCsvExport } from "./reports";
+import { RangeHistogram } from "./range-histogram";
+import { activePreset } from "./helpers";
 import type {
   ClusterMode,
   ClusterModeControlProps,
   PlotControlsProps,
+  RangePresetKey,
   SkewAlertProps,
 } from "./helpers";
 
@@ -105,7 +116,7 @@ export function SkewAlert({ skew, onApply, compact }: SkewAlertProps) {
         className="dv-btn dv-btn-secondary"
         style={{ fontSize: 11, padding: "3px 8px", flexShrink: 0 }}
       >
-        {tr("heatmap.colour.skewFix")}
+        {tr("heatmap.colour.skewFix", { n: skew.nOutliers, count: skew.nOutliers })}
       </button>
       {!compact && <span style={{ opacity: 0.85 }}>{tr("heatmap.colour.skewNote")}</span>}
     </div>
@@ -137,9 +148,12 @@ export function PlotControls({
   setDistanceMetric,
   linkageMethod,
   setLinkageMethod,
-  autoVRange,
   skew,
   applyRobustRange,
+  presets,
+  sortedValues,
+  rangeIsDiverging,
+  setRange,
 }: PlotControlsProps) {
   const tr = useT();
   const paletteKeys = Object.keys(COLOR_PALETTES);
@@ -347,7 +361,7 @@ export function PlotControls({
         )}
       </ControlSection>
 
-      <ControlSection title={tr("heatmap.sec.colourScale")}>
+      <ControlSection title={tr("heatmap.sec.colourScale")} defaultOpen={!!skew}>
         <label style={{ fontSize: 11, display: "block", marginBottom: 6 }}>
           {tr("heatmap.colour.palette")}
           <select
@@ -393,6 +407,54 @@ export function PlotControls({
             </button>
           </div>
         </div>
+        <div className="dv-label" style={{ fontSize: 11, marginTop: 4 }}>
+          {tr("heatmap.range.title")}
+        </div>
+        <RangeHistogram
+          sortedValues={sortedValues}
+          vmin={vis.vmin}
+          vmax={vis.vmax}
+          palette={vis.palette}
+          invertPalette={vis.invertPalette}
+          symmetricAxis={rangeIsDiverging}
+          onChange={setRange}
+        />
+        <SegToggle<RangePresetKey | "custom">
+          ariaLabel={tr("heatmap.range.presetsAria")}
+          value={activePreset(presets, vis.vmin, vis.vmax) ?? "custom"}
+          onChange={(k) => {
+            const r = k === "custom" ? null : presets[k];
+            if (r) setRange(r[0], r[1]);
+          }}
+          options={[
+            {
+              value: "full",
+              label: tr("heatmap.range.full"),
+              title: tr("heatmap.range.fullTitle"),
+            },
+            {
+              value: "outliers",
+              label: tr("heatmap.range.outliers"),
+              title: tr(
+                presets.outliers ? "heatmap.range.outliersTitle" : "heatmap.range.noOutliers"
+              ),
+              disabled: !presets.outliers,
+            },
+            {
+              value: "p1_99",
+              label: "1–99 %",
+              title: tr("heatmap.range.pctTitle", { lo: 1, hi: 99 }),
+              disabled: !presets.p1_99,
+            },
+            {
+              value: "p5_95",
+              label: "5–95 %",
+              title: tr("heatmap.range.pctTitle", { lo: 5, hi: 95 }),
+              disabled: !presets.p5_95,
+            },
+          ]}
+          style={{ marginBottom: 8, fontSize: 11 }}
+        />
         <div style={{ display: "flex", gap: 6, alignItems: "flex-end", marginBottom: 6 }}>
           <label style={{ fontSize: 11, flex: 1, display: "block" }}>
             <span className="dv-label">{tr("heatmap.colour.min")}</span>
@@ -413,10 +475,17 @@ export function PlotControls({
             />
           </label>
         </div>
-        <button onClick={autoVRange} className="dv-btn dv-btn-secondary" style={{ fontSize: 11 }}>
-          {tr("heatmap.colour.auto")}
-        </button>
         {skew && <SkewAlert skew={skew} onApply={applyRobustRange} />}
+        <div style={{ marginTop: 10 }}>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
+            {tr("heatmap.range.legendHist")}
+          </div>
+          <OnOffToggle
+            value={vis.showLegendHistogram}
+            onChange={(v) => updVis({ showLegendHistogram: v })}
+            ariaLabel={tr("heatmap.range.legendHist")}
+          />
+        </div>
       </ControlSection>
 
       <ControlSection title={tr("heatmap.sec.cellBorders")}>

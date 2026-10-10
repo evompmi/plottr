@@ -70,14 +70,29 @@ const en = {
   "heatmap.colour.inverted": "Inverted",
   "heatmap.colour.min": "Min",
   "heatmap.colour.max": "Max",
-  "heatmap.colour.auto": "Auto from data",
   "heatmap.colour.skewWarn.one":
     "{n} of {total} cells ({pct}) stretches the colour scale — the other values use only {occupied} of it.",
   "heatmap.colour.skewWarn.other":
     "{n} of {total} cells ({pct}) stretch the colour scale — the other values use only {occupied} of it.",
-  "heatmap.colour.skewFix": "Clip to 2nd–98th percentile",
+  "heatmap.colour.skewFix.one": "Exclude {n} outlier from the colour scale",
+  "heatmap.colour.skewFix.other": "Exclude {n} outliers from the colour scale",
   "heatmap.colour.skewNote":
-    "Values beyond the new range show the end colour; the colourbar marks them with ≥ / ≤.",
+    "Outliers show the end colour; the colourbar marks them with ≥ / ≤. Hover a cell to see its real value.",
+  "heatmap.range.title": "Colour range",
+  "heatmap.range.aria": "Distribution of cell values with the colour range handles",
+  "heatmap.range.minAria": "Colour scale minimum",
+  "heatmap.range.maxAria": "Colour scale maximum",
+  "heatmap.range.clipped.one": "{n} clipped",
+  "heatmap.range.clipped.other": "{n} clipped",
+  "heatmap.range.presetsAria": "Colour range presets",
+  "heatmap.range.full": "Full",
+  "heatmap.range.fullTitle": "Span every value in the data",
+  "heatmap.range.outliers": "Outliers",
+  "heatmap.range.outliersTitle":
+    "Exclude the outlier cells: fit the scale exactly to every other value",
+  "heatmap.range.noOutliers": "No outliers detected",
+  "heatmap.range.pctTitle": "Span the {lo}th to {hi}th percentile of the values",
+  "heatmap.range.legendHist": "Distribution in legend",
 
   // Cell borders
   "heatmap.border.width": "Width",
@@ -95,6 +110,9 @@ const en = {
   // Chart (baked into SVG export)
   "heatmap.chart.cluster": "Cluster n° {n}",
   "heatmap.chart.colorbarAria": "Colourbar: values range from {min} to {max}",
+  // Lines separated by "\n"; {n} = cell count of the longest bar.
+  "heatmap.chart.legendHistCaption": "Grey bars = cells\nper colour band\n(longest: {n})",
+  "heatmap.chart.legendHistAria": "Distribution of the displayed values along the colour scale",
   "heatmap.chart.colorbarClippedAria":
     "Colourbar: values range from {min} to {max}; values beyond this range are clipped to the end colours",
   // Accessible chart description (role=img title/desc + group aria-labels)

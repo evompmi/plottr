@@ -15,13 +15,17 @@ import {
   CLUSTER_PALETTE,
   fmtColorbarTick,
   countClipped,
+  legendHistogram,
+  colourPosition,
+  colourbarGradient,
+  isTwoSlope,
   HeatmapChartProps,
   PaletteStripProps,
   type DendroLayoutNode,
   type DendroLayoutSegment,
 } from "./helpers";
 
-import { COLOR_PALETTES, interpolateColor } from "../_core/color";
+import { COLOR_PALETTES, DIVERGING_PALETTES, interpolateColor } from "../_core/color";
 import { registerSvgExportMutator, unregisterSvgExportMutator } from "../_core/svg-export";
 import { tt } from "./i18n";
 const { useState, useMemo, useCallback, useRef, useEffect, forwardRef, memo } = React;
@@ -194,6 +198,7 @@ export const HeatmapChart = memo(
       // pruned subtree reads at a smaller tile. Hover stroke scales with
       // it (hoverFactor * base) so the hover highlight stays visually
       // distinct.
+      showLegendHistogram = false,
       dendrogramStrokeWidth = 1,
     },
     ref
@@ -302,11 +307,23 @@ export const HeatmapChart = memo(
     const AXIS_LABEL_TOP = colAxisLabel ? 16 : 0;
     const AXIS_LABEL_LEFT = rowAxisLabel ? 16 : 0;
 
+    // Saturated cells → "≥ max (n=…)" / "≤ min (n=…)" colourbar ticks, so an
+    // exported figure with a clipped scale doesn't overstate the data range.
+    const clipped = useMemo(
+      () => countClipped(matrix, vmin, vmax, rowOrder, colOrder),
+      [matrix, vmin, vmax, rowOrder, colOrder]
+    );
+    const anyClipped = clipped.above > 0 || clipped.below > 0;
+
     // Vertical colourbar sits top-right, past the row labels. Widths:
-    //   bar | gap | tick labels
+    //   bar | gap | distribution histogram (optional) | tick labels
     const CB_W = 12;
     const CB_OFFSET = 16; // gap between row labels and bar
-    const CB_TICK_W = 44; // space reserved for numeric tick labels
+    const CB_HIST_W = showLegendHistogram ? 22 : 0;
+    const CB_HIST_GAP = showLegendHistogram ? 2 : 0;
+    // Space reserved for numeric tick labels — wider when a clipped end
+    // carries its "(n=…)" count.
+    const CB_TICK_W = anyClipped ? 72 : 44;
     // Keep a floor (60) so the gradient is legible even on tiny detail slices.
     // When `baseColorbarH` is supplied (detail view) we mirror the main plot's
     // legend height so the two charts have matching colour bars.
@@ -317,7 +334,7 @@ export const HeatmapChart = memo(
       top:
         TITLE_H + 10 + AXIS_LABEL_TOP + CLUSTER_LABEL_H + COL_LABEL_H + LABEL_GAP + DENDRO_SIZE_TOP,
       left: AXIS_LABEL_LEFT + CLUSTER_LABEL_W + DENDRO_SIZE_LEFT + LABEL_GAP,
-      right: ROW_LABEL_W + CB_OFFSET + CB_W + CB_TICK_W + 10,
+      right: ROW_LABEL_W + CB_OFFSET + CB_W + CB_HIST_GAP + CB_HIST_W + CB_TICK_W + 10,
       bottom: 12,
     };
 
@@ -325,7 +342,27 @@ export const HeatmapChart = memo(
     // The +14 on the colourbar branch leaves room for the bottom tick label's
     // descenders below the bar (the text uses the default alphabetic baseline).
     const vbW = MARGIN.left + plotW + MARGIN.right;
-    const vbH = MARGIN.top + Math.max(plotH, CB_H + 14) + MARGIN.bottom;
+
+    // Legend histogram: displayed cells binned over [vmin, vmax] in ~4 px
+    // bands, aligned with the colourbar so each bar sits beside its colour.
+    // Linear lengths — this is the figure, so the shape stays honest.
+    const legendBins = Math.max(8, Math.round(CB_H / 4));
+    const legendHist = useMemo(
+      () =>
+        showLegendHistogram
+          ? legendHistogram(matrix, vmin, vmax, rowOrder, colOrder, legendBins)
+          : null,
+      [showLegendHistogram, matrix, vmin, vmax, rowOrder, colOrder, legendBins]
+    );
+    // Legend-histogram caption under the colourbar: what the grey bars are,
+    // plus a scale (the longest bar's count). Lines come from the catalog
+    // split on "\n" so each locale controls its own wrapping.
+    const CB_CAPTION_LINE_H = 10;
+    const cbCaptionLineCount = showLegendHistogram
+      ? tt("heatmap.chart.legendHistCaption", { n: 0 }).split("\n").length
+      : 0;
+    const CB_CAPTION_H = cbCaptionLineCount ? 12 + cbCaptionLineCount * CB_CAPTION_LINE_H : 0;
+    const vbH = MARGIN.top + Math.max(plotH, CB_H + 14 + CB_CAPTION_H) + MARGIN.bottom;
 
     const bordersOn = cellBorder && cellBorder.on;
 
@@ -350,17 +387,11 @@ export const HeatmapChart = memo(
     const cellHPx = (ri: number) =>
       bordersOn ? cellH : Math.round((rowIx(ri) + 1) * cellH) - Math.round(rowIx(ri) * cellH);
 
-    // Saturated cells → "≥ max" / "≤ min" colourbar ticks, so an exported
-    // figure with a clipped scale doesn't overstate the data range.
-    const clipped = useMemo(
-      () => countClipped(matrix, vmin, vmax, rowOrder, colOrder),
-      [matrix, vmin, vmax, rowOrder, colOrder]
-    );
-
+    // Diverging palettes pin their neutral colour to 0 (two-slope map).
+    const centred = DIVERGING_PALETTES.has(palette);
     const valueToColor = (v: number) => {
       if (!Number.isFinite(v)) return NAN_FILL;
-      const t = (v - vmin) / (vmax - vmin || 1);
-      return interpolateColor(stops, Math.max(0, Math.min(1, t)));
+      return interpolateColor(stops, colourPosition(v, vmin, vmax, centred));
     };
 
     // ── Interaction state — tooltip + brush + branch hover ─────────────────────
@@ -523,13 +554,20 @@ export const HeatmapChart = memo(
     const cbX = MARGIN.left + plotW + ROW_LABEL_W + CB_OFFSET;
     const cbY = MARGIN.top;
     const cbGradId = "heatmap-colorbar-grad";
-    const cbStops = stops.map((c: string, i: number) =>
+    // The bar is linear in value; under two-slope the gradient is stretched
+    // so the neutral colour sits at 0's height, which gets its own tick.
+    const cbStops = colourbarGradient(stops, vmin, vmax, centred).map((g, i) =>
       React.createElement("stop", {
         key: i,
-        offset: ((i / (stops.length - 1)) * 100).toFixed(2) + "%",
-        stopColor: c,
+        offset: (g.offset * 100).toFixed(2) + "%",
+        stopColor: interpolateColor(stops, g.t),
       })
     );
+    const twoSlope = isTwoSlope(vmin, vmax, centred);
+    const cbMidValue = twoSlope ? 0 : (vmin + vmax) / 2;
+    const cbMidY = cbY + CB_H * (1 - (cbMidValue - vmin) / (vmax - vmin || 1));
+    // Drop the 0 tick when it would collide with an end label.
+    const showMidTick = cbMidY - cbY > 12 && cbY + CB_H - cbMidY > 12;
 
     // Dendrogram helpers — scale from data space into pixel space.
     // A segment belongs to the currently-hovered subtree iff its [xMin, xMax]
@@ -1359,9 +1397,7 @@ export const HeatmapChart = memo(
           <g
             id="colorbar"
             aria-label={tt(
-              clipped.above || clipped.below
-                ? "heatmap.chart.colorbarClippedAria"
-                : "heatmap.chart.colorbarAria",
+              anyClipped ? "heatmap.chart.colorbarClippedAria" : "heatmap.chart.colorbarAria",
               {
                 min: vmin.toPrecision(3),
                 max: vmax.toPrecision(3),
@@ -1382,8 +1418,34 @@ export const HeatmapChart = memo(
               stroke="#888888"
               strokeWidth="0.5"
             />
+            {legendHist && (
+              <g id="colorbar-histogram" aria-label={tt("heatmap.chart.legendHistAria")}>
+                <line
+                  x1={cbX + CB_W + CB_HIST_GAP}
+                  x2={cbX + CB_W + CB_HIST_GAP}
+                  y1={cbY}
+                  y2={cbY + CB_H}
+                  stroke="#bbbbbb"
+                  strokeWidth="0.5"
+                />
+                {legendHist.counts.map((c, i) => {
+                  if (c === 0) return null;
+                  const bh = CB_H / legendHist.counts.length;
+                  return (
+                    <rect
+                      key={i}
+                      x={cbX + CB_W + CB_HIST_GAP}
+                      y={cbY + CB_H - (i + 1) * bh}
+                      width={Math.max(1, (c / legendHist.maxCount) * CB_HIST_W)}
+                      height={bh}
+                      fill="#9a9a9a"
+                    />
+                  );
+                })}
+              </g>
+            )}
             <text
-              x={cbX + CB_W + 4}
+              x={cbX + CB_W + CB_HIST_GAP + CB_HIST_W + 4}
               y={cbY + 4}
               fontFamily="sans-serif"
               fontSize="9"
@@ -1391,28 +1453,53 @@ export const HeatmapChart = memo(
               textAnchor="start"
               dominantBaseline="hanging"
             >
-              {(clipped.above ? "≥ " : "") + fmtColorbarTick(vmax)}
+              {clipped.above
+                ? `≥ ${fmtColorbarTick(vmax)} (n=${clipped.above})`
+                : fmtColorbarTick(vmax)}
             </text>
+            {showMidTick && (
+              <text
+                x={cbX + CB_W + CB_HIST_GAP + CB_HIST_W + 4}
+                y={cbMidY + 3}
+                fontFamily="sans-serif"
+                fontSize="9"
+                fill="#555555"
+                textAnchor="start"
+              >
+                {fmtColorbarTick(cbMidValue)}
+              </text>
+            )}
             <text
-              x={cbX + CB_W + 4}
-              y={cbY + CB_H / 2 + 3}
-              fontFamily="sans-serif"
-              fontSize="9"
-              fill="#555555"
-              textAnchor="start"
-            >
-              {fmtColorbarTick((vmin + vmax) / 2)}
-            </text>
-            <text
-              x={cbX + CB_W + 4}
+              x={cbX + CB_W + CB_HIST_GAP + CB_HIST_W + 4}
               y={cbY + CB_H}
               fontFamily="sans-serif"
               fontSize="9"
               fill="#555555"
               textAnchor="start"
             >
-              {(clipped.below ? "≤ " : "") + fmtColorbarTick(vmin)}
+              {clipped.below
+                ? `≤ ${fmtColorbarTick(vmin)} (n=${clipped.below})`
+                : fmtColorbarTick(vmin)}
             </text>
+            {legendHist && (
+              <g id="colorbar-histogram-caption">
+                {tt("heatmap.chart.legendHistCaption", { n: legendHist.maxCount })
+                  .split("\n")
+                  .map((line, i) => (
+                    <text
+                      key={i}
+                      x={cbX}
+                      y={cbY + CB_H + 26 + i * CB_CAPTION_LINE_H}
+                      fontFamily="sans-serif"
+                      fontSize="8"
+                      fill="#666666"
+                      textAnchor="start"
+                    >
+                      {line}
+                    </text>
+                  ))}
+              </g>
+            )}
           </g>
 
           {/* Selection mask — fades the unselected cells so the selected

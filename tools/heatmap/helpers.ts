@@ -94,13 +94,14 @@ export function autoRange(matrix: DataMatrix, diverging: boolean): [number, numb
   return [lo, hi];
 }
 
-// ── Outlier-skew detection ───────────────────────────────────────────────────
+// ── Outlier-skew detection + colour-range presets ───────────────────────────
 //
 // A handful of extreme cells can stretch [vmin, vmax] so far that the bulk of
-// the matrix collapses into a thin band of the palette. `detectRangeSkew`
-// compares the robust [2nd, 98th] percentile range against the CURRENT colour
-// range (not the raw min/max), so the alert clears itself once the user clips
-// — by hand or via the suggested range.
+// the matrix collapses into a thin band of the palette. Outliers are cells
+// beyond fences set ½ a robust span past the [2nd, 98th] percentiles; the
+// "outliers" preset is then the exact extent of everything else, rounded
+// outward so no ordinary cell is clipped. `detectRangeSkew` judges the
+// CURRENT colour range, so the alert clears itself once the user clips.
 
 export const SKEW_MIN_CELLS = 20; // below this, percentiles are too coarse to judge
 export const SKEW_LO_Q = 0.02;
@@ -110,11 +111,22 @@ export const SKEW_OUTLIER_FRAC_MAX = 0.02; // …because of ≤ 2 % of the cells
 export const SKEW_FENCE = 0.5; // outlier = beyond the robust range by > ½ its span
 
 export interface RangeSkew {
-  nOutliers: number;
+  nOutliers: number; // cells the suggested range clips (inside the current range)
   nTotal: number;
-  occupied: number; // fraction of [vmin, vmax] the robust range spans
+  occupied: number; // fraction of [vmin, vmax] the suggested range spans
   suggestedMin: number;
   suggestedMax: number;
+}
+
+export type RangePresetKey = "full" | "outliers" | "p1_99" | "p5_95";
+export type ColourRange = [number, number];
+
+export interface RangePresets {
+  full: ColourRange;
+  // null when nothing lies beyond the outlier fences.
+  outliers: ColourRange | null;
+  p1_99: ColourRange | null;
+  p5_95: ColourRange | null;
 }
 
 export function sortedFiniteValues(matrix: DataMatrix): number[] {
@@ -135,9 +147,104 @@ export function quantileSorted(sorted: number[], p: number): number {
   return sorted[lo] + (h - lo) * (sorted[lo + 1] - sorted[lo]);
 }
 
-// Four significant digits: readable in the Min / Max inputs, and unlike a
+// Four significant digits — readable in the Min / Max inputs, and unlike a
 // fixed decimal count it can't collapse a 1e-4-scale range to zero width.
-const roundSig = (v: number): number => Number(v.toPrecision(4));
+export function roundSig(v: number): number {
+  return Number(v.toPrecision(4));
+}
+
+// Same, but rounded away from the data (dir = -1 → down for a minimum,
+// +1 → up for a maximum) so the rounded bound never clips the value itself.
+export function roundSigOut(v: number, dir: 1 | -1): number {
+  if (v === 0 || !Number.isFinite(v)) return v;
+  const r = roundSig(v);
+  if (dir > 0 ? r >= v : r <= v) return r;
+  const exp = Math.floor(Math.log10(Math.abs(v)));
+  const step = Math.pow(10, exp - 3);
+  return roundSig(r + dir * step);
+}
+
+const symmetric = (lo: number, hi: number): ColourRange => {
+  const m = roundSigOut(Math.max(Math.abs(lo), Math.abs(hi)), 1);
+  return [-m, m];
+};
+
+const outward = (lo: number, hi: number, diverging: boolean): ColourRange =>
+  diverging ? symmetric(lo, hi) : [roundSigOut(lo, -1), roundSigOut(hi, 1)];
+
+// Outlier fences; null when the robust range is degenerate (a constant bulk
+// has no meaningful "rest of the data" to fit the scale to).
+export function outlierFences(sorted: number[], diverging: boolean): ColourRange | null {
+  let lo = quantileSorted(sorted, SKEW_LO_Q);
+  let hi = quantileSorted(sorted, SKEW_HI_Q);
+  if (diverging) {
+    const m = Math.max(Math.abs(lo), Math.abs(hi));
+    lo = -m;
+    hi = m;
+  }
+  const span = hi - lo;
+  if (!(span > 0)) return null;
+  return [lo - SKEW_FENCE * span, hi + SKEW_FENCE * span];
+}
+
+// Data-extent range, rounded outward ("Full" preset / initial auto-range).
+export function fullRange(sorted: number[], diverging: boolean): ColourRange {
+  if (!sorted.length) return [0, 1];
+  const lo = sorted[0],
+    hi = sorted[sorted.length - 1];
+  if (diverging) {
+    const r = symmetric(lo, hi);
+    return r[1] > 0 ? r : [-1, 1];
+  }
+  if (lo === hi) return [lo - 0.5, hi + 0.5];
+  return outward(lo, hi, false);
+}
+
+// Extent of the non-outlier cells (null when there are no outliers).
+export function innerExtent(sorted: number[], diverging: boolean): ColourRange | null {
+  if (sorted.length < SKEW_MIN_CELLS) return null;
+  const f = outlierFences(sorted, diverging);
+  if (!f) return null;
+  let i = 0,
+    j = sorted.length - 1;
+  while (i < sorted.length && sorted[i] < f[0]) i++;
+  while (j >= 0 && sorted[j] > f[1]) j--;
+  if (i === 0 && j === sorted.length - 1) return null;
+  if (i > j) return null;
+  return [sorted[i], sorted[j]];
+}
+
+export function rangePresets(sorted: number[], diverging: boolean): RangePresets {
+  const pct = (lo: number, hi: number): ColourRange | null => {
+    if (sorted.length < 2) return null;
+    const r = outward(quantileSorted(sorted, lo), quantileSorted(sorted, hi), diverging);
+    return r[1] > r[0] ? r : null;
+  };
+  const inner = innerExtent(sorted, diverging);
+  const outliers = inner ? outward(inner[0], inner[1], diverging) : null;
+  return {
+    full: fullRange(sorted, diverging),
+    outliers: outliers && outliers[1] > outliers[0] ? outliers : null,
+    p1_99: pct(0.01, 0.99),
+    p5_95: pct(0.05, 0.95),
+  };
+}
+
+// Which preset (if any) the current range matches. Relative tolerance so a
+// value round-tripped through the Min / Max inputs still matches.
+export function activePreset(
+  presets: RangePresets,
+  vmin: number,
+  vmax: number
+): RangePresetKey | null {
+  const keys: RangePresetKey[] = ["full", "outliers", "p1_99", "p5_95"];
+  const tol = Math.abs(vmax - vmin) * 1e-6;
+  for (const k of keys) {
+    const r = presets[k];
+    if (r && Math.abs(r[0] - vmin) <= tol && Math.abs(r[1] - vmax) <= tol) return k;
+  }
+  return null;
+}
 
 export function detectRangeSkew(
   sorted: number[],
@@ -148,30 +255,244 @@ export function detectRangeSkew(
   const n = sorted.length;
   const span = vmax - vmin;
   if (n < SKEW_MIN_CELLS || !(span > 0)) return null;
-  let lo = quantileSorted(sorted, SKEW_LO_Q);
-  let hi = quantileSorted(sorted, SKEW_HI_Q);
-  if (diverging) {
-    const m = Math.max(Math.abs(lo), Math.abs(hi));
-    lo = -m;
-    hi = m;
-  }
-  const sugMin = Math.max(roundSig(lo), vmin);
-  const sugMax = Math.min(roundSig(hi), vmax);
-  const robustSpan = sugMax - sugMin;
-  if (!(robustSpan > 0)) return null;
-  const occupied = robustSpan / span;
+  const inner = innerExtent(sorted, diverging);
+  if (!inner) return null;
+  const [lo, hi] = outward(inner[0], inner[1], diverging);
+  const sugMin = Math.max(lo, vmin);
+  const sugMax = Math.min(hi, vmax);
+  if (!(sugMax > sugMin)) return null;
+  const occupied = (sugMax - sugMin) / span;
   if (occupied >= SKEW_OCCUPIED_MAX) return null;
   // Only cells inside the current range stretch it — anything already beyond
   // vmin / vmax is saturated and no longer moves the scale.
-  const fenceLo = sugMin - SKEW_FENCE * robustSpan;
-  const fenceHi = sugMax + SKEW_FENCE * robustSpan;
   let nOutliers = 0;
   for (let i = 0; i < n; i++) {
     const v = sorted[i];
-    if ((v < fenceLo && v >= vmin) || (v > fenceHi && v <= vmax)) nOutliers++;
+    if ((v < sugMin && v >= vmin) || (v > sugMax && v <= vmax)) nOutliers++;
   }
   if (nOutliers === 0 || nOutliers > SKEW_OUTLIER_FRAC_MAX * n) return null;
   return { nOutliers, nTotal: n, occupied, suggestedMin: sugMin, suggestedMax: sugMax };
+}
+
+// ── Range histogram (sidebar) ───────────────────────────────────────────────
+//
+// The sidebar histogram must not repeat the heatmap's own failure mode — one
+// outlier squashing everything into a corner. So the axis is piecewise: the
+// non-outlier extent gets the main zone, and anything farther out (outliers,
+// or a colour range the user widened past the data) is compressed into a
+// narrow "broken-axis" stub on that side.
+
+export const HIST_BINS = 48;
+export const HIST_STUB_FRAC = 0.1; // each stub's share of the track width
+// Overflow shorter than this share of the main span just extends the main
+// zone linearly — a broken axis for a sliver would only confuse.
+export const HIST_STUB_MIN_OVERFLOW = 0.25;
+
+export interface HistogramModel {
+  lo: number; // main-zone extent
+  hi: number;
+  outerLo: number; // stub extents (=== lo / hi when that side has no stub)
+  outerHi: number;
+  stubLo: boolean;
+  stubHi: boolean;
+  counts: number[]; // main-zone bins, low → high
+  maxCount: number;
+  nStubLo: number; // cells inside each stub
+  nStubHi: number;
+}
+
+export function histogramModel(
+  sorted: number[],
+  diverging: boolean,
+  vmin: number,
+  vmax: number,
+  nBins: number = HIST_BINS
+): HistogramModel | null {
+  if (!sorted.length) return null;
+  const dataLo = sorted[0],
+    dataHi = sorted[sorted.length - 1];
+  const inner = innerExtent(sorted, diverging) || [dataLo, dataHi];
+  let lo = inner[0],
+    hi = inner[1];
+  if (!(hi > lo)) {
+    lo -= 0.5;
+    hi += 0.5;
+  }
+  let outerLo = Math.min(dataLo, Number.isFinite(vmin) ? vmin : dataLo);
+  let outerHi = Math.max(dataHi, Number.isFinite(vmax) ? vmax : dataHi);
+  const span = hi - lo;
+  let stubLo = lo - outerLo > HIST_STUB_MIN_OVERFLOW * span;
+  let stubHi = outerHi - hi > HIST_STUB_MIN_OVERFLOW * span;
+  if (!stubLo) {
+    lo = Math.min(lo, outerLo);
+    outerLo = lo;
+  }
+  if (!stubHi) {
+    hi = Math.max(hi, outerHi);
+    outerHi = hi;
+  }
+  const counts = new Array<number>(nBins).fill(0);
+  let nStubLo = 0,
+    nStubHi = 0;
+  // Index from the full span, not a per-bin width: on a subnormal-scale
+  // range the bin width underflows to 0 and (v − lo) / 0 would drop cells.
+  const mainSpan = hi - lo;
+  for (const v of sorted) {
+    if (v < lo) nStubLo++;
+    else if (v > hi) nStubHi++;
+    else {
+      const k = Math.floor(((v - lo) / mainSpan) * nBins);
+      counts[Number.isFinite(k) ? Math.max(0, Math.min(nBins - 1, k)) : 0]++;
+    }
+  }
+  stubLo = stubLo || nStubLo > 0;
+  stubHi = stubHi || nStubHi > 0;
+  return {
+    lo,
+    hi,
+    outerLo,
+    outerHi,
+    stubLo,
+    stubHi,
+    counts,
+    maxCount: Math.max(1, ...counts),
+    nStubLo,
+    nStubHi,
+  };
+}
+
+// Value ↔ track fraction [0, 1] over the piecewise axis.
+export function histValueToFrac(m: HistogramModel, v: number): number {
+  const a = m.stubLo ? HIST_STUB_FRAC : 0;
+  const b = m.stubHi ? 1 - HIST_STUB_FRAC : 1;
+  if (v < m.lo) {
+    if (!m.stubLo) return 0;
+    const d = m.lo - m.outerLo;
+    return d > 0 ? Math.max(0, (a * (v - m.outerLo)) / d) : 0;
+  }
+  if (v > m.hi) {
+    if (!m.stubHi) return 1;
+    const d = m.outerHi - m.hi;
+    return d > 0 ? Math.min(1, b + ((1 - b) * (v - m.hi)) / d) : 1;
+  }
+  // Clamp: `a + (b - a) * 1` can land a hair past `b` in floating point.
+  return Math.min(b, Math.max(a, a + ((b - a) * (v - m.lo)) / (m.hi - m.lo)));
+}
+
+export function histFracToValue(m: HistogramModel, f: number): number {
+  const a = m.stubLo ? HIST_STUB_FRAC : 0;
+  const b = m.stubHi ? 1 - HIST_STUB_FRAC : 1;
+  const t = Math.max(0, Math.min(1, f));
+  if (t < a) return m.outerLo + ((m.lo - m.outerLo) * t) / a;
+  if (t > b) return m.hi + ((m.outerHi - m.hi) * (t - b)) / (1 - b);
+  return m.lo + ((m.hi - m.lo) * (t - a)) / (b - a);
+}
+
+// ── Colour mapping (linear / two-slope) ─────────────────────────────────────
+//
+// Diverging palettes have a neutral middle colour that must mean 0. A linear
+// Min→Max map puts that colour at the range midpoint, so a lopsided range
+// (say −2 … +8) would paint +3 as "neutral". With `centred`, 0 is pinned to
+// the palette midpoint and each side of 0 gets its own slope (matplotlib's
+// TwoSlopeNorm): vmin → 0 uses the low half of the palette, 0 → vmax the high
+// half. Min / Max move independently and the neutral colour stays at 0 —
+// including when 0 sits at or beyond an end of the range: [0, 8] uses only
+// the neutral → high half, [2, 8] only part of it.
+
+// Whether 0 lies strictly inside the range (it then gets its own colourbar
+// tick). The pinning itself applies to every centred range.
+export function isTwoSlope(vmin: number, vmax: number, centred: boolean): boolean {
+  return centred && vmin < 0 && vmax > 0;
+}
+
+// Palette position of v on the centred scale, no clamping.
+const pinned = (v: number, vmin: number, vmax: number): number => {
+  if (v < 0) {
+    const neg = Math.min(vmin, 0);
+    return neg < 0 ? 0.5 * (1 - v / neg) : 0.5;
+  }
+  const pos = Math.max(vmax, 0);
+  return pos > 0 ? 0.5 + (0.5 * v) / pos : 0.5;
+};
+
+// Palette position t ∈ [0, 1] for value v. Values beyond the range take the
+// colour of the range end they exceed.
+export function colourPosition(v: number, vmin: number, vmax: number, centred: boolean): number {
+  if (centred) {
+    const c = Math.max(Math.min(vmin, vmax), Math.min(Math.max(vmin, vmax), v));
+    return Math.max(0, Math.min(1, pinned(c, vmin, vmax)));
+  }
+  const t = (v - vmin) / (vmax - vmin || 1);
+  return Math.max(0, Math.min(1, t));
+}
+
+// Inverse: the value that lands at palette position t.
+export function valueAtPosition(t: number, vmin: number, vmax: number, centred: boolean): number {
+  if (centred) {
+    return t < 0.5 ? Math.min(vmin, 0) * (1 - 2 * t) : Math.max(vmax, 0) * (2 * t - 1);
+  }
+  return vmin + t * (vmax - vmin);
+}
+
+// Colourbar gradient stops: the bar is linear in VALUE (ticks sit at their
+// value's height), so on a centred scale the palette is stretched differently
+// above and below 0, and only the slice [t(vmin), t(vmax)] is shown. Explicit
+// stops at the slice ends and at the palette midpoint keep the colours exact.
+// `offset` runs 0 (vmin, bottom) → 1 (vmax, top).
+export function colourbarGradient(
+  stops: string[],
+  vmin: number,
+  vmax: number,
+  centred: boolean
+): { offset: number; t: number }[] {
+  const n = stops.length;
+  const ts = stops.map((_, i) => i / (n - 1));
+  if (!centred) return ts.map((t) => ({ offset: t, t }));
+  const span = vmax - vmin;
+  const t0 = colourPosition(vmin, vmin, vmax, true);
+  const t1 = colourPosition(vmax, vmin, vmax, true);
+  if (!(span > 0) || !(t1 > t0))
+    return [
+      { offset: 0, t: t0 },
+      { offset: 1, t: t1 },
+    ];
+  const inner = ts.concat([0.5]).filter((t) => t > t0 && t < t1);
+  const all = [t0, ...Array.from(new Set(inner)).sort((x, y) => x - y), t1];
+  return all.map((t, i) => ({
+    offset:
+      i === 0 ? 0 : i === all.length - 1 ? 1 : (valueAtPosition(t, vmin, vmax, true) - vmin) / span,
+    t,
+  }));
+}
+
+// ── Legend histogram (figure) ───────────────────────────────────────────────
+//
+// Bins over [vmin, vmax] of the DISPLAYED cells, aligned with the colourbar so
+// each bar sits next to the colour its values get. Cells beyond the range are
+// reported separately (they're the colourbar's "≥ / ≤" ends).
+
+export function legendHistogram(
+  matrix: DataMatrix,
+  vmin: number,
+  vmax: number,
+  rows: number[],
+  cols: number[],
+  nBins: number
+): { counts: number[]; maxCount: number } {
+  const counts = new Array<number>(Math.max(1, nBins)).fill(0);
+  const span = vmax - vmin;
+  if (span > 0) {
+    for (const ri of rows) {
+      const row = matrix[ri];
+      if (!row) continue;
+      for (const ci of cols) {
+        const v = row[ci];
+        if (!(v >= vmin && v <= vmax)) continue;
+        counts[Math.min(counts.length - 1, Math.floor(((v - vmin) / span) * counts.length))]++;
+      }
+    }
+  }
+  return { counts, maxCount: Math.max(1, ...counts) };
 }
 
 // Cells the colour scale saturates (rendered in the end colours) among the
@@ -353,6 +674,7 @@ export interface HeatmapVis {
   showColLabels: boolean;
   showRowDendrogram: boolean;
   showColDendrogram: boolean;
+  showLegendHistogram: boolean;
 }
 
 export type UpdVis = (patch: Partial<HeatmapVis> | { _reset: true }) => void;
@@ -504,6 +826,8 @@ export interface HeatmapChartProps {
   rowGapStartPx?: number;
   showClusterStrip?: boolean;
   showKmeansStrip?: boolean;
+  // Distribution of the displayed values beside the colourbar.
+  showLegendHistogram?: boolean;
   dendrogramStrokeWidth?: number;
 }
 
@@ -566,8 +890,23 @@ export interface PlotControlsProps {
   setDistanceMetric: (m: DistanceMetric) => void;
   linkageMethod: LinkageMethod;
   setLinkageMethod: (m: LinkageMethod) => void;
-  autoVRange: () => void;
   // Non-null when a few cells stretch the colour scale (see detectRangeSkew).
   skew: RangeSkew | null;
   applyRobustRange: () => void;
+  presets: RangePresets;
+  sortedValues: number[];
+  rangeIsDiverging: boolean;
+  setRange: (lo: number, hi: number) => void;
+}
+
+export interface RangeHistogramProps {
+  sortedValues: number[];
+  vmin: number;
+  vmax: number;
+  palette: string;
+  invertPalette: boolean;
+  // Outlier fences are judged symmetrically about 0 (diverging / z-score
+  // data), matching the presets. The handles themselves are independent.
+  symmetricAxis: boolean;
+  onChange: (lo: number, hi: number) => void;
 }

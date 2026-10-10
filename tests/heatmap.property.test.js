@@ -23,6 +23,11 @@ const {
   pruneDendroTree,
   sortedFiniteValues,
   detectRangeSkew,
+  rangePresets,
+  outlierFences,
+  histogramModel,
+  histValueToFrac,
+  colourPosition,
   SKEW_OCCUPIED_MAX,
   SKEW_OUTLIER_FRAC_MAX,
 } = require("./helpers/heatmap-loader");
@@ -764,5 +769,98 @@ test("a single far spike over a well-spread ≥ 50-cell bulk is always flagged",
       const withSpike = sortedFiniteValues([bulk.concat([spike])]);
       return detectRangeSkew(withSpike, withSpike[0], spike, false) !== null;
     })
+  );
+});
+
+// ── rangePresets / histogramModel ──────────────────────────────────────
+
+suite("heatmap property — colour-range presets + histogram");
+
+const arbValues = fc.record({
+  bulk: fc.array(fc.double({ min: -50, max: 50, noNaN: true, noDefaultInfinity: true }), {
+    minLength: 1,
+    maxLength: 300,
+  }),
+  spikes: fc.array(fc.double({ min: -1e5, max: 1e5, noNaN: true, noDefaultInfinity: true }), {
+    maxLength: 4,
+  }),
+  diverging: fc.boolean(),
+});
+
+const within = (r, outer) => r[0] >= outer[0] && r[1] <= outer[1];
+
+test("presets nest (5–95 ⊆ 1–99 ⊆ full) and every range is non-empty", () => {
+  check(
+    fc.property(arbValues, ({ bulk, spikes, diverging }) => {
+      const sorted = sortedFiniteValues([bulk.concat(spikes)]);
+      const p = rangePresets(sorted, diverging);
+      if (!(p.full[1] > p.full[0])) return false;
+      if (sorted[0] < p.full[0] || sorted[sorted.length - 1] > p.full[1]) return false;
+      for (const r of [p.outliers, p.p1_99, p.p5_95]) {
+        if (r && !(r[1] > r[0] && within(r, p.full))) return false;
+      }
+      if (p.p1_99 && p.p5_95 && !within(p.p5_95, p.p1_99)) return false;
+      return true;
+    })
+  );
+});
+
+test("the outliers preset never clips a non-outlier cell", () => {
+  check(
+    fc.property(arbValues, ({ bulk, spikes, diverging }) => {
+      const sorted = sortedFiniteValues([bulk.concat(spikes)]);
+      const r = rangePresets(sorted, diverging).outliers;
+      if (!r) return true;
+      const f = outlierFences(sorted, diverging);
+      return sorted.every((v) => v < f[0] || v > f[1] || (v >= r[0] && v <= r[1]));
+    })
+  );
+});
+
+test("histogram bins + stubs account for every cell; the track mapping is monotone", () => {
+  check(
+    fc.property(
+      arbValues,
+      fc.double({ min: -1e5, max: 1e5, noNaN: true }),
+      fc.double({ min: -1e5, max: 1e5, noNaN: true }),
+      ({ bulk, spikes, diverging }, x, y) => {
+        const sorted = sortedFiniteValues([bulk.concat(spikes)]);
+        const vmin = Math.min(x, y),
+          vmax = Math.max(x, y);
+        const m = histogramModel(sorted, diverging, vmin, vmax, 24);
+        const total = m.counts.reduce((a, b) => a + b, 0) + m.nStubLo + m.nStubHi;
+        if (total !== sorted.length) return false;
+        let prev = -Infinity;
+        for (const v of sorted) {
+          const f = histValueToFrac(m, v);
+          if (!(f >= 0 && f <= 1 && f >= prev)) return false;
+          prev = f;
+        }
+        return true;
+      }
+    )
+  );
+});
+
+test("centred colour position is monotone, in [0, 1], and 0 is neutral whenever in range", () => {
+  check(
+    fc.property(
+      fc.double({ min: -1e4, max: 1e4, noNaN: true }),
+      fc.double({ min: -1e4, max: 1e4, noNaN: true }),
+      fc.array(fc.double({ min: -2e4, max: 2e4, noNaN: true }), { minLength: 2, maxLength: 40 }),
+      (x, y, vals) => {
+        const vmin = Math.min(x, y),
+          vmax = Math.max(x, y);
+        if (vmin <= 0 && vmax >= 0 && colourPosition(0, vmin, vmax, true) !== 0.5) return false;
+        const sorted = vals.slice().sort((a, b) => a - b);
+        let prev = -Infinity;
+        for (const v of sorted) {
+          const t = colourPosition(v, vmin, vmax, true);
+          if (!(t >= 0 && t <= 1 && t >= prev)) return false;
+          prev = t;
+        }
+        return true;
+      }
+    )
   );
 });
