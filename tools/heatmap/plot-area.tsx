@@ -152,6 +152,7 @@ export function DetailView({
           dendrogramStrokeWidth={DETAIL_DENDRO_STROKE_WIDTH}
           vmin={vis.vmin}
           vmax={vis.vmax}
+          showLegendHistogram={vis.showLegendHistogram}
           palette={vis.palette}
           invertPalette={vis.invertPalette}
           cellBorder={cellBorder}

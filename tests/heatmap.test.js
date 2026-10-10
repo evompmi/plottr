@@ -23,6 +23,23 @@ const {
   SKEW_OCCUPIED_MAX,
   SKEW_OUTLIER_FRAC_MAX,
   SKEW_FENCE,
+  roundSigOut,
+  outlierFences,
+  fullRange,
+  innerExtent,
+  rangePresets,
+  activePreset,
+  histogramModel,
+  histValueToFrac,
+  histFracToValue,
+  legendHistogram,
+  isTwoSlope,
+  colourPosition,
+  valueAtPosition,
+  colourbarGradient,
+  HIST_BINS,
+  HIST_STUB_FRAC,
+  HIST_STUB_MIN_OVERFLOW,
 } = require("./helpers/heatmap-loader");
 
 // ── finiteMean / finiteSD ───────────────────────────────────────────────────
@@ -260,20 +277,20 @@ test("thresholds are pinned", () => {
   eq(SKEW_FENCE, 0.5);
 });
 
-test("one extreme cell over a 0–99 bulk is flagged with the 2nd–98th percentile range", () => {
+test("one extreme cell over a 0–99 bulk is flagged; the fix spans exactly the other cells", () => {
   const sorted = range(0, 100).concat([1000]);
   eq(detectRangeSkew(sorted, 0, 1000, false), {
     nOutliers: 1,
     nTotal: 101,
-    occupied: 0.096,
-    suggestedMin: 2,
-    suggestedMax: 98,
+    occupied: 0.099,
+    suggestedMin: 0,
+    suggestedMax: 99,
   });
 });
 
 test("applying the suggestion clears the alert", () => {
   const sorted = range(0, 100).concat([1000]);
-  eq(detectRangeSkew(sorted, 2, 98, false), null);
+  eq(detectRangeSkew(sorted, 0, 99, false), null);
 });
 
 test("evenly spread data is not flagged", () => {
@@ -305,20 +322,22 @@ test("diverging scales get a symmetric suggestion around zero", () => {
   eq(detectRangeSkew(sorted, -500, 500, true), {
     nOutliers: 1,
     nTotal: 101,
-    occupied: 0.096,
-    suggestedMin: -48,
-    suggestedMax: 48,
+    occupied: 0.1,
+    suggestedMin: -50,
+    suggestedMax: 50,
   });
 });
 
-test("suggestions are rounded to 4 significant digits, never collapsing tiny scales", () => {
+test("suggestions round outward to 4 significant digits, never collapsing tiny scales", () => {
   const sorted = range(0, 100)
     .map((v) => v * 1e-5 + 1.23456e-5)
     .concat([1]);
   const r = detectRangeSkew(sorted, 1.23456e-5, 1, false);
   assert(r !== null, "tiny-scale skew is flagged");
-  eq(r.suggestedMin, 3.235e-5);
-  eq(r.suggestedMax, 0.0009923);
+  // Lower bound rounds down to 1.234e-5, then is held at the current vmin.
+  eq(r.suggestedMin, 1.23456e-5);
+  // Top non-outlier cell is 0.0010023456 → rounded UP so it isn't clipped.
+  eq(r.suggestedMax, 0.001003);
 });
 
 test("degenerate inputs return null", () => {
@@ -327,6 +346,208 @@ test("degenerate inputs return null", () => {
   eq(detectRangeSkew(range(0, 100).concat([1000]), 5, 5, false), null);
   // Constant bulk: the robust range has zero width, nothing sensible to clip to.
   eq(detectRangeSkew(new Array(100).fill(0).concat([50]), 0, 50, false), null);
+});
+
+suite("roundSigOut / fences / presets");
+
+test("roundSigOut rounds to 4 significant digits away from the value", () => {
+  eq(roundSigOut(5.91449, 1), 5.915);
+  eq(roundSigOut(5.91449, -1), 5.914);
+  eq(roundSigOut(-5.91449, 1), -5.914);
+  eq(roundSigOut(-5.91449, -1), -5.915);
+  eq(roundSigOut(0.0123456, -1), 0.01234);
+  eq(roundSigOut(9.9996, 1), 10);
+  eq(roundSigOut(9.9996, -1), 9.999);
+  eq(roundSigOut(123456, 1), 123500);
+  eq(roundSigOut(0, 1), 0);
+  // Already representable → unchanged.
+  eq(roundSigOut(5.9, 1), 5.9);
+});
+
+test("outlierFences sit ½ a robust span beyond the 2nd / 98th percentiles", () => {
+  eq(outlierFences(range(0, 100).concat([1000]), false), [-46, 146]);
+  eq(outlierFences([-500].concat(range(-49, 100)), true), [-96, 96]);
+  eq(outlierFences(new Array(50).fill(3), false), null);
+});
+
+test("innerExtent is the extent of the non-outlier cells (null when none)", () => {
+  eq(innerExtent(range(0, 100).concat([1000]), false), [0, 99]);
+  eq(innerExtent([-500].concat(range(-49, 100)), true), [-49, 50]);
+  eq(innerExtent(range(0, 100), false), null);
+  eq(innerExtent(range(0, 18).concat([1000]), false), null);
+});
+
+test("fullRange spans the data, rounded outward; symmetric when diverging", () => {
+  eq(fullRange([0.123456, 5.91449], false), [0.1234, 5.915]);
+  eq(fullRange([-2, 4], true), [-4, 4]);
+  eq(fullRange([7, 7], false), [6.5, 7.5]);
+  eq(fullRange([0, 0], true), [-1, 1]);
+  eq(fullRange([], false), [0, 1]);
+});
+
+test("rangePresets: full / outliers / percentile cuts", () => {
+  eq(rangePresets(range(0, 100).concat([1000]), false), {
+    full: [0, 1000],
+    outliers: [0, 99],
+    p1_99: [1, 99],
+    p5_95: [5, 95],
+  });
+  eq(rangePresets([-500].concat(range(-49, 100)), true), {
+    full: [-500, 500],
+    outliers: [-50, 50],
+    p1_99: [-49, 49],
+    p5_95: [-45, 45],
+  });
+  eq(rangePresets(range(0, 100), false).outliers, null);
+  eq(rangePresets([4], false), { full: [3.5, 4.5], outliers: null, p1_99: null, p5_95: null });
+});
+
+test("activePreset matches within a relative tolerance, else null (custom)", () => {
+  const p = rangePresets(range(0, 100).concat([1000]), false);
+  eq(activePreset(p, 0, 1000), "full");
+  eq(activePreset(p, 0, 99), "outliers");
+  eq(activePreset(p, 5, 95.00001), "p5_95");
+  eq(activePreset(p, 5, 95.01), null);
+});
+
+suite("two-slope colour mapping");
+
+test("isTwoSlope only when centred and 0 lies strictly inside the range", () => {
+  eq(isTwoSlope(-2, 8, true), true);
+  eq(isTwoSlope(-2, 8, false), false);
+  eq(isTwoSlope(0, 8, true), false);
+  eq(isTwoSlope(1, 8, true), false);
+  eq(isTwoSlope(-8, -1, true), false);
+});
+
+test("two-slope pins 0 to the palette midpoint; each side gets its own slope", () => {
+  eq(colourPosition(0, -2, 8, true), 0.5);
+  eq(colourPosition(-2, -2, 8, true), 0);
+  eq(colourPosition(8, -2, 8, true), 1);
+  eq(colourPosition(-1, -2, 8, true), 0.25);
+  eq(colourPosition(4, -2, 8, true), 0.75);
+  // Clamped beyond the range.
+  eq(colourPosition(-5, -2, 8, true), 0);
+  eq(colourPosition(20, -2, 8, true), 1);
+});
+
+test("linear map for sequential palettes and when 0 is outside the range", () => {
+  eq(colourPosition(3, -2, 8, false), 0.5);
+  eq(colourPosition(4.5, 1, 8, true), 0.5);
+  eq(colourPosition(5, 5, 5, false), 0);
+});
+
+test("valueAtPosition inverts colourPosition", () => {
+  for (const [lo, hi, c] of [
+    [-2, 8, true],
+    [-2, 8, false],
+    [1, 8, true],
+  ]) {
+    for (const t of [0, 0.1, 0.25, 0.5, 0.8, 1]) {
+      approx(colourPosition(valueAtPosition(t, lo, hi, c), lo, hi, c), t, 1e-12);
+    }
+  }
+  eq(valueAtPosition(0.5, -2, 8, true), 0);
+});
+
+test("colourbarGradient stretches stops so the neutral colour sits at 0's height", () => {
+  // 4 stops (no stop at t = 0.5) → an explicit midpoint stop is added. Range
+  // −2…8: 0 sits at 20 % of the bar; the low half (t ≤ 0.5) spans 0–20 %, the
+  // high half 20–100 %.
+  const g = colourbarGradient(["a", "b", "c", "d"], -2, 8, true);
+  const want = [
+    [0, 0],
+    [0.2 * (2 / 3), 1 / 3],
+    [0.2, 0.5],
+    [0.2 + 0.8 * (1 / 3), 2 / 3],
+    [1, 1],
+  ];
+  eq(g.length, want.length);
+  want.forEach(([offset, t], i) => {
+    approx(g[i].offset, offset, 1e-12);
+    approx(g[i].t, t, 1e-12);
+  });
+  // Linear: offsets equal palette positions.
+  eq(colourbarGradient(["a", "b", "c"], -2, 8, false), [
+    { offset: 0, t: 0 },
+    { offset: 0.5, t: 0.5 },
+    { offset: 1, t: 1 },
+  ]);
+});
+
+suite("histogramModel / legendHistogram");
+
+test("histogram constants are pinned", () => {
+  eq(HIST_BINS, 48);
+  eq(HIST_STUB_FRAC, 0.1);
+  eq(HIST_STUB_MIN_OVERFLOW, 0.25);
+});
+
+test("outliers go to a broken-axis stub; the main zone bins the rest", () => {
+  eq(histogramModel(range(0, 100).concat([1000]), false, 0, 1000, 10), {
+    lo: 0,
+    hi: 99,
+    outerLo: 0,
+    outerHi: 1000,
+    stubLo: false,
+    stubHi: true,
+    counts: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+    maxCount: 10,
+    nStubLo: 0,
+    nStubHi: 1,
+  });
+});
+
+test("no outliers → plain linear axis; a slightly widened range just extends it", () => {
+  const m = histogramModel(range(0, 100), false, 0, 110, 10);
+  eq([m.lo, m.hi, m.stubLo, m.stubHi], [0, 110, false, false]);
+  eq(
+    m.counts.reduce((a, b) => a + b, 0),
+    100
+  );
+});
+
+test("a range widened far past the data gets an (empty) stub", () => {
+  const m = histogramModel(range(0, 100), false, 0, 1000, 10);
+  eq([m.lo, m.hi, m.outerHi, m.stubHi, m.nStubHi], [0, 99, 1000, true, 0]);
+});
+
+test("value ↔ fraction mapping is piecewise and round-trips", () => {
+  const m = histogramModel(range(0, 100).concat([1000]), false, 0, 1000, 10);
+  eq(histValueToFrac(m, 0), 0);
+  approx(histValueToFrac(m, 99), 0.9, 1e-12);
+  eq(histValueToFrac(m, 1000), 1);
+  approx(histValueToFrac(m, 549.5), 0.95, 1e-12);
+  for (const v of [0, 12.5, 50, 99, 300, 1000]) {
+    approx(histFracToValue(m, histValueToFrac(m, v)), v, 1e-9);
+  }
+  eq(histFracToValue(m, -1), 0);
+  eq(histFracToValue(m, 2), 1000);
+});
+
+test("subnormal-scale data still lands every cell in a bin (regression)", () => {
+  // Bin width (5e-324 / 24) underflows to 0; indexing by it lost the cell.
+  const m = histogramModel([-5e-324, 0], false, 0, 0, 24);
+  eq(
+    m.counts.reduce((a, b) => a + b, 0),
+    2
+  );
+  eq([m.counts[0], m.counts[23]], [1, 1]);
+});
+
+test("histogramModel of no data is null", () => {
+  eq(histogramModel([], false, 0, 1), null);
+});
+
+test("legendHistogram bins displayed in-range cells over [vmin, vmax]", () => {
+  const m = [
+    [0, 1, 2, 3],
+    [4, 5, 6, 100],
+  ];
+  eq(legendHistogram(m, 0, 6, [0, 1], [0, 1, 2, 3], 3), { counts: [2, 2, 3], maxCount: 3 });
+  // Row subset (detail view) and the out-of-range 100 are excluded.
+  eq(legendHistogram(m, 0, 6, [0], [0, 1, 2, 3], 3), { counts: [2, 2, 0], maxCount: 2 });
+  eq(legendHistogram(m, 5, 5, [0, 1], [0, 1, 2, 3], 3), { counts: [0, 0, 0], maxCount: 1 });
 });
 
 suite("countClipped");

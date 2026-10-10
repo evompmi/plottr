@@ -55,14 +55,29 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.colour.inverted": "Inversée",
   "heatmap.colour.min": "Min",
   "heatmap.colour.max": "Max",
-  "heatmap.colour.auto": "Auto depuis les données",
   "heatmap.colour.skewWarn.one":
     "{n} cellule sur {total} ({pct}) étire l’échelle de couleurs — les autres valeurs n’en occupent que {occupied}.",
   "heatmap.colour.skewWarn.other":
     "{n} cellules sur {total} ({pct}) étirent l’échelle de couleurs — les autres valeurs n’en occupent que {occupied}.",
-  "heatmap.colour.skewFix": "Écrêter aux 2e–98e centiles",
+  "heatmap.colour.skewFix.one": "Exclure {n} valeur aberrante de l’échelle",
+  "heatmap.colour.skewFix.other": "Exclure {n} valeurs aberrantes de l’échelle",
   "heatmap.colour.skewNote":
-    "Les valeurs hors de la nouvelle plage prennent la couleur extrême ; la barre de couleurs les signale par ≥ / ≤.",
+    "Les valeurs aberrantes prennent la couleur extrême ; la barre de couleurs les signale par ≥ / ≤. Survolez une cellule pour voir sa valeur réelle.",
+  "heatmap.range.title": "Plage de couleurs",
+  "heatmap.range.aria": "Distribution des valeurs avec les poignées de la plage de couleurs",
+  "heatmap.range.minAria": "Minimum de l’échelle de couleurs",
+  "heatmap.range.maxAria": "Maximum de l’échelle de couleurs",
+  "heatmap.range.clipped.one": "{n} écrêtée",
+  "heatmap.range.clipped.other": "{n} écrêtées",
+  "heatmap.range.presetsAria": "Plages de couleurs prédéfinies",
+  "heatmap.range.full": "Tout",
+  "heatmap.range.fullTitle": "Couvrir toutes les valeurs des données",
+  "heatmap.range.outliers": "Aberrantes",
+  "heatmap.range.outliersTitle":
+    "Exclure les cellules aberrantes : ajuster l’échelle exactement aux autres valeurs",
+  "heatmap.range.noOutliers": "Aucune valeur aberrante détectée",
+  "heatmap.range.pctTitle": "Couvrir du {lo}e au {hi}e centile des valeurs",
+  "heatmap.range.legendHist": "Distribution dans la légende",
   "heatmap.border.width": "Épaisseur",
   "heatmap.labels.title": "Titre",
   "heatmap.labels.subtitle": "Sous-titre",
@@ -74,6 +89,8 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.labels.colNamesAria": "Afficher les noms des colonnes",
   "heatmap.chart.cluster": "Groupe n° {n}",
   "heatmap.chart.colorbarAria": "Barre de couleurs : valeurs de {min} à {max}",
+  "heatmap.chart.legendHistAria":
+    "Distribution des valeurs affichées le long de l’échelle de couleurs",
   "heatmap.chart.colorbarClippedAria":
     "Barre de couleurs : valeurs de {min} à {max} ; les valeurs hors de cette plage prennent les couleurs extrêmes",
   "heatmap.chart.fallbackTitle": "Carte de chaleur",

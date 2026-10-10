@@ -10,10 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Heatmap outlier-skew alert.** When a few cells (≤ 2 %) stretch the colour scale so the
-  rest of the matrix uses less than half of it, a warning names them and offers a one-click
-  clip to the 2nd–98th percentile. A clipped colourbar now reads "≥ max" / "≤ min", and the
-  R export colours clipped cells with the end colours instead of grey. The sample dataset
-  now includes three outlier spikes to demonstrate this.
+  rest of the matrix uses less than half of it, a warning offers to exclude exactly those
+  outliers. Clipped colourbar ends read "≥ max (n=…)" / "≤ min (n=…)", and the R export
+  colours clipped cells with the end colours instead of grey. The sample dataset includes
+  three outlier spikes to demonstrate this.
+- **Heatmap colour-range histogram.** The Colour scale section shows the value distribution
+  (outliers in a broken-axis stub) with draggable Min / Max handles and Full / Outliers /
+  1–99 % / 5–95 % presets; "Full" replaces "Auto from data". The distribution is also drawn
+  beside the figure's colourbar (toggle: "Distribution in legend").
+
+### Changed
+
+- **Heatmap diverging palettes keep their neutral colour at 0.** Each side of 0 now gets
+  its own colour slope (two-slope map), so Min and Max can be set independently — e.g.
+  −2 … +8 — without the white/grey midpoint drifting off 0. The colourbar marks 0, and the
+  R export uses matching two-slope breaks. Lopsided ranges on diverging palettes render
+  differently from before.
 
 ## [1.10.0] - 2026-09-17
 

@@ -25,24 +25,60 @@ test("heatmap: load example → cells render", async ({ page }) => {
 
 // The sample carries three "saturated well" spikes (≈ 36–52 over a bulk
 // below ~6) precisely so the outlier-skew alert is demonstrable: it must
-// fire on load, and clipping must clear it and mark the colourbar.
-test("heatmap: sample data triggers the outlier-skew alert; clipping clears it", async ({
+// fire on load, and excluding the outliers must clip exactly those 3 cells.
+test("heatmap: sample data triggers the outlier alert; excluding clips only the spikes", async ({
   page,
 }) => {
   await page.goto("/index.html#/heatmap");
   await page.getByTestId("load-example").click();
   await page.getByTestId("step-plot").click();
 
-  // The Colour scale section starts collapsed, so only the compact strip
-  // above the plot is mounted on load.
+  // Compact strip above the plot + full box in the Colour scale section,
+  // which opens on its own while the alert is active.
   const alerts = page.getByTestId("heatmap-skew-alert");
-  await expect(alerts).toHaveCount(1);
-  await expect(alerts).toContainText("3 of 3000 cells (0.1%) stretch the colour scale");
+  await expect(alerts).toHaveCount(2);
+  await expect(alerts.first()).toContainText("3 of 3000 cells (0.1%) stretch the colour scale");
 
   const topTick = page.locator("svg g#colorbar text").first();
   await expect(topTick).toHaveText("52.4");
+  // The legend histogram ships with the colourbar by default.
+  await expect(page.locator("svg g#colorbar-histogram rect").first()).toBeAttached();
 
-  await alerts.getByRole("button", { name: "Clip to 2nd–98th percentile" }).click();
+  await alerts
+    .first()
+    .getByRole("button", { name: "Exclude 3 outliers from the colour scale" })
+    .click();
   await expect(alerts).toHaveCount(0);
-  await expect(topTick).toHaveText(/^≥ /);
+  // Only the three spikes saturate; every ordinary cell keeps its colour.
+  await expect(topTick).toHaveText(/^≥ \d+\.\d \(n=3\)$/);
+  await expect(page.getByRole("button", { name: "Outliers", pressed: true })).toBeVisible();
+});
+
+test("heatmap: range histogram — drag the Max handle, then a percentile preset", async ({
+  page,
+}) => {
+  await page.goto("/index.html#/heatmap");
+  await page.getByTestId("load-example").click();
+  await page.getByTestId("step-plot").click();
+
+  const handle = page.getByTestId("heatmap-range-hi");
+  const before = Number(await handle.getAttribute("aria-valuenow"));
+  const track = page.getByRole("group", { name: /Distribution of cell values/ });
+  // hover() scrolls the handle into view (the Colour scale section scrolls
+  // itself into view as it auto-opens) — measure only after that settles.
+  await handle.hover();
+  await page.waitForTimeout(300);
+  await handle.hover();
+  const box = (await track.boundingBox())!;
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.5, box.y + 20, { steps: 5 });
+  await page.mouse.up();
+  await expect
+    .poll(async () => Number(await handle.getAttribute("aria-valuenow")))
+    .toBeLessThan(before);
+  await expect(page.locator("svg g#colorbar text").first()).toHaveText(/^≥ /);
+
+  await page.getByRole("button", { name: "5–95 %" }).click();
+  await expect(page.getByRole("button", { name: "5–95 %", pressed: true })).toBeVisible();
+  await expect(page.getByTestId("heatmap-range-clipped")).toContainText("clipped");
 });

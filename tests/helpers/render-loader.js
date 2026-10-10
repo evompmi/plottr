@@ -307,6 +307,7 @@ function loadTool(toolName) {
     "UpsetChart: typeof UpsetChart !== 'undefined' ? UpsetChart : undefined," +
     "HeatmapChart: typeof HeatmapChart !== 'undefined' ? HeatmapChart : undefined," +
     "SkewAlert: typeof SkewAlert !== 'undefined' ? SkewAlert : undefined," +
+    "RangeHistogram: typeof RangeHistogram !== 'undefined' ? RangeHistogram : undefined," +
     "buildHeatmapRScript: typeof buildHeatmapRScript !== 'undefined' ? buildHeatmapRScript : undefined," +
     "App: typeof App !== 'undefined' ? App : undefined," +
     "};";

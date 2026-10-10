@@ -159,9 +159,22 @@ export function buildHeatmapRScript({
   );
   lines.push("palette_stops <- " + stopsR);
   lines.push("heat_colors <- colorRampPalette(palette_stops)(100)");
-  lines.push(
-    "breaks <- seq(" + formatRNumber(vmin) + ", " + formatRNumber(vmax) + ", length.out = 101)"
-  );
+  if (DIVERGING_PALETTES.has(palette) && vmin < 0 && vmax > 0) {
+    // Two-slope scale, as in the browser tool: the palette's neutral middle
+    // colour is pinned to 0, each side of 0 gets half the colours.
+    lines.push("# Two-slope breaks: the palette's neutral middle colour sits at 0.");
+    lines.push(
+      "breaks <- c(seq(" +
+        formatRNumber(vmin) +
+        ", 0, length.out = 51), seq(0, " +
+        formatRNumber(vmax) +
+        ", length.out = 51)[-1])"
+    );
+  } else {
+    lines.push(
+      "breaks <- seq(" + formatRNumber(vmin) + ", " + formatRNumber(vmax) + ", length.out = 101)"
+    );
+  }
   lines.push("");
   // pheatmap paints values outside `breaks` with its grey NA colour, while the
   // browser tool saturates them to the end colours. Clip before plotting —

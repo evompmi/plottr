@@ -14,7 +14,13 @@ import {
 import type { ChartDataTableRow } from "../_shell";
 import "./i18n";
 import { tt, useT } from "./i18n";
-import { normalizeMatrix, autoRange, sortedFiniteValues, detectRangeSkew } from "./helpers";
+import {
+  normalizeMatrix,
+  sortedFiniteValues,
+  detectRangeSkew,
+  fullRange,
+  rangePresets,
+} from "./helpers";
 import type {
   AxisClusterMeta,
   BrushBox,
@@ -85,6 +91,9 @@ const VIS_INIT_HEATMAP = {
   // opens detail views. Applies to both the main and zoomed plots.
   showRowDendrogram: true,
   showColDendrogram: true,
+  // Distribution of the displayed values drawn beside the colourbar (and
+  // exported with it), so a reader sees where the data sit on the scale.
+  showLegendHistogram: true,
 };
 
 // ── Embedded example dataset (500 genes × 6 samples) ────────────────────────
@@ -355,22 +364,29 @@ export function App() {
   }, [rawMatrix, normalized, rowOrder, colOrder, rowCluster, colCluster]);
 
   const rangeIsDiverging = DIVERGING_PALETTES.has(vis.palette) || normalization.startsWith("z");
+  // Sorted once per data change; presets, the skew alert and the sidebar
+  // histogram all read from it, so dragging Min / Max stays cheap.
+  const sortedValues = useMemo(() => sortedFiniteValues(normalized), [normalized]);
+  const presets = useMemo(
+    () => rangePresets(sortedValues, rangeIsDiverging),
+    [sortedValues, rangeIsDiverging]
+  );
+  const setRange = useCallback(
+    (lo: number, hi: number) => updVis({ vmin: lo, vmax: hi }),
+    [updVis]
+  );
   const autoVRange = useCallback(() => {
-    const [lo, hi] = autoRange(normalized, rangeIsDiverging);
-    updVis({ vmin: Number(lo.toFixed(3)), vmax: Number(hi.toFixed(3)) });
-  }, [normalized, rangeIsDiverging, updVis]);
+    setRange(presets.full[0], presets.full[1]);
+  }, [presets, setRange]);
 
   // Outlier-skew alert: a few extreme cells stretching the colour scale.
-  // The sort is keyed on the data only, so typing into Min / Max re-runs
-  // just the cheap linear scan.
-  const sortedValues = useMemo(() => sortedFiniteValues(normalized), [normalized]);
   const skew = useMemo(
     () => detectRangeSkew(sortedValues, vis.vmin, vis.vmax, rangeIsDiverging),
     [sortedValues, vis.vmin, vis.vmax, rangeIsDiverging]
   );
   const applyRobustRange = useCallback(() => {
-    if (skew) updVis({ vmin: skew.suggestedMin, vmax: skew.suggestedMax });
-  }, [skew, updVis]);
+    if (skew) setRange(skew.suggestedMin, skew.suggestedMax);
+  }, [skew, setRange]);
 
   // The colorbar range must follow the normalization mode: switching
   // none → z-score (values ≈ ±3) or → log2 shifts the value scale
@@ -437,13 +453,10 @@ export function App() {
       });
       setWarnings(parsed.warnings);
 
-      // Auto-range the colour scale from the raw data on first load.
-      const diverging = DIVERGING_PALETTES.has("viridis"); // false; just for signature parity
-      const [lo, hi] = autoRange(parsed.matrix, diverging);
-      updVis({
-        vmin: Number(lo.toFixed(3)),
-        vmax: Number(hi.toFixed(3)),
-      });
+      // Auto-range the colour scale from the raw data on first load
+      // (sequential: normalisation starts at "none").
+      const [lo, hi] = fullRange(sortedFiniteValues(parsed.matrix), false);
+      updVis({ vmin: lo, vmax: hi });
       setStep("configure");
     },
     [setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep, updVis]
@@ -636,8 +649,11 @@ export function App() {
               setDistanceMetric={setDistanceMetric}
               linkageMethod={linkageMethod}
               setLinkageMethod={setLinkageMethod}
-              autoVRange={autoVRange}
               skew={skew}
+              presets={presets}
+              sortedValues={sortedValues}
+              rangeIsDiverging={rangeIsDiverging}
+              setRange={setRange}
               applyRobustRange={applyRobustRange}
             />
 
@@ -745,6 +761,7 @@ export function App() {
                     colCluster={colCluster}
                     vmin={vis.vmin}
                     vmax={vis.vmax}
+                    showLegendHistogram={vis.showLegendHistogram}
                     palette={vis.palette}
                     invertPalette={vis.invertPalette}
                     cellBorder={cellBorder}
