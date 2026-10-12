@@ -29,6 +29,12 @@ const CATALOGS = [
   ],
   ["venn", "Venn tool", "tools/venn/i18n/en.ts", "tools/venn/i18n/fr.ts"],
   ["volcano", "Volcano tool", "tools/volcano/i18n/en.ts", "tools/volcano/i18n/fr.ts"],
+  [
+    "proportions",
+    "Proportions tool",
+    "tools/proportions/i18n/en.ts",
+    "tools/proportions/i18n/fr.ts",
+  ],
   ["heatmap", "Heatmap tool", "tools/heatmap/i18n/en.ts", "tools/heatmap/i18n/fr.ts"],
   ["upset", "UpSet tool", "tools/upset/i18n/en.ts", "tools/upset/i18n/fr.ts"],
   ["lineplot", "Line Plot tool", "tools/lineplot/i18n/en.ts", "tools/lineplot/i18n/fr.ts"],

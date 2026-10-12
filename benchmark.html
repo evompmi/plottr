@@ -276,8 +276,8 @@
 
   <h2 class="ref-heading">vs R 4.5.3 on real built-in datasets</h2>
   <div class="summary summary-pass">
-    <div><span class="k">comparisons</span><span class="v">529</span></div>
-    <div><span class="k">passing</span><span class="v v-pass">524 (100.0%)</span></div>
+    <div><span class="k">comparisons</span><span class="v">598</span></div>
+    <div><span class="k">passing</span><span class="v v-pass">593 (100.0%)</span></div>
     <div><span class="k">failing</span><span class="v v-pass">0</span></div>
     <div><span class="k">past R's floor</span><span class="v v-rsat">5</span></div>
     <div><span class="k">max |Δ| (normal)</span><span class="v">2.87e-5</span></div>
@@ -6186,8 +6186,872 @@
       </table>
     </details>
 
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Fisher exact (2×2)</span> <span class="badge badge-pass">7/7 pass</span></summary>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Plöttr</th>
+            <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
+            <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept A</td>
+        <td class="num">933</td>
+        <td>p</td>
+        <td class="num">1.669e-5</td>
+        <td class="num">1.669e-5</td>
+        <td class="num">1.13e-16</td>
+        <td class="num">6.76e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept B</td>
+        <td class="num">585</td>
+        <td>p</td>
+        <td class="num">0.67709</td>
+        <td class="num">0.67709</td>
+        <td class="num">3.29e-12</td>
+        <td class="num">4.87e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept C</td>
+        <td class="num">918</td>
+        <td>p</td>
+        <td class="num">0.386617</td>
+        <td class="num">0.386617</td>
+        <td class="num">3.80e-12</td>
+        <td class="num">9.82e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept D</td>
+        <td class="num">792</td>
+        <td>p</td>
+        <td class="num">0.599497</td>
+        <td class="num">0.599497</td>
+        <td class="num">3.78e-12</td>
+        <td class="num">6.31e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept E</td>
+        <td class="num">584</td>
+        <td>p</td>
+        <td class="num">0.360396</td>
+        <td class="num">0.360396</td>
+        <td class="num">4.32e-12</td>
+        <td class="num">1.20e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept F</td>
+        <td class="num">714</td>
+        <td>p</td>
+        <td class="num">0.545841</td>
+        <td class="num">0.545841</td>
+        <td class="num">4.93e-13</td>
+        <td class="num">9.04e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>Fisher's tea tasting</td>
+        <td class="num">8</td>
+        <td>p</td>
+        <td class="num">0.485714</td>
+        <td class="num">0.485714</td>
+        <td class="num">4.28e-12</td>
+        <td class="num">8.82e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </details>
+
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Chi-square independence</span> <span class="badge badge-pass">16/16 pass</span></summary>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Plöttr</th>
+            <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
+            <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept A (Yates)</td>
+        <td class="num">933</td>
+        <td>X²</td>
+        <td class="num">16.3718</td>
+        <td class="num">16.3718</td>
+        <td class="num">3.48e-11</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept A (Yates)</td>
+        <td class="num">933</td>
+        <td>p</td>
+        <td class="num">5.205e-5</td>
+        <td class="num">5.205e-5</td>
+        <td class="num">2.39e-16</td>
+        <td class="num">4.60e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept B (Yates)</td>
+        <td class="num">585</td>
+        <td>X²</td>
+        <td class="num">0.085098</td>
+        <td class="num">0.085098</td>
+        <td class="num">4.42e-13</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept B (Yates)</td>
+        <td class="num">585</td>
+        <td>p</td>
+        <td class="num">0.770504</td>
+        <td class="num">0.770504</td>
+        <td class="num">4.43e-12</td>
+        <td class="num">5.75e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept C (Yates)</td>
+        <td class="num">918</td>
+        <td>X²</td>
+        <td class="num">0.633224</td>
+        <td class="num">0.633224</td>
+        <td class="num">1.64e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept C (Yates)</td>
+        <td class="num">918</td>
+        <td>p</td>
+        <td class="num">0.426175</td>
+        <td class="num">0.426175</td>
+        <td class="num">7.74e-14</td>
+        <td class="num">1.82e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept D (Yates)</td>
+        <td class="num">792</td>
+        <td>X²</td>
+        <td class="num">0.221594</td>
+        <td class="num">0.221594</td>
+        <td class="num">1.96e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept D (Yates)</td>
+        <td class="num">792</td>
+        <td>p</td>
+        <td class="num">0.637828</td>
+        <td class="num">0.637828</td>
+        <td class="num">3.21e-12</td>
+        <td class="num">5.03e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept E (Yates)</td>
+        <td class="num">584</td>
+        <td>X²</td>
+        <td class="num">0.808048</td>
+        <td class="num">0.808048</td>
+        <td class="num">1.08e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept E (Yates)</td>
+        <td class="num">584</td>
+        <td>p</td>
+        <td class="num">0.368698</td>
+        <td class="num">0.368698</td>
+        <td class="num">2.70e-12</td>
+        <td class="num">7.32e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept F (Yates)</td>
+        <td class="num">714</td>
+        <td>X²</td>
+        <td class="num">0.218243</td>
+        <td class="num">0.218243</td>
+        <td class="num">1.42e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept F (Yates)</td>
+        <td class="num">714</td>
+        <td>p</td>
+        <td class="num">0.640382</td>
+        <td class="num">0.640382</td>
+        <td class="num">1.47e-12</td>
+        <td class="num">2.30e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>Titanic Class × Survived</td>
+        <td class="num">2201</td>
+        <td>X²</td>
+        <td class="num">190.401</td>
+        <td class="num">190.401</td>
+        <td class="num">3.33e-11</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>Titanic Class × Survived</td>
+        <td class="num">2201</td>
+        <td>p</td>
+        <td class="num">5.000e-41</td>
+        <td class="num">5.000e-41</td>
+        <td class="num">3.21e-52</td>
+        <td class="num">6.41e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>HairEyeColor Hair × Eye</td>
+        <td class="num">592</td>
+        <td>X²</td>
+        <td class="num">138.29</td>
+        <td class="num">138.29</td>
+        <td class="num">8.27e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>HairEyeColor Hair × Eye</td>
+        <td class="num">592</td>
+        <td>p</td>
+        <td class="num">2.325e-25</td>
+        <td class="num">2.325e-25</td>
+        <td class="num">1.19e-37</td>
+        <td class="num">5.12e-13</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </details>
+
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Wilson CI</span> <span class="badge badge-pass">24/24 pass</span></summary>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Plöttr</th>
+            <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
+            <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept A Male</td>
+        <td class="num">825</td>
+        <td>lower</td>
+        <td class="num">0.587008</td>
+        <td class="num">0.587008</td>
+        <td class="num">3.07e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept A Male</td>
+        <td class="num">825</td>
+        <td>upper</td>
+        <td class="num">0.653086</td>
+        <td class="num">0.653086</td>
+        <td class="num">2.59e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept A Female</td>
+        <td class="num">108</td>
+        <td>lower</td>
+        <td class="num">0.741505</td>
+        <td class="num">0.741505</td>
+        <td class="num">4.82e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept A Female</td>
+        <td class="num">108</td>
+        <td>upper</td>
+        <td class="num">0.884381</td>
+        <td class="num">0.884381</td>
+        <td class="num">1.83e-13</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept B Male</td>
+        <td class="num">560</td>
+        <td>lower</td>
+        <td class="num">0.589616</td>
+        <td class="num">0.589616</td>
+        <td class="num">2.93e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept B Male</td>
+        <td class="num">560</td>
+        <td>upper</td>
+        <td class="num">0.669322</td>
+        <td class="num">0.669322</td>
+        <td class="num">3.92e-13</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept B Female</td>
+        <td class="num">25</td>
+        <td>lower</td>
+        <td class="num">0.484103</td>
+        <td class="num">0.484103</td>
+        <td class="num">1.02e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept B Female</td>
+        <td class="num">25</td>
+        <td>upper</td>
+        <td class="num">0.827948</td>
+        <td class="num">0.827948</td>
+        <td class="num">9.20e-13</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept C Male</td>
+        <td class="num">325</td>
+        <td>lower</td>
+        <td class="num">0.318576</td>
+        <td class="num">0.318576</td>
+        <td class="num">2.97e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept C Male</td>
+        <td class="num">325</td>
+        <td>upper</td>
+        <td class="num">0.422941</td>
+        <td class="num">0.422941</td>
+        <td class="num">1.57e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept C Female</td>
+        <td class="num">593</td>
+        <td>lower</td>
+        <td class="num">0.303631</td>
+        <td class="num">0.303631</td>
+        <td class="num">2.06e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept C Female</td>
+        <td class="num">593</td>
+        <td>upper</td>
+        <td class="num">0.379702</td>
+        <td class="num">0.379702</td>
+        <td class="num">2.24e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept D Male</td>
+        <td class="num">417</td>
+        <td>lower</td>
+        <td class="num">0.287495</td>
+        <td class="num">0.287495</td>
+        <td class="num">2.77e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept D Male</td>
+        <td class="num">417</td>
+        <td>upper</td>
+        <td class="num">0.377462</td>
+        <td class="num">0.377462</td>
+        <td class="num">2.58e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept D Female</td>
+        <td class="num">375</td>
+        <td>lower</td>
+        <td class="num">0.302828</td>
+        <td class="num">0.302828</td>
+        <td class="num">3.90e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept D Female</td>
+        <td class="num">375</td>
+        <td>upper</td>
+        <td class="num">0.398894</td>
+        <td class="num">0.398894</td>
+        <td class="num">3.65e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept E Male</td>
+        <td class="num">191</td>
+        <td>lower</td>
+        <td class="num">0.21885</td>
+        <td class="num">0.21885</td>
+        <td class="num">8.62e-13</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept E Male</td>
+        <td class="num">191</td>
+        <td>upper</td>
+        <td class="num">0.344898</td>
+        <td class="num">0.344898</td>
+        <td class="num">1.67e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept E Female</td>
+        <td class="num">393</td>
+        <td>lower</td>
+        <td class="num">0.199664</td>
+        <td class="num">0.199664</td>
+        <td class="num">2.53e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept E Female</td>
+        <td class="num">393</td>
+        <td>upper</td>
+        <td class="num">0.283757</td>
+        <td class="num">0.283757</td>
+        <td class="num">4.34e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept F Male</td>
+        <td class="num">373</td>
+        <td>lower</td>
+        <td class="num">0.0392696</td>
+        <td class="num">0.0392696</td>
+        <td class="num">4.11e-14</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept F Male</td>
+        <td class="num">373</td>
+        <td>upper</td>
+        <td class="num">0.0876842</td>
+        <td class="num">0.0876842</td>
+        <td class="num">3.20e-13</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept F Female</td>
+        <td class="num">341</td>
+        <td>lower</td>
+        <td class="num">0.0477489</td>
+        <td class="num">0.0477489</td>
+        <td class="num">1.22e-13</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>UCBAdmissions Dept F Female</td>
+        <td class="num">341</td>
+        <td>upper</td>
+        <td class="num">0.102585</td>
+        <td class="num">0.102585</td>
+        <td class="num">7.75e-13</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </details>
+
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Fisher exact (R×C)</span> <span class="badge badge-pass">12/12 pass</span></summary>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Plöttr</th>
+            <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
+            <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>Titanic children Class × Survived</td>
+        <td class="num">109</td>
+        <td>p</td>
+        <td class="num">3.012e-11</td>
+        <td class="num">3.012e-11</td>
+        <td class="num">3.08e-22</td>
+        <td class="num">1.02e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>infert education × spontaneous</td>
+        <td class="num">248</td>
+        <td>p</td>
+        <td class="num">0.439462</td>
+        <td class="num">0.439462</td>
+        <td class="num">1.57e-12</td>
+        <td class="num">3.56e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>random 2×3 N=25</td>
+        <td class="num">25</td>
+        <td>p</td>
+        <td class="num">0.432158</td>
+        <td class="num">0.432158</td>
+        <td class="num">7.78e-13</td>
+        <td class="num">1.80e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>random 2×3 N=60</td>
+        <td class="num">60</td>
+        <td>p</td>
+        <td class="num">0.285876</td>
+        <td class="num">0.285876</td>
+        <td class="num">4.69e-12</td>
+        <td class="num">1.64e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>random 3×3 N=25</td>
+        <td class="num">25</td>
+        <td>p</td>
+        <td class="num">0.130029</td>
+        <td class="num">0.130029</td>
+        <td class="num">4.65e-13</td>
+        <td class="num">3.58e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>random 3×3 N=60</td>
+        <td class="num">60</td>
+        <td>p</td>
+        <td class="num">0.557365</td>
+        <td class="num">0.557365</td>
+        <td class="num">3.75e-12</td>
+        <td class="num">6.72e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>random 3×4 N=25</td>
+        <td class="num">25</td>
+        <td>p</td>
+        <td class="num">0.73271</td>
+        <td class="num">0.73271</td>
+        <td class="num">3.74e-12</td>
+        <td class="num">5.10e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>random 3×4 N=60</td>
+        <td class="num">60</td>
+        <td>p</td>
+        <td class="num">0.297694</td>
+        <td class="num">0.297694</td>
+        <td class="num">3.37e-12</td>
+        <td class="num">1.13e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>random 2×6 N=25</td>
+        <td class="num">25</td>
+        <td>p</td>
+        <td class="num">0.872953</td>
+        <td class="num">0.872953</td>
+        <td class="num">2.70e-12</td>
+        <td class="num">3.09e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>random 2×6 N=60</td>
+        <td class="num">60</td>
+        <td>p</td>
+        <td class="num">0.554127</td>
+        <td class="num">0.554127</td>
+        <td class="num">3.39e-12</td>
+        <td class="num">6.11e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>random 4×3 N=25</td>
+        <td class="num">25</td>
+        <td>p</td>
+        <td class="num">0.464531</td>
+        <td class="num">0.464531</td>
+        <td class="num">1.49e-12</td>
+        <td class="num">3.20e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>random 4×3 N=60</td>
+        <td class="num">60</td>
+        <td>p</td>
+        <td class="num">0.104852</td>
+        <td class="num">0.104852</td>
+        <td class="num">8.09e-13</td>
+        <td class="num">7.71e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </details>
+
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Chi-square GOF</span> <span class="badge badge-pass">6/6 pass</span></summary>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Plöttr</th>
+            <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
+            <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>Mendel 1866 seed shape × colour, 9:3:3:1</td>
+        <td class="num">556</td>
+        <td>X²</td>
+        <td class="num">0.470024</td>
+        <td class="num">0.470024</td>
+        <td class="num">4.65e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>Mendel 1866 seed shape × colour, 9:3:3:1</td>
+        <td class="num">556</td>
+        <td>p</td>
+        <td class="num">0.925426</td>
+        <td class="num">0.925426</td>
+        <td class="num">3.62e-12</td>
+        <td class="num">3.91e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>Mendel 1866 seed shape, 3:1</td>
+        <td class="num">7324</td>
+        <td>X²</td>
+        <td class="num">0.26288</td>
+        <td class="num">0.26288</td>
+        <td class="num">2.02e-12</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>Mendel 1866 seed shape, 3:1</td>
+        <td class="num">7324</td>
+        <td>p</td>
+        <td class="num">0.608148</td>
+        <td class="num">0.608148</td>
+        <td class="num">2.07e-12</td>
+        <td class="num">3.41e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>1:2:1 codominant F2</td>
+        <td class="num">40</td>
+        <td>X²</td>
+        <td class="num">0.8</td>
+        <td class="num">0.8</td>
+        <td class="num">0</td>
+        <td class="num">—</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>1:2:1 codominant F2</td>
+        <td class="num">40</td>
+        <td>p</td>
+        <td class="num">0.67032</td>
+        <td class="num">0.67032</td>
+        <td class="num">4.36e-12</td>
+        <td class="num">6.51e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </details>
+
+    <details class="category" open>
+      <summary><span class="dv-disclosure" aria-hidden="true"></span><span class="cat-title">Binomial exact</span> <span class="badge badge-pass">4/4 pass</span></summary>
+      <table>
+        <colgroup>
+          <col class="c-dataset" />
+          <col class="c-n" />
+          <col class="c-metric" />
+          <col class="c-r" />
+          <col class="c-js" />
+          <col class="c-delta" />
+          <col class="c-delta" />
+          <col class="c-ok" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>dataset</th>
+            <th class="num">n</th>
+            <th>metric</th>
+            <th class="num">R</th>
+            <th class="num">Plöttr</th>
+            <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
+            <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="row-pass">
+        <td>5474 / 7324 vs p0 = 0.75</td>
+        <td class="num">7324</td>
+        <td>p</td>
+        <td class="num">0.608155</td>
+        <td class="num">0.608155</td>
+        <td class="num">4.59e-11</td>
+        <td class="num">7.55e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>7 / 20 vs p0 = 0.5</td>
+        <td class="num">20</td>
+        <td>p</td>
+        <td class="num">0.263176</td>
+        <td class="num">0.263176</td>
+        <td class="num">4.53e-12</td>
+        <td class="num">1.72e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>3 / 40 vs p0 = 0.25</td>
+        <td class="num">40</td>
+        <td>p</td>
+        <td class="num">0.00934715</td>
+        <td class="num">0.00934715</td>
+        <td class="num">4.02e-14</td>
+        <td class="num">4.30e-12</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr>
+      <tr class="row-pass">
+        <td>682 / 925 vs p0 = 0.75</td>
+        <td class="num">925</td>
+        <td>p</td>
+        <td class="num">0.382492</td>
+        <td class="num">0.382492</td>
+        <td class="num">5.47e-12</td>
+        <td class="num">1.43e-11</td>
+        <td class="ok-cell ok-pass">✓</td>
+      </tr></tbody>
+      </table>
+    </details>
+
   <footer>
-    R reference generated 2026-05-13 16:39:22 UTC.
+    R reference generated 2026-10-12 16:35:47 UTC.
     Tolerance 1e-7–1e-3 by metric tier (see above). Tool source: <code>tools/_core/stats/*.ts</code>.
   </footer>
 </div>

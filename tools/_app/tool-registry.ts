@@ -118,6 +118,13 @@ export const TOOL_REGISTRY: ToolEntry[] = [
     Component: lazyApp(() => import("../volcano/app")),
   },
   {
+    key: "proportions",
+    label: "Proportions",
+    iconSvg:
+      '<svg viewBox="0 0 44 44" fill="currentColor" stroke="none" aria-hidden="true"><rect x="8" y="6" width="10" height="32" fill-opacity="0.25"/><rect x="8" y="20" width="10" height="18"/><rect x="26" y="6" width="10" height="32" fill-opacity="0.25"/><rect x="26" y="11" width="10" height="27"/><rect x="4" y="38" width="36" height="2"/></svg>',
+    Component: lazyApp(() => import("../proportions/app")),
+  },
+  {
     key: "power",
     label: "Power Analysis",
     iconSvg:

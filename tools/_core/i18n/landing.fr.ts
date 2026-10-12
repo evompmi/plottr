@@ -19,7 +19,7 @@ const landingFr: Record<LandingKey, string> = {
   "landing.hiw.step3": "Ajustez le tracé",
   "landing.hiw.step4": "Téléchargez SVG + R",
   "landing.group.plotsKicker": "Graphes",
-  "landing.group.plotsText": "Huit types de graphiques, à un clic près",
+  "landing.group.plotsText": "Neuf types de graphiques, à un clic près",
   "landing.group.statsKicker": "Statistiques & calculatrices",
   "landing.group.statsText": "Calculs rapides à la paillasse",
   "landing.desc.boxplot": "Boîte / violon / barre<br/>avec stats &amp; facettes",
@@ -30,6 +30,8 @@ const landingFr: Record<LandingKey, string> = {
   "landing.desc.upset": "Intersections d’ensembles<br/>4+ ensembles",
   "landing.desc.heatmap": "Vue en matrice<br/>avec clusters",
   "landing.desc.volcano": "log₂FC vs −log₁₀p<br/>pour données —omiques",
+  "landing.desc.proportions":
+    "% germination, effectifs phénotypiques<br/>Fisher · χ² · IC de Wilson",
   "landing.desc.power": "Taille d’échantillon &amp; puissance<br/>pour t, ANOVA, χ², r",
   "landing.desc.molarity": "Molarité, dilution<br/>&amp; feuilles de préparation",
   "landing.theme.toLight": "Passer en mode clair",

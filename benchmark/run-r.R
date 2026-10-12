@@ -775,6 +775,82 @@ for (c in msi_cases) {
   )
 }
 
+# ── 13. Counts & proportions (tools/_core/stats/categorical.ts) ───────────
+#
+# Fisher's exact test (2×2 + R×C), Pearson χ² (with / without Yates), χ²
+# goodness of fit, exact binomial test, Wilson score CI (prop.test without
+# continuity correction). Tables are stored row-major as list-of-rows.
+
+rows_of <- function(m) lapply(seq_len(nrow(m)), function(i) as.integer(unname(m[i, ])))
+
+ucb <- UCBAdmissions
+for (d in dimnames(ucb)$Dept) {
+  m <- t(ucb[, , d])  # rows = Gender, cols = Admit
+  f <- fisher.test(m)
+  add(category = "Fisher exact (2×2)", label = paste0("UCBAdmissions Dept ", d),
+      n = sum(m), inputs = list(table = rows_of(m)), r = list(p = f$p.value))
+  c1 <- chisq.test(m, correct = TRUE)
+  add(category = "Chi-square independence", label = paste0("UCBAdmissions Dept ", d, " (Yates)"),
+      n = sum(m), inputs = list(table = rows_of(m), correct = TRUE),
+      r = list(statistic = unname(c1$statistic), p = c1$p.value))
+  for (g in rownames(m)) {
+    ci <- prop.test(m[g, "Admitted"], sum(m[g, ]), correct = FALSE)$conf.int
+    add(category = "Wilson CI", label = paste0("UCBAdmissions Dept ", d, " ", g),
+        n = sum(m[g, ]), inputs = list(x = unname(m[g, "Admitted"]), n = sum(m[g, ])),
+        r = list(lower = ci[1], upper = ci[2]))
+  }
+}
+tea <- matrix(c(3, 1, 1, 3), 2)
+add(category = "Fisher exact (2×2)", label = "Fisher's tea tasting", n = 8,
+    inputs = list(table = rows_of(tea)), r = list(p = fisher.test(tea)$p.value))
+
+titanic_cs <- apply(Titanic, c(1, 4), sum)  # Class × Survived
+ch <- chisq.test(titanic_cs)
+add(category = "Chi-square independence", label = "Titanic Class × Survived", n = sum(titanic_cs),
+    inputs = list(table = rows_of(titanic_cs), correct = FALSE),
+    r = list(statistic = unname(ch$statistic), p = ch$p.value))
+hec <- apply(HairEyeColor, c(1, 2), sum)
+ch <- chisq.test(hec)
+add(category = "Chi-square independence", label = "HairEyeColor Hair × Eye", n = sum(hec),
+    inputs = list(table = rows_of(hec), correct = FALSE),
+    r = list(statistic = unname(ch$statistic), p = ch$p.value))
+# Children-only Titanic (small expected counts) — exact R×C.
+kids <- apply(Titanic[, , "Child", ], c(1, 3), sum)
+kids <- kids[rowSums(kids) > 0, ]
+add(category = "Fisher exact (R×C)", label = "Titanic children Class × Survived", n = sum(kids),
+    inputs = list(table = rows_of(kids)), r = list(p = fisher.test(kids)$p.value))
+# infert: education × number of prior spontaneous abortions.
+inf <- xtabs(~ education + spontaneous, data = infert)
+add(category = "Fisher exact (R×C)", label = "infert education × spontaneous", n = sum(inf),
+    inputs = list(table = rows_of(inf)), r = list(p = fisher.test(inf)$p.value))
+set.seed(20261012)
+for (d in list(c(2, 3), c(3, 3), c(3, 4), c(2, 6), c(4, 3))) {
+  for (N in c(25, 60)) {
+    pr <- outer(runif(d[1]), runif(d[2]))
+    m <- matrix(rmultinom(1, N, pr), d[1])
+    if (any(rowSums(m) == 0) || any(colSums(m) == 0)) next
+    add(category = "Fisher exact (R×C)", label = sprintf("random %d×%d N=%d", d[1], d[2], N), n = N,
+        inputs = list(table = rows_of(m)), r = list(p = fisher.test(m, workspace = 2e8)$p.value))
+  }
+}
+
+gof_cases <- list(
+  list(label = "Mendel 1866 seed shape × colour, 9:3:3:1", x = c(315, 108, 101, 32), r = c(9, 3, 3, 1)),
+  list(label = "Mendel 1866 seed shape, 3:1", x = c(5474, 1850), r = c(3, 1)),
+  list(label = "1:2:1 codominant F2", x = c(12, 20, 8), r = c(1, 2, 1))
+)
+for (g in gof_cases) {
+  ch <- chisq.test(g$x, p = g$r / sum(g$r))
+  add(category = "Chi-square GOF", label = g$label, n = sum(g$x),
+      inputs = list(x = as.integer(g$x), ratio = g$r),
+      r = list(statistic = unname(ch$statistic), p = ch$p.value))
+}
+binom_cases <- list(c(5474, 7324, 0.75), c(7, 20, 0.5), c(3, 40, 0.25), c(682, 925, 0.75))
+for (b in binom_cases) {
+  add(category = "Binomial exact", label = sprintf("%d / %d vs p0 = %g", b[1], b[2], b[3]), n = b[2],
+      inputs = list(x = b[1], n = b[2], p0 = b[3]), r = list(p = binom.test(b[1], b[2], b[3])$p.value))
+}
+
 # ── Write out ──────────────────────────────────────────────────────────────
 
 out <- list(

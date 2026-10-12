@@ -14,3 +14,4 @@ export * from "./tests";
 export * from "./posthoc";
 export * from "./cluster";
 export * from "./msi";
+export * from "./categorical";

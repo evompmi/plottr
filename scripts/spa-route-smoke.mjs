@@ -27,6 +27,7 @@ const ROUTES = [
   "aequorin",
   "heatmap",
   "volcano",
+  "proportions",
   "power",
   "molarity",
 ];

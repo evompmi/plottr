@@ -309,6 +309,9 @@ function loadTool(toolName) {
     "SkewAlert: typeof SkewAlert !== 'undefined' ? SkewAlert : undefined," +
     "RangeHistogram: typeof RangeHistogram !== 'undefined' ? RangeHistogram : undefined," +
     "buildHeatmapRScript: typeof buildHeatmapRScript !== 'undefined' ? buildHeatmapRScript : undefined," +
+    "ProportionsChart: typeof ProportionsChart !== 'undefined' ? ProportionsChart : undefined," +
+    "StatsPanel: typeof StatsPanel !== 'undefined' ? StatsPanel : undefined," +
+    "GofPanel: typeof GofPanel !== 'undefined' ? GofPanel : undefined," +
     "App: typeof App !== 'undefined' ? App : undefined," +
     "};";
   const withReturn = compiled.slice(0, closingIdx) + returnObj + compiled.slice(closingIdx);

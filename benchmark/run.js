@@ -87,6 +87,11 @@ const {
   pearsonCorrelation,
   spearmanCorrelation,
   kendallTau,
+  fisherExact,
+  chiSquareIndependence,
+  chiSquareGOF,
+  binomTest,
+  wilsonCI,
 } = ctx;
 
 // ── Load R reference output ────────────────────────────────────────────────
@@ -655,6 +660,88 @@ for (const t of data.tests) {
         js: j.p,
         ...pCmp,
         rSaturated: !pCmp.pass && isCorrelationBoundary(cat, "p", j.p, t.r.p),
+      });
+    } else if (cat === "Fisher exact (2×2)" || cat === "Fisher exact (R×C)") {
+      const j = fisherExact(t.inputs.table);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...cmpP(j.p, t.r.p),
+      });
+    } else if (cat === "Chi-square independence") {
+      const j = chiSquareIndependence(t.inputs.table, { correct: t.inputs.correct });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "X²",
+        r: t.r.statistic,
+        js: j.X2,
+        ...cmp(j.X2, t.r.statistic),
+      });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...cmpP(j.p, t.r.p),
+      });
+    } else if (cat === "Chi-square GOF") {
+      const j = chiSquareGOF(t.inputs.x, t.inputs.ratio);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "X²",
+        r: t.r.statistic,
+        js: j.X2,
+        ...cmp(j.X2, t.r.statistic),
+      });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...cmpP(j.p, t.r.p),
+      });
+    } else if (cat === "Binomial exact") {
+      const j = binomTest(t.inputs.x, t.inputs.n, t.inputs.p0);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "p",
+        r: t.r.p,
+        js: j.p,
+        ...cmpP(j.p, t.r.p),
+      });
+    } else if (cat === "Wilson CI") {
+      const j = wilsonCI(t.inputs.x, t.inputs.n);
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "lower",
+        r: t.r.lower,
+        js: j.lower,
+        ...cmp(j.lower, t.r.lower),
+      });
+      pushRow({
+        category: cat,
+        label: lbl,
+        n,
+        metric: "upper",
+        r: t.r.upper,
+        js: j.upper,
+        ...cmp(j.upper, t.r.upper),
       });
     } else if (cat === "Multi-set intersection (cpsets)") {
       // Only benchmark the exact path against R. The Poisson path is an

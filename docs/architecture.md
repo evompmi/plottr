@@ -85,6 +85,7 @@ graph of split chunks under `tools/_app/chunks/`:
         ├─► chunks/app-XXXX.js               ◄── tools/venn/app.tsx
         ├─► chunks/app-XXXX.js               ◄── tools/upset/app.tsx
         ├─► chunks/app-XXXX.js               ◄── tools/volcano/app.tsx
+        ├─► chunks/app-XXXX.js               ◄── tools/proportions/app.tsx
         ├─► chunks/power-app-XXXX.js         ◄── tools/power-app.tsx
         ├─► chunks/molarity-app-XXXX.js      ◄── tools/molarity-app.tsx
         └─► chunks/chunk-XXXX.js             ◄── shared dependency graph
@@ -185,6 +186,9 @@ tests deliberately reach across layers and are excluded.
                           steps.tsx (chart hosts intersection edits)
      • tools/volcano/   — no plot-area.tsx; plot step short enough
                           to live in steps.tsx
+     • tools/proportions/ — no plot-area.tsx (PlotStep in steps.tsx);
+                          own stats-panel.tsx — tests a contingency
+                          table, so it does not use StatsTile
 ```
 
 Calculators (`tools/molarity-app.tsx`, `tools/power-app.tsx`) are flat
