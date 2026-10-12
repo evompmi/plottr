@@ -28,6 +28,7 @@ const ROUTES = [
   "heatmap",
   "volcano",
   "proportions",
+  "qpcr",
   "power",
   "molarity",
 ];

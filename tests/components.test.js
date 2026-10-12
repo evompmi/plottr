@@ -2572,4 +2572,206 @@ suite("ProportionsChart + stats panels");
   });
 })();
 
+suite("QpcrChart + QpcrStatsPanel");
+
+(function () {
+  const tool = loadTool("qpcr");
+  const { QpcrChart, QpcrStatsPanel } = tool.exports;
+  const Q = require("./helpers/qpcr-loader");
+  const raw = Q.parseRaw(`Sample,Group,Gene,Ct
+1,Mock,ACT2,18.10
+1,Mock,ACT2,18.30
+1,Mock,UBQ10,20.00
+1,Mock,UBQ10,20.20
+1,Mock,PR1,27.40
+1,Mock,PR1,27.60
+2,Mock,ACT2,18.60
+2,Mock,ACT2,18.40
+2,Mock,UBQ10,20.50
+2,Mock,UBQ10,20.30
+2,Mock,PR1,28.30
+2,Mock,PR1,28.10
+3,Mock,ACT2,17.90
+3,Mock,ACT2,18.00
+3,Mock,UBQ10,19.80
+3,Mock,UBQ10,19.90
+3,Mock,PR1,27.00
+3,Mock,PR1,Undetermined
+1,SA,ACT2,18.20
+1,SA,ACT2,18.40
+1,SA,UBQ10,20.10
+1,SA,UBQ10,20.30
+1,SA,PR1,22.10
+1,SA,PR1,22.30
+2,SA,ACT2,18.50
+2,SA,ACT2,18.70
+2,SA,UBQ10,20.40
+2,SA,UBQ10,20.60
+2,SA,PR1,23.00
+2,SA,PR1,22.80
+3,SA,ACT2,18.00
+3,SA,ACT2,18.20
+3,SA,UBQ10,20.00
+3,SA,UBQ10,20.20
+3,SA,PR1,21.60
+3,SA,PR1,21.90
+1,JA,ACT2,18.30
+1,JA,ACT2,18.40
+1,JA,UBQ10,20.20
+1,JA,UBQ10,20.30
+1,JA,PR1,26.50
+1,JA,PR1,26.70
+2,JA,ACT2,18.80
+2,JA,ACT2,18.70
+2,JA,UBQ10,20.70
+2,JA,UBQ10,20.60
+2,JA,PR1,27.60
+2,JA,PR1,27.40
+3,JA,ACT2,18.10
+3,JA,ACT2,18.00
+3,JA,UBQ10,20.00
+3,JA,UBQ10,19.90
+3,JA,PR1,26.20
+3,JA,PR1,26.40
+`);
+  const parsed = Q.parseLong(raw.rows, Q.detectLayout(raw.headers, raw.rows).long);
+  const samples = Q.aggregateTechReps(parsed.data.wells);
+  const cfg = {
+    refs: ["ACT2", "UBQ10"],
+    targets: ["PR1"],
+    eff: {},
+    control: "Mock",
+    groupOrder: ["Mock", "SA", "JA"],
+  };
+  const genes = [Q.computeGene(samples, cfg, "PR1")];
+  const stats = genes.map((g) => Q.runGeneStats(g, null));
+  const vis = {
+    yScale: "log2",
+    chartStyle: "bar",
+    showPoints: true,
+    showCI: true,
+    annotation: "brackets",
+    showNs: false,
+    discretePalette: "okabe-ito",
+    barOutline: true,
+    barOutlineWidth: 1,
+    barWidthFrac: 0.6,
+    facetWidth: 260,
+    facetHeight: 260,
+    facetCols: 3,
+    xLabelAngle: 0,
+    tickFontSize: 12,
+    plotTitle: "",
+    plotBg: "#ffffff",
+    showGrid: false,
+    gridColor: "#e0e0e0",
+  };
+  const chartProps = (over = {}) => {
+    const v = { ...vis, ...over };
+    return {
+      genes,
+      annotations: genes.map((g, i) => Q.geneAnnotation(g, stats[i], v.annotation, v.showNs)),
+      colors: ["#111111", "#222222", "#333333"],
+      groupOrder: cfg.groupOrder,
+      control: "Mock",
+      yScale: v.yScale,
+      chartStyle: v.chartStyle,
+      showPoints: v.showPoints,
+      showCI: v.showCI,
+      barOutline: v.barOutline,
+      barOutlineWidth: v.barOutlineWidth,
+      barWidthFrac: v.barWidthFrac,
+      facetWidth: v.facetWidth,
+      facetHeight: v.facetHeight,
+      facetCols: v.facetCols,
+      xLabelAngle: v.xLabelAngle,
+      tickFontSize: v.tickFontSize,
+      title: v.plotTitle,
+      plotBg: v.plotBg,
+      showGrid: v.showGrid,
+      gridColor: v.gridColor,
+    };
+  };
+
+  test("chart: one facet per target, bars per group in group colours, points, CI, brackets", () => {
+    const html = renderHtml(QpcrChart, chartProps());
+    assert(html.includes('id="facet-PR1"'));
+    const bars = [...html.matchAll(/<g id="bars-PR1">(.*?)<\/g>/gs)][0][1];
+    eq(
+      [...bars.matchAll(/fill="(#\d{6})"/g)].map((m) => m[1]).join(","),
+      "#111111,#222222,#333333"
+    );
+    eq((html.match(/<g id="points-PR1">.*?<\/g>/s)[0].match(/<circle/g) || []).length, 9);
+    eq((html.match(/<g id="ci-whiskers-PR1">.*?<\/g><\/g>/s)[0].match(/<g>/g) || []).length, 3);
+    assert(html.includes('id="significance-brackets"'));
+    assert(html.includes("Fold change (log₂ scale)"));
+    // log2 axis: fold-change ticks at powers of two, aligned so FC = 1 is a tick
+    const axis = html.slice(
+      html.indexOf('<g id="axis-y-PR1">'),
+      html.indexOf('<g id="axis-x-PR1">')
+    );
+    const labels = [...axis.matchAll(/>([^<>]+)<\/text>/g)].map((m) => m[1]);
+    eq(labels.join(","), "1,4,16,64,Fold change (log₂ scale)");
+    assert(html.includes('stroke-dasharray="4,3"'), "reference line at FC = 1");
+  });
+
+  test("chart: y-scale switch (linear FC / −ΔΔCt), dots, letters", () => {
+    const lin = renderHtml(QpcrChart, chartProps({ yScale: "linear" }));
+    assert(lin.includes(">Fold change<"));
+    assert(lin.includes(">0<"), "linear axis starts at 0");
+    const dd = renderHtml(QpcrChart, chartProps({ yScale: "ddct", chartStyle: "dot" }));
+    assert(dd.includes(">−ΔΔCt<"));
+    assert(!/<g id="bars-PR1"><rect/.test(dd), "dots instead of bars");
+    const cld = renderHtml(QpcrChart, chartProps({ annotation: "cld" }));
+    assert(cld.includes('id="cld-annotations"'));
+    assert(!cld.includes('id="significance-brackets"><g'), "no brackets with letters");
+  });
+
+  test("stats panel: Statistics header with TXT/R, ΔCt explainer, decision trace, send button", () => {
+    const html = renderHtml(QpcrStatsPanel, {
+      genes,
+      stats,
+      control: "Mock",
+      overrides: {},
+      onOverride: noop,
+      vis,
+      updVis: noop,
+      onDownloadReport: noop,
+      onDownloadR: noop,
+      onSendToGroupPlot: noop,
+    });
+    assert(/<h3[^>]*>Statistics<\/h3>/.test(html));
+    const header = html.slice(0, html.indexOf("Display on plot"));
+    assert(header.includes(">⬇ TXT<") && header.includes(">⬇ R<"));
+    assert(html.includes("Why the tests use ΔCt"));
+    assert(html.includes("Do not run t-tests or ANOVA on 2^−ΔΔCt values."));
+    assert(html.includes("Auto — Welch&#x27;s ANOVA"));
+    assert(html.includes("Welch&#x27;s ANOVA on ΔCt: F(2, "));
+    assert(html.includes("1 (calibrator)"));
+    assert(html.includes('data-testid="qpcr-send"'), "single send-all button");
+    assert(html.includes("Gene = facets") && html.includes("Gene = subgroups"));
+    assert(html.includes("Post-hoc: Games-Howell"));
+  });
+})();
+
+suite("HowToExampleTable");
+
+test("renders headers, rows, a continuation row and the caption", () => {
+  const html = renderHtml(sc.HowToExampleTable, {
+    headers: ["Sample", "Group", "Gene", "Ct"],
+    rows: [
+      ["1", "Control", "ACT2", "18.52"],
+      ["1", "Control", "RD29A", "Undetermined"],
+    ],
+    more: true,
+    highlight: [3],
+    caption: "One row per well",
+  });
+  eq((html.match(/<th /g) || []).length, 4);
+  eq((html.match(/<tr>/g) || []).length, 4); // header + 2 rows + "…"
+  eq((html.match(/>…</g) || []).length, 4);
+  assert(html.includes("<figcaption") && html.includes("One row per well"));
+  assert(/<th style="[^"]*background:var\(--info-bg\)[^"]*">Ct</.test(html), "highlighted column");
+});
+
 summary();

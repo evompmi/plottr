@@ -690,3 +690,40 @@ export interface PlotControlsProps {
   onDownloadSvg: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onDownloadPng: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
+
+// ── Hand-off layout ─────────────────────────────────────────────────────────
+
+const HANDOFF_ROLES: ReadonlySet<string> = new Set(["group", "value", "filter", "ignore"]);
+
+export interface HandoffLayout {
+  roles: ColumnRole[];
+  facetCol: number;
+  subgroupCol: number;
+}
+
+// Validate a hand-off's explicit column roles / facet / subgroup against the
+// CSV header. Null when no usable roles were sent (the caller then keeps its
+// own guess): roles must cover every column, use known values, and include
+// exactly one "group" and one "value". Facet / subgroup must name a
+// non-group, non-value column and cannot be the same column.
+export function resolveHandoffLayout(
+  headers: string[],
+  colRoles: unknown,
+  facetBy: unknown,
+  subgroupBy: unknown
+): HandoffLayout | null {
+  if (!Array.isArray(colRoles) || colRoles.length !== headers.length) return null;
+  if (!colRoles.every((r) => typeof r === "string" && HANDOFF_ROLES.has(r))) return null;
+  const roles = colRoles as ColumnRole[];
+  if (roles.filter((r) => r === "group").length !== 1) return null;
+  if (roles.filter((r) => r === "value").length !== 1) return null;
+  const find = (name: unknown): number => {
+    if (typeof name !== "string") return -1;
+    const i = headers.indexOf(name);
+    return i >= 0 && roles[i] !== "group" && roles[i] !== "value" && roles[i] !== "ignore" ? i : -1;
+  };
+  const facetCol = find(facetBy);
+  let subgroupCol = find(subgroupBy);
+  if (subgroupCol === facetCol) subgroupCol = -1;
+  return { roles, facetCol, subgroupCol };
+}

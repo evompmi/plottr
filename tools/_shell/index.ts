@@ -31,8 +31,8 @@ export { FileDropZone, FILE_LIMIT_BYTES, FILE_WARN_BYTES } from "./FileDropZone"
 export { FilterCheckboxPanel } from "./FilterCheckboxPanel";
 export { FormulaInjectionBanner } from "./FormulaInjectionBanner";
 export { GroupColorEditor } from "./GroupColorEditor";
-export { HowTo } from "./HowTo";
-export type { HowToContent } from "./HowTo";
+export { HowTo, HowToExampleTable } from "./HowTo";
+export type { HowToContent, HowToExampleTableProps } from "./HowTo";
 export { HowToCard } from "./HowToCard";
 export { NumberInput } from "./NumberInput";
 export { PageHeader } from "./PageHeader";

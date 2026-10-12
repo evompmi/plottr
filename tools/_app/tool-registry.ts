@@ -125,6 +125,13 @@ export const TOOL_REGISTRY: ToolEntry[] = [
     Component: lazyApp(() => import("../proportions/app")),
   },
   {
+    key: "qpcr",
+    label: "qPCR",
+    iconSvg:
+      '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 38 C14 38, 16 37, 19 30 C21 24, 23 12, 27 9 C30 7, 34 7, 40 7"/><path d="M4 38 C20 38, 22 37, 25 31 C27 26, 29 17, 32 14 C34 12, 37 12, 40 12" opacity="0.55"/><line x1="4" y1="24" x2="40" y2="24" stroke-dasharray="3,3" stroke-width="1.2" opacity="0.7"/></svg>',
+    Component: lazyApp(() => import("../qpcr/app")),
+  },
+  {
     key: "power",
     label: "Power Analysis",
     iconSvg:

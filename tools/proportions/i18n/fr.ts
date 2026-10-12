@@ -161,7 +161,19 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.howto.purpose":
     "Pour les résultats que l’on <strong>compte</strong> : % de germination, % de plantes colonisées, survie, classes phénotypiques. N’appliquez pas de test t ni d’ANOVA à des pourcentages : leur variance dépend du pourcentage lui-même, ils sont bornés entre 0 et 100 et masquent le nombre d’individus sur lequel chacun repose. Les tests sur les effectifs eux-mêmes (exact de Fisher ou χ²) n’ont pas ces défauts, et les intervalles de Wilson restent fiables pour les petits effectifs (Brown, Cai &amp; DasGupta 2001, <em>Statistical Science</em> 16(2), doi:10.1214/ss/1009213286).",
   "proportions.howto.dataLayout":
-    "Un <strong>tableau d’effectifs</strong> : la première colonne contient les noms des groupes, chaque autre colonne une modalité, et chaque cellule le <strong>nombre d’individus</strong> (pas un pourcentage). Exemple : <code>Génotype,Germées,Non germées</code> / <code>WT,46,4</code>. Regroupez les boîtes répliques en une ligne par groupe ; ce regroupement suppose que les boîtes concordent, vérifiez-les séparément en cas de doute.",
+    "Un <strong>tableau d’effectifs</strong> : la première colonne contient les noms des groupes, chaque autre colonne une modalité, et chaque cellule le <strong>nombre d’individus</strong> (pas un pourcentage). Regroupez les boîtes répliques en une ligne par groupe ; ce regroupement suppose que les boîtes concordent, vérifiez-les séparément en cas de doute.",
+  "proportions.howto.exGroup": "Génotype",
+  "proportions.howto.exYes": "Colonisée",
+  "proportions.howto.exNo": "Non colonisée",
+  "proportions.howto.exCaption":
+    "Résultat binaire : une ligne par groupe, une colonne par modalité, chaque cellule un nombre de plantes — jamais un pourcentage.",
+  "proportions.howto.exFamily": "Famille",
+  "proportions.howto.exRY": "Rond jaune",
+  "proportions.howto.exRG": "Rond vert",
+  "proportions.howto.exWY": "Ridé jaune",
+  "proportions.howto.exWG": "Ridé vert",
+  "proportions.howto.exCaption2":
+    "Plusieurs classes (p. ex. effectifs phénotypiques pour un test 9:3:3:1) : même principe, une colonne par classe.",
   "proportions.howto.display":
     "<strong>Proportion</strong> affiche le % d’une modalité avec IC de Wilson à 95 %. <strong>Empilé</strong> et <strong>Mosaïque</strong> montrent toutes les modalités ; en mosaïque, la largeur suit l’effectif du groupe. Le test est choisi automatiquement : exact de Fisher pour les tableaux 2×2 ou quand les effectifs attendus sont faibles, χ² sinon. Les comparaisons deux à deux utilisent la correction de Holm par défaut. Le panneau d’ajustement compare les effectifs à des proportions comme 3:1 ou 9:3:3:1.",
 };

@@ -5,7 +5,7 @@
 
 import { test, expect } from "@playwright/test";
 
-test("landing page renders all eleven tool tiles", async ({ page }) => {
+test("landing page renders all twelve tool tiles", async ({ page }) => {
   await page.goto("/index.html");
 
   // The landing header must say "Plöttr" — flushing out the case where
@@ -20,7 +20,7 @@ test("landing page renders all eleven tool tiles", async ({ page }) => {
 
   // Each tool tile is a <button class="tile" data-tool="<tool>"> with
   // an icon + label inside; opening a tool swaps a hidden iframe in
-  // (see index.html). We assert all eleven tile buttons exist.
+  // (see index.html). We assert all twelve tile buttons exist.
   const tools = [
     "boxplot",
     "scatter",
@@ -31,6 +31,7 @@ test("landing page renders all eleven tool tiles", async ({ page }) => {
     "aequorin",
     "volcano",
     "proportions",
+    "qpcr",
     "molarity",
     "power",
   ];

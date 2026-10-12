@@ -167,7 +167,19 @@ const en = {
   "proportions.howto.purpose":
     "For outcomes you <strong>count</strong>: % germination, % colonised plants, survival, phenotype classes. Please don't run a t-test or ANOVA on percentages — their variance depends on the percentage itself, they are bounded by 0 and 100, and they hide how many individuals each one rests on. Tests on the counts themselves (Fisher's exact or χ²) do not have these problems, and Wilson intervals stay honest for small n (Brown, Cai &amp; DasGupta 2001, <em>Statistical Science</em> 16(2), doi:10.1214/ss/1009213286).",
   "proportions.howto.dataLayout":
-    "A <strong>counts table</strong>: the first column holds group names, every other column one outcome, each cell the <strong>number of individuals</strong> (not a percentage). Example: <code>Genotype,Germinated,Not germinated</code> / <code>WT,46,4</code>. Pool replicate plates into one row per group. Note that pooling assumes the plates agree, so check them separately if in doubt.",
+    "A <strong>counts table</strong>: the first column holds group names, every other column one outcome, each cell the <strong>number of individuals</strong> (not a percentage). Pool replicate plates into one row per group. Note that pooling assumes the plates agree, so check them separately if in doubt.",
+  "proportions.howto.exGroup": "Genotype",
+  "proportions.howto.exYes": "Colonised",
+  "proportions.howto.exNo": "Not colonised",
+  "proportions.howto.exCaption":
+    "Binary outcome: one row per group, one column per outcome, each cell a number of plants — never a percentage.",
+  "proportions.howto.exFamily": "Family",
+  "proportions.howto.exRY": "Round yellow",
+  "proportions.howto.exRG": "Round green",
+  "proportions.howto.exWY": "Wrinkled yellow",
+  "proportions.howto.exWG": "Wrinkled green",
+  "proportions.howto.exCaption2":
+    "Several outcome classes (e.g. phenotype counts for a 9:3:3:1 test) work the same way: one column per class.",
   "proportions.howto.display":
     "<strong>Proportion</strong> shows % of one outcome with Wilson 95 % CIs. <strong>Stacked</strong> and <strong>Mosaic</strong> show every outcome; mosaic widths follow group size. The test is picked automatically: Fisher's exact test for 2×2 tables or when expected counts are small, χ² otherwise. Pairwise comparisons use Holm correction by default. The goodness-of-fit panel tests counts against ratios such as 3:1 or 9:3:3:1.",
 } as const satisfies Catalog;
