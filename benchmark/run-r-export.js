@@ -25,6 +25,7 @@ const path = require("path");
 const vm = require("vm");
 const os = require("os");
 const { execFileSync, spawnSync } = require("child_process");
+const esbuild = require("esbuild");
 
 // ── Pre-flight: is Rscript available? ──────────────────────────────────────
 function rscriptAvailable() {
@@ -41,43 +42,31 @@ if (!rscriptAvailable()) {
 }
 
 // ── Load Plöttr's stats engine + R-script builder into a vm context ───────
-const ctx = {
-  Math,
-  Number,
-  String,
-  Array,
-  Object,
-  Boolean,
-  Set,
-  Map,
-  Date,
-  JSON,
-  Infinity,
-  NaN,
-  parseInt,
-  parseFloat,
-  isNaN,
-  isFinite,
-  console,
-};
-vm.createContext(ctx);
+// Both live as TypeScript ESM: the kernel under tools/_core/stats/ and the
+// R-script builder in tools/_shell/r-export.ts (which pulls the stats
+// registry in itself). Bundle a two-line entry with esbuild to an IIFE and
+// evaluate it in a vm context — the same approach as benchmark/run.js — so
+// this script exercises exactly the code the "⬇ R" button runs.
 const TOOLS = path.join(__dirname, "../tools");
-// Load order matches scripts/build-shared.js's FILES array:
-//   stats-*.js → shared-stats-registry.js → shared-r-export.js
-// shared-r-export.js consumes STATS_TEST_REGISTRY / STATS_POSTHOC_REGISTRY
-// (declared in shared-stats-registry.js) at top level — without the
-// registry loaded first, evaluation throws ReferenceError.
-for (const name of [
-  "stats-dist.js",
-  "stats-tests.js",
-  "stats-posthoc.js",
-  "stats-cluster.js",
-  "stats-msi.js",
-]) {
-  vm.runInContext(fs.readFileSync(path.join(TOOLS, name), "utf8"), ctx);
-}
-vm.runInContext(fs.readFileSync(path.join(TOOLS, "shared-stats-registry.js"), "utf8"), ctx);
-vm.runInContext(fs.readFileSync(path.join(TOOLS, "shared-r-export.js"), "utf8"), ctx);
+const bundle = esbuild.buildSync({
+  stdin: {
+    contents: [
+      `export { tTest } from ${JSON.stringify(path.join(TOOLS, "_core/stats/tests.ts"))};`,
+      `export { buildRScript } from ${JSON.stringify(path.join(TOOLS, "_shell/r-export.ts"))};`,
+    ].join("\n"),
+    resolveDir: TOOLS,
+    loader: "ts",
+  },
+  bundle: true,
+  format: "iife",
+  globalName: "__plottrRExport",
+  platform: "neutral",
+  target: "es2022",
+  write: false,
+}).outputFiles[0].text;
+const ctx = {};
+vm.createContext(ctx);
+vm.runInContext(bundle + "\nObject.assign(globalThis, __plottrRExport);\n", ctx);
 
 const { tTest, buildRScript } = ctx;
 
