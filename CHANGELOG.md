@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Proportions & counts tool.** For counted outcomes (% germination, % colonised
+  plants, phenotype classes) instead of t-tests on percentages: paste a counts table to get
+  % with Wilson 95 % CIs, proportion / stacked / mosaic bars, Fisher's exact or χ² test
+  (chosen by Cochran's rule), Holm-corrected pairwise Fisher tests, and goodness of fit to
+  ratios such as 3:1 or 9:3:3:1. Exports CSV, a stats report and an R script; validated
+  against R (69 new benchmark comparisons).
 - **Heatmap outlier-skew alert.** When a few cells (≤ 2 %) stretch the colour scale so the
   rest of the matrix uses less than half of it, a warning offers to exclude exactly those
   outliers. Clipped colourbar ends read "≥ max (n=…)" / "≤ min (n=…)", and the R export

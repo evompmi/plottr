@@ -15,7 +15,8 @@
 // scanned — tests deliberately reach across layers and are not
 // covered by the layering rule.
 
-const TOOL_FOLDERS = "(aequorin|boxplot|gff|heatmap|lineplot|scatter|upset|venn|volcano)";
+const TOOL_FOLDERS =
+  "(aequorin|boxplot|gff|heatmap|lineplot|proportions|scatter|upset|venn|volcano)";
 const CALCULATOR_FILES = "(molarity-app|power-app)";
 
 /** @type {import('dependency-cruiser').IConfiguration} */

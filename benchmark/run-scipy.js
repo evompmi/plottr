@@ -36,6 +36,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const esbuild = require("esbuild");
 const { spawnSync } = require("child_process");
 
 const repoRoot = path.join(__dirname, "..");
@@ -175,23 +176,23 @@ if (!regenerated && !fs.existsSync(fixturePath)) {
 
 const data = JSON.parse(fs.readFileSync(fixturePath, "utf-8"));
 
-// ── Load tools/stats-*.js into a vm sandbox ───────────────────────────────
-// Load order mirrors scripts/build-shared.js's FILES array (and
-// STATS_FILES in tests/helpers/stats-source.js). Inlined here rather than
-// imported from tests/ so the benchmark stays self-contained.
-const STATS_FILES = [
-  "stats-dist.js",
-  "stats-tests.js",
-  "stats-posthoc.js",
-  "stats-cluster.js",
-  "stats-msi.js",
-];
-const code = STATS_FILES.map((name) =>
-  fs.readFileSync(path.join(repoRoot, "tools", name), "utf-8")
-).join("\n");
+// ── Load the _core/stats kernel into a vm sandbox ─────────────────────────
+// Bundle the kernel barrel (tools/_core/stats/index.ts) to an IIFE with
+// esbuild and spread its exports onto the sandbox's globalThis — the same
+// approach as benchmark/run.js, inlined so the benchmark stays
+// self-contained (no tests/ import).
+const statsBundle = esbuild.buildSync({
+  entryPoints: [path.join(repoRoot, "tools/_core/stats/index.ts")],
+  bundle: true,
+  format: "iife",
+  globalName: "__plottrStats",
+  platform: "neutral",
+  target: "es2022",
+  write: false,
+}).outputFiles[0].text;
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(code, ctx);
+vm.runInContext(statsBundle + "\nObject.assign(globalThis, __plottrStats);\n", ctx);
 
 const { nctcdf, ncf_sf, ncchi2cdf, qtukey, norminv, tinv, fcdf, fcdf_upper, chi2cdf, chi2inv } =
   ctx;

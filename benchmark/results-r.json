@@ -1,8 +1,8 @@
 {
   "meta": {
     "r_version": "R version 4.5.3 (2026-03-11)",
-    "generated": "2026-05-13 16:39:22 UTC",
-    "n_tests": 156
+    "generated": "2026-10-12 16:35:47 UTC",
+    "n_tests": 202
   },
   "tests": [
     {
@@ -39973,6 +39973,661 @@
       },
       "r": {
         "p": 3.1220041578e-14
+      }
+    },
+    {
+      "category": "Fisher exact (2×2)",
+      "label": "UCBAdmissions Dept A",
+      "n": 933,
+      "inputs": {
+        "table": [
+          [512, 313],
+          [89, 19]
+        ]
+      },
+      "r": {
+        "p": 1.6691893284e-05
+      }
+    },
+    {
+      "category": "Chi-square independence",
+      "label": "UCBAdmissions Dept A (Yates)",
+      "n": 933,
+      "inputs": {
+        "table": [
+          [512, 313],
+          [89, 19]
+        ],
+        "correct": true
+      },
+      "r": {
+        "statistic": 16.3717737289,
+        "p": 5.2054683459e-05
+      }
+    },
+    {
+      "category": "Wilson CI",
+      "label": "UCBAdmissions Dept A Male",
+      "n": 825,
+      "inputs": {
+        "x": 512,
+        "n": 825
+      },
+      "r": {
+        "lower": 0.58700802058,
+        "upper": 0.65308614686
+      }
+    },
+    {
+      "category": "Wilson CI",
+      "label": "UCBAdmissions Dept A Female",
+      "n": 108,
+      "inputs": {
+        "x": 89,
+        "n": 108
+      },
+      "r": {
+        "lower": 0.74150459379,
+        "upper": 0.88438137674
+      }
+    },
+    {
+      "category": "Fisher exact (2×2)",
+      "label": "UCBAdmissions Dept B",
+      "n": 585,
+      "inputs": {
+        "table": [
+          [353, 207],
+          [17, 8]
+        ]
+      },
+      "r": {
+        "p": 0.67708991372
+      }
+    },
+    {
+      "category": "Chi-square independence",
+      "label": "UCBAdmissions Dept B (Yates)",
+      "n": 585,
+      "inputs": {
+        "table": [
+          [353, 207],
+          [17, 8]
+        ],
+        "correct": true
+      },
+      "r": {
+        "statistic": 0.085098012256,
+        "p": 0.77050405321
+      }
+    },
+    {
+      "category": "Wilson CI",
+      "label": "UCBAdmissions Dept B Male",
+      "n": 560,
+      "inputs": {
+        "x": 353,
+        "n": 560
+      },
+      "r": {
+        "lower": 0.58961593236,
+        "upper": 0.66932210371
+      }
+    },
+    {
+      "category": "Wilson CI",
+      "label": "UCBAdmissions Dept B Female",
+      "n": 25,
+      "inputs": {
+        "x": 17,
+        "n": 25
+      },
+      "r": {
+        "lower": 0.48410269273,
+        "upper": 0.82794809693
+      }
+    },
+    {
+      "category": "Fisher exact (2×2)",
+      "label": "UCBAdmissions Dept C",
+      "n": 918,
+      "inputs": {
+        "table": [
+          [120, 205],
+          [202, 391]
+        ]
+      },
+      "r": {
+        "p": 0.38661657598
+      }
+    },
+    {
+      "category": "Chi-square independence",
+      "label": "UCBAdmissions Dept C (Yates)",
+      "n": 918,
+      "inputs": {
+        "table": [
+          [120, 205],
+          [202, 391]
+        ],
+        "correct": true
+      },
+      "r": {
+        "statistic": 0.63322380408,
+        "p": 0.42617526142
+      }
+    },
+    {
+      "category": "Wilson CI",
+      "label": "UCBAdmissions Dept C Male",
+      "n": 325,
+      "inputs": {
+        "x": 120,
+        "n": 325
+      },
+      "r": {
+        "lower": 0.31857585345,
+        "upper": 0.42294092395
+      }
+    },
+    {
+      "category": "Wilson CI",
+      "label": "UCBAdmissions Dept C Female",
+      "n": 593,
+      "inputs": {
+        "x": 202,
+        "n": 593
+      },
+      "r": {
+        "lower": 0.30363127475,
+        "upper": 0.3797017156
+      }
+    },
+    {
+      "category": "Fisher exact (2×2)",
+      "label": "UCBAdmissions Dept D",
+      "n": 792,
+      "inputs": {
+        "table": [
+          [138, 279],
+          [131, 244]
+        ]
+      },
+      "r": {
+        "p": 0.59949650796
+      }
+    },
+    {
+      "category": "Chi-square independence",
+      "label": "UCBAdmissions Dept D (Yates)",
+      "n": 792,
+      "inputs": {
+        "table": [
+          [138, 279],
+          [131, 244]
+        ],
+        "correct": true
+      },
+      "r": {
+        "statistic": 0.22159370485,
+        "p": 0.63782826913
+      }
+    },
+    {
+      "category": "Wilson CI",
+      "label": "UCBAdmissions Dept D Male",
+      "n": 417,
+      "inputs": {
+        "x": 138,
+        "n": 417
+      },
+      "r": {
+        "lower": 0.28749530285,
+        "upper": 0.37746166124
+      }
+    },
+    {
+      "category": "Wilson CI",
+      "label": "UCBAdmissions Dept D Female",
+      "n": 375,
+      "inputs": {
+        "x": 131,
+        "n": 375
+      },
+      "r": {
+        "lower": 0.3028282383,
+        "upper": 0.39889395348
+      }
+    },
+    {
+      "category": "Fisher exact (2×2)",
+      "label": "UCBAdmissions Dept E",
+      "n": 584,
+      "inputs": {
+        "table": [
+          [53, 138],
+          [94, 299]
+        ]
+      },
+      "r": {
+        "p": 0.36039643141
+      }
+    },
+    {
+      "category": "Chi-square independence",
+      "label": "UCBAdmissions Dept E (Yates)",
+      "n": 584,
+      "inputs": {
+        "table": [
+          [53, 138],
+          [94, 299]
+        ],
+        "correct": true
+      },
+      "r": {
+        "statistic": 0.8080476473,
+        "p": 0.3686980946
+      }
+    },
+    {
+      "category": "Wilson CI",
+      "label": "UCBAdmissions Dept E Male",
+      "n": 191,
+      "inputs": {
+        "x": 53,
+        "n": 191
+      },
+      "r": {
+        "lower": 0.21884989928,
+        "upper": 0.34489797802
+      }
+    },
+    {
+      "category": "Wilson CI",
+      "label": "UCBAdmissions Dept E Female",
+      "n": 393,
+      "inputs": {
+        "x": 94,
+        "n": 393
+      },
+      "r": {
+        "lower": 0.19966385582,
+        "upper": 0.28375705336
+      }
+    },
+    {
+      "category": "Fisher exact (2×2)",
+      "label": "UCBAdmissions Dept F",
+      "n": 714,
+      "inputs": {
+        "table": [
+          [22, 351],
+          [24, 317]
+        ]
+      },
+      "r": {
+        "p": 0.5458408269
+      }
+    },
+    {
+      "category": "Chi-square independence",
+      "label": "UCBAdmissions Dept F (Yates)",
+      "n": 714,
+      "inputs": {
+        "table": [
+          [22, 351],
+          [24, 317]
+        ],
+        "correct": true
+      },
+      "r": {
+        "statistic": 0.2182433557,
+        "p": 0.64038166518
+      }
+    },
+    {
+      "category": "Wilson CI",
+      "label": "UCBAdmissions Dept F Male",
+      "n": 373,
+      "inputs": {
+        "x": 22,
+        "n": 373
+      },
+      "r": {
+        "lower": 0.039269597424,
+        "upper": 0.087684212198
+      }
+    },
+    {
+      "category": "Wilson CI",
+      "label": "UCBAdmissions Dept F Female",
+      "n": 341,
+      "inputs": {
+        "x": 24,
+        "n": 341
+      },
+      "r": {
+        "lower": 0.047748941278,
+        "upper": 0.10258524127
+      }
+    },
+    {
+      "category": "Fisher exact (2×2)",
+      "label": "Fisher's tea tasting",
+      "n": 8,
+      "inputs": {
+        "table": [
+          [3, 1],
+          [1, 3]
+        ]
+      },
+      "r": {
+        "p": 0.48571428571
+      }
+    },
+    {
+      "category": "Chi-square independence",
+      "label": "Titanic Class × Survived",
+      "n": 2201,
+      "inputs": {
+        "table": [
+          [122, 203],
+          [167, 118],
+          [528, 178],
+          [673, 212]
+        ],
+        "correct": false
+      },
+      "r": {
+        "statistic": 190.4011036168,
+        "p": 4.9999275299e-41
+      }
+    },
+    {
+      "category": "Chi-square independence",
+      "label": "HairEyeColor Hair × Eye",
+      "n": 592,
+      "inputs": {
+        "table": [
+          [68, 20, 15, 5],
+          [119, 84, 54, 29],
+          [26, 17, 14, 14],
+          [7, 94, 10, 16]
+        ],
+        "correct": false
+      },
+      "r": {
+        "statistic": 138.289841626,
+        "p": 2.3252867871e-25
+      }
+    },
+    {
+      "category": "Fisher exact (R×C)",
+      "label": "Titanic children Class × Survived",
+      "n": 109,
+      "inputs": {
+        "table": [
+          [0, 6],
+          [0, 24],
+          [52, 27]
+        ]
+      },
+      "r": {
+        "p": 3.0116774782e-11
+      }
+    },
+    {
+      "category": "Fisher exact (R×C)",
+      "label": "infert education × spontaneous",
+      "n": 248,
+      "inputs": {
+        "table": [
+          [9, 1, 2],
+          [71, 33, 16],
+          [61, 37, 18]
+        ]
+      },
+      "r": {
+        "p": 0.4394623484
+      }
+    },
+    {
+      "category": "Fisher exact (R×C)",
+      "label": "random 2×3 N=25",
+      "n": 25,
+      "inputs": {
+        "table": [
+          [2, 9, 4],
+          [4, 4, 2]
+        ]
+      },
+      "r": {
+        "p": 0.43215776013
+      }
+    },
+    {
+      "category": "Fisher exact (R×C)",
+      "label": "random 2×3 N=60",
+      "n": 60,
+      "inputs": {
+        "table": [
+          [4, 22, 32],
+          [0, 2, 0]
+        ]
+      },
+      "r": {
+        "p": 0.28587570621
+      }
+    },
+    {
+      "category": "Fisher exact (R×C)",
+      "label": "random 3×3 N=25",
+      "n": 25,
+      "inputs": {
+        "table": [
+          [0, 1, 0],
+          [9, 3, 6],
+          [3, 3, 0]
+        ]
+      },
+      "r": {
+        "p": 0.13002942138
+      }
+    },
+    {
+      "category": "Fisher exact (R×C)",
+      "label": "random 3×3 N=60",
+      "n": 60,
+      "inputs": {
+        "table": [
+          [7, 7, 0],
+          [3, 8, 1],
+          [15, 18, 1]
+        ]
+      },
+      "r": {
+        "p": 0.55736520722
+      }
+    },
+    {
+      "category": "Fisher exact (R×C)",
+      "label": "random 3×4 N=25",
+      "n": 25,
+      "inputs": {
+        "table": [
+          [3, 1, 1, 1],
+          [4, 0, 1, 3],
+          [7, 2, 1, 1]
+        ]
+      },
+      "r": {
+        "p": 0.73270965137
+      }
+    },
+    {
+      "category": "Fisher exact (R×C)",
+      "label": "random 3×4 N=60",
+      "n": 60,
+      "inputs": {
+        "table": [
+          [1, 6, 1, 1],
+          [2, 16, 10, 7],
+          [0, 13, 2, 1]
+        ]
+      },
+      "r": {
+        "p": 0.29769412067
+      }
+    },
+    {
+      "category": "Fisher exact (R×C)",
+      "label": "random 2×6 N=25",
+      "n": 25,
+      "inputs": {
+        "table": [
+          [7, 3, 1, 3, 4, 1],
+          [3, 0, 0, 2, 1, 0]
+        ]
+      },
+      "r": {
+        "p": 0.87295313382
+      }
+    },
+    {
+      "category": "Fisher exact (R×C)",
+      "label": "random 2×6 N=60",
+      "n": 60,
+      "inputs": {
+        "table": [
+          [13, 2, 12, 10, 5, 6],
+          [3, 0, 4, 5, 0, 0]
+        ]
+      },
+      "r": {
+        "p": 0.55412720458
+      }
+    },
+    {
+      "category": "Fisher exact (R×C)",
+      "label": "random 4×3 N=25",
+      "n": 25,
+      "inputs": {
+        "table": [
+          [2, 4, 7],
+          [0, 1, 0],
+          [1, 4, 3],
+          [0, 3, 0]
+        ]
+      },
+      "r": {
+        "p": 0.46453089245
+      }
+    },
+    {
+      "category": "Fisher exact (R×C)",
+      "label": "random 4×3 N=60",
+      "n": 60,
+      "inputs": {
+        "table": [
+          [2, 1, 2],
+          [6, 1, 1],
+          [9, 8, 16],
+          [4, 7, 3]
+        ]
+      },
+      "r": {
+        "p": 0.10485207151
+      }
+    },
+    {
+      "category": "Chi-square GOF",
+      "label": "Mendel 1866 seed shape × colour, 9:3:3:1",
+      "n": 556,
+      "inputs": {
+        "x": [315, 108, 101, 32],
+        "ratio": [9, 3, 3, 1]
+      },
+      "r": {
+        "statistic": 0.47002398082,
+        "p": 0.9254258951
+      }
+    },
+    {
+      "category": "Chi-square GOF",
+      "label": "Mendel 1866 seed shape, 3:1",
+      "n": 7324,
+      "inputs": {
+        "x": [5474, 1850],
+        "ratio": [3, 1]
+      },
+      "r": {
+        "statistic": 0.26288002913,
+        "p": 0.60814840452
+      }
+    },
+    {
+      "category": "Chi-square GOF",
+      "label": "1:2:1 codominant F2",
+      "n": 40,
+      "inputs": {
+        "x": [12, 20, 8],
+        "ratio": [1, 2, 1]
+      },
+      "r": {
+        "statistic": 0.8,
+        "p": 0.67032004604
+      }
+    },
+    {
+      "category": "Binomial exact",
+      "label": "5474 / 7324 vs p0 = 0.75",
+      "n": 7324,
+      "inputs": {
+        "x": 5474,
+        "n": 7324,
+        "p0": 0.75
+      },
+      "r": {
+        "p": 0.60815538736
+      }
+    },
+    {
+      "category": "Binomial exact",
+      "label": "7 / 20 vs p0 = 0.5",
+      "n": 20,
+      "inputs": {
+        "x": 7,
+        "n": 20,
+        "p0": 0.5
+      },
+      "r": {
+        "p": 0.26317596436
+      }
+    },
+    {
+      "category": "Binomial exact",
+      "label": "3 / 40 vs p0 = 0.25",
+      "n": 40,
+      "inputs": {
+        "x": 3,
+        "n": 40,
+        "p0": 0.25
+      },
+      "r": {
+        "p": 0.0093471484179
+      }
+    },
+    {
+      "category": "Binomial exact",
+      "label": "682 / 925 vs p0 = 0.75",
+      "n": 925,
+      "inputs": {
+        "x": 682,
+        "n": 925,
+        "p0": 0.75
+      },
+      "r": {
+        "p": 0.38249155957
       }
     }
   ]

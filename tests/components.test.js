@@ -2224,4 +2224,352 @@ suite("applyStaticI18n — static-page copy swap");
   });
 })();
 
+suite("ProportionsChart + stats panels");
+
+(function () {
+  const tool = loadTool("proportions");
+  const { ProportionsChart, StatsPanel, GofPanel } = tool.exports;
+  const P = require("./helpers/proportions-loader");
+  const table = {
+    groups: ["WT", "mut-1", "mut-2", "comp"],
+    categories: ["Colonised", "Not colonised"],
+    counts: [
+      [41, 7],
+      [3, 43],
+      [9, 41],
+      [37, 10],
+    ],
+  };
+  const analysis = P.analyseTable(table, "auto", "holm");
+  const summaries = P.groupSummaries(table);
+  const base = {
+    table,
+    chartType: "proportion",
+    summaries,
+    brackets: P.bracketPairs(analysis, false),
+    cld: analysis.cld,
+    annotation: "brackets",
+    colors: ["#E69F00", "#56B4E9"],
+    groupColors: ["#111111", "#222222", "#333333", "#444444"],
+    showCI: true,
+    showN: true,
+    segmentLabels: "percent",
+    barWidthFrac: 0.6,
+    barOutline: true,
+    barOutlineWidth: 1,
+    xLabelAngle: 0,
+    plotWidth: 480,
+    plotHeight: 340,
+    tickFontSize: 12,
+    title: "",
+    yLabel: "",
+    plotBg: "#ffffff",
+    showGrid: false,
+    gridColor: "#e0e0e0",
+  };
+  const vis = {
+    chartType: "proportion",
+    showCI: true,
+    showN: true,
+    annotation: "brackets",
+    showNsBrackets: false,
+    segmentLabels: "percent",
+    discretePalette: "okabe-ito",
+    barWidthFrac: 0.6,
+    barOutline: true,
+    barOutlineWidth: 1,
+    xLabelAngle: 0,
+    plotWidth: 480,
+    plotHeight: 340,
+    tickFontSize: 12,
+    plotTitle: "",
+    yLabel: "",
+    plotBg: "#ffffff",
+    showGrid: false,
+    gridColor: "#e0e0e0",
+    testChoice: "auto",
+    adjustMethod: "holm",
+  };
+
+  test("proportion chart: one bar + CI whisker + n label per group, brackets for sig pairs", () => {
+    const html = renderHtml(ProportionsChart, base);
+    eq((html.match(/<rect id="bar-/g) || []).length, 4);
+    eq(
+      [...html.matchAll(/<rect id="bar-[^"]*"[^>]*fill="(#[0-9a-f]{6})"/g)]
+        .map((m) => m[1])
+        .join(","),
+      "#111111,#222222,#333333,#444444"
+    );
+    const ci = html.match(/<g id="ci-whiskers">(.*?)<\/g><g id="axis-y">/s);
+    assert(ci, "ci group present");
+    eq((ci[1].match(/<line/g) || []).length, 12);
+    assert(html.includes(">41/48<") && html.includes(">3/46<"), "n labels");
+    assert(html.includes('id="significance-brackets"'));
+    eq((html.match(/>\*\*\*\*</g) || []).length, 4);
+    assert(html.includes("% Colonised"), "auto y label");
+    assert(!html.includes('id="legend"'), "no legend for the proportion chart");
+  });
+
+  test("group-label angle: horizontal at 0°, tilted + end-anchored otherwise, margins grow", () => {
+    const flat = renderHtml(ProportionsChart, base);
+    assert(/<g id="axis-x">.*?text-anchor="middle"[^>]*>WT</s.test(flat), "horizontal");
+    assert(
+      !/<g id="axis-x">[^]*?rotate\(/.test(flat.match(/<g id="axis-x">.*?<\/g>/s)[0]),
+      "no rotation"
+    );
+    const tilted = renderHtml(ProportionsChart, { ...base, xLabelAngle: -45 });
+    const axis = tilted.match(/<g id="axis-x">.*?<\/g>/s)[0];
+    eq((axis.match(/transform="rotate\(-45,/g) || []).length, 4);
+    assert(/text-anchor="end"[^>]*transform="rotate\(-45,/.test(axis));
+    const vb = (h) =>
+      h
+        .match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/)
+        .slice(1)
+        .map(Number);
+    assert(vb(tilted)[1] > vb(flat)[1], "taller bottom margin for tilted labels");
+    const vertical = renderHtml(ProportionsChart, {
+      ...base,
+      chartType: "mosaic",
+      xLabelAngle: -90,
+    });
+    eq((vertical.match(/transform="rotate\(-90,(?!12,)/g) || []).length, 4);
+  });
+
+  test("bar outline: black at the chosen width, or none", () => {
+    const strokes = (h) =>
+      [...h.matchAll(/<rect id="bar-[^"]*"[^>]*stroke="([^"]*)" stroke-width="([^"]*)"/g)].map(
+        (m) => `${m[1]}/${m[2]}`
+      );
+    eq(
+      strokes(renderHtml(ProportionsChart, { ...base, barOutlineWidth: 2.5 })).join(","),
+      "#000000/2.5,#000000/2.5,#000000/2.5,#000000/2.5"
+    );
+    eq(strokes(renderHtml(ProportionsChart, { ...base, barOutline: false }))[0], "none/0");
+    // Stacked: black segment borders when on, thin white separators when off.
+    const on = renderHtml(ProportionsChart, { ...base, chartType: "stacked", barOutlineWidth: 3 });
+    assert(
+      /<g id="group-WT"><g><rect[^>]*stroke="#000000" stroke-width="3"/.test(on),
+      "stacked outline"
+    );
+    const off = renderHtml(ProportionsChart, { ...base, chartType: "stacked", barOutline: false });
+    assert(
+      /<g id="group-WT"><g><rect[^>]*stroke="#ffffff" stroke-width="0.8"/.test(off),
+      "white separators"
+    );
+  });
+
+  test("CI and n labels can be switched off; CLD letters replace brackets", () => {
+    const html = renderHtml(ProportionsChart, {
+      ...base,
+      showCI: false,
+      showN: false,
+      annotation: "cld",
+    });
+    assert(!html.includes('id="ci-whiskers"'));
+    assert(!html.includes('id="n-labels"'));
+    assert(!html.includes('id="significance-brackets"'));
+    assert(html.includes('id="cld-annotations"'));
+    eq((html.match(/<g id="cld-annotations">.*?<\/g>/s)[0].match(/<text/g) || []).length, 4);
+  });
+
+  test("stacked chart: one segment per category, % labels, legend", () => {
+    const html = renderHtml(ProportionsChart, { ...base, chartType: "stacked" });
+    assert(html.includes('id="segments"'));
+    eq((html.match(/<g id="group-/g) || []).length, 4);
+    assert(html.includes(">85 %<") && html.includes(">15 %<"), "percent labels");
+    assert(html.includes('id="legend-Colonised"'));
+    assert(html.includes("% of observations"));
+    const counts = renderHtml(ProportionsChart, {
+      ...base,
+      chartType: "stacked",
+      segmentLabels: "count",
+    });
+    assert(counts.includes(">41<") && counts.includes(">43<"), "count labels");
+  });
+
+  test("mosaic chart: column widths proportional to n", () => {
+    const html = renderHtml(ProportionsChart, { ...base, chartType: "mosaic", showN: false });
+    const widths = [
+      ...html.matchAll(/<g id="group-[^"]*"><g><rect x="[^"]*" y="[^"]*" width="([^"]*)"/g),
+    ].map((m) => Number(m[1]));
+    eq(widths.length, 4);
+    const usable = 480 - 6 * 3;
+    [48, 46, 50, 47].forEach((n, i) => approx(widths[i], (usable * n) / 191, 1e-9));
+  });
+
+  test("StatsPanel: summary with Wilson CIs, χ² line, pairwise Holm table", () => {
+    const html = renderHtml(StatsPanel, {
+      analysis,
+      categories: table.categories,
+      summaries,
+      focusLabel: null,
+      vis,
+      updVis: noop,
+    });
+    assert(html.includes("41 · 85.4 % [72.8 %, 92.8 %]"), "Wilson summary cell");
+    assert(/<h3[^>]*>Statistics<\/h3>/.test(html), "Statistics title");
+    const header = html.slice(0, html.indexOf("Display on plot"));
+    assert(
+      header.includes('data-testid="proportions-dl-txt"') && header.includes(">⬇ TXT<"),
+      "TXT in header"
+    );
+    assert(
+      header.includes('data-testid="proportions-dl-r"') && header.includes(">⬇ R<"),
+      "R in header"
+    );
+    assert(html.includes("Cochran"), "selection reason");
+    assert(html.includes("Pearson χ²(3) = 94.537, p = 2.3e-20"));
+    assert(html.includes("Cramér&#x27;s V = 0.704 · N = 191"));
+    assert(html.includes('data-testid="proportions-pairs"'));
+    assert(html.includes("p (Holm)"));
+    assert(html.includes("+6.14"), "standardised residual");
+  });
+
+  test("StatsPanel: Display on plot offers Off / Letters / Brackets (letters only for ≥ 3 groups)", () => {
+    const html = renderHtml(StatsPanel, {
+      analysis,
+      categories: table.categories,
+      summaries,
+      focusLabel: null,
+      vis,
+      updVis: noop,
+    });
+    assert(html.includes("Display on plot"));
+    const seg = html.match(/aria-label="Display on plot"[^>]*>(.*?)<\/div>/s)[1];
+    eq(
+      [...seg.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]).join("|"),
+      "Off|Letters|Brackets"
+    );
+    assert(/aria-pressed="true"[^>]*>Brackets</.test(seg), "brackets active");
+    assert(!/disabled=""[^>]*data-testid="proportions-show-ns"/.test(html), "show ns enabled");
+    const cldHtml = renderHtml(StatsPanel, {
+      analysis,
+      categories: table.categories,
+      summaries,
+      focusLabel: null,
+      vis: { ...vis, annotation: "cld" },
+      updVis: noop,
+    });
+    assert(/aria-pressed="true"[^>]*>Letters</.test(cldHtml), "letters active");
+    assert(
+      /disabled=""[^>]*data-testid="proportions-show-ns"/.test(cldHtml),
+      "show ns disabled with letters"
+    );
+    const t2 = {
+      groups: ["a", "b"],
+      categories: ["y", "n"],
+      counts: [
+        [10, 3],
+        [2, 15],
+      ],
+    };
+    const two = renderHtml(StatsPanel, {
+      analysis: P.analyseTable(t2, "auto", "holm"),
+      categories: t2.categories,
+      summaries: P.groupSummaries(t2),
+      focusLabel: null,
+      vis: { ...vis, annotation: "cld" },
+      updVis: noop,
+    });
+    const seg2 = two.match(/aria-label="Display on plot"[^>]*>(.*?)<\/div>/s)[1];
+    assert(!seg2.includes("Letters"), "no letters for two groups");
+    assert(/aria-pressed="true"[^>]*>Brackets</.test(seg2), "falls back to brackets");
+  });
+
+  test("StatsPanel explainers: why this test (with this table's numbers) and why Holm / BH", () => {
+    const props = {
+      analysis,
+      categories: table.categories,
+      summaries,
+      focusLabel: null,
+      vis,
+      updVis: noop,
+      onDownloadReport: noop,
+      onDownloadR: noop,
+    };
+    const html = renderHtml(StatsPanel, props);
+    const why = html.match(/data-testid="proportions-test-reason">(.*?)<\/div><\/div>/s)[1];
+    assert(why.includes("Why this test?"));
+    assert(why.includes("smallest expected count is 21.68 and 0 of 8 cells are below 5"), why);
+    assert(why.includes("meets Cochran"));
+    assert(!html.includes('data-testid="proportions-override-note"'));
+    const adj = html.match(/data-testid="proportions-adjust-explainer">(.*?)<\/div><p/s)[1];
+    assert(adj.includes("6 pairs are compared"), adj);
+    assert(adj.includes("could reach about 26 %"), "1 − 0.95⁶ ≈ 26 %");
+    assert(adj.indexOf("Holm</strong> (selected)") < adj.indexOf("Benjamini–Hochberg</strong>"));
+    const bh = renderHtml(StatsPanel, { ...props, vis: { ...vis, adjustMethod: "bh" } });
+    const adjBh = bh.match(/data-testid="proportions-adjust-explainer">(.*?)<\/div><p/s)[1];
+    assert(
+      adjBh.indexOf("Benjamini–Hochberg</strong> (selected)") < adjBh.indexOf("Holm</strong>")
+    );
+    // Override to Fisher where χ² was fine → reassuring note.
+    const toFisher = renderHtml(StatsPanel, { ...props, vis: { ...vis, testChoice: "fisher" } });
+    assert(/proportions-override-note"[^>]*>You picked Fisher/.test(toFisher));
+  });
+
+  test("StatsPanel explainers: small expected counts → Fisher, and a χ² override is flagged", () => {
+    const small = {
+      groups: ["a", "b", "c"],
+      categories: ["x", "y", "z"],
+      counts: [
+        [5, 3, 1],
+        [2, 6, 2],
+        [1, 2, 7],
+      ],
+    };
+    const props = (choice) => ({
+      analysis: P.analyseTable(small, choice, "holm"),
+      categories: small.categories,
+      summaries: P.groupSummaries(small),
+      focusLabel: null,
+      vis: { ...vis, testChoice: choice },
+      updVis: noop,
+      onDownloadReport: noop,
+      onDownloadR: noop,
+    });
+    const auto = renderHtml(StatsPanel, props("auto"));
+    assert(auto.includes("smallest expected count is 2.48 and 9 of 9 cells are below 5"));
+    assert(auto.includes("breaks Cochran"));
+    const chi = renderHtml(StatsPanel, props("chi2"));
+    const note = chi.match(/data-testid="proportions-override-note">(.*?)<\/div>/s)[1];
+    assert(note.includes("9 of 9 expected counts are below 5") && note.includes("caution"), note);
+    assert(
+      /color:var\(--warning-text\)[^>]*data-testid="proportions-override-note"/.test(chi),
+      "warning colour"
+    );
+  });
+
+  test("StatsPanel: 2×2 shows Fisher with the conditional-MLE odds ratio", () => {
+    const t2 = {
+      groups: ["a", "b"],
+      categories: ["y", "n"],
+      counts: [
+        [10, 3],
+        [2, 15],
+      ],
+    };
+    const a2 = P.analyseTable(t2, "auto", "holm");
+    const html = renderHtml(StatsPanel, {
+      analysis: a2,
+      categories: t2.categories,
+      summaries: P.groupSummaries(t2),
+      focusLabel: null,
+      vis,
+      updVis: noop,
+    });
+    assert(html.includes("Fisher&#x27;s exact test (2×2): p = 5.37e-4"));
+    assert(html.includes("= 21.3, 95 % CI [2.75, 301]"));
+    assert(!html.includes('data-testid="proportions-pairs"'));
+  });
+
+  test("GofPanel: invalid ratio warns, valid ratio tabulates per group", () => {
+    const bad = renderHtml(GofPanel, { table, ratioText: "3:1:1", setRatioText: noop });
+    assert(bad.includes("Enter 2 positive numbers"));
+    const ok = renderHtml(GofPanel, { table, ratioText: "3:1", setRatioText: noop });
+    assert(ok.includes("36.0 : 12.0"), "expected counts for WT");
+    assert(ok.includes(">exact<"));
+    assert(ok.includes(">0.1316<"), "WT exact binomial p");
+  });
+})();
+
 summary();
