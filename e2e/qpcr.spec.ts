@@ -53,13 +53,33 @@ test("standard curve: efficiencies applied to the gene table", async ({ page }) 
   await expect(page.getByTestId("qpcr-eff-RD29A")).toHaveValue("93.1 %");
 });
 
-test("Send ΔCt to Group Plot opens Group Plot with the qPCR groups", async ({ page }) => {
+test("Send ΔCt of all genes → Group Plot faceted by gene", async ({ page }) => {
   await loadExample(page);
   await page.getByTestId("step-plot").click();
-  await page.getByTestId("qpcr-send-RD29A").click();
+  await page.getByTestId("qpcr-send").click();
   await expect(page).toHaveURL(/#\/boxplot/);
-  await expect(page.locator("svg").filter({ hasText: "ΔCt (RD29A)" }).first()).toBeVisible();
-  for (const g of ["Control", "Drought", "Salt"]) {
-    await expect(page.locator("svg").filter({ hasText: "ΔCt (RD29A)" }).first()).toContainText(g);
+  // One facet chart per target gene, each with the qPCR groups and the ΔCt label.
+  for (const gene of ["RD29A", "WRKY33"]) {
+    const chart = page.locator("svg").filter({ hasText: gene }).filter({ hasText: "ΔCt" }).first();
+    await expect(chart).toBeVisible();
+    for (const g of ["Control", "Drought", "Salt"]) await expect(chart).toContainText(g);
   }
+});
+
+test("Send ΔCt of all genes → Group Plot with gene subgroups", async ({ page }) => {
+  await loadExample(page);
+  await page.getByTestId("step-plot").click();
+  await page
+    .getByTestId("qpcr-stats")
+    .getByRole("button", { name: "Gene = subgroups", exact: true })
+    .click();
+  await page.getByTestId("qpcr-send").click();
+  await expect(page).toHaveURL(/#\/boxplot/);
+  const chart = page
+    .locator("svg")
+    .filter({ hasText: "RD29A" })
+    .filter({ hasText: "WRKY33" })
+    .first();
+  await expect(chart).toBeVisible();
+  await expect(chart).toContainText("Drought");
 });

@@ -162,6 +162,7 @@ function ensureSharedBundleLoaded() {
         "GroupColorEditor",
         "HowTo",
         "HowToCard",
+        "HowToExampleTable",
         "NumberInput",
         "PageHeader",
         "ParseErrorBanner",

@@ -121,3 +121,83 @@ export function HowTo(props: HowToContent) {
     </HowToCard>
   );
 }
+
+// Small example table for a How-to "Data layout" card: shows the exact
+// column layout a tool expects, as it should be typed or pasted. Chrome
+// only (var(--*) tokens); `highlight` marks columns the caption explains.
+export interface HowToExampleTableProps {
+  caption?: ReactNode;
+  headers: string[];
+  rows: string[][];
+  // Append a "…" row to signal the table continues.
+  more?: boolean;
+  highlight?: number[];
+}
+
+export function HowToExampleTable({
+  caption,
+  headers,
+  rows,
+  more,
+  highlight = [],
+}: HowToExampleTableProps) {
+  const cell: React.CSSProperties = {
+    padding: "3px 8px",
+    borderBottom: "1px solid var(--border)",
+    whiteSpace: "nowrap",
+    textAlign: "left",
+  };
+  const hl = (i: number): React.CSSProperties =>
+    highlight.includes(i) ? { background: "var(--info-bg)", color: "var(--text)" } : {};
+  return (
+    <figure style={{ margin: "10px 0 0" }} data-testid="howto-example-table">
+      <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 6 }}>
+        <table
+          style={{
+            borderCollapse: "collapse",
+            fontFamily: "ui-monospace, Menlo, monospace",
+            fontSize: 11,
+            color: "var(--text)",
+            background: "var(--surface-subtle)",
+            minWidth: "100%",
+          }}
+        >
+          <thead>
+            <tr>
+              {headers.map((h, i) => (
+                <th key={i} style={{ ...cell, fontWeight: 700, ...hl(i) }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, ri) => (
+              <tr key={ri}>
+                {r.map((c, ci) => (
+                  <td key={ci} style={{ ...cell, ...hl(ci) }}>
+                    {c}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {more && (
+              <tr>
+                {headers.map((_, i) => (
+                  <td key={i} style={{ ...cell, color: "var(--text-faint)", ...hl(i) }}>
+                    …
+                  </td>
+                ))}
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {caption && (
+        <figcaption style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>
+          {caption}
+        </figcaption>
+      )}
+    </figure>
+  );
+}

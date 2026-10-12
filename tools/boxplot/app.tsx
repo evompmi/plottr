@@ -12,6 +12,7 @@ import {
   BoxplotStatsSet,
   DragState,
   Subgroup,
+  resolveHandoffLayout,
 } from "./helpers";
 import { UploadStep, ConfigureStep, FilterStep, OutputStep } from "./steps";
 import { PlotControls } from "./controls";
@@ -418,6 +419,12 @@ export function App() {
     // "A.U.C." instead of letting the boxplot read its CSV column header
     // "Raw Sum" / "Corrected Sum".
     yLabel?: string;
+    // Explicit column roles + facet / subgroup column names (e.g. qPCR
+    // sends all target genes with `facetBy: "Gene"`). Validated by
+    // resolveHandoffLayout; ignored when unusable.
+    colRoles?: unknown;
+    facetBy?: unknown;
+    subgroupBy?: unknown;
   }
   // Hand-off applier held in a ref that's refreshed every render. The
   // listener effect below registers once on mount but always invokes the
@@ -435,6 +442,19 @@ export function App() {
     setSepOverride("");
     setFileName(payload.fileName || "from_handoff.csv");
     doParse(payload.csv, "");
+    // Explicit roles / facet / subgroup from the source tool override the
+    // guesses doParse just made (same batch, so the last write wins).
+    const layout = resolveHandoffLayout(
+      parseRaw(payload.csv, "").headers,
+      payload.colRoles,
+      payload.facetBy,
+      payload.subgroupBy
+    );
+    if (layout) {
+      setColRoles(layout.roles);
+      _setFacetByCol(layout.facetCol);
+      _setSubgroupByCol(layout.subgroupCol);
+    }
     // Apply the source-tool-supplied y-axis label after doParse so the
     // batched update lands before the next render's valueColName useEffect
     // fires. That effect treats the label as "auto" only when current ===

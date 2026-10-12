@@ -6,7 +6,7 @@
 import { SegToggle, buildSelectTestReason, STATS_TESTS_FOR_K, STATS_TESTS_FOR_K2 } from "../_shell";
 import { formatP, pStars } from "../_core/stats";
 import { formatResultLine } from "./helpers";
-import type { AnnotationMode, QpcrStatsPanelProps } from "./helpers";
+import type { AnnotationMode, HandoffSplit, QpcrStatsPanelProps } from "./helpers";
 import { useT, type QpcrKey } from "./i18n";
 
 const subhead: React.CSSProperties = {
@@ -83,6 +83,7 @@ export function QpcrStatsPanel({
   onSendToGroupPlot,
 }: QpcrStatsPanelProps) {
   const tr = useT();
+  const [split, setSplit] = React.useState<HandoffSplit>("facet");
   const testLabel = (t: string | null): string => (t && TEST_KEYS[t] ? tr(TEST_KEYS[t]) : t || "—");
   const anyMulti = genes.some((g) => g.groups.length > 2);
   const display: AnnotationMode =
@@ -195,6 +196,49 @@ export function QpcrStatsPanel({
         </label>
       </div>
 
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+          padding: "8px 14px",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>
+          {tr("qpcr.stats.sendLabel")}
+        </span>
+        <SegToggle<HandoffSplit>
+          value={split}
+          onChange={setSplit}
+          ariaLabel={tr("qpcr.stats.sendLabel")}
+          style={{ width: 200 }}
+          options={[
+            {
+              value: "facet",
+              label: tr("qpcr.stats.asFacets"),
+              title: tr("qpcr.stats.asFacetsTitle"),
+            },
+            {
+              value: "subgroup",
+              label: tr("qpcr.stats.asSubgroups"),
+              title: tr("qpcr.stats.asSubgroupsTitle"),
+            },
+          ]}
+        />
+        <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
+          style={{ padding: "3px 10px", fontSize: 11 }}
+          onClick={() => onSendToGroupPlot(split)}
+          title={tr("qpcr.stats.sendTitle")}
+          data-testid="qpcr-send"
+        >
+          {tr("qpcr.stats.send")}
+        </button>
+      </div>
+
       <div style={{ padding: "4px 16px 14px" }}>
         <div style={explainer} data-testid="qpcr-why-dct">
           <div style={{ fontWeight: 700, marginBottom: 2 }}>{tr("qpcr.stats.whyDctTitle")}</div>
@@ -223,16 +267,6 @@ export function QpcrStatsPanel({
                 }}
               >
                 <span style={{ fontStyle: "italic" }}>{g.gene}</span>
-                <button
-                  type="button"
-                  className="dv-btn dv-btn-secondary"
-                  style={{ padding: "2px 8px", fontSize: 11 }}
-                  onClick={() => onSendToGroupPlot(g.gene)}
-                  title={tr("qpcr.stats.sendTitle")}
-                  data-testid={`qpcr-send-${g.gene}`}
-                >
-                  {tr("qpcr.stats.send")}
-                </button>
               </div>
               {g.controlMissing && (
                 <p style={{ fontSize: 11, color: "var(--warning-text)", margin: "4px 0" }}>

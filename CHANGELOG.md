@@ -13,7 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   efficiency-corrected (Pfaffl) fold changes with several reference genes combined by
   geometric mean, efficiencies typed or from a standard curve, and QC for undetermined wells,
   noisy technical replicates and reference stability (geNorm M). Statistics run on ΔCt with the
-  Group Plot engine (never on fold changes); ΔCt can be sent to Group Plot.
+  Group Plot engine (never on fold changes); ΔCt of all genes can be sent to Group Plot in one
+  go, faceted or subgrouped by gene.
+- **Example input tables in the How-to.** The Proportions and qPCR How-to panels now show
+  small example tables of the expected input (counts table; qPCR long and wide layouts).
+- **Group Plot hand-offs can set column roles, facet and subgroup.** A tool sending data to
+  Group Plot can now say which column is the group, the value, and what to facet or subgroup
+  by, instead of Group Plot guessing.
 - **Proportions & counts tool.** For counted outcomes (% germination, % colonised
   plants, phenotype classes) instead of t-tests on percentages: paste a counts table to get
   % with Wilson 95 % CIs, proportion / stacked / mosaic bars, Fisher's exact or χ² test

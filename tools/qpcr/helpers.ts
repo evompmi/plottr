@@ -660,14 +660,33 @@ export function geneAnnotation(
 
 const csvCell = (s: string): string => (/[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s);
 
-// Long `Group,ΔCt` CSV for Group Plot, rows in display-group order so the
-// boxes come out in the same order.
-export function buildHandoffCsv(g: GeneAnalysis): string {
-  const lines = ["Group," + csvCell(`ΔCt ${g.gene}`)];
-  g.groups.forEach((grp, i) => {
-    for (const v of g.dCtByGroup[i]) lines.push(`${csvCell(grp)},${v}`);
-  });
-  return lines.join("\n") + "\n";
+export type HandoffSplit = "facet" | "subgroup";
+
+export interface QpcrHandoff {
+  csv: string;
+  colRoles: string[];
+  facetBy?: string;
+  subgroupBy?: string;
+}
+
+// One long CSV with every target gene — `Gene, Group, Sample, ΔCt` — plus
+// explicit Group Plot roles, so Group Plot facets (or subgroups) by gene and
+// runs its statistics per gene. Rows go gene by gene, groups in display
+// order, so Group Plot's first-appearance ordering matches this tool.
+export function buildHandoff(genes: GeneAnalysis[], split: HandoffSplit): QpcrHandoff {
+  const lines = ["Gene,Group,Sample,ΔCt"];
+  for (const g of genes) {
+    g.groups.forEach((grp) => {
+      for (const r of g.rows.filter((x) => x.group === grp)) {
+        lines.push([csvCell(g.gene), csvCell(grp), csvCell(r.sample), String(r.dCt)].join(","));
+      }
+    });
+  }
+  return {
+    csv: lines.join("\n") + "\n",
+    colRoles: ["filter", "group", "ignore", "value"],
+    ...(split === "facet" ? { facetBy: "Gene" } : { subgroupBy: "Gene" }),
+  };
 }
 
 export function sampleRowsForCsv(genes: GeneAnalysis[]): {
@@ -762,7 +781,7 @@ export interface QpcrStatsPanelProps {
   updVis: (patch: Partial<QpcrVis>) => void;
   onDownloadReport: () => void;
   onDownloadR: () => void;
-  onSendToGroupPlot: (gene: string) => void;
+  onSendToGroupPlot: (split: HandoffSplit) => void;
 }
 
 export interface TileProps {
@@ -838,7 +857,7 @@ export interface PlotStepProps {
   onDownloadCsv: () => void;
   onDownloadReport: () => void;
   onDownloadR: () => void;
-  onSendToGroupPlot: (gene: string) => void;
+  onSendToGroupPlot: (split: HandoffSplit) => void;
   onReset: () => void;
   dropped: number;
 }

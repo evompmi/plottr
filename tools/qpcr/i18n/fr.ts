@@ -144,9 +144,15 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.stats.pair": "Paire",
   "qpcr.stats.fc": "Ratio",
   "qpcr.stats.pAdj": "p (ajustée)",
-  "qpcr.stats.send": "Envoyer les ΔCt vers Group Plot",
+  "qpcr.stats.sendLabel": "Group Plot",
+  "qpcr.stats.send": "Envoyer les ΔCt de tous les gènes",
   "qpcr.stats.sendTitle":
-    "Ouvrir les ΔCt de ce gène dans Group Plot pour des boîtes / violons et son panneau statistique complet",
+    "Ouvrir les ΔCt de tous les gènes cibles dans Group Plot (un seul CSV), séparés par gène, pour des boîtes / violons et son panneau statistique complet",
+  "qpcr.stats.asFacets": "Gène = panneaux",
+  "qpcr.stats.asFacetsTitle": "Un panneau par gène ; groupes en abscisse ; statistiques par gène",
+  "qpcr.stats.asSubgroups": "Gène = sous-groupes",
+  "qpcr.stats.asSubgroupsTitle":
+    "Un seul panneau, groupes regroupés par gène ; statistiques par gène",
   "qpcr.test.studentT": "Test t de Student",
   "qpcr.test.welchT": "Test t de Welch",
   "qpcr.test.mannWhitney": "Mann-Whitney U",
@@ -163,6 +169,10 @@ const fr: Record<QpcrKey, string> = {
     "Quantification relative à partir des Ct bruts : <strong>2^−ΔΔCt</strong> (Livak &amp; Schmittgen 2001, <em>Methods</em> 25(4):402–408, doi:10.1006/meth.2001.1262), <strong>ratios corrigés par l’efficacité</strong> (Pfaffl 2001, <em>Nucleic Acids Res</em> 29(9):e45, doi:10.1093/nar/29.9.e45) et <strong>moyenne géométrique de plusieurs gènes de référence</strong> (Vandesompele et al. 2002, <em>Genome Biol</em> 3(7):research0034, doi:10.1186/gb-2002-3-7-research0034). Les statistiques portent sur les <strong>ΔCt</strong>, jamais sur les ratios.",
   "qpcr.howto.dataLayout":
     "<strong>Long</strong> : une ligne par puits avec <code>Échantillon, Groupe, Gène, Ct</code> (les réplicats techniques sont des lignes répétées, moyennées). <strong>Large</strong> : une ligne par échantillon biologique avec <code>Échantillon, Groupe</code> puis une colonne de Ct par gène. Les Ct « Undetermined », NA ou vides sont traités comme manquants.",
+  "qpcr.howto.exLongCaption":
+    "Format long (la plupart des exports d’instruments) : une ligne par puits. Les lignes répétées pour un même échantillon et un même gène sont des réplicats techniques, moyennés ; « Undetermined » compte comme manquant. Les identifiants d’échantillon peuvent se répéter d’un groupe à l’autre.",
+  "qpcr.howto.exWideCaption":
+    "Format large : une ligne par échantillon biologique, une colonne de Ct par gène (réplicats techniques déjà moyennés). Les en-têtes anglais (Sample, Group, Gene, Ct) sont détectés automatiquement ; sinon, attribuez les colonnes à l’étape Configurer.",
   "qpcr.howto.display":
     "Choisissez les gènes de référence et cibles, les efficacités (saisies ou issues d’une gamme étalon) et le groupe contrôle. Le graphique montre le ratio d’expression sur un axe log₂ (ou linéaire, ou −ΔΔCt) avec les réplicats biologiques et les IC à 95 % ; crochets ou lettres viennent du test t de Welch / de l’ANOVA de Welch + Games-Howell sur les ΔCt. Les ΔCt de chaque gène peuvent être envoyés vers Group Plot.",
 };

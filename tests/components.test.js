@@ -2748,9 +2748,30 @@ suite("QpcrChart + QpcrStatsPanel");
     assert(html.includes("Auto — Welch&#x27;s ANOVA"));
     assert(html.includes("Welch&#x27;s ANOVA on ΔCt: F(2, "));
     assert(html.includes("1 (calibrator)"));
-    assert(html.includes('data-testid="qpcr-send-PR1"'));
+    assert(html.includes('data-testid="qpcr-send"'), "single send-all button");
+    assert(html.includes("Gene = facets") && html.includes("Gene = subgroups"));
     assert(html.includes("Post-hoc: Games-Howell"));
   });
 })();
+
+suite("HowToExampleTable");
+
+test("renders headers, rows, a continuation row and the caption", () => {
+  const html = renderHtml(sc.HowToExampleTable, {
+    headers: ["Sample", "Group", "Gene", "Ct"],
+    rows: [
+      ["1", "Control", "ACT2", "18.52"],
+      ["1", "Control", "RD29A", "Undetermined"],
+    ],
+    more: true,
+    highlight: [3],
+    caption: "One row per well",
+  });
+  eq((html.match(/<th /g) || []).length, 4);
+  eq((html.match(/<tr>/g) || []).length, 4); // header + 2 rows + "…"
+  eq((html.match(/>…</g) || []).length, 4);
+  assert(html.includes("<figcaption") && html.includes("One row per well"));
+  assert(/<th style="[^"]*background:var\(--info-bg\)[^"]*">Ct</.test(html), "highlighted column");
+});
 
 summary();

@@ -25,7 +25,7 @@ import { useT } from "./i18n";
 import { useQpcrHowTo } from "./howto";
 import {
   aggregateTechReps,
-  buildHandoffCsv,
+  buildHandoff,
   computeGene,
   detectLayout,
   geneAnnotation,
@@ -43,6 +43,7 @@ import {
 } from "./helpers";
 import type {
   GeneRow,
+  HandoffSplit,
   LongColumns,
   OrderItem,
   QpcrConfig,
@@ -341,16 +342,15 @@ export function App() {
     if (!data) return;
     downloadText(buildQpcrRScript({ wells: data.wells, cfg, genes, stats }), `${stem}.R`);
   };
-  const onSendToGroupPlot = (gene: string) => {
-    const g = genes.find((x) => x.gene === gene);
-    if (!g) return;
+  const onSendToGroupPlot = (split: HandoffSplit) => {
+    if (genes.length === 0) return;
     setHandoff({
       tool: "boxplot",
-      csv: buildHandoffCsv(g),
+      ...buildHandoff(genes, split),
       mode: "long",
       source: "qPCR — ΔCt",
-      fileName: `${stem}_${gene}_dCt.csv`,
-      yLabel: `ΔCt (${gene})`,
+      fileName: `${stem}_dCt.csv`,
+      yLabel: "ΔCt",
     });
     navigateToTool("boxplot");
   };

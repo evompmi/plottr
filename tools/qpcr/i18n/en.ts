@@ -146,9 +146,14 @@ const en = {
   "qpcr.stats.pair": "Pair",
   "qpcr.stats.fc": "Fold change",
   "qpcr.stats.pAdj": "p (adjusted)",
-  "qpcr.stats.send": "Send ΔCt to Group Plot",
+  "qpcr.stats.sendLabel": "Group Plot",
+  "qpcr.stats.send": "Send ΔCt of all genes",
   "qpcr.stats.sendTitle":
-    "Open this gene's ΔCt values in Group Plot for box / violin plots and its full statistics panel",
+    "Open every target gene's ΔCt in Group Plot (one CSV), split by gene, for box / violin plots and its full statistics panel",
+  "qpcr.stats.asFacets": "Gene = facets",
+  "qpcr.stats.asFacetsTitle": "One panel per gene; groups on the x axis; statistics per gene",
+  "qpcr.stats.asSubgroups": "Gene = subgroups",
+  "qpcr.stats.asSubgroupsTitle": "One panel, groups clustered by gene; statistics per gene",
   "qpcr.test.studentT": "Student's t-test",
   "qpcr.test.welchT": "Welch's t-test",
   "qpcr.test.mannWhitney": "Mann-Whitney U",
@@ -166,6 +171,10 @@ const en = {
     "Relative quantification from raw Ct values: <strong>2^−ΔΔCt</strong> (Livak &amp; Schmittgen 2001, <em>Methods</em> 25(4):402–408, doi:10.1006/meth.2001.1262), <strong>efficiency-corrected ratios</strong> (Pfaffl 2001, <em>Nucleic Acids Res</em> 29(9):e45, doi:10.1093/nar/29.9.e45) and the <strong>geometric mean of several reference genes</strong> (Vandesompele et al. 2002, <em>Genome Biol</em> 3(7):research0034, doi:10.1186/gb-2002-3-7-research0034). The statistics run on <strong>ΔCt</strong>, never on fold changes.",
   "qpcr.howto.dataLayout":
     '<strong>Long</strong>: one row per well with <code>Sample, Group, Gene, Ct</code> (technical replicates are repeated rows and get averaged). <strong>Wide</strong>: one row per biological sample with <code>Sample, Group</code> then one Ct column per gene. "Undetermined", NA or blank Ct values are treated as missing.',
+  "qpcr.howto.exLongCaption":
+    "Long layout (most instrument exports): one row per well. Repeated rows for the same sample and gene are technical replicates and get averaged; “Undetermined” counts as missing. Sample ids may repeat across groups.",
+  "qpcr.howto.exWideCaption":
+    "Wide layout: one row per biological sample, one Ct column per gene (technical replicates already averaged). English headers (Sample, Group, Gene, Ct) are detected automatically; other names can be assigned in the Configure step.",
   "qpcr.howto.display":
     "Choose reference and target genes, efficiencies (typed or from a standard curve) and the control group. The plot shows fold change on a log₂ axis (switchable to linear or −ΔΔCt) with biological replicates and 95 % CIs; brackets or letters come from Welch's t-test / Welch's ANOVA + Games-Howell on ΔCt. Each gene's ΔCt can be sent to Group Plot.",
 } as const satisfies Catalog;

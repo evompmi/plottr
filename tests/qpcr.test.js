@@ -328,16 +328,26 @@ test("formatResultLine matches Group Plot's format", () => {
 
 suite("hand-off, auto-config, exports");
 
-test("hand-off CSV: Group, ΔCt rows in display order, quoted names", () => {
+test("hand-off: every target gene in one CSV with Group Plot roles + facet / subgroup", () => {
   const samples = L.aggregateTechReps(load().parsed.data.wells);
-  const g = L.computeGene(samples, cfgFor({}), "PR1");
-  const lines = L.buildHandoffCsv(g).trim().split("\n");
-  eq(lines[0], "Group,ΔCt PR1");
-  eq(lines.length, 10);
-  eq(lines[1].split(",")[0], "Mock");
-  rel(Number(lines[1].split(",")[1]), 8.35, 1e-13);
-  assert(lines[4].startsWith("SA,"));
-  eq(L.buildHandoffCsv({ ...g, groups: ['a,"b'], dCtByGroup: [[1]] }).split("\n")[1], '"a,""b",1');
+  const cfg = { ...cfgFor({}), targets: ["PR1", "UBQ10"], refs: ["ACT2"] };
+  const genes = cfg.targets.map((t) => L.computeGene(samples, cfg, t));
+  const h = L.buildHandoff(genes, "facet");
+  const lines = h.csv.trim().split("\n");
+  eq(lines[0], "Gene,Group,Sample,ΔCt");
+  eq(lines.length, 1 + 9 + 9);
+  eq(lines[1].split(",").slice(0, 3).join(), "PR1,Mock,1");
+  eq(lines[4].split(",").slice(0, 2).join(), "PR1,SA");
+  eq(lines[10].split(",")[0], "UBQ10");
+  rel(Number(lines[1].split(",")[3]), 27.5 - 18.2, 1e-12);
+  eq(h.colRoles.join(), "filter,group,ignore,value");
+  eq(h.facetBy, "Gene");
+  eq(h.subgroupBy, undefined);
+  const sg = L.buildHandoff(genes, "subgroup");
+  eq(sg.subgroupBy, "Gene");
+  eq(sg.facetBy, undefined);
+  const q = L.buildHandoff([{ ...genes[0], gene: 'a,"b' }], "facet");
+  eq(q.csv.split("\n")[1].split(",")[0], '"a');
 });
 
 test("guessRefs / guessControl", () => {
