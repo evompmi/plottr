@@ -66,7 +66,9 @@ test("chart types and test override", async ({ page }) => {
   await expect(page.locator("g#segments > g")).toHaveCount(4);
   await page.getByRole("button", { name: "Fisher", exact: true }).click();
   await expect(page.getByTestId("proportions-omnibus")).toContainText("Fisher's exact test (4×2)");
-  await expect(page.getByText("You overrode the recommended test.")).toBeVisible();
+  await expect(page.getByTestId("proportions-override-note")).toContainText(
+    "You picked Fisher's exact test where χ² would also be valid"
+  );
 });
 
 test("F2 example: stacked by default, 9:3:3:1 goodness of fit per family", async ({ page }) => {

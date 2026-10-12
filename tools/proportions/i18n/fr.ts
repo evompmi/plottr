@@ -95,13 +95,27 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.stats.test": "Les groupes diffèrent-ils ?",
   "proportions.stats.testChoice": "Test",
   "proportions.stats.auto": "Auto",
-  "proportions.stats.reasonTwoByTwo":
-    "2 groupes × 2 modalités → test exact de Fisher (p exacte, sans approximation asymptotique).",
-  "proportions.stats.reasonCochranOk":
-    "Tous les effectifs attendus ≥ 1 et au plus 20 % inférieurs à 5 (règle de Cochran) → test du χ² de Pearson.",
-  "proportions.stats.reasonCochranFail":
-    "{below} effectifs attendus sur {cells} sont inférieurs à 5 (minimum {min}) → test exact de Fisher, l’approximation du χ² n’étant pas fiable ici.",
-  "proportions.stats.overridden": "Vous avez remplacé le test recommandé.",
+  "proportions.stats.whyTitle": "Pourquoi ce test ?",
+  "proportions.stats.whyTwoByTwo":
+    "Avec 2 groupes et 2 modalités, le test exact de Fisher est utilisé. Il calcule la p-value exactement, à partir de tous les tableaux ayant les mêmes totaux de lignes et de colonnes que le vôtre : il est donc valable quel que soit l’effectif, et rapide pour un tableau 2×2.",
+  "proportions.stats.whyCochranOk":
+    "Le test du χ² compare vos effectifs à ceux attendus si tous les groupes avaient les mêmes proportions. Sa p-value est une approximation asymptotique, précise lorsque les effectifs attendus ne sont pas trop faibles. Ici, le plus petit effectif attendu vaut {min} et {below} cellules sur {cells} sont inférieures à 5, ce qui respecte la règle de Cochran (toutes ≥ 1, au plus 20 % sous 5) : le χ² est fiable, et le test exact de Fisher donnerait presque le même résultat.",
+  "proportions.stats.whyCochranFail":
+    "La p-value du χ² est une approximation asymptotique qui devient peu fiable quand les effectifs attendus sont faibles. Ici, le plus petit effectif attendu vaut {min} et {below} cellules sur {cells} sont inférieures à 5, ce qui enfreint la règle de Cochran (toutes ≥ 1, au plus 20 % sous 5). Le test exact de Fisher calcule la p-value exactement, et reste donc valable avec de petits effectifs.",
+  "proportions.stats.overrideFisher":
+    "Vous avez choisi le test exact de Fisher alors que le χ² serait aussi valable. C’est sans risque : la p-value exacte n’est jamais moins précise, seulement plus longue à calculer sur de grands tableaux.",
+  "proportions.stats.overrideChi2Ok":
+    "Vous avez choisi le χ² pour un tableau 2×2. Avec ces effectifs attendus (minimum {min}), son approximation est acceptable, mais la p-value exacte de Fisher reste la référence.",
+  "proportions.stats.overrideChi2Small":
+    "Vous avez choisi le χ² alors que {below} effectifs attendus sur {cells} sont inférieurs à 5 (minimum {min}) : son approximation peut être imprécise ici, interprétez cette p-value avec prudence.",
+  "proportions.stats.whyAdjustTitle": "Pourquoi corriger les p-values des comparaisons ?",
+  "proportions.stats.whyAdjust":
+    "{m} paires sont comparées. Chaque test seul a 5 % de risque de faux positif : sans correction, le risque qu’au moins une paire paraisse significative par hasard pourrait atteindre environ {fwer} %.",
+  "proportions.stats.selected": "sélectionnée",
+  "proportions.stats.holmExplain":
+    "maintient à 5 % au plus le risque d’avoir ne serait-ce qu’un faux positif parmi les {m} paires. Le choix sûr par défaut quand chaque paire significative est un résultat que vous rapporterez.",
+  "proportions.stats.bhExplain":
+    "maintient à 5 % au plus la proportion attendue de faux positifs parmi les paires significatives. Détecte plus de différences que Holm, au prix de quelques faux positifs : adapté au criblage de nombreux groupes.",
   "proportions.stats.tooSmall":
     "Il faut au moins deux groupes et deux modalités observées pour réaliser un test.",
   "proportions.stats.fisherLine": "Test exact de Fisher ({dims}) : p = {p}",

@@ -100,13 +100,27 @@ const en = {
   "proportions.stats.test": "Do the groups differ?",
   "proportions.stats.testChoice": "Test",
   "proportions.stats.auto": "Auto",
-  "proportions.stats.reasonTwoByTwo":
-    "2 groups × 2 outcomes → Fisher's exact test (exact p, no large-sample approximation).",
-  "proportions.stats.reasonCochranOk":
-    "Every expected count ≥ 1 and at most 20 % below 5 (Cochran's rule) → Pearson χ² test.",
-  "proportions.stats.reasonCochranFail":
-    "{below} of {cells} expected counts are below 5 (smallest {min}) → Fisher's exact test, because the χ² approximation is unreliable here.",
-  "proportions.stats.overridden": "You overrode the recommended test.",
+  "proportions.stats.whyTitle": "Why this test?",
+  "proportions.stats.whyTwoByTwo":
+    "With 2 groups and 2 outcomes, Fisher's exact test is used. It computes the p-value exactly, from every table that has the same row and column totals as yours, so it is valid at any sample size — and it is quick for a 2×2 table.",
+  "proportions.stats.whyCochranOk":
+    "The χ² test compares your counts with the counts expected if every group had the same proportions. Its p-value is a large-sample approximation, accurate when expected counts are not too small. Here the smallest expected count is {min} and {below} of {cells} cells are below 5, which meets Cochran's rule (all ≥ 1, at most 20 % below 5) — so χ² is reliable, and Fisher's exact test would give nearly the same answer.",
+  "proportions.stats.whyCochranFail":
+    "The χ² p-value is a large-sample approximation that becomes unreliable when expected counts are small. Here the smallest expected count is {min} and {below} of {cells} cells are below 5, which breaks Cochran's rule (all ≥ 1, at most 20 % below 5). Fisher's exact test computes the p-value exactly instead, so it stays valid with small counts.",
+  "proportions.stats.overrideFisher":
+    "You picked Fisher's exact test where χ² would also be valid. That is fine: the exact p-value is never less accurate, only slower to compute on large tables.",
+  "proportions.stats.overrideChi2Ok":
+    "You picked χ² for a 2×2 table. With these expected counts (smallest {min}) its approximation is acceptable, but Fisher's exact p-value is the reference.",
+  "proportions.stats.overrideChi2Small":
+    "You picked χ² although {below} of {cells} expected counts are below 5 (smallest {min}): its approximation may be inaccurate here, so treat this p-value with caution.",
+  "proportions.stats.whyAdjustTitle": "Why correct the pairwise p-values?",
+  "proportions.stats.whyAdjust":
+    "{m} pairs are compared. Each test alone has a 5 % chance of a false positive, so without correction the chance that at least one pair looks significant by luck alone could reach about {fwer} %.",
+  "proportions.stats.selected": "selected",
+  "proportions.stats.holmExplain":
+    "keeps the chance of even one false positive among the {m} pairs at or below 5 %. The safe default when each significant pair is a finding you will report.",
+  "proportions.stats.bhExplain":
+    "keeps the expected share of false positives among the significant pairs at or below 5 %. Finds more differences than Holm, at the cost of allowing a few false ones — suited to screening many groups.",
   "proportions.stats.tooSmall":
     "Need at least two groups and two outcomes with observations to run a test.",
   "proportions.stats.fisherLine": "Fisher's exact test ({dims}): p = {p}",

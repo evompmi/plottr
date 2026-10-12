@@ -46,6 +46,17 @@ const resultBox: React.CSSProperties = {
   fontSize: 11,
   color: "var(--text)",
 };
+// Light info box, same tokens as boxplot's "suggested alternative" notice.
+const explainer: React.CSSProperties = {
+  padding: "7px 10px",
+  margin: "6px 0 8px",
+  background: "var(--info-bg)",
+  border: "1px solid var(--info-border)",
+  borderRadius: 6,
+  fontSize: 11,
+  lineHeight: 1.5,
+  color: "var(--info-text)",
+};
 const panel: React.CSSProperties = {
   padding: "10px 16px 14px",
   background: "var(--surface-subtle)",
@@ -72,17 +83,31 @@ export function StatsPanel({
   const tr = useT();
   const { table, selection, test, fisher, chi2 } = analysis;
   const N = summaries.reduce((a, s) => a + s.n, 0);
-  const reason =
+  // Explainers — the numbers come from this table's expected counts.
+  const counts = {
+    below: selection.nExpectedBelow5,
+    cells: selection.nCells,
+    min: selection.minExpected.toFixed(2),
+  };
+  const cochranHolds =
+    selection.minExpected >= 1 && selection.nExpectedBelow5 <= 0.2 * selection.nCells;
+  const why =
     selection.reason === "twoByTwo"
-      ? tr("proportions.stats.reasonTwoByTwo")
+      ? tr("proportions.stats.whyTwoByTwo")
       : selection.reason === "cochranOk"
-        ? tr("proportions.stats.reasonCochranOk")
-        : tr("proportions.stats.reasonCochranFail", {
-            below: selection.nExpectedBelow5,
-            cells: selection.nCells,
-            min: selection.minExpected.toFixed(2),
-          });
+        ? tr("proportions.stats.whyCochranOk", counts)
+        : tr("proportions.stats.whyCochranFail", counts);
   const overridden = vis.testChoice !== "auto" && vis.testChoice !== selection.test;
+  const overrideNote = !overridden
+    ? null
+    : vis.testChoice === "fisher"
+      ? { text: tr("proportions.stats.overrideFisher"), warn: false }
+      : cochranHolds
+        ? { text: tr("proportions.stats.overrideChi2Ok", counts), warn: false }
+        : { text: tr("proportions.stats.overrideChi2Small", counts), warn: true };
+  const m = analysis.pairs.length;
+  // Chance of ≥ 1 false positive across m independent tests at α = 0.05.
+  const fwer = (100 * (1 - Math.pow(0.95, m))).toFixed(0);
 
   const multi = table.groups.length > 2;
   const display: AnnotationMode = vis.annotation === "cld" && !multi ? "brackets" : vis.annotation;
@@ -248,14 +273,24 @@ export function StatsPanel({
                 ]}
               />
             </div>
-            <p style={note} data-testid="proportions-test-reason">
-              {reason}
-            </p>
-            {overridden && (
-              <p style={{ ...note, color: "var(--warning-text)" }}>
-                {tr("proportions.stats.overridden")}
-              </p>
-            )}
+            <div style={explainer} data-testid="proportions-test-reason">
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>
+                {tr("proportions.stats.whyTitle")}
+              </div>
+              <div>{why}</div>
+              {overrideNote && (
+                <div
+                  style={{
+                    marginTop: 4,
+                    color: overrideNote.warn ? "var(--warning-text)" : "inherit",
+                    fontWeight: overrideNote.warn ? 600 : 400,
+                  }}
+                  data-testid="proportions-override-note"
+                >
+                  {overrideNote.text}
+                </div>
+              )}
+            </div>
             <div style={resultBox} data-testid="proportions-omnibus">
               {test === "fisher" && fisher ? (
                 <>
@@ -381,6 +416,25 @@ export function StatsPanel({
                     ))}
                   </tbody>
                 </table>
+                <div style={explainer} data-testid="proportions-adjust-explainer">
+                  <div style={{ fontWeight: 700, marginBottom: 2 }}>
+                    {tr("proportions.stats.whyAdjustTitle")}
+                  </div>
+                  <div>{tr("proportions.stats.whyAdjust", { m, fwer })}</div>
+                  {(vis.adjustMethod === "holm" ? ["holm", "bh"] : ["bh", "holm"]).map((k) => (
+                    <div
+                      key={k}
+                      style={{ marginTop: 3, opacity: k === vis.adjustMethod ? 1 : 0.8 }}
+                    >
+                      <strong>{k === "holm" ? "Holm" : "Benjamini–Hochberg"}</strong>
+                      {k === vis.adjustMethod ? ` (${tr("proportions.stats.selected")})` : ""}
+                      {" — "}
+                      {k === "holm"
+                        ? tr("proportions.stats.holmExplain", { m })
+                        : tr("proportions.stats.bhExplain")}
+                    </div>
+                  ))}
+                </div>
                 <p style={note}>{tr("proportions.stats.pairwiseNote")}</p>
               </>
             )}

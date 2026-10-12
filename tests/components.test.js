@@ -2477,6 +2477,69 @@ suite("ProportionsChart + stats panels");
     assert(/aria-pressed="true"[^>]*>Brackets</.test(seg2), "falls back to brackets");
   });
 
+  test("StatsPanel explainers: why this test (with this table's numbers) and why Holm / BH", () => {
+    const props = {
+      analysis,
+      categories: table.categories,
+      summaries,
+      focusLabel: null,
+      vis,
+      updVis: noop,
+      onDownloadReport: noop,
+      onDownloadR: noop,
+    };
+    const html = renderHtml(StatsPanel, props);
+    const why = html.match(/data-testid="proportions-test-reason">(.*?)<\/div><\/div>/s)[1];
+    assert(why.includes("Why this test?"));
+    assert(why.includes("smallest expected count is 21.68 and 0 of 8 cells are below 5"), why);
+    assert(why.includes("meets Cochran"));
+    assert(!html.includes('data-testid="proportions-override-note"'));
+    const adj = html.match(/data-testid="proportions-adjust-explainer">(.*?)<\/div><p/s)[1];
+    assert(adj.includes("6 pairs are compared"), adj);
+    assert(adj.includes("could reach about 26 %"), "1 − 0.95⁶ ≈ 26 %");
+    assert(adj.indexOf("Holm</strong> (selected)") < adj.indexOf("Benjamini–Hochberg</strong>"));
+    const bh = renderHtml(StatsPanel, { ...props, vis: { ...vis, adjustMethod: "bh" } });
+    const adjBh = bh.match(/data-testid="proportions-adjust-explainer">(.*?)<\/div><p/s)[1];
+    assert(
+      adjBh.indexOf("Benjamini–Hochberg</strong> (selected)") < adjBh.indexOf("Holm</strong>")
+    );
+    // Override to Fisher where χ² was fine → reassuring note.
+    const toFisher = renderHtml(StatsPanel, { ...props, vis: { ...vis, testChoice: "fisher" } });
+    assert(/proportions-override-note"[^>]*>You picked Fisher/.test(toFisher));
+  });
+
+  test("StatsPanel explainers: small expected counts → Fisher, and a χ² override is flagged", () => {
+    const small = {
+      groups: ["a", "b", "c"],
+      categories: ["x", "y", "z"],
+      counts: [
+        [5, 3, 1],
+        [2, 6, 2],
+        [1, 2, 7],
+      ],
+    };
+    const props = (choice) => ({
+      analysis: P.analyseTable(small, choice, "holm"),
+      categories: small.categories,
+      summaries: P.groupSummaries(small),
+      focusLabel: null,
+      vis: { ...vis, testChoice: choice },
+      updVis: noop,
+      onDownloadReport: noop,
+      onDownloadR: noop,
+    });
+    const auto = renderHtml(StatsPanel, props("auto"));
+    assert(auto.includes("smallest expected count is 2.48 and 9 of 9 cells are below 5"));
+    assert(auto.includes("breaks Cochran"));
+    const chi = renderHtml(StatsPanel, props("chi2"));
+    const note = chi.match(/data-testid="proportions-override-note">(.*?)<\/div>/s)[1];
+    assert(note.includes("9 of 9 expected counts are below 5") && note.includes("caution"), note);
+    assert(
+      /color:var\(--warning-text\)[^>]*data-testid="proportions-override-note"/.test(chi),
+      "warning colour"
+    );
+  });
+
   test("StatsPanel: 2×2 shows Fisher with the conditional-MLE odds ratio", () => {
     const t2 = {
       groups: ["a", "b"],
