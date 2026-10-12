@@ -728,7 +728,6 @@ suite("BoxplotChart (bar mode)");
       errStrokeWidth: 1.5,
       showBarOutline: false,
       barOutlineWidth: 1,
-      xLabelAngle: 0,
       svgLegend: [],
     });
     assert(html.startsWith("<svg"), "root should be an SVG");
