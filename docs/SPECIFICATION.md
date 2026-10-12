@@ -20,12 +20,12 @@ without a programming background.
 
 ## 2. Product Surface
 
-Eleven tools served from a single _SPA_ (single-page application — the whole app
+Twelve tools served from a single _SPA_ (single-page application — the whole app
 loads once and swaps views in the browser, with no full-page reloads), navigated
 by the part of the address after `#`:
 
-- **Nine plot tools:** Group Plot (box / violin / raincloud / bar), Scatter,
-  Line Plot, RLU timecourse, Heatmap, Venn, UpSet, Volcano, Proportions.
+- **Ten plot tools:** Group Plot (box / violin / raincloud / bar), Scatter,
+  Line Plot, RLU timecourse, Heatmap, Venn, UpSet, Volcano, Proportions, qPCR.
 - **Two calculators:** statistical Power analysis, Molarity / dilution.
 - Each plot tool: paste or upload data → assign each column a role → configure →
   live figure → export. Calculators are self-contained (no upload step).

@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **qPCR relative expression tool.** Paste raw Ct values (long or wide) to get 2^−ΔΔCt or
+  efficiency-corrected (Pfaffl) fold changes with several reference genes combined by
+  geometric mean, efficiencies typed or from a standard curve, and QC for undetermined wells,
+  noisy technical replicates and reference stability (geNorm M). Statistics run on ΔCt with the
+  Group Plot engine (never on fold changes); ΔCt can be sent to Group Plot.
 - **Proportions & counts tool.** For counted outcomes (% germination, % colonised
   plants, phenotype classes) instead of t-tests on percentages: paste a counts table to get
   % with Wilson 95 % CIs, proportion / stacked / mosaic bars, Fisher's exact or χ² test

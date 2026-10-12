@@ -16,7 +16,7 @@
 // covered by the layering rule.
 
 const TOOL_FOLDERS =
-  "(aequorin|boxplot|gff|heatmap|lineplot|proportions|scatter|upset|venn|volcano)";
+  "(aequorin|boxplot|gff|heatmap|lineplot|proportions|qpcr|scatter|upset|venn|volcano)";
 const CALCULATOR_FILES = "(molarity-app|power-app)";
 
 /** @type {import('dependency-cruiser').IConfiguration} */

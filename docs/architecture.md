@@ -86,6 +86,7 @@ graph of split chunks under `tools/_app/chunks/`:
         ├─► chunks/app-XXXX.js               ◄── tools/upset/app.tsx
         ├─► chunks/app-XXXX.js               ◄── tools/volcano/app.tsx
         ├─► chunks/app-XXXX.js               ◄── tools/proportions/app.tsx
+        ├─► chunks/app-XXXX.js               ◄── tools/qpcr/app.tsx
         ├─► chunks/power-app-XXXX.js         ◄── tools/power-app.tsx
         ├─► chunks/molarity-app-XXXX.js      ◄── tools/molarity-app.tsx
         └─► chunks/chunk-XXXX.js             ◄── shared dependency graph
@@ -189,6 +190,9 @@ tests deliberately reach across layers and are excluded.
      • tools/proportions/ — no plot-area.tsx (PlotStep in steps.tsx);
                           own stats-panel.tsx — tests a contingency
                           table, so it does not use StatsTile
+     • tools/qpcr/      — no plot-area.tsx (PlotStep in steps.tsx);
+                          own stats-panel.tsx running the shared
+                          stats engine on ΔCt per target gene
 ```
 
 Calculators (`tools/molarity-app.tsx`, `tools/power-app.tsx`) are flat

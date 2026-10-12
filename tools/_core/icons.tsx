@@ -23,6 +23,7 @@ export const TOOL_ICONS: Record<string, string> = {
     '<svg viewBox="0 0 44 44" fill="none" stroke="none"><rect x="6" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.2"/><rect x="17" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.5"/><rect x="28" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.8"/><rect x="6" y="17" width="10" height="10" fill="#648FFF" fill-opacity="0.5"/><rect x="17" y="17" width="10" height="10" fill="#648FFF" fill-opacity="0.8"/><rect x="28" y="17" width="10" height="10" fill="#785EF0" fill-opacity="0.6"/><rect x="6" y="28" width="10" height="10" fill="#648FFF" fill-opacity="0.8"/><rect x="17" y="28" width="10" height="10" fill="#785EF0" fill-opacity="0.6"/><rect x="28" y="28" width="10" height="10" fill="#785EF0"/></svg>',
   upset:
     '<svg viewBox="0 0 44 44" fill="none" stroke="none"><rect x="10" y="4" width="4" height="10" fill="#648FFF"/><rect x="18" y="7" width="4" height="7" fill="#648FFF"/><rect x="26" y="10" width="4" height="4" fill="#648FFF"/><rect x="34" y="11" width="4" height="3" fill="#648FFF"/><line x1="12" y1="22" x2="12" y2="36" stroke="#333333" stroke-width="1.5"/><line x1="20" y1="22" x2="20" y2="36" stroke="#333333" stroke-width="1.5"/><circle cx="12" cy="22" r="2.5" fill="#333333"/><circle cx="20" cy="22" r="2.5" fill="#333333"/><circle cx="28" cy="22" r="2.5" fill="#DDDDDD"/><circle cx="36" cy="22" r="2.5" fill="#DDDDDD"/><circle cx="12" cy="29" r="2.5" fill="#333333"/><circle cx="20" cy="29" r="2.5" fill="#DDDDDD"/><circle cx="28" cy="29" r="2.5" fill="#333333"/><circle cx="36" cy="29" r="2.5" fill="#DDDDDD"/><circle cx="12" cy="36" r="2.5" fill="#DDDDDD"/><circle cx="20" cy="36" r="2.5" fill="#333333"/><circle cx="28" cy="36" r="2.5" fill="#DDDDDD"/><circle cx="36" cy="36" r="2.5" fill="#333333"/></svg>',
+  qpcr: '<svg viewBox="0 0 44 44" fill="none" stroke="#648FFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 38 C14 38, 16 37, 19 30 C21 24, 23 12, 27 9 C30 7, 34 7, 40 7"/><path d="M4 38 C20 38, 22 37, 25 31 C27 26, 29 17, 32 14 C34 12, 37 12, 40 12" opacity="0.55"/><line x1="4" y1="24" x2="40" y2="24" stroke-dasharray="3,3" stroke-width="1.2" opacity="0.7"/></svg>',
   proportions:
     '<svg viewBox="0 0 44 44" fill="#648FFF" stroke="none"><rect x="8" y="6" width="10" height="32" fill-opacity="0.25"/><rect x="8" y="20" width="10" height="18"/><rect x="26" y="6" width="10" height="32" fill-opacity="0.25"/><rect x="26" y="11" width="10" height="27"/><rect x="4" y="38" width="36" height="2"/></svg>',
   volcano:
@@ -45,6 +46,7 @@ export const TOOL_ACCENT: Record<string, string> = {
   heatmap: "#0072b2",
   volcano: "#d55e00",
   proportions: "#009e73",
+  qpcr: "#8b5a2b",
   power: "#dc267f",
   molarity: "#1ba89b",
 };

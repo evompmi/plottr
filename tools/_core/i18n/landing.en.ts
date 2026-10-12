@@ -26,7 +26,7 @@ const landingEn = {
   "landing.hiw.step4": "Download SVG + R",
 
   "landing.group.plotsKicker": "Plots",
-  "landing.group.plotsText": "Nine chart types, one paste away",
+  "landing.group.plotsText": "Ten chart types, one paste away",
   "landing.group.statsKicker": "Statistics & Calculators",
   "landing.group.statsText": "Quick math at the bench",
 
@@ -38,6 +38,7 @@ const landingEn = {
   "landing.desc.upset": "Set overlaps<br/>4+ sets",
   "landing.desc.heatmap": "Matrix view<br/>with clustering",
   "landing.desc.volcano": "log₂FC vs −log₁₀p<br/>for —omics hits",
+  "landing.desc.qpcr": "Raw Ct → fold change<br/>ΔΔCt · Pfaffl · stats on ΔCt",
   "landing.desc.proportions": "% germination, phenotype counts<br/>Fisher · χ² · Wilson CIs",
   "landing.desc.power": "Sample size &amp; power<br/>for t, ANOVA, χ², r",
   "landing.desc.molarity": "Molarity, dilution<br/>&amp; batch prep sheets",

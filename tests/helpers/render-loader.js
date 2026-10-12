@@ -312,6 +312,8 @@ function loadTool(toolName) {
     "ProportionsChart: typeof ProportionsChart !== 'undefined' ? ProportionsChart : undefined," +
     "StatsPanel: typeof StatsPanel !== 'undefined' ? StatsPanel : undefined," +
     "GofPanel: typeof GofPanel !== 'undefined' ? GofPanel : undefined," +
+    "QpcrChart: typeof QpcrChart !== 'undefined' ? QpcrChart : undefined," +
+    "QpcrStatsPanel: typeof QpcrStatsPanel !== 'undefined' ? QpcrStatsPanel : undefined," +
     "App: typeof App !== 'undefined' ? App : undefined," +
     "};";
   const withReturn = compiled.slice(0, closingIdx) + returnObj + compiled.slice(closingIdx);

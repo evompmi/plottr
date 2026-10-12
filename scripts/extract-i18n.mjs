@@ -35,6 +35,7 @@ const CATALOGS = [
     "tools/proportions/i18n/en.ts",
     "tools/proportions/i18n/fr.ts",
   ],
+  ["qpcr", "qPCR tool", "tools/qpcr/i18n/en.ts", "tools/qpcr/i18n/fr.ts"],
   ["heatmap", "Heatmap tool", "tools/heatmap/i18n/en.ts", "tools/heatmap/i18n/fr.ts"],
   ["upset", "UpSet tool", "tools/upset/i18n/en.ts", "tools/upset/i18n/fr.ts"],
   ["lineplot", "Line Plot tool", "tools/lineplot/i18n/en.ts", "tools/lineplot/i18n/fr.ts"],
