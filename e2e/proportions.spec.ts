@@ -20,6 +20,12 @@ test("colonisation example: bars, CI whiskers, brackets, χ² chosen", async ({ 
   await expect(page.locator("g#significance-brackets > g")).toHaveCount(4);
   await expect(page.getByTestId("proportions-omnibus")).toContainText("Pearson χ²(3) = 94.537");
   await expect(page.getByTestId("proportions-pairs").locator("tbody tr")).toHaveCount(6);
+  // TXT / R downloads live in the Statistics panel header.
+  await expect(
+    page.getByTestId("proportions-stats").getByRole("heading", { name: "Statistics" })
+  ).toBeVisible();
+  await expect(page.getByTestId("proportions-dl-txt")).toBeVisible();
+  await expect(page.getByTestId("proportions-dl-r")).toBeVisible();
   // Display on plot: letters replace brackets, Off removes both.
   const stats = page.getByTestId("proportions-stats");
   await stats.getByRole("button", { name: "Letters", exact: true }).click();

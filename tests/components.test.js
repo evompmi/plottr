@@ -728,6 +728,7 @@ suite("BoxplotChart (bar mode)");
       errStrokeWidth: 1.5,
       showBarOutline: false,
       barOutlineWidth: 1,
+      xLabelAngle: 0,
       svgLegend: [],
     });
     assert(html.startsWith("<svg"), "root should be an SVG");
@@ -2257,6 +2258,7 @@ suite("ProportionsChart + stats panels");
     barWidthFrac: 0.6,
     barOutline: true,
     barOutlineWidth: 1,
+    xLabelAngle: 0,
     plotWidth: 480,
     plotHeight: 340,
     tickFontSize: 12,
@@ -2277,6 +2279,7 @@ suite("ProportionsChart + stats panels");
     barWidthFrac: 0.6,
     barOutline: true,
     barOutlineWidth: 1,
+    xLabelAngle: 0,
     plotWidth: 480,
     plotHeight: 340,
     tickFontSize: 12,
@@ -2306,6 +2309,31 @@ suite("ProportionsChart + stats panels");
     eq((html.match(/>\*\*\*\*</g) || []).length, 4);
     assert(html.includes("% Colonised"), "auto y label");
     assert(!html.includes('id="legend"'), "no legend for the proportion chart");
+  });
+
+  test("group-label angle: horizontal at 0°, tilted + end-anchored otherwise, margins grow", () => {
+    const flat = renderHtml(ProportionsChart, base);
+    assert(/<g id="axis-x">.*?text-anchor="middle"[^>]*>WT</s.test(flat), "horizontal");
+    assert(
+      !/<g id="axis-x">[^]*?rotate\(/.test(flat.match(/<g id="axis-x">.*?<\/g>/s)[0]),
+      "no rotation"
+    );
+    const tilted = renderHtml(ProportionsChart, { ...base, xLabelAngle: -45 });
+    const axis = tilted.match(/<g id="axis-x">.*?<\/g>/s)[0];
+    eq((axis.match(/transform="rotate\(-45,/g) || []).length, 4);
+    assert(/text-anchor="end"[^>]*transform="rotate\(-45,/.test(axis));
+    const vb = (h) =>
+      h
+        .match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/)
+        .slice(1)
+        .map(Number);
+    assert(vb(tilted)[1] > vb(flat)[1], "taller bottom margin for tilted labels");
+    const vertical = renderHtml(ProportionsChart, {
+      ...base,
+      chartType: "mosaic",
+      xLabelAngle: -90,
+    });
+    eq((vertical.match(/transform="rotate\(-90,(?!12,)/g) || []).length, 4);
   });
 
   test("bar outline: black at the chosen width, or none", () => {
@@ -2380,6 +2408,16 @@ suite("ProportionsChart + stats panels");
       updVis: noop,
     });
     assert(html.includes("41 · 85.4 % [72.8 %, 92.8 %]"), "Wilson summary cell");
+    assert(/<h3[^>]*>Statistics<\/h3>/.test(html), "Statistics title");
+    const header = html.slice(0, html.indexOf("Display on plot"));
+    assert(
+      header.includes('data-testid="proportions-dl-txt"') && header.includes(">⬇ TXT<"),
+      "TXT in header"
+    );
+    assert(
+      header.includes('data-testid="proportions-dl-r"') && header.includes(">⬇ R<"),
+      "R in header"
+    );
     assert(html.includes("Cochran"), "selection reason");
     assert(html.includes("Pearson χ²(3) = 94.537, p = 2.3e-20"));
     assert(html.includes("Cramér&#x27;s V = 0.704 · N = 191"));

@@ -239,16 +239,6 @@ export function PlotStep({
               title: tr("proportions.dl.csvTitle"),
               onClick: onDownloadCsv,
             },
-            {
-              label: tr("proportions.dl.report"),
-              title: tr("proportions.dl.reportTitle"),
-              onClick: onDownloadReport,
-            },
-            {
-              label: tr("proportions.dl.r"),
-              title: tr("proportions.dl.rTitle"),
-              onClick: onDownloadR,
-            },
           ]}
         />
         <ChartTile
@@ -300,6 +290,7 @@ export function PlotStep({
             barWidthFrac={vis.barWidthFrac}
             barOutline={vis.barOutline}
             barOutlineWidth={vis.barOutlineWidth}
+            xLabelAngle={vis.xLabelAngle}
             plotWidth={vis.plotWidth}
             plotHeight={vis.plotHeight}
             tickFontSize={vis.tickFontSize}
@@ -317,6 +308,8 @@ export function PlotStep({
           focusLabel={focusLabel}
           vis={vis}
           updVis={updVis}
+          onDownloadReport={onDownloadReport}
+          onDownloadR={onDownloadR}
         />
         <GofPanel table={shown} ratioText={ratioText} setRatioText={setRatioText} />
         <ChartDataTable

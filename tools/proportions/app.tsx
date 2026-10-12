@@ -48,6 +48,7 @@ const VIS_INIT_PROPORTIONS: ProportionsVis = {
   barWidthFrac: 0.6,
   barOutline: true,
   barOutlineWidth: 1,
+  xLabelAngle: 0,
   plotWidth: 480,
   plotHeight: 340,
   tickFontSize: 12,
@@ -295,6 +296,7 @@ export function App() {
         colors,
         groupColors,
         outlineWidth: vis.barOutline ? vis.barOutlineWidth : 0,
+        xLabelAngle: vis.xLabelAngle,
         plotTitle: vis.plotTitle,
       }),
       `${stem}.R`

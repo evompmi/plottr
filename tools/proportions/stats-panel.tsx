@@ -66,6 +66,8 @@ export function StatsPanel({
   focusLabel,
   vis,
   updVis,
+  onDownloadReport,
+  onDownloadR,
 }: StatsPanelProps) {
   const tr = useT();
   const { table, selection, test, fisher, chi2 } = analysis;
@@ -87,16 +89,68 @@ export function StatsPanel({
   const nsDisabled = display !== "brackets";
 
   return (
-    <div style={panel} data-testid="proportions-stats">
+    <div
+      className="dv-panel"
+      style={{ padding: 0, overflow: "hidden" }}
+      data-testid="proportions-stats"
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "12px 14px",
+          borderBottom: "1px solid var(--border)",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: 14,
+              fontWeight: 700,
+              color: "var(--text)",
+              letterSpacing: "0.2px",
+            }}
+          >
+            {tr("proportions.stats.title")}
+          </h3>
+          <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
+            {tr("proportions.stats.desc")}
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
+          <button
+            type="button"
+            className="dv-btn dv-btn-dl"
+            onClick={onDownloadReport}
+            title={tr("proportions.dl.reportTitle")}
+            data-testid="proportions-dl-txt"
+          >
+            ⬇ TXT
+          </button>
+          <button
+            type="button"
+            className="dv-btn dv-btn-dl"
+            onClick={onDownloadR}
+            title={tr("proportions.dl.rTitle")}
+            data-testid="proportions-dl-r"
+          >
+            ⬇ R
+          </button>
+        </div>
+      </div>
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: 14,
           flexWrap: "wrap",
-          padding: "4px 0 8px",
+          padding: "10px 14px",
           borderBottom: "1px solid var(--border)",
-          marginBottom: 4,
+          background: "var(--surface-subtle)",
         }}
       >
         <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>
@@ -143,189 +197,196 @@ export function StatsPanel({
           {tr("proportions.stats.showNs")}
         </label>
       </div>
-      {focusLabel && <p style={note}>{tr("proportions.stats.focusNote", { cat: focusLabel })}</p>}
-      <div style={subhead}>{tr("proportions.stats.summary")}</div>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={thS}>{tr("proportions.stats.group")}</th>
-            <th style={thS}>n</th>
-            {categories.map((c) => (
-              <th key={c} style={thS}>
-                {tr("proportions.stats.catCol", { cat: c })}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {summaries.map((s) => (
-            <tr key={s.group}>
-              <td style={tdS}>{s.group}</td>
-              <td style={tdS}>{s.n}</td>
-              {s.counts.map((x, c) => (
-                <td key={c} style={tdS}>
-                  {`${x} · ${formatPct(s.props[c].p)} [${formatPct(s.props[c].lower)}, ${formatPct(
-                    s.props[c].upper
-                  )}]`}
-                </td>
+      <div style={{ padding: "4px 16px 14px" }}>
+        {focusLabel && <p style={note}>{tr("proportions.stats.focusNote", { cat: focusLabel })}</p>}
+        <div style={subhead}>{tr("proportions.stats.summary")}</div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thS}>{tr("proportions.stats.group")}</th>
+              <th style={thS}>n</th>
+              {categories.map((c) => (
+                <th key={c} style={thS}>
+                  {tr("proportions.stats.catCol", { cat: c })}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <p style={note}>{tr("proportions.stats.wilsonNote")}</p>
+          </thead>
+          <tbody>
+            {summaries.map((s) => (
+              <tr key={s.group}>
+                <td style={tdS}>{s.group}</td>
+                <td style={tdS}>{s.n}</td>
+                {s.counts.map((x, c) => (
+                  <td key={c} style={tdS}>
+                    {`${x} · ${formatPct(s.props[c].p)} [${formatPct(s.props[c].lower)}, ${formatPct(
+                      s.props[c].upper
+                    )}]`}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={note}>{tr("proportions.stats.wilsonNote")}</p>
 
-      <div style={subhead}>{tr("proportions.stats.test")}</div>
-      {analysis.error ? (
-        <p style={note}>{tr("proportions.stats.tooSmall")}</p>
-      ) : (
-        <>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <SegToggle<TestChoice>
-              value={vis.testChoice}
-              onChange={(v) => updVis({ testChoice: v })}
-              ariaLabel={tr("proportions.stats.testChoice")}
-              style={{ width: 240 }}
-              options={[
-                { value: "auto", label: tr("proportions.stats.auto") },
-                { value: "fisher", label: "Fisher" },
-                { value: "chi2", label: "χ²" },
-              ]}
-            />
-          </div>
-          <p style={note} data-testid="proportions-test-reason">
-            {reason}
-          </p>
-          {overridden && (
-            <p style={{ ...note, color: "var(--warning-text)" }}>
-              {tr("proportions.stats.overridden")}
+        <div style={subhead}>{tr("proportions.stats.test")}</div>
+        {analysis.error ? (
+          <p style={note}>{tr("proportions.stats.tooSmall")}</p>
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <SegToggle<TestChoice>
+                value={vis.testChoice}
+                onChange={(v) => updVis({ testChoice: v })}
+                ariaLabel={tr("proportions.stats.testChoice")}
+                style={{ width: 240 }}
+                options={[
+                  { value: "auto", label: tr("proportions.stats.auto") },
+                  { value: "fisher", label: "Fisher" },
+                  { value: "chi2", label: "χ²" },
+                ]}
+              />
+            </div>
+            <p style={note} data-testid="proportions-test-reason">
+              {reason}
             </p>
-          )}
-          <div style={resultBox} data-testid="proportions-omnibus">
-            {test === "fisher" && fisher ? (
-              <>
-                <div>
-                  {tr("proportions.stats.fisherLine", {
-                    dims: `${table.groups.length}×${table.categories.length}`,
-                    p: formatP(fisher.p),
-                  })}
-                </div>
-                {fisher.oddsRatio !== undefined && fisher.orCI && (
+            {overridden && (
+              <p style={{ ...note, color: "var(--warning-text)" }}>
+                {tr("proportions.stats.overridden")}
+              </p>
+            )}
+            <div style={resultBox} data-testid="proportions-omnibus">
+              {test === "fisher" && fisher ? (
+                <>
                   <div>
-                    {tr("proportions.stats.orLine", {
-                      or: formatOR(fisher.oddsRatio),
-                      lo: formatOR(fisher.orCI[0]),
-                      hi: formatOR(fisher.orCI[1]),
+                    {tr("proportions.stats.fisherLine", {
+                      dims: `${table.groups.length}×${table.categories.length}`,
+                      p: formatP(fisher.p),
                     })}
                   </div>
-                )}
-              </>
-            ) : (
-              <div>
-                {chi2.error
-                  ? `⚠ ${chi2.error}`
-                  : tr("proportions.stats.chi2Line", {
-                      df: chi2.df,
-                      x2: chi2.X2.toFixed(3),
-                      p: formatP(chi2.p),
-                    })}
-              </div>
+                  {fisher.oddsRatio !== undefined && fisher.orCI && (
+                    <div>
+                      {tr("proportions.stats.orLine", {
+                        or: formatOR(fisher.oddsRatio),
+                        lo: formatOR(fisher.orCI[0]),
+                        hi: formatOR(fisher.orCI[1]),
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div>
+                  {chi2.error
+                    ? `⚠ ${chi2.error}`
+                    : tr("proportions.stats.chi2Line", {
+                        df: chi2.df,
+                        x2: chi2.X2.toFixed(3),
+                        p: formatP(chi2.p),
+                      })}
+                </div>
+              )}
+              {!chi2.error && (
+                <div>
+                  {tr("proportions.stats.cramerLine", { v: chi2.cramersV.toFixed(3), n: N })}
+                </div>
+              )}
+            </div>
+            {fisher && fisher.method === "monteCarlo" && (
+              <p style={{ ...note, color: "var(--warning-text)" }}>
+                {tr("proportions.stats.mcNote", {
+                  B: (fisher.B ?? 0).toLocaleString("en-US"),
+                  se: (fisher.mcSE ?? 0).toFixed(4),
+                })}
+              </p>
             )}
-            {!chi2.error && (
-              <div>{tr("proportions.stats.cramerLine", { v: chi2.cramersV.toFixed(3), n: N })}</div>
-            )}
-          </div>
-          {fisher && fisher.method === "monteCarlo" && (
-            <p style={{ ...note, color: "var(--warning-text)" }}>
-              {tr("proportions.stats.mcNote", {
-                B: (fisher.B ?? 0).toLocaleString("en-US"),
-                se: (fisher.mcSE ?? 0).toFixed(4),
-              })}
-            </p>
-          )}
 
-          {!chi2.error && (table.groups.length > 2 || table.categories.length > 2) && (
-            <>
-              <div style={subhead}>{tr("proportions.stats.residuals")}</div>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    <th style={thS}>{tr("proportions.stats.group")}</th>
-                    {table.categories.map((c) => (
-                      <th key={c} style={thS}>
-                        {c}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {table.groups.map((g, i) => (
-                    <tr key={g}>
-                      <td style={tdS}>{g}</td>
-                      {chi2.stdres[i].map((r, c) => (
-                        <td key={c} style={{ ...tdS, fontWeight: Math.abs(r) >= 1.96 ? 700 : 400 }}>
-                          {(r >= 0 ? "+" : "") + r.toFixed(2)}
-                        </td>
+            {!chi2.error && (table.groups.length > 2 || table.categories.length > 2) && (
+              <>
+                <div style={subhead}>{tr("proportions.stats.residuals")}</div>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={thS}>{tr("proportions.stats.group")}</th>
+                      {table.categories.map((c) => (
+                        <th key={c} style={thS}>
+                          {c}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p style={note}>{tr("proportions.stats.residualsNote")}</p>
-            </>
-          )}
+                  </thead>
+                  <tbody>
+                    {table.groups.map((g, i) => (
+                      <tr key={g}>
+                        <td style={tdS}>{g}</td>
+                        {chi2.stdres[i].map((r, c) => (
+                          <td
+                            key={c}
+                            style={{ ...tdS, fontWeight: Math.abs(r) >= 1.96 ? 700 : 400 }}
+                          >
+                            {(r >= 0 ? "+" : "") + r.toFixed(2)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p style={note}>{tr("proportions.stats.residualsNote")}</p>
+              </>
+            )}
 
-          {analysis.pairs.length > 0 && (
-            <>
-              <div style={subhead}>{tr("proportions.stats.pairwise")}</div>
-              <div style={{ marginBottom: 6 }}>
-                <SegToggle<PAdjustMethod>
-                  value={vis.adjustMethod}
-                  onChange={(v) => updVis({ adjustMethod: v })}
-                  ariaLabel={tr("proportions.stats.adjust")}
-                  style={{ width: 160 }}
-                  options={[
-                    { value: "holm", label: "Holm", title: tr("proportions.stats.holmTitle") },
-                    { value: "bh", label: "BH", title: tr("proportions.stats.bhTitle") },
-                  ]}
-                />
-              </div>
-              <table
-                style={{ width: "100%", borderCollapse: "collapse" }}
-                data-testid="proportions-pairs"
-              >
-                <thead>
-                  <tr>
-                    <th style={thS}>{tr("proportions.stats.pair")}</th>
-                    {table.categories.length === 2 && <th style={thS}>OR</th>}
-                    <th style={thS}>p</th>
-                    <th style={thS}>
-                      {tr("proportions.stats.pAdj", {
-                        method: vis.adjustMethod === "holm" ? "Holm" : "BH",
-                      })}
-                    </th>
-                    <th style={thS}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {analysis.pairs.map((pr) => (
-                    <tr key={`${pr.i}-${pr.j}`}>
-                      <td style={tdS}>{`${table.groups[pr.i]} vs ${table.groups[pr.j]}`}</td>
-                      {table.categories.length === 2 && (
-                        <td style={tdS}>{formatOR(pr.oddsRatio)}</td>
-                      )}
-                      <td style={tdS}>{formatP(pr.p)}</td>
-                      <td style={tdS}>{formatP(pr.pAdj)}</td>
-                      <td style={{ ...tdS, fontWeight: 700 }}>{pStars(pr.pAdj)}</td>
+            {analysis.pairs.length > 0 && (
+              <>
+                <div style={subhead}>{tr("proportions.stats.pairwise")}</div>
+                <div style={{ marginBottom: 6 }}>
+                  <SegToggle<PAdjustMethod>
+                    value={vis.adjustMethod}
+                    onChange={(v) => updVis({ adjustMethod: v })}
+                    ariaLabel={tr("proportions.stats.adjust")}
+                    style={{ width: 160 }}
+                    options={[
+                      { value: "holm", label: "Holm", title: tr("proportions.stats.holmTitle") },
+                      { value: "bh", label: "BH", title: tr("proportions.stats.bhTitle") },
+                    ]}
+                  />
+                </div>
+                <table
+                  style={{ width: "100%", borderCollapse: "collapse" }}
+                  data-testid="proportions-pairs"
+                >
+                  <thead>
+                    <tr>
+                      <th style={thS}>{tr("proportions.stats.pair")}</th>
+                      {table.categories.length === 2 && <th style={thS}>OR</th>}
+                      <th style={thS}>p</th>
+                      <th style={thS}>
+                        {tr("proportions.stats.pAdj", {
+                          method: vis.adjustMethod === "holm" ? "Holm" : "BH",
+                        })}
+                      </th>
+                      <th style={thS}></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p style={note}>{tr("proportions.stats.pairwiseNote")}</p>
-            </>
-          )}
-        </>
-      )}
+                  </thead>
+                  <tbody>
+                    {analysis.pairs.map((pr) => (
+                      <tr key={`${pr.i}-${pr.j}`}>
+                        <td style={tdS}>{`${table.groups[pr.i]} vs ${table.groups[pr.j]}`}</td>
+                        {table.categories.length === 2 && (
+                          <td style={tdS}>{formatOR(pr.oddsRatio)}</td>
+                        )}
+                        <td style={tdS}>{formatP(pr.p)}</td>
+                        <td style={tdS}>{formatP(pr.pAdj)}</td>
+                        <td style={{ ...tdS, fontWeight: 700 }}>{pStars(pr.pAdj)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p style={note}>{tr("proportions.stats.pairwiseNote")}</p>
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

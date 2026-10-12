@@ -280,6 +280,7 @@ test("R script: sanitised names, chosen test, pairwise + GOF blocks", () => {
     colors: [],
     groupColors: ["#111111", "#222222"],
     outlineWidth: 2.13,
+    xLabelAngle: -45,
     plotTitle: "",
     generatedAt: "T",
   });
@@ -294,6 +295,10 @@ test("R script: sanitised names, chosen test, pairwise + GOF blocks", () => {
     r.includes('geom_col(colour = "black", linewidth = 1, width = 0.6'),
     "outline → linewidth"
   );
+  assert(
+    r.includes("theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))"),
+    "tilted labels"
+  );
   const big = parse(COLON).table;
   const r2 = L.buildProportionsRScript({
     analysis: L.analyseTable(big, "auto", "bh"),
@@ -304,6 +309,7 @@ test("R script: sanitised names, chosen test, pairwise + GOF blocks", () => {
     colors: ["#E69F00", "#56B4E9"],
     groupColors: [],
     outlineWidth: 0,
+    xLabelAngle: 0,
     plotTitle: "T",
     generatedAt: "T",
   });
@@ -312,6 +318,7 @@ test("R script: sanitised names, chosen test, pairwise + GOF blocks", () => {
   assert(r2.includes("geom_rect"));
   assert(r2.includes('            colour = "white") +'), "no outline → white separators");
   assert(!r2.includes("ratio <-"));
+  assert(!r2.includes("axis.text.x"), "no tilt at 0°");
 });
 
 summary();

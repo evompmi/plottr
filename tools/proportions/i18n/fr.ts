@@ -58,6 +58,7 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.style.barWidth": "Largeur des barres",
   "proportions.style.outline": "Contour des barres (noir)",
   "proportions.style.outlineWidth": "Épaisseur du contour",
+  "proportions.style.labelAngle": "Angle des étiquettes de groupe",
   "proportions.style.font": "Taille de police",
   "proportions.style.title": "Titre",
   "proportions.style.yLabel": "Titre de l’axe Y",
@@ -71,13 +72,14 @@ const fr: Record<ProportionsKey, string> = {
 
   "proportions.dl.csv": "CSV",
   "proportions.dl.csvTitle": "Effectifs, proportions et IC de Wilson (format long)",
-  "proportions.dl.report": "Stats",
   "proportions.dl.reportTitle": "Rapport statistique en texte brut",
-  "proportions.dl.r": "R",
   "proportions.dl.rTitle": "Script R reproduisant tous les tests et le graphique",
 
   "proportions.stats.focusNote":
     "Analyse de « {cat} » contre toutes les autres modalités regroupées (comme sur le graphique). Passez en Empilé ou Mosaïque pour tester toutes les modalités.",
+  "proportions.stats.title": "Statistiques",
+  "proportions.stats.desc":
+    "Effectifs avec IC de Wilson et tests sur le tableau affiché dans le graphique.",
   "proportions.stats.displayOnPlot": "Afficher sur le tracé",
   "proportions.stats.off": "Désact.",
   "proportions.stats.letters": "Lettres",

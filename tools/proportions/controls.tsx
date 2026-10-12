@@ -229,6 +229,15 @@ export function StyleTile({ vis, updVis }: TileProps) {
         />
       )}
       <SliderControl
+        label={tr("proportions.style.labelAngle")}
+        value={vis.xLabelAngle}
+        displayValue={vis.xLabelAngle + "°"}
+        min={-90}
+        max={0}
+        step={5}
+        onChange={(v) => updVis({ xLabelAngle: Number(v) })}
+      />
+      <SliderControl
         label={tr("proportions.style.font")}
         value={vis.tickFontSize}
         displayValue={`${vis.tickFontSize} px`}

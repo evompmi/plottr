@@ -61,6 +61,7 @@ const en = {
   "proportions.style.barWidth": "Bar width",
   "proportions.style.outline": "Bar outline (black)",
   "proportions.style.outlineWidth": "Outline thickness",
+  "proportions.style.labelAngle": "Group label angle",
   "proportions.style.font": "Font size",
   "proportions.style.title": "Title",
   "proportions.style.yLabel": "Y-axis label",
@@ -76,14 +77,14 @@ const en = {
   // Downloads
   "proportions.dl.csv": "CSV",
   "proportions.dl.csvTitle": "Counts, proportions and Wilson CIs (long format)",
-  "proportions.dl.report": "Stats",
   "proportions.dl.reportTitle": "Plain-text statistics report",
-  "proportions.dl.r": "R",
   "proportions.dl.rTitle": "R script reproducing every test and the chart",
 
   // Statistics panel
   "proportions.stats.focusNote":
     "Analysing “{cat}” vs. all other outcomes pooled (as on the chart). Switch to Stacked or Mosaic to test every outcome.",
+  "proportions.stats.title": "Statistics",
+  "proportions.stats.desc": "Counts with Wilson CIs and tests on the table shown in the chart.",
   "proportions.stats.displayOnPlot": "Display on plot",
   "proportions.stats.off": "Off",
   "proportions.stats.letters": "Letters",

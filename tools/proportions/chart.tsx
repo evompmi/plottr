@@ -51,6 +51,7 @@ export const ProportionsChart = memo(
       barWidthFrac,
       barOutline,
       barOutlineWidth,
+      xLabelAngle,
       plotWidth,
       plotHeight,
       tickFontSize: fs,
@@ -73,26 +74,6 @@ export const ProportionsChart = memo(
 
     // ── Layout ──
     const slot = plotWidth / Math.max(1, k);
-    const maxLabelW = Math.max(0, ...table.groups.map((g) => textW(g, fs)));
-    const rotate = !(chartType === "mosaic") && maxLabelW > slot - 6;
-    const xLabelH = rotate ? maxLabelW * 0.72 + fs : fs + 4;
-    const nLineH = showN ? fs + 4 : 0;
-    const titleH = title ? fs + 14 : 0;
-    const annotH =
-      annotation === "brackets" && nLevels > 0 ? nLevels * BRACKET_STEP + 6 : showCld ? fs + 10 : 0;
-    const legendW = isProp
-      ? 0
-      : 28 + Math.max(...table.categories.map((c) => textW(c, fs)), textW("Category", fs));
-    const M = {
-      left: 30 + fs + textW("100 %", fs),
-      right: 16 + legendW,
-      top: 12 + titleH + annotH,
-      bottom: 14 + xLabelH + nLineH,
-    };
-    const VBW = M.left + plotWidth + M.right;
-    const VBH = M.top + plotHeight + M.bottom;
-    const yOf = (frac: number): number => M.top + plotHeight * (1 - frac);
-
     const spans: [number, number][] = useMemo(() => {
       if (chartType === "mosaic") return mosaicSpans(totals, plotWidth, MOSAIC_GAP);
       const bw = slot * barWidthFrac;
@@ -102,6 +83,35 @@ export const ProportionsChart = memo(
       });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [chartType, totals.join(","), plotWidth, slot, barWidthFrac, k]);
+
+    // Group labels: horizontal at 0°, otherwise tilted (−90…0°) and
+    // end-anchored at the tick, like the other tools' "group label angle".
+    const angle = Math.max(-90, Math.min(0, xLabelAngle || 0));
+    const rad = (Math.abs(angle) * Math.PI) / 180;
+    const labelW = table.groups.map((g) => textW(g, fs));
+    const maxLabelW = Math.max(0, ...labelW);
+    const xLabelH = angle === 0 ? fs + 4 : maxLabelW * Math.sin(rad) + fs * Math.cos(rad) + 6;
+    // Leftward overhang of a tilted label past the plot's left edge.
+    const overhang =
+      angle === 0
+        ? 0
+        : Math.max(0, ...labelW.map((w, i) => w * Math.cos(rad) - (spans[i][0] + spans[i][1]) / 2));
+    const nLineH = showN ? fs + 4 : 0;
+    const titleH = title ? fs + 14 : 0;
+    const annotH =
+      annotation === "brackets" && nLevels > 0 ? nLevels * BRACKET_STEP + 6 : showCld ? fs + 10 : 0;
+    const legendW = isProp
+      ? 0
+      : 28 + Math.max(...table.categories.map((c) => textW(c, fs)), textW("Category", fs));
+    const M = {
+      left: Math.max(30 + fs + textW("100 %", fs), overhang + 8),
+      right: 16 + legendW,
+      top: 12 + titleH + annotH,
+      bottom: 14 + xLabelH + nLineH,
+    };
+    const VBW = M.left + plotWidth + M.right;
+    const VBH = M.top + plotHeight + M.bottom;
+    const yOf = (frac: number): number => M.top + plotHeight * (1 - frac);
     const centre = (i: number): number => M.left + (spans[i][0] + spans[i][1]) / 2;
 
     const ticks = [0, 0.25, 0.5, 0.75, 1];
@@ -113,21 +123,23 @@ export const ProportionsChart = memo(
 
     const groupLabel = (i: number) => {
       const x = centre(i);
-      const y = M.top + plotHeight + 8 + fs;
-      return rotate ? (
-        <text
-          key={`gl-${i}`}
-          x={x}
-          y={M.top + plotHeight + 10}
-          fontSize={fs}
-          fontFamily={FONT}
-          fill={AXIS}
-          textAnchor="end"
-          transform={`rotate(-40,${x},${M.top + plotHeight + 10})`}
-        >
-          {table.groups[i]}
-        </text>
-      ) : (
+      if (angle === 0) {
+        return (
+          <text
+            key={`gl-${i}`}
+            x={x}
+            y={M.top + plotHeight + 8 + fs}
+            fontSize={fs}
+            fontFamily={FONT}
+            fill={AXIS}
+            textAnchor="middle"
+          >
+            {table.groups[i]}
+          </text>
+        );
+      }
+      const y = M.top + plotHeight + 6 + fs * 0.7;
+      return (
         <text
           key={`gl-${i}`}
           x={x}
@@ -135,7 +147,8 @@ export const ProportionsChart = memo(
           fontSize={fs}
           fontFamily={FONT}
           fill={AXIS}
-          textAnchor="middle"
+          textAnchor="end"
+          transform={`rotate(${angle},${x},${y})`}
         >
           {table.groups[i]}
         </text>

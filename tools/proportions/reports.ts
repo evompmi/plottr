@@ -132,6 +132,8 @@ export interface RScriptArgs {
   // Bar outline width in px (0 = none). ggplot linewidth is in mm-ish
   // units: 1 linewidth ≈ 96 / 72 / 0.75 ≈ 2.13 px at 96 dpi.
   outlineWidth: number;
+  // Group-label tilt (−90…0°, SVG convention); ggplot's angle is the opposite sign.
+  xLabelAngle: number;
   plotTitle: string;
   generatedAt?: string;
 }
@@ -238,7 +240,11 @@ export function buildProportionsRScript(a: RScriptArgs): string {
   L.push("library(ggplot2)");
   L.push(`summary_df$group <- factor(summary_df$group, levels = rownames(counts))`);
   L.push(`summary_df$outcome <- factor(summary_df$outcome, levels = colnames(counts))`);
-  const title = a.plotTitle ? ` + ggtitle(${rStr(a.plotTitle)})` : "";
+  const tilt =
+    a.xLabelAngle < 0
+      ? ` +\n  theme(axis.text.x = element_text(angle = ${formatRNumber(-a.xLabelAngle)}, hjust = 1, vjust = 1))`
+      : "";
+  const title = (a.plotTitle ? ` + ggtitle(${rStr(a.plotTitle)})` : "") + tilt;
   const lw = formatRNumber(Math.round((a.outlineWidth / 2.13) * 100) / 100);
   // Outline on: black border; off: none on bars, white separators on stacks.
   const barEdge = a.outlineWidth > 0 ? `colour = "black", linewidth = ${lw}` : "colour = NA";

@@ -76,6 +76,7 @@ export interface ProportionsVis {
   barWidthFrac: number;
   barOutline: boolean;
   barOutlineWidth: number;
+  xLabelAngle: number;
   plotWidth: number;
   plotHeight: number;
   tickFontSize: number;
@@ -417,6 +418,8 @@ export interface ProportionsChartProps {
   // thin white separators between stacked segments.
   barOutline: boolean;
   barOutlineWidth: number;
+  // Group-label tilt in degrees, −90…0 (0 = horizontal).
+  xLabelAngle: number;
   plotWidth: number;
   plotHeight: number;
   tickFontSize: number;
@@ -454,6 +457,8 @@ export interface StatsPanelProps {
   focusLabel: string | null;
   vis: ProportionsVis;
   updVis: (patch: Partial<ProportionsVis>) => void;
+  onDownloadReport: () => void;
+  onDownloadR: () => void;
 }
 
 export interface GofPanelProps {
