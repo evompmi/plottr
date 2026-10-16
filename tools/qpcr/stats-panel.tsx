@@ -73,6 +73,7 @@ const fc = (log2: number): string =>
 export function QpcrStatsPanel({
   genes,
   stats,
+  normalize,
   control,
   overrides,
   onOverride,
@@ -81,11 +82,16 @@ export function QpcrStatsPanel({
   onDownloadReport,
   onDownloadR,
   onSendToGroupPlot,
+  handoffLabel,
 }: QpcrStatsPanelProps) {
   const tr = useT();
+  const relToControl = normalize === "control";
   const [split, setSplit] = React.useState<HandoffSplit>("facet");
   const testLabel = (t: string | null): string => (t && TEST_KEYS[t] ? tr(TEST_KEYS[t]) : t || "—");
-  const anyMulti = genes.some((g) => g.groups.length > 2);
+  // Letters need k > 2 groups and every group drawn: with the calibrator
+  // hidden its comparisons move to "vs control" stars (geneAnnotation).
+  const anyMulti =
+    genes.some((g) => g.groups.length > 2) && (normalize !== "control" || vis.showCalibrator);
   const display: AnnotationMode =
     vis.annotation === "cld" && !anyMulti ? "brackets" : vis.annotation;
   const nsDisabled = display !== "brackets";
@@ -235,8 +241,16 @@ export function QpcrStatsPanel({
           title={tr("qpcr.stats.sendTitle")}
           data-testid="qpcr-send"
         >
-          {tr("qpcr.stats.send")}
+          {tr("qpcr.stats.send", { what: handoffLabel })}
         </button>
+        {vis.yScale === "linear" && (
+          <span
+            style={{ flexBasis: "100%", fontSize: 10, color: "var(--text-faint)" }}
+            data-testid="qpcr-send-linear-note"
+          >
+            {tr("qpcr.stats.sendLinearNote")}
+          </span>
+        )}
       </div>
 
       <div style={{ padding: "4px 16px 14px" }}>
@@ -279,7 +293,9 @@ export function QpcrStatsPanel({
                     <th style={thS}>{tr("qpcr.stats.group")}</th>
                     <th style={thS}>n</th>
                     <th style={thS}>{tr("qpcr.stats.meanDct")}</th>
-                    <th style={thS}>{tr("qpcr.stats.fcVsControl")}</th>
+                    <th style={thS}>
+                      {tr(relToControl ? "qpcr.stats.fcVsControl" : "qpcr.stats.relExpr")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -296,11 +312,13 @@ export function QpcrStatsPanel({
                           {Number.isFinite(s.sdDCt) ? ` ± ${s.sdDCt.toFixed(2)}` : ""}
                         </td>
                         <td style={tdS}>
-                          {s.group === control
-                            ? tr("qpcr.stats.calibrator")
-                            : vs
-                              ? `${fc(vs.log2fc)} [${fc(vs.lo)}, ${fc(vs.hi)}]`
-                              : "—"}
+                          {!relToControl
+                            ? `${fc(s.meanL)} [${fc(s.lo)}, ${fc(s.hi)}]`
+                            : s.group === control
+                              ? tr("qpcr.stats.calibrator")
+                              : vs
+                                ? `${fc(vs.log2fc)} [${fc(vs.lo)}, ${fc(vs.hi)}]`
+                                : "—"}
                         </td>
                       </tr>
                     );
@@ -308,7 +326,7 @@ export function QpcrStatsPanel({
                 </tbody>
               </table>
               <p style={{ fontSize: 10, color: "var(--text-faint)", margin: "4px 0 6px" }}>
-                {tr("qpcr.stats.tableNote")}
+                {tr(relToControl ? "qpcr.stats.tableNote" : "qpcr.stats.tableNoteRel")}
               </p>
 
               {k < 2 ? (

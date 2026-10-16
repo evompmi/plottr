@@ -13,6 +13,7 @@ import { fileBaseName } from "../_core/download";
 import type {
   ConfigureStepProps,
   GeneRow,
+  Normalization,
   OrderItem,
   PlotStepProps,
   QpcrLayout,
@@ -361,29 +362,59 @@ export function ConfigureStep(p: ConfigureStepProps) {
               <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
                 {tr("qpcr.cfg.groups")}
               </p>
-              <label
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                  fontSize: 12,
-                  marginBottom: 8,
-                }}
-              >
-                {tr("qpcr.cfg.control")}
-                <select
-                  className="dv-select"
-                  value={p.control}
-                  onChange={(e) => p.setControl(e.target.value)}
-                  data-testid="qpcr-control"
+              <div style={{ fontSize: 12, color: "var(--text)", marginBottom: 4 }}>
+                {tr("qpcr.cfg.normalize")}
+              </div>
+              <SegToggle<Normalization>
+                value={p.normalize}
+                onChange={p.setNormalize}
+                ariaLabel={tr("qpcr.cfg.normalize")}
+                style={{ marginBottom: 8 }}
+                options={[
+                  {
+                    value: "control",
+                    label: tr("qpcr.cfg.normControl"),
+                    title: tr("qpcr.cfg.normControlTitle"),
+                  },
+                  {
+                    value: "refs",
+                    label: tr("qpcr.cfg.normRefs"),
+                    title: tr("qpcr.cfg.normRefsTitle"),
+                  },
+                ]}
+              />
+              {p.normalize === "control" ? (
+                <label
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    fontSize: 12,
+                    marginBottom: 8,
+                  }}
                 >
-                  {groupOrder.map((g) => (
-                    <option key={g.name} value={g.name}>
-                      {g.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  {tr("qpcr.cfg.control")}
+                  <select
+                    className="dv-select"
+                    value={p.control}
+                    onChange={(e) => p.setControl(e.target.value)}
+                    data-testid="qpcr-control"
+                  >
+                    {groupOrder.map((g) => (
+                      <option key={g.name} value={g.name}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <p
+                  style={{ fontSize: 11, color: "var(--text-faint)", margin: "0 0 8px" }}
+                  data-testid="qpcr-norm-refs-note"
+                >
+                  {tr("qpcr.cfg.normRefsNote")}
+                </p>
+              )}
               <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                 {groupOrder.map((it, i) => (
                   <li
@@ -400,7 +431,7 @@ export function ConfigureStep(p: ConfigureStepProps) {
                     <input
                       type="checkbox"
                       checked={it.include}
-                      disabled={it.name === p.control}
+                      disabled={p.normalize === "control" && it.name === p.control}
                       onChange={(e) =>
                         p.setGroupOrder(
                           groupOrder.map((x, j) =>
@@ -416,7 +447,7 @@ export function ConfigureStep(p: ConfigureStepProps) {
                         flex: 1,
                         fontSize: 12,
                         color: "var(--text)",
-                        fontWeight: it.name === p.control ? 700 : 400,
+                        fontWeight: p.normalize === "control" && it.name === p.control ? 700 : 400,
                       }}
                     >
                       {it.name}
@@ -521,7 +552,7 @@ export function PlotStep(p: PlotStepProps) {
             { label: "CSV", title: tr("qpcr.dl.csvTitle"), onClick: p.onDownloadCsv },
           ]}
         />
-        <ChartTile vis={p.vis} updVis={p.updVis} />
+        <ChartTile vis={p.vis} updVis={p.updVis} normalize={p.normalize} />
         <ColorsTile
           vis={p.vis}
           updVis={p.updVis}
@@ -563,11 +594,13 @@ export function PlotStep(p: PlotStepProps) {
             annotations={p.annotations}
             colors={p.colors}
             groupOrder={p.groupOrder}
+            normalize={p.normalize}
             control={p.control}
             yScale={p.vis.yScale}
             chartStyle={p.vis.chartStyle}
             showPoints={p.vis.showPoints}
-            showCI={p.vis.showCI}
+            errorBar={p.vis.errorBar}
+            showCalibrator={p.vis.showCalibrator}
             barOutline={p.vis.barOutline}
             barOutlineWidth={p.vis.barOutlineWidth}
             barWidthFrac={p.vis.barWidthFrac}
@@ -585,6 +618,7 @@ export function PlotStep(p: PlotStepProps) {
         <QpcrStatsPanel
           genes={p.genes}
           stats={p.stats}
+          normalize={p.normalize}
           control={p.control}
           overrides={p.overrides}
           onOverride={p.onOverride}
@@ -593,6 +627,7 @@ export function PlotStep(p: PlotStepProps) {
           onDownloadReport={p.onDownloadReport}
           onDownloadR={p.onDownloadR}
           onSendToGroupPlot={p.onSendToGroupPlot}
+          handoffLabel={p.handoffLabel}
         />
       </div>
     </div>

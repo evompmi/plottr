@@ -46,10 +46,16 @@ export function buildQpcrReport(a: QpcrReportArgs): string {
   if (a.fileName) L.push(`Data: ${a.fileName}`);
   L.push("");
   const allTwo = [...a.cfg.refs, ...a.cfg.targets].every((g) => (a.cfg.eff[g] ?? 2) === 2);
+  const rel = a.cfg.normalize === "control";
   L.push(
-    allTwo
-      ? "Method: 2^−ΔΔCt (Livak & Schmittgen 2001, doi:10.1006/meth.2001.1262), all efficiencies 100 %."
-      : "Method: efficiency-corrected ratio (Pfaffl 2001, doi:10.1093/nar/29.9.e45)."
+    !rel
+      ? "Method: 2^−ΔCt, expression relative to the reference gene(s) only, no calibrator group (Schmittgen & Livak 2008, doi:10.1038/nprot.2008.73)" +
+          (allTwo
+            ? ", all efficiencies 100 %."
+            : ", efficiency-weighted Ct (Pfaffl 2001, doi:10.1093/nar/29.9.e45).")
+      : allTwo
+        ? "Method: 2^−ΔΔCt (Livak & Schmittgen 2001, doi:10.1006/meth.2001.1262), all efficiencies 100 %."
+        : "Method: efficiency-corrected ratio (Pfaffl 2001, doi:10.1093/nar/29.9.e45)."
   );
   L.push(
     `Reference gene(s): ${a.cfg.refs.join(", ")}` +
@@ -63,10 +69,17 @@ export function buildQpcrReport(a: QpcrReportArgs): string {
         .map((g) => `${g} ${efficiencyPercent(a.cfg.eff[g] ?? 2).toFixed(1)} %`)
         .join(", ")
   );
-  L.push(`Calibrator (control group): ${a.cfg.control}`);
-  L.push(
-    "ΔCt = log2-weighted Ct(target) − mean log2-weighted Ct(references); −ΔΔCt = mean ΔCt(control) − ΔCt."
-  );
+  if (rel) {
+    L.push(`Calibrator (control group): ${a.cfg.control}`);
+    L.push(
+      "ΔCt = log2-weighted Ct(target) − mean log2-weighted Ct(references); −ΔΔCt = mean ΔCt(control) − ΔCt."
+    );
+  } else {
+    L.push("Calibrator: none (normalised to the reference gene(s) only).");
+    L.push(
+      "ΔCt = log2-weighted Ct(target) − mean log2-weighted Ct(references); relative expression = 2^−ΔCt."
+    );
+  }
   L.push("Statistical tests were run on ΔCt (log scale), not on fold changes.");
   if (a.missingCt > 0) L.push(`Wells without a Ct (undetermined / missing): ${a.missingCt}`);
   if (a.noisy.length > 0) {
@@ -95,11 +108,14 @@ export function buildQpcrReport(a: QpcrReportArgs): string {
       L.push(
         `  ${s.group}: n = ${s.n}, ΔCt = ${s.meanDCt.toFixed(3)}` +
           (Number.isFinite(s.sdDCt) ? ` ± ${s.sdDCt.toFixed(3)} (SD)` : "") +
-          (s.group === a.cfg.control
-            ? ", calibrator (fold change 1)"
-            : vs
-              ? `, fold change vs ${a.cfg.control} = ${fc(vs.log2fc)} [95 % CI ${fc(vs.lo)}, ${fc(vs.hi)}]`
-              : "")
+          (!rel
+            ? `, 2^−ΔCt = ${fc(s.meanL)}` +
+              (Number.isFinite(s.lo) ? ` [95 % CI ${fc(s.lo)}, ${fc(s.hi)}]` : "")
+            : s.group === a.cfg.control
+              ? ", calibrator (fold change 1)"
+              : vs
+                ? `, fold change vs ${a.cfg.control} = ${fc(vs.log2fc)} [95 % CI ${fc(vs.lo)}, ${fc(vs.hi)}]`
+                : "")
       );
     }
     if (st.chosenTest) {
@@ -171,8 +187,13 @@ export function buildQpcrRScript(a: QpcrRScriptArgs): string {
   L.push("# -----------------------------------------------------------------------------");
   L.push("# Plöttr — qPCR relative quantification R script export");
   L.push(`# Generated: ${now}`);
-  L.push("# Recomputes ΔCt / −ΔΔCt from the raw Ct values, then runs the tests on ΔCt");
-  L.push("# (log scale) — never on 2^−ΔΔCt fold changes.");
+  const rel = a.cfg.normalize === "control";
+  L.push(
+    rel
+      ? "# Recomputes ΔCt / −ΔΔCt from the raw Ct values, then runs the tests on ΔCt"
+      : "# Recomputes ΔCt and 2^−ΔCt (no calibrator) from the raw Ct values, then runs the tests on ΔCt"
+  );
+  L.push(`# (log scale) — never on ${rel ? "2^−ΔΔCt fold changes" : "2^−ΔCt values"}.`);
   L.push("# -----------------------------------------------------------------------------");
   if (needsRstatix) L.push('# install.packages("rstatix")');
   L.push("");
@@ -187,7 +208,7 @@ export function buildQpcrRScript(a: QpcrRScriptArgs): string {
   L.push(
     `eff <- c(${[...genesUsed].map((g) => `${rStr(g)} = ${formatRNumber(a.cfg.eff[g] ?? 2)}`).join(", ")})  # amplification factor, 2 = 100 %`
   );
-  L.push(`control <- ${rStr(a.cfg.control)}`);
+  if (rel) L.push(`control <- ${rStr(a.cfg.control)}`);
   L.push(`group_levels <- ${wrapRItems(a.cfg.groupOrder.map(rStr))}`);
   L.push("");
   L.push("# Technical replicates: mean Ct per biological sample × gene (missing Ct dropped)");
@@ -210,9 +231,13 @@ export function buildQpcrRScript(a: QpcrRScriptArgs): string {
     );
     L.push("                 dct = q_ref - q(gene))");
     L.push("df <- df[is.finite(df$dct) & !is.na(df$group), ]");
-    L.push("calibrator <- mean(df$dct[df$group == control])");
-    L.push("df$neg_ddct <- calibrator - df$dct");
-    L.push("df$fold_change <- 2^df$neg_ddct");
+    if (rel) {
+      L.push("calibrator <- mean(df$dct[df$group == control])");
+      L.push("df$neg_ddct <- calibrator - df$dct");
+      L.push("df$fold_change <- 2^df$neg_ddct");
+    } else {
+      L.push("df$rel_expr <- 2^-df$dct  # relative to the reference gene(s), no calibrator");
+    }
     L.push("df$value <- df$dct  # tests run on ΔCt");
     L.push("print(df[order(df$group, df$sample), ], digits = 5)");
     L.push(`# Toolbox picked: ${TEST_LABELS[st.chosenTest ?? ""] ?? "none"}`);

@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   noisy technical replicates and reference stability (geNorm M). Statistics run on ΔCt with the
   Group Plot engine (never on fold changes); ΔCt of all genes can be sent to Group Plot in one
   go, faceted or subgrouped by gene.
+- **qPCR: no-calibrator mode and error-bar choice.** "Normalise to: Reference genes only" plots
+  2^−ΔCt (expression relative to the reference genes, no group set to 1) instead of a fold
+  change vs a control; statistics are unchanged. Error bars can be SEM, SD, 95 % CI or none.
+  A "Calibrator column" switch hides the control's bar (always 1): its comparisons become
+  "vs control" stars above each bar, with a footnote; brackets between other groups stay.
+- **qPCR → Group Plot keeps the y-axis choice and sign.** The hand-off now sends −ΔΔCt (or
+  −ΔCt) as plotted, labelled "log₂ fold change" or "−ΔΔCt" to match the qPCR axis, instead of
+  positive ΔCt, which flipped the plot upside down. Values stay on the log scale so Group Plot's
+  tests remain valid.
 - **Example input tables in the How-to.** The Proportions and qPCR How-to panels now show
   small example tables of the expected input (counts table; qPCR long and wide layouts).
 - **Group Plot hand-offs can set column roles, facet and subgroup.** A tool sending data to

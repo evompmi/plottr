@@ -12,6 +12,10 @@
 //   ΔCt(s,T) = q_ref(s) − q(s,T)                = Ct_T − mean(Ct_ref) when E = 2
 //   L(s,T)  = mean_control(ΔCt) − ΔCt(s,T)      = −ΔΔCt; fold change = 2^L
 //
+// Without a calibrator group ("refs" normalisation) the control mean is
+// replaced by 0: L = −ΔCt and 2^L = 2^−ΔCt, the expression relative to the
+// reference genes alone (Schmittgen & Livak 2008, doi:10.1038/nprot.2008.73).
+//
 // Statistics run on ΔCt (log scale), never on 2^L: fold changes are skewed
 // and the calibrator group is forced to average 1, which distorts its
 // variance. ΔCt and −ΔΔCt differ only by a sign and a constant, so tests on
@@ -77,12 +81,19 @@ export interface QpcrParseResult {
 export type YScale = "log2" | "linear" | "ddct";
 export type QpcrChartStyle = "bar" | "dot";
 export type AnnotationMode = "none" | "cld" | "brackets";
+export type ErrorBarType = "none" | "sem" | "sd" | "ci95";
+// "control": 2^−ΔΔCt, fold change vs a calibrator group.
+// "refs": 2^−ΔCt, relative to the reference genes only (no calibrator).
+export type Normalization = "control" | "refs";
 
 export interface QpcrVis {
   yScale: YScale;
   chartStyle: QpcrChartStyle;
   showPoints: boolean;
-  showCI: boolean;
+  errorBar: ErrorBarType;
+  // Draw the calibrator group's column (only meaningful with normalize ===
+  // "control"). Hidden → its comparisons become "vs control" stars.
+  showCalibrator: boolean;
   annotation: AnnotationMode;
   showNs: boolean;
   discretePalette: string;
@@ -406,7 +417,8 @@ export interface QpcrConfig {
   targets: string[];
   // Amplification factor per gene (2 = 100 %); missing → 2.
   eff: Record<string, number>;
-  control: string;
+  normalize: Normalization;
+  control: string; // ignored when normalize === "refs"
   groupOrder: string[];
 }
 
@@ -416,7 +428,7 @@ export interface SampleResult {
   ctTarget: number;
   ctRefs: number[];
   dCt: number; // log2 units
-  L: number; // −ΔΔCt
+  L: number; // −ΔΔCt ("control") or −ΔCt ("refs")
 }
 
 export interface GroupSummary {
@@ -424,7 +436,7 @@ export interface GroupSummary {
   n: number;
   meanDCt: number;
   sdDCt: number;
-  meanL: number; // log2 fold change vs control (control → 0)
+  meanL: number; // log2 fold change vs control (control → 0), or −mean ΔCt ("refs")
   // 95 % t-CI of the group's mean L (needs n ≥ 2)
   lo: number;
   hi: number;
@@ -446,7 +458,7 @@ export interface GeneAnalysis {
   // Groups in display order with ≥ 1 sample.
   groups: string[];
   dCtByGroup: number[][];
-  calibrator: number; // mean control ΔCt
+  calibrator: number; // mean control ΔCt; 0 when normalize === "refs"
   summaries: GroupSummary[];
   vsControl: VsControl[];
   controlMissing: boolean;
@@ -477,9 +489,10 @@ export function computeGene(samples: Sample[], cfg: QpcrConfig, gene: string): G
       L: NaN,
     });
   }
+  const relToControl = cfg.normalize === "control";
   const ctrl = rows.filter((r) => r.group === cfg.control).map((r) => r.dCt);
-  const controlMissing = ctrl.length === 0;
-  const calibrator = controlMissing ? NaN : sampleMean(ctrl);
+  const controlMissing = relToControl && ctrl.length === 0;
+  const calibrator = !relToControl ? 0 : controlMissing ? NaN : sampleMean(ctrl);
   for (const r of rows) r.L = calibrator - r.dCt;
   const groups = cfg.groupOrder.filter((g) => rows.some((r) => r.group === g));
   const dCtByGroup = groups.map((g) => rows.filter((r) => r.group === g).map((r) => r.dCt));
@@ -492,7 +505,7 @@ export function computeGene(samples: Sample[], cfg: QpcrConfig, gene: string): G
     const half = n >= 2 ? tinv(0.975, n - 1) * (sdDCt / Math.sqrt(n)) : NaN;
     return { group: g, n, meanDCt, sdDCt, meanL, lo: meanL - half, hi: meanL + half };
   });
-  const ci = groups.indexOf(cfg.control);
+  const ci = relToControl ? groups.indexOf(cfg.control) : -1;
   const vsControl: VsControl[] = [];
   if (ci >= 0) {
     const c = dCtByGroup[ci];
@@ -512,6 +525,19 @@ export function computeGene(samples: Sample[], cfg: QpcrConfig, gene: string): G
     vsControl,
     controlMissing,
   };
+}
+
+// Error-bar bounds on the L (log2) scale: mean ± SD, ± SEM, or the 95 % t-CI.
+// Null when the bar cannot be drawn (n < 2). Back-transformed to a linear
+// axis the bars become asymmetric (geometric SD / SEM).
+export function errorBounds(
+  s: GroupSummary,
+  type: ErrorBarType
+): { lo: number; hi: number } | null {
+  if (type === "none" || s.n < 2 || !Number.isFinite(s.sdDCt)) return null;
+  if (type === "ci95") return { lo: s.lo, hi: s.hi };
+  const half = type === "sd" ? s.sdDCt : s.sdDCt / Math.sqrt(s.n);
+  return { lo: s.meanL - half, hi: s.meanL + half };
 }
 
 // Welch 95 % CI for mean(control ΔCt) − mean(group ΔCt) = log2 fold change.
@@ -619,41 +645,77 @@ export interface BracketSpec {
   label: string;
 }
 
+// Indices and per-group arrays refer to the gene's *visible* groups
+// (visibleGene): every display group, minus a hidden calibrator.
 export interface GeneAnnotation {
   brackets: BracketSpec[];
-  cld: string[]; // per display group ("" when not shown)
+  cld: string[]; // per visible group ("" when not shown)
+  vsControl: string[]; // per visible group: stars vs the hidden calibrator
+}
+
+// The gene as drawn: the calibrator `hidden` (if any) dropped from groups,
+// summaries and replicate points. Statistics are untouched.
+export function visibleGene(g: GeneAnalysis, hidden: string | null): GeneAnalysis {
+  if (hidden === null || !g.groups.includes(hidden)) return g;
+  return {
+    ...g,
+    groups: g.groups.filter((x) => x !== hidden),
+    summaries: g.summaries.filter((s) => s.group !== hidden),
+    rows: g.rows.filter((r) => r.group !== hidden),
+  };
 }
 
 // Same rules as Group Plot's computeBpAnnotationSpec: two groups → one
 // bracket from the test; more → letters or brackets from the post-hoc
-// (adjusted p). Indices are mapped back to the gene's display groups.
+// (adjusted p). With the calibrator `hidden`, its comparisons become
+// "vs control" stars above the other groups, brackets between the visible
+// groups stay, and letters fall back to that layout (a letter display
+// without the calibrator would drop every comparison against it).
 export function geneAnnotation(
   g: GeneAnalysis,
   st: GeneStats,
   mode: AnnotationMode,
-  showNs: boolean
+  showNs: boolean,
+  hidden: string | null = null
 ): GeneAnnotation {
-  const empty: GeneAnnotation = { brackets: [], cld: g.groups.map(() => "") };
-  if (mode === "none" || st.tested.length < 2) return empty;
+  const hide = hidden !== null && g.groups.includes(hidden) ? hidden : null;
+  const shown = visibleGene(g, hide).groups;
+  const empty = (): GeneAnnotation => ({
+    brackets: [],
+    cld: shown.map(() => ""),
+    vsControl: shown.map(() => ""),
+  });
+  if (mode === "none" || st.tested.length < 2) return empty();
   const map = st.tested;
+  let pairs: { i: number; j: number; p: number }[];
   if (map.length === 2) {
     const p = st.testResult && !st.testResult.error ? st.testResult.p : undefined;
-    if (p === undefined || (!showNs && p >= 0.05)) return empty;
-    return { ...empty, brackets: [{ i: map[0], j: map[1], label: pStars(p) }] };
+    if (p === undefined) return empty();
+    pairs = [{ i: map[0], j: map[1], p }];
+  } else {
+    const ph = st.postHocResult;
+    if (!ph || ph.error) return empty();
+    if (mode === "cld" && hide === null) {
+      const out = empty();
+      compactLetterDisplay(ph.pairs, map.length).forEach((l, i) => (out.cld[map[i]] = l));
+      return out;
+    }
+    pairs = ph.pairs.map((pr) => ({
+      i: map[pr.i],
+      j: map[pr.j],
+      p: pr.pAdj != null ? pr.pAdj : pr.p,
+    }));
   }
-  const ph = st.postHocResult;
-  if (!ph || ph.error) return empty;
-  if (mode === "cld") {
-    const letters = compactLetterDisplay(ph.pairs, map.length);
-    const cld = g.groups.map(() => "");
-    letters.forEach((l, i) => (cld[map[i]] = l));
-    return { ...empty, cld };
+  const out = empty();
+  const idx = (i: number): number => shown.indexOf(g.groups[i]);
+  for (const pr of pairs) {
+    if (!showNs && pr.p >= 0.05) continue;
+    const a = g.groups[pr.i];
+    const b = g.groups[pr.j];
+    if (a === hide || b === hide) out.vsControl[idx(a === hide ? pr.j : pr.i)] = pStars(pr.p);
+    else out.brackets.push({ i: idx(pr.i), j: idx(pr.j), label: pStars(pr.p) });
   }
-  const brackets = ph.pairs
-    .map((pr) => ({ i: map[pr.i], j: map[pr.j], p: pr.pAdj != null ? pr.pAdj : pr.p }))
-    .filter((pr) => showNs || pr.p < 0.05)
-    .map((pr) => ({ i: pr.i, j: pr.j, label: pStars(pr.p) }));
-  return { ...empty, brackets };
+  return out;
 }
 
 // ── Hand-off & export rows ──────────────────────────────────────────────
@@ -669,16 +731,24 @@ export interface QpcrHandoff {
   subgroupBy?: string;
 }
 
-// One long CSV with every target gene — `Gene, Group, Sample, ΔCt` — plus
-// explicit Group Plot roles, so Group Plot facets (or subgroups) by gene and
-// runs its statistics per gene. Rows go gene by gene, groups in display
+// One long CSV with every target gene — `Gene, Group, Sample, <value>` —
+// plus explicit Group Plot roles, so Group Plot facets (or subgroups) by gene
+// and runs its statistics per gene. The values are L (−ΔΔCt, or −ΔCt without
+// a calibrator) — the sign the qPCR plot shows — and always on the log scale:
+// Group Plot's log axis is display-only and its tests run on the numbers it
+// receives, so fold changes would be tested directly. `valueLabel` names the
+// column (and Group Plot's y axis). Rows go gene by gene, groups in display
 // order, so Group Plot's first-appearance ordering matches this tool.
-export function buildHandoff(genes: GeneAnalysis[], split: HandoffSplit): QpcrHandoff {
-  const lines = ["Gene,Group,Sample,ΔCt"];
+export function buildHandoff(
+  genes: GeneAnalysis[],
+  split: HandoffSplit,
+  valueLabel: string
+): QpcrHandoff {
+  const lines = ["Gene,Group,Sample," + csvCell(valueLabel)];
   for (const g of genes) {
     g.groups.forEach((grp) => {
       for (const r of g.rows.filter((x) => x.group === grp)) {
-        lines.push([csvCell(g.gene), csvCell(grp), csvCell(r.sample), String(r.dCt)].join(","));
+        lines.push([csvCell(g.gene), csvCell(grp), csvCell(r.sample), String(r.L)].join(","));
       }
     });
   }
@@ -689,7 +759,10 @@ export function buildHandoff(genes: GeneAnalysis[], split: HandoffSplit): QpcrHa
   };
 }
 
-export function sampleRowsForCsv(genes: GeneAnalysis[]): {
+export function sampleRowsForCsv(
+  genes: GeneAnalysis[],
+  normalize: Normalization
+): {
   headers: string[];
   rows: (string | number)[][];
 } {
@@ -700,8 +773,9 @@ export function sampleRowsForCsv(genes: GeneAnalysis[]): {
     "ct_target",
     "ct_reference_mean",
     "delta_ct",
-    "neg_delta_delta_ct",
-    "fold_change",
+    ...(normalize === "control"
+      ? ["neg_delta_delta_ct", "fold_change"]
+      : ["neg_delta_ct", "relative_expression"]),
   ];
   const rows: (string | number)[][] = [];
   for (const g of genes) {
@@ -744,11 +818,13 @@ export interface QpcrChartProps {
   annotations: GeneAnnotation[];
   colors: string[]; // per display group (union order)
   groupOrder: string[];
+  normalize: Normalization;
   control: string;
   yScale: YScale;
   chartStyle: QpcrChartStyle;
   showPoints: boolean;
-  showCI: boolean;
+  errorBar: ErrorBarType;
+  showCalibrator: boolean;
   barOutline: boolean;
   barOutlineWidth: number;
   barWidthFrac: number;
@@ -774,6 +850,7 @@ export interface GeneRow {
 export interface QpcrStatsPanelProps {
   genes: GeneAnalysis[];
   stats: GeneStats[];
+  normalize: Normalization;
   control: string;
   overrides: Record<string, string | null>;
   onOverride: (gene: string, test: string | null) => void;
@@ -782,11 +859,16 @@ export interface QpcrStatsPanelProps {
   onDownloadReport: () => void;
   onDownloadR: () => void;
   onSendToGroupPlot: (split: HandoffSplit) => void;
+  handoffLabel: string; // what Group Plot receives, e.g. "log₂ fold change"
 }
 
 export interface TileProps {
   vis: QpcrVis;
   updVis: (patch: Partial<QpcrVis>) => void;
+}
+
+export interface ChartTileProps extends TileProps {
+  normalize: Normalization;
 }
 
 export interface OrderItem {
@@ -829,6 +911,8 @@ export interface ConfigureStepProps {
   setGeneEff: (gene: string, text: string) => void;
   groupOrder: OrderItem[];
   setGroupOrder: (o: OrderItem[]) => void;
+  normalize: Normalization;
+  setNormalize: (n: Normalization) => void;
   control: string;
   setControl: (g: string) => void;
   noisy: NoisyRep[];
@@ -846,6 +930,7 @@ export interface PlotStepProps {
   annotations: GeneAnnotation[];
   colors: string[];
   groupOrder: string[];
+  normalize: Normalization;
   control: string;
   vis: QpcrVis;
   updVis: (patch: Partial<QpcrVis>) => void;
@@ -858,6 +943,7 @@ export interface PlotStepProps {
   onDownloadReport: () => void;
   onDownloadR: () => void;
   onSendToGroupPlot: (split: HandoffSplit) => void;
+  handoffLabel: string;
   onReset: () => void;
   dropped: number;
 }
