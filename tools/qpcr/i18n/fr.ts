@@ -42,6 +42,14 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.cfg.missing": "({n} sans Ct)",
   "qpcr.cfg.needRoles": "Indiquez au moins un gène de référence et un gène cible.",
   "qpcr.cfg.groups": "Groupes",
+  "qpcr.cfg.normalize": "Normaliser par",
+  "qpcr.cfg.normControl": "Groupe contrôle",
+  "qpcr.cfg.normControlTitle": "2^−ΔΔCt : ratio par rapport à un groupe calibrateur (fixé à 1)",
+  "qpcr.cfg.normRefs": "Gènes de référence seuls",
+  "qpcr.cfg.normRefsTitle":
+    "2^−ΔCt : expression de chaque échantillon par rapport à ses gènes de référence, sans groupe calibrateur",
+  "qpcr.cfg.normRefsNote":
+    "Affiche 2^−ΔCt : l’expression de la cible par rapport aux gènes de référence, sans groupe fixé à 1. Les statistiques sur les ΔCt sont les mêmes qu’avec un calibrateur.",
   "qpcr.cfg.control": "Groupe contrôle (calibrateur, ratio = 1)",
   "qpcr.cfg.include": "Inclure {name}",
   "qpcr.cfg.up": "Monter {name}",
@@ -87,16 +95,36 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.chart.scaleLinearTitle":
     "Ratio d’expression sur un axe linéaire (amplifie les hausses, écrase les baisses)",
   "qpcr.chart.scaleDdctTitle": "−ΔΔCt : les valeurs log₂ sur lesquelles portent les statistiques",
+  "qpcr.chart.scaleLog2Rel": "log₂",
+  "qpcr.chart.scaleLog2RelTitle":
+    "2^−ΔCt sur un axe log₂ : 2× en hausse et 2× en baisse sont à la même distance",
+  "qpcr.chart.scaleLinearRel": "Linéaire",
+  "qpcr.chart.scaleLinearRelTitle":
+    "2^−ΔCt sur un axe linéaire (amplifie les valeurs hautes, écrase les basses)",
+  "qpcr.chart.scaleDctTitle": "−ΔCt : les valeurs log₂ sur lesquelles portent les statistiques",
   "qpcr.chart.style": "Style",
   "qpcr.chart.bar": "Barres",
   "qpcr.chart.dot": "Points",
   "qpcr.chart.points": "Réplicats biologiques",
-  "qpcr.chart.ci": "IC à 95 %",
+  "qpcr.chart.showCalibrator": "Colonne du calibrateur",
+  "qpcr.chart.calibratorHiddenNote":
+    "Affichage seulement : la ligne pointillée marque le calibrateur (ratio 1), ses comparaisons apparaissent en étoiles au-dessus de chaque barre, et les statistiques sont inchangées.",
+  "qpcr.chart.vsControlNote": "Étoiles sur les barres : vs {control} (non affiché)",
+  "qpcr.chart.errorBars": "Barres d’erreur",
+  "qpcr.chart.errNone": "Aucune",
+  "qpcr.chart.errCi": "IC 95 %",
+  "qpcr.chart.errorBarsNote":
+    "Calculées sur les ΔCt (échelle log₂) puis retransformées : elles paraissent asymétriques sur un axe linéaire.",
   "qpcr.chart.yLog2": "Ratio d’expression (échelle log₂)",
   "qpcr.chart.yLinear": "Ratio d’expression",
   "qpcr.chart.yDdct": "−ΔΔCt",
+  "qpcr.chart.yLog2Rel": "Expression relative (échelle log₂)",
+  "qpcr.chart.yLinearRel": "Expression relative (2^−ΔCt)",
+  "qpcr.chart.yDct": "−ΔCt",
   "qpcr.chart.fallbackTitle": "Expression relative qPCR",
   "qpcr.chart.desc": "Expression relative de {genes}, normalisée au groupe contrôle {control}",
+  "qpcr.chart.descRefs":
+    "Expression relative (2^−ΔCt) de {genes}, normalisée aux seuls gènes de référence",
   "qpcr.colors.groups": "Couleur par groupe",
   "qpcr.style.facetWidth": "Largeur des panneaux",
   "qpcr.style.facetHeight": "Hauteur des panneaux",
@@ -131,8 +159,11 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.stats.meanDct": "ΔCt moyen ± ET",
   "qpcr.stats.fcVsControl": "Ratio vs contrôle [IC à 95 %]",
   "qpcr.stats.calibrator": "1 (calibrateur)",
+  "qpcr.stats.relExpr": "2^−ΔCt [IC à 95 %]",
   "qpcr.stats.tableNote":
     "Ratio = 2^(ΔCt moyen du contrôle − ΔCt moyen du groupe), soit un rapport de moyennes géométriques ; son IC est l’IC de Welch à 95 % de la différence de ΔCt, retransformé (donc asymétrique).",
+  "qpcr.stats.tableNoteRel":
+    "2^−ΔCt = 2^(−ΔCt moyen), soit la moyenne géométrique de l’expression du groupe par rapport aux gènes de référence ; son IC est l’IC t à 95 % du ΔCt moyen, retransformé (donc asymétrique).",
   "qpcr.stats.noControl":
     "Aucun échantillon du groupe contrôle {control} n’a de Ct pour ce gène : les ratios ne peuvent pas être calculés.",
   "qpcr.stats.needTwo":
@@ -145,9 +176,13 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.stats.fc": "Ratio",
   "qpcr.stats.pAdj": "p (ajustée)",
   "qpcr.stats.sendLabel": "Group Plot",
-  "qpcr.stats.send": "Envoyer les ΔCt de tous les gènes",
+  "qpcr.stats.send": "Envoyer {what} (tous les gènes)",
   "qpcr.stats.sendTitle":
-    "Ouvrir les ΔCt de tous les gènes cibles dans Group Plot (un seul CSV), séparés par gène, pour des boîtes / violons et son panneau statistique complet",
+    "Ouvrir les valeurs de tous les gènes cibles dans Group Plot (un seul CSV, échelle log₂, même signe que ce graphique), séparées par gène, pour des boîtes / violons et son panneau statistique complet",
+  "qpcr.stats.sendLinearNote":
+    "Group Plot reçoit des valeurs log₂ (axe −2, 0, 2 plutôt que ¼, 1, 4) : ses tests portent sur les valeurs reçues, et les ratios ne doivent pas être testés directement.",
+  "qpcr.handoff.log2Fc": "log₂ ratio d’expression",
+  "qpcr.handoff.log2Rel": "log₂ expression relative",
   "qpcr.stats.asFacets": "Gène = panneaux",
   "qpcr.stats.asFacetsTitle": "Un panneau par gène ; groupes en abscisse ; statistiques par gène",
   "qpcr.stats.asSubgroups": "Gène = sous-groupes",
@@ -174,7 +209,7 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.howto.exWideCaption":
     "Format large : une ligne par échantillon biologique, une colonne de Ct par gène (réplicats techniques déjà moyennés). Les en-têtes anglais (Sample, Group, Gene, Ct) sont détectés automatiquement ; sinon, attribuez les colonnes à l’étape Configurer.",
   "qpcr.howto.display":
-    "Choisissez les gènes de référence et cibles, les efficacités (saisies ou issues d’une gamme étalon) et le groupe contrôle. Le graphique montre le ratio d’expression sur un axe log₂ (ou linéaire, ou −ΔΔCt) avec les réplicats biologiques et les IC à 95 % ; crochets ou lettres viennent du test t de Welch / de l’ANOVA de Welch + Games-Howell sur les ΔCt. Les ΔCt de chaque gène peuvent être envoyés vers Group Plot.",
+    "Choisissez les gènes de référence et cibles, les efficacités (saisies ou issues d’une gamme étalon) et le groupe contrôle — ou normalisez par les seuls gènes de référence (2^−ΔCt, sans calibrateur). Le graphique montre le ratio d’expression sur un axe log₂ (ou linéaire, ou −ΔΔCt) avec les réplicats biologiques et des barres d’erreur SEM, ET ou IC à 95 % ; crochets ou lettres viennent du test t de Welch / de l’ANOVA de Welch + Games-Howell sur les ΔCt. Tous les gènes peuvent être envoyés vers Group Plot en −ΔΔCt (log₂ du ratio), avec le même signe que le graphique.",
 };
 
 export default fr;

@@ -6,6 +6,7 @@
 
 const { suite, test, assert, eq, summary } = require("./harness");
 const L = require("./helpers/qpcr-loader");
+const { pStars } = require("./helpers/stats-loader");
 
 function rel(actual, expected, tol, msg) {
   const err = expected === 0 ? Math.abs(actual) : Math.abs(actual - expected) / Math.abs(expected);
@@ -85,6 +86,7 @@ const cfgFor = (eff) => ({
   refs: ["ACT2", "UBQ10"],
   targets: ["PR1"],
   eff,
+  normalize: "control",
   control: "Mock",
   groupOrder: GROUPS,
 });
@@ -254,6 +256,46 @@ test("no control samples → controlMissing, fold changes NaN", () => {
   assert(g.rows.every((r) => Number.isNaN(r.L)));
 });
 
+test("no calibrator (reference genes only): L = −ΔCt, CIs keep their width, no vs-control", () => {
+  const samples = L.aggregateTechReps(load().parsed.data.wells);
+  const cfg = { ...cfgFor({ ACT2: 2, UBQ10: 2, PR1: 2 }), normalize: "refs", control: "" };
+  const g = L.computeGene(samples, cfg, "PR1");
+  eq(g.calibrator, 0);
+  eq(g.controlMissing, false);
+  eq(g.vsControl.length, 0);
+  let k = 0;
+  for (const grp of GROUPS)
+    for (const s of ["1", "2", "3"]) {
+      const r = g.rows.find((x) => x.group === grp && x.sample === s);
+      rel(r.L, -R_E2.dct[k++], 1e-13, grp + s);
+    }
+  // Mock mean ΔCt = 8.4 (R); CI half-width unchanged from the calibrated case.
+  near(g.summaries[0].meanL, -8.4, 1e-12);
+  near(g.summaries[0].lo, -8.4 + R_E2.ci.Mock[0], 1e-12);
+  near(g.summaries[0].hi, -8.4 + R_E2.ci.Mock[1], 1e-12);
+  const st = L.runGeneStats(g, null);
+  rel(st.testResult.F, R_E2.welch[0], 1e-11);
+  rel(st.testResult.p, R_E2.welch[1], 1e-9);
+});
+
+test("errorBounds: mean ± SD, ± SEM, 95 % CI on the log2 scale; none / n < 2 → null", () => {
+  const samples = L.aggregateTechReps(load().parsed.data.wells);
+  const g = L.computeGene(samples, cfgFor({ ACT2: 2, UBQ10: 2, PR1: 2 }), "PR1");
+  const mock = g.summaries[0]; // ΔCt 8.35, 8.75, 8.1 → SD = √0.1075
+  const sd = Math.sqrt(0.1075);
+  const sdB = L.errorBounds(mock, "sd");
+  near(sdB.lo, -sd, 1e-12);
+  near(sdB.hi, sd, 1e-12);
+  const semB = L.errorBounds(mock, "sem");
+  near(semB.lo, -sd / Math.sqrt(3), 1e-12);
+  near(semB.hi, sd / Math.sqrt(3), 1e-12);
+  const ciB = L.errorBounds(mock, "ci95");
+  near(ciB.lo, R_E2.ci.Mock[0], 1e-12);
+  near(ciB.hi, R_E2.ci.Mock[1], 1e-12);
+  eq(L.errorBounds(mock, "none"), null);
+  eq(L.errorBounds({ ...mock, n: 1, sdDCt: NaN }, "sem"), null);
+});
+
 suite("efficiency & standard curve");
 
 test("parseEfficiency: percent or factor, rejects nonsense", () => {
@@ -307,6 +349,46 @@ test("override respected only when valid for k; annotation projection", () => {
   eq(L.geneAnnotation(g, st, "none", true).brackets.length, 0);
 });
 
+test("hidden calibrator: its pairs become vs-control stars, other brackets re-indexed", () => {
+  const samples = L.aggregateTechReps(load().parsed.data.wells);
+  const g = L.computeGene(samples, cfgFor({}), "PR1");
+  const st = L.runGeneStats(g, null);
+  const v = L.visibleGene(g, "Mock");
+  eq(v.groups.join(), "SA,JA");
+  eq(v.summaries.map((s) => s.group).join(), "SA,JA");
+  eq(v.rows.length, 6);
+  assert(L.visibleGene(g, null) === g && L.visibleGene(g, "Nope") === g);
+  // Games-Howell pairs (adjusted p) by group name, straight from the stats.
+  const pOf = (a, b) => {
+    const pr = st.postHocResult.pairs.find(
+      (x) =>
+        [g.groups[st.tested[x.i]], g.groups[st.tested[x.j]]].sort().join() === [a, b].sort().join()
+    );
+    return pr.pAdj != null ? pr.pAdj : pr.p;
+  };
+  const all = L.geneAnnotation(g, st, "brackets", true, "Mock");
+  eq(all.vsControl.join(), [pStars(pOf("Mock", "SA")), pStars(pOf("Mock", "JA"))].join());
+  eq(
+    JSON.stringify(all.brackets),
+    JSON.stringify([{ i: 0, j: 1, label: pStars(pOf("SA", "JA")) }])
+  );
+  eq(all.cld.join(), ",");
+  // Letters can't show vs-control comparisons → same layout as brackets.
+  eq(JSON.stringify(L.geneAnnotation(g, st, "cld", true, "Mock")), JSON.stringify(all));
+  // showNs off drops non-significant entries from both kinds.
+  const sig = L.geneAnnotation(g, st, "brackets", false, "Mock");
+  sig.vsControl.forEach((c, i) => eq(c, all.vsControl[i] === "ns" ? "" : all.vsControl[i]));
+  eq(L.geneAnnotation(g, st, "none", true, "Mock").vsControl.join(), ",");
+  // Two groups: the single test becomes one star above the treated group.
+  const two = L.computeGene(samples, { ...cfgFor({}), groupOrder: ["Mock", "SA"] }, "PR1");
+  const st2 = L.runGeneStats(two, null);
+  const a2 = L.geneAnnotation(two, st2, "brackets", false, "Mock");
+  eq(a2.brackets.length, 0);
+  eq(a2.vsControl.join(), pStars(st2.testResult.p));
+  // No calibrator hidden → previous behaviour, vsControl empty.
+  eq(L.geneAnnotation(g, st, "brackets", true).vsControl.join(), ",,");
+});
+
 test("ΔCt and −ΔΔCt give identical p-values (shift + sign)", () => {
   const samples = L.aggregateTechReps(load().parsed.data.wells);
   const g = L.computeGene(samples, cfgFor({}), "PR1");
@@ -332,21 +414,26 @@ test("hand-off: every target gene in one CSV with Group Plot roles + facet / sub
   const samples = L.aggregateTechReps(load().parsed.data.wells);
   const cfg = { ...cfgFor({}), targets: ["PR1", "UBQ10"], refs: ["ACT2"] };
   const genes = cfg.targets.map((t) => L.computeGene(samples, cfg, t));
-  const h = L.buildHandoff(genes, "facet");
+  const h = L.buildHandoff(genes, "facet", "log₂ fold change");
   const lines = h.csv.trim().split("\n");
-  eq(lines[0], "Gene,Group,Sample,ΔCt");
+  eq(lines[0], "Gene,Group,Sample,log₂ fold change");
   eq(lines.length, 1 + 9 + 9);
   eq(lines[1].split(",").slice(0, 3).join(), "PR1,Mock,1");
   eq(lines[4].split(",").slice(0, 2).join(), "PR1,SA");
   eq(lines[10].split(",")[0], "UBQ10");
-  rel(Number(lines[1].split(",")[3]), 27.5 - 18.2, 1e-12);
+  // value = −ΔΔCt (same sign as the qPCR plot), not ΔCt: Mock ΔCt (ref ACT2)
+  // 9.3, 9.7, 9.05 → calibrator 9.35 → sample 1: 9.35 − 9.3 = 0.05.
+  near(Number(lines[1].split(",")[3]), 0.05, 1e-12);
+  // SA sample 1: ΔCt 22.2 − 18.3 = 3.9 → −ΔΔCt = +5.45 (up-regulated stays positive)
+  near(Number(lines[4].split(",")[3]), 5.45, 1e-12);
   eq(h.colRoles.join(), "filter,group,ignore,value");
   eq(h.facetBy, "Gene");
   eq(h.subgroupBy, undefined);
-  const sg = L.buildHandoff(genes, "subgroup");
+  const sg = L.buildHandoff(genes, "subgroup", "−ΔΔCt");
+  eq(sg.csv.split("\n")[0], "Gene,Group,Sample,−ΔΔCt");
   eq(sg.subgroupBy, "Gene");
   eq(sg.facetBy, undefined);
-  const q = L.buildHandoff([{ ...genes[0], gene: 'a,"b' }], "facet");
+  const q = L.buildHandoff([{ ...genes[0], gene: 'a,"b' }], "facet", "x");
   eq(q.csv.split("\n")[1].split(",")[0], '"a');
 });
 
@@ -389,13 +476,45 @@ test("report and R script carry method, citations, and ΔCt-based tests", () => 
 test("CSV rows: per sample Ct, ΔCt, −ΔΔCt, fold change", () => {
   const samples = L.aggregateTechReps(load().parsed.data.wells);
   const g = L.computeGene(samples, cfgFor({}), "PR1");
-  const { headers, rows } = L.sampleRowsForCsv([g]);
+  const { headers, rows } = L.sampleRowsForCsv([g], "control");
   eq(
     headers.join(),
     "gene,group,sample,ct_target,ct_reference_mean,delta_ct,neg_delta_delta_ct,fold_change"
   );
   eq(rows.length, 9);
   rel(rows[3][7], Math.pow(2, 5.45), 1e-12);
+});
+
+test("no calibrator: CSV columns, report and R script describe 2^−ΔCt", () => {
+  const { parsed } = load();
+  const samples = L.aggregateTechReps(parsed.data.wells);
+  const cfg = { ...cfgFor({ ACT2: 2, UBQ10: 2, PR1: 2 }), normalize: "refs", control: "" };
+  const genes = [L.computeGene(samples, cfg, "PR1")];
+  const stats = genes.map((g) => L.runGeneStats(g, null));
+  const { headers, rows } = L.sampleRowsForCsv(genes, "refs");
+  eq(
+    headers.join(),
+    "gene,group,sample,ct_target,ct_reference_mean,delta_ct,neg_delta_ct,relative_expression"
+  );
+  rel(rows[3][7], Math.pow(2, -2.95), 1e-12);
+  const txt = L.buildQpcrReport({
+    fileName: "f.csv",
+    cfg,
+    genes,
+    stats,
+    missingCt: 1,
+    noisy: [],
+    genorm: {},
+    generatedAt: "T",
+  });
+  assert(txt.includes("Schmittgen & Livak 2008, doi:10.1038/nprot.2008.73"));
+  assert(txt.includes("Calibrator: none (normalised to the reference gene(s) only)."));
+  assert(txt.includes("  Mock: n = 3, ΔCt = 8.400 ± 0.328 (SD), 2^−ΔCt = 0.002960 [95 % CI "));
+  assert(!txt.includes("fold change vs"));
+  const r = L.buildQpcrRScript({ wells: parsed.data.wells, cfg, genes, stats, generatedAt: "T" });
+  assert(!r.includes("control <-"));
+  assert(!r.includes("calibrator <-"));
+  assert(r.includes("df$rel_expr <- 2^-df$dct"));
 });
 
 summary();

@@ -2640,6 +2640,7 @@ suite("QpcrChart + QpcrStatsPanel");
     refs: ["ACT2", "UBQ10"],
     targets: ["PR1"],
     eff: {},
+    normalize: "control",
     control: "Mock",
     groupOrder: ["Mock", "SA", "JA"],
   };
@@ -2649,7 +2650,8 @@ suite("QpcrChart + QpcrStatsPanel");
     yScale: "log2",
     chartStyle: "bar",
     showPoints: true,
-    showCI: true,
+    errorBar: "ci95",
+    showCalibrator: true,
     annotation: "brackets",
     showNs: false,
     discretePalette: "okabe-ito",
@@ -2670,14 +2672,18 @@ suite("QpcrChart + QpcrStatsPanel");
     const v = { ...vis, ...over };
     return {
       genes,
-      annotations: genes.map((g, i) => Q.geneAnnotation(g, stats[i], v.annotation, v.showNs)),
+      annotations: genes.map((g, i) =>
+        Q.geneAnnotation(g, stats[i], v.annotation, v.showNs, v.showCalibrator ? null : "Mock")
+      ),
       colors: ["#111111", "#222222", "#333333"],
       groupOrder: cfg.groupOrder,
+      normalize: "control",
       control: "Mock",
       yScale: v.yScale,
       chartStyle: v.chartStyle,
       showPoints: v.showPoints,
-      showCI: v.showCI,
+      errorBar: v.errorBar,
+      showCalibrator: v.showCalibrator,
       barOutline: v.barOutline,
       barOutlineWidth: v.barOutlineWidth,
       barWidthFrac: v.barWidthFrac,
@@ -2693,7 +2699,7 @@ suite("QpcrChart + QpcrStatsPanel");
     };
   };
 
-  test("chart: one facet per target, bars per group in group colours, points, CI, brackets", () => {
+  test("chart: one facet per target, bars per group in group colours, points, error bars, brackets", () => {
     const html = renderHtml(QpcrChart, chartProps());
     assert(html.includes('id="facet-PR1"'));
     const bars = [...html.matchAll(/<g id="bars-PR1">(.*?)<\/g>/gs)][0][1];
@@ -2702,7 +2708,7 @@ suite("QpcrChart + QpcrStatsPanel");
       "#111111,#222222,#333333"
     );
     eq((html.match(/<g id="points-PR1">.*?<\/g>/s)[0].match(/<circle/g) || []).length, 9);
-    eq((html.match(/<g id="ci-whiskers-PR1">.*?<\/g><\/g>/s)[0].match(/<g>/g) || []).length, 3);
+    eq((html.match(/<g id="error-bars-PR1">.*?<\/g><\/g>/s)[0].match(/<g>/g) || []).length, 3);
     assert(html.includes('id="significance-brackets"'));
     assert(html.includes("Fold change (log₂ scale)"));
     // log2 axis: fold-change ticks at powers of two, aligned so FC = 1 is a tick
@@ -2727,10 +2733,108 @@ suite("QpcrChart + QpcrStatsPanel");
     assert(!cld.includes('id="significance-brackets"><g'), "no brackets with letters");
   });
 
+  const R_MOCK_CI_HALF = 0.814479016535155; // R: qt(0.975, 2) * SEM, Mock ΔCt
+  const near = (a, b, tol) => assert(Math.abs(a - b) <= tol, `expected ${b}, got ${a}`);
+  // Length of each group's error bar (its vertical line), read from the SVG.
+  const errSpans = (html) => {
+    const block = html.match(/<g id="error-bars-PR1">(.*?)<\/g><\/g>/s)[0];
+    return [...block.matchAll(/<line x1="[^"]+" x2="[^"]+" y1="([^"]+)" y2="([^"]+)"/g)]
+      .filter((_, i) => i % 3 === 0)
+      .map((m) => Math.abs(Number(m[1]) - Number(m[2])));
+  };
+
+  test("chart: error-bar type — SD, SEM, 95 % CI lengths; none hides them", () => {
+    // px per log2 unit from the y axis: tick lines one label step (2 log2
+    // units: 1, 4, 16, …) apart.
+    const pxPerLog2 = (html) => {
+      const axis = html.slice(html.indexOf('<g id="axis-y-PR1">'));
+      const ys = [...axis.matchAll(/<line x1="[^"]+" x2="[^"]+" y1="([^"]+)" y2="\1"/g)].map((m) =>
+        Number(m[1])
+      );
+      return Math.abs(ys[0] - ys[1]) / 2;
+    };
+    // Mock ΔCt 8.35, 8.75, 8.1 (n = 3) → SD = √0.1075; bars span mean ± half.
+    const sd = Math.sqrt(0.1075);
+    for (const [type, half] of [
+      ["sd", sd],
+      ["sem", sd / Math.sqrt(3)],
+      ["ci95", R_MOCK_CI_HALF],
+    ]) {
+      const html = renderHtml(QpcrChart, chartProps({ errorBar: type }));
+      const spans = errSpans(html);
+      eq(spans.length, 3);
+      near(spans[0], 2 * half * pxPerLog2(html), 1e-9);
+    }
+    const none = renderHtml(QpcrChart, chartProps({ errorBar: "none" }));
+    assert(!none.includes('id="error-bars-PR1"'));
+  });
+
+  test("chart: no calibrator — 2^−ΔCt axis title, no FC = 1 line, bars from the axis floor", () => {
+    const refCfg = { ...cfg, normalize: "refs", control: "" };
+    const relGenes = [Q.computeGene(samples, refCfg, "PR1")];
+    const relStats = relGenes.map((g) => Q.runGeneStats(g, null));
+    const props = {
+      ...chartProps(),
+      genes: relGenes,
+      annotations: relGenes.map((g, i) => Q.geneAnnotation(g, relStats[i], "brackets", false)),
+      normalize: "refs",
+      control: "",
+    };
+    const html = renderHtml(QpcrChart, props);
+    assert(html.includes(">Relative expression (log₂ scale)<"));
+    assert(!html.includes('id="reference-line-PR1"'), "no FC = 1 line");
+    assert(html.includes("normalised to the reference genes only"));
+    assert(!html.includes('font-weight="700">Mock'), "no group highlighted as control");
+    // every bar's bottom edge sits on the x axis
+    const axisY = html.match(/<g id="axis-x-PR1"><line [^>]*y1="([^"]+)"/)[1];
+    const rects = [
+      ...html.matchAll(/<rect x="[^"]+" y="([^"]+)" width="[^"]+" height="([^"]+)"/g),
+    ].slice(1); // skip background
+    eq(rects.length, 3);
+    rects.forEach((m) => near(Number(m[1]) + Number(m[2]), Number(axisY), 1e-9));
+    const dct = renderHtml(QpcrChart, { ...props, yScale: "ddct" });
+    assert(dct.includes(">−ΔCt<"));
+    const panel = renderHtml(QpcrStatsPanel, {
+      genes: relGenes,
+      stats: relStats,
+      normalize: "refs",
+      control: "",
+      overrides: {},
+      onOverride: noop,
+      vis,
+      updVis: noop,
+      onDownloadReport: noop,
+      onDownloadR: noop,
+      onSendToGroupPlot: noop,
+      handoffLabel: "log₂ fold change",
+    });
+    assert(panel.includes("2^−ΔCt [95 % CI]"));
+    assert(!panel.includes("1 (calibrator)"));
+    assert(panel.includes(">0.00296 ["), "Mock 2^−ΔCt = 2^−8.4");
+  });
+
+  test("chart: calibrator hidden — no Mock column, FC = 1 line kept, vs-control stars + footnote", () => {
+    const html = renderHtml(QpcrChart, chartProps({ showCalibrator: false, showNs: true }));
+    const xAxis = html.match(/<g id="axis-x-PR1">(.*?)<\/g>/s)[1];
+    eq([...xAxis.matchAll(/>([^<>]+)<\/text>/g)].map((m) => m[1]).join(), "SA,JA");
+    eq((html.match(/<g id="bars-PR1">.*?<\/g>/s)[0].match(/<rect/g) || []).length, 2);
+    eq((html.match(/<g id="points-PR1">.*?<\/g>/s)[0].match(/<circle/g) || []).length, 6);
+    assert(html.includes('id="reference-line-PR1"'), "dashed FC = 1 line stays");
+    const vs = html.match(/<g id="vs-control-PR1">(.*?)<\/g>/s)[1];
+    eq((vs.match(/<text/g) || []).length, 2);
+    assert(html.includes("Stars above bars: vs Mock (not shown)"));
+    // SA vs JA bracket stacks above the star row
+    const br = html.match(/<g id="significance-brackets">(.*?)<\/g><\/g>/s);
+    assert(br, "bracket between the visible groups");
+    const shown = renderHtml(QpcrChart, chartProps());
+    assert(!shown.includes("vs-control-PR1") && !shown.includes("Stars above bars"));
+  });
+
   test("stats panel: Statistics header with TXT/R, ΔCt explainer, decision trace, send button", () => {
     const html = renderHtml(QpcrStatsPanel, {
       genes,
       stats,
+      normalize: "control",
       control: "Mock",
       overrides: {},
       onOverride: noop,
@@ -2739,6 +2843,7 @@ suite("QpcrChart + QpcrStatsPanel");
       onDownloadReport: noop,
       onDownloadR: noop,
       onSendToGroupPlot: noop,
+      handoffLabel: "log₂ fold change",
     });
     assert(/<h3[^>]*>Statistics<\/h3>/.test(html));
     const header = html.slice(0, html.indexOf("Display on plot"));
@@ -2749,6 +2854,23 @@ suite("QpcrChart + QpcrStatsPanel");
     assert(html.includes("Welch&#x27;s ANOVA on ΔCt: F(2, "));
     assert(html.includes("1 (calibrator)"));
     assert(html.includes('data-testid="qpcr-send"'), "single send-all button");
+    assert(html.includes("Send log₂ fold change of all genes"));
+    assert(!html.includes("qpcr-send-linear-note"), "note only on a linear FC axis");
+    const lin = renderHtml(QpcrStatsPanel, {
+      genes,
+      stats,
+      normalize: "control",
+      control: "Mock",
+      overrides: {},
+      onOverride: noop,
+      vis: { ...vis, yScale: "linear" },
+      updVis: noop,
+      onDownloadReport: noop,
+      onDownloadR: noop,
+      onSendToGroupPlot: noop,
+      handoffLabel: "log₂ fold change",
+    });
+    assert(lin.includes("Group Plot receives log₂ values"));
     assert(html.includes("Gene = facets") && html.includes("Gene = subgroups"));
     assert(html.includes("Post-hoc: Games-Howell"));
   });

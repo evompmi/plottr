@@ -43,6 +43,7 @@ const cfg = (eff, refs = ["R1", "R2"]) => ({
   refs,
   targets: ["T1"],
   eff,
+  normalize: "control",
   control: "C",
   groupOrder: GROUPS,
 });
@@ -140,6 +141,52 @@ test("Welch CI vs control brackets its estimate", () => {
       return g.vsControl.every(
         (v) => !Number.isFinite(v.lo) || (v.lo <= v.log2fc + 1e-12 && v.log2fc <= v.hi + 1e-12)
       );
+    })
+  );
+});
+
+test("without a calibrator, L = −ΔCt: control-mode L shifted by the calibrator, same p-value", () => {
+  check(
+    fc.property(arbWells, arbEff, (wells, eff) => {
+      const samples = L.aggregateTechReps(wells);
+      const c = L.computeGene(samples, cfg(eff), "T1");
+      const r = L.computeGene(samples, { ...cfg(eff), normalize: "refs" }, "T1");
+      if (r.calibrator !== 0 || r.vsControl.length !== 0 || r.controlMissing) return false;
+      const sameRows = r.rows.every(
+        (row, i) => close(row.L, -row.dCt) && close(row.L, c.rows[i].L - c.calibrator, 1e-9)
+      );
+      const sameCi = r.summaries.every(
+        (s, i) =>
+          !Number.isFinite(s.lo) || close(s.hi - s.lo, c.summaries[i].hi - c.summaries[i].lo)
+      );
+      const p1 = L.runGeneStats(c, null).testResult;
+      const p2 = L.runGeneStats(r, null).testResult;
+      const sameP = !p1 || !Number.isFinite(p1.p) || p1.p === p2.p;
+      return sameRows && sameCi && sameP;
+    })
+  );
+});
+
+test("error bars: SEM ⊂ CI and SEM ⊂ SD, all centred on the group mean", () => {
+  check(
+    fc.property(arbWells, arbEff, (wells, eff) => {
+      const g = L.computeGene(L.aggregateTechReps(wells), cfg(eff), "T1");
+      return g.summaries.every((s) => {
+        const sem = L.errorBounds(s, "sem");
+        const sd = L.errorBounds(s, "sd");
+        const ci = L.errorBounds(s, "ci95");
+        if (L.errorBounds(s, "none") !== null) return false;
+        if (!sem) return s.n < 2 && sd === null && ci === null;
+        const tol = 1e-12;
+        return (
+          close(sem.lo + sem.hi, 2 * s.meanL, 1e-9) &&
+          close(sd.lo + sd.hi, 2 * s.meanL, 1e-9) &&
+          sd.lo <= sem.lo + tol &&
+          sem.hi <= sd.hi + tol &&
+          ci.lo <= sem.lo + tol &&
+          sem.hi <= ci.hi + tol
+        );
+      });
     })
   );
 });

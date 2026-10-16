@@ -1,13 +1,18 @@
 // QpcrChart — one facet per target gene. Bars (or dots) show each group's
-// geometric-mean fold change (mean −ΔΔCt back-transformed) with its 95 % CI,
-// biological replicates as points, a dashed line at fold change 1, and
-// significance from the ΔCt tests. Y scale: log2 fold change (default),
-// linear fold change, or −ΔΔCt. Hex literals only inside the SVG.
+// geometric-mean fold change (mean −ΔΔCt back-transformed) with SEM / SD /
+// 95 % CI error bars, biological replicates as points, a dashed line at fold
+// change 1, and significance from the ΔCt tests. Y scale: log2 fold change
+// (default), linear fold change, or −ΔΔCt. Without a calibrator ("refs"
+// normalisation) the same axes show 2^−ΔCt / −ΔCt, bars rise from the axis
+// floor and there is no FC = 1 line. With the calibrator column hidden, the
+// FC = 1 line stays and its comparisons show as "vs control" stars above the
+// other groups, explained by a footnote. Hex literals only inside the SVG.
 
 import { CldLabels, SignificanceBrackets, assignBracketLevels } from "../_shell";
 import { svgSafeId } from "../_core/svg-export";
 import { makeTicks } from "../_core/scale";
-import type { QpcrChartProps, YScale } from "./helpers";
+import { errorBounds, visibleGene } from "./helpers";
+import type { ErrorBarType, GeneAnalysis, QpcrChartProps, YScale } from "./helpers";
 import { tt } from "./i18n";
 
 const { forwardRef, memo } = React;
@@ -52,18 +57,57 @@ function axisTicks(lo: number, hi: number, scale: YScale): Tick[] {
   return makeTicks(lo, hi, 5).map((v) => ({ v, label: String(v) }));
 }
 
+interface FacetAxis {
+  lo: number;
+  hi: number;
+  ticks: Tick[];
+}
+
+// Axis range over bars, error bars and points; with a calibrator it also
+// spans the FC = 1 baseline.
+function facetAxis(
+  g: GeneAnalysis,
+  scale: YScale,
+  relToControl: boolean,
+  errorBar: ErrorBarType,
+  showPoints: boolean
+): FacetAxis {
+  const vals: number[] = relToControl ? [toAxis(0, scale)] : [];
+  g.summaries.forEach((s) => {
+    vals.push(toAxis(s.meanL, scale));
+    const e = errorBounds(s, errorBar);
+    if (e) vals.push(toAxis(e.lo, scale), toAxis(e.hi, scale));
+  });
+  if (showPoints) g.rows.forEach((r) => vals.push(toAxis(r.L, scale)));
+  const finite = vals.filter(Number.isFinite);
+  let lo = finite.length ? Math.min(...finite) : 0;
+  let hi = finite.length ? Math.max(...finite) : 1;
+  if (scale === "linear") lo = 0;
+  const pad = (hi - lo || 1) * 0.08;
+  if (scale !== "linear") lo -= pad;
+  hi += pad;
+  const ticks = axisTicks(lo, hi, scale);
+  if (scale !== "log2" && ticks.length) {
+    lo = Math.min(lo, ticks[0].v);
+    hi = Math.max(hi, ticks[ticks.length - 1].v);
+  }
+  return { lo, hi, ticks };
+}
+
 export const QpcrChart = memo(
   forwardRef<SVGSVGElement, QpcrChartProps>(function QpcrChart(props, ref) {
     const {
-      genes,
+      genes: allGenes,
       annotations,
       colors,
       groupOrder,
+      normalize,
       control,
       yScale,
       chartStyle,
       showPoints,
-      showCI,
+      errorBar,
+      showCalibrator,
       barOutline,
       barOutlineWidth,
       barWidthFrac,
@@ -78,6 +122,15 @@ export const QpcrChart = memo(
       gridColor,
     } = props;
 
+    // Calibrator hidden → drawn genes drop its column (annotations already
+    // index the visible groups).
+    const hidden = normalize === "control" && !showCalibrator ? control : null;
+    const genes = allGenes.map((g) => visibleGene(g, hidden));
+
+    // Hover label: fold change, or 2^−ΔCt (often ≪ 1, so significant digits).
+    const valLabel = normalize === "control" ? "FC" : "2^−ΔCt";
+    const fmtVal = (L: number): string =>
+      normalize === "control" ? Math.pow(2, L).toFixed(3) : Math.pow(2, L).toPrecision(3);
     const colorOf = (g: string): string =>
       colors[Math.max(0, groupOrder.indexOf(g)) % Math.max(1, colors.length)];
 
@@ -91,19 +144,33 @@ export const QpcrChart = memo(
       a.brackets.length ? Math.max(...assignBracketLevels(a.brackets).map((b) => b._level)) + 1 : 0
     );
     const hasCld = annotations.some((a) => a.cld.some((c) => c !== ""));
+    const hasVs = annotations.some((a) => a.vsControl.some((c) => c !== ""));
+    // Row of "vs control" stars just above the plot; brackets stack above it.
+    const vsRowH = hasVs ? fs + 6 : 0;
     const annotH = Math.max(
       0,
-      ...levels.map((l) => (l ? l * BRACKET_STEP + 6 : 0)),
+      ...levels.map((l) => (l ? l * BRACKET_STEP + 6 + vsRowH : vsRowH)),
       hasCld ? fs + 8 : 0
     );
-    const yTitle =
-      yScale === "log2"
+    const relToControl = normalize === "control";
+    const yTitle = relToControl
+      ? yScale === "log2"
         ? tt("qpcr.chart.yLog2")
         : yScale === "linear"
           ? tt("qpcr.chart.yLinear")
-          : tt("qpcr.chart.yDdct");
+          : tt("qpcr.chart.yDdct")
+      : yScale === "log2"
+        ? tt("qpcr.chart.yLog2Rel")
+        : yScale === "linear"
+          ? tt("qpcr.chart.yLinearRel")
+          : tt("qpcr.chart.yDct");
+    const axes = genes.map((g) => facetAxis(g, yScale, relToControl, errorBar, showPoints));
+    const tickW = Math.max(
+      textW("0.125", fs),
+      ...axes.flatMap((a) => a.ticks.map((t) => textW(t.label, fs - 1)))
+    );
     const FM = {
-      left: 34 + fs + textW("0.125", fs),
+      left: 34 + fs + tickW,
       right: 12,
       top: fs + 12 + annotH,
       bottom: xLabelH + 10,
@@ -114,7 +181,8 @@ export const QpcrChart = memo(
     const rows = Math.ceil(genes.length / cols);
     const titleH = title ? fs + 16 : 0;
     const VBW = cols * cellW;
-    const VBH = titleH + rows * cellH;
+    const footH = hasVs ? fs + 8 : 0;
+    const VBH = titleH + rows * cellH + footH;
 
     return (
       <svg
@@ -127,7 +195,9 @@ export const QpcrChart = memo(
       >
         <title>{title || tt("qpcr.chart.fallbackTitle")}</title>
         <desc>
-          {tt("qpcr.chart.desc", { genes: genes.map((g) => g.gene).join(", "), control })}
+          {relToControl
+            ? tt("qpcr.chart.desc", { genes: genes.map((g) => g.gene).join(", "), control })
+            : tt("qpcr.chart.descRefs", { genes: genes.map((g) => g.gene).join(", ") })}
         </desc>
         <g id="background">
           <rect x={0} y={0} width={VBW} height={Math.max(VBH, 40)} fill={plotBg} />
@@ -157,27 +227,11 @@ export const QpcrChart = memo(
           const cx = (i: number): number => left + slot * (i + 0.5);
           const bw = slot * barWidthFrac;
 
-          // Axis range over points, CIs and the FC = 1 baseline.
-          const vals: number[] = [toAxis(0, yScale)];
-          g.summaries.forEach((s) => {
-            vals.push(toAxis(s.meanL, yScale));
-            if (showCI && Number.isFinite(s.lo))
-              vals.push(toAxis(s.lo, yScale), toAxis(s.hi, yScale));
-          });
-          if (showPoints) g.rows.forEach((r) => vals.push(toAxis(r.L, yScale)));
-          let lo = Math.min(...vals.filter(Number.isFinite));
-          let hi = Math.max(...vals.filter(Number.isFinite));
-          if (yScale === "linear") lo = 0;
-          const pad = (hi - lo || 1) * 0.08;
-          if (yScale !== "linear") lo -= pad;
-          hi += pad;
-          const ticks = axisTicks(lo, hi, yScale);
-          if (yScale !== "log2" && ticks.length) {
-            lo = Math.min(lo, ticks[0].v);
-            hi = Math.max(hi, ticks[ticks.length - 1].v);
-          }
+          const { lo, hi, ticks } = axes[gi];
           const y = (v: number): number => top + fh * (1 - (v - lo) / (hi - lo || 1));
-          const base = y(toAxis(0, yScale));
+          // Bars rise from FC = 1 with a calibrator; without one there is no
+          // natural 1, so they rise from the axis floor (0 on a linear axis).
+          const base = relToControl ? y(toAxis(0, yScale)) : top + fh;
           const ann = annotations[gi];
           const leveled = assignBracketLevels(ann.brackets);
 
@@ -209,15 +263,17 @@ export const QpcrChart = memo(
                   ))}
                 </g>
               )}
-              <line
-                id={`reference-line-${svgSafeId(g.gene)}`}
-                x1={left}
-                x2={left + fw}
-                y1={base}
-                y2={base}
-                stroke="#888888"
-                strokeDasharray="4,3"
-              />
+              {relToControl && (
+                <line
+                  id={`reference-line-${svgSafeId(g.gene)}`}
+                  x1={left}
+                  x2={left + fw}
+                  y1={base}
+                  y2={base}
+                  stroke="#888888"
+                  strokeDasharray="4,3"
+                />
+              )}
               <g id={`bars-${svgSafeId(g.gene)}`}>
                 {g.summaries.map((s, i) => {
                   const v = y(toAxis(s.meanL, yScale));
@@ -233,7 +289,7 @@ export const QpcrChart = memo(
                       stroke={barOutline ? "#000000" : "none"}
                       strokeWidth={barOutline ? barOutlineWidth : 0}
                     >
-                      <title>{`${g.gene} · ${s.group}: FC ${Math.pow(2, s.meanL).toFixed(3)} (n = ${s.n})`}</title>
+                      <title>{`${g.gene} · ${s.group}: ${valLabel} ${fmtVal(s.meanL)} (n = ${s.n})`}</title>
                     </rect>
                   ) : (
                     <circle
@@ -248,12 +304,13 @@ export const QpcrChart = memo(
                   );
                 })}
               </g>
-              {showCI && (
-                <g id={`ci-whiskers-${svgSafeId(g.gene)}`}>
+              {errorBar !== "none" && (
+                <g id={`error-bars-${svgSafeId(g.gene)}`}>
                   {g.summaries.map((s, i) => {
-                    if (!Number.isFinite(s.lo)) return null;
-                    const a = y(toAxis(s.lo, yScale));
-                    const b = y(toAxis(s.hi, yScale));
+                    const e = errorBounds(s, errorBar);
+                    if (!e) return null;
+                    const a = y(toAxis(e.lo, yScale));
+                    const b = y(toAxis(e.hi, yScale));
                     const cap = Math.min(8, bw / 4);
                     return (
                       <g key={s.group}>
@@ -301,7 +358,7 @@ export const QpcrChart = memo(
                         stroke="#222222"
                         strokeWidth={1}
                       >
-                        <title>{`${r.group} ${r.sample}: ΔCt ${r.dCt.toFixed(2)}, FC ${Math.pow(2, r.L).toFixed(3)}`}</title>
+                        <title>{`${r.group} ${r.sample}: ΔCt ${r.dCt.toFixed(2)}, ${valLabel} ${fmtVal(r.L)}`}</title>
                       </circle>
                     );
                   })}
@@ -376,7 +433,7 @@ export const QpcrChart = memo(
               <SignificanceBrackets
                 pairs={leveled}
                 axisCoord={cx}
-                baseline={top - 6}
+                baseline={top - 6 - vsRowH}
                 orientation="vertical-top"
                 levelStep={BRACKET_STEP}
                 fontSize={fs - 1}
@@ -393,9 +450,36 @@ export const QpcrChart = memo(
                   textColor="#222222"
                 />
               )}
+              {ann.vsControl.some((c) => c !== "") && (
+                <g id={`vs-control-${svgSafeId(g.gene)}`}>
+                  {ann.vsControl.map((c, i) =>
+                    c === "" ? null : (
+                      <text
+                        key={i}
+                        x={cx(i)}
+                        y={top - 6}
+                        textAnchor="middle"
+                        fontSize={fs - 1}
+                        fontWeight={700}
+                        fontFamily={FONT}
+                        fill="#222222"
+                      >
+                        {c}
+                      </text>
+                    )
+                  )}
+                </g>
+              )}
             </g>
           );
         })}
+        {hasVs && (
+          <g id="footnote">
+            <text x={8} y={VBH - 8} fontSize={fs - 2} fontFamily={FONT} fill="#555555">
+              {tt("qpcr.chart.vsControlNote", { control: control })}
+            </text>
+          </g>
+        )}
       </svg>
     );
   })

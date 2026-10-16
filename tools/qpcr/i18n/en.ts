@@ -44,6 +44,14 @@ const en = {
   "qpcr.cfg.missing": "({n} without Ct)",
   "qpcr.cfg.needRoles": "Mark at least one reference gene and one target gene.",
   "qpcr.cfg.groups": "Groups",
+  "qpcr.cfg.normalize": "Normalise to",
+  "qpcr.cfg.normControl": "Control group",
+  "qpcr.cfg.normControlTitle": "2^−ΔΔCt: fold change relative to a calibrator group (set to 1)",
+  "qpcr.cfg.normRefs": "Reference genes only",
+  "qpcr.cfg.normRefsTitle":
+    "2^−ΔCt: each sample's expression relative to its reference gene(s), no calibrator group",
+  "qpcr.cfg.normRefsNote":
+    "Plots 2^−ΔCt: target expression relative to the reference gene(s), with no group set to 1. The statistics on ΔCt are the same as with a calibrator.",
   "qpcr.cfg.control": "Control group (calibrator, fold change = 1)",
   "qpcr.cfg.include": "Include {name}",
   "qpcr.cfg.up": "Move {name} up",
@@ -91,16 +99,35 @@ const en = {
   "qpcr.chart.scaleLinearTitle":
     "Fold change on a linear axis (exaggerates increases, compresses decreases)",
   "qpcr.chart.scaleDdctTitle": "−ΔΔCt: the log₂ values the statistics are computed on",
+  "qpcr.chart.scaleLog2Rel": "log₂",
+  "qpcr.chart.scaleLog2RelTitle": "2^−ΔCt on a log₂ axis: 2× up and 2× down are the same distance",
+  "qpcr.chart.scaleLinearRel": "Linear",
+  "qpcr.chart.scaleLinearRelTitle":
+    "2^−ΔCt on a linear axis (exaggerates high values, compresses low ones)",
+  "qpcr.chart.scaleDctTitle": "−ΔCt: the log₂ values the statistics are computed on",
   "qpcr.chart.style": "Style",
   "qpcr.chart.bar": "Bars",
   "qpcr.chart.dot": "Dots",
   "qpcr.chart.points": "Biological replicates",
-  "qpcr.chart.ci": "95 % CI",
+  "qpcr.chart.showCalibrator": "Calibrator column",
+  "qpcr.chart.calibratorHiddenNote":
+    "Plot only: the dashed line marks the calibrator (fold change 1), its comparisons show as stars above each bar, and the statistics are unchanged.",
+  "qpcr.chart.vsControlNote": "Stars above bars: vs {control} (not shown)",
+  "qpcr.chart.errorBars": "Error bars",
+  "qpcr.chart.errNone": "None",
+  "qpcr.chart.errCi": "95 % CI",
+  "qpcr.chart.errorBarsNote":
+    "Computed on ΔCt (log₂ scale) and back-transformed, so they look asymmetric on a linear axis.",
   "qpcr.chart.yLog2": "Fold change (log₂ scale)",
   "qpcr.chart.yLinear": "Fold change",
   "qpcr.chart.yDdct": "−ΔΔCt",
+  "qpcr.chart.yLog2Rel": "Relative expression (log₂ scale)",
+  "qpcr.chart.yLinearRel": "Relative expression (2^−ΔCt)",
+  "qpcr.chart.yDct": "−ΔCt",
   "qpcr.chart.fallbackTitle": "qPCR relative expression",
   "qpcr.chart.desc": "Relative expression of {genes}, normalised to the control group {control}",
+  "qpcr.chart.descRefs":
+    "Relative expression (2^−ΔCt) of {genes}, normalised to the reference genes only",
   "qpcr.colors.groups": "Colour per group",
   "qpcr.style.facetWidth": "Panel width",
   "qpcr.style.facetHeight": "Panel height",
@@ -133,8 +160,11 @@ const en = {
   "qpcr.stats.meanDct": "ΔCt mean ± SD",
   "qpcr.stats.fcVsControl": "Fold change vs control [95 % CI]",
   "qpcr.stats.calibrator": "1 (calibrator)",
+  "qpcr.stats.relExpr": "2^−ΔCt [95 % CI]",
   "qpcr.stats.tableNote":
     "Fold change = 2^(mean ΔCt control − mean ΔCt group), i.e. a ratio of geometric means; its CI is the Welch 95 % CI of the ΔCt difference, back-transformed (hence asymmetric).",
+  "qpcr.stats.tableNoteRel":
+    "2^−ΔCt = 2^(−mean ΔCt), i.e. the geometric mean of the group's expression relative to the reference gene(s); its CI is the 95 % t-CI of mean ΔCt, back-transformed (hence asymmetric).",
   "qpcr.stats.noControl":
     "No sample of the control group {control} has Ct values for this gene: fold changes cannot be computed.",
   "qpcr.stats.needTwo":
@@ -147,9 +177,13 @@ const en = {
   "qpcr.stats.fc": "Fold change",
   "qpcr.stats.pAdj": "p (adjusted)",
   "qpcr.stats.sendLabel": "Group Plot",
-  "qpcr.stats.send": "Send ΔCt of all genes",
+  "qpcr.stats.send": "Send {what} of all genes",
   "qpcr.stats.sendTitle":
-    "Open every target gene's ΔCt in Group Plot (one CSV), split by gene, for box / violin plots and its full statistics panel",
+    "Open every target gene's values in Group Plot (one CSV, log₂ scale, same sign as this plot), split by gene, for box / violin plots and its full statistics panel",
+  "qpcr.stats.sendLinearNote":
+    "Group Plot receives log₂ values (axis −2, 0, 2 rather than ¼, 1, 4): its tests run on the values it gets, and fold changes must not be tested directly.",
+  "qpcr.handoff.log2Fc": "log₂ fold change",
+  "qpcr.handoff.log2Rel": "log₂ relative expression",
   "qpcr.stats.asFacets": "Gene = facets",
   "qpcr.stats.asFacetsTitle": "One panel per gene; groups on the x axis; statistics per gene",
   "qpcr.stats.asSubgroups": "Gene = subgroups",
@@ -176,7 +210,7 @@ const en = {
   "qpcr.howto.exWideCaption":
     "Wide layout: one row per biological sample, one Ct column per gene (technical replicates already averaged). English headers (Sample, Group, Gene, Ct) are detected automatically; other names can be assigned in the Configure step.",
   "qpcr.howto.display":
-    "Choose reference and target genes, efficiencies (typed or from a standard curve) and the control group. The plot shows fold change on a log₂ axis (switchable to linear or −ΔΔCt) with biological replicates and 95 % CIs; brackets or letters come from Welch's t-test / Welch's ANOVA + Games-Howell on ΔCt. Each gene's ΔCt can be sent to Group Plot.",
+    "Choose reference and target genes, efficiencies (typed or from a standard curve) and the control group — or normalise to the reference genes only (2^−ΔCt, no calibrator). The plot shows fold change on a log₂ axis (switchable to linear or −ΔΔCt) with biological replicates and SEM, SD or 95 % CI error bars; brackets or letters come from Welch's t-test / Welch's ANOVA + Games-Howell on ΔCt. All genes can be sent to Group Plot as −ΔΔCt (log₂ fold change), with the same sign as the plot.",
 } as const satisfies Catalog;
 
 export default en;

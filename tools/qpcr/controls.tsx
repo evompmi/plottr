@@ -1,4 +1,4 @@
-// Sidebar tiles for the qPCR tool: Chart (y scale, bars/dots, points, CI),
+// Sidebar tiles for the qPCR tool: Chart (y scale, bars/dots, points, error bars),
 // Colours (palette + per-group colours), Style.
 
 import {
@@ -10,7 +10,14 @@ import {
   SegToggle,
   SliderControl,
 } from "../_shell";
-import type { ColorsTileProps, QpcrChartStyle, TileProps, YScale } from "./helpers";
+import type {
+  ChartTileProps,
+  ColorsTileProps,
+  ErrorBarType,
+  QpcrChartStyle,
+  TileProps,
+  YScale,
+} from "./helpers";
 import { useT } from "./i18n";
 
 function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
@@ -22,8 +29,9 @@ function Field({ label, children }: { label: React.ReactNode; children: React.Re
   );
 }
 
-export function ChartTile({ vis, updVis }: TileProps) {
+export function ChartTile({ vis, updVis, normalize }: ChartTileProps) {
   const tr = useT();
+  const rel = normalize === "refs";
   return (
     <ControlSection title={tr("qpcr.tile.chart")} defaultOpen>
       <Field label={tr("qpcr.chart.yScale")}>
@@ -34,15 +42,19 @@ export function ChartTile({ vis, updVis }: TileProps) {
           options={[
             {
               value: "log2",
-              label: tr("qpcr.chart.scaleLog2"),
-              title: tr("qpcr.chart.scaleLog2Title"),
+              label: tr(rel ? "qpcr.chart.scaleLog2Rel" : "qpcr.chart.scaleLog2"),
+              title: tr(rel ? "qpcr.chart.scaleLog2RelTitle" : "qpcr.chart.scaleLog2Title"),
             },
             {
               value: "linear",
-              label: tr("qpcr.chart.scaleLinear"),
-              title: tr("qpcr.chart.scaleLinearTitle"),
+              label: tr(rel ? "qpcr.chart.scaleLinearRel" : "qpcr.chart.scaleLinear"),
+              title: tr(rel ? "qpcr.chart.scaleLinearRelTitle" : "qpcr.chart.scaleLinearTitle"),
             },
-            { value: "ddct", label: "−ΔΔCt", title: tr("qpcr.chart.scaleDdctTitle") },
+            {
+              value: "ddct",
+              label: rel ? "−ΔCt" : "−ΔΔCt",
+              title: tr(rel ? "qpcr.chart.scaleDctTitle" : "qpcr.chart.scaleDdctTitle"),
+            },
           ]}
         />
       </Field>
@@ -64,12 +76,37 @@ export function ChartTile({ vis, updVis }: TileProps) {
           ariaLabel={tr("qpcr.chart.points")}
         />
       </Field>
-      <Field label={tr("qpcr.chart.ci")}>
-        <OnOffToggle
-          value={vis.showCI}
-          onChange={(v) => updVis({ showCI: v })}
-          ariaLabel={tr("qpcr.chart.ci")}
+      {normalize === "control" && (
+        <Field label={tr("qpcr.chart.showCalibrator")}>
+          <OnOffToggle
+            value={vis.showCalibrator}
+            onChange={(v) => updVis({ showCalibrator: v })}
+            ariaLabel={tr("qpcr.chart.showCalibrator")}
+          />
+          {!vis.showCalibrator && (
+            <div
+              style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 4, lineHeight: 1.4 }}
+            >
+              {tr("qpcr.chart.calibratorHiddenNote")}
+            </div>
+          )}
+        </Field>
+      )}
+      <Field label={tr("qpcr.chart.errorBars")}>
+        <SegToggle<ErrorBarType>
+          value={vis.errorBar}
+          onChange={(v) => updVis({ errorBar: v })}
+          ariaLabel={tr("qpcr.chart.errorBars")}
+          options={[
+            { value: "none", label: tr("qpcr.chart.errNone") },
+            { value: "sem", label: "SEM" },
+            { value: "sd", label: "SD" },
+            { value: "ci95", label: tr("qpcr.chart.errCi") },
+          ]}
         />
+        <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 4, lineHeight: 1.4 }}>
+          {tr("qpcr.chart.errorBarsNote")}
+        </div>
       </Field>
     </ControlSection>
   );

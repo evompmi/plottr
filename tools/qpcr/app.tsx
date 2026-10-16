@@ -45,6 +45,7 @@ import type {
   GeneRow,
   HandoffSplit,
   LongColumns,
+  Normalization,
   OrderItem,
   QpcrConfig,
   QpcrLayout,
@@ -65,7 +66,8 @@ const VIS_INIT_QPCR: QpcrVis = {
   yScale: "log2",
   chartStyle: "bar",
   showPoints: true,
-  showCI: true,
+  errorBar: "ci95",
+  showCalibrator: true,
   annotation: "brackets",
   showNs: false,
   discretePalette: "okabe-ito",
@@ -158,6 +160,7 @@ export function App() {
   const [effText, setEffText] = useState<Record<string, string>>({});
   const [groupOrder, setGroupOrder] = useState<OrderItem[]>([]);
   const [control, setControl] = useState("");
+  const [normalize, setNormalize] = useState<Normalization>("control");
   const [overrides, setOverrides] = useState<Record<string, string | null>>({});
   const [colorOv, setColorOv] = useState<Record<string, string>>({});
   const [stdText, setStdText] = useState("");
@@ -263,18 +266,22 @@ export function App() {
       refs: geneRows.filter((g) => g.role === "ref").map((g) => g.name),
       targets: geneRows.filter((g) => g.role === "target").map((g) => g.name),
       eff,
-      control,
+      normalize,
+      // No calibrator in "refs" mode: "" matches no group, so nothing is
+      // highlighted as the control downstream.
+      control: normalize === "control" ? control : "",
       groupOrder: groupOrder.filter((g) => g.include).map((g) => g.name),
     };
-  }, [geneRows, control, groupOrder]);
+  }, [geneRows, normalize, control, groupOrder]);
 
   const effValid = [...cfg.refs, ...cfg.targets].every((g) => Number.isFinite(cfg.eff[g]));
   const ready =
     !!data &&
     cfg.refs.length > 0 &&
     cfg.targets.length > 0 &&
-    cfg.groupOrder.length >= 2 &&
-    cfg.groupOrder.includes(control) &&
+    (normalize === "refs"
+      ? cfg.groupOrder.length >= 1
+      : cfg.groupOrder.length >= 2 && cfg.groupOrder.includes(control)) &&
     effValid;
 
   const samples = useMemo(() => (data ? aggregateTechReps(data.wells) : []), [data]);
@@ -291,9 +298,11 @@ export function App() {
     () => genes.map((g) => runGeneStats(g, overrides[g.gene] ?? null)),
     [genes, overrides]
   );
+  // Calibrator column hidden on the chart (stats unchanged).
+  const hiddenGroup = normalize === "control" && !vis.showCalibrator ? control : null;
   const annotations = useMemo(
-    () => genes.map((g, i) => geneAnnotation(g, stats[i], vis.annotation, vis.showNs)),
-    [genes, stats, vis.annotation, vis.showNs]
+    () => genes.map((g, i) => geneAnnotation(g, stats[i], vis.annotation, vis.showNs, hiddenGroup)),
+    [genes, stats, vis.annotation, vis.showNs, hiddenGroup]
   );
   const dropped = genes.reduce((a, g) => a + g.dropped.length, 0);
 
@@ -321,7 +330,7 @@ export function App() {
   const chartRef = useRef<SVGSVGElement>(null);
   const stem = fileBaseName(fileName, "qpcr");
   const onDownloadCsv = () => {
-    const { headers, rows } = sampleRowsForCsv(genes);
+    const { headers, rows } = sampleRowsForCsv(genes, normalize);
     downloadCsv(headers, rows, `${stem}_relative_expression.csv`);
   };
   const onDownloadReport = () => {
@@ -342,15 +351,23 @@ export function App() {
     if (!data) return;
     downloadText(buildQpcrRScript({ wells: data.wells, cfg, genes, stats }), `${stem}.R`);
   };
+  // Group Plot gets log-scale values whatever the y axis here (see
+  // buildHandoff); the label follows the axis choice.
+  const handoffLabel =
+    vis.yScale === "ddct"
+      ? normalize === "control"
+        ? "−ΔΔCt"
+        : "−ΔCt"
+      : tr(normalize === "control" ? "qpcr.handoff.log2Fc" : "qpcr.handoff.log2Rel");
   const onSendToGroupPlot = (split: HandoffSplit) => {
     if (genes.length === 0) return;
     setHandoff({
       tool: "boxplot",
-      ...buildHandoff(genes, split),
+      ...buildHandoff(genes, split, handoffLabel),
       mode: "long",
-      source: "qPCR — ΔCt",
-      fileName: `${stem}_dCt.csv`,
-      yLabel: "ΔCt",
+      source: `qPCR — ${handoffLabel}`,
+      fileName: `${stem}_${vis.yScale === "ddct" ? (normalize === "control" ? "neg_ddCt" : "neg_dCt") : "log2"}.csv`,
+      yLabel: handoffLabel,
     });
     navigateToTool("boxplot");
   };
@@ -411,6 +428,8 @@ export function App() {
           setGeneEff={(gene, text) => setEffText((prev) => ({ ...prev, [gene]: text }))}
           groupOrder={groupOrder}
           setGroupOrder={setGroupOrder}
+          normalize={normalize}
+          setNormalize={setNormalize}
           control={control}
           setControl={(g) => {
             setControl(g);
@@ -433,7 +452,8 @@ export function App() {
           annotations={annotations}
           colors={colors}
           groupOrder={cfg.groupOrder}
-          control={control}
+          normalize={normalize}
+          control={cfg.control}
           vis={vis}
           updVis={updVis}
           overrides={overrides}
@@ -445,6 +465,7 @@ export function App() {
           onDownloadReport={onDownloadReport}
           onDownloadR={onDownloadR}
           onSendToGroupPlot={onSendToGroupPlot}
+          handoffLabel={handoffLabel}
           onReset={resetAll}
           dropped={dropped}
         />
