@@ -15,9 +15,7 @@ import {
   HowTo,
   PlotToolShell,
   UploadPanel,
-  navigateToTool,
   resolveDiscretePalette,
-  setHandoff,
   usePlotToolState,
 } from "../_shell";
 import "./i18n";
@@ -25,7 +23,6 @@ import { useT } from "./i18n";
 import { useQpcrHowTo } from "./howto";
 import {
   aggregateTechReps,
-  buildHandoff,
   computeGene,
   detectLayout,
   geneAnnotation,
@@ -43,7 +40,6 @@ import {
 } from "./helpers";
 import type {
   GeneRow,
-  HandoffSplit,
   LongColumns,
   Normalization,
   OrderItem,
@@ -68,6 +64,13 @@ const VIS_INIT_QPCR: QpcrVis = {
   showPoints: true,
   errorBar: "ci95",
   showCalibrator: true,
+  horizontal: false,
+  pointSize: 2.6,
+  jitterWidth: 0.45,
+  fillOpacity: 1,
+  yMin: "",
+  yMax: "",
+  yLabel: "",
   annotation: "brackets",
   showNs: false,
   discretePalette: "okabe-ito",
@@ -351,26 +354,6 @@ export function App() {
     if (!data) return;
     downloadText(buildQpcrRScript({ wells: data.wells, cfg, genes, stats }), `${stem}.R`);
   };
-  // Group Plot gets log-scale values whatever the y axis here (see
-  // buildHandoff); the label follows the axis choice.
-  const handoffLabel =
-    vis.yScale === "ddct"
-      ? normalize === "control"
-        ? "−ΔΔCt"
-        : "−ΔCt"
-      : tr(normalize === "control" ? "qpcr.handoff.log2Fc" : "qpcr.handoff.log2Rel");
-  const onSendToGroupPlot = (split: HandoffSplit) => {
-    if (genes.length === 0) return;
-    setHandoff({
-      tool: "boxplot",
-      ...buildHandoff(genes, split, handoffLabel),
-      mode: "long",
-      source: `qPCR — ${handoffLabel}`,
-      fileName: `${stem}_${vis.yScale === "ddct" ? (normalize === "control" ? "neg_ddCt" : "neg_dCt") : "log2"}.csv`,
-      yLabel: handoffLabel,
-    });
-    navigateToTool("boxplot");
-  };
 
   const canNavigate = (target: string) => {
     if (target === "upload") return true;
@@ -464,8 +447,6 @@ export function App() {
           onDownloadCsv={onDownloadCsv}
           onDownloadReport={onDownloadReport}
           onDownloadR={onDownloadR}
-          onSendToGroupPlot={onSendToGroupPlot}
-          handoffLabel={handoffLabel}
           onReset={resetAll}
           dropped={dropped}
         />

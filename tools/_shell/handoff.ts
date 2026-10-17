@@ -42,16 +42,8 @@ export interface HandoffPayload {
   // clobbered. Optional; the destination's own auto-derivation runs
   // when this is absent.
   yLabel?: string;
-  // Pre-assigned column roles, one per CSV column (Group Plot: exactly one
-  // "group" and one "value"; others "filter" / "ignore"). When valid, the
-  // destination uses them instead of guessing. Optional.
+  // Pre-assigned column-role hints; optional.
   colRoles?: string[];
-  // Column (by header name) the destination should facet by, or split into
-  // subgroups by — e.g. qPCR sends every target gene in one CSV with
-  // `facetBy: "Gene"`. Must be a "filter" or "group"-role column; ignored
-  // when absent or not found.
-  facetBy?: string;
-  subgroupBy?: string;
   // Tool-specific consumers extend with their own fields (e.g. upset's
   // intersection-payload variant) via a structural-typing widening.
   [key: string]: unknown;

@@ -6,7 +6,7 @@
 import { SegToggle, buildSelectTestReason, STATS_TESTS_FOR_K, STATS_TESTS_FOR_K2 } from "../_shell";
 import { formatP, pStars } from "../_core/stats";
 import { formatResultLine } from "./helpers";
-import type { AnnotationMode, HandoffSplit, QpcrStatsPanelProps } from "./helpers";
+import type { AnnotationMode, QpcrStatsPanelProps } from "./helpers";
 import { useT, type QpcrKey } from "./i18n";
 
 const subhead: React.CSSProperties = {
@@ -81,12 +81,9 @@ export function QpcrStatsPanel({
   updVis,
   onDownloadReport,
   onDownloadR,
-  onSendToGroupPlot,
-  handoffLabel,
 }: QpcrStatsPanelProps) {
   const tr = useT();
   const relToControl = normalize === "control";
-  const [split, setSplit] = React.useState<HandoffSplit>("facet");
   const testLabel = (t: string | null): string => (t && TEST_KEYS[t] ? tr(TEST_KEYS[t]) : t || "—");
   // Letters need k > 2 groups and every group drawn: with the calibrator
   // hidden its comparisons move to "vs control" stars (geneAnnotation).
@@ -200,57 +197,6 @@ export function QpcrStatsPanel({
           />
           {tr("qpcr.stats.showNs")}
         </label>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          flexWrap: "wrap",
-          padding: "8px 14px",
-          borderBottom: "1px solid var(--border)",
-        }}
-      >
-        <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>
-          {tr("qpcr.stats.sendLabel")}
-        </span>
-        <SegToggle<HandoffSplit>
-          value={split}
-          onChange={setSplit}
-          ariaLabel={tr("qpcr.stats.sendLabel")}
-          style={{ width: 200 }}
-          options={[
-            {
-              value: "facet",
-              label: tr("qpcr.stats.asFacets"),
-              title: tr("qpcr.stats.asFacetsTitle"),
-            },
-            {
-              value: "subgroup",
-              label: tr("qpcr.stats.asSubgroups"),
-              title: tr("qpcr.stats.asSubgroupsTitle"),
-            },
-          ]}
-        />
-        <button
-          type="button"
-          className="dv-btn dv-btn-secondary"
-          style={{ padding: "3px 10px", fontSize: 11 }}
-          onClick={() => onSendToGroupPlot(split)}
-          title={tr("qpcr.stats.sendTitle")}
-          data-testid="qpcr-send"
-        >
-          {tr("qpcr.stats.send", { what: handoffLabel })}
-        </button>
-        {vis.yScale === "linear" && (
-          <span
-            style={{ flexBasis: "100%", fontSize: 10, color: "var(--text-faint)" }}
-            data-testid="qpcr-send-linear-note"
-          >
-            {tr("qpcr.stats.sendLinearNote")}
-          </span>
-        )}
       </div>
 
       <div style={{ padding: "4px 16px 14px" }}>

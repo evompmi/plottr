@@ -408,33 +408,17 @@ test("formatResultLine matches Group Plot's format", () => {
   eq(L.formatResultLine(null, null), "—");
 });
 
-suite("hand-off, auto-config, exports");
+suite("axis bounds, auto-config, exports");
 
-test("hand-off: every target gene in one CSV with Group Plot roles + facet / subgroup", () => {
-  const samples = L.aggregateTechReps(load().parsed.data.wells);
-  const cfg = { ...cfgFor({}), targets: ["PR1", "UBQ10"], refs: ["ACT2"] };
-  const genes = cfg.targets.map((t) => L.computeGene(samples, cfg, t));
-  const h = L.buildHandoff(genes, "facet", "log₂ fold change");
-  const lines = h.csv.trim().split("\n");
-  eq(lines[0], "Gene,Group,Sample,log₂ fold change");
-  eq(lines.length, 1 + 9 + 9);
-  eq(lines[1].split(",").slice(0, 3).join(), "PR1,Mock,1");
-  eq(lines[4].split(",").slice(0, 2).join(), "PR1,SA");
-  eq(lines[10].split(",")[0], "UBQ10");
-  // value = −ΔΔCt (same sign as the qPCR plot), not ΔCt: Mock ΔCt (ref ACT2)
-  // 9.3, 9.7, 9.05 → calibrator 9.35 → sample 1: 9.35 − 9.3 = 0.05.
-  near(Number(lines[1].split(",")[3]), 0.05, 1e-12);
-  // SA sample 1: ΔCt 22.2 − 18.3 = 3.9 → −ΔΔCt = +5.45 (up-regulated stays positive)
-  near(Number(lines[4].split(",")[3]), 5.45, 1e-12);
-  eq(h.colRoles.join(), "filter,group,ignore,value");
-  eq(h.facetBy, "Gene");
-  eq(h.subgroupBy, undefined);
-  const sg = L.buildHandoff(genes, "subgroup", "−ΔΔCt");
-  eq(sg.csv.split("\n")[0], "Gene,Group,Sample,−ΔΔCt");
-  eq(sg.subgroupBy, "Gene");
-  eq(sg.facetBy, undefined);
-  const q = L.buildHandoff([{ ...genes[0], gene: 'a,"b' }], "facet", "x");
-  eq(q.csv.split("\n")[1].split(",")[0], '"a');
+test("parseAxisBound: axis-label units → plotted axis value", () => {
+  eq(L.parseAxisBound("0.25", "log2"), -2);
+  eq(L.parseAxisBound("64", "log2"), 6);
+  eq(L.parseAxisBound("0", "log2"), null, "log2 needs > 0");
+  eq(L.parseAxisBound("-1", "log2"), null);
+  eq(L.parseAxisBound("-1", "ddct"), -1);
+  eq(L.parseAxisBound("2,5", "linear"), 2.5);
+  eq(L.parseAxisBound(" ", "linear"), null);
+  eq(L.parseAxisBound("abc", "ddct"), null);
 });
 
 test("guessRefs / guessControl", () => {
