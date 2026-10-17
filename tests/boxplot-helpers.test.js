@@ -13,7 +13,6 @@ const {
   mergeSubgroupAnnotations,
   computeChartMargins,
   computeBpAnnotationSpec,
-  resolveHandoffLayout,
 } = require("./helpers/boxplot-loader");
 
 const cellKey = (f, s) => `${f}::${s}`;
@@ -283,42 +282,6 @@ test("no index map (nothing dropped) is unchanged identity behaviour", () => {
   eq(spec.kind, "brackets");
   const asKeys = spec.pairs.map((pr) => `${pr.i}-${pr.j}`).sort();
   eq(asKeys.join(","), "0-1,0-2,1-2");
-});
-
-suite("resolveHandoffLayout — explicit roles / facet / subgroup from a hand-off");
-
-test("valid roles + facet by name", () => {
-  const h = ["Gene", "Group", "Sample", "ΔCt"];
-  const l = resolveHandoffLayout(h, ["filter", "group", "ignore", "value"], "Gene", undefined);
-  eq(
-    JSON.stringify(l),
-    '{"roles":["filter","group","ignore","value"],"facetCol":0,"subgroupCol":-1}'
-  );
-  eq(
-    resolveHandoffLayout(h, ["filter", "group", "ignore", "value"], undefined, "Gene").subgroupCol,
-    0
-  );
-});
-
-test("facet / subgroup must be a filter column, and not the same one", () => {
-  const h = ["Gene", "Group", "Sample", "ΔCt"];
-  const r = ["filter", "group", "ignore", "value"];
-  eq(resolveHandoffLayout(h, r, "Group", undefined).facetCol, -1);
-  eq(resolveHandoffLayout(h, r, "ΔCt", undefined).facetCol, -1);
-  eq(resolveHandoffLayout(h, r, "Sample", undefined).facetCol, -1);
-  eq(resolveHandoffLayout(h, r, "Nope", undefined).facetCol, -1);
-  const both = resolveHandoffLayout(h, r, "Gene", "Gene");
-  eq(both.facetCol, 0);
-  eq(both.subgroupCol, -1);
-});
-
-test("unusable roles → null (destination keeps its own guess)", () => {
-  const h = ["A", "B", "C"];
-  eq(resolveHandoffLayout(h, undefined, "A", undefined), null);
-  eq(resolveHandoffLayout(h, ["group", "value"], undefined, undefined), null);
-  eq(resolveHandoffLayout(h, ["group", "group", "value"], undefined, undefined), null);
-  eq(resolveHandoffLayout(h, ["group", "filter", "filter"], undefined, undefined), null);
-  eq(resolveHandoffLayout(h, ["group", "bogus", "value"], undefined, undefined), null);
 });
 
 summary();

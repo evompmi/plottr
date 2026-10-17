@@ -2576,7 +2576,7 @@ suite("QpcrChart + QpcrStatsPanel");
 
 (function () {
   const tool = loadTool("qpcr");
-  const { QpcrChart, QpcrStatsPanel } = tool.exports;
+  const { QpcrChart, QpcrStatsPanel, ShapeFillTile } = tool.exports;
   const Q = require("./helpers/qpcr-loader");
   const raw = Q.parseRaw(`Sample,Group,Gene,Ct
 1,Mock,ACT2,18.10
@@ -2667,6 +2667,13 @@ suite("QpcrChart + QpcrStatsPanel");
     plotBg: "#ffffff",
     showGrid: false,
     gridColor: "#e0e0e0",
+    horizontal: false,
+    pointSize: 2.6,
+    jitterWidth: 0.45,
+    fillOpacity: 1,
+    yMin: "",
+    yMax: "",
+    yLabel: "",
   };
   const chartProps = (over = {}) => {
     const v = { ...vis, ...over };
@@ -2684,6 +2691,13 @@ suite("QpcrChart + QpcrStatsPanel");
       showPoints: v.showPoints,
       errorBar: v.errorBar,
       showCalibrator: v.showCalibrator,
+      horizontal: v.horizontal,
+      pointSize: v.pointSize,
+      jitterWidth: v.jitterWidth,
+      fillOpacity: v.fillOpacity,
+      yMin: v.yMin,
+      yMax: v.yMax,
+      yLabel: v.yLabel,
       barOutline: v.barOutline,
       barOutlineWidth: v.barOutlineWidth,
       barWidthFrac: v.barWidthFrac,
@@ -2711,13 +2725,13 @@ suite("QpcrChart + QpcrStatsPanel");
     eq((html.match(/<g id="error-bars-PR1">.*?<\/g><\/g>/s)[0].match(/<g>/g) || []).length, 3);
     assert(html.includes('id="significance-brackets"'));
     assert(html.includes("Fold change (log₂ scale)"));
-    // log2 axis: fold-change ticks at powers of two, aligned so FC = 1 is a tick
+    // log2 axis: a fold-change tick at every doubling, aligned so FC = 1 is a tick
     const axis = html.slice(
       html.indexOf('<g id="axis-y-PR1">'),
       html.indexOf('<g id="axis-x-PR1">')
     );
     const labels = [...axis.matchAll(/>([^<>]+)<\/text>/g)].map((m) => m[1]);
-    eq(labels.join(","), "1,4,16,64,Fold change (log₂ scale)");
+    eq(labels.join(","), "0.5,1,2,4,8,16,32,64,Fold change (log₂ scale)");
     assert(html.includes('stroke-dasharray="4,3"'), "reference line at FC = 1");
   });
 
@@ -2725,6 +2739,17 @@ suite("QpcrChart + QpcrStatsPanel");
     const lin = renderHtml(QpcrChart, chartProps({ yScale: "linear" }));
     assert(lin.includes(">Fold change<"));
     assert(lin.includes(">0<"), "linear axis starts at 0");
+    // Linear axis: bars rise from 0 (not from FC = 1), so every bar's bottom
+    // edge is on the x axis; the dashed FC = 1 line stays above it.
+    const axisY = Number(lin.match(/<g id="axis-x-PR1"><line [^>]*y1="([^"]+)"/)[1]);
+    const linBars = lin.match(/<g id="bars-PR1">(.*?)<\/g>/s)[1];
+    const rects = [
+      ...linBars.matchAll(/<rect x="[^"]+" y="([^"]+)" width="[^"]+" height="([^"]+)"/g),
+    ];
+    eq(rects.length, 3);
+    rects.forEach((m) => assert(Math.abs(Number(m[1]) + Number(m[2]) - axisY) < 1e-9));
+    const ref = Number(lin.match(/id="reference-line-PR1" x1="[^"]+" y1="([^"]+)"/)[1]);
+    assert(ref < axisY, "FC = 1 line above the 0 baseline");
     const dd = renderHtml(QpcrChart, chartProps({ yScale: "ddct", chartStyle: "dot" }));
     assert(dd.includes(">−ΔΔCt<"));
     assert(!/<g id="bars-PR1"><rect/.test(dd), "dots instead of bars");
@@ -2738,20 +2763,20 @@ suite("QpcrChart + QpcrStatsPanel");
   // Length of each group's error bar (its vertical line), read from the SVG.
   const errSpans = (html) => {
     const block = html.match(/<g id="error-bars-PR1">(.*?)<\/g><\/g>/s)[0];
-    return [...block.matchAll(/<line x1="[^"]+" x2="[^"]+" y1="([^"]+)" y2="([^"]+)"/g)]
+    return [...block.matchAll(/<line x1="[^"]+" y1="([^"]+)" x2="[^"]+" y2="([^"]+)"/g)]
       .filter((_, i) => i % 3 === 0)
       .map((m) => Math.abs(Number(m[1]) - Number(m[2])));
   };
 
   test("chart: error-bar type — SD, SEM, 95 % CI lengths; none hides them", () => {
-    // px per log2 unit from the y axis: tick lines one label step (2 log2
-    // units: 1, 4, 16, …) apart.
+    // px per log2 unit from the y axis: tick lines one doubling (1, 2, 4, …)
+    // apart.
     const pxPerLog2 = (html) => {
       const axis = html.slice(html.indexOf('<g id="axis-y-PR1">'));
       const ys = [...axis.matchAll(/<line x1="[^"]+" x2="[^"]+" y1="([^"]+)" y2="\1"/g)].map((m) =>
         Number(m[1])
       );
-      return Math.abs(ys[0] - ys[1]) / 2;
+      return Math.abs(ys[0] - ys[1]);
     };
     // Mock ΔCt 8.35, 8.75, 8.1 (n = 3) → SD = √0.1075; bars span mean ± half.
     const sd = Math.sqrt(0.1075);
@@ -2787,9 +2812,8 @@ suite("QpcrChart + QpcrStatsPanel");
     assert(!html.includes('font-weight="700">Mock'), "no group highlighted as control");
     // every bar's bottom edge sits on the x axis
     const axisY = html.match(/<g id="axis-x-PR1"><line [^>]*y1="([^"]+)"/)[1];
-    const rects = [
-      ...html.matchAll(/<rect x="[^"]+" y="([^"]+)" width="[^"]+" height="([^"]+)"/g),
-    ].slice(1); // skip background
+    const bars = html.match(/<g id="bars-PR1">(.*?)<\/g>/s)[1];
+    const rects = [...bars.matchAll(/<rect x="[^"]+" y="([^"]+)" width="[^"]+" height="([^"]+)"/g)];
     eq(rects.length, 3);
     rects.forEach((m) => near(Number(m[1]) + Number(m[2]), Number(axisY), 1e-9));
     const dct = renderHtml(QpcrChart, { ...props, yScale: "ddct" });
@@ -2805,12 +2829,79 @@ suite("QpcrChart + QpcrStatsPanel");
       updVis: noop,
       onDownloadReport: noop,
       onDownloadR: noop,
-      onSendToGroupPlot: noop,
-      handoffLabel: "log₂ fold change",
     });
     assert(panel.includes("2^−ΔCt [95 % CI]"));
     assert(!panel.includes("1 (calibrator)"));
     assert(panel.includes(">0.00296 ["), "Mock 2^−ΔCt = 2^−8.4");
+  });
+
+  test("chart: box plots — median line at the replicates' median, no mean error bars", () => {
+    const html = renderHtml(QpcrChart, chartProps({ chartStyle: "box" }));
+    assert(!html.includes('id="error-bars-PR1"'), "boxes replace mean ± error");
+    const bars = html.match(/<g id="bars-PR1">(.*?)<\/g><\/g>/s)[0];
+    eq((bars.match(/<rect/g) || []).length, 3);
+    // Mock −ΔΔCt = 0.05, −0.35, 0.3 (calibrator 8.4) → median 0.05 on the log2 axis.
+    const axis = html.slice(html.indexOf('<g id="axis-y-PR1">'));
+    const ticks = [
+      ...axis.matchAll(
+        /<line x1="[^"]+" x2="[^"]+" y1="([^"]+)" y2="\1"[^>]*><\/line><text[^>]*>([^<]+)</g
+      ),
+    ];
+    const y1 = Number(ticks.find((m) => m[2] === "1")[1]);
+    const y4 = Number(ticks.find((m) => m[2] === "4")[1]);
+    const yOf = (L) => y1 - (L * (y1 - y4)) / 2;
+    const medians = [
+      ...bars.matchAll(
+        /<line x1="[^"]+" y1="([^"]+)" x2="[^"]+" y2="\1" stroke="#111111" stroke-width="2"/g
+      ),
+    ];
+    eq(medians.length, 3);
+    near(Number(medians[0][1]), yOf(0.05), 1e-9);
+  });
+
+  test("chart: horizontal — groups on y, value ticks under the plot, brackets to the right", () => {
+    const html = renderHtml(QpcrChart, chartProps({ horizontal: true }));
+    const xAxis = html.match(/<g id="axis-x-PR1">(.*?)<\/g>/s)[1];
+    eq((xAxis.match(/text-anchor="end" dominant-baseline="central"/g) || []).length, 3);
+    const bars = html.match(/<g id="bars-PR1">(.*?)<\/g>/s)[1];
+    const heights = [...bars.matchAll(/height="([^"]+)"/g)].map((m) => Number(m[1]));
+    eq(heights.length, 3);
+    assert(
+      heights.every((h) => h === heights[0]),
+      "bars share their thickness"
+    );
+    assert(/<path d="M[\d.]+,[\d.]+ L[\d.]+,[\d.]+ L/.test(html), "bracket paths drawn");
+    assert(html.includes('transform="rotate(90,'), "horizontal bracket labels");
+    const hid = renderHtml(QpcrChart, chartProps({ horizontal: true, showCalibrator: false }));
+    assert(hid.includes("Stars beside bars: vs Mock (not shown)"));
+  });
+
+  test("chart: custom axis range (fold-change units), clipped data, custom title, point size, opacity", () => {
+    const html = renderHtml(
+      QpcrChart,
+      chartProps({
+        yMin: "0.25",
+        yMax: "64",
+        yLabel: "Relative PR1 level",
+        pointSize: 5,
+        fillOpacity: 0.4,
+      })
+    );
+    const axis = html.slice(
+      html.indexOf('<g id="axis-y-PR1">'),
+      html.indexOf('<g id="axis-x-PR1">')
+    );
+    eq(
+      [...axis.matchAll(/>([^<>]+)<\/text>/g)].map((m) => m[1]).join(),
+      "0.25,0.5,1,2,4,8,16,32,64,Relative PR1 level"
+    );
+    assert(html.includes('<clipPath id="clip-PR1">'));
+    assert(html.includes('clip-path="url(#clip-PR1)"'));
+    eq((html.match(/<g id="points-PR1">.*?<\/g>/s)[0].match(/r="5"/g) || []).length, 9);
+    eq((html.match(/fill-opacity="0.4"/g) || []).length, 3);
+    // Inverted range is ignored → automatic axis again.
+    const inv = renderHtml(QpcrChart, chartProps({ yMin: "64", yMax: "0.25" }));
+    assert(inv.includes(">Fold change (log₂ scale)<") && !inv.includes(">0.25<"));
   });
 
   test("chart: calibrator hidden — no Mock column, FC = 1 line kept, vs-control stars + footnote", () => {
@@ -2830,6 +2921,38 @@ suite("QpcrChart + QpcrStatsPanel");
     assert(!shown.includes("vs-control-PR1") && !shown.includes("Stars above bars"));
   });
 
+  test("Shape & fill: folded by default; one outline slider — 'off' at 0, thickness when on", () => {
+    const html = renderHtml(ShapeFillTile, { vis, updVis: noop });
+    assert(html.includes("Shape &amp; fill"));
+    assert(!html.includes("Outline (black)"), "fine-tuning folded away by default");
+    const open = (v) => {
+      const patches = [];
+      const r = renderWithEffects(ShapeFillTile, { vis: v, updVis: (p) => patches.push(p) });
+      React.act(() => r.container.querySelector("button").click());
+      return { r, patches };
+    };
+    const off = open({ ...vis, barOutline: false });
+    assert(off.r.container.textContent.includes("Outline (black)off"));
+    const on = open({ ...vis, barOutline: true, barOutlineWidth: 1.5 });
+    assert(on.r.container.textContent.includes("Outline (black)1.50 px"));
+    // Dragging to 0 turns the outline off; any other value turns it on at that width.
+    const slider = (c) =>
+      [...c.querySelectorAll('input[type="range"]')].find((el) => el.max === "4");
+    const set = (el, value) => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+      React.act(() => {
+        setter.call(el, value);
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    };
+    set(slider(on.r.container), "0");
+    set(slider(off.r.container), "2");
+    eq(JSON.stringify(on.patches.at(-1)), '{"barOutline":false}');
+    eq(JSON.stringify(off.patches.at(-1)), '{"barOutline":true,"barOutlineWidth":2}');
+    React.act(() => on.r.root.unmount());
+    React.act(() => off.r.root.unmount());
+  });
+
   test("stats panel: Statistics header with TXT/R, ΔCt explainer, decision trace, send button", () => {
     const html = renderHtml(QpcrStatsPanel, {
       genes,
@@ -2842,8 +2965,6 @@ suite("QpcrChart + QpcrStatsPanel");
       updVis: noop,
       onDownloadReport: noop,
       onDownloadR: noop,
-      onSendToGroupPlot: noop,
-      handoffLabel: "log₂ fold change",
     });
     assert(/<h3[^>]*>Statistics<\/h3>/.test(html));
     const header = html.slice(0, html.indexOf("Display on plot"));
@@ -2853,28 +2974,40 @@ suite("QpcrChart + QpcrStatsPanel");
     assert(html.includes("Auto — Welch&#x27;s ANOVA"));
     assert(html.includes("Welch&#x27;s ANOVA on ΔCt: F(2, "));
     assert(html.includes("1 (calibrator)"));
-    assert(html.includes('data-testid="qpcr-send"'), "single send-all button");
-    assert(html.includes("Send log₂ fold change of all genes"));
-    assert(!html.includes("qpcr-send-linear-note"), "note only on a linear FC axis");
-    const lin = renderHtml(QpcrStatsPanel, {
-      genes,
-      stats,
-      normalize: "control",
-      control: "Mock",
-      overrides: {},
-      onOverride: noop,
-      vis: { ...vis, yScale: "linear" },
-      updVis: noop,
-      onDownloadReport: noop,
-      onDownloadR: noop,
-      onSendToGroupPlot: noop,
-      handoffLabel: "log₂ fold change",
-    });
-    assert(lin.includes("Group Plot receives log₂ values"));
-    assert(html.includes("Gene = facets") && html.includes("Gene = subgroups"));
+    assert(!html.includes("Group Plot"), "no hand-off to Group Plot");
     assert(html.includes("Post-hoc: Games-Howell"));
   });
 })();
+
+suite("PlotStyleIconPicker");
+
+test("one labelled icon button per style, selected one pressed, click reports its value", () => {
+  const picked = [];
+  const props = {
+    value: "dot",
+    onChange: (v) => picked.push(v),
+    ariaLabel: "Style",
+    options: [
+      { value: "bar", label: "Bars", icon: React.createElement(sc.BarStyleIcon) },
+      { value: "dot", label: "Dots", icon: React.createElement(sc.DotStyleIcon) },
+      { value: "box", label: "Boxes", icon: React.createElement(sc.BoxStyleIcon), title: "Median" },
+    ],
+  };
+  const r = renderWithEffects(sc.PlotStyleIconPicker, props);
+  const group = r.container.querySelector('[role="group"]');
+  eq(group.getAttribute("aria-label"), "Style");
+  const btns = [...group.querySelectorAll("button")];
+  eq(btns.map((b) => b.textContent).join(), "Bars,Dots,Boxes");
+  eq(btns.map((b) => b.getAttribute("aria-pressed")).join(), "false,true,false");
+  assert(
+    btns.every((b) => b.querySelector("svg")),
+    "each option has an icon"
+  );
+  eq(btns[2].getAttribute("title"), "Median");
+  React.act(() => btns[2].click());
+  eq(picked.join(), "box");
+  React.act(() => r.root.unmount());
+});
 
 suite("HowToExampleTable");
 

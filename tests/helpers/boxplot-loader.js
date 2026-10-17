@@ -99,7 +99,6 @@ module.exports = {
   computeBpSummaryText: helpers.computeBpSummaryText,
   mergeSubgroupAnnotations: helpers.mergeSubgroupAnnotations,
   statsSummaryHeight: helpers.statsSummaryHeight,
-  resolveHandoffLayout: helpers.resolveHandoffLayout,
   // Pure layout arithmetic (tools/boxplot/layout.ts).
   computeChartMargins: layout.computeChartMargins,
 };

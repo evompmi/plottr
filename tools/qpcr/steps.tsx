@@ -19,7 +19,14 @@ import type {
   QpcrLayout,
   StdCurvePanelProps,
 } from "./helpers";
-import { ChartTile, ColorsTile, StyleTile } from "./controls";
+import {
+  AxesLabelsTile,
+  ChartTile,
+  ColorsTile,
+  DataPointsTile,
+  LayoutTile,
+  ShapeFillTile,
+} from "./controls";
 import { QpcrChart } from "./chart";
 import { QpcrStatsPanel } from "./stats-panel";
 import { useT } from "./i18n";
@@ -560,7 +567,10 @@ export function PlotStep(p: PlotStepProps) {
           onColorChange={p.onGroupColor}
           onPaletteChange={p.onPaletteChange}
         />
-        <StyleTile vis={p.vis} updVis={p.updVis} />
+        <ShapeFillTile vis={p.vis} updVis={p.updVis} />
+        <DataPointsTile vis={p.vis} updVis={p.updVis} />
+        <AxesLabelsTile vis={p.vis} updVis={p.updVis} normalize={p.normalize} />
+        <LayoutTile vis={p.vis} updVis={p.updVis} />
       </PlotSidebar>
       <div
         style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}
@@ -601,6 +611,13 @@ export function PlotStep(p: PlotStepProps) {
             showPoints={p.vis.showPoints}
             errorBar={p.vis.errorBar}
             showCalibrator={p.vis.showCalibrator}
+            horizontal={p.vis.horizontal}
+            pointSize={p.vis.pointSize}
+            jitterWidth={p.vis.jitterWidth}
+            fillOpacity={p.vis.fillOpacity}
+            yMin={p.vis.yMin}
+            yMax={p.vis.yMax}
+            yLabel={p.vis.yLabel}
             barOutline={p.vis.barOutline}
             barOutlineWidth={p.vis.barOutlineWidth}
             barWidthFrac={p.vis.barWidthFrac}
@@ -626,8 +643,6 @@ export function PlotStep(p: PlotStepProps) {
           updVis={p.updVis}
           onDownloadReport={p.onDownloadReport}
           onDownloadR={p.onDownloadR}
-          onSendToGroupPlot={p.onSendToGroupPlot}
-          handoffLabel={p.handoffLabel}
         />
       </div>
     </div>

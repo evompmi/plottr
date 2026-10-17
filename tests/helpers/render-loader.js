@@ -167,7 +167,11 @@ function ensureSharedBundleLoaded() {
         "PageHeader",
         "ParseErrorBanner",
         "PlotSidebar",
+        "PlotStyleIconPicker",
         "PlotToolShell",
+        "BarStyleIcon",
+        "BoxStyleIcon",
+        "DotStyleIcon",
         "PrefsPanel",
         "RenameReorderPanel",
         "STATS_POSTHOC_REGISTRY",
@@ -315,6 +319,7 @@ function loadTool(toolName) {
     "GofPanel: typeof GofPanel !== 'undefined' ? GofPanel : undefined," +
     "QpcrChart: typeof QpcrChart !== 'undefined' ? QpcrChart : undefined," +
     "QpcrStatsPanel: typeof QpcrStatsPanel !== 'undefined' ? QpcrStatsPanel : undefined," +
+    "ShapeFillTile: typeof ShapeFillTile !== 'undefined' ? ShapeFillTile : undefined," +
     "App: typeof App !== 'undefined' ? App : undefined," +
     "};";
   const withReturn = compiled.slice(0, closingIdx) + returnObj + compiled.slice(closingIdx);

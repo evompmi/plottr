@@ -43,6 +43,15 @@ export { PrefsPanel } from "./PrefsPanel";
 export { RenameReorderPanel } from "./RenameReorderPanel";
 export { ScrollablePlotCard } from "./ScrollablePlotCard";
 export { SegToggle, OnOffToggle } from "./SegToggle";
+export {
+  PlotStyleIconPicker,
+  BoxStyleIcon,
+  ViolinStyleIcon,
+  RaincloudStyleIcon,
+  BarStyleIcon,
+  DotStyleIcon,
+} from "./PlotStyleIcons";
+export type { PlotStyleOption, PlotStyleIconPickerProps } from "./PlotStyleIcons";
 export type { SegOption, SegToggleProps, OnOffToggleProps } from "./SegToggle";
 export { SignificanceBrackets } from "./SignificanceBrackets";
 export { SliderControl } from "./SliderControl";

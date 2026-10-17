@@ -79,7 +79,7 @@ export interface QpcrParseResult {
 }
 
 export type YScale = "log2" | "linear" | "ddct";
-export type QpcrChartStyle = "bar" | "dot";
+export type QpcrChartStyle = "bar" | "dot" | "box";
 export type AnnotationMode = "none" | "cld" | "brackets";
 export type ErrorBarType = "none" | "sem" | "sd" | "ci95";
 // "control": 2^−ΔΔCt, fold change vs a calibrator group.
@@ -97,6 +97,15 @@ export interface QpcrVis {
   annotation: AnnotationMode;
   showNs: boolean;
   discretePalette: string;
+  horizontal: boolean;
+  pointSize: number;
+  jitterWidth: number; // fraction of the bar / box width
+  fillOpacity: number;
+  // Value-axis bounds in the units the tick labels show (fold change on the
+  // log2 axis); "" = automatic. Shared by every gene panel.
+  yMin: string;
+  yMax: string;
+  yLabel: string; // "" = automatic title for the chosen scale
   barOutline: boolean;
   barOutlineWidth: number;
   barWidthFrac: number;
@@ -527,6 +536,20 @@ export function computeGene(samples: Sample[], cfg: QpcrConfig, gene: string): G
   };
 }
 
+// Custom axis bound typed in the units the axis labels show → plotted axis
+// value: fold change on the log2 axis (must be > 0, stored as log2), fold
+// change on the linear axis, −ΔΔCt / −ΔCt as is. Null when blank / invalid.
+export function parseAxisBound(text: string, scale: YScale): number | null {
+  const s = String(text ?? "")
+    .trim()
+    .replace(",", ".");
+  if (s === "" || !isNumericValue(s)) return null;
+  const v = toNumericValue(s);
+  if (!Number.isFinite(v)) return null;
+  if (scale === "log2") return v > 0 ? Math.log2(v) : null;
+  return v;
+}
+
 // Error-bar bounds on the L (log2) scale: mean ± SD, ± SEM, or the 95 % t-CI.
 // Null when the bar cannot be drawn (n < 2). Back-transformed to a linear
 // axis the bars become asymmetric (geometric SD / SEM).
@@ -718,46 +741,7 @@ export function geneAnnotation(
   return out;
 }
 
-// ── Hand-off & export rows ──────────────────────────────────────────────
-
-const csvCell = (s: string): string => (/[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s);
-
-export type HandoffSplit = "facet" | "subgroup";
-
-export interface QpcrHandoff {
-  csv: string;
-  colRoles: string[];
-  facetBy?: string;
-  subgroupBy?: string;
-}
-
-// One long CSV with every target gene — `Gene, Group, Sample, <value>` —
-// plus explicit Group Plot roles, so Group Plot facets (or subgroups) by gene
-// and runs its statistics per gene. The values are L (−ΔΔCt, or −ΔCt without
-// a calibrator) — the sign the qPCR plot shows — and always on the log scale:
-// Group Plot's log axis is display-only and its tests run on the numbers it
-// receives, so fold changes would be tested directly. `valueLabel` names the
-// column (and Group Plot's y axis). Rows go gene by gene, groups in display
-// order, so Group Plot's first-appearance ordering matches this tool.
-export function buildHandoff(
-  genes: GeneAnalysis[],
-  split: HandoffSplit,
-  valueLabel: string
-): QpcrHandoff {
-  const lines = ["Gene,Group,Sample," + csvCell(valueLabel)];
-  for (const g of genes) {
-    g.groups.forEach((grp) => {
-      for (const r of g.rows.filter((x) => x.group === grp)) {
-        lines.push([csvCell(g.gene), csvCell(grp), csvCell(r.sample), String(r.L)].join(","));
-      }
-    });
-  }
-  return {
-    csv: lines.join("\n") + "\n",
-    colRoles: ["filter", "group", "ignore", "value"],
-    ...(split === "facet" ? { facetBy: "Gene" } : { subgroupBy: "Gene" }),
-  };
-}
+// ── Export rows ──────────────────────────────────────────────
 
 export function sampleRowsForCsv(
   genes: GeneAnalysis[],
@@ -825,6 +809,13 @@ export interface QpcrChartProps {
   showPoints: boolean;
   errorBar: ErrorBarType;
   showCalibrator: boolean;
+  horizontal: boolean;
+  pointSize: number;
+  jitterWidth: number;
+  fillOpacity: number;
+  yMin: string;
+  yMax: string;
+  yLabel: string;
   barOutline: boolean;
   barOutlineWidth: number;
   barWidthFrac: number;
@@ -858,8 +849,6 @@ export interface QpcrStatsPanelProps {
   updVis: (patch: Partial<QpcrVis>) => void;
   onDownloadReport: () => void;
   onDownloadR: () => void;
-  onSendToGroupPlot: (split: HandoffSplit) => void;
-  handoffLabel: string; // what Group Plot receives, e.g. "log₂ fold change"
 }
 
 export interface TileProps {
@@ -942,8 +931,6 @@ export interface PlotStepProps {
   onDownloadCsv: () => void;
   onDownloadReport: () => void;
   onDownloadR: () => void;
-  onSendToGroupPlot: (split: HandoffSplit) => void;
-  handoffLabel: string;
   onReset: () => void;
   dropped: number;
 }

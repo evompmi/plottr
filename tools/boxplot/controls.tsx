@@ -6,15 +6,20 @@
 
 import {
   ActionsPanel,
+  BarStyleIcon,
   BaseStyleControls,
+  BoxStyleIcon,
   ColorInput,
   ControlSection,
   DiscretePaletteRow,
   GroupColorEditor,
   OnOffToggle,
   PlotSidebar,
+  PlotStyleIconPicker,
+  RaincloudStyleIcon,
   SegToggle,
   SliderControl,
+  ViolinStyleIcon,
   applyDiscretePalette,
 } from "../_shell";
 import type { BoxplotGroup, BoxplotVis, PlotControlsProps } from "./helpers";
@@ -168,167 +173,25 @@ export function PlotControls({
       >
         <div>
           <div className="dv-label">{tr("boxplot.ctrl.plotStyle")}</div>
-          <div
-            role="group"
-            aria-label={tr("boxplot.ctrl.plotStyle")}
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4 }}
-          >
-            {(
-              [
-                {
-                  key: "box",
-                  label: tr("boxplot.ctrl.style.box"),
-                  icon: (
-                    <svg width="22" height="22" viewBox="0 0 22 22">
-                      <line x1="11" y1="2" x2="11" y2="6" stroke="currentColor" strokeWidth="1.2" />
-                      <rect
-                        x="5"
-                        y="6"
-                        width="12"
-                        height="10"
-                        rx="1"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                      <line
-                        x1="5"
-                        y1="11"
-                        x2="17"
-                        y2="11"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                      />
-                      <line
-                        x1="11"
-                        y1="16"
-                        x2="11"
-                        y2="20"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                    </svg>
-                  ),
-                },
-                {
-                  key: "violin",
-                  label: tr("boxplot.ctrl.style.violin"),
-                  icon: (
-                    <svg width="22" height="22" viewBox="0 0 22 22">
-                      <path
-                        d="M11 2 C7 6, 5 9, 5 11 C5 13, 7 16, 11 20 C15 16, 17 13, 17 11 C17 9, 15 6, 11 2Z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                      <line
-                        x1="7"
-                        y1="11"
-                        x2="15"
-                        y2="11"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                    </svg>
-                  ),
-                },
-                {
-                  key: "raincloud",
-                  label: tr("boxplot.ctrl.style.rain"),
-                  icon: (
-                    <svg width="22" height="22" viewBox="0 0 22 22">
-                      <path
-                        d="M11 2 C8 5, 6 8, 6 11 C6 14, 8 17, 11 20"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                      <circle cx="14" cy="7" r="1" fill="currentColor" />
-                      <circle cx="16" cy="10" r="1" fill="currentColor" />
-                      <circle cx="13" cy="13" r="1" fill="currentColor" />
-                      <circle cx="15" cy="16" r="1" fill="currentColor" />
-                      <circle cx="14" cy="19" r="1" fill="currentColor" />
-                    </svg>
-                  ),
-                },
-                {
-                  key: "bar",
-                  label: tr("boxplot.ctrl.style.bar"),
-                  icon: (
-                    <svg width="22" height="22" viewBox="0 0 22 22">
-                      <rect
-                        x="2"
-                        y="10"
-                        width="5"
-                        height="10"
-                        rx="0.5"
-                        fill="currentColor"
-                        opacity="0.7"
-                      />
-                      <rect
-                        x="8.5"
-                        y="4"
-                        width="5"
-                        height="16"
-                        rx="0.5"
-                        fill="currentColor"
-                        opacity="0.7"
-                      />
-                      <rect
-                        x="15"
-                        y="7"
-                        width="5"
-                        height="13"
-                        rx="0.5"
-                        fill="currentColor"
-                        opacity="0.7"
-                      />
-                      <line x1="10" y1="2" x2="10" y2="4" stroke="currentColor" strokeWidth="1.2" />
-                      <line
-                        x1="8.5"
-                        y1="3"
-                        x2="11.5"
-                        y2="3"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                    </svg>
-                  ),
-                },
-              ] as const
-            ).map(({ key, label, icon }) => {
-              const active = vis.plotStyle === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => updVis({ plotStyle: key })}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 2,
-                    padding: "6px 0 4px",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    border: active
-                      ? "1.5px solid var(--accent-primary)"
-                      : "1px solid var(--border-strong)",
-                    background: active ? "var(--accent-primary)" : "var(--surface)",
-                    color: active ? "var(--on-accent)" : "var(--text-muted)",
-                    fontFamily: "inherit",
-                    fontSize: 9,
-                    fontWeight: active ? 700 : 400,
-                    transition: "background 120ms ease, color 120ms ease, border-color 120ms ease",
-                  }}
-                >
-                  {icon}
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+          <PlotStyleIconPicker
+            value={vis.plotStyle}
+            onChange={(v) => updVis({ plotStyle: v })}
+            ariaLabel={tr("boxplot.ctrl.plotStyle")}
+            options={[
+              { value: "box", label: tr("boxplot.ctrl.style.box"), icon: <BoxStyleIcon /> },
+              {
+                value: "violin",
+                label: tr("boxplot.ctrl.style.violin"),
+                icon: <ViolinStyleIcon />,
+              },
+              {
+                value: "raincloud",
+                label: tr("boxplot.ctrl.style.rain"),
+                icon: <RaincloudStyleIcon />,
+              },
+              { value: "bar", label: tr("boxplot.ctrl.style.bar"), icon: <BarStyleIcon /> },
+            ]}
+          />
         </div>
         <div>
           <div className="dv-label">{tr("boxplot.ctrl.orientation")}</div>
