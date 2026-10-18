@@ -13,6 +13,10 @@ import {
   postHocForTest,
   runPostHoc,
   runTest,
+  WhyThisTest,
+  MethodsButton,
+  buildGroupMethodsText,
+  methodsDisplay,
 } from "../_shell";
 import {
   formatX,
@@ -261,13 +265,25 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
           </button>
         )}
       </div>
-      {recReason && (
-        <div
-          style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", marginBottom: 6 }}
-        >
-          {recReason}
-        </div>
-      )}
+      <div
+        style={{
+          padding: "6px 10px",
+          marginBottom: 6,
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: 6,
+          fontFamily: "ui-monospace, Menlo, monospace",
+          fontSize: 12,
+          fontWeight: 700,
+          color: "var(--text)",
+        }}
+      >
+        {res.error
+          ? `⚠ ${res.error}`
+          : `${formatStat(row.chosenTest, res)},  p = ${formatP(res.p)}${
+              row.pAdj != null ? tr("lineplot.sp.bhAdj", { p: formatP(row.pAdj) }) : ""
+            }`}
+      </div>
       {suggestion && row.chosenTest !== suggestion.test && (
         <div
           style={{
@@ -302,23 +318,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
           </button>
         </div>
       )}
-      <div
-        style={{
-          padding: "6px 10px",
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          fontFamily: "ui-monospace, Menlo, monospace",
-          fontSize: 11,
-          color: "var(--text)",
-        }}
-      >
-        {res.error
-          ? `⚠ ${res.error}`
-          : `${formatStat(row.chosenTest, res)},  p = ${formatP(res.p)}${
-              row.pAdj != null ? tr("lineplot.sp.bhAdj", { p: formatP(row.pAdj) }) : ""
-            }`}
-      </div>
+      <WhyThisTest text={recReason} />
 
       {k >= 3 && postHoc && !postHoc.error && row.postHocName && (
         <>
@@ -431,6 +431,7 @@ export function PerXStatsPanel({
   fileName,
   showStars,
   setShowStars,
+  displayKind,
 }: PerXStatsPanelProps) {
   const tr = useT();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -559,6 +560,27 @@ export function PerXStatsPanel({
           </p>
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
+          <MethodsButton
+            getText={() => {
+              const tested = enriched.filter(
+                (r) => r.chosenTest && r.result && !r.result.error && r.values.length >= 2
+              );
+              return buildGroupMethodsText({
+                sets: tested.map((r) => ({
+                  name: formatX(r.x),
+                  test: r.chosenTest as NonNullable<typeof r.chosenTest>,
+                  exact: r.result ? r.result.exact : undefined,
+                  postHoc: r.names.length > 2 ? r.postHocName : null,
+                  ns: r.values.map((v) => v.length),
+                })),
+                setLabel: xLabel || undefined,
+                setKind: "x",
+                overridden: tested.some((r) => overrides[formatX(r.x)] != null),
+                adjustAcrossSets: "bh",
+                display: methodsDisplay(displayKind),
+              });
+            }}
+          />
           <button
             type="button"
             className="dv-btn dv-btn-dl"

@@ -12,9 +12,8 @@
 //     facetRefs (multi-file bundle).
 //   - aequorin — fans out across combined / faceted / barplot refs through
 //     useImperativeHandle on PlotPanel.
-//   - heatmap — the SVG/PNG buttons live inside the plot panel header next
-//     to the matrix; the sidebar tile carries only CSV / R-script / reset,
-//     with no primary downloads to auto-build.
+//   - heatmap — passes its own SVG / PNG callbacks next to CSV / R script
+//     (the file stem and chart ref live in the controls' props).
 //
 // `pngScale` defaults to 2 — matches what every existing call site
 // passed. Override only if a tool needs higher / lower resolution.

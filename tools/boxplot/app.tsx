@@ -1358,6 +1358,9 @@ export function App() {
                   showSummary={statsUi.showSummary}
                   onShowSummaryChange={handleStatsShowSummaryChange}
                   errorBarLabel={vis.plotStyle === "bar" ? ERROR_BAR_LABELS[vis.errorType] : null}
+                  displayKind={
+                    vis.plotStyle === "bar" ? vis.errorType : vis.plotStyle === "box" ? "box" : null
+                  }
                 />
               </div>
             )}

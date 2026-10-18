@@ -61,6 +61,8 @@ const fr: Record<ShellKey, string> = {
   "shell.step.output": "Sortie",
   "shell.step.plot": "Tracé",
   "shell.step.aria": "Étape {n} sur {total} : {label}",
+  "shell.step.navLabel": "Étapes",
+  "shell.statsui.whyThisTest": "Pourquoi ce test ?",
   "shell.sep.label": "Séparateur de colonnes",
   "shell.sep.force": "Choisir le séparateur",
   "shell.sep.select": "— Sélectionner —",
@@ -101,6 +103,7 @@ const fr: Record<ShellKey, string> = {
   "shell.actions.pngTitle":
     "Télécharger le graphe en PNG — raster 2× à la résolution native du graphe",
   "shell.actions.startOver": "Recommencer",
+  "shell.actions.confirmReset": "Vraiment effacer ?",
   "shell.actions.resetTitle":
     "Effacer toutes les données, les réglages et la session en cours — retour à l’étape d’importation",
   "shell.howto.purpose": "Objectif",
@@ -299,6 +302,58 @@ const fr: Record<ShellKey, string> = {
   "shell.chunk.persist": "Vos données, réglages et thème restent dans le stockage du navigateur.",
 
   "shell.landing.lead": "Choisissez un outil dans le registre.",
+  // Methods-section text (methods-text.ts / MethodsButton)
+  "shell.methods.button": "Méthodes",
+  "shell.methods.buttonTitle":
+    "Afficher un paragraphe « Matériel et méthodes » décrivant ces statistiques, prêt à copier",
+  "shell.methods.title": "Texte pour les méthodes",
+  "shell.methods.copy": "Copier",
+  "shell.methods.copied": "Copié ✓",
+  "shell.methods.close": "Fermer",
+  "shell.methods.note":
+    "Généré à partir de l’analyse ci-dessus — vérifiez qu’il correspond à votre plan expérimental avant de l’utiliser.",
+  "shell.methods.software": "Les analyses ont été réalisées avec Plöttr{version} ({url})",
+  "shell.methods.rEquivalent": " ; appels R équivalents : {calls}",
+  "shell.methods.test.studentT": "un test t de Student bilatéral",
+  "shell.methods.test.welchT": "un test t de Welch bilatéral",
+  "shell.methods.test.mannWhitney": "un test U de Mann-Whitney bilatéral",
+  "shell.methods.test.oneWayANOVA": "une ANOVA à un facteur",
+  "shell.methods.test.welchANOVA": "une ANOVA de Welch à un facteur",
+  "shell.methods.test.kruskalWallis": "un test de Kruskal-Wallis",
+  "shell.methods.mwExact": " (p-values exactes)",
+  "shell.methods.mwApprox": " (approximation normale avec correction de continuité)",
+  "shell.methods.mwMixed":
+    " (p-values exactes en l’absence d’ex aequo, approximation normale sinon)",
+  "shell.methods.followedBy": ", puis {posthoc} pour les comparaisons deux à deux",
+  "shell.methods.posthoc.tukeyHSD": "le test HSD de Tukey",
+  "shell.methods.posthoc.gamesHowell": "le test de Games-Howell",
+  "shell.methods.posthoc.dunn": "le test de Dunn avec ajustement de Benjamini-Hochberg",
+  "shell.methods.valueNote": "Les valeurs analysées sont {what}.",
+  "shell.methods.compareTwo": "Les deux groupes ({n} par groupe) ont été comparés par {test}.",
+  "shell.methods.compareK": "Les {k} groupes ({n} par groupe) ont été comparés par {test}.",
+  "shell.methods.eachSet": "chaque sous-ensemble",
+  "shell.methods.compareWithinSame":
+    "Les groupes ont été comparés au sein de {scope} ({count} analyses) par {test}.",
+  "shell.methods.compareWithinMixed": "Les groupes ont été comparés au sein de {scope} : {list}.",
+  "shell.methods.listSep": " ; ",
+  "shell.methods.testFor": "{test} pour {names}",
+  "shell.methods.sizes": "Effectifs par groupe : {n}.",
+  "shell.methods.adjustBH":
+    "Les p-values ont été ajustées sur les {count} analyses par la procédure de Benjamini-Hochberg.",
+  "shell.methods.policyWelch":
+    "Les tests de Welch ont été utilisés par défaut car ils ne supposent pas l’égalité des variances ; la normalité (test de Shapiro-Wilk) et l’égalité des variances (test de Levene centré sur la médiane) n’ont été vérifiées qu’à titre de diagnostic.",
+  "shell.methods.diagnostics":
+    "La normalité (test de Shapiro-Wilk) et l’égalité des variances (test de Levene centré sur la médiane) ont été évaluées.",
+  "shell.methods.alpha": "Le seuil de significativité était p < 0,05.",
+  "shell.methods.display": "Les données sont représentées par {display}.",
+  "shell.methods.disp.sem": "la moyenne ± SEM",
+  "shell.methods.disp.sd": "la moyenne ± écart-type",
+  "shell.methods.disp.ci95": "la moyenne ± intervalle de confiance à 95 %",
+  "shell.methods.disp.none": "leurs moyennes",
+  "shell.methods.disp.box":
+    "des boîtes à moustaches (médiane et écart interquartile ; moustaches jusqu’aux valeurs les plus extrêmes dans 1,5 × IQR)",
+  "shell.methods.scopeLevel": "chaque modalité de « {label} »",
+  "shell.methods.scopeX": "chaque valeur de « {label} »",
 };
 
 export default fr;

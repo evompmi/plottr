@@ -3,7 +3,7 @@
 // standardised residuals, pairwise Fisher tests, and goodness-of-fit
 // against an expected ratio.
 
-import { SegToggle } from "../_shell";
+import { MethodsButton, SegToggle, alphaSentence, nRange, softwareSentence } from "../_shell";
 import { formatP, pStars } from "../_core/stats";
 import type { PAdjustMethod } from "../_core/stats";
 import { RATIO_PRESETS, formatPct, gofPerGroup, parseRatio } from "./helpers";
@@ -110,6 +110,51 @@ export function StatsPanel({
   const fwer = (100 * (1 - Math.pow(0.95, m))).toFixed(0);
 
   const multi = table.groups.length > 2;
+
+  const methodsText = (): string => {
+    if (analysis.error) return "";
+    const out: string[] = [];
+    const B = fisher && fisher.method === "monteCarlo" ? (fisher.B ?? 0) : 0;
+    out.push(
+      tr("proportions.methods.design", {
+        c: table.categories.length,
+        k: table.groups.length,
+        N,
+        n: nRange(summaries.map((s) => s.n)),
+      })
+    );
+    out.push(
+      test === "chi2"
+        ? tr("proportions.methods.chi2")
+        : B
+          ? tr("proportions.methods.fisherMC", { B })
+          : tr("proportions.methods.fisher")
+    );
+    if (!overridden && vis.testChoice === "auto") out.push(tr("proportions.methods.policy"));
+    if (multi && m > 0)
+      out.push(
+        tr("proportions.methods.pairwise", {
+          method: tr(
+            vis.adjustMethod === "holm" ? "proportions.methods.holm" : "proportions.methods.bh"
+          ),
+        })
+      );
+    out.push(alphaSentence());
+    if (vis.chartType === "proportion" && vis.showCI) out.push(tr("proportions.methods.wilson"));
+    const calls = [
+      test === "chi2"
+        ? "chisq.test(counts, correct = FALSE)"
+        : B
+          ? `fisher.test(counts, simulate.p.value = TRUE, B = ${B})`
+          : "fisher.test(counts)",
+    ];
+    if (multi && m > 0)
+      calls.push(`p.adjust(p, method = "${vis.adjustMethod === "holm" ? "holm" : "BH"}")`);
+    if (vis.chartType === "proportion" && vis.showCI)
+      calls.push("prop.test(x, n, correct = FALSE)$conf.int");
+    out.push(softwareSentence(calls));
+    return out.join(" ");
+  };
   const display: AnnotationMode = vis.annotation === "cld" && !multi ? "brackets" : vis.annotation;
   const nsDisabled = display !== "brackets";
 
@@ -147,6 +192,7 @@ export function StatsPanel({
           </p>
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
+          <MethodsButton getText={methodsText} />
           <button
             type="button"
             className="dv-btn dv-btn-dl"

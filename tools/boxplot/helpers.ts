@@ -222,6 +222,9 @@ export interface BoxplotStatsPanelProps {
   onShowSummaryChange: (b: boolean) => void;
   // null in non-bar plot styles (no error bars to label).
   errorBarLabel: string | null;
+  // What the chart summarises, for the methods text: an error-bar kind
+  // (sem / sd / ci95 / none) in bar mode, "box" for box plots, else null.
+  displayKind?: string | null;
 }
 
 // Row argument to the annotation / summary builders accepts a permissive

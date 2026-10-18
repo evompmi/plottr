@@ -25,6 +25,7 @@ import { compactLetterDisplay, selectTest } from "../_core/stats/posthoc";
 import { formatP, pStars } from "../_core/stats/format";
 import { buildSelectTestReason } from "./select-test-narrative";
 import { tt, useShellT, type ShellKey } from "./i18n";
+import { WhyThisTest } from "./WhyThisTest";
 
 // Aliased here so component code reads as `SelectTestResult | null` instead
 // of an inlined `ReturnType<typeof selectTest>`.
@@ -915,13 +916,7 @@ export function StatsTile({
       : null
   );
 
-  const reasonLine = recReason
-    ? h(
-        "div",
-        { style: { fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" } },
-        recReason
-      )
-    : null;
+  const reasonLine = h(WhyThisTest, { text: recReason });
 
   const suggestionLine =
     suggestion && chosenTest !== suggestion.test
@@ -973,6 +968,7 @@ export function StatsTile({
         borderRadius: 6,
         fontFamily: "ui-monospace, Menlo, monospace",
         fontSize: 12,
+        fontWeight: 700,
         color: "var(--text)",
       },
     },
@@ -1127,9 +1123,9 @@ export function StatsTile({
       leveneLine,
       h("div", { style: subhead }, tr("shell.statsui.test")),
       testPicker,
-      reasonLine,
-      suggestionLine,
       resultLine,
+      suggestionLine,
+      reasonLine,
       postHocBlock,
       powerBlock
     )

@@ -156,6 +156,32 @@ const en = {
     "One row per point. At least two <strong>numeric</strong> columns (the X and Y axes). Extra columns — categorical or numeric — become aesthetic mappings or filters.",
   "scatter.howto.display":
     "Optional colour-by-column (continuous gradient or discrete swatches), size-by-column, and shape-by-column. Add <strong>reference lines</strong> at fixed X / Y values, overlay a <strong>linear regression</strong> with R² + p-value. Filter rows by any categorical column.",
+  "scatter.methods.pearson":
+    "Pearson's product-moment correlation (two-sided t-test on r, with a 95% confidence interval from Fisher's z transformation)",
+  "scatter.methods.spearmanExact":
+    "Spearman's rank correlation (two-sided; p-values from the null distribution of S — exact for n ≤ 9, Edgeworth series approximation above, as in R)",
+  "scatter.methods.spearmanApprox":
+    "Spearman's rank correlation (two-sided; t approximation, used when there are ties)",
+  "scatter.methods.spearmanMixed":
+    "Spearman's rank correlation (two-sided; null distribution of S without ties, t approximation with ties)",
+  "scatter.methods.kendallExact": "Kendall's τ-b (two-sided; exact p-values)",
+  "scatter.methods.kendallApprox":
+    "Kendall's τ-b (two-sided; normal approximation with tie correction)",
+  "scatter.methods.kendallMixed":
+    "Kendall's τ-b (two-sided; exact p-values without ties and n < 50, normal approximation with tie correction otherwise)",
+  "scatter.methods.one":
+    "The association between {x} and {y} (n = {n} complete pairs) was assessed with {test}.",
+  "scatter.methods.manySame":
+    "The association between {x} and {y} was assessed separately for {names} ({n} complete pairs) with {test}.",
+  "scatter.methods.manyMixed":
+    "The association between {x} and {y} was assessed separately for each group ({n} complete pairs): {list}.",
+  "scatter.methods.testFor": "{test} for {names}",
+  "scatter.methods.policy":
+    "Pearson's r was the default; normality of each variable was checked with the Shapiro-Wilk test as a diagnostic.",
+  "scatter.methods.diagnostics":
+    "Normality of each variable was assessed with the Shapiro-Wilk test.",
+  "scatter.methods.regression":
+    "The fitted line is an ordinary least-squares regression of {y} on {x}.",
 } as const satisfies Catalog;
 
 export default en;

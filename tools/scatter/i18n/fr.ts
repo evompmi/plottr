@@ -133,6 +133,32 @@ const fr: Record<ScatterKey, string> = {
     "Une ligne par point. Au moins deux colonnes <strong>numériques</strong> (les axes X et Y). Les colonnes supplémentaires — catégorielles ou numériques — deviennent des catégories esthétiques ou des filtres.",
   "scatter.howto.display":
     "Couleur-par-colonne optionnelle (dégradé continu ou discrètes), taille-par-colonne et forme-par-colonne. Ajoutez des <strong>lignes de référence</strong> à des valeurs X / Y fixes, superposez une <strong>régression linéaire</strong> avec R² + p-value. Filtrez les lignes par n’importe quelle colonne catégorielle.",
+  "scatter.methods.pearson":
+    "la corrélation de Pearson (test t bilatéral sur r, avec un intervalle de confiance à 95 % par la transformation z de Fisher)",
+  "scatter.methods.spearmanExact":
+    "la corrélation de rangs de Spearman (bilatérale ; p-values issues de la distribution nulle de S — exacte pour n ≤ 9, approximation par série d’Edgeworth au-delà, comme dans R)",
+  "scatter.methods.spearmanApprox":
+    "la corrélation de rangs de Spearman (bilatérale ; approximation t, utilisée en présence d’ex aequo)",
+  "scatter.methods.spearmanMixed":
+    "la corrélation de rangs de Spearman (bilatérale ; distribution nulle de S sans ex aequo, approximation t avec ex aequo)",
+  "scatter.methods.kendallExact": "le τ-b de Kendall (bilatéral ; p-values exactes)",
+  "scatter.methods.kendallApprox":
+    "le τ-b de Kendall (bilatéral ; approximation normale avec correction des ex aequo)",
+  "scatter.methods.kendallMixed":
+    "le τ-b de Kendall (bilatéral ; p-values exactes sans ex aequo et n < 50, approximation normale avec correction des ex aequo sinon)",
+  "scatter.methods.one":
+    "L’association entre {x} et {y} (n = {n} paires complètes) a été évaluée par {test}.",
+  "scatter.methods.manySame":
+    "L’association entre {x} et {y} a été évaluée séparément pour {names} ({n} paires complètes) par {test}.",
+  "scatter.methods.manyMixed":
+    "L’association entre {x} et {y} a été évaluée séparément pour chaque groupe ({n} paires complètes) : {list}.",
+  "scatter.methods.testFor": "{test} pour {names}",
+  "scatter.methods.policy":
+    "Le r de Pearson était le test par défaut ; la normalité de chaque variable a été vérifiée par le test de Shapiro-Wilk à titre de diagnostic.",
+  "scatter.methods.diagnostics":
+    "La normalité de chaque variable a été évaluée par le test de Shapiro-Wilk.",
+  "scatter.methods.regression":
+    "La droite ajustée est une régression des moindres carrés ordinaires de {y} sur {x}.",
 };
 
 export default fr;

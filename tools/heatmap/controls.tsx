@@ -27,7 +27,13 @@ import type {
 } from "./helpers";
 
 import { COLOR_PALETTES, COLORBLIND_SAFE_PALETTES, DIVERGING_PALETTES } from "../_core/color";
-import { downloadCsv, downloadText, fileBaseName } from "../_core/download";
+import {
+  downloadCsv,
+  downloadPng,
+  downloadSvg,
+  downloadText,
+  fileBaseName,
+} from "../_core/download";
 import { useT } from "./i18n";
 
 export function ClusterModeControl({ label, mode, setMode, k, setK }: ClusterModeControlProps) {
@@ -73,10 +79,9 @@ export function ClusterModeControl({ label, mode, setMode, k, setK }: ClusterMod
   );
 }
 
-// Outlier-skew warning. The compact variant sits above the plot card (one
-// line + button); the full variant lives in the Colour scale section and
-// also explains what clipping does to the legend.
-export function SkewAlert({ skew, onApply, compact }: SkewAlertProps) {
+// Outlier-skew warning, shown once — above the plot card: what is skewed,
+// what clipping does to the legend, and the one-click fix.
+export function SkewAlert({ skew, onApply }: SkewAlertProps) {
   const tr = useT();
   const pct = (x: number): string => {
     const p = x * 100;
@@ -90,25 +95,27 @@ export function SkewAlert({ skew, onApply, compact }: SkewAlertProps) {
         background: "var(--warning-bg)",
         border: "1px solid var(--warning-border)",
         borderRadius: 6,
-        padding: compact ? "6px 12px" : "8px 10px",
-        marginTop: compact ? 0 : 8,
+        padding: "6px 12px",
         display: "flex",
-        flexDirection: compact ? "row" : "column",
-        alignItems: compact ? "center" : "stretch",
-        gap: compact ? 12 : 6,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
         fontSize: 11,
         color: "var(--warning-text)",
       }}
     >
-      <span style={{ flex: 1 }}>
-        <span aria-hidden="true">⚠ </span>
-        {tr("heatmap.colour.skewWarn", {
-          n: skew.nOutliers,
-          count: skew.nOutliers,
-          total: skew.nTotal,
-          pct: pct(skew.nOutliers / skew.nTotal),
-          occupied: pct(skew.occupied),
-        })}
+      <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+        <span>
+          <span aria-hidden="true">⚠ </span>
+          {tr("heatmap.colour.skewWarn", {
+            n: skew.nOutliers,
+            count: skew.nOutliers,
+            total: skew.nTotal,
+            pct: pct(skew.nOutliers / skew.nTotal),
+            occupied: pct(skew.occupied),
+          })}
+        </span>
+        <span style={{ opacity: 0.85 }}>{tr("heatmap.colour.skewNote")}</span>
       </span>
       <button
         type="button"
@@ -118,7 +125,6 @@ export function SkewAlert({ skew, onApply, compact }: SkewAlertProps) {
       >
         {tr("heatmap.colour.skewFix", { n: skew.nOutliers, count: skew.nOutliers })}
       </button>
-      {!compact && <span style={{ opacity: 0.85 }}>{tr("heatmap.colour.skewNote")}</span>}
     </div>
   );
 }
@@ -129,6 +135,7 @@ export function PlotControls({
   cellBorder,
   updCellBorder,
   matrixRef,
+  chartRef,
   rawMatrix,
   resetAll,
   fileName,
@@ -149,7 +156,6 @@ export function PlotControls({
   linkageMethod,
   setLinkageMethod,
   skew,
-  applyRobustRange,
   presets,
   sortedValues,
   rangeIsDiverging,
@@ -177,8 +183,10 @@ export function PlotControls({
     { k: "single", label: tr("heatmap.link.single") },
   ];
   return (
-    <PlotSidebar sticky={false} width={280}>
+    <PlotSidebar width={280}>
       <ActionsPanel
+        onDownloadSvg={() => downloadSvg(chartRef.current, `${baseName}_heatmap.svg`)}
+        onDownloadPng={() => downloadPng(chartRef.current, `${baseName}_heatmap.png`, 2)}
         onReset={resetAll}
         extraDownloads={[
           {
@@ -367,6 +375,7 @@ export function PlotControls({
           <select
             value={vis.palette}
             onChange={(e) => updVis({ palette: e.target.value })}
+            className="dv-select"
             style={{ width: "100%", fontSize: 11, margin: "2px 0 6px" }}
           >
             {paletteKeys.map((p) => (
@@ -475,7 +484,6 @@ export function PlotControls({
             />
           </label>
         </div>
-        {skew && <SkewAlert skew={skew} onApply={applyRobustRange} />}
         <div style={{ marginTop: 10 }}>
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
             {tr("heatmap.range.legendHist")}

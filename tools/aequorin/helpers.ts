@@ -782,6 +782,10 @@ export interface AequorinStatsPanelProps {
   groups: StatsGroup[];
   fileStem: string;
   errorBarLabel: string;
+  // Methods text: error-bar kind (sem / sd / ci95 / none) and what the
+  // compared values are.
+  displayKind?: string;
+  valueNote?: string;
   onAnnotationChange: (spec: AnnotationSpec | null) => void;
   onSummaryChange: (text: string | null) => void;
 }

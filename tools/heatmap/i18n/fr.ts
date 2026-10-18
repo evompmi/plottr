@@ -137,6 +137,34 @@ const fr: Record<HeatmapKey, string> = {
     "Matrice large — la première colonne contient les étiquettes de ligne (gènes / caractéristiques), la ligne d’en-tête contient les étiquettes de colonne (échantillons / conditions), le reste est une grille numérique. Les valeurs manquantes sont tolérées.",
   "heatmap.howto.display":
     "Choisissez une <strong>palette</strong> (continue famille viridis ou divergente), une normalisation optionnelle <strong>z-score</strong> / <strong>log₂</strong> par ligne ou colonne, et des modes de clustering indépendants lignes / colonnes (<strong>hiérarchique</strong> avec liaison + métrique de distance, ou <strong>k-means</strong> avec k explicite). Glissez pour sélectionner une région et obtenir une vue détaillée zoomée.",
+  "heatmap.methods.size": "La heatmap représente {r} lignes × {c} colonnes.",
+  "heatmap.methods.zrow":
+    "Les valeurs ont été centrées-réduites par ligne (moyenne 0, écart-type 1) avant le regroupement et la coloration.",
+  "heatmap.methods.zcol":
+    "Les valeurs ont été centrées-réduites par colonne (moyenne 0, écart-type 1) avant le regroupement et la coloration.",
+  "heatmap.methods.log2":
+    "Les valeurs ont été transformées en log2(x + 1) avant le regroupement et la coloration.",
+  "heatmap.methods.hierBoth":
+    "Les lignes et les colonnes ont été ordonnées par classification hiérarchique (lien {linkage}) sur {distance}.",
+  "heatmap.methods.hierRows":
+    "Les lignes ont été ordonnées par classification hiérarchique (lien {linkage}) sur {distance}.",
+  "heatmap.methods.hierCols":
+    "Les colonnes ont été ordonnées par classification hiérarchique (lien {linkage}) sur {distance}.",
+  "heatmap.methods.link.average": "moyen",
+  "heatmap.methods.link.complete": "complet",
+  "heatmap.methods.link.single": "simple",
+  "heatmap.methods.dist.euclidean": "des distances euclidiennes",
+  "heatmap.methods.dist.manhattan": "des distances de Manhattan",
+  "heatmap.methods.dist.correlation":
+    "des distances 1 − corrélation de Pearson (observations complètes deux à deux)",
+  "heatmap.methods.missing":
+    "En présence de cellules manquantes, les distances ont été calculées sur les paires complètes puis mises à l’échelle du nombre total de valeurs, comme dans la fonction dist() de R.",
+  "heatmap.methods.kmRows":
+    "Les lignes ont été réparties en k = {k} groupes par k-means (initialisation k-means++, itérations de Lloyd, meilleur de 8 départs selon la somme des carrés intra-groupe ; graine {seed}).",
+  "heatmap.methods.kmCols":
+    "Les colonnes ont été réparties en k = {k} groupes par k-means (initialisation k-means++, itérations de Lloyd, meilleur de 8 départs selon la somme des carrés intra-groupe ; graine {seed}).",
+  "heatmap.methods.colour":
+    "Les couleurs représentent les valeurs de {lo} à {hi} avec la palette {palette} ; les valeurs hors de cet intervalle prennent les couleurs extrêmes.",
 };
 
 export default fr;

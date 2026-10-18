@@ -862,7 +862,6 @@ export interface DetailPreviewCardProps {
 export interface SkewAlertProps {
   skew: RangeSkew;
   onApply: () => void;
-  compact?: boolean;
 }
 
 export interface PlotControlsProps {
@@ -871,6 +870,8 @@ export interface PlotControlsProps {
   cellBorder: CellBorderState;
   updCellBorder: UpdCellBorder;
   matrixRef: React.MutableRefObject<MatrixExportRef | null>;
+  // Main heatmap SVG, for the SVG / PNG downloads in the export bar.
+  chartRef: React.RefObject<SVGSVGElement | null>;
   rawMatrix: RawMatrix;
   resetAll: () => void;
   fileName: string;
@@ -892,7 +893,6 @@ export interface PlotControlsProps {
   setLinkageMethod: (m: LinkageMethod) => void;
   // Non-null when a few cells stretch the colour scale (see detectRangeSkew).
   skew: RangeSkew | null;
-  applyRobustRange: () => void;
   presets: RangePresets;
   sortedValues: number[];
   rangeIsDiverging: boolean;

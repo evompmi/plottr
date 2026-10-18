@@ -1,20 +1,20 @@
-// `ActionsPanel` — actions tile for the plot step. Renders a wrapping
-// row of unified download chips (SVG / PNG / + any `extraDownloads`
-// like CSV/TXT/R) followed by a full-width Start-over button. Each
-// chip flex-grows so 1/2/3 fit evenly; a 4th wraps. Every button gets
-// a native `title` tooltip; SVG/PNG/Start-over carry fixed built-in
-// strings, each `extraDownloads` entry passes its own `title`.
+// `ActionsPanel` — the plot step's downloads (SVG / PNG / + any
+// `extraDownloads` like CSV/TXT/R) and Start-over. Inside `PlotToolShell`
+// it renders nothing itself: it hands the list to the shell, which shows it
+// as the export bar in the page header (`plot-actions.ts`). Outside a shell
+// it falls back to a sidebar tile — a wrapping row of download chips and a
+// full-width Start-over button. Every button gets a native `title` tooltip;
+// SVG/PNG/Start-over carry fixed built-in strings, each `extraDownloads`
+// entry passes its own `title`.
 
 import { flashSaved } from "../_core/download";
 import { useShellT } from "./i18n";
+import { PlotActionsContext, type PlotActionDownload } from "./plot-actions";
 
 const h = React.createElement;
+const { useContext, useEffect, useLayoutEffect } = React;
 
-export interface ActionsPanelDownload {
-  label: string;
-  title?: string;
-  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
-}
+export type ActionsPanelDownload = PlotActionDownload;
 
 interface ActionsPanelProps {
   onDownloadSvg?: (e: React.MouseEvent<HTMLButtonElement>) => void;
@@ -43,6 +43,16 @@ export function ActionsPanel(props: ActionsPanelProps) {
   if (props.extraDownloads) {
     props.extraDownloads.forEach((d) => downloads.push(d));
   }
+  const registry = useContext(PlotActionsContext);
+  // Re-register every render so the shell always calls the latest closures.
+  useLayoutEffect(() => {
+    if (registry) registry.set({ downloads, onReset: props.onReset });
+  });
+  useEffect(() => {
+    if (!registry) return undefined;
+    return () => registry.set(null);
+  }, [registry]);
+  if (registry) return null;
   const dlButtons = downloads.map((d, i) =>
     h(
       "button",

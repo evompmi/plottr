@@ -3,7 +3,9 @@
 // current step renders its number on --step-active-bg chrome;
 // reachable-unvisited steps render a --step-ready outline; locked
 // steps render a neutral outline. Connector line between circles
-// fills --step-ready up to the last completed step.
+// fills --step-ready up to the last completed step. With `compact` (the
+// plot step) it collapses to a one-line breadcrumb — small dots + labels
+// separated by "›" — so the chart gets the vertical space.
 
 import { useShellT, type ShellKey } from "./i18n";
 
@@ -29,6 +31,7 @@ interface StepNavBarProps {
   // the stable identifier used by navigation state; labels can be
   // dynamic (e.g. venn showing "Import check" vs "Configure").
   stepLabels?: Record<string, string>;
+  compact?: boolean;
 }
 
 export function StepNavBar(props: StepNavBarProps) {
@@ -41,6 +44,7 @@ export function StepNavBar(props: StepNavBarProps) {
   // Priority: explicit per-tool override → localized default → capitalize.
   const labelFor = (s: string) =>
     stepLabels[s] || (STEP_LABEL_KEYS[s] ? tr(STEP_LABEL_KEYS[s]) : capitalize(s));
+  if (props.compact) return compactNav(props, labelFor, tr);
   const cells = steps.map((s, i) => {
     const enabled = canNavigate ? canNavigate(s) : true;
     const isCurrent = i === currentIdx;
@@ -259,5 +263,96 @@ export function StepNavBar(props: StepNavBarProps) {
       },
     },
     cells
+  );
+}
+
+function compactNav(
+  props: StepNavBarProps,
+  labelFor: (s: string) => string,
+  tr: ReturnType<typeof useShellT>
+): React.ReactElement {
+  const { steps, currentStep, onStepChange, canNavigate } = props;
+  const currentIdx = steps.indexOf(currentStep);
+  const items: React.ReactNode[] = [];
+  steps.forEach((s, i) => {
+    const enabled = canNavigate ? canNavigate(s) : true;
+    const isCurrent = i === currentIdx;
+    const isPast = i < currentIdx;
+    if (i > 0) {
+      items.push(
+        h(
+          "span",
+          { key: "sep" + i, "aria-hidden": "true", style: { color: "var(--text-faint)" } },
+          "›"
+        )
+      );
+    }
+    const dot = h(
+      "span",
+      {
+        key: "dot",
+        "aria-hidden": "true",
+        style: {
+          width: 16,
+          height: 16,
+          borderRadius: "50%",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 10,
+          fontWeight: 700,
+          lineHeight: 1,
+          flex: "0 0 auto",
+          background: isPast
+            ? "var(--step-ready)"
+            : isCurrent
+              ? "var(--step-active-bg)"
+              : "var(--surface)",
+          color: isPast || isCurrent ? "var(--on-accent)" : "var(--text-faint)",
+          border: isPast || isCurrent ? "none" : "1px solid var(--border-strong)",
+        },
+      },
+      isPast ? "✓" : String(i + 1)
+    );
+    items.push(
+      h(
+        "button",
+        {
+          key: "step-" + s,
+          type: "button",
+          onClick: enabled && !isCurrent ? () => onStepChange(s) : undefined,
+          disabled: !enabled,
+          "aria-current": isCurrent ? "step" : undefined,
+          "aria-label": tr("shell.step.aria", {
+            n: i + 1,
+            total: steps.length,
+            label: labelFor(s),
+          }),
+          "data-testid": "step-" + s,
+          style: {
+            all: "unset",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            cursor: enabled && !isCurrent ? "pointer" : "default",
+            fontSize: 12,
+            fontWeight: isCurrent ? 700 : 500,
+            color: isCurrent ? "var(--text)" : enabled ? "var(--text-muted)" : "var(--text-faint)",
+            whiteSpace: "nowrap",
+            textTransform: "capitalize",
+          },
+        },
+        dot,
+        labelFor(s)
+      )
+    );
+  });
+  return h(
+    "nav",
+    {
+      "aria-label": tr("shell.step.navLabel"),
+      style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0 },
+    },
+    items
   );
 }

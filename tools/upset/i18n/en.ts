@@ -144,6 +144,8 @@ const en = {
     "<strong>Wide</strong> — one column per set, items stacked in each column. <strong>Long</strong> — two columns: <em>item</em> and <em>set</em>. Same format as Venn.",
   "upset.howto.display":
     "Each intersection is a column: top-half bar shows its size, bottom-half dot matrix shows the set membership. Sort by <strong>size</strong> (default) or <strong>degree</strong>; filter by minimum size + degree window. Per-intersection significance test against a uniform-random null with BH-adjusted p-values.",
+  "upset.methods.text":
+    "The size of each intersection (items belonging to exactly that combination of sets) was tested against an independence null in which each of N = {universe} items is placed in every set independently at that set's observed rate, so that the intersection count follows a Binomial(N, p) distribution. Two-sided p-values (twice the smaller tail, capped at 1) were adjusted with the Benjamini-Hochberg procedure across the {n} intersections tested.",
 } as const satisfies Catalog;
 
 export default en;

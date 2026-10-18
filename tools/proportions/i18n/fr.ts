@@ -176,6 +176,22 @@ const fr: Record<ProportionsKey, string> = {
     "Plusieurs classes (p. ex. effectifs phénotypiques pour un test 9:3:3:1) : même principe, une colonne par classe.",
   "proportions.howto.display":
     "<strong>Proportion</strong> affiche le % d’une modalité avec IC de Wilson à 95 %. <strong>Empilé</strong> et <strong>Mosaïque</strong> montrent toutes les modalités ; en mosaïque, la largeur suit l’effectif du groupe. Le test est choisi automatiquement : exact de Fisher pour les tableaux 2×2 ou quand les effectifs attendus sont faibles, χ² sinon. Les comparaisons deux à deux utilisent la correction de Holm par défaut. Le panneau d’ajustement compare les effectifs à des proportions comme 3:1 ou 9:3:3:1.",
+  "proportions.methods.design":
+    "Les effectifs de {c} catégories de réponse ont été comparés entre {k} groupes (N = {N} observations ; {n} par groupe).",
+  "proportions.methods.fisher":
+    "L’indépendance entre groupe et réponse a été testée par le test exact de Fisher (bilatéral).",
+  "proportions.methods.fisherMC":
+    "L’indépendance entre groupe et réponse a été testée par le test exact de Fisher (bilatéral ; le tableau étant trop grand pour être énuméré, la p-value a été estimée sur {B} tableaux Monte-Carlo de mêmes marges).",
+  "proportions.methods.chi2":
+    "L’indépendance entre groupe et réponse a été testée par le test du χ² de Pearson (sans correction de continuité).",
+  "proportions.methods.policy":
+    "Le test suivait la règle de Cochran : test exact de Fisher pour les tableaux 2×2 ou en cas de faibles effectifs attendus (un inférieur à 1, ou plus de 20 % inférieurs à 5), test du χ² de Pearson sinon.",
+  "proportions.methods.pairwise":
+    "Les groupes ont été comparés deux à deux par le test exact de Fisher, avec un ajustement des p-values par la méthode de {method}.",
+  "proportions.methods.holm": "Holm",
+  "proportions.methods.bh": "Benjamini-Hochberg",
+  "proportions.methods.wilson":
+    "Les proportions sont représentées avec des intervalles de confiance de Wilson à 95 %.",
 };
 
 export default fr;

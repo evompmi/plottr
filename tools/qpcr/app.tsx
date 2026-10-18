@@ -81,7 +81,7 @@ const VIS_INIT_QPCR: QpcrVis = {
   facetHeight: 260,
   facetCols: 3,
   xLabelAngle: 0,
-  tickFontSize: 12,
+  tickFontSize: 11,
   plotTitle: "",
   plotBg: "#ffffff",
   showGrid: false,
@@ -449,6 +449,8 @@ export function App() {
           onDownloadR={onDownloadR}
           onReset={resetAll}
           dropped={dropped}
+          refs={cfg.refs}
+          eff={cfg.eff}
         />
       )}
     </PlotToolShell>

@@ -349,6 +349,8 @@ export interface PerXStatsPanelProps {
   fileName: string;
   showStars: boolean;
   setShowStars: (b: boolean) => void;
+  // Error-bar kind (sem / sd / ci95) for the methods text.
+  displayKind?: string;
 }
 
 export function computePerXStats(series: Series[]) {

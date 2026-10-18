@@ -206,6 +206,10 @@ const en = {
     "Wide format — one column per sample, one row per time-point. Numeric matrix; no time-axis column required (rows are evenly-spaced; you set the per-row time step + base unit). <strong>Columns sharing the same header are pooled as replicates of one condition</strong> — the chart plots their <strong>mean ± SD</strong> ribbon automatically. Rename headers to change which samples group together.",
   "aequorin.howto.display":
     "Each unique header becomes a coloured trace; same-name columns collapse into a mean ± SD ribbon under it. View the combined chart or a faceted small-multiples grid. Optional inset bar plot of integrated Σ-area per condition.",
+  "aequorin.methods.valueCorrected":
+    "the per-replicate sums of the signal over the selected time window, after subtracting each replicate's minimum",
+  "aequorin.methods.valueRaw":
+    "the per-replicate sums of the raw signal over the selected time window",
 } as const satisfies Catalog;
 
 export default en;

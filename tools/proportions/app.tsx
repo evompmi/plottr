@@ -51,7 +51,7 @@ const VIS_INIT_PROPORTIONS: ProportionsVis = {
   xLabelAngle: 0,
   plotWidth: 480,
   plotHeight: 340,
-  tickFontSize: 12,
+  tickFontSize: 11,
   plotTitle: "",
   yLabel: "",
   plotBg: "#ffffff",

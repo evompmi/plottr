@@ -159,7 +159,7 @@ export const ProportionsChart = memo(
       <svg
         ref={ref}
         viewBox={`0 0 ${VBW} ${VBH}`}
-        style={{ width: "100%", height: "auto", display: "block" }}
+        style={{ width: VBW, maxWidth: "100%", height: "auto", display: "block", margin: "0 auto" }}
         xmlns="http://www.w3.org/2000/svg"
         role="img"
         aria-label={title || tt("proportions.chart.fallbackTitle")}
