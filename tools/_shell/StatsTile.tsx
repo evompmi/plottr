@@ -101,6 +101,8 @@ function _formatTestLine(
   if (!res || res.error) return res && res.error ? "⚠ " + res.error : "—";
   if ((name === "studentT" || name === "welchT") && res.t != null && res.df != null)
     return `t(${res.df.toFixed(2)}) = ${res.t.toFixed(3)},  p = ${formatP(res.p)}`;
+  if (name === "mannWhitney" && res.U != null && res.exact)
+    return `U = ${res.U.toFixed(1)},  p = ${formatP(res.p)} (exact)`;
   if (name === "mannWhitney" && res.U != null && res.z != null)
     return `U = ${res.U.toFixed(1)},  z = ${res.z.toFixed(3)},  p = ${formatP(res.p)}`;
   if ((name === "oneWayANOVA" || name === "welchANOVA") && res.F != null) {

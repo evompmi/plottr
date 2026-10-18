@@ -1894,7 +1894,7 @@ suite("HeatmapChart (raster ↔ vector / high-density export)");
       assert(i !== -1, "R script contains: " + needle);
       return i;
     };
-    const dist = at("hc_dist <- function(x) as.dist(1 - cor(t(x)))");
+    const dist = at('hc_dist <- function(x) as.dist(1 - cor(t(x), use = "pairwise.complete.obs"))');
     const rowTree = at('row_tree <- hclust(hc_dist(mat), method = "average")');
     const colTree = at('col_tree <- hclust(hc_dist(t(mat)), method = "average")');
     const clip = at("mat_plot <- pmin(pmax(mat, 1), 5)");

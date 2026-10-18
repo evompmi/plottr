@@ -54,9 +54,9 @@ const fixturePath = path.join(repoRoot, "benchmark", "results-scipy.json");
 //   Central distributions (norminv / tinv / fcdf / chi2cdf) typically
 //   match to 1e-13 or better via the Cephes ports.
 //   Noncentral distributions (nctcdf / ncf_sf / ncchi2cdf) are
-//   Gauss-Legendre / Poisson-mixture and inherently a few-percent
-//   accurate at the design envelope (delta > 50, lambda > 500). Their
-//   absolute tolerance is correspondingly looser.
+//   series / Poisson-mixture / quadrature and can be a few percent off
+//   at the design envelope (delta > 50, lambda > 500). Their absolute
+//   tolerance is correspondingly looser.
 //   `qtukey` at df=1 with extreme p / large k is explicitly called
 //   "pathological" in tools/stats.js's source comment; we bucket
 //   those cases separately rather than flagging them.
@@ -85,8 +85,9 @@ function cmp(jsVal, refVal, relTol = TOL_TIGHT) {
 //   - "pass": within tolerance (real agreement).
 //   - "fail": real disagreement at non-tiny values.
 //   - "underflow": SciPy reports p < UNDERFLOW_CUTOFF and JS reports 0
-//                  (or vice versa). Plöttr's Gauss-Legendre quadrature
-//                  has a documented precision floor; SciPy uses
+//                  (or vice versa). Noncentral survival rows are
+//                  `1 − cdf` (floor ~1e-16) and ptukey's Gauss-Legendre
+//                  window has a documented precision floor; SciPy uses
 //                  algorithms that survive deeper. We don't count
 //                  these as failures because no real Plöttr user
 //                  would render p < 1e-15 — it would round to 0 in

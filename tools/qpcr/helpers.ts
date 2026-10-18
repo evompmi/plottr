@@ -653,6 +653,8 @@ export function formatResultLine(test: string | null, res: TestResult | null): s
   const n = (v: number | undefined): number => (typeof v === "number" ? v : NaN);
   if (test === "studentT" || test === "welchT")
     return `t(${n(res.df).toFixed(2)}) = ${n(res.t).toFixed(3)},  p = ${formatP(res.p)}`;
+  if (test === "mannWhitney" && res.exact)
+    return `U = ${n(res.U).toFixed(1)},  p = ${formatP(res.p)} (exact)`;
   if (test === "mannWhitney")
     return `U = ${n(res.U).toFixed(1)},  z = ${n(res.z).toFixed(3)},  p = ${formatP(res.p)}`;
   if (test === "oneWayANOVA" || test === "welchANOVA")

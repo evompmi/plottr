@@ -65,6 +65,38 @@ test("recovers a negative slope", () => {
   approx(r.r2, 1, 1e-10);
 });
 
+// References: R 4.5 `lm(y ~ u)` on u = x − x[1], back-transformed
+// (plain `lm(y ~ x)` drops x as collinear with the intercept at this scale).
+test("epoch-timestamp x (1.7e9 s) matches R", () => {
+  const t = [0, 60, 120, 180, 240, 300];
+  const e = [0.1, -0.2, 0.05, 0.3, -0.1, 0];
+  const r = computeLinearRegression(
+    t.map((d, i) => ({ x: 1.7e9 + d, y: 2 * d + e[i] })),
+    "x",
+    "y"
+  );
+  approx(r.slope, 2.0000238095238094, 1e-12);
+  approx(r.intercept, -3.4000404761690474e9, 1e-3);
+  approx(r.r2, 0.99999940987834435, 1e-12);
+});
+
+test("genomic-position x (1e8) matches R", () => {
+  const e = [0.1, -0.1, 0.2, 0, -0.2, 0.1, 0, 0.05, -0.05, 0];
+  const r = computeLinearRegression(
+    e.map((d, i) => ({ x: 1e8 + i, y: 3 * i + d })),
+    "x",
+    "y"
+  );
+  approx(r.slope, 2.993939393939395, 1e-10);
+  approx(r.intercept, -2.9939393935666674e8, 1e-2);
+  approx(r.r2, 0.99984996268733461, 1e-10);
+});
+
+test("identical non-representable x (0.1 × 3) is still degenerate", () => {
+  const rows = [0.1, 0.1, 0.1].map((x, i) => ({ x, y: i }));
+  eq(computeLinearRegression(rows, "x", "y"), { valid: false });
+});
+
 test("returns {valid:false} for fewer than 2 points", () => {
   eq(computeLinearRegression([], "x", "y"), { valid: false });
   eq(computeLinearRegression([{ x: 1, y: 2 }], "x", "y"), { valid: false });

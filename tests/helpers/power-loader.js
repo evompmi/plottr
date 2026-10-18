@@ -56,7 +56,8 @@ const powerRaw = powerBuild.outputFiles[0].text;
 const closingIdx = powerRaw.lastIndexOf("})();");
 const exportLine =
   "this.TESTS = TESTS; this.dFromMeans = dFromMeans; " +
-  "this.fFromGroupMeans = fFromGroupMeans; this.wFromProportions = wFromProportions;";
+  "this.fFromGroupMeans = fFromGroupMeans; this.wFromProportions = wFromProportions; " +
+  "this.parseNumberList = parseNumberList;";
 const powerCode =
   closingIdx >= 0
     ? powerRaw.slice(0, closingIdx) + exportLine + powerRaw.slice(closingIdx)
@@ -146,6 +147,8 @@ module.exports = {
   dFromMeans: ctx.dFromMeans,
   fFromGroupMeans: ctx.fFromGroupMeans,
   wFromProportions: ctx.wFromProportions,
+  // List-field parser (decimal commas with ";" separators)
+  parseNumberList: ctx.parseNumberList,
   // Underlying stats primitives — useful for the property tests to
   // cross-check power against the cdf they're built on. These come
   // through stats-loader (require-based) so they're the same

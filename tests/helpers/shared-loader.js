@@ -20,6 +20,10 @@ module.exports = {
   getPointColors: ctx.getPointColors,
   // Seeded random
   seededRandom: ctx.seededRandom,
+  parseDecimal: ctx.parseDecimal,
+  // Spread-free array extrema
+  arrayMin: ctx.arrayMin,
+  arrayMax: ctx.arrayMax,
   // Axis ticks
   niceStep: ctx.niceStep,
   makeTicks: ctx.makeTicks,

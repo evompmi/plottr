@@ -25,7 +25,7 @@
 
 import { chi2cdf_upper, gammaln } from "./dist";
 import { bhAdjust } from "./posthoc";
-import { seededRandom } from "../numeric";
+import { arrayMax, seededRandom } from "../numeric";
 
 const LOG_REL_ERR = Math.log1p(1e-7);
 
@@ -461,7 +461,7 @@ function ncHyper(m: number, n: number, k: number): NcHyper {
 
 function dnhyper(h: NcHyper, logNcp: number): number[] {
   const d = h.logdc.map((l, i) => l + logNcp * h.support[i]);
-  const mx = Math.max(...d);
+  const mx = arrayMax(d);
   const e = d.map((v) => Math.exp(v - mx));
   const s = e.reduce((a, b) => a + b, 0);
   return e.map((v) => v / s);

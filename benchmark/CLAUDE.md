@@ -20,7 +20,7 @@ The SciPy benchmark uses a tighter classification than the R one because it deli
 
 - **pass** — within tolerance.
 - **deep-tail** — both values < 1e-13 (informational; below any user-facing precision).
-- **underflow** — SciPy reports < 1e-13, JS underflows to 0. Plöttr's Gauss-Legendre window has a documented precision floor; SciPy uses series / asymptotic forms that survive deeper.
+- **underflow** — SciPy reports < 1e-13, JS underflows to 0. The noncentral survival rows are computed as `1 − cdf`, which can't represent values below ~1e-16, and `ptukey`'s Gauss-Legendre window has a documented precision floor; SciPy uses series / asymptotic forms that survive deeper.
 - **pathological** — `qtukey` at `df ≤ 2` with `p ≥ 0.95` and `k ≥ 10`. Source comment in `tools/_core/stats/posthoc.ts` explicitly calls these out as outside the implementation's design envelope.
 - **fail** — real disagreement. Exits 1.
 

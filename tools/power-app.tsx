@@ -3,6 +3,7 @@
 
 import { NumberInput, PageHeader, buildRScriptForPower, useIsMobile } from "./_shell";
 import { makeTicks } from "./_core/scale";
+import { parseDecimal } from "./_core/numeric";
 import { downloadText, flashSaved } from "./_core/download";
 import {
   bisect,
@@ -65,6 +66,16 @@ const TEST_I18N: Record<TestKey, { label: PowerKey; question: PowerKey; nLabel: 
 // Two-sample t: d from means + SD
 function dFromMeans(m1: number, m2: number, sd: number): number {
   return sd > 0 ? Math.abs(m1 - m2) / sd : 0;
+}
+
+// List field ("10, 12, 15", or with decimal commas "10,5; 12; 15"): ";"
+// separates the entries when present, otherwise ",". Non-numeric entries drop.
+function parseNumberList(str: string): number[] {
+  const sep = str.includes(";") ? ";" : ",";
+  return str
+    .split(sep)
+    .map(parseDecimal)
+    .filter((v) => !isNaN(v));
 }
 
 // Chi-square w from expected proportions vs hypothesized
@@ -188,21 +199,16 @@ function EffectSizePanel({
   const smallLabel = { fontSize: 11, color: "var(--text-muted)", marginBottom: 2 };
   const note = { fontSize: 10, color: "var(--text-faint)", marginTop: 2 };
 
-  // Parse ratio string like "3:1" or "0.75,0.25" into normalized proportions
+  // Parse ratio string like "3:1", "0.75,0.25" or "0,75;0,25" into
+  // normalized proportions.
   function parseProportions(str: string): number[] {
     if (!str.trim()) return [];
-    let parts;
-    if (str.includes(":")) {
-      parts = str
-        .split(":")
-        .map((s) => parseFloat(s.trim()))
-        .filter((v) => !isNaN(v) && v >= 0);
-    } else {
-      parts = str
-        .split(",")
-        .map((s) => parseFloat(s.trim()))
-        .filter((v) => !isNaN(v) && v >= 0);
-    }
+    const parts = str.includes(":")
+      ? str
+          .split(":")
+          .map(parseDecimal)
+          .filter((v) => !isNaN(v) && v >= 0)
+      : parseNumberList(str).filter((v) => v >= 0);
     const sum = parts.reduce((a, b) => a + b, 0);
     return sum > 0 ? parts.map((p) => p / sum) : [];
   }
@@ -223,10 +229,7 @@ function EffectSizePanel({
         onEffectChange((Math.abs(dm) / ds).toFixed(4));
       }
     } else if (testKey === "anova") {
-      const means = groupMeansStr
-        .split(",")
-        .map((s) => parseFloat(s.trim()))
-        .filter((v) => !isNaN(v));
+      const means = parseNumberList(groupMeansStr);
       const wsd = parseFloat(withinSd);
       if (means.length >= 2 && !isNaN(wsd) && wsd > 0) {
         onEffectChange(fFromGroupMeans(means, wsd).toFixed(4));

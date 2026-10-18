@@ -48,6 +48,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   −2 … +8, or 0 … 8 — and 0 always keeps the white/grey midpoint. The colourbar marks 0,
   and the R export uses the same mapping. Lopsided ranges on diverging palettes render
   differently from before.
+- **Rank tests use R's exact p-values on small samples.** Mann-Whitney (both n < 50), Spearman
+  (n ≤ 1290) and Kendall (n < 50) without ties now report the exact p that `wilcox.test` /
+  `cor.test` give by default, instead of the normal / t approximation (up to 2× different at
+  n ≤ 6). Ties keep the approximation. R-script exports drop `exact = FALSE`.
+- **Correlation power matches `pwr::pwr.r.test`.** The calculator was a plain Fisher-z
+  approximation, off by up to ~20 power points at n ≤ 8.
+- **Welch effect size is R's unpooled Cohen's d.** With Welch's t, the replication-planning
+  effect size is now `effectsize::cohens_d(pooled_sd = FALSE)` — √((s₁² + s₂²)/2) with a
+  Welch-df CI — instead of d_av ((s₁ + s₂)/2) with a pooled-df CI.
+- **Normal and noncentral-t distributions are ports of R's `pnorm` / `pt`.** z-based p-values
+  and power now match R to ~1e-15 (were ~1e-7), and Cohen's d CIs stay exact at very large
+  effects (they drifted up to 3 % at d ≥ 12).
+
+### Fixed
+
+- **Large files no longer fail silently.** Uploads past ~125,000 values did nothing in Group
+  Plot, Proportions, qPCR and other tools (a JavaScript argument-limit crash). Regression: 6 tests.
+- **Calculators accept decimal commas.** Molarity read "1,5" as 1; it now reads 1.5. Power's
+  list fields accept "10,5; 12; 15" (semicolons between values when decimals use commas).
+- **Scatter regression line stays correct for large x** (genomic positions, timestamps): the
+  slope was wrong from x ≈ 10⁷ and meaningless for epoch times. Now matches R's `lm`.
+- **Heatmap clustering with missing cells** scales Euclidean / Manhattan distances like R's
+  `dist()`, so rows with gaps no longer look closer than they are; the correlation R export
+  uses pairwise-complete rows.
+- **A stray opening quote** (e.g. `"Col-0`) no longer turns the rest of a CSV into one cell.
+- **Axis ticks no longer hang the tab** on values ≳ 10¹⁶ with a small range.
+- **Kendall τ on large data** runs in O(n log n): 100k points take ~0.1 s instead of ~35 s.
+- **Imported settings files** must give hex colours and known palette names.
 
 ## [1.10.0] - 2026-09-17
 

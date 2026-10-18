@@ -11,54 +11,95 @@
 
 // ── 1. Distribution functions ───────────────────────────────────────────────
 
-// Normal CDF. Uses A&S 26.2.17 (max error 7.5e-8) for moderate |x|, and
-// switches to the tail-accurate `normsf` for |x| ≥ 7 — avoids the 1 − tiny
-// representation collapse at the edges of double precision.
-export function normcdf(x: number): number {
-  if (x === 0) return 0.5;
-  if (x >= 7) return 1 - normsf(x);
-  if (x <= -7) return normsf(-x);
-  const t = 1 / (1 + 0.2316419 * Math.abs(x));
-  const d = 0.3989422804014327; // 1/sqrt(2*pi)
-  const poly =
-    t *
-    (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
-  const p = 1 - d * Math.exp(-0.5 * x * x) * poly;
-  return x > 0 ? p : 1 - p;
+// Normal CDF / survival — port of R's `pnorm_both` (nmath/pnorm.c; Cody 1993,
+// ACM TOMS 19:22–32, with R's refinements), accurate to full double
+// precision across the range. Returns [P(X ≤ x), P(X > x)].
+const PN_A = [
+  2.2352520354606837, 161.02823106855587, 1067.6894854603709, 18154.98125334356,
+  0.06568233791820745,
+];
+const PN_B = [47.202581904688245, 976.0985517377767, 10260.932208618979, 45507.78933502673];
+const PN_C = [
+  0.39894151208813466, 8.883149794388377, 93.50665613217785, 597.2702763948002, 2494.5375852903726,
+  6848.190450536283, 11602.65143764735, 9842.714838383978, 1.0765576773720192e-8,
+];
+const PN_D = [
+  22.266688044328117, 235.387901782625, 1519.3775994075547, 6485.558298266761, 18615.571640885097,
+  34900.95272114598, 38912.00328609327, 19685.429676859992,
+];
+const PN_P = [
+  0.215898534057957, 0.12740116116024736, 0.022235277870649807, 0.0014216191932278934,
+  2.9112874951168793e-5, 0.023073441764940174,
+];
+const PN_Q = [
+  1.284260096144911, 0.4682382124808651, 0.06598813786892856, 0.0037823963320275824,
+  7.297515550839662e-5,
+];
+const M_SQRT_32 = 5.656854249492381;
+const M_1_SQRT_2PI = 0.3989422804014327;
+
+function pnormBoth(x: number): [number, number] {
+  if (Number.isNaN(x)) return [NaN, NaN];
+  const y = Math.abs(x);
+  let cum: number, ccum: number, temp: number;
+  // exp(−X²/2) with X split as X = xsq + del to keep the exponent exact.
+  const tailFromTemp = (X: number, tmp: number): void => {
+    const xsq = Math.trunc(X * 16) / 16;
+    const del = (X - xsq) * (X + xsq);
+    cum = Math.exp(-xsq * xsq * 0.5) * Math.exp(-del * 0.5) * tmp;
+    ccum = 1.0 - cum;
+  };
+  if (y <= 0.67448975) {
+    let xnum = 0,
+      xden = 0;
+    if (y > Number.EPSILON * 0.5) {
+      const xsq = x * x;
+      xnum = PN_A[4] * xsq;
+      xden = xsq;
+      for (let i = 0; i < 3; i++) {
+        xnum = (xnum + PN_A[i]) * xsq;
+        xden = (xden + PN_B[i]) * xsq;
+      }
+    }
+    temp = (x * (xnum + PN_A[3])) / (xden + PN_B[3]);
+    return [0.5 + temp, 0.5 - temp];
+  }
+  cum = 0;
+  ccum = 0;
+  if (y <= M_SQRT_32) {
+    let xnum = PN_C[8] * y,
+      xden = y;
+    for (let i = 0; i < 7; i++) {
+      xnum = (xnum + PN_C[i]) * y;
+      xden = (xden + PN_D[i]) * y;
+    }
+    temp = (xnum + PN_C[7]) / (xden + PN_D[7]);
+    tailFromTemp(y, temp);
+  } else if (y < 38.4674) {
+    const xsq = 1.0 / (x * x);
+    let xnum = PN_P[5] * xsq,
+      xden = xsq;
+    for (let i = 0; i < 4; i++) {
+      xnum = (xnum + PN_P[i]) * xsq;
+      xden = (xden + PN_Q[i]) * xsq;
+    }
+    temp = (xsq * (xnum + PN_P[4])) / (xden + PN_Q[4]);
+    temp = (M_1_SQRT_2PI - temp) / y;
+    tailFromTemp(x, temp);
+  } else {
+    return x > 0 ? [1, 0] : [0, 1];
+  }
+  // `cum` holds the lower tail of −|x|; swap for positive x.
+  return x > 0 ? [ccum, cum] : [cum, ccum];
 }
 
-// Normal survival 1 - Φ(x) — tail-accurate. For |x| < 7 we use the A&S 26.2.17
-// polynomial directly (no 1 − normcdf cancellation). For |x| ≥ 7 we switch to
-// the asymptotic expansion Φ̄(x) ≈ φ(x)/x · (1 − 1/x² + 3/x⁴ − 15/x⁶ + ...)
-// which stays accurate down to ~1e-300 where A&S 26.2.17 has already lost all
-// meaningful digits.
+export function normcdf(x: number): number {
+  return pnormBoth(x)[0];
+}
+
+// Normal survival 1 − Φ(x), computed directly (no 1 − Φ cancellation).
 export function normsf(x: number): number {
-  if (x === 0) return 0.5;
-  if (x < 0) return 1 - normsf(-x);
-  const d = 0.3989422804014327; // 1/sqrt(2*pi)
-  if (x < 7) {
-    const t = 1 / (1 + 0.2316419 * x);
-    const poly =
-      t *
-      (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
-    return d * Math.exp(-0.5 * x * x) * poly;
-  }
-  // Asymptotic series. Truncate when a term is ≤ 1e-16 × running sum.
-  const x2 = x * x;
-  let term = 1;
-  let sum = 1;
-  let n = 1;
-  while (n < 40) {
-    term *= -(2 * n - 1) / x2;
-    const next = sum + term;
-    if (Math.abs(term) <= 1e-16 * Math.abs(next)) {
-      sum = next;
-      break;
-    }
-    sum = next;
-    n++;
-  }
-  return (d * Math.exp(-0.5 * x2) * sum) / x;
+  return pnormBoth(x)[1];
 }
 
 // Inverse normal CDF — Peter Acklam's rational approximation (max error 1.15e-9)
@@ -569,27 +610,122 @@ export function _gaussLegendre(n: number): GLCache {
   return (_glCache = { nodes, weights, n });
 }
 
-// Noncentral t CDF — Gauss-Legendre quadrature of chi-square mixture.
-// P(T ≤ t | ν, δ) = ∫₀^∞ Φ(t√(s/ν) − δ) · f_χ²(s; ν) ds
-// Substitution u = √s removes density singularity for small ν, giving:
-// = ∫₀^∞ Φ(tu/√ν − δ) · 2u^{ν−1} e^{−u²/2} / (2^{ν/2} Γ(ν/2)) du
+// Noncentral t CDF P(T ≤ t | ν, δ) — port of R's `pnt` (nmath/pnt.c):
+// AS 243 (Lenth 1989, Appl. Statist. 38:185–189) with Guenther's twin
+// Poisson-weighted incomplete-beta series, and R's A&S 26.7.10 normal
+// approximation for ν > 4e5. Two deliberate departures, both toward the
+// exact value: a 1e-15 series tolerance (R: 1e-12), and a direct
+// integral for |δ| > 37.62 where R's normal approximation is rough.
 export function nctcdf(t: number, df: number, delta: number): number {
-  if (df <= 0) return NaN;
-  if (Math.abs(delta) < 1e-14) return tcdf(t, df);
+  if (!(df > 0)) return NaN;
+  if (delta === 0) return tcdf(t, df);
+  if (!Number.isFinite(t)) return t < 0 ? 0 : 1;
+  let negdel: boolean, tt: number, del: number;
+  if (t >= 0) {
+    negdel = false;
+    tt = t;
+    del = delta;
+  } else {
+    // pt(q, ν, δ) ≤ pt(0, ν, δ) = Φ(−δ): the left tail is 0 for large δ.
+    if (delta > 40) return 0;
+    negdel = true;
+    tt = -t;
+    del = -delta;
+  }
+  if (del * del > 2 * Math.LN2 * 1021 && df <= 4e5) {
+    // |δ| > 37.62: the series' Poisson weight e^{−δ²/2} underflows. R falls
+    // back to A&S 26.7.10 here, which is rough at small ν (pt(10, 1, 50) =
+    // 1.3e-9 against a true 6.5e-7); integrate the χ mixture directly.
+    return _nctcdfQuad(t, df, delta);
+  }
+  if (df > 4e5) {
+    const s = 1 / (4 * df);
+    const z = (tt * (1 - s) - del) / Math.sqrt(1 + tt * tt * 2 * s);
+    return negdel ? normsf(z) : normcdf(z);
+  }
+  let x = t * t;
+  let rxb = df / (x + df);
+  x = x / (x + df);
+  let tnc = 0;
+  if (x > 0) {
+    const lambda = del * del;
+    let p = 0.5 * Math.exp(-0.5 * lambda);
+    if (p === 0) return negdel ? 1 : 0; // underflow — R returns 0 (lower tail)
+    let q = Math.sqrt(2 / Math.PI) * p * del;
+    let s = 0.5 - p;
+    if (s < 1e-7) s = -0.5 * Math.expm1(-0.5 * lambda);
+    let a = 0.5;
+    const b = 0.5 * df;
+    rxb = Math.pow(rxb, b);
+    const albeta = 0.5 * Math.log(Math.PI) + gammaln(b) - gammaln(0.5 + b);
+    let xodd = betai(a, b, x);
+    let godd = 2 * rxb * Math.exp(a * Math.log(x) - albeta);
+    const tncb = b * x;
+    let xeven = tncb < Number.EPSILON ? tncb : 1 - rxb;
+    let geven = tncb * rxb;
+    tnc = p * xodd + q * xeven;
+    for (let it = 1; it <= 1000; it++) {
+      a += 1;
+      xodd -= godd;
+      xeven -= geven;
+      godd *= (x * (a + b - 1)) / a;
+      geven *= (x * (a + b - 0.5)) / (a + 0.5);
+      p *= lambda / (2 * it);
+      q *= lambda / (2 * it + 1);
+      tnc += p * xodd + q * xeven;
+      s -= p;
+      if (s < -1e-10) break; // rounding-error guard (R 2.4.0)
+      if (s <= 0 && it > 1) break;
+      const errbd = 2 * s * (xodd - godd);
+      // R stops at 1e-12; the tighter bound costs a few iterations and keeps
+      // 1 − P accurate below 1e-13 in the far upper tail.
+      if (Math.abs(errbd) < 1e-15) break;
+    }
+  }
+  tnc += normcdf(-del);
+  const v = Math.min(tnc, 1);
+  if (!negdel) return v;
+  // t < 0 returns 1 − (upper series), which cancels to ~1e-13 noise in the
+  // far lower tail (R: pt(-5, 1000, 5) = 1.8e-13, true 4.2e-18); there the
+  // direct integral, whose integrand Φ is itself tail-accurate, is exact.
+  const lower = 0.5 - v + 0.5;
+  return lower < 1e-9 ? _nctcdfQuad(t, df, delta) : lower;
+}
+
+// P(T ≤ t | ν, δ) = ∫₀^∞ Φ(t·u/√ν − δ) · f_χ(u; ν) du, by composite 48-point
+// Gauss-Legendre. Panels break at the Φ step u* = δ√ν/t (width √ν/|t|), which
+// is far narrower than the χ density when |t| is large — a single fixed panel
+// under-resolves it (the cause of the old Cohen's-d CI drift at d ≥ 12).
+function _nctcdfQuad(t: number, df: number, delta: number): number {
   const halfDf = df / 2;
-  const logC = halfDf * Math.log(2) + gammaln(halfDf);
+  const logC = (halfDf - 1) * Math.LN2 + gammaln(halfDf);
   const sqrtDf = Math.sqrt(df);
-  const uLo = Math.max(0, sqrtDf - 8);
-  const uHi = sqrtDf + 8;
+  const uLo = Math.max(0, sqrtDf - 12);
+  const uHi = sqrtDf + 12;
+  const cuts = [uLo, uHi];
+  if (t !== 0) {
+    const uStar = (delta * sqrtDf) / t;
+    const w = sqrtDf / Math.abs(t);
+    for (const k of [-12, -4, -1.5, 0, 1.5, 4, 12]) {
+      const u = uStar + k * w;
+      if (u > uLo && u < uHi) cuts.push(u);
+    }
+  }
+  cuts.sort((a, b) => a - b);
   const gl = _gaussLegendre(48);
-  const half = (uHi - uLo) / 2,
-    mid = (uHi + uLo) / 2;
   let sum = 0;
-  for (let i = 0; i < 48; i++) {
-    const u = mid + half * gl.nodes[i];
-    if (u <= 0) continue;
-    const logH = Math.log(2) + (df - 1) * Math.log(u) - (u * u) / 2 - logC;
-    sum += half * gl.weights[i] * normcdf((t * u) / sqrtDf - delta) * Math.exp(logH);
+  for (let c = 0; c + 1 < cuts.length; c++) {
+    const a = cuts[c],
+      b = cuts[c + 1];
+    if (b <= a) continue;
+    const half = (b - a) / 2,
+      mid = (a + b) / 2;
+    for (let i = 0; i < 48; i++) {
+      const u = mid + half * gl.nodes[i];
+      if (u <= 0) continue;
+      const logF = (df - 1) * Math.log(u) - (u * u) / 2 - logC;
+      sum += half * gl.weights[i] * normcdf((t * u) / sqrtDf - delta) * Math.exp(logF);
+    }
   }
   return Math.max(0, Math.min(1, sum));
 }
@@ -705,6 +841,172 @@ export function ncchi2cdf(x: number, k: number, lambda: number): number {
   return Math.min(1, Math.max(0, sum));
 }
 
+// ── 1b. Exact null distributions of rank statistics ─────────────────────────
+//
+// Ports of R's `pwilcox` (nmath/wilcox.c), `pkendall` (stats/src/kendall.c)
+// and `prho` (stats/src/prho.c, AS 89). These back the exact p-values that
+// `wilcox.test` / `cor.test` report by default on small, tie-free samples.
+
+// Null frequency of the Mann-Whitney statistic W = U1 for sample sizes
+// (m, n): counts[k] = #{rank configurations with W = k}, k = 0..m·n.
+// DP over c(i, j)[k] = c(i−1, j)[k−j] + c(i, j−1)[k] — all additions of
+// positive counts, as R's `cwilcox` recursion.
+const _wilcoxCache = new Map<string, Float64Array>();
+function wilcoxCounts(m: number, n: number): Float64Array {
+  const key = m + "," + n;
+  const hit = _wilcoxCache.get(key);
+  if (hit) return hit;
+  // prev[j] = counts for (i − 1, j); cur[j] = counts for (i, j).
+  let prev: Float64Array[] = [];
+  for (let j = 0; j <= n; j++) prev.push(Float64Array.of(1));
+  for (let i = 1; i <= m; i++) {
+    const cur: Float64Array[] = [Float64Array.of(1)];
+    for (let j = 1; j <= n; j++) {
+      const c = new Float64Array(i * j + 1);
+      const a = prev[j]; // (i − 1, j), shifted by j
+      for (let k = 0; k < a.length; k++) c[k + j] += a[k];
+      const b = cur[j - 1]; // (i, j − 1)
+      for (let k = 0; k < b.length; k++) c[k] += b[k];
+      cur.push(c);
+    }
+    prev = cur;
+  }
+  const out = prev[n];
+  _wilcoxCache.set(key, out);
+  return out;
+}
+
+// P[W ≤ q] (lowerTail) or P[W > q] for the Mann-Whitney / Wilcoxon rank-sum
+// statistic with sample sizes m, n — R's `pwilcox(q, m, n, lower.tail)`.
+export function pwilcox(q: number, m: number, n: number, lowerTail: boolean = true): number {
+  if (!(m > 0) || !(n > 0)) return NaN;
+  q = Math.floor(q + 1e-7);
+  if (q < 0) return lowerTail ? 0 : 1;
+  if (q >= m * n) return lowerTail ? 1 : 0;
+  const counts = wilcoxCounts(m, n);
+  const c = Math.exp(gammaln(m + n + 1) - gammaln(m + 1) - gammaln(n + 1));
+  let p = 0;
+  // Sum over the shorter range, as R does.
+  if (q <= (m * n) / 2) {
+    for (let i = 0; i <= q; i++) p += counts[i] / c;
+  } else {
+    q = m * n - q;
+    for (let i = 0; i < q; i++) p += counts[i] / c;
+    lowerTail = !lowerTail;
+  }
+  return lowerTail ? p : 0.5 - p + 0.5;
+}
+
+// Null frequency of T = #concordant pairs for n tie-free pairs:
+// counts[k] = #{permutations of n with k concordant pairs} (Mahonian numbers).
+const _kendallCache = new Map<number, Float64Array>();
+function kendallCounts(n: number): Float64Array {
+  const hit = _kendallCache.get(n);
+  if (hit) return hit;
+  let w = Float64Array.of(1);
+  for (let m = 2; m <= n; m++) {
+    const u = (m * (m - 1)) / 2;
+    const next = new Float64Array(u + 1);
+    // c(k, m) = Σ_{i=0}^{m−1} c(k − i, m − 1)
+    for (let k = 0; k <= u; k++) {
+      let s = 0;
+      for (let i = 0; i < m; i++) {
+        const idx = k - i;
+        if (idx >= 0 && idx < w.length) s += w[idx];
+      }
+      next[k] = s;
+    }
+    w = next;
+  }
+  _kendallCache.set(n, w);
+  return w;
+}
+
+// P[T ≤ q] for Kendall's T with n tie-free pairs — R's internal `pkendall`.
+export function pkendall(q: number, n: number): number {
+  q = Math.floor(q + 1e-7);
+  if (q < 0) return 0;
+  if (q > (n * (n - 1)) / 2) return 1;
+  const counts = kendallCounts(n);
+  let p = 0;
+  for (let j = 0; j <= q; j++) p += counts[j];
+  return p / Math.exp(gammaln(n + 1));
+}
+
+// Spearman's S = Σd² — AS 89 (R's `prho`): P[S ≥ is] (upper), or P[S < is]
+// when lowerTail. Exact enumeration of all n! permutations for n ≤ 9,
+// Edgeworth series beyond.
+export function prho(is: number, n: number, lowerTail: boolean): number {
+  let pv = lowerTail ? 0 : 1;
+  if (n <= 1) return NaN;
+  if (is <= 0) return pv;
+  const n3 = (n * (n * n - 1)) / 3; // (n³ − n)/3, the maximum of S
+  if (is > n3) return 1 - pv;
+  if (n <= 9) {
+    // Count permutations whose Σ(i − π(i))² reaches `is` (Heap's algorithm).
+    const perm: number[] = [];
+    for (let i = 0; i < n; i++) perm.push(i);
+    let nfac = 1;
+    for (let i = 2; i <= n; i++) nfac *= i;
+    let ifr = 0;
+    const tally = (): void => {
+      let ise = 0;
+      for (let i = 0; i < n; i++) {
+        const d = i - perm[i];
+        ise += d * d;
+      }
+      if (is <= ise) ifr++;
+    };
+    const c = new Array<number>(n).fill(0);
+    tally();
+    let i = 1;
+    while (i < n) {
+      if (c[i] < i) {
+        const j = i % 2 === 0 ? 0 : c[i];
+        const t = perm[j];
+        perm[j] = perm[i];
+        perm[i] = t;
+        tally();
+        c[i]++;
+        i = 1;
+      } else {
+        c[i] = 0;
+        i++;
+      }
+    }
+    return (lowerTail ? nfac - ifr : ifr) / nfac;
+  }
+  const c1 = 0.2274,
+    c2 = 0.2531,
+    c3 = 0.1745,
+    c4 = 0.0758,
+    c5 = 0.1033,
+    c6 = 0.3932,
+    c7 = 0.0879,
+    c8 = 0.0151,
+    c9 = 0.0072,
+    c10 = 0.0831,
+    c11 = 0.0131,
+    c12 = 4.6e-4;
+  const b = 1 / n;
+  const x = ((6 * (is - 1) * b) / (n * n - 1) - 1) * Math.sqrt(n - 1);
+  let y = x * x;
+  const u =
+    x *
+    b *
+    (c1 +
+      b * (c2 + c3 * b) +
+      y *
+        (-c4 +
+          b * (c5 + c6 * b) -
+          y * b * (c7 + c8 * b - y * (c9 - c10 * b + y * b * (c11 - c12 * y)))));
+  y = u / Math.exp(y / 2);
+  pv = (lowerTail ? -y : y) + (lowerTail ? normcdf(x) : normsf(x));
+  if (pv < 0) pv = 0;
+  if (pv > 1) pv = 1;
+  return pv;
+}
+
 // ── 2. Generic helpers ──────────────────────────────────────────────────────
 
 // Generic bisection solver: find x in [lo, hi] such that fn(x) ≈ target.
@@ -781,13 +1083,22 @@ export function powerAnova(f: number, n: number, alpha: number, k: number): numb
 }
 
 export function powerCorrelation(r: number, n: number, alpha: number, tails: number): number {
-  const zr = Math.atanh(r);
-  const se = 1 / Math.sqrt(Math.max(1, n - 3));
-  const zCrit = norminv(1 - alpha / tails);
-  if (tails === 2) return normcdf(Math.abs(zr) / se - zCrit) + normcdf(-Math.abs(zr) / se - zCrit);
+  // Port of `pwr::pwr.r.test`: the critical r comes from the exact t
+  // threshold, and atanh(r) carries the r / (2(n − 1)) bias term. (A plain
+  // Fisher-z with a normal critical value is off by up to ~20 power points
+  // at n ≤ 8.) Needs n ≥ 4, as pwr does.
+  if (!(n >= 4)) return NaN;
   // Magnitude convention — see powerTwoSample. A negative r with a one-tailed
   // test would otherwise return ~0.
-  return normcdf(Math.abs(zr) / se - zCrit);
+  const rr = Math.abs(r);
+  const df = n - 2;
+  const ttt = tinv(1 - alpha / tails, df);
+  const rc = Math.sqrt((ttt * ttt) / (ttt * ttt + df));
+  const zr = Math.atanh(rr) + rr / (2 * (n - 1));
+  const zrc = Math.atanh(rc);
+  const s = Math.sqrt(n - 3);
+  if (tails === 2) return normcdf((zr - zrc) * s) + normcdf((-zr - zrc) * s);
+  return normcdf((zr - zrc) * s);
 }
 
 export function powerChi2(w: number, n: number, alpha: number, df: number): number {

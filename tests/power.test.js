@@ -13,7 +13,7 @@
 //   0.001   — chi2cdf, fcdf at critical values
 //   0.005   — power values (GL quadrature nctcdf gives near-exact results)
 
-const { suite, test, assert, approx, summary } = require("./harness");
+const { suite, test, assert, approx, eq, summary } = require("./harness");
 const vm = require("vm");
 const esbuild = require("esbuild");
 
@@ -49,7 +49,8 @@ const powerRaw = powerBuild.outputFiles[0].text;
 const closingIdx = powerRaw.lastIndexOf("})();");
 const exportLine =
   "this.TESTS = TESTS; this.dFromMeans = dFromMeans; " +
-  "this.fFromGroupMeans = fFromGroupMeans; this.wFromProportions = wFromProportions;";
+  "this.fFromGroupMeans = fFromGroupMeans; this.wFromProportions = wFromProportions; " +
+  "this.parseNumberList = parseNumberList;";
 const powerCode =
   closingIdx >= 0
     ? powerRaw.slice(0, closingIdx) + exportLine + powerRaw.slice(closingIdx)
@@ -117,6 +118,7 @@ const {
   dFromMeans,
   fFromGroupMeans,
   wFromProportions,
+  parseNumberList,
 } = ctx;
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -767,39 +769,41 @@ test("power increases with total N for fixed k and f (ANOVA)", () => {
 // ════════════════════════════════════════════════════════════════════════════
 
 suite("Power — correlation, two-tailed (pwr.r.test)");
+// Expected values: R 4.5 pwr::pwr.r.test(n, r, sig.level)$power.
 
-test("r=0.1, n=782, α=0.05 → ~0.800", () =>
-  approx(TESTS["correlation"].power(0.1, 782, 0.05, 2), 0.7997, 0.005));
-test("r=0.3, n=85, α=0.05 → ~0.800", () =>
-  approx(TESTS["correlation"].power(0.3, 85, 0.05, 2), 0.8003, 0.005));
-test("r=0.5, n=29, α=0.05 → ~0.800", () =>
-  approx(TESTS["correlation"].power(0.5, 29, 0.05, 2), 0.7998, 0.005));
+test("r=0.1, n=782, α=0.05 → 0.800", () =>
+  approx(TESTS["correlation"].power(0.1, 782, 0.05, 2), 0.80012493774192561, 1e-9));
+test("r=0.3, n=85, α=0.05 → 0.804", () =>
+  approx(TESTS["correlation"].power(0.3, 85, 0.05, 2), 0.80439569183867354, 1e-9));
+test("r=0.5, n=29, α=0.05 → 0.811", () =>
+  approx(TESTS["correlation"].power(0.5, 29, 0.05, 2), 0.81109529587491735, 1e-9));
 
 // Vary alpha
-test("r=0.3, n=85, α=0.01 → ~0.590", () =>
-  approx(TESTS["correlation"].power(0.3, 85, 0.01, 2), 0.5898, 0.005));
-test("r=0.3, n=85, α=0.10 → ~0.88", () =>
-  approx(TESTS["correlation"].power(0.3, 85, 0.1, 2), 0.88, 0.005));
-test("r=0.3, n=85, α=0.001 → ~0.313", () =>
-  approx(TESTS["correlation"].power(0.3, 85, 0.001, 2), 0.3129, 0.005));
+test("r=0.3, n=85, α=0.01 → 0.592", () =>
+  approx(TESTS["correlation"].power(0.3, 85, 0.01, 2), 0.59243386602221249, 1e-9));
+test("r=0.3, n=85, α=0.1 → 0.880", () =>
+  approx(TESTS["correlation"].power(0.3, 85, 0.1, 2), 0.87994097089538603, 1e-9));
+test("r=0.3, n=85, α=0.001 → 0.309", () =>
+  approx(TESTS["correlation"].power(0.3, 85, 0.001, 2), 0.30945302125747148, 1e-9));
 
 // Vary n
 test("r=0.3, n=200, α=0.05 → >0.99", () => {
   assert(TESTS["correlation"].power(0.3, 200, 0.05, 2) > 0.99, "should be near 1");
 });
-test("r=0.3, n=20, α=0.05 → ~0.248", () =>
-  approx(TESTS["correlation"].power(0.3, 20, 0.05, 2), 0.2477, 0.005));
-test("r=0.1, n=200, α=0.05 → ~0.291", () =>
-  approx(TESTS["correlation"].power(0.1, 200, 0.05, 2), 0.291, 0.005));
+test("r=0.3, n=20, α=0.05 → 0.256", () =>
+  approx(TESTS["correlation"].power(0.3, 20, 0.05, 2), 0.25592366884504564, 1e-9));
+test("r=0.1, n=200, α=0.05 → 0.292", () =>
+  approx(TESTS["correlation"].power(0.1, 200, 0.05, 2), 0.29192727721190193, 1e-9));
 
 suite("Power — correlation, one-tailed");
+// Expected values: pwr::pwr.r.test(..., alternative = "greater")$power.
 
-test("r=0.3, n=68, α=0.05 → ~0.80", () =>
-  approx(TESTS["correlation"].power(0.3, 68, 0.05, 1), 0.8, 0.005));
-test("r=0.5, n=22, α=0.05 → ~0.773", () =>
-  approx(TESTS["correlation"].power(0.5, 22, 0.05, 1), 0.7732, 0.005));
-test("r=0.3, n=68, α=0.001 → ~0.276", () =>
-  approx(TESTS["correlation"].power(0.3, 68, 0.001, 1), 0.276, 0.005));
+test("r=0.3, n=68, α=0.05 → 0.808", () =>
+  approx(TESTS["correlation"].power(0.3, 68, 0.05, 1), 0.80766202075256655, 1e-9));
+test("r=0.5, n=22, α=0.05 → 0.789", () =>
+  approx(TESTS["correlation"].power(0.5, 22, 0.05, 1), 0.78939409996156107, 1e-9));
+test("r=0.3, n=68, α=0.001 → 0.273", () =>
+  approx(TESTS["correlation"].power(0.3, 68, 0.001, 1), 0.27349456037495234, 1e-9));
 
 test("power increases with n (correlation)", () => {
   const p1 = TESTS["correlation"].power(0.3, 20, 0.05, 2);
@@ -960,6 +964,20 @@ test("w for 4-cell table", () => {
 test("mismatched lengths return 0", () =>
   approx(wFromProportions([0.5, 0.5], [0.3, 0.3, 0.4]), 0, 1e-10));
 test("zero expected returns 0", () => approx(wFromProportions([0.5, 0.5], [0, 1]), 0, 1e-10));
+
+suite("parseNumberList — group-means / proportions list fields");
+
+test("comma-separated list with decimal points", () => {
+  eq(parseNumberList("10, 12.5, 15"), [10, 12.5, 15]);
+});
+test("semicolon-separated list with decimal commas", () => {
+  eq(parseNumberList("10,5; 12; 15,25"), [10.5, 12, 15.25]);
+  eq(parseNumberList("0,75;0,25"), [0.75, 0.25]);
+});
+test("non-numeric entries are dropped", () => {
+  eq(parseNumberList("10, abc, 12"), [10, 12]);
+  eq(parseNumberList(""), []);
+});
 
 // ════════════════════════════════════════════════════════════════════════════
 // SECTION 10: BISECTION SOLVER — SAMPLE SIZE DETERMINATION

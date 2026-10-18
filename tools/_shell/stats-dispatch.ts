@@ -31,6 +31,7 @@ export interface TestResult {
   U1?: number;
   U2?: number;
   z?: number;
+  exact?: boolean; // Mann-Whitney: p from the exact null distribution
   F?: number; // one-way ANOVA / Welch's ANOVA
   ssBetween?: number;
   ssWithin?: number;

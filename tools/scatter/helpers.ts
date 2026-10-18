@@ -61,36 +61,56 @@ export function computeLinearRegression(
   yCol: number
 ): { valid: false } | { valid: true; slope: number; intercept: number; r2: number; n: number } {
   if (!rows || rows.length < 2) return { valid: false };
-  let n = 0,
+  // Two passes over centred values (what R's `lm` effectively computes).
+  // The one-pass `n·Σx² − (Σx)²` form cancels catastrophically once |x| is
+  // large next to its spread — the slope is already off in the 4th digit at
+  // x ≈ 1e7 and meaningless for epoch timestamps — while the stats panel's
+  // Pearson r stays correct, so the two would disagree.
+  const xs: number[] = [];
+  const ys: number[] = [];
+  let xMin = Infinity,
+    xMax = -Infinity,
+    yMin = Infinity,
+    yMax = -Infinity,
     sx = 0,
-    sy = 0,
-    sxx = 0,
-    syy = 0,
-    sxy = 0;
+    sy = 0;
   for (const row of rows) {
     const x = row[xCol],
       y = row[yCol];
     if (x == null || y == null || isNaN(x) || isNaN(y)) continue;
-    n++;
+    xs.push(x);
+    ys.push(y);
     sx += x;
     sy += y;
-    sxx += x * x;
-    syy += y * y;
-    sxy += x * y;
+    if (x < xMin) xMin = x;
+    if (x > xMax) xMax = x;
+    if (y < yMin) yMin = y;
+    if (y > yMax) yMax = y;
   }
-  if (n < 2) return { valid: false };
-  const denomX = n * sxx - sx * sx;
-  if (denomX === 0) return { valid: false };
-  const slope = (n * sxy - sx * sy) / denomX;
-  const intercept = (sy - slope * sx) / n;
-  const denomY = n * syy - sy * sy;
-  const r2Raw = denomY === 0 ? NaN : Math.pow(n * sxy - sx * sy, 2) / (denomX * denomY);
-  // Clamp to the mathematical invariant r² ∈ [0, 1]. The two-pass formula
-  // suffers catastrophic cancellation when denomX or denomY collapses to
-  // FP-noise scale (e.g. x-values 1e-160 apart, or y-values at subnormal
-  // magnitudes), which can lift the raw ratio to ~1.04 or push it slightly
-  // negative. Real-data regressions stay well inside the interval; clamping
-  // the FP overshoot is the cheapest way to keep the published contract.
+  const n = xs.length;
+  // All-equal x is tested on the raw values: the mean of identical values
+  // need not round back to that value, so a centred Σ(x − x̄)² can be FP
+  // noise rather than an exact 0.
+  if (n < 2 || xMin === xMax) return { valid: false };
+  const mx = sx / n,
+    my = sy / n;
+  let sxx = 0,
+    syy = 0,
+    sxy = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = xs[i] - mx,
+      dy = ys[i] - my;
+    sxx += dx * dx;
+    syy += dy * dy;
+    sxy += dx * dy;
+  }
+  if (sxx === 0) return { valid: false };
+  const slope = sxy / sxx;
+  const intercept = my - slope * mx;
+  const r2Raw = yMin === yMax || syy === 0 ? NaN : (sxy * sxy) / (sxx * syy);
+  // Clamp to the mathematical invariant r² ∈ [0, 1]. Even centred, the
+  // ratio can overshoot by FP noise when the spreads sit at subnormal
+  // magnitudes (e.g. x-values 1e-160 apart); clamping keeps the contract.
   const r2 = Number.isFinite(r2Raw) ? Math.min(1, Math.max(0, r2Raw)) : r2Raw;
   return { valid: true, slope, intercept, r2, n };
 }
@@ -146,15 +166,29 @@ export function correlationCoef(res: CorrResult): number {
   return res.r;
 }
 
-// Compact "stat = value" string for the table row. Pearson / Spearman ship
-// a t-statistic + df; Kendall ships a z. Format mirrors boxplot's
+// R's `cor.test` statistics on the exact (tie-free) paths: Spearman's
+// S = (n³ − n)(1 − ρ)/6 and Kendall's T = #concordant pairs.
+function spearmanS(rho: number, n: number): string {
+  return String(Math.round(((n * n * n - n) * (1 - rho)) / 6));
+}
+function kendallT(S: number, n: number): string {
+  return String(Math.round((S + (n * (n - 1)) / 2) / 2));
+}
+
+// Compact "stat = value" string for the table row. Pearson ships a
+// t-statistic + df; Spearman / Kendall ship t / z, or R's S / T on the
+// exact tie-free paths. Format mirrors boxplot's
 // formatBpStatShort.
 export function formatCorrStatShort(res: CorrResult | null | undefined): string {
   if (!res || res.error) return "—";
   if (res.kind === "pearson") return `r = ${res.r.toFixed(3)}, t(${res.df}) = ${res.t.toFixed(3)}`;
   if (res.kind === "spearman")
-    return `ρ = ${res.rho.toFixed(3)}, t(${res.df}) = ${res.t.toFixed(3)}`;
-  return `τ = ${res.tau.toFixed(3)}, z = ${res.z.toFixed(3)}`;
+    return res.exact
+      ? `ρ = ${res.rho.toFixed(3)}, S = ${spearmanS(res.rho, res.n)}`
+      : `ρ = ${res.rho.toFixed(3)}, t(${res.df}) = ${res.t.toFixed(3)}`;
+  return res.exact
+    ? `τ = ${res.tau.toFixed(3)}, T = ${kendallT(res.S, res.n)}`
+    : `τ = ${res.tau.toFixed(3)}, z = ${res.z.toFixed(3)}`;
 }
 
 // Full-precision human-readable line used in the expanded detail and the
@@ -174,9 +208,13 @@ export function formatCorrResultLine(res: CorrResult | null | undefined): string
     const ciStr = Number.isFinite(ci.lo)
       ? `, 95% CI [${ci.lo.toFixed(3)}, ${ci.hi.toFixed(3)}]`
       : "";
-    return `ρ = ${res.rho.toFixed(3)}${ciStr}, t(${res.df}) = ${res.t.toFixed(3)}, p = ${formatP(res.p)}`;
+    return res.exact
+      ? `ρ = ${res.rho.toFixed(3)}${ciStr}, S = ${spearmanS(res.rho, res.n)}, p = ${formatP(res.p)}`
+      : `ρ = ${res.rho.toFixed(3)}${ciStr}, t(${res.df}) = ${res.t.toFixed(3)}, p = ${formatP(res.p)}`;
   }
-  return `τ = ${res.tau.toFixed(3)}, z = ${res.z.toFixed(3)}, p = ${formatP(res.p)}`;
+  return res.exact
+    ? `τ = ${res.tau.toFixed(3)}, T = ${kendallT(res.S, res.n)}, p = ${formatP(res.p)} (exact)`
+    : `τ = ${res.tau.toFixed(3)}, z = ${res.z.toFixed(3)}, p = ${formatP(res.p)}`;
 }
 
 // One row in the scatter stats panel — the unfiltered "all rows" set plus

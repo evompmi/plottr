@@ -196,7 +196,7 @@ function _mainTestBlock(chosenTest: string | null | undefined): string {
   } else if (chosenTest === "welchT") {
     call = "t.test(value ~ group, data = df, var.equal = FALSE)";
   } else if (chosenTest === "mannWhitney") {
-    call = "wilcox.test(value ~ group, data = df, exact = FALSE)";
+    call = "wilcox.test(value ~ group, data = df)";
   } else if (chosenTest === "oneWayANOVA") {
     call = "fit <- aov(value ~ group, data = df)\nsummary(fit)";
   } else if (chosenTest === "welchANOVA") {

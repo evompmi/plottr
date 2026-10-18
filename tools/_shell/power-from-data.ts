@@ -15,14 +15,14 @@
 // would need n=Y."
 
 import { powerAnova, powerTwoSample } from "../_core/stats/dist";
-import { cohenDCI, sampleMean, sampleSD } from "../_core/stats/tests";
+import { cohenDCI, cohenDUnpooledCI, sampleMean, sampleSD } from "../_core/stats/tests";
 
 export interface PowerFromDataRow {
   alpha: number;
   nForTarget: number | null;
 }
 
-// 95 % CI on the effect size (Cohen's d / d_av). Present for two-group
+// 95 % CI on the effect size (Cohen's d, pooled or unpooled SD). Present for two-group
 // parametric tests (Student / Welch), null for ANOVA k≥3 and rank-based
 // tests where a single closed-form CI on the effect isn't as clean —
 // callers can either bootstrap or rely on the existing point estimate
@@ -55,21 +55,17 @@ export function computePowerFromData(
     const m2 = sampleMean(y);
     const s1 = sampleSD(x);
     const s2 = sampleSD(y);
-    // Effect-size denominator picks based on the chosen test's
-    // variance assumption (Lakens 2013):
-    //   - Student's t / Mann-Whitney: pooled SD (d_s). Both assume
-    //     a single common variance; the pooled estimator is the
-    //     maximum-likelihood denominator consistent with that.
-    //   - Welch's t: mean of unpooled SDs (d_av). Welch denies the
-    //     equal-variance assumption; the pooled denominator embeds
-    //     it back and is methodologically inconsistent. d_av takes
-    //     each group's SD on its own merits, symmetric in both.
+    // Effect-size denominator follows the chosen test's variance
+    // assumption, as R's `effectsize::cohens_d` does:
+    //   - Student's t / Mann-Whitney: pooled SD (`pooled_sd = TRUE`).
+    //   - Welch's t: the unpooled √((s₁² + s₂²)/2) (`pooled_sd = FALSE`),
+    //     with the CI built on Welch's t and Welch–Satterthwaite df.
     // Label changes too so users can tell which denominator was used.
     let denom: number;
     let label: string;
     if (chosenTest === "welchT") {
-      denom = (s1 + s2) / 2;
-      label = "Cohen's d_av";
+      denom = Math.sqrt((s1 * s1 + s2 * s2) / 2);
+      label = "Cohen's d (unpooled SD)";
     } else {
       denom = Math.sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2));
       label = "Cohen's d";
@@ -83,7 +79,9 @@ export function computePowerFromData(
       chosenTest === "mannWhitney"
         ? null // MWU is rank-based; the d analog has no clean closed-form CI
         : denom > 0
-          ? cohenDCI(dSigned, n1, n2)
+          ? chosenTest === "welchT"
+            ? cohenDUnpooledCI(dSigned, s1, s2, n1, n2)
+            : cohenDCI(dSigned, n1, n2)
           : null;
     const rows = alphas.map((alpha) => {
       let needed: number | null = null;

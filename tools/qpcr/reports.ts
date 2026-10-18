@@ -156,7 +156,7 @@ function testCall(test: string | null): string {
     case "welchT":
       return "print(t.test(value ~ group, data = df, var.equal = FALSE))";
     case "mannWhitney":
-      return "print(wilcox.test(value ~ group, data = df, exact = FALSE))";
+      return "print(wilcox.test(value ~ group, data = df))";
     case "oneWayANOVA":
       return "print(summary(aov(value ~ group, data = df)))";
     case "welchANOVA":

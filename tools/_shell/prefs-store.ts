@@ -18,7 +18,9 @@
 // `document` / `FileReader`) are still stubbed by the test loader's
 // vm context.
 
+import { COLOR_PALETTES } from "../_core/color";
 import { downloadText as defaultDownloadText } from "../_core/download";
+import { DISCRETE_PALETTES } from "./discrete-palette";
 
 const PREFS_LABEL_KEY_RE = /(?:Title|Subtitle|AxisLabel)$/;
 export function isLabelKey(key: string): boolean {
@@ -72,7 +74,8 @@ export function migratePrefs(settings: PrefsRecord, fromVersion: unknown): Prefs
 
 // Type-check a candidate value against the default in visInit. Accepts exact
 // type matches; for null defaults (e.g. lineplot.xMin = null meaning "auto"),
-// also accepts null or any finite number.
+// also accepts null or any finite number. Numbers must be finite, hex-colour
+// defaults need a hex colour, and palette-name defaults need a known palette.
 export function isPrefValueCompatible(candidate: unknown, defaultVal: unknown): boolean {
   if (defaultVal === null) {
     if (candidate === null) return true;
@@ -83,8 +86,21 @@ export function isPrefValueCompatible(candidate: unknown, defaultVal: unknown): 
   const tCand = typeof candidate;
   if (tDefault !== tCand) return false;
   if (tDefault === "number" && !Number.isFinite(candidate as number)) return false;
+  if (tDefault === "string") {
+    // Values with a closed vocabulary the kernel knows about: a hex colour
+    // must stay a hex colour, and a palette name must name a palette, so a
+    // hand-edited file can't hand the renderer something it can't draw.
+    const d = defaultVal as string,
+      c = candidate as string;
+    if (HEX_COLOR_RE.test(d)) return HEX_COLOR_RE.test(c);
+    if (hasOwn(DISCRETE_PALETTES, d)) return hasOwn(DISCRETE_PALETTES, c);
+    if (hasOwn(COLOR_PALETTES, d)) return hasOwn(COLOR_PALETTES, c);
+  }
   return true;
 }
+
+const hasOwn = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
+const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
 // Merge a candidate settings object into a clone of visInit, keeping only
 // whitelisted keys with compatible types. `opts.onlyStyle` drops label keys.
