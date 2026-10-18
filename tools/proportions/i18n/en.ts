@@ -182,6 +182,21 @@ const en = {
     "Several outcome classes (e.g. phenotype counts for a 9:3:3:1 test) work the same way: one column per class.",
   "proportions.howto.display":
     "<strong>Proportion</strong> shows % of one outcome with Wilson 95 % CIs. <strong>Stacked</strong> and <strong>Mosaic</strong> show every outcome; mosaic widths follow group size. The test is picked automatically: Fisher's exact test for 2×2 tables or when expected counts are small, χ² otherwise. Pairwise comparisons use Holm correction by default. The goodness-of-fit panel tests counts against ratios such as 3:1 or 9:3:3:1.",
+  "proportions.methods.design":
+    "Counts in {c} outcome categories were compared between {k} groups (N = {N} observations; {n} per group).",
+  "proportions.methods.fisher":
+    "Independence of group and outcome was tested with Fisher's exact test (two-sided).",
+  "proportions.methods.fisherMC":
+    "Independence of group and outcome was tested with Fisher's exact test (two-sided; the table was too large to enumerate, so the p-value was estimated from {B} Monte Carlo tables with the observed margins).",
+  "proportions.methods.chi2":
+    "Independence of group and outcome was tested with Pearson's χ² test (no continuity correction).",
+  "proportions.methods.policy":
+    "The test followed Cochran's rule: Fisher's exact test for 2×2 tables or when expected counts were small (any below 1, or more than 20 % below 5), Pearson's χ² test otherwise.",
+  "proportions.methods.pairwise":
+    "Pairs of groups were compared with Fisher's exact test, with p-values adjusted by the {method} method.",
+  "proportions.methods.holm": "Holm",
+  "proportions.methods.bh": "Benjamini-Hochberg",
+  "proportions.methods.wilson": "Proportions are shown with Wilson score 95% confidence intervals.",
 } as const satisfies Catalog;
 
 export default en;

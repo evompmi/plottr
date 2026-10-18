@@ -37,6 +37,8 @@ export { HowToCard } from "./HowToCard";
 export { NumberInput } from "./NumberInput";
 export { PageHeader } from "./PageHeader";
 export { ParseErrorBanner } from "./ParseErrorBanner";
+export { MethodsButton } from "./MethodsButton";
+export { PlotActionsBar } from "./PlotActionsBar";
 export { PlotSidebar } from "./PlotSidebar";
 export { PlotToolShell } from "./PlotToolShell";
 export { PrefsPanel } from "./PrefsPanel";
@@ -59,9 +61,23 @@ export { StatsTable } from "./StatsTable";
 export { StatsTile } from "./StatsTile";
 export { StepNavBar } from "./StepNavBar";
 export { UploadPanel } from "./UploadPanel";
+export { WhyThisTest } from "./WhyThisTest";
 
 // ── Pure helpers / data / hooks ─────────────────────────────────────
 export { assignBracketLevels } from "./bracket-levels";
+export { PlotActionsContext } from "./plot-actions";
+export {
+  alphaSentence,
+  buildGroupMethodsText,
+  joinList,
+  listSep,
+  methodsDisplay,
+  nRange,
+  plottrVersion,
+  softwareSentence,
+} from "./methods-text";
+export type { GroupMethodsInput, MethodsSet } from "./methods-text";
+export type { PlotActionsEntry, PlotActionsRegistry } from "./plot-actions";
 export { CHART_MARGIN, buildLineD, valueAxisLeftMargin } from "./chart-layout";
 export {
   COLORBLIND_SAFE_PALETTES,

@@ -221,6 +221,30 @@ const fr: Record<QpcrKey, string> = {
     "Format large : une ligne par échantillon biologique, une colonne de Ct par gène (réplicats techniques déjà moyennés). Les en-têtes anglais (Sample, Group, Gene, Ct) sont détectés automatiquement ; sinon, attribuez les colonnes à l’étape Configurer.",
   "qpcr.howto.display":
     "Choisissez les gènes de référence et cibles, les efficacités (saisies ou issues d’une gamme étalon) et le groupe contrôle — ou normalisez par les seuls gènes de référence (2^−ΔCt, sans calibrateur). Le graphique montre le ratio d’expression sur un axe log₂ (ou linéaire, ou −ΔΔCt) avec les réplicats biologiques et des barres d’erreur SEM, ET ou IC à 95 % ; crochets ou lettres viennent du test t de Welch / de l’ANOVA de Welch + Games-Howell sur les ΔCt. Options d’affichage : barres, points ou boîtes, vertical ou horizontal, plage d’axe fixe commune à tous les gènes et titre d’axe modifiable.",
+  "qpcr.methods.scope": "chaque gène cible",
+  "qpcr.methods.value": "les valeurs de ΔCt (échelle log2), et non les fold changes",
+  "qpcr.methods.livakControl":
+    "L’expression relative a été calculée par la méthode 2^−ΔΔCt (efficacité d’amplification supposée de 100 %), avec {control} comme groupe calibrateur.",
+  "qpcr.methods.livakRefs":
+    "L’expression relative aux gènes de référence a été calculée comme 2^−ΔCt (efficacité d’amplification supposée de 100 %).",
+  "qpcr.methods.pfafflControl":
+    "L’expression relative a été calculée par des rapports corrigés de l’efficacité (méthode de Pfaffl ; facteurs d’amplification : {eff}), avec {control} comme groupe calibrateur.",
+  "qpcr.methods.pfafflRefs":
+    "L’expression relative aux gènes de référence a été calculée par des rapports corrigés de l’efficacité (méthode de Pfaffl ; facteurs d’amplification : {eff}).",
+  "qpcr.methods.refOne":
+    "Les Ct des gènes cibles ont été normalisés sur le gène de référence {refs}.",
+  "qpcr.methods.refMany":
+    "Les Ct des gènes cibles ont été normalisés sur la moyenne géométrique des gènes de référence {refs}.",
+  "qpcr.methods.techReps":
+    "Les réplicats techniques ont été moyennés par échantillon biologique, et les échantillons sans Ct pour la cible ou une référence ont été exclus.",
+  "qpcr.methods.dispMean":
+    "Les barres et points représentent les moyennes log2 retransformées (moyennes géométriques){err}.",
+  "qpcr.methods.dispErr": ", avec {err} calculés sur l’échelle log2",
+  "qpcr.methods.dispBox":
+    "Les boîtes à moustaches résument les valeurs d’expression relative par échantillon.",
+  "qpcr.methods.err.sem": "les SEM",
+  "qpcr.methods.err.sd": "les écarts-types",
+  "qpcr.methods.err.ci95": "les intervalles de confiance à 95 %",
 };
 
 export default fr;

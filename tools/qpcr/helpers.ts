@@ -851,6 +851,9 @@ export interface QpcrStatsPanelProps {
   updVis: (patch: Partial<QpcrVis>) => void;
   onDownloadReport: () => void;
   onDownloadR: () => void;
+  // For the methods text.
+  refs: string[];
+  eff: Record<string, number>;
 }
 
 export interface TileProps {
@@ -935,4 +938,6 @@ export interface PlotStepProps {
   onDownloadR: () => void;
   onReset: () => void;
   dropped: number;
+  refs: string[];
+  eff: Record<string, number>;
 }

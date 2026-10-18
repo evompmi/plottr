@@ -1,5 +1,6 @@
 // Outer page frame shared by every plot tool. Renders PageHeader (with the
-// PrefsPanel in the top-right slot), the StepNavBar, the comma-fix banner,
+// PrefsPanel in the top-right slot — plus, on the plot step, the export bar
+// the tool's ActionsPanel registers and a compact, sticky header), the StepNavBar, the comma-fix banner,
 // the parse-error banner, and delegates everything else to children — each
 // tool still owns the per-step content (UploadStep, ConfigureStep, plot
 // layout, etc.) since those differ per tool.
@@ -11,8 +12,15 @@ import { StepNavBar } from "./StepNavBar";
 import { CommaFixBanner } from "./CommaFixBanner";
 import { FormulaInjectionBanner } from "./FormulaInjectionBanner";
 import { ParseErrorBanner } from "./ParseErrorBanner";
+import { PlotActionsBar } from "./PlotActionsBar";
+import {
+  PlotActionsContext,
+  plotActionsSignature,
+  type PlotActionsEntry,
+  type PlotActionsRegistry,
+} from "./plot-actions";
 
-const { useEffect, useRef, useState } = React;
+const { useEffect, useMemo, useRef, useState } = React;
 
 interface PlotToolShellProps<TVis extends object> {
   state: PlotToolState<TVis>;
@@ -65,11 +73,28 @@ export function PlotToolShell<TVis extends object>({
   stepLabels,
   children,
 }: PlotToolShellProps<TVis>) {
+  // The plot step's ActionsPanel registers its downloads + reset here; the
+  // header renders them (see plot-actions.ts). `sig` re-renders the header
+  // only when the visible buttons change.
+  const actionsRef = useRef<PlotActionsEntry | null>(null);
+  const [, setSig] = useState("");
+  const registry = useMemo<PlotActionsRegistry>(
+    () => ({
+      set: (entry) => {
+        actionsRef.current = entry;
+        const next = plotActionsSignature(entry);
+        setSig((prev) => (prev === next ? prev : next));
+      },
+    }),
+    []
+  );
+  const onPlot = state.step === "plot";
   return (
     <div style={{ padding: "24px 32px", maxWidth: 1400 }}>
       <PageHeader
         toolName={toolName}
         title={title}
+        compact={onPlot}
         middle={
           <StepNavBar
             steps={steps}
@@ -77,18 +102,24 @@ export function PlotToolShell<TVis extends object>({
             onStepChange={state.setStep}
             canNavigate={canNavigate}
             stepLabels={stepLabels}
+            compact={onPlot}
           />
         }
         right={
-          state.step === "plot" ? (
-            <PrefsPanel tool={toolName} vis={state.vis} visInit={visInit} updVis={state.updVis} />
+          onPlot ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <PlotActionsBar entryRef={actionsRef} />
+              <PrefsPanel tool={toolName} vis={state.vis} visInit={visInit} updVis={state.updVis} />
+            </div>
           ) : null
         }
       />
       <CommaFixBanner commaFixed={state.commaFixed} commaFixCount={state.commaFixCount} />
       <FormulaInjectionBanner warning={state.injectionWarning} />
       <ParseErrorBanner error={state.parseError} />
-      <StepFade step={state.step}>{children}</StepFade>
+      <PlotActionsContext.Provider value={registry}>
+        <StepFade step={state.step}>{children}</StepFade>
+      </PlotActionsContext.Provider>
     </div>
   );
 }

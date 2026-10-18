@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Methods text.** A "📝 Methods" button in every stats panel (Group Plot, RLU, Line Plot, qPCR,
+  Scatter, Proportions, UpSet) and on the Heatmap shows a ready-to-copy paragraph for a paper's
+  methods section: the tests that actually ran (exact or approximate p), post-hocs, corrections,
+  sample sizes, what the chart shows, the Plöttr version and the equivalent R calls. English and
+  French; no references are added.
 - **qPCR relative expression tool.** Paste raw Ct values (long or wide) to get 2^−ΔΔCt or
   efficiency-corrected (Pfaffl) fold changes with several reference genes combined by
   geometric mean, efficiencies typed or from a standard curve, and QC for undetermined wells,
@@ -48,6 +53,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   −2 … +8, or 0 … 8 — and 0 always keeps the white/grey midpoint. The colourbar marks 0,
   and the R export uses the same mapping. Lopsided ranges on diverging palettes render
   differently from before.
+- **One export bar, in the same place in every tool.** On the plot step the page header is now
+  slim and stays pinned while you scroll: a one-line step breadcrumb, then every download
+  (SVG / PNG / CSV / R …) and Start over, which now asks for a second click. Heatmap's SVG /
+  PNG buttons moved there from the plot card; stats-panel reports stay in their panel.
+- **Charts display at their true size** (shrinking only when the window is narrower), so text
+  sizes match across tools; Proportions and qPCR tick labels default to 11 like the rest.
+- **Stats panels lead with the result.** The test's result line comes first, in bold; the
+  "why this test" reasoning folds into a "Why this test?" disclosure.
 - **Rank tests use R's exact p-values on small samples.** Mann-Whitney (both n < 50), Spearman
   (n ≤ 1290) and Kendall (n < 50) without ties now report the exact p that `wilcox.test` /
   `cor.test` give by default, instead of the normal / t approximation (up to 2× different at
@@ -76,6 +89,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Axis ticks no longer hang the tab** on values ≳ 10¹⁶ with a small range.
 - **Kendall τ on large data** runs in O(n log n): 100k points take ~0.1 s instead of ~35 s.
 - **Imported settings files** must give hex colours and known palette names.
+- **Sidebars no longer open scrolled down.** Sections that start expanded scrolled the sidebar
+  on load, hiding its top (e.g. Group Plot's downloads); Heatmap's sidebar now stays in view
+  too.
+- **Heatmap**: the palette menu uses the app's dropdown style, and the outlier warning shows
+  once (above the plot) instead of twice.
 
 ## [1.10.0] - 2026-09-17
 

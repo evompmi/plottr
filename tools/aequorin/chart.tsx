@@ -186,13 +186,15 @@ export const Chart = memo(
           // byte-identical to before this feature.
           onBrush
             ? {
-                width: "100%",
+                width: vbW,
+                maxWidth: "100%",
                 height: "auto",
                 display: "block",
+                margin: "0 auto",
                 cursor: "crosshair",
                 userSelect: "none",
               }
-            : { width: "100%", height: "auto", display: "block" }
+            : { width: vbW, maxWidth: "100%", height: "auto", display: "block", margin: "0 auto" }
         }
         xmlns="http://www.w3.org/2000/svg"
         role="img"

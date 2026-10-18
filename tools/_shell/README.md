@@ -95,7 +95,7 @@ per-file paths so the dependency graph stays visible.
 
 | File                         | Role                                                                                    |
 | ---------------------------- | --------------------------------------------------------------------------------------- |
-| `ActionsPanel.tsx`           | Plot-step actions tile: download chips + Start over.                                    |
+| `ActionsPanel.tsx`           | Plot-step downloads + Start over; hands them to the shell's header export bar.          |
 | `BaseStyleControls.tsx`      | Background / grid on-off / grid colour controls.                                        |
 | `CldLabels.tsx`              | Compact-letter-display annotation renderer.                                             |
 | `ColorInput.tsx`             | Swatch + hex-text widget (`normalizeHexColor` lives alongside).                         |
@@ -111,9 +111,11 @@ per-file paths so the dependency graph stays visible.
 | `GroupColorEditor.tsx`       | Per-group colour editor list.                                                           |
 | `HowTo.tsx`                  | Tool-specific "How to use" content renderer.                                            |
 | `HowToCard.tsx`              | Collapsible header + body wrapper for `HowTo`.                                          |
+| `MethodsButton.tsx`          | "Methods" button + read-only popover with the methods-section paragraph and Copy.       |
 | `NumberInput.tsx`            | Numeric input with hold-to-repeat ± buttons.                                            |
-| `PageHeader.tsx`             | Top-of-tool header with icon + title + nav slots.                                       |
+| `PageHeader.tsx`             | Top-of-tool header with icon + title + nav slots; compact + sticky on the plot step.    |
 | `ParseErrorBanner.tsx`       | Red alert banner for parse-error strings.                                               |
+| `PlotActionsBar.tsx`         | Header export bar (download chips + two-click Start over) on the plot step.             |
 | `PlotSidebar.tsx`            | Sticky right-rail wrapper for every plot tool's controls panel.                         |
 | `PlotToolShell.tsx`          | Outer page frame — PageHeader + StepNavBar + banners, delegates to children.            |
 | `PrefsPanel.tsx`             | Gear-menu UI on top of `prefs-store`.                                                   |
@@ -123,8 +125,9 @@ per-file paths so the dependency graph stays visible.
 | `SliderControl.tsx`          | Labelled range slider (memo-wrapped).                                                   |
 | `StatsTable.tsx`             | Summary stats table used in group-plot output steps.                                    |
 | `StatsTile.tsx`              | Collapsible stats tile — assumption checks, test selection, post-hocs, annotation emit. |
-| `StepNavBar.tsx`             | Horizontal stepper with circles + labels + connector line.                              |
+| `StepNavBar.tsx`             | Horizontal stepper (circles + connector); one-line breadcrumb with `compact`.           |
 | `UploadPanel.tsx`            | Separator selector + `FileDropZone` composition for the upload step.                    |
+| `WhyThisTest.tsx`            | Collapsed "Why this test?" disclosure under a stats panel's result line.                |
 
 ### Pure helpers / data / dispatchers (`kebab-case.ts`)
 
@@ -134,6 +137,8 @@ per-file paths so the dependency graph stays visible.
 | `chart-layout.ts`     | `CHART_MARGIN` + `buildLineD` for line-plot / aequorin charts.                                  |
 | `discrete-palette.ts` | Discrete palette catalogue + `resolveDiscretePalette` / `applyDiscretePalette` / hue+viridis.   |
 | `handoff.ts`          | One-shot localStorage inter-tool hand-off (`setHandoff` / `consumeHandoff` / `navigateToTool`). |
+| `methods-text.ts`     | Methods-section paragraph builder (`buildGroupMethodsText`, `softwareSentence`, …).             |
+| `plot-actions.ts`     | `PlotActionsContext` registry linking a tool's `ActionsPanel` to the header export bar.         |
 | `power-from-data.ts`  | `computePowerFromData` — achieved power + n-needed dispatched per test family.                  |
 | `prefs-store.ts`      | Per-tool plot-render-settings persistence (load/save/import/export/migrate/merge).              |
 | `r-export.ts`         | `buildRScript` + `buildRScriptForPower` + R-string formatters.                                  |

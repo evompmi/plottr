@@ -32,6 +32,10 @@ import {
   postHocForTest,
   runPostHoc,
   runTest,
+  WhyThisTest,
+  MethodsButton,
+  buildGroupMethodsText,
+  methodsDisplay,
 } from "../_shell";
 import {
   TEST_LABELS_BP,
@@ -271,13 +275,25 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
           </button>
         )}
       </div>
-      {recReason && (
-        <div
-          style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", marginBottom: 6 }}
-        >
-          {recReason}
-        </div>
-      )}
+      <div
+        style={{
+          padding: "6px 10px",
+          marginBottom: 6,
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: 6,
+          fontFamily: "ui-monospace, Menlo, monospace",
+          fontSize: 12,
+          fontWeight: 700,
+          color: "var(--text)",
+        }}
+      >
+        {res.error
+          ? `⚠ ${res.error}`
+          : row.chosenTest
+            ? formatBpResultLine(row.chosenTest, res)
+            : "—"}
+      </div>
       {suggestion && row.chosenTest !== suggestion.test && (
         <div
           style={{
@@ -312,23 +328,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
           </button>
         </div>
       )}
-      <div
-        style={{
-          padding: "6px 10px",
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          fontFamily: "ui-monospace, Menlo, monospace",
-          fontSize: 11,
-          color: "var(--text)",
-        }}
-      >
-        {res.error
-          ? `⚠ ${res.error}`
-          : row.chosenTest
-            ? formatBpResultLine(row.chosenTest, res)
-            : "—"}
-      </div>
+      <WhyThisTest text={recReason} />
 
       {k >= 3 && postHoc && !postHoc.error && row.postHocName && (
         <>
@@ -449,6 +449,7 @@ export function BoxplotStatsPanel({
   showSummary,
   onShowSummaryChange,
   errorBarLabel,
+  displayKind,
 }: BoxplotStatsPanelProps) {
   const tr = useT();
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
@@ -612,6 +613,27 @@ export function BoxplotStatsPanel({
     flashSaved(e.currentTarget);
   };
 
+  const methodsText = (): string =>
+    buildGroupMethodsText({
+      sets: eligible.flatMap((r) =>
+        r.chosenTest
+          ? [
+              {
+                name: eligible.length > 1 ? r.name : undefined,
+                test: r.chosenTest,
+                exact: r.testResult ? r.testResult.exact : undefined,
+                postHoc: r.k > 2 ? r.postHocName : null,
+                ns: r.values.map((v) => v.length),
+              },
+            ]
+          : []
+      ),
+      setLabel: setLabel || undefined,
+      setKind: "level",
+      overridden: eligible.some((r) => overrides[r.key] != null),
+      display: methodsDisplay(displayKind),
+    });
+
   const anyMulti = eligible.some((r) => r.k > 2);
   const singleSet = sets.length === 1;
   const headingLabel =
@@ -697,6 +719,7 @@ export function BoxplotStatsPanel({
           </p>
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
+          <MethodsButton getText={methodsText} />
           <button
             type="button"
             className="dv-btn dv-btn-dl"

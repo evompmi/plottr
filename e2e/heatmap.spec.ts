@@ -33,10 +33,10 @@ test("heatmap: sample data triggers the outlier alert; excluding clips only the 
   await page.getByTestId("load-example").click();
   await page.getByTestId("step-plot").click();
 
-  // Compact strip above the plot + full box in the Colour scale section,
-  // which opens on its own while the alert is active.
+  // One alert, above the plot (the Colour scale section still opens on its
+  // own while it is active).
   const alerts = page.getByTestId("heatmap-skew-alert");
-  await expect(alerts).toHaveCount(2);
+  await expect(alerts).toHaveCount(1);
   await expect(alerts.first()).toContainText("3 of 3000 cells (0.1%) stretch the colour scale");
 
   const topTick = page.locator("svg g#colorbar text").first();

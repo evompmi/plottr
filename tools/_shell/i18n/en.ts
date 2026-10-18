@@ -78,6 +78,8 @@ const en = {
   "shell.step.output": "Output",
   "shell.step.plot": "Plot",
   "shell.step.aria": "Step {n} of {total}: {label}",
+  "shell.step.navLabel": "Steps",
+  "shell.statsui.whyThisTest": "Why this test?",
 
   // UploadPanel — separator picker + options (both variants)
   "shell.sep.label": "Column separator",
@@ -122,6 +124,7 @@ const en = {
     "Download the plot as SVG — vector graphics, editable in Inkscape or Illustrator",
   "shell.actions.pngTitle": "Download the plot as PNG — 2× raster at the plot's native resolution",
   "shell.actions.startOver": "Start over",
+  "shell.actions.confirmReset": "Really clear?",
   "shell.actions.resetTitle":
     "Clear all data, controls, and current session — returns to the upload step",
 
@@ -363,6 +366,57 @@ const en = {
   "shell.correason.swCannotRun": "Shapiro-Wilk could not run on one or both axes (n < 3).",
   "shell.correason.suggest":
     " If the non-normality looks substantive (heavy tails, strong skew, ordinal data), consider switching to Spearman ρ from the test dropdown; for very small or heavily-tied samples Kendall τ-b is a further alternative.",
+  // Methods-section text (methods-text.ts / MethodsButton)
+  "shell.methods.button": "Methods",
+  "shell.methods.buttonTitle":
+    "Show a methods-section paragraph describing these statistics, ready to copy",
+  "shell.methods.title": "Methods text",
+  "shell.methods.copy": "Copy",
+  "shell.methods.copied": "Copied ✓",
+  "shell.methods.close": "Close",
+  "shell.methods.note":
+    "Generated from the analysis above — check it matches your design before use.",
+  "shell.methods.software": "Analyses were performed with Plöttr{version} ({url})",
+  "shell.methods.rEquivalent": "; equivalent R calls: {calls}",
+  "shell.methods.test.studentT": "a two-sided Student's t-test",
+  "shell.methods.test.welchT": "a two-sided Welch's t-test",
+  "shell.methods.test.mannWhitney": "a two-sided Mann-Whitney U test",
+  "shell.methods.test.oneWayANOVA": "one-way ANOVA",
+  "shell.methods.test.welchANOVA": "Welch's one-way ANOVA",
+  "shell.methods.test.kruskalWallis": "the Kruskal-Wallis test",
+  "shell.methods.mwExact": " (exact p-values)",
+  "shell.methods.mwApprox": " (normal approximation with continuity correction)",
+  "shell.methods.mwMixed": " (exact p-values without ties, normal approximation otherwise)",
+  "shell.methods.followedBy": ", followed by {posthoc} for pairwise comparisons",
+  "shell.methods.posthoc.tukeyHSD": "Tukey's HSD",
+  "shell.methods.posthoc.gamesHowell": "the Games-Howell test",
+  "shell.methods.posthoc.dunn": "Dunn's test with Benjamini-Hochberg adjustment",
+  "shell.methods.valueNote": "The values analysed were {what}.",
+  "shell.methods.compareTwo": "The two groups ({n} per group) were compared with {test}.",
+  "shell.methods.compareK": "The {k} groups ({n} per group) were compared with {test}.",
+  "shell.methods.eachSet": "each subset",
+  "shell.methods.compareWithinSame":
+    "Groups were compared within {scope} ({count} analyses) with {test}.",
+  "shell.methods.compareWithinMixed": "Groups were compared within {scope}: {list}.",
+  "shell.methods.listSep": "; ",
+  "shell.methods.testFor": "{test} for {names}",
+  "shell.methods.sizes": "Group sizes were {n}.",
+  "shell.methods.adjustBH":
+    "P-values were adjusted across the {count} analyses with the Benjamini-Hochberg procedure.",
+  "shell.methods.policyWelch":
+    "Welch's tests were used by default because they do not assume equal variances; normality (Shapiro-Wilk test) and equality of variances (median-centred Levene test) were checked as diagnostics only.",
+  "shell.methods.diagnostics":
+    "Normality (Shapiro-Wilk test) and equality of variances (median-centred Levene test) were assessed.",
+  "shell.methods.alpha": "P < 0.05 was considered significant.",
+  "shell.methods.display": "Data are shown as {display}.",
+  "shell.methods.disp.sem": "mean ± SEM",
+  "shell.methods.disp.sd": "mean ± SD",
+  "shell.methods.disp.ci95": "mean ± 95% confidence interval",
+  "shell.methods.disp.none": "means",
+  "shell.methods.disp.box":
+    "box plots (median and interquartile range; whiskers extend to the most extreme values within 1.5 × IQR)",
+  "shell.methods.scopeLevel": "each level of “{label}”",
+  "shell.methods.scopeX": "each value of “{label}”",
 } as const satisfies Catalog;
 
 export default en;

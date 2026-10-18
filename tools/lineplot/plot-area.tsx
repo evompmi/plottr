@@ -93,6 +93,7 @@ export function PlotStep(props: PlotStepProps) {
             fileName={fileName}
             showStars={showStars}
             setShowStars={setShowStars}
+            displayKind={errorType}
           />
         )}
       </div>

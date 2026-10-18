@@ -163,6 +163,33 @@ const en = {
     "Wide matrix — first column holds the row labels (genes / features), the header row holds the column labels (samples / conditions), the rest is a numeric grid. Missing values are tolerated.",
   "heatmap.howto.display":
     "Pick a <strong>palette</strong> (continuous viridis-family or diverging), optional <strong>z-score</strong> / <strong>log₂</strong> normalisation per row or column, and independent row / column clustering modes (<strong>hierarchical</strong> with linkage + distance metric, or <strong>k-means</strong> with explicit k). Drag-select any region for a zoomed detail view.",
+  "heatmap.methods.size": "The heatmap shows {r} rows × {c} columns.",
+  "heatmap.methods.zrow":
+    "Values were z-scored within each row (mean 0, SD 1) before clustering and colouring.",
+  "heatmap.methods.zcol":
+    "Values were z-scored within each column (mean 0, SD 1) before clustering and colouring.",
+  "heatmap.methods.log2": "Values were log2(x + 1)-transformed before clustering and colouring.",
+  "heatmap.methods.hierBoth":
+    "Rows and columns were ordered by hierarchical clustering ({linkage} linkage) on {distance}.",
+  "heatmap.methods.hierRows":
+    "Rows were ordered by hierarchical clustering ({linkage} linkage) on {distance}.",
+  "heatmap.methods.hierCols":
+    "Columns were ordered by hierarchical clustering ({linkage} linkage) on {distance}.",
+  "heatmap.methods.link.average": "average",
+  "heatmap.methods.link.complete": "complete",
+  "heatmap.methods.link.single": "single",
+  "heatmap.methods.dist.euclidean": "Euclidean distances",
+  "heatmap.methods.dist.manhattan": "Manhattan distances",
+  "heatmap.methods.dist.correlation":
+    "1 − Pearson correlation distances (pairwise-complete observations)",
+  "heatmap.methods.missing":
+    "Where cells were missing, distances were computed on the complete pairs and scaled up to the full number of values, as in R's dist().",
+  "heatmap.methods.kmRows":
+    "Rows were partitioned into k = {k} clusters by k-means (k-means++ initialisation, Lloyd iterations, best of 8 starts by within-cluster sum of squares; seed {seed}).",
+  "heatmap.methods.kmCols":
+    "Columns were partitioned into k = {k} clusters by k-means (k-means++ initialisation, Lloyd iterations, best of 8 starts by within-cluster sum of squares; seed {seed}).",
+  "heatmap.methods.colour":
+    "Colours map values from {lo} to {hi} with the {palette} palette; values beyond this range take the end colours.",
 } as const satisfies Catalog;
 
 export default en;

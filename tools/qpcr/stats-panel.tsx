@@ -3,8 +3,18 @@
 // ANOVA + Games-Howell by default, override, decision trace); fold changes
 // are only reported as back-transformed estimates with CIs.
 
-import { SegToggle, buildSelectTestReason, STATS_TESTS_FOR_K, STATS_TESTS_FOR_K2 } from "../_shell";
+import {
+  MethodsButton,
+  SegToggle,
+  WhyThisTest,
+  buildGroupMethodsText,
+  joinList,
+  buildSelectTestReason,
+  STATS_TESTS_FOR_K,
+  STATS_TESTS_FOR_K2,
+} from "../_shell";
 import { formatP, pStars } from "../_core/stats";
+import type { SelectTestKind, SelectTestPostHoc } from "../_core/stats/types";
 import { formatResultLine } from "./helpers";
 import type { AnnotationMode, QpcrStatsPanelProps } from "./helpers";
 import { useT, type QpcrKey } from "./i18n";
@@ -49,7 +59,8 @@ const resultBox: React.CSSProperties = {
   background: "var(--surface-sunken)",
   borderRadius: 6,
   fontFamily: "ui-monospace, Menlo, monospace",
-  fontSize: 11,
+  fontSize: 12,
+  fontWeight: 700,
   color: "var(--text)",
 };
 
@@ -81,8 +92,62 @@ export function QpcrStatsPanel({
   updVis,
   onDownloadReport,
   onDownloadR,
+  refs,
+  eff,
 }: QpcrStatsPanelProps) {
   const tr = useT();
+  const methodsText = (): string => {
+    const relToControl = normalize === "control";
+    const used = refs.concat(genes.map((g) => g.gene));
+    const factor = (g: string): number => eff[g] ?? 2;
+    const corrected = used.some((g) => factor(g) !== 2);
+    const intro: string[] = [];
+    const extra: string[] = [];
+    intro.push(
+      corrected
+        ? tr(relToControl ? "qpcr.methods.pfafflControl" : "qpcr.methods.pfafflRefs", {
+            control,
+            eff: used.map((g) => `${g} ${factor(g).toFixed(2)}`).join(", "),
+          })
+        : tr(relToControl ? "qpcr.methods.livakControl" : "qpcr.methods.livakRefs", { control })
+    );
+    intro.push(
+      tr(refs.length > 1 ? "qpcr.methods.refMany" : "qpcr.methods.refOne", {
+        refs: joinList(refs),
+      })
+    );
+    intro.push(tr("qpcr.methods.techReps"));
+    if (vis.chartStyle === "box") extra.push(tr("qpcr.methods.dispBox"));
+    else
+      extra.push(
+        tr("qpcr.methods.dispMean", {
+          err:
+            vis.errorBar === "none"
+              ? ""
+              : tr("qpcr.methods.dispErr", { err: tr(`qpcr.methods.err.${vis.errorBar}`) }),
+        })
+      );
+    return buildGroupMethodsText({
+      sets: genes.flatMap((g, i) => {
+        const st = stats[i];
+        if (!st || !st.chosenTest || st.tested.length < 2) return [];
+        return [
+          {
+            name: g.gene,
+            test: st.chosenTest as SelectTestKind,
+            exact: st.testResult ? st.testResult.exact : undefined,
+            postHoc: st.tested.length > 2 ? (st.postHocName as SelectTestPostHoc) : null,
+            ns: st.tested.map((k) => g.dCtByGroup[k].length),
+          },
+        ];
+      }),
+      setScope: tr("qpcr.methods.scope"),
+      valueNote: tr("qpcr.methods.value"),
+      overridden: Object.values(overrides).some((v) => v != null),
+      intro,
+      extra,
+    });
+  };
   const relToControl = normalize === "control";
   const testLabel = (t: string | null): string => (t && TEST_KEYS[t] ? tr(TEST_KEYS[t]) : t || "—");
   // Letters need k > 2 groups and every group drawn: with the calibrator
@@ -123,6 +188,7 @@ export function QpcrStatsPanel({
           </p>
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
+          <MethodsButton getText={methodsText} />
           <button
             type="button"
             className="dv-btn dv-btn-dl"
@@ -310,22 +376,11 @@ export function QpcrStatsPanel({
                       ))}
                     </select>
                   </div>
-                  {reason && (
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "var(--text-muted)",
-                        fontStyle: "italic",
-                        marginBottom: 6,
-                      }}
-                    >
-                      {reason}
-                    </div>
-                  )}
                   <div style={resultBox} data-testid={`qpcr-result-${g.gene}`}>
                     {testLabel(st.chosenTest)} {tr("qpcr.stats.onDct")}:{" "}
                     {formatResultLine(st.chosenTest, st.testResult)}
                   </div>
+                  <WhyThisTest text={reason} />
                   {st.postHocResult && !st.postHocResult.error && st.postHocName && (
                     <>
                       <div

@@ -643,6 +643,8 @@ export function PlotStep(p: PlotStepProps) {
           updVis={p.updVis}
           onDownloadReport={p.onDownloadReport}
           onDownloadR={p.onDownloadR}
+          refs={p.refs}
+          eff={p.eff}
         />
       </div>
     </div>

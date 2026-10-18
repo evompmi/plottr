@@ -8,10 +8,13 @@ import {
   ChartDataTable,
   DataPreview,
   DetectedSeparatorBadge,
+  MethodsButton,
   PlotToolShell,
+  softwareSentence,
   usePlotToolState,
 } from "../_shell";
 import type { ChartDataTableRow } from "../_shell";
+import { getLang } from "../_core/i18n";
 import "./i18n";
 import { tt, useT } from "./i18n";
 import {
@@ -41,7 +44,6 @@ import { DetailView, DetailPreviewCard } from "./plot-area";
 import { DIVERGING_PALETTES } from "../_core/color";
 import { seededRandom } from "../_core/numeric";
 import { autoDetectSep, fixDecimalCommas, parseWideMatrix } from "../_core/csv";
-import { downloadPng, downloadSvg, fileBaseName, flashSaved } from "../_core/download";
 import { hclust, kmeans, pairwiseDistance } from "../_core/stats/cluster";
 const { useState, useReducer, useMemo, useCallback, useRef } = React;
 
@@ -541,6 +543,57 @@ export function App() {
   // Clustering was requested on an axis with more observations than the
   // active mode's cap (see clusterCapFor) — it silently fell back to file
   // order, so tell the user why, naming the limit that applied.
+  // Methods paragraph: normalisation, the clustering that actually ran
+  // (null clusters = skipped, e.g. over the size cap), and the colour range.
+  const methodsText = (): string => {
+    const out: string[] = [];
+    const nC = rawMatrix.colLabels.length;
+    out.push(tr("heatmap.methods.size", { r: rawMatrix.rowLabels.length, c: nC }));
+    if (normalization !== "none") out.push(tr(`heatmap.methods.${normalization}`));
+    const rowH = rowCluster && rowCluster.mode === "hierarchical";
+    const colH = colCluster && colCluster.mode === "hierarchical";
+    const calls: string[] = [];
+    if (rowH || colH) {
+      // A legacy "ward" value runs as average linkage (UPGMA) in hclust.
+      const link = linkageMethod === "ward" ? "average" : linkageMethod;
+      const vars = {
+        linkage: tr(`heatmap.methods.link.${link}`),
+        distance: tr(`heatmap.methods.dist.${distanceMetric}`),
+      };
+      out.push(
+        tr(
+          rowH && colH
+            ? "heatmap.methods.hierBoth"
+            : rowH
+              ? "heatmap.methods.hierRows"
+              : "heatmap.methods.hierCols",
+          vars
+        )
+      );
+      const anyMissing = normalized.some((r) => r.some((v) => !Number.isFinite(v)));
+      if (anyMissing && distanceMetric !== "correlation") out.push(tr("heatmap.methods.missing"));
+      const d = (x: string): string =>
+        distanceMetric === "correlation"
+          ? `as.dist(1 - cor(t(${x}), use = "pairwise.complete.obs"))`
+          : `dist(${x}, method = "${distanceMetric}")`;
+      if (rowH) calls.push(`hclust(${d("x")}, method = "${link}")`);
+      if (colH) calls.push(`hclust(${d("t(x)")}, method = "${link}")`);
+    }
+    if (rowCluster && rowCluster.mode === "kmeans")
+      out.push(tr("heatmap.methods.kmRows", { k: rowCluster.k, seed: kmeansSeed }));
+    if (colCluster && colCluster.mode === "kmeans")
+      out.push(tr("heatmap.methods.kmCols", { k: colCluster.k, seed: kmeansSeed }));
+    out.push(
+      tr("heatmap.methods.colour", {
+        lo: Number(vis.vmin).toLocaleString(getLang()),
+        hi: Number(vis.vmax).toLocaleString(getLang()),
+        palette: vis.palette,
+      })
+    );
+    out.push(softwareSentence(calls));
+    return out.join(" ");
+  };
+
   const rowClusterCapped = nRows > clusterCapFor(rowMode);
   const colClusterCapped = nCols > clusterCapFor(colMode);
   const clusterCapped = rowClusterCapped || colClusterCapped;
@@ -630,6 +683,7 @@ export function App() {
               cellBorder={cellBorder}
               updCellBorder={updCellBorder}
               matrixRef={matrixRef}
+              chartRef={chartRef}
               rawMatrix={rawMatrix}
               resetAll={resetAll}
               fileName={fileName}
@@ -654,13 +708,12 @@ export function App() {
               sortedValues={sortedValues}
               rangeIsDiverging={rangeIsDiverging}
               setRange={setRange}
-              applyRobustRange={applyRobustRange}
             />
 
             <div
               style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}
             >
-              {skew && <SkewAlert skew={skew} onApply={applyRobustRange} compact />}
+              {skew && <SkewAlert skew={skew} onApply={applyRobustRange} />}
               <div
                 style={{
                   display: "flex",
@@ -716,37 +769,8 @@ export function App() {
                         </span>
                       )}
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 6,
-                        flexWrap: "wrap",
-                        marginLeft: "auto",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <button
-                        onClick={(e) => {
-                          const bn = fileBaseName(fileName || "heatmap") || "heatmap";
-                          downloadSvg(chartRef.current, `${bn}_heatmap.svg`);
-                          flashSaved(e.currentTarget);
-                        }}
-                        className="dv-btn dv-btn-dl"
-                        style={{ padding: "4px 10px", fontSize: 11 }}
-                      >
-                        ⬇ SVG
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          const bn = fileBaseName(fileName || "heatmap") || "heatmap";
-                          downloadPng(chartRef.current, `${bn}_heatmap.png`, 2);
-                          flashSaved(e.currentTarget);
-                        }}
-                        className="dv-btn dv-btn-dl"
-                        style={{ padding: "4px 10px", fontSize: 11 }}
-                      >
-                        ⬇ PNG
-                      </button>
+                    <div style={{ marginLeft: "auto" }}>
+                      <MethodsButton getText={methodsText} />
                     </div>
                   </div>
                   <HeatmapChart

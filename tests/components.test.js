@@ -434,6 +434,116 @@ test("renders with extra downloads", function () {
   assert(html.includes("CSV"), "should label the extra download");
 });
 
+test("inside a PlotToolShell it registers its buttons and draws nothing", function () {
+  let entry = null;
+  const React = require("react");
+  function Wrapped() {
+    return React.createElement(
+      sc.PlotActionsContext.Provider,
+      { value: { set: (e) => (entry = e) } },
+      React.createElement(sc.ActionsPanel, {
+        onDownloadSvg: noop,
+        onDownloadPng: noop,
+        onReset: noop,
+        extraDownloads: [{ label: "CSV", onClick: noop }],
+      })
+    );
+  }
+  const { html, root } = renderWithEffects(Wrapped, {});
+  eq(html, "");
+  eq(
+    entry.downloads.map((d) => d.label),
+    ["SVG", "PNG", "CSV"]
+  );
+  eq(entry.onReset, noop);
+  React.act(() => root.unmount());
+  eq(entry, null);
+});
+
+suite("PlotActionsBar");
+
+test("renders one chip per download and asks twice before starting over", function () {
+  const React = require("react");
+  let resets = 0;
+  let svgClicks = 0;
+  const entryRef = {
+    current: {
+      downloads: [
+        { label: "SVG", onClick: () => svgClicks++ },
+        { label: "CSV", title: "data", onClick: noop },
+      ],
+      onReset: () => resets++,
+    },
+  };
+  const { container, root } = renderWithEffects(sc.PlotActionsBar, { entryRef });
+  const buttons = container.querySelectorAll("button");
+  eq(buttons.length, 3);
+  assert(buttons[0].textContent.includes("SVG"), "SVG chip");
+  React.act(() => buttons[0].click());
+  eq(svgClicks, 1);
+  React.act(() => buttons[2].click());
+  eq(resets, 0, "first click only arms the reset");
+  assert(container.querySelectorAll("button")[2].textContent.includes("Really clear?"));
+  React.act(() => container.querySelectorAll("button")[2].click());
+  eq(resets, 1, "second click resets");
+  React.act(() => root.unmount());
+});
+
+test("renders nothing when no tool registered actions", function () {
+  eq(renderHtml(sc.PlotActionsBar, { entryRef: { current: null } }), "");
+});
+
+suite("StepNavBar compact");
+
+test("collapses to a breadcrumb that keeps the step test ids", function () {
+  const html = renderHtml(sc.StepNavBar, {
+    steps: ["upload", "configure", "plot"],
+    currentStep: "plot",
+    onStepChange: noop,
+    compact: true,
+  });
+  assert(html.includes("<nav"), "breadcrumb nav");
+  assert(html.includes('data-testid="step-upload"'), "upload test id");
+  assert(html.includes('data-testid="step-plot"'), "plot test id");
+  assert(html.includes('aria-current="step"'), "current step marked");
+  eq((html.match(/›/g) || []).length, 2);
+});
+
+suite("WhyThisTest");
+
+test("folds the test justification into a details disclosure", function () {
+  const html = renderHtml(sc.WhyThisTest, { text: "Welch is the default." });
+  assert(html.includes("<details"), "details element");
+  assert(html.includes("Why this test?"), "summary label");
+  assert(html.includes("Welch is the default."), "reason text");
+  eq(renderHtml(sc.WhyThisTest, { text: null }), "");
+});
+
+suite("MethodsButton");
+
+test("opens a read-only paragraph built on demand and closes again", function () {
+  const React = require("react");
+  let built = 0;
+  const { container, root } = renderWithEffects(sc.MethodsButton, {
+    getText: () => {
+      built++;
+      return "The two groups were compared.";
+    },
+  });
+  eq(built, 0, "text is built only when opened");
+  const btn = container.querySelector('[data-testid="methods-button"]');
+  assert(btn.textContent.includes("Methods"), "button label");
+  React.act(() => btn.click());
+  eq(built, 1);
+  const text = container.querySelector('[data-testid="methods-text"]');
+  eq(text.textContent, "The two groups were compared.");
+  eq(container.querySelectorAll("textarea, input").length, 0, "read-only");
+  const close = container.querySelector('[aria-label="Close"]');
+  React.act(() => close.click());
+  eq(container.querySelector('[data-testid="methods-popover"]'), null);
+  React.act(() => root.unmount());
+});
+
 suite("ColumnRoleEditor");
 
 test("renders column role dropdowns", function () {
@@ -1731,7 +1841,7 @@ suite("HeatmapChart (raster ↔ vector / high-density export)");
     suggestedMax: 5.31,
   };
 
-  test("SkewAlert (sidebar) explains the skew, offers the clip, and notes the legend", function () {
+  test("SkewAlert explains the skew, offers the clip, and notes the legend", function () {
     const html = renderHtml(tool.exports.SkewAlert, { skew: SKEW, onApply: noop });
     assert(
       html.indexOf(
@@ -1743,15 +1853,13 @@ suite("HeatmapChart (raster ↔ vector / high-density export)");
     assert(html.indexOf("≥ / ≤") !== -1, "legend note in the full variant");
   });
 
-  test("SkewAlert singular wording and compact variant without the legend note", function () {
+  test("SkewAlert singular wording", function () {
     const html = renderHtml(tool.exports.SkewAlert, {
       skew: { ...SKEW, nOutliers: 1 },
       onApply: noop,
-      compact: true,
     });
     assert(html.indexOf("1 of 3000 cells (0.0%) stretches") !== -1, "singular verb");
     assert(html.indexOf("Exclude 1 outlier from the colour scale") !== -1, "singular button");
-    assert(html.indexOf("≥ / ≤") === -1, "compact variant omits the legend note");
   });
 
   test("SkewAlert's button applies the suggested range", function () {

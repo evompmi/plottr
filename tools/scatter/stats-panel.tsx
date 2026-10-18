@@ -28,7 +28,16 @@ import {
   runCorrelation,
 } from "./helpers";
 import { buildScatterAggregateReport, buildScatterAggregateRScript } from "./reports";
-import { buildCorrelationReason } from "../_shell";
+import {
+  MethodsButton,
+  WhyThisTest,
+  alphaSentence,
+  buildCorrelationReason,
+  joinList,
+  listSep,
+  nRange,
+  softwareSentence,
+} from "../_shell";
 
 import { svgSafeId } from "../_core/svg-export";
 import { downloadText, downloadTexts, flashSaved } from "../_core/download";
@@ -216,13 +225,21 @@ function ScatterStatsDetail({
           </button>
         )}
       </div>
-      {recReason && (
-        <div
-          style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", marginBottom: 6 }}
-        >
-          {recReason}
-        </div>
-      )}
+      <div
+        style={{
+          padding: "6px 10px",
+          marginBottom: 6,
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: 6,
+          fontFamily: "ui-monospace, Menlo, monospace",
+          fontSize: 12,
+          fontWeight: 700,
+          color: "var(--text)",
+        }}
+      >
+        {formatCorrResultLine(res)}
+      </div>
       {suggestion && row.chosenTest !== suggestion.test && (
         <div
           style={{
@@ -257,19 +274,7 @@ function ScatterStatsDetail({
           </button>
         </div>
       )}
-      <div
-        style={{
-          padding: "6px 10px",
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          fontFamily: "ui-monospace, Menlo, monospace",
-          fontSize: 11,
-          color: "var(--text)",
-        }}
-      >
-        {formatCorrResultLine(res)}
-      </div>
+      <WhyThisTest text={recReason} />
       {res && !res.error && res.kind === "kendall" && (
         <div
           style={{
@@ -291,9 +296,17 @@ export interface ScatterStatsPanelProps {
   fileStem: string;
   xLabel: string;
   yLabel: string;
+  // The plot shows the least-squares line (methods text).
+  regressionOn?: boolean;
 }
 
-export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterStatsPanelProps) {
+export function ScatterStatsPanel({
+  sets,
+  fileStem,
+  xLabel,
+  yLabel,
+  regressionOn,
+}: ScatterStatsPanelProps) {
   const tr = useT();
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     sets.length === 1 ? { [sets[0].key]: true } : {}
@@ -332,6 +345,67 @@ export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterSta
 
   const eligible = enriched.filter((r): r is EnrichedScatterStatsRow => !r.skip);
   if (sets.length === 0) return null;
+
+  // Methods paragraph: the correlation run on each row, with its p-value
+  // method (exact / series / approximation), then shared closing sentences.
+  const methodsText = (): string => {
+    const rows = eligible.filter((r) => r.testResult && !r.testResult.error);
+    if (rows.length === 0) return "";
+    const exactOf = (r: EnrichedScatterStatsRow): boolean | undefined =>
+      r.testResult && r.testResult.kind !== "pearson" ? !!r.testResult.exact : undefined;
+    const groups: Array<{ test: CorrTest; names: string[]; exact: boolean[] }> = [];
+    for (const r of rows) {
+      let g = groups.find((x) => x.test === r.chosenTest);
+      if (!g) {
+        g = { test: r.chosenTest, names: [], exact: [] };
+        groups.push(g);
+      }
+      g.names.push(r.name);
+      const e = exactOf(r);
+      if (e != null) g.exact.push(e);
+    }
+    const phrase = (g: (typeof groups)[number]): string => {
+      if (g.test === "pearson") return tr("scatter.methods.pearson");
+      const all = g.exact.every((e) => e);
+      const none = g.exact.every((e) => !e);
+      const suffix = all ? "Exact" : none ? "Approx" : "Mixed";
+      return tr(`scatter.methods.${g.test}${suffix}` as ScatterKey);
+    };
+    const x = xLabel,
+      y = yLabel;
+    const n = nRange(rows.map((r) => r.n)).replace(/^n = /, "");
+    const out: string[] = [];
+    if (rows.length === 1) {
+      out.push(tr("scatter.methods.one", { x, y, n, test: phrase(groups[0]) }));
+    } else if (groups.length === 1) {
+      out.push(
+        tr("scatter.methods.manySame", {
+          x,
+          y,
+          n,
+          names: joinList(groups[0].names),
+          test: phrase(groups[0]),
+        })
+      );
+    } else {
+      const list = groups
+        .map((g) => tr("scatter.methods.testFor", { test: phrase(g), names: joinList(g.names) }))
+        .join(listSep());
+      out.push(tr("scatter.methods.manyMixed", { x, y, n, list }));
+    }
+    const overridden = rows.some((r) => overrides[r.key] != null);
+    out.push(
+      tr(
+        !overridden && rows.every((r) => r.chosenTest === "pearson")
+          ? "scatter.methods.policy"
+          : "scatter.methods.diagnostics"
+      )
+    );
+    out.push(alphaSentence());
+    if (regressionOn) out.push(tr("scatter.methods.regression", { x, y }));
+    out.push(softwareSentence(groups.map((g) => `cor.test(x, y, method = "${g.test}")`)));
+    return out.join(" ");
+  };
 
   const stem =
     typeof fileStem === "string" && fileStem.trim()
@@ -431,6 +505,7 @@ export function ScatterStatsPanel({ sets, fileStem, xLabel, yLabel }: ScatterSta
         </div>
         {eligible.length > 0 && (
           <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
+            <MethodsButton getText={methodsText} />
             <button
               type="button"
               className="dv-btn dv-btn-dl"

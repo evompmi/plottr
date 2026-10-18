@@ -582,6 +582,12 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                 onAnnotationChange={setStatsAnnotations}
                 onSummaryChange={setStatsSummary}
                 errorBarLabel={AQ_ERROR_BAR_LABELS[insetErrorType]}
+                displayKind={insetErrorType}
+                valueNote={tr(
+                  statsDataMode === "raw"
+                    ? "aequorin.methods.valueRaw"
+                    : "aequorin.methods.valueCorrected"
+                )}
               />
             </div>
           )}

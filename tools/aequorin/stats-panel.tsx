@@ -30,6 +30,10 @@ import {
   postHocForTest,
   runPostHoc,
   runTest,
+  WhyThisTest,
+  MethodsButton,
+  buildGroupMethodsText,
+  methodsDisplay,
 } from "../_shell";
 import {
   AequorinStatsDetailProps,
@@ -269,13 +273,25 @@ export function AequorinStatsDetail({
           </button>
         )}
       </div>
-      {recReason && (
-        <div
-          style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", marginBottom: 6 }}
-        >
-          {recReason}
-        </div>
-      )}
+      <div
+        style={{
+          padding: "6px 10px",
+          marginBottom: 6,
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: 6,
+          fontFamily: "ui-monospace, Menlo, monospace",
+          fontSize: 12,
+          fontWeight: 700,
+          color: "var(--text)",
+        }}
+      >
+        {res.error
+          ? `⚠ ${res.error}`
+          : row.chosenTest
+            ? formatAqResultLine(row.chosenTest, res)
+            : "—"}
+      </div>
       {suggestion && row.chosenTest !== suggestion.test && (
         <div
           style={{
@@ -310,23 +326,7 @@ export function AequorinStatsDetail({
           </button>
         </div>
       )}
-      <div
-        style={{
-          padding: "6px 10px",
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          fontFamily: "ui-monospace, Menlo, monospace",
-          fontSize: 11,
-          color: "var(--text)",
-        }}
-      >
-        {res.error
-          ? `⚠ ${res.error}`
-          : row.chosenTest
-            ? formatAqResultLine(row.chosenTest, res)
-            : "—"}
-      </div>
+      <WhyThisTest text={recReason} />
 
       {k >= 3 && postHoc && !postHoc.error && row.postHocName && (
         <>
@@ -444,6 +444,8 @@ export function AequorinStatsPanel({
   onAnnotationChange,
   onSummaryChange,
   errorBarLabel,
+  displayKind,
+  valueNote,
 }: AequorinStatsPanelProps) {
   const tr = useT();
   const singleKey = "_global";
@@ -523,6 +525,22 @@ export function AequorinStatsPanel({
     typeof fileStem === "string" && fileStem.trim()
       ? (typeof svgSafeId === "function" ? svgSafeId(fileStem) : fileStem).replace(/^-+|-+$/g, "")
       : "rlu_timecourse_stats";
+  const methodsText = (): string =>
+    enriched.chosenTest
+      ? buildGroupMethodsText({
+          sets: [
+            {
+              test: enriched.chosenTest,
+              exact: enriched.testResult ? enriched.testResult.exact : undefined,
+              postHoc: enriched.k > 2 ? enriched.postHocName : null,
+              ns: enriched.values.map((v) => v.length),
+            },
+          ],
+          valueNote,
+          overridden: override != null,
+          display: methodsDisplay(displayKind),
+        })
+      : "";
   const downloadReport = (e: React.MouseEvent<HTMLElement>) => {
     downloadText(buildAqAggregateReport([enriched]), `${stem}.txt`);
     flashSaved(e.currentTarget);
@@ -612,6 +630,7 @@ export function AequorinStatsPanel({
           </p>
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
+          <MethodsButton getText={methodsText} />
           <button
             type="button"
             className="dv-btn dv-btn-dl"

@@ -127,6 +127,8 @@ const fr: Record<UpsetKey, string> = {
     "<strong>Large</strong> — une colonne par ensemble, éléments empilés dans chaque colonne. <strong>Long</strong> — deux colonnes : <em>élément</em> et <em>ensemble</em>. Même format que Venn.",
   "upset.howto.display":
     "Chaque intersection est une colonne : la barre du haut montre sa taille, la matrice de points du bas montre l’appartenance aux ensembles. Triez par <strong>taille</strong> (par défaut) ou par <strong>degré</strong> ; filtrez par taille minimale + fenêtre de degré. Test de significativité par intersection contre une hypothèse nulle uniforme avec p-values corrigées BH.",
+  "upset.methods.text":
+    "La taille de chaque intersection (éléments appartenant exactement à cette combinaison d’ensembles) a été testée contre une hypothèse nulle d’indépendance dans laquelle chacun des N = {universe} éléments est placé dans chaque ensemble indépendamment, à la fréquence observée de cet ensemble ; l’effectif de l’intersection suit alors une loi Binomiale(N, p). Les p-values bilatérales (deux fois la plus petite queue, plafonnées à 1) ont été ajustées par la procédure de Benjamini-Hochberg sur les {n} intersections testées.",
 };
 
 export default fr;

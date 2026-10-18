@@ -6,6 +6,7 @@
 import { intersectionShortLabel } from "./helpers";
 import type { IntersectionStatsPanelProps } from "./helpers";
 import { useT } from "./i18n";
+import { MethodsButton, alphaSentence, softwareSentence } from "../_shell";
 
 import { multisetExclusiveExpected } from "../_core/stats/msi";
 /* ── Intersection significance panel ────────────────────────────────────────
@@ -103,6 +104,19 @@ export function IntersectionStatsPanel({
           {tr("upset.sp.title")}
         </p>
         <span style={{ fontSize: 11, color: "var(--text-faint)" }}>{tr("upset.sp.subtitle")}</span>
+        {cachedResult && (
+          <div style={{ marginLeft: "auto" }}>
+            <MethodsButton
+              getText={() =>
+                [
+                  tr("upset.methods.text", { universe: universeN, n: intersectionTests.size }),
+                  alphaSentence(),
+                  softwareSentence([]),
+                ].join(" ")
+              }
+            />
+          </div>
+        )}
       </div>
 
       {(() => {

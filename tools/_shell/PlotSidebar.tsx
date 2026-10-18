@@ -1,5 +1,6 @@
 // Shared sidebar frame for every plot tool: a fixed-width column that hosts
-// the ActionsPanel and all collapsible control tiles. Sticky by default so
+// the control tiles (the ActionsPanel inside it hands its buttons to the
+// page header). Sticky by default so
 // the controls follow the viewport while the plot scrolls; opt out with
 // `sticky={false}` for tools whose sidebar is short enough that sticky
 // scrolling would be distracting.
@@ -27,8 +28,9 @@ export function PlotSidebar({ children, sticky = true, width = 279 }: PlotSideba
         ...(sticky
           ? {
               position: "sticky",
-              top: 24,
-              maxHeight: "calc(100vh - 90px)",
+              // Below the sticky plot-step header (PageHeader publishes its height).
+              top: "calc(var(--dv-sticky-top, 0px) + 12px)",
+              maxHeight: "calc(100vh - var(--dv-sticky-top, 0px) - 24px)",
               overflowY: "auto",
             }
           : {}),

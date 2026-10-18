@@ -186,26 +186,38 @@ function _headerComment(generated: string, dataNote: string | null | undefined):
   return lines.join("\n");
 }
 
+// One-line R equivalents of each test / post-hoc on a long data frame `df`
+// with columns `value` and `group`. Shared with the methods-text builder so
+// the paragraph and the downloaded script can't drift apart.
+export function rTestCall(test: string | null | undefined): string | null {
+  if (test === "studentT") return "t.test(value ~ group, data = df, var.equal = TRUE)";
+  if (test === "welchT") return "t.test(value ~ group, data = df, var.equal = FALSE)";
+  if (test === "mannWhitney") return "wilcox.test(value ~ group, data = df)";
+  if (test === "oneWayANOVA") return "aov(value ~ group, data = df)";
+  if (test === "welchANOVA") return "oneway.test(value ~ group, data = df, var.equal = FALSE)";
+  if (test === "kruskalWallis") return "kruskal.test(value ~ group, data = df)";
+  return null;
+}
+
+export function rPostHocCall(postHocName: string | null | undefined): string | null {
+  if (postHocName === "tukeyHSD") return "TukeyHSD(aov(value ~ group, data = df))";
+  if (postHocName === "gamesHowell") return "rstatix::games_howell_test(df, value ~ group)";
+  if (postHocName === "dunn")
+    return 'rstatix::dunn_test(df, value ~ group, p.adjust.method = "BH")';
+  return null;
+}
+
 function _mainTestBlock(chosenTest: string | null | undefined): string {
   const header = "# --- Main test ---------------------------------------------------------------";
   const label = (chosenTest && _R_TEST_LABELS[chosenTest]) || chosenTest || "—";
   const pickComment = "# Toolbox picked: " + label;
-  let call: string;
-  if (chosenTest === "studentT") {
-    call = "t.test(value ~ group, data = df, var.equal = TRUE)";
-  } else if (chosenTest === "welchT") {
-    call = "t.test(value ~ group, data = df, var.equal = FALSE)";
-  } else if (chosenTest === "mannWhitney") {
-    call = "wilcox.test(value ~ group, data = df)";
-  } else if (chosenTest === "oneWayANOVA") {
-    call = "fit <- aov(value ~ group, data = df)\nsummary(fit)";
-  } else if (chosenTest === "welchANOVA") {
-    call = "oneway.test(value ~ group, data = df, var.equal = FALSE)";
-  } else if (chosenTest === "kruskalWallis") {
-    call = "kruskal.test(value ~ group, data = df)";
-  } else {
-    call = "# (no inferential test was run)";
-  }
+  const one = rTestCall(chosenTest);
+  const call =
+    one == null
+      ? "# (no inferential test was run)"
+      : chosenTest === "oneWayANOVA"
+        ? "fit <- " + one + "\nsummary(fit)"
+        : one;
   return [header, pickComment, call].join("\n");
 }
 
@@ -214,16 +226,7 @@ function _postHocBlock(postHocName: string | null | undefined, k: number): strin
   const header = "# --- Post-hoc ----------------------------------------------------------------";
   const label = _R_POSTHOC_LABELS[postHocName] || postHocName;
   const pickComment = "# Toolbox picked: " + label;
-  let call: string;
-  if (postHocName === "tukeyHSD") {
-    call = "TukeyHSD(aov(value ~ group, data = df))";
-  } else if (postHocName === "gamesHowell") {
-    call = "rstatix::games_howell_test(df, value ~ group)";
-  } else if (postHocName === "dunn") {
-    call = 'rstatix::dunn_test(df, value ~ group, p.adjust.method = "BH")';
-  } else {
-    call = "# (unknown post-hoc)";
-  }
+  const call = rPostHocCall(postHocName) || "# (unknown post-hoc)";
   return [header, pickComment, call].join("\n");
 }
 

@@ -185,6 +185,10 @@ const fr: Record<AequorinKey, string> = {
     "Format large — une colonne par échantillon, une ligne par point temporel. Matrice numérique ; aucune colonne d’axe temporel requise (les lignes sont régulièrement espacées ; vous définissez le pas de temps par ligne + l’unité de base). <strong>Les colonnes partageant le même nom d’en-tête sont regroupées comme réplicats d’une même condition</strong> — le graphique trace automatiquement leur ruban <strong>moyenne ± SD</strong>. Renommez les en-têtes pour changer le regroupement des échantillons.",
   "aequorin.howto.display":
     "Chaque en-tête unique devient un tracé coloré ; les colonnes de même nom se regroupent en un ruban moyenne ± SD en dessous. Affichez le graphique combiné ou une grille de petits multiples facettée. Diagramme en barres en médaillon optionnel de l’aire Σ intégrée par condition.",
+  "aequorin.methods.valueCorrected":
+    "les sommes du signal par réplicat sur la fenêtre de temps sélectionnée, après soustraction du minimum de chaque réplicat",
+  "aequorin.methods.valueRaw":
+    "les sommes du signal brut par réplicat sur la fenêtre de temps sélectionnée",
 };
 
 export default fr;

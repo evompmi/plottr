@@ -1144,6 +1144,7 @@ export function PlotStep({
                 fileStem={fileStem}
                 xLabel={vis.xLabel || parsed.headers[xCol] || "x"}
                 yLabel={vis.yLabel || parsed.headers[yCol] || "y"}
+                regressionOn={regression.on}
               />
             </div>
           )}

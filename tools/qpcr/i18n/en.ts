@@ -223,6 +223,28 @@ const en = {
     "Wide layout: one row per biological sample, one Ct column per gene (technical replicates already averaged). English headers (Sample, Group, Gene, Ct) are detected automatically; other names can be assigned in the Configure step.",
   "qpcr.howto.display":
     "Choose reference and target genes, efficiencies (typed or from a standard curve) and the control group — or normalise to the reference genes only (2^−ΔCt, no calibrator). The plot shows fold change on a log₂ axis (switchable to linear or −ΔΔCt) with biological replicates and SEM, SD or 95 % CI error bars; brackets or letters come from Welch's t-test / Welch's ANOVA + Games-Howell on ΔCt. Display options: bars, dots or box plots, vertical or horizontal, a fixed axis range shared by all genes, and an editable axis title.",
+  "qpcr.methods.scope": "each target gene",
+  "qpcr.methods.value": "ΔCt values (log2 scale), not fold changes",
+  "qpcr.methods.livakControl":
+    "Relative expression was calculated with the 2^−ΔΔCt method (amplification efficiency taken as 100 %), with {control} as the calibrator group.",
+  "qpcr.methods.livakRefs":
+    "Expression relative to the reference genes was calculated as 2^−ΔCt (amplification efficiency taken as 100 %).",
+  "qpcr.methods.pfafflControl":
+    "Relative expression was calculated with efficiency-corrected ratios (Pfaffl method; amplification factors: {eff}), with {control} as the calibrator group.",
+  "qpcr.methods.pfafflRefs":
+    "Expression relative to the reference genes was calculated with efficiency-corrected ratios (Pfaffl method; amplification factors: {eff}).",
+  "qpcr.methods.refOne": "Target Ct values were normalised to the reference gene {refs}.",
+  "qpcr.methods.refMany":
+    "Target Ct values were normalised to the geometric mean of the reference genes {refs}.",
+  "qpcr.methods.techReps":
+    "Technical replicates were averaged per biological sample, and samples missing the target or a reference Ct were excluded.",
+  "qpcr.methods.dispMean":
+    "Bars and points show back-transformed mean log2 values (geometric means){err}.",
+  "qpcr.methods.dispErr": " with {err} computed on the log2 scale",
+  "qpcr.methods.dispBox": "Box plots summarise the per-sample relative expression values.",
+  "qpcr.methods.err.sem": "SEM",
+  "qpcr.methods.err.sd": "SD",
+  "qpcr.methods.err.ci95": "95% confidence intervals",
 } as const satisfies Catalog;
 
 export default en;

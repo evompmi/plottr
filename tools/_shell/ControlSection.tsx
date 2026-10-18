@@ -28,7 +28,15 @@ export function ControlSection({
 }: ControlSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
   const rootRef = useRef<HTMLDivElement>(null);
+  // Reveal a section the user just opened — not the ones that start open,
+  // or every default-open tile would scroll the sidebar on mount and hide
+  // its top.
+  const mountedRef = useRef(false);
   useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
     if (!open) return;
     requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
   }, [open]);
