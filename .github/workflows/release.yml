@@ -1,0 +1,54 @@
+name: Release
+
+# Pushing a `v*` tag creates the matching GitHub Release. A pushed tag alone
+# does not create a Release object, so without this workflow every release
+# needed a manual `gh release create`.
+#
+# Title: the annotated tag's subject line (e.g. `v1.11.0 "By the Book"`).
+# Body:  docs/release-notes/<tag>.md — the run fails if that file is missing,
+#        so a tag never ships with empty notes.
+# Re-running on a tag whose Release already exists does nothing.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish a Release for (e.g. v1.11.0)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      # actions/checkout fetches a pushed annotated tag as a lightweight one,
+      # which loses its message; re-fetch the tag object to read the title.
+      - name: Fetch annotated tag
+        run: git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+
+      - name: Create GitHub Release
+        run: |
+          notes="docs/release-notes/$TAG.md"
+          if [ ! -f "$notes" ]; then
+            echo "::error::Missing $notes — write the release note before tagging."
+            exit 1
+          fi
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG already exists; nothing to do."
+            exit 0
+          fi
+          title="$(git tag -l --format='%(contents:subject)' "$TAG")"
+          gh release create "$TAG" --verify-tag --title "${title:-$TAG}" --notes-file "$notes"

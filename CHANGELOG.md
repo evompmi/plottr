@@ -7,13 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-10-18
+
+> Long-form release notes live in
+> [`docs/release-notes/v1.11.0.md`](docs/release-notes/v1.11.0.md). The
+> entries below are summary bullets that link there.
+>
+> The "By the Book" release: Proportions & counts and qPCR tools, a ready-to-copy
+> Methods paragraph in every stats panel, statistics that follow R's defaults, and
+> fixes for large files, decimal commas and large x values.
+
 ### Added
 
 - **Methods text.** A "📝 Methods" button in every stats panel (Group Plot, RLU, Line Plot, qPCR,
   Scatter, Proportions, UpSet) and on the Heatmap shows a ready-to-copy paragraph for a paper's
   methods section: the tests that actually ran (exact or approximate p), post-hocs, corrections,
   sample sizes, what the chart shows, the Plöttr version and the equivalent R calls. English and
-  French; no references are added.
+  French; no references are added. See
+  [`docs/release-notes/v1.11.0.md`](docs/release-notes/v1.11.0.md#-added).
 - **qPCR relative expression tool.** Paste raw Ct values (long or wide) to get 2^−ΔΔCt or
   efficiency-corrected (Pfaffl) fold changes with several reference genes combined by
   geometric mean, efficiencies typed or from a standard curve, and QC for undetermined wells,
@@ -64,7 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Rank tests use R's exact p-values on small samples.** Mann-Whitney (both n < 50), Spearman
   (n ≤ 1290) and Kendall (n < 50) without ties now report the exact p that `wilcox.test` /
   `cor.test` give by default, instead of the normal / t approximation (up to 2× different at
-  n ≤ 6). Ties keep the approximation. R-script exports drop `exact = FALSE`.
+  n ≤ 6). Ties keep the approximation. R-script exports drop `exact = FALSE`. See
+  [`docs/release-notes/v1.11.0.md`](docs/release-notes/v1.11.0.md#statistics-now-follow-rs-defaults).
 - **Correlation power matches `pwr::pwr.r.test`.** The calculator was a plain Fisher-z
   approximation, off by up to ~20 power points at n ≤ 8.
 - **Welch effect size is R's unpooled Cohen's d.** With Welch's t, the replication-planning
@@ -78,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Large files no longer fail silently.** Uploads past ~125,000 values did nothing in Group
   Plot, Proportions, qPCR and other tools (a JavaScript argument-limit crash). Regression: 6 tests.
+  See [`docs/release-notes/v1.11.0.md`](docs/release-notes/v1.11.0.md#-fixed).
 - **Calculators accept decimal commas.** Molarity read "1,5" as 1; it now reads 1.5. Power's
   list fields accept "10,5; 12; 15" (semicolons between values when decimals use commas).
 - **Scatter regression line stays correct for large x** (genomic positions, timestamps): the
