@@ -805,6 +805,24 @@ test("r=0.5, n=22, α=0.05 → 0.789", () =>
 test("r=0.3, n=68, α=0.001 → 0.273", () =>
   approx(TESTS["correlation"].power(0.3, 68, 0.001, 1), 0.27349456037495234, 1e-9));
 
+// pwr.r.test is not monotone in n at very small n: R dips from n = 4 to n = 6
+// before rising. Plöttr ports it exactly, dip included (the n ≥ 10 law is in
+// power.property.test.js).
+test("small-n dip matches pwr.r.test (r=0.05, α=0.0199, greater)", () => {
+  const alpha = 0.019857571741853267;
+  const ref = {
+    4: 0.029300080414284283,
+    5: 0.024300080414284286,
+    6: 0.024030459980302094,
+    7: 0.024504295945474788,
+    8: 0.025139256221003679,
+    9: 0.025798857894226004,
+  };
+  for (const n of Object.keys(ref)) {
+    approx(TESTS["correlation"].power(0.05, Number(n), alpha, 1), ref[n], 1e-12);
+  }
+});
+
 test("power increases with n (correlation)", () => {
   const p1 = TESTS["correlation"].power(0.3, 20, 0.05, 2);
   const p2 = TESTS["correlation"].power(0.3, 50, 0.05, 2);
