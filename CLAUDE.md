@@ -102,3 +102,13 @@ long-form prose that grew during the cycle into `docs/release-notes/v<version>.m
 the CHANGELOG bullets to point there. The release note is a normal markdown file with `##`
 section headings (Added / Changed / Fixed map to `## ✨` / `## 🔧` / `## 🐛` or whatever fits
 the contents) and is linked from each CHANGELOG bullet via `[`docs/release-notes/v1.x.y.md`](docs/release-notes/v1.x.y.md#anchor)`.
+
+### Release steps
+
+1. Write `docs/release-notes/vX.Y.Z.md`, add `## [X.Y.Z] - DATE` under `## [Unreleased]`.
+2. `npm run build` — regenerates `tools/version.js` from that top version heading.
+3. Commit `release: vX.Y.Z "Codename"`, then an annotated tag whose subject is
+   `vX.Y.Z "Codename"` (`git tag -a vX.Y.Z -m 'vX.Y.Z "Codename"' -m "<summary>"`).
+4. Push master, then the tag. `.github/workflows/release.yml` creates the GitHub Release from
+   the tag (title = tag subject, body = the release note) and fails if the note is missing.
+   For a tag pushed without a Release, run the workflow manually with that tag.

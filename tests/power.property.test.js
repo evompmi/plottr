@@ -100,12 +100,20 @@ for (const key of TEST_KEYS) {
 
 suite("power property — monotonicity in n");
 
+// pwr.r.test's approximation — which correlation power ports exactly — is
+// itself non-monotone in n for n ≤ 9 at small r (e.g. r = 0.05, one-tailed
+// α ≈ 0.02: 0.0293 at n = 4, 0.0243 at n = 5). Those R values are pinned in
+// power.test.js; the law is checked from n = 10, where it holds exactly.
+const arbNMonotone = { correlation: fc.integer({ min: 10, max: 200 }) };
+
 for (const key of TEST_KEYS) {
   test(`${key}: power is non-decreasing in n (fixed es, α, tails)`, () => {
     check(
       fc.property(
         arbEffect[key],
-        fc.tuple(arbN, fc.integer({ min: 1, max: 200 })).map(([n, gap]) => [n, n + gap]),
+        fc
+          .tuple(arbNMonotone[key] || arbN, fc.integer({ min: 1, max: 200 }))
+          .map(([n, gap]) => [n, n + gap]),
         arbAlpha,
         arbTails,
         arbK,
