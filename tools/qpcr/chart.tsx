@@ -14,6 +14,7 @@
 import { CldLabels, SignificanceBrackets, assignBracketLevels } from "../_shell";
 import { svgSafeId } from "../_core/svg-export";
 import { makeTicks } from "../_core/scale";
+import { arrayMax, arrayMin } from "../_core/numeric";
 import { quartiles } from "../_core/descriptive";
 import { errorBounds, parseAxisBound, visibleGene } from "./helpers";
 import type { ErrorBarType, GeneAnalysis, QpcrChartProps, QpcrChartStyle, YScale } from "./helpers";
@@ -90,8 +91,8 @@ function facetAxis(
   }
   if (showPoints || style === "box") g.rows.forEach((r) => vals.push(toAxis(r.L, scale)));
   const finite = vals.filter(Number.isFinite);
-  let lo = finite.length ? Math.min(...finite) : 0;
-  let hi = finite.length ? Math.max(...finite) : 1;
+  let lo = finite.length ? arrayMin(finite) : 0;
+  let hi = finite.length ? arrayMax(finite) : 1;
   if (scale === "linear") lo = 0;
   const pad = (hi - lo || 1) * 0.08;
   if (scale !== "linear") lo -= pad;

@@ -10,6 +10,9 @@ const {
   rgbToHex,
   shadeColor,
   seededRandom,
+  arrayMin,
+  arrayMax,
+  parseDecimal,
   isNumericValue,
   toNumericValue,
   wideToLong,
@@ -189,6 +192,65 @@ test("does not produce ticks beyond max", () => {
     ticks2.every((t) => t <= 0.3 + 1e-9),
     `tick exceeds max 0.3`
   );
+});
+
+test("terminates when the step is below float spacing (|values| ≥ 1e16)", () => {
+  // `v += 1` is a no-op at 1e16, so an accumulating loop never ended.
+  eq(makeTicks(1e16, 1e16 + 4, 5), [1e16]);
+  eq(makeTicks(-1e17, -1e17 + 8, 5), [-1e17]);
+});
+
+test("returns no ticks for non-finite bounds instead of looping", () => {
+  eq(makeTicks(0, NaN, 5), []);
+  eq(makeTicks(-Infinity, 0, 5), []);
+  eq(makeTicks(0, Infinity, 5), []);
+});
+
+// ── arrayMin / arrayMax ───────────────────────────────────────────────────────
+
+suite("arrayMin / arrayMax");
+
+test("match Math.min / Math.max on small arrays", () => {
+  eq(arrayMin([3, -1, 2]), -1);
+  eq(arrayMax([3, -1, 2]), 3);
+  eq(arrayMin([]), Infinity);
+  eq(arrayMax([]), -Infinity);
+});
+
+test("propagate NaN like Math.min / Math.max", () => {
+  assert(Number.isNaN(arrayMin([1, NaN, 0])));
+  assert(Number.isNaN(arrayMax([1, NaN, 0])));
+});
+
+test("handle 500k elements (spread form throws RangeError)", () => {
+  const big = Array.from({ length: 500000 }, (_, i) => (i * 7919) % 500000);
+  eq(arrayMin(big), 0);
+  eq(arrayMax(big), 499999);
+});
+
+// ── parseDecimal ──────────────────────────────────────────────────────────────
+
+suite("parseDecimal");
+
+test("decimal point and decimal comma", () => {
+  eq(parseDecimal("1.5"), 1.5);
+  eq(parseDecimal("1,5"), 1.5);
+  eq(parseDecimal(" -0,25 "), -0.25);
+  eq(parseDecimal("2,5e-3"), 0.0025);
+});
+
+test("both separators: the last one is the decimal mark", () => {
+  eq(parseDecimal("1,234.5"), 1234.5);
+  eq(parseDecimal("1.234,5"), 1234.5);
+  eq(parseDecimal("1,234,567"), 1234567);
+});
+
+test("Unicode minus / thin-space thousands and parseFloat trailing text", () => {
+  eq(parseDecimal("\u22121,5"), -1.5);
+  eq(parseDecimal("1\u202F234,5"), 1234.5);
+  eq(parseDecimal("150 mM"), 150);
+  assert(Number.isNaN(parseDecimal("")));
+  assert(Number.isNaN(parseDecimal("abc")));
 });
 
 // ── Color helpers ─────────────────────────────────────────────────────────────

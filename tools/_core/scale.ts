@@ -10,13 +10,21 @@ export function niceStep(range: number, approxN: number): number {
   return 10 * mag;
 }
 
+const MAX_TICKS = 1000;
+
 export function makeTicks(min: number, max: number, approxN: number): number[] {
   const step = niceStep(max - min || 1, approxN);
   const start = Math.ceil(min / step) * step;
   const ticks: number[] = [];
-  for (let v = start; v <= max + step * 0.001; v += step) {
-    const tick = parseFloat(v.toPrecision(10));
-    if (tick <= max + step * 1e-9) ticks.push(tick);
+  // Index-based rather than `v += step`: when |values| ≳ 1e16 the step can
+  // fall below the float spacing, `v + step === v`, and an accumulating
+  // loop never terminates. The count is capped for the same reason, and
+  // repeated ticks (float collapse at that magnitude) are dropped.
+  const n = Math.floor((max + step * 0.001 - start) / step) + 1;
+  const count = Number.isFinite(n) ? Math.min(Math.max(n, 0), MAX_TICKS) : 0;
+  for (let i = 0; i < count; i++) {
+    const tick = parseFloat((start + i * step).toPrecision(10));
+    if (tick <= max + step * 1e-9 && tick !== ticks[ticks.length - 1]) ticks.push(tick);
   }
   return ticks;
 }

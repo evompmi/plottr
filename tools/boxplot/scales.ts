@@ -12,6 +12,7 @@ import type { BoxplotGroup } from "./helpers";
 import type { ChartMargins } from "./layout";
 
 import { makeLogTicks, makeTicks } from "../_core/scale";
+import { arrayMax, arrayMin } from "../_core/numeric";
 // ── Y-domain ────────────────────────────────────────────────────────────────
 
 export interface YDomainInput {
@@ -42,8 +43,8 @@ export interface YDomainResult {
 export function computeYDomain(opts: YDomainInput): YDomainResult {
   const { allV, groups, isBar, plotStyle, errorType, getKde, yMinP, yMaxP, yScale } = opts;
 
-  let dMin = Math.min(...allV);
-  let dMax = Math.max(...allV);
+  let dMin = arrayMin(allV);
+  let dMax = arrayMax(allV);
   if (isBar) {
     // Bar mode pins the data range to 0..max(mean+err) so the bar baseline
     // anchors at 0 and the error-bar caps don't push past the y-axis. The
@@ -108,7 +109,7 @@ export function computeYDomain(opts: YDomainInput): YDomainResult {
     // a sensible base-dependent default when no positive values exist.
     const posVals = allV.filter((v) => v > 0);
     if (posVals.length > 0) {
-      const smallestPos = Math.min(...posVals);
+      const smallestPos = arrayMin(posVals);
       if (yMin <= 0) yMin = smallestPos / 2;
     } else {
       yMin = logBase === 2 ? 0.5 : 0.1;

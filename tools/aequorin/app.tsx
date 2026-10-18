@@ -32,6 +32,7 @@ import { tt, useT } from "./i18n";
 
 import { autoDetectSep, fixDecimalCommas, parseData } from "../_core/csv";
 import { downloadCsv, fileBaseName } from "../_core/download";
+import { arrayMin } from "../_core/numeric";
 const { useState, useMemo, useCallback, useRef } = React;
 
 const VIS_INIT_AEQUORIN = {
@@ -1427,7 +1428,7 @@ export function App() {
             if (v != null) vals.push(v);
           }
           const rawSum = vals.reduce((a, b) => a + b, 0);
-          const minVal = vals.length > 0 ? Math.min(...vals) : 0;
+          const minVal = vals.length > 0 ? arrayMin(vals) : 0;
           const corrSum = rawSum - vals.length * minVal;
           return { colIndex: ci, rawSum, corrSum };
         }

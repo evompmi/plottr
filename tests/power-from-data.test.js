@@ -1,42 +1,27 @@
 // `computePowerFromData` lives in `tools/_shell/power-from-data.ts` and
-// surfaces the "n for 80% power" rows on the stats panel. The 2026-05-13
-// methodology pass switched the effect-size denominator based on which
-// test was chosen:
+// surfaces the "n for 80% power" rows on the stats panel. The effect-size
+// denominator follows the chosen test's variance assumption, the way R's
+// `effectsize::cohens_d` does:
 //
-//   - Student's t / Mann-Whitney → pooled SD     ("Cohen's d")
-//   - Welch's t                   → mean of SDs  ("Cohen's d_av")
+//   - Student's t / Mann-Whitney → pooled SD                ("Cohen's d")
+//   - Welch's t                   → unpooled √((s₁²+s₂²)/2)  ("Cohen's d (unpooled SD)")
 //
-// Rationale (Lakens 2013): Welch denies the equal-variance assumption;
-// the pooled denominator embeds it back, so under Welch the effect size
-// should be a denominator that treats each group's variance on its own.
-// d_av = mean(sd₁, sd₂) is the symmetric choice.
-//
-// These tests pin the formula choice + the effect-label string so a
-// future refactor doesn't silently revert the Welch branch.
+// and the Welch CI is the noncentral-t pivot on Welch's t with
+// Welch–Satterthwaite df (`cohens_d(pooled_sd = FALSE)`). With equal n the
+// two denominators coincide, so the fixture below is unbalanced.
 
 const { suite, test, assert, approx, summary } = require("./harness");
 const { computePowerFromData } = require("./helpers/boxplot-loader");
 
-// Two synthetic groups with deliberately unequal variances — the case
-// where pooled-SD d and d_av diverge.
-//
-//   x:  mean = 5,  sd = 1   (5 values, [3.5, 4.5, 5.0, 5.5, 6.5] gives variance 1.0)
-//   y:  mean = 20, sd = 10  (5 values, spread one decade)
-//
-// Hand-traced:
-//   d_av    = |5 − 20| / ((1 + 10)/2) = 15 / 5.5 = 2.72727…
-//   d_pool  = |5 − 20| / sqrt(((4·1) + (4·100)) / 8) = 15 / sqrt(50.5) = 2.1106…
-//
-// Roughly a 30 % gap between the two denominators on this fixture.
-const X = [3.5, 4.5, 5.0, 5.5, 6.5]; // mean 5, sd 1 (verified separately)
-const Y = [4.7, 13.6, 21.5, 26.4, 33.8]; // mean 20, sd 11.42 (close to 10, enough divergence)
+const X = [3.5, 4.5, 5.0, 5.5, 6.5];
+const Y = [4.7, 13.6, 21.5, 26.4, 33.8, 40.1, 12.2];
 
-suite("computePowerFromData — Welch uses d_av, Student/MWU uses pooled SD");
+suite("computePowerFromData — Welch uses the unpooled SD, Student/MWU the pooled SD");
 
-test("welchT branch reports 'Cohen's d_av' as the effect-size label", () => {
+test("welchT branch reports 'Cohen's d (unpooled SD)' as the effect-size label", () => {
   const r = computePowerFromData("welchT", [X, Y]);
   assert(r != null, "expected a result for welchT");
-  assert(r.effectLabel === "Cohen's d_av", `label: ${r.effectLabel}`);
+  assert(r.effectLabel === "Cohen's d (unpooled SD)", `label: ${r.effectLabel}`);
 });
 
 test("studentT branch reports 'Cohen's d' (pooled) as the effect-size label", () => {
@@ -45,33 +30,31 @@ test("studentT branch reports 'Cohen's d' (pooled) as the effect-size label", ()
   assert(r.effectLabel === "Cohen's d", `label: ${r.effectLabel}`);
 });
 
-test("welchT effect = (mean1 − mean2) / mean(sd1, sd2) — signed", () => {
-  // Trivial sanity check: equal SDs make d_av == d_pooled, so the
-  // numerical value matches the symmetric-input case. The 2026-05-13
-  // pass switched `effect` from `Math.abs(...)` to a signed value so
-  // direction is preserved (consistent with `cohenD` returning a
-  // signed d throughout tests/stats.test.js).
+test("studentT d and CI match effectsize::cohens_d(x, y)", () => {
+  // R> cohens_d(X, Y)  →  -1.71300356275889398  [-3.04921609819507555, -0.31745276757196428]
+  const r = computePowerFromData("studentT", [X, Y]);
+  approx(r.effect, -1.713003562758894, 1e-12);
+  approx(r.effectCI.lo, -3.0492160981950756, 1e-5);
+  approx(r.effectCI.hi, -0.31745276757196428, 1e-5);
+});
+
+test("welchT d and CI match effectsize::cohens_d(x, y, pooled_sd = FALSE)", () => {
+  // R> cohens_d(X, Y, pooled_sd = FALSE)
+  //    →  -1.87405499555983512  [-3.30425997643223734, -0.37168690910318986]
+  const r = computePowerFromData("welchT", [X, Y]);
+  approx(r.effect, -1.874054995559835, 1e-12);
+  approx(r.effectCI.lo, -3.3042599764322373, 1e-5);
+  approx(r.effectCI.hi, -0.37168690910318986, 1e-5);
+});
+
+test("equal SDs: both denominators give the same signed d", () => {
   const a = [4, 5, 6]; // mean 5, sd 1
   const b = [9, 10, 11]; // mean 10, sd 1
   const welch = computePowerFromData("welchT", [a, b]);
   const student = computePowerFromData("studentT", [a, b]);
   assert(welch && student);
-  // (5 − 10) / 1 = −5 for both denominators when sd1 == sd2.
   approx(welch.effect, -5, 1e-9);
   approx(student.effect, -5, 1e-9);
-});
-
-test("welchT and studentT diverge numerically when variances are unequal", () => {
-  const welch = computePowerFromData("welchT", [X, Y]);
-  const student = computePowerFromData("studentT", [X, Y]);
-  assert(welch && student);
-  // The two denominators are constructed differently — they must
-  // produce different effect-size values on unequal-variance data,
-  // proving the branch is actually firing. Compare magnitudes since
-  // both d and d_av are signed; sign agreement is implicit.
-  const rel =
-    Math.abs(Math.abs(welch.effect) - Math.abs(student.effect)) / Math.abs(student.effect);
-  assert(rel > 0.05, `expected ≥ 5% gap, got rel=${rel.toExponential(2)}`);
 });
 
 test("mannWhitney branch still reports pooled 'Cohen's d'", () => {

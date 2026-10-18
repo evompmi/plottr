@@ -96,7 +96,6 @@ export function buildScatterAggregateRScript(
     const row = rows[i];
     const safeName = sanitizeRComment(row.name || "—");
     const method = CORR_TO_R_METHOD[row.chosenTest];
-    const exactArg = method === "spearman" || method === "kendall" ? ", exact = FALSE" : "";
     const banner =
       "\n# ==============================================================\n# " +
       `Group: ${safeName}` +
@@ -105,7 +104,7 @@ export function buildScatterAggregateRScript(
       `x <- ${formatRVector(row.xs)}`,
       `y <- ${formatRVector(row.ys)}`,
       `# n complete pairs: ${row.n}`,
-      `cor.test(x, y, method = "${sanitizeRString(method)}"${exactArg})`,
+      `cor.test(x, y, method = "${sanitizeRString(method)}")`,
       "",
     ].join("\n");
     parts.push(banner + body);

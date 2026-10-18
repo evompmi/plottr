@@ -4,6 +4,8 @@
 // the batch path returns structured error *codes*, and the component maps them
 // to localized strings.
 
+import { parseDecimal } from "../_core/numeric";
+
 export type Unit = { label: string; factor: number };
 
 export const CONC_UNITS: Unit[] = [
@@ -59,9 +61,9 @@ export function parseValueUnit(
   unitList: Unit[]
 ): { value: number; unit: string } | null {
   str = str.trim();
-  const m = str.match(/^([\d.eE+-]+)\s*(.+)?$/);
+  const m = str.match(/^([\d.,eE+-]+)\s*(.+)?$/);
   if (!m) return null;
-  const val = parseFloat(m[1]);
+  const val = parseDecimal(m[1]);
   if (!isFinite(val)) return null;
   const unitStr = (m[2] || defaultUnit).trim();
   const found = unitList.find((u) => u.label === unitStr);
@@ -74,9 +76,9 @@ export function parseMassVolConc(
   str: string
 ): { gPerL: number; originalUnit: string; originalValue: number } | null {
   str = str.trim();
-  const m = str.match(/^([\d.eE+-]+)\s*(mg\/mL|µg\/µL|g\/L|µg\/mL|mg\/L|g\/mL)$/i);
+  const m = str.match(/^([\d.,eE+-]+)\s*(mg\/mL|µg\/µL|g\/L|µg\/mL|mg\/L|g\/mL)$/i);
   if (!m) return null;
-  const val = parseFloat(m[1]);
+  const val = parseDecimal(m[1]);
   if (!isFinite(val)) return null;
   const unit = m[2].toLowerCase();
   const conversions: Record<string, number> = {
@@ -111,10 +113,10 @@ export interface MolarityInputs {
 // Solves for whichever of {conc, mass, volume, mw} is requested; returns null
 // when a required input is non-finite or a divisor is non-positive.
 export function solveMolarity(inp: MolarityInputs): SolveResult | null {
-  const mwVal = parseFloat(inp.mw);
-  const massVal = parseFloat(inp.mass);
-  const volVal = parseFloat(inp.vol);
-  const concVal = parseFloat(inp.conc);
+  const mwVal = parseDecimal(inp.mw);
+  const massVal = parseDecimal(inp.mass);
+  const volVal = parseDecimal(inp.vol);
+  const concVal = parseDecimal(inp.conc);
 
   if (inp.solveFor === "conc") {
     if (!isFinite(mwVal) || !isFinite(massVal) || !isFinite(volVal) || mwVal <= 0 || volVal <= 0)
@@ -177,10 +179,10 @@ export interface DilutionInputs {
 // Serial-dilution relation C1·V1 = C2·V2, solved for the requested unknown in
 // base units (M, L) then converted back to the unknown's display unit.
 export function solveDilution(inp: DilutionInputs): SolveResult | null {
-  const c1Val = parseFloat(inp.c1);
-  const v1Val = parseFloat(inp.v1);
-  const c2Val = parseFloat(inp.c2);
-  const v2Val = parseFloat(inp.v2);
+  const c1Val = parseDecimal(inp.c1);
+  const v1Val = parseDecimal(inp.v1);
+  const c2Val = parseDecimal(inp.c2);
+  const v2Val = parseDecimal(inp.v2);
 
   if (inp.solveFor === "c1") {
     if (!isFinite(v1Val) || !isFinite(c2Val) || !isFinite(v2Val) || v1Val <= 0) return null;
@@ -225,11 +227,11 @@ export interface LigationInputs {
 // insertNg = (insertBp / vectorBp) × vectorNg × (insertRatio / vectorRatio).
 // Returns null unless every input is finite and strictly positive.
 export function computeLigationInsertNg(inp: LigationInputs): number | null {
-  const vBp = parseFloat(inp.vectorBp);
-  const vNg = parseFloat(inp.vectorNg);
-  const iBp = parseFloat(inp.insertBp);
-  const rV = parseFloat(inp.ratioVector);
-  const rI = parseFloat(inp.ratioInsert);
+  const vBp = parseDecimal(inp.vectorBp);
+  const vNg = parseDecimal(inp.vectorNg);
+  const iBp = parseDecimal(inp.insertBp);
+  const rV = parseDecimal(inp.ratioVector);
+  const rI = parseDecimal(inp.ratioInsert);
   if (!isFinite(vBp) || !isFinite(vNg) || !isFinite(iBp) || !isFinite(rV) || !isFinite(rI))
     return null;
   if (vBp <= 0 || vNg <= 0 || iBp <= 0 || rV <= 0 || rI <= 0) return null;
@@ -251,7 +253,7 @@ export type BatchRowResult =
 // volume cells. Concentration may be molar ("150 mM") or mass/volume
 // ("50 mg/mL"). Errors are returned as codes so the caller localizes them.
 export function computeBatchMass(mwStr: string, concStr: string, volStr: string): BatchRowResult {
-  const mwVal = parseFloat(mwStr);
+  const mwVal = parseDecimal(mwStr);
   if (!isFinite(mwVal) || mwVal <= 0) return { ok: false, errorCode: "mw", value: mwStr };
 
   const volParsed = parseValueUnit(volStr, "mL", VOL_UNITS);

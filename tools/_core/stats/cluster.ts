@@ -39,10 +39,14 @@ export function rowDistance(a: number[], b: number[], metric: DistanceMetric): n
     }
   }
   if (xs.length === 0) return NaN;
+  // Like R's `dist()`: when cells are missing, the Euclidean / Manhattan sum
+  // over the complete pairs is scaled up by (#columns / #used), so rows with
+  // gaps don't look closer than they are.
+  const scale = n / xs.length;
   if (metric === "manhattan") {
     let s = 0;
     for (let k = 0; k < xs.length; k++) s += Math.abs(xs[k] - ys[k]);
-    return s;
+    return s * scale;
   }
   if (metric === "correlation") {
     if (xs.length < 2) return NaN;
@@ -73,7 +77,7 @@ export function rowDistance(a: number[], b: number[], metric: DistanceMetric): n
     const d = xs[k] - ys[k];
     s += d * d;
   }
-  return Math.sqrt(s);
+  return Math.sqrt(s * scale);
 }
 
 export function hclust(distMatrix: number[][], linkage: LinkageMethod): HClustResult {

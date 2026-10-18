@@ -24,7 +24,10 @@ const TEST_KEYS = Object.keys(TESTS);
 // production UI exposes, so the property tests don't drift into the
 // numerical-noise regime (power calcs at n = 1e9 stop being meaningful).
 const arbN = fc.integer({ min: 4, max: 200 });
-const arbAlpha = fc.double({ min: 0.001, max: 0.2, noNaN: true, noDefaultInfinity: true });
+// α tops out at 0.10 — the calculator's largest significance button.
+// (Above it, pwr.r.test's approximation — which correlation power ports —
+// drifts > 0.05 from α at r = 0, n = 4: 0.27 at α = 0.2.)
+const arbAlpha = fc.double({ min: 0.001, max: 0.1, noNaN: true, noDefaultInfinity: true });
 const arbTails = fc.constantFrom(1, 2);
 const arbK = fc.integer({ min: 2, max: 8 }); // ANOVA group count
 const arbDf = fc.integer({ min: 1, max: 20 }); // chi-square df

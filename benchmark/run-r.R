@@ -271,13 +271,20 @@ mwu_cases <- list(
        y = cw21$weight[cw21$Diet == 3]),
   list(label = "OrchardSprays: A vs H",
        x = OrchardSprays$decrease[OrchardSprays$treatment == "A"],
-       y = OrchardSprays$decrease[OrchardSprays$treatment == "H"])
+       y = OrchardSprays$decrease[OrchardSprays$treatment == "H"]),
+  # Tie-free, both n < 50 → R's default exact p (pwilcox).
+  list(label = "PlantGrowth: ctrl vs trt2 (tie-free, exact)",
+       x = PlantGrowth$weight[PlantGrowth$group == "ctrl"],
+       y = PlantGrowth$weight[PlantGrowth$group == "trt2"]),
+  list(label = "women: height[1:4] vs weight[1:5] / 10 (tie-free, exact)",
+       x = women$height[1:4], y = women$weight[1:5] / 10)
 )
 
 for (c in mwu_cases) {
-  # Normal approximation with continuity correction — matches stats.js
+  # R's default: exact p for n1, n2 < 50 without ties, otherwise the
+  # normal approximation with continuity correction — matches stats.js.
   suppressWarnings({
-    w <- wilcox.test(c$x, c$y, exact = FALSE, correct = TRUE)
+    w <- wilcox.test(c$x, c$y, correct = TRUE)
   })
   add(
     category = "Mann-Whitney U",
@@ -696,13 +703,20 @@ correlation_cases <- list(
        x = women$height,      y = women$weight),
   # Tied data — exercises Kendall τ-b's tie correction path.
   list(label = "tied-on-both (8 pairs)",
-       x = c(1,1,2,2,3,3,4,4), y = c(1,2,1,2,3,4,3,4))
+       x = c(1,1,2,2,3,3,4,4), y = c(1,2,1,2,3,4,3,4)),
+  # Tie-free small n → R's default exact paths (Spearman AS 89 exact
+  # enumeration at n ≤ 9 / Edgeworth above; Kendall exact T for n < 50).
+  list(label = "PlantGrowth ctrl vs trt1 [1:7] (tie-free, exact)",
+       x = PlantGrowth$weight[1:7], y = PlantGrowth$weight[11:17]),
+  list(label = "PlantGrowth ctrl vs trt1 (n = 10, tie-free)",
+       x = PlantGrowth$weight[1:10], y = PlantGrowth$weight[11:20])
 )
 
 for (c in correlation_cases) {
   pr <- cor.test(c$x, c$y, method = "pearson")
-  sp <- suppressWarnings(cor.test(c$x, c$y, method = "spearman", exact = FALSE))
-  kn <- suppressWarnings(cor.test(c$x, c$y, method = "kendall", exact = FALSE))
+  # R's defaults: exact p without ties (warns and falls back with ties).
+  sp <- suppressWarnings(cor.test(c$x, c$y, method = "spearman"))
+  kn <- suppressWarnings(cor.test(c$x, c$y, method = "kendall"))
   add(
     category = "Pearson r",
     label    = c$label,

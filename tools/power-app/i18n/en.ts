@@ -53,7 +53,8 @@ const en = {
   "power.es.deviationRef": "Expected deviation from reference",
   "power.es.sdPairedDiff": "SD of paired differences",
   "power.es.sd": "Standard deviation",
-  "power.es.groupMeans": "Expected group means (comma-separated)",
+  "power.es.groupMeans":
+    "Expected group means (separated by commas, or by semicolons with decimal commas)",
   "power.es.withinSd": "Within-group standard deviation",
   "power.es.anovaNote":
     "Enter the means you expect for each treatment group, and the common within-group SD (from pilot data or literature).",

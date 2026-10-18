@@ -47,14 +47,15 @@ const fr: Record<PowerKey, string> = {
   "power.es.deviationRef": "Écart attendu par rapport à la référence",
   "power.es.sdPairedDiff": "SD des différences appariées",
   "power.es.sd": "Écart-type",
-  "power.es.groupMeans": "Moyennes de groupes attendues (séparées par des virgules)",
+  "power.es.groupMeans":
+    "Moyennes de groupes attendues (séparées par des virgules, ou par des points-virgules si décimales à virgule)",
   "power.es.withinSd": "Écart-type intra-groupe",
   "power.es.anovaNote":
     "Saisissez les moyennes attendues pour chaque groupe de traitement, et le SD intra-groupe commun (à partir de données pilotes ou de la littérature).",
   "power.es.baselineProps": "Proportions de référence (ce que la théorie prédit)",
   "power.es.actualProps": "Proportions réelles (ce qui se passe vraiment selon vous)",
   "power.es.chi2Note":
-    "Utilisez des ratios (3:1) ou des proportions (0.75, 0.25). Courant pour les tests de ségrégation mendélienne.",
+    "Utilisez des ratios (3:1) ou des proportions (0,75; 0,25). Courant pour les tests de ségrégation mendélienne.",
   "power.es.directF": "Taille d’effet (f)",
   "power.es.directW": "Taille d’effet (w)",
   "power.es.directD": "Taille d’effet (d)",
@@ -101,8 +102,8 @@ const fr: Record<PowerKey, string> = {
   "power.explain.chi2":
     "Pour un <b>test du Chi2</b>, la taille d’effet (w de Cohen) mesure l’écart des proportions de catégories observées par rapport aux attendues. Un w de 0,1 est petit, 0,3 moyen et 0,5 grand.<br/><br/>Degrés de liberté :<br/>&bull; Ajustement : <b>df = catégories − 1</b><br/>&bull; Indépendance : <b>df = (lignes − 1) × (colonnes − 1)</b>",
   "power.eg": "p. ex. {ex}",
-  "power.eg.ratio1": "p. ex. 3:1 ou 0,75, 0,25",
-  "power.eg.ratio2": "p. ex. 2:1 ou 0,67, 0,33",
+  "power.eg.ratio1": "p. ex. 3:1 ou 0,75; 0,25",
+  "power.eg.ratio2": "p. ex. 2:1 ou 0,67; 0,33",
 };
 
 export default fr;

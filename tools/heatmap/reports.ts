@@ -186,7 +186,7 @@ export function buildHeatmapRScript({
     lines.push(
       "hc_dist <- function(x) " +
         (pheatmapDist === "correlation"
-          ? "as.dist(1 - cor(t(x)))"
+          ? 'as.dist(1 - cor(t(x), use = "pairwise.complete.obs"))'
           : 'dist(x, method = "' + pheatmapDist + '")')
     );
     const method = '"' + (linkageMethod || "average") + '"';

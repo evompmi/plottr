@@ -75,6 +75,8 @@ const {
   mannWhitneyU,
   cohenD,
   cohenDCI,
+  cohenDUnpooled,
+  cohenDUnpooledCI,
   hedgesG,
   rankBiserial,
   oneWayANOVA,
@@ -943,6 +945,48 @@ test("small samples with ties — U1=5 p=0.077947", () => {
   approx(r.p, 0.077947, 1e-2); // tie correction has some room
 });
 
+// Tie-free samples with n1, n2 < 50 → R's default exact p (pwilcox).
+test("tie-free 3 vs 3 — exact p = 0.1 (R default)", () => {
+  // R> wilcox.test(c(1.1,2.3,3.2), c(4.5,5.1,6.7))$p.value   # 0.1
+  const r = mannWhitneyU([1.1, 2.3, 3.2], [4.5, 5.1, 6.7]);
+  approx(r.p, 0.1, 1e-15);
+  eq(r.exact, true);
+});
+
+test("tie-free 6 vs 6 — exact p = 0.008658", () => {
+  // R> wilcox.test(c(1.2,2.5,3.1,4.8,5.3,6.6), c(7.1,8.4,9.2,10.5,4.9,11.3))$p.value
+  const r = mannWhitneyU([1.2, 2.5, 3.1, 4.8, 5.3, 6.6], [7.1, 8.4, 9.2, 10.5, 4.9, 11.3]);
+  approx(r.p, 0.008658008658008658, 1e-15);
+});
+
+const mw49x = [
+  -0.626454, 0.183643, -0.835629, 1.595281, 0.329508, -0.820468, 0.487429, 0.738325, 0.575781,
+  -0.305388, 1.511781, 0.389843, -0.621241, -2.2147, 1.124931, -0.044934, -0.01619, 0.943836,
+  0.821221, 0.593901, 0.918977, 0.782136, 0.074565, -1.989352, 0.619826, -0.056129, -0.155796,
+  -1.470752, -0.47815, 0.417942, 1.35868, -0.102788, 0.387672, -0.053805, -1.37706, -0.414995,
+  -0.39429, -0.059313, 1.100025, 0.763176, -0.164524, -0.253362, 0.696963, 0.556663, -0.688756,
+  -0.707495, 0.364582, 0.768533, -0.112346,
+];
+const mw49y = [
+  1.381108, 0.898106, -0.112026, 0.84112, -0.629363, 1.933024, 2.4804, 0.132779, -0.544135, 1.06972,
+  0.364945, 2.901618, 0.46076, 1.189739, 0.528002, -0.243273, 0.688792, -1.304959, 1.965555,
+  0.653253, 2.672612, 0.97551, -0.209946, 1.110726, -0.434098, -0.753633, 0.791446, 0.056708,
+  0.501105, 0.574341, -0.089521, -0.068669, 0.364821, 1.678087, -1.023567, 1.093946, 0.83295,
+  1.5631, 0.195816, 0.870019, 0.767099, -0.04252, 1.707868, 1.660403, 1.200214, 2.086833, 1.058486,
+  -0.776592, -0.073265,
+];
+test("49 vs 49 is still exact; 50 vs 49 is asymptotic (R's n < 50 rule)", () => {
+  // R> set.seed(1); x <- round(rnorm(49), 6); y <- round(rnorm(49, 0.5), 6)
+  // R> wilcox.test(x, y)$p.value                  # 0.0037940619413863244
+  // R> wilcox.test(c(x, 3.3), y)$p.value          # 0.0079086104889127019
+  const r = mannWhitneyU(mw49x, mw49y);
+  eq(r.exact, true);
+  approx(r.p, 0.0037940619413863244, 1e-15);
+  const r50 = mannWhitneyU(mw49x.concat([3.3]), mw49y);
+  eq(r50.exact, false);
+  approx(r50.p, 0.0079086104889127019, 1e-7);
+});
+
 test("empty group → error", () => {
   const r = mannWhitneyU([], [1, 2, 3]);
   assert(r.error, "returns error");
@@ -1100,43 +1144,43 @@ test("iris setosa vs versicolor: d_pool CI matches R to 1e-6", () => {
   approx(hi, -1.6105704249, 1e-6);
 });
 
-// d_av: `effectsize::cohens_d(pooled_sd = FALSE)` returns Glass's Δ
-// (uses the control group's SD), not d_av (mean of unpooled SDs).
-// `lsr::cohensD(..., method="unequal")` returns d_av but the package
-// isn't installed in CI. The reference values below come from the
-// unambiguous Lakens 2013 formula `(m1 − m2) / ((sd1 + sd2)/2)`
-// computed directly in R via `(mean(x) - mean(y)) / ((sd(x) + sd(y))/2)`,
-// double-checked against Plöttr's JS implementation.
+// Unpooled-SD d: `effectsize::cohens_d(pooled_sd = FALSE)` — denominator
+// √((s₁² + s₂²)/2), CI from the noncentral-t pivot on Welch's t with
+// Welch–Satterthwaite df. (Not Glass's Δ, which is `glass_delta()`.)
 
-suite("stats.js — Cohen's d_av (Lakens 2013) — R formula cross-check");
+suite("stats.js — Cohen's d, unpooled SD — effectsize cross-check");
 
-// Inline d_av — Plöttr doesn't expose a global helper for it because
-// the only consumer is computePowerFromData (which inlines the math
-// alongside the Welch branch). Reproduce the formula here so a
-// future refactor that swaps in a `cohenDav` global stays drop-in
-// compatible with the reference values below.
-function dav(x, y) {
-  const m1 = sampleMean(x);
-  const m2 = sampleMean(y);
-  const s1 = sampleSD(x);
-  const s2 = sampleSD(y);
-  return (m1 - m2) / ((s1 + s2) / 2);
-}
-
-test("sleep d_av = -0.83349634 (R formula)", () => {
-  approx(dav(sleepG1, sleepG2), -0.8334963413, 1e-9);
+test("sleep: d = -0.8321811, 95% CI [-1.7391892, 0.0960614]", () => {
+  // R> cohens_d(sleep$extra[1:10], sleep$extra[11:20], pooled_sd = FALSE)
+  const d = cohenDUnpooled(sleepG1, sleepG2);
+  approx(d, -0.83218108134953972, 1e-12);
+  const { lo, hi } = cohenDUnpooledCI(d, sampleSD(sleepG1), sampleSD(sleepG2), 10, 10);
+  approx(lo, -1.73918922039539, 1e-5);
+  approx(hi, 0.096061441349979917, 1e-5);
 });
 
-test("iris setosa vs versicolor d_av = -2.14122696 (R formula)", () => {
-  approx(dav(irisSetosa, irisVersicolor), -2.1412269629, 1e-9);
+test("unbalanced, unequal variances: d = -3.1700686, CI [-5.5690809, -0.7087306]", () => {
+  // R> cohens_d(c(1.1,1.3,1.2,1.25), c(3.0,3.4,2.2,4.9,3.8), pooled_sd = FALSE)
+  const a = [1.1, 1.3, 1.2, 1.25];
+  const b = [3.0, 3.4, 2.2, 4.9, 3.8];
+  const d = cohenDUnpooled(a, b);
+  approx(d, -3.1700685749955779, 1e-12);
+  const { lo, hi } = cohenDUnpooledCI(d, sampleSD(a), sampleSD(b), 4, 5);
+  approx(lo, -5.569080875858007, 1e-5);
+  approx(hi, -0.70873061009436433, 1e-5);
 });
 
-test("d_av equals d_pool when SDs are equal", () => {
-  // sd1 == sd2 ⇒ the two denominators collapse to the same value, so
-  // d_av == d_pool to FP precision. Pins the algebraic identity.
-  const x = [1, 2, 3, 4, 5]; // mean 3, sd √2.5 ≈ 1.5811
-  const y = [11, 12, 13, 14, 15]; // mean 13, sd √2.5 ≈ 1.5811
-  approx(dav(x, y), cohenD(x, y), 1e-12);
+test("pooled d CI stays accurate at very large effects (d = 182, n = 3 + 3)", () => {
+  // Tight replicates produce huge d. The noncentrality limits sit beyond
+  // |δ| = 37.62, where R's pt() switches to a rough normal approximation:
+  // effectsize::cohens_d(c(10.1,10.2,10.15), c(1.0,1.1,1.05)) reports
+  // [44.50, 296.75]. The exact limits, from SciPy:
+  //   se = sqrt(2/3); t = 182/se
+  //   brentq(lambda l: nct.cdf(t, 4, l) - 0.975, 1, 3t) * se  → 63.32292846067365
+  //   brentq(lambda l: nct.cdf(t, 4, l) - 0.025, 1, 3t) * se  → 303.78114923822994
+  const { lo, hi } = cohenDCI(182, 3, 3);
+  approx(lo, 63.32292846067365, 1e-4);
+  approx(hi, 303.78114923822994, 1e-4);
 });
 
 // ── Shared k-sample fixtures ───────────────────────────────────────────────
@@ -2303,6 +2347,27 @@ test("correlation: perfectly positively correlated → 0 (= 1 - r)", () => {
 test("correlation: perfectly negatively correlated → 2", () => {
   // r(x, -x) = -1 → distance = 1 - (-1) = 2
   approx(rowDistance([1, 2, 3], [3, 2, 1], "correlation"), 2, 1e-12);
+});
+
+test("missing cells scale the sum up like R's dist()", () => {
+  // R> m <- rbind(c(1,NA,3,4), c(2,5,NA,1), c(0,1,2,NA), c(3,3,3,3))
+  // R> as.matrix(dist(m)); as.matrix(dist(m, "manhattan"))
+  const m = [
+    [1, NaN, 3, 4],
+    [2, 5, NaN, 1],
+    [0, 1, 2, NaN],
+    [3, 3, 3, 3],
+  ];
+  const E = pairwiseDistance(m, "euclidean");
+  approx(E[0][1], 4.47213595499958, 1e-13);
+  approx(E[0][2], 2, 1e-13);
+  approx(E[0][3], 2.58198889747161, 1e-13);
+  approx(E[1][2], 6.32455532033676, 1e-13);
+  approx(E[2][3], 4.32049379893857, 1e-13);
+  const M = pairwiseDistance(m, "manhattan");
+  approx(M[0][1], 8, 1e-13);
+  approx(M[1][2], 12, 1e-13);
+  approx(M[1][3], 6.66666666666667, 1e-13);
 });
 
 suite("rowDistance — edge cases (saturation guards)");
@@ -4014,13 +4079,14 @@ test("gamesHowell flags a zero-variance group with the named error", () => {
 test("dunnTest tie correction — sigma2 carries the tie term (tied data)", () => {
   // Tied values make tieCorrection ≠ 0, so the `- tieCorrection/(12(N-1))`
   // term in sigma2 is live; regression pin against the current kernel.
+  // p is R's: 2 * pnorm(-1.2129568697262454) = 0.22514631086465814.
   const r = dunnTest([
     [1, 1, 2],
     [2, 3, 3],
     [4, 4, 5],
   ]);
   approx(r.pairs[0].z, -1.2129568697262454, 1e-9);
-  approx(r.pairs[0].p, 0.2251464364896625, 1e-9);
+  approx(r.pairs[0].p, 0.22514631086465814, 1e-15);
 });
 
 test("compactLetterDisplay — overlapping vs all-significant pair structures", () => {
@@ -4155,9 +4221,12 @@ test("normcdf |x| ≥ 7 uses the tail-accurate normsf switchover", () => {
 });
 
 test("power functions honour the one-tailed branch (tails=1 ≠ tails=2)", () => {
-  approx(powerTwoSample(0.5, 30, 0.05, 1), 0.6060253082451761, 1e-9);
-  approx(powerPaired(0.5, 30, 0.05, 1), 0.8482541787793818, 1e-9);
-  approx(powerCorrelation(0.3, 80, 0.05, 1), 0.8579534422541399, 1e-9);
+  // R> pwr.t.test(n = 30, d = 0.5, alternative = "greater")$power        # 0.60602532788680707
+  // R> pwr.t.test(n = 30, d = 0.5, type = "paired", alternative = "greater")$power
+  // R> pwr.r.test(n = 80, r = 0.3, alternative = "greater")$power         # 0.86179174118187452
+  approx(powerTwoSample(0.5, 30, 0.05, 1), 0.60602532788680707, 1e-9);
+  approx(powerPaired(0.5, 30, 0.05, 1), 0.84825419092914989, 1e-9);
+  approx(powerCorrelation(0.3, 80, 0.05, 1), 0.86179174118187452, 1e-9);
   // a one-tailed test has more power than two-tailed at the same α
   assert(
     powerTwoSample(0.5, 30, 0.05, 1) > powerTwoSample(0.5, 30, 0.05, 2),

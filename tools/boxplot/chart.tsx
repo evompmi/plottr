@@ -28,7 +28,7 @@ import {
 } from "./scales";
 
 import { getPointColors } from "../_core/color";
-import { seededRandom } from "../_core/numeric";
+import { arrayMax, seededRandom } from "../_core/numeric";
 import { kde } from "../_core/descriptive";
 import { svgSafeId } from "../_core/svg-export";
 import { useT } from "./i18n";
@@ -594,7 +594,7 @@ export const BoxplotChart = memo(
             let violinPath = null;
             if (isViolin && g.allValues.length >= 2) {
               const pts = getKde(g.allValues);
-              const maxD = Math.max(...pts.map((p) => p.d));
+              const maxD = arrayMax(pts.map((p) => p.d));
               if (maxD > 0) {
                 const sc = (d: number) => (d / maxD) * halfBox;
                 if (isRain) {

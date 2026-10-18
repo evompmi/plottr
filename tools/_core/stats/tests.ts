@@ -20,6 +20,9 @@ import {
   nctcdf,
   norminv,
   normsf,
+  pkendall,
+  prho,
+  pwilcox,
   tcdf_upper,
 } from "./dist";
 import { formatP } from "./format";
@@ -339,8 +342,18 @@ export function mannWhitneyU(x: number[], y: number[]): MannWhitneyResult {
   else if (diff > 0) z = (diff - 0.5) / sigmaU;
   else if (diff < 0) z = (diff + 0.5) / sigmaU;
   else z = 0;
-  const p = 2 * normsf(Math.abs(z));
-  return { U, U1, U2, z, p, n1, n2 };
+  // R's `wilcox.test` default: the exact null distribution when both
+  // samples are < 50 and there are no ties, otherwise the normal
+  // approximation with continuity correction above.
+  const exact = n1 < 50 && n2 < 50 && tieCorrection === 0;
+  let p: number;
+  if (exact) {
+    const half = U1 > muU ? pwilcox(U1 - 1, n1, n2, false) : pwilcox(U1, n1, n2, true);
+    p = Math.min(2 * half, 1);
+  } else {
+    p = 2 * normsf(Math.abs(z));
+  }
+  return { U, U1, U2, z, p, n1, n2, exact };
 }
 
 // ── 7. Two-sample effect sizes ──────────────────────────────────────────────
@@ -375,8 +388,26 @@ export function rankBiserial(U1: number, n1: number, n2: number): number {
   return 1 - (2 * U1) / (n1 * n2);
 }
 
-// 95 % confidence interval for Cohen's d (or d_av) on two independent samples,
-// using the noncentral-t pivot of Cumming & Finch 2001.
+// Noncentral-t pivot (Cumming & Finch 2001; effectsize's `.get_ncp_t`):
+// the λ with P(T ≤ tObs | df, λ) = 1 − α/2 and α/2, i.e. the limits of the
+// noncentrality parameter consistent with the observed t.
+function _ncpTInterval(tObs: number, df: number, alpha: number): { lo: number; hi: number } {
+  const negNct = (lam: number): number => -nctcdf(tObs, df, lam);
+  // P(T ≤ tObs | λ) falls monotonically in λ. With small df the limits can
+  // sit far beyond tObs (d = 182 at n = 3 + 3 puts the upper one at ~1.6·t),
+  // so widen the bracket until it holds both targets.
+  let halfRange = Math.abs(tObs) + 20;
+  for (let i = 0; i < 30; i++) {
+    if (negNct(-halfRange) <= -(1 - alpha / 2) && negNct(halfRange) >= -alpha / 2) break;
+    halfRange *= 2;
+  }
+  const lo = bisect(negNct, -(1 - alpha / 2), -halfRange, halfRange);
+  const hi = bisect(negNct, -alpha / 2, -halfRange, halfRange);
+  return { lo, hi };
+}
+
+// 95 % confidence interval for Cohen's d (pooled SD) on two independent
+// samples — `effectsize::cohens_d()`'s default noncentral-t interval.
 export function cohenDCI(
   d: number,
   n1: number,
@@ -387,18 +418,48 @@ export function cohenDCI(
   if (!Number.isFinite(d) || n1 < 2 || n2 < 2 || c <= 0 || c >= 1) {
     return { lo: NaN, hi: NaN };
   }
-  const alpha = 1 - c;
   const seFactor = Math.sqrt(1 / n1 + 1 / n2);
-  const tObs = d / seFactor;
-  const df = n1 + n2 - 2;
-  const halfRange = Math.abs(tObs) + 20;
-  const negNct = (lam: number): number => -nctcdf(tObs, df, lam);
-  const lambdaLo = bisect(negNct, -(1 - alpha / 2), -halfRange, halfRange);
-  const lambdaHi = bisect(negNct, -alpha / 2, -halfRange, halfRange);
-  if (!Number.isFinite(lambdaLo) || !Number.isFinite(lambdaHi)) {
+  const { lo, hi } = _ncpTInterval(d / seFactor, n1 + n2 - 2, 1 - c);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return { lo: NaN, hi: NaN };
+  return { lo: lo * seFactor, hi: hi * seFactor };
+}
+
+// Cohen's d with the unpooled SD √((s₁² + s₂²)/2) and its CI — what
+// `effectsize::cohens_d(pooled_sd = FALSE)` reports: the noncentral-t pivot
+// on Welch's t with Welch–Satterthwaite df, rescaled by
+// √(2(n₂s₁² + n₁s₂²) / (n₁n₂(s₁² + s₂²))).
+export function cohenDUnpooled(x: number[], y: number[]): number {
+  const n1 = x.length,
+    n2 = y.length;
+  if (n1 < 2 || n2 < 2) return NaN;
+  const v1 = sampleVariance(x),
+    v2 = sampleVariance(y);
+  if (v1 + v2 === 0) return NaN;
+  return (sampleMean(x) - sampleMean(y)) / Math.sqrt((v1 + v2) / 2);
+}
+
+export function cohenDUnpooledCI(
+  d: number,
+  s1: number,
+  s2: number,
+  n1: number,
+  n2: number,
+  conf?: number
+): { lo: number; hi: number } {
+  const c = conf == null ? 0.95 : conf;
+  const v1 = s1 * s1,
+    v2 = s2 * s2;
+  if (!Number.isFinite(d) || n1 < 2 || n2 < 2 || c <= 0 || c >= 1 || v1 + v2 === 0) {
     return { lo: NaN, hi: NaN };
   }
-  return { lo: lambdaLo * seFactor, hi: lambdaHi * seFactor };
+  const hn = (2 * (n2 * v1 + n1 * v2)) / (n1 * n2 * (v1 + v2));
+  const se1 = v1 / n1,
+    se2 = v2 / n2;
+  const df = (se1 + se2) ** 2 / ((se1 * se1) / (n1 - 1) + (se2 * se2) / (n2 - 1));
+  const scale = Math.sqrt(hn);
+  const { lo, hi } = _ncpTInterval(d / scale, df, 1 - c);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return { lo: NaN, hi: NaN };
+  return { lo: lo * scale, hi: hi * scale };
 }
 
 // ── 8. k-sample location tests ──────────────────────────────────────────────
@@ -521,6 +582,74 @@ export function kruskalWallis(groups: number[][]): KruskalWallisResult {
 
 // ── 9. Correlation (paired bivariate) ──────────────────────────────────────
 
+// Kendall's S = #concordant − #discordant pairs (pairs tied in x or y count
+// as neither), by Knight's (1966) O(n log n) method: sort by (x, y), count
+// the y-inversions with a merge sort, then
+//   S = n0 − n1 − n2 + n3 − 2·#inversions
+// with n0 = n(n−1)/2 and n1 / n2 / n3 the pairs tied in x / in y / in both.
+// The direct double loop took ~35 s at n = 100k.
+function _kendallS(xs: number[], ys: number[]): number {
+  const n = xs.length;
+  const idx = Array.from({ length: n }, (_, i) => i);
+  idx.sort((a, b) => xs[a] - xs[b] || ys[a] - ys[b]);
+  const y = idx.map((i) => ys[i]);
+  const tiedPairs = (eq: (i: number) => boolean): number => {
+    let pairs = 0,
+      run = 1;
+    for (let i = 1; i < n; i++) {
+      if (eq(i)) run++;
+      else {
+        pairs += (run * (run - 1)) / 2;
+        run = 1;
+      }
+    }
+    return pairs + (run * (run - 1)) / 2;
+  };
+  const n1 = tiedPairs((i) => xs[idx[i]] === xs[idx[i - 1]]);
+  const n3 = tiedPairs((i) => xs[idx[i]] === xs[idx[i - 1]] && y[i] === y[i - 1]);
+  // Bottom-up merge sort of y, counting pairs i < j with y[i] > y[j].
+  let src = y.slice();
+  let dst = new Array<number>(n);
+  let inversions = 0;
+  for (let width = 1; width < n; width *= 2) {
+    for (let lo = 0; lo < n; lo += 2 * width) {
+      const mid = Math.min(lo + width, n),
+        hi = Math.min(lo + 2 * width, n);
+      let i = lo,
+        j = mid,
+        k = lo;
+      while (i < mid && j < hi) {
+        if (src[j] < src[i]) {
+          inversions += mid - i;
+          dst[k++] = src[j++];
+        } else dst[k++] = src[i++];
+      }
+      while (i < mid) dst[k++] = src[i++];
+      while (j < hi) dst[k++] = src[j++];
+    }
+    const t = src;
+    src = dst;
+    dst = t;
+  }
+  let n2 = 0,
+    run = 1;
+  for (let i = 1; i < n; i++) {
+    if (src[i] === src[i - 1]) run++;
+    else {
+      n2 += (run * (run - 1)) / 2;
+      run = 1;
+    }
+  }
+  n2 += (run * (run - 1)) / 2;
+  return (n * (n - 1)) / 2 - n1 - n2 + n3 - 2 * inversions;
+}
+
+function _hasTies(v: number[]): boolean {
+  const sorted = v.slice().sort((a, b) => a - b);
+  for (let i = 1; i < sorted.length; i++) if (sorted[i] === sorted[i - 1]) return true;
+  return false;
+}
+
 // Drop rows with non-finite x or y; return the cleaned pair.
 function _pairwiseComplete(x: number[], y: number[]): PairwiseComplete {
   const n = Math.min(x.length, y.length);
@@ -633,7 +762,19 @@ export function spearmanCorrelation(
   const oneMinusRho2 = Math.max(0, 1 - rho * rho);
   const t =
     oneMinusRho2 === 0 ? (rho > 0 ? Infinity : -Infinity) : rho * Math.sqrt(df / oneMinusRho2);
-  const p = oneMinusRho2 === 0 ? 0 : 2 * tcdf_upper(Math.abs(t), df);
+  // R's `cor.test(method = "spearman")` default: AS 89 on S = Σd² when there
+  // are no ties (exact for n ≤ 9, Edgeworth series up to n = 1290), else the
+  // t approximation.
+  const exact = n <= 1290 && !_hasTies(xs) && !_hasTies(ys);
+  let p: number;
+  if (exact) {
+    const q = ((n * n * n - n) * (1 - rho)) / 6;
+    const half =
+      q > (n * n * n - n) / 6 ? prho(Math.round(q), n, false) : prho(Math.round(q) + 2, n, true);
+    p = Math.min(2 * half, 1);
+  } else {
+    p = oneMinusRho2 === 0 ? 0 : 2 * tcdf_upper(Math.abs(t), df);
+  }
   const conf = opts.conf == null ? 0.95 : opts.conf;
   const ci = { lo: NaN, hi: NaN };
   if (n >= 4) {
@@ -643,7 +784,7 @@ export function spearmanCorrelation(
     ci.lo = Math.tanh(z - zcrit * se);
     ci.hi = Math.tanh(z + zcrit * se);
   }
-  return { rho, t, df, p, n, ci };
+  return { rho, t, df, p, n, ci, exact };
 }
 
 export function kendallTau(
@@ -656,17 +797,7 @@ export function kendallTau(
   if (n < 3) {
     return { tau: NaN, z: NaN, p: NaN, n, S: 0, error: "Need ≥3 complete pairs" };
   }
-  let S = 0;
-  for (let i = 0; i < n - 1; i++) {
-    const xi = xs[i],
-      yi = ys[i];
-    for (let j = i + 1; j < n; j++) {
-      const dx = xs[j] - xi;
-      const dy = ys[j] - yi;
-      if (dx === 0 || dy === 0) continue;
-      S += dx > 0 === dy > 0 ? 1 : -1;
-    }
-  }
+  const S = _kendallS(xs, ys);
   const tieGroups = (arr: number[]): number[] => {
     // equiv-mutant: .slice() copy keeps xs intact; in-place sort is harmless only as xs is unused after
     const sorted = arr.slice().sort((a, b) => a - b);
@@ -709,12 +840,20 @@ export function kendallTau(
     const sy2 = ty.reduce((s, t) => s + t * (t - 1), 0);
     varS += (sx2 * sy2) / (2 * n * (n - 1));
   }
+  // R's `cor.test(method = "kendall")` default: the exact distribution of
+  // T = #concordant pairs when n < 50 and there are no ties.
+  if (n < 50 && tx.length === 0 && ty.length === 0) {
+    const q = Math.round((S + n0) / 2);
+    const half = q > n0 / 2 ? 1 - pkendall(q - 1, n) : pkendall(q, n);
+    const z = varS > 0 ? S / Math.sqrt(varS) : NaN;
+    return { tau, z, p: Math.min(2 * half, 1), n, S, exact: true };
+  }
   if (varS <= 0) {
-    return { tau, z: NaN, p: NaN, n, S };
+    return { tau, z: NaN, p: NaN, n, S, exact: false };
   }
   const z = S / Math.sqrt(varS);
   const p = 2 * normsf(Math.abs(z));
-  return { tau, z, p, n, S };
+  return { tau, z, p, n, S, exact: false };
 }
 
 // Diagnostic + recommendation for a paired scatter dataset.

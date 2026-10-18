@@ -208,6 +208,38 @@ test("mergePrefsSettings with onlyStyle=true drops labels", () => {
   eq(merged.boxOpacity, 0.9);
 });
 
+test("mergePrefsSettings rejects non-hex colours and unknown palette names", () => {
+  const c = freshContext();
+  const init = {
+    plotBg: "#ffffff",
+    discretePalette: "okabe-ito",
+    palette: "viridis",
+    plotStyle: "box",
+  };
+  const bad = c.mergePrefsSettings(
+    init,
+    {
+      plotBg: "url(javascript:alert(1))",
+      discretePalette: "toString",
+      palette: "rainbow",
+      plotStyle: "violin",
+    },
+    { onlyStyle: false }
+  );
+  eq(bad.plotBg, "#ffffff");
+  eq(bad.discretePalette, "okabe-ito");
+  eq(bad.palette, "viridis");
+  eq(bad.plotStyle, "violin", "free-form strings keep the type-only rule");
+  const good = c.mergePrefsSettings(
+    init,
+    { plotBg: "#1a2B3c", discretePalette: "dark2", palette: "magma" },
+    { onlyStyle: false }
+  );
+  eq(good.plotBg, "#1a2B3c");
+  eq(good.discretePalette, "dark2");
+  eq(good.palette, "magma");
+});
+
 // ── Audit-23 #1 — scatter + lineplot persisted slots round-trip ────────────
 
 suite("shared-prefs.js — scatter/lineplot styling round-trip (audit-23 #1)");

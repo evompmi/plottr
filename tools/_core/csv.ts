@@ -1,7 +1,7 @@
 // _core/csv.ts — CSV / TSV parsing, tokenizing, separator detection, format
 // reshaping, and formula-injection scanning.
 //
-import { isNumericValue, toNumericValue } from "./numeric";
+import { arrayMax, isNumericValue, toNumericValue } from "./numeric";
 
 // ── Separator detection ────────────────────────────────────────────────────
 //
@@ -68,7 +68,8 @@ export function autoDetectSep(text: string, override: string = ""): string | Reg
 // pairs, a leading BOM, and mixed CRLF/LF line endings. A `"` in the
 // middle of an unquoted field is preserved literally so `5"` as an inch
 // measurement survives — only a leading `"` at the start of a field opens
-// a quoted run.
+// a quoted run. A leading `"` that is never closed is likewise kept as a
+// literal character rather than turning the rest of the file into one cell.
 
 export function tokenizeDelimited(text: string, sep: string | RegExp): string[][] {
   if (typeof text !== "string" || text.length === 0) return [];
@@ -97,7 +98,22 @@ export function tokenizeDelimited(text: string, sep: string | RegExp): string[][
   };
   const n = s.length;
   let i = 0;
-  while (i < n) {
+  // State at the most recent opening quote, so an unterminated one (an odd
+  // `"` like `"Col-0`) can be re-read as a literal character instead of
+  // swallowing every row after it into one cell.
+  let open: { i: number; rows: number; row: string[] } | null = null;
+  for (;;) {
+    if (i >= n) {
+      if (!inQuoted || !open) break;
+      rows.length = open.rows;
+      row = open.row;
+      field = '"';
+      fieldStarted = true;
+      inQuoted = false;
+      i = open.i + 1;
+      open = null;
+      continue;
+    }
     const ch = s[i];
     if (inQuoted) {
       if (ch === '"') {
@@ -113,6 +129,7 @@ export function tokenizeDelimited(text: string, sep: string | RegExp): string[][
         i++;
       }
     } else if (!fieldStarted && ch === '"') {
+      open = { i, rows: rows.length, row: row.slice() };
       inQuoted = true;
       fieldStarted = true;
       i++;
@@ -154,7 +171,7 @@ export function fixDecimalCommas(
   if (sep === "") return { text, commaFixed: false, count: 0 };
   const rows = tokenizeDelimited(text, sep);
   if (rows.length < 2) return { text, commaFixed: false, count: 0 };
-  const nCols = Math.max(...rows.map((r) => r.length));
+  const nCols = arrayMax(rows.map((r) => r.length));
   const decimalCommaCols = new Set<number>();
   for (let c = 0; c < nCols; c++) {
     let numericAsIs = 0;
@@ -244,7 +261,7 @@ export function parseRaw(text: string, sepOv: string = ""): ParseRawResult {
   const sep = autoDetectSep(text, sepOv);
   const all = tokenizeDelimited(text, sep);
   if (all.length < 1) return { headers: [], rows: [], hasHeader: false, injectionWarnings: null };
-  const mx = Math.max(...all.map((r) => r.length));
+  const mx = arrayMax(all.map((r) => r.length));
   const pad = all.map((r) => {
     while (r.length < mx) r.push("");
     return r;
@@ -415,7 +432,7 @@ export function reshapeWide(
   });
   const vals = Object.values(g);
   if (vals.length === 0) return { headers: [], rows: [], unlabelled };
-  const mx = Math.max(...vals.map((v) => v.length));
+  const mx = arrayMax(vals.map((v) => v.length));
   const names = Object.keys(g);
   const w: string[][] = [];
   for (let i = 0; i < mx; i++) w.push(names.map((n) => (g[n][i] != null ? g[n][i] : "")));

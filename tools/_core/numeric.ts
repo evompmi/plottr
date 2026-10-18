@@ -41,6 +41,26 @@ export function toNumericValue(v: unknown): number {
   return isNumericValue(v) ? Number((normalizeNumericString(v) as string).trim()) : NaN;
 }
 
+// Free-text numeric input from a calculator field: accepts a decimal comma
+// ("1,5" → 1.5, the French keyboard / phone-keypad form) as well as a point.
+// When both separators appear, the last one is the decimal mark and the
+// other is a thousands separator ("1,234.5" and "1.234,5" → 1234.5); several
+// commas with no point are thousands separators ("1,234,567"). Otherwise
+// `parseFloat` semantics — leading number, trailing text ignored, NaN when
+// there is no leading number.
+export function parseDecimal(v: string): number {
+  let s = (normalizeNumericString(v) as string).trim();
+  const lastComma = s.lastIndexOf(",");
+  if (lastComma >= 0) {
+    const lastDot = s.lastIndexOf(".");
+    if (lastDot > lastComma) s = s.replace(/,/g, "");
+    else if (lastDot >= 0) s = s.replace(/\./g, "").replace(",", ".");
+    else if (s.indexOf(",") === lastComma) s = s.replace(",", ".");
+    else s = s.replace(/,/g, "");
+  }
+  return parseFloat(s);
+}
+
 // ── Seeded random — Park-Miller LCG ────────────────────────────────────────
 
 export function seededRandom(seed: number): () => number {
@@ -59,4 +79,32 @@ export function seededRandom(seed: number): () => number {
     s = (s * 16807) % 2147483647;
     return s / 2147483647;
   };
+}
+
+// ── Array extrema without argument spreading ──────────────────────────────
+//
+// `Math.min(...arr)` / `Math.max(...arr)` pass every element as a function
+// argument and throw RangeError ("Maximum call stack size exceeded") past
+// ~125k elements — well inside the 2 MB ingest limit. These loop instead.
+// Empty arrays return ±Infinity, matching the spread form. NaN entries
+// propagate (as with Math.min / Math.max).
+
+export function arrayMin(arr: ArrayLike<number>): number {
+  let m = Infinity;
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i];
+    if (v !== v) return NaN;
+    if (v < m) m = v;
+  }
+  return m;
+}
+
+export function arrayMax(arr: ArrayLike<number>): number {
+  let m = -Infinity;
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i];
+    if (v !== v) return NaN;
+    if (v > m) m = v;
+  }
+  return m;
 }

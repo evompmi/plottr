@@ -79,21 +79,22 @@ exposes every theme + i18n named export to the pages' inline scripts.
 
 ### Modules under `tools/_core/`
 
-- **`tools/_core/shared.ts`** — color helpers, palette + diverging-palette catalogue, tool icons, numeric detection (`isNumericValue`, `toNumericValue`, `normalizeNumericString`), seeded RNG, axis tick generators (`niceStep`, `makeTicks`, `makeLogTicks`), separator detection (`autoDetectSep` + `tokenizeDelimited`), decimal-comma fix (`fixDecimalCommas`), CSV / TSV parsing (`parseRaw`, `parseData`, `parseWideMatrix`, `wideToLong`, `reshapeWide`, `parseSetData`, `parseLongFormatSets`), descriptive stats (`computeStats`, `quartiles`, `kde`, `computeGroupStats`), SVG export (`buildExportSvg`, `serializeSvgForExport`, `appendPlottrAttribution`, `registerSvgExportMutator`), download helpers (`saveBlob`, `downloadSvg`, `downloadPng`, `downloadCsv`, `downloadText`, plus the batch variants `saveBlobs` / `downloadSvgs` / `downloadPngs` / `downloadCsvs` / `downloadTexts`), formula-injection scanner (`scanForFormulaInjection`).
+- **`tools/_core/shared.ts`** — color helpers, palette + diverging-palette catalogue, tool icons, numeric detection (`isNumericValue`, `toNumericValue`, `normalizeNumericString`), decimal-comma-aware free-text parsing (`parseDecimal`, used by the calculators), spread-free array extrema (`arrayMin`, `arrayMax` — use these instead of `Math.min(...arr)` on data-sized arrays, which throws past ~125k elements), seeded RNG, axis tick generators (`niceStep`, `makeTicks`, `makeLogTicks`), separator detection (`autoDetectSep` + `tokenizeDelimited`), decimal-comma fix (`fixDecimalCommas`), CSV / TSV parsing (`parseRaw`, `parseData`, `parseWideMatrix`, `wideToLong`, `reshapeWide`, `parseSetData`, `parseLongFormatSets`), descriptive stats (`computeStats`, `quartiles`, `kde`, `computeGroupStats`), SVG export (`buildExportSvg`, `serializeSvgForExport`, `appendPlottrAttribution`, `registerSvgExportMutator`), download helpers (`saveBlob`, `downloadSvg`, `downloadPng`, `downloadCsv`, `downloadText`, plus the batch variants `saveBlobs` / `downloadSvgs` / `downloadPngs` / `downloadCsvs` / `downloadTexts`), formula-injection scanner (`scanForFormulaInjection`).
 - **`tools/_core/theme.ts`** — theme toggle wiring + `ThemeToggle` React component (`getTheme`, `setTheme`, `toggleTheme`, `useThemeMode`). Bundled into `shared.bundle.js` via `_core/shared-bundle-entry.ts` because the inline no-FOUC IIFE in each HTML `<head>` needs theme state available before the SPA module bundle parses.
 - **`tools/_core/i18n.ts`** — i18n primitive + `LangToggle` React component, the twin of `theme.ts`. Translation lookup (`t`, `registerCatalog`, `useLang`, `useT`) with `{var}` interpolation and `Intl.PluralRules` plurals; language state (`getLang`, `setLang`, `toggleLang`) persisted under `plottr-lang` in localStorage with BroadcastChannel cross-tab sync; `applyStaticI18n` for the `data-i18n`-annotated static pages. Also bundled into `shared.bundle.js` (so the `<head>` snippet pins `<html lang>` no-FOUC and the landing can swap copy). Catalogs are registered per namespace — `core` / `shell` / `landing` eagerly, one per tool lazily via `import "./i18n"` in each `tools/<tool>/app.tsx` so they code-split into that tool's chunk. Both locales ship in the chunk (no per-locale fetch — keeps `file://` / offline working).
 - **`tools/_core/shared-bundle-entry.ts`** — thin aggregator that `export *`s `theme.ts` + `i18n.ts`; the single entry point esbuild bundles into `tools/shared.bundle.js`. Add a primitive here only if the static HTML pages need it before the SPA parses.
 - **`tools/_core/zip.ts`** — dependency-free ZIP archive builder (`buildZip`), method 0 / STORE, no ZIP64. Used internally by `download.ts`: when a `saveBlobs` batch exceeds three files it bundles them into one `.zip` rather than scattering downloads. A leaf module — imports nothing (declares its own `ZipEntry` shape) so it can't cycle with `download.ts`.
 - **`tools/_core/stats/`** — statistical kernels, split across five sub-modules with a barrel re-export in `index.ts`:
   - **`stats/dist.ts`** — distributions + special functions + `bisect` + power calcs.
-    - Distributions: `normcdf`, `norminv`, `tcdf`, `tinv`, `fcdf`, `chi2cdf`, `chi2inv`, `nctcdf`, `ncf_sf`, `ncchi2cdf`
+    - Distributions: `normcdf` / `normsf` (port of R's `pnorm`, Cody 1993), `norminv`, `tcdf`, `tinv`, `fcdf`, `chi2cdf`, `chi2inv`, `nctcdf` (port of R's `pnt`, AS 243), `ncf_sf`, `ncchi2cdf`
+    - Exact rank-statistic nulls: `pwilcox`, `pkendall`, `prho` (ports of R's `pwilcox` / `pkendall` / `prho`, AS 89)
     - Special functions / helpers: `gammaln`, `betai`, `betacf`, `gammainc`, `gammainc_upper`, `bisect`
     - Power: `powerTwoSample`, `powerPaired`, `powerOneSample`, `powerAnova`, `powerCorrelation`, `powerChi2`, `fFromGroupMeans`
   - **`stats/tests.ts`** — descriptive helpers + parametric / nonparametric tests + effect sizes (depends on `stats/dist.ts`).
     - Descriptive: `sampleMean`, `sampleVariance`, `sampleSD`, `rankWithTies`
     - Tests: `shapiroWilk`, `leveneTest`, `tTest`, `mannWhitneyU`, `oneWayANOVA`, `welchANOVA`, `kruskalWallis`
     - Correlation: `pearsonCorrelation`, `spearmanCorrelation`, `kendallTau`, `selectCorrelation`
-    - Effect sizes: `cohenD`, `hedgesG`, `rankBiserial`, `cohenDCI`, `etaSquared`, `epsilonSquared`
+    - Effect sizes: `cohenD`, `hedgesG`, `rankBiserial`, `cohenDCI`, `cohenDUnpooled`, `cohenDUnpooledCI`, `etaSquared`, `epsilonSquared`
   - **`stats/posthoc.ts`** — studentized-range distribution + post-hocs + p-adjust + CLD + auto-picker (depends on `stats/tests.ts`).
     - Studentized range: `ptukey`, `qtukey` (plus internal `_wprob`, `_wprob_upper`, `ptukey_upper`)
     - Post-hocs: `tukeyHSD`, `gamesHowell`, `dunnTest`, `bhAdjust`
@@ -239,7 +240,7 @@ For per-series / per-group elements, build individual ids with `svgSafeId(name)`
 
 ## Statistical methodology
 
-The `tools/_core/stats/*` modules ship **two** small but consequential default-policy decisions for numeric data (plus the counts defaults below). Both are documented in the source comments of the affected function and both have benchmark coverage; the rule for contributors is "do not silently change them — they are user-facing methodological choices, not implementation details".
+The `tools/_core/stats/*` modules ship **three** small but consequential default-policy decisions for numeric data (plus the counts defaults below). Each is documented in the source comments of the affected function and each has benchmark coverage; the rule for contributors is "do not silently change them — they are user-facing methodological choices, not implementation details".
 
 **Welch by default — `selectTest()` (`tools/_core/stats/posthoc.ts`).** Plöttr does not pre-screen with Shapiro-Wilk + Levene before picking between Student's t and Welch's t (or one-way ANOVA and Welch's ANOVA). It picks **Welch unconditionally**:
 
@@ -250,6 +251,16 @@ The `tools/_core/stats/*` modules ship **two** small but consequential default-p
 Why: the Rasch / Kubinger / Moder (2011) and Zimmerman (2004) results show that screening for equal variance with a pre-test inflates Type I error compared to using Welch's t unconditionally; Welch matches Student closely when variances are in fact equal, and behaves correctly when they are not. A "Student's t when Levene passes, Welch's t when it fails" policy is a methodological bug, not a stylistic choice.
 
 If you change the default policy, you change the answer Plöttr gives users on the same data — that's a public-facing behavioural change and must land with: (a) a `CHANGELOG.md` entry under `Changed`, (b) a benchmark refresh confirming agreement with R / SciPy under the new defaults, and (c) a corresponding update to the recommendation `reason` text returned from `selectTest()` so the stats panel explains the new policy in plain English.
+
+**Rank tests and effect sizes follow R's defaults.** `mannWhitneyU`, `spearmanCorrelation` and `kendallTau` report what `wilcox.test` / `cor.test` report by default, each pinned to R in `tests/stats.test.js` / `tests/correlation.test.js` and the benchmark:
+
+- **Mann-Whitney**: exact p (`pwilcox`) when both n < 50 and there are no ties; otherwise the normal approximation with continuity correction. Results carry `exact`.
+- **Spearman**: AS 89 on S = Σd² when there are no ties and n ≤ 1290 (exact enumeration for n ≤ 9, Edgeworth series above); otherwise the t approximation.
+- **Kendall**: the exact distribution of T when n < 50 and there are no ties; otherwise the tie-corrected normal approximation. S comes from Knight's O(n log n) merge-sort count.
+- **Cohen's d** (`_shell/power-from-data.ts`) mirrors `effectsize::cohens_d`: pooled SD for Student / Mann-Whitney, the unpooled √((s₁² + s₂²)/2) with a Welch-df noncentral-t CI for Welch (`pooled_sd = FALSE` — not Glass's Δ).
+- **Correlation power** is a port of `pwr::pwr.r.test` (t-based critical r, r / (2(n − 1)) bias term on atanh r).
+
+The R-script exports call `wilcox.test` / `cor.test` without `exact = FALSE` so they reproduce these numbers. `nctcdf` departs from R's `pnt` only toward the exact value (a tighter series tolerance, a direct integral for |δ| > 37.62 and for far lower tails where R's `pt` loses precision).
 
 **Counts and proportions — `tools/_core/stats/categorical.ts`.** The Proportions tool's defaults, each pinned to R in `tests/categorical.test.js` and the benchmark:
 

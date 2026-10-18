@@ -288,18 +288,20 @@ test("a tie in x skips the pair (dx === 0 → continue)", () => {
 
 suite("spearmanCorrelation — monotone-extreme pins");
 
-test("perfectly increasing ranks: rho = 1, t = +Infinity, p = 0", () => {
+test("perfectly increasing ranks: rho = 1, t = +Infinity, exact p = 1/60", () => {
   const r = spearmanCorrelation([1, 2, 3, 4, 5], [2, 4, 6, 8, 10]);
   approx(r.rho, 1, 1e-12);
   eq(r.t, Infinity);
-  eq(r.p, 0);
+  // Tie-free n = 5 → exact AS 89 p, as R: 2 of 120 permutations as extreme.
+  approx(r.p, 1 / 60, 1e-15);
+  eq(r.exact, true);
 });
 
-test("perfectly decreasing ranks: rho = -1, t = -Infinity, p = 0", () => {
+test("perfectly decreasing ranks: rho = -1, t = -Infinity, exact p = 1/60", () => {
   const r = spearmanCorrelation([1, 2, 3, 4, 5], [50, 40, 30, 20, 10]);
   approx(r.rho, -1, 1e-12);
   eq(r.t, -Infinity);
-  eq(r.p, 0);
+  approx(r.p, 1 / 60, 1e-15);
 });
 
 test("n < 3 → error, NaN rho", () => {
@@ -508,6 +510,96 @@ test("a constant axis → normal:null with a diagnostic note, not a flag", () =>
   eq(out.normality[0].normal, null);
   assert(out.normality[0].note != null, "constant axis carries a note");
   eq(out.allNormal, false);
+});
+
+// ── Exact p-values — R's cor.test default on tie-free data ──────────────────
+
+suite("Spearman / Kendall exact p (R cor.test default, no ties)");
+
+// R> a <- c(1.5,2.1,3.7,4.2,5.9,6.3,7.8); b <- c(2.2,1.1,4.4,3.3,7.7,5.5,6.6)
+// R> cor.test(a, b, method = "spearman")$p.value   # 0.034126984126984124
+// R> cor.test(a, b, method = "kendall")$p.value    # 0.069047619047619024
+const ex7a = [1.5, 2.1, 3.7, 4.2, 5.9, 6.3, 7.8];
+const ex7b = [2.2, 1.1, 4.4, 3.3, 7.7, 5.5, 6.6];
+test("n = 7 Spearman: exact enumeration", () => {
+  const r = spearmanCorrelation(ex7a, ex7b);
+  approx(r.p, 0.034126984126984124, 1e-14);
+  eq(r.exact, true);
+});
+test("n = 7 Kendall: exact T distribution", () => {
+  const r = kendallTau(ex7a, ex7b);
+  approx(r.p, 0.069047619047619024, 1e-14);
+  eq(r.exact, true);
+});
+
+// R> a <- c(3.1,1.2,4.5,2.8,5.6,9.1,7.3,6.4,8.2,10.7,11.9,12.5)
+// R> b <- c(2.5,1.9,3.2,5.1,4.4,7.7,6.1,9.9,8.8,12.2,10.3,11.1)
+// R> cor.test(a, b, method = "spearman")$p.value   # 9.1658617328169156e-05 (Edgeworth)
+// R> cor.test(a, b, method = "kendall")$p.value    # 0.00049888351103621886
+const ex12a = [3.1, 1.2, 4.5, 2.8, 5.6, 9.1, 7.3, 6.4, 8.2, 10.7, 11.9, 12.5];
+const ex12b = [2.5, 1.9, 3.2, 5.1, 4.4, 7.7, 6.1, 9.9, 8.8, 12.2, 10.3, 11.1];
+test("n = 12 Spearman: AS 89 Edgeworth series", () => {
+  const r = spearmanCorrelation(ex12a, ex12b);
+  approx(r.p, 9.1658617328169156e-5, 1e-17);
+  eq(r.exact, true);
+});
+test("n = 12 Kendall: exact T distribution", () => {
+  approx(kendallTau(ex12a, ex12b).p, 0.00049888351103621886, 1e-14);
+});
+
+test("ties fall back to the asymptotic p (exact = false)", () => {
+  const xt = [1, 2, 2, 3, 4, 5, 6];
+  const yt = [2, 1, 4, 3, 6, 5, 7];
+  eq(spearmanCorrelation(xt, yt).exact, false);
+  eq(kendallTau(xt, yt).exact, false);
+});
+
+test("Kendall n = 50 switches to the normal approximation", () => {
+  const xs = Array.from({ length: 50 }, (_, i) => i);
+  const ys = xs.map((v) => (v * 37) % 50);
+  eq(kendallTau(xs, ys).exact, false);
+  eq(kendallTau(xs.slice(0, 49), ys.slice(0, 49)).exact, true);
+});
+
+// ── Kendall S via merge sort (O(n log n)) ─────────────────────────────────────
+
+suite("kendallTau — S on large / heavily tied inputs");
+
+const bruteS = (xs, ys) => {
+  let S = 0;
+  for (let i = 0; i < xs.length; i++)
+    for (let j = i + 1; j < xs.length; j++) {
+      const dx = xs[j] - xs[i],
+        dy = ys[j] - ys[i];
+      if (dx === 0 || dy === 0) continue;
+      S += dx > 0 === dy > 0 ? 1 : -1;
+    }
+  return S;
+};
+
+test("S matches the pairwise count on tied data", () => {
+  let seed = 11;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let k = 0; k < 200; k++) {
+    const n = 3 + Math.floor(rnd() * 80);
+    const xs = Array.from({ length: n }, () => Math.floor(rnd() * 6));
+    const ys = Array.from({ length: n }, () => Math.floor(rnd() * 4));
+    const r = kendallTau(xs, ys);
+    if (!r.error) eq(r.S, bruteS(xs, ys));
+  }
+});
+
+test("200k monotone pairs: S = ±n(n−1)/2 without a quadratic loop", () => {
+  const n = 200000;
+  const xs = Array.from({ length: n }, (_, i) => i);
+  eq(kendallTau(xs, xs).S, (n * (n - 1)) / 2);
+  eq(
+    kendallTau(
+      xs,
+      xs.map((v) => -v)
+    ).S,
+    -(n * (n - 1)) / 2
+  );
 });
 
 summary();

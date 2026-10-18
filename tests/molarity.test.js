@@ -274,4 +274,47 @@ test("error codes for bad MW / volume / unparseable concentration", () => {
   eq(bad.errorCode, "conc");
 });
 
+suite("molarity — decimal-comma inputs");
+
+test("parseValueUnit / parseMassVolConc accept a decimal comma", () => {
+  eq(parseValueUnit("1,5 M", "M", CONC_UNITS), { value: 1.5, unit: "M" });
+  eq(parseValueUnit("0,5mL", "mL", VOL_UNITS), { value: 0.5, unit: "mL" });
+  approx(parseMassVolConc("2,5 mg/mL").gPerL, 2.5, 1e-12);
+});
+
+test("dilution C1 = '1,5' M is read as 1.5, not 1", () => {
+  const r = solveDilution({
+    solveFor: "v1",
+    c1: "1,5",
+    c1Unit: "M",
+    v1: "",
+    v1Unit: "mL",
+    c2: "0,15",
+    c2Unit: "M",
+    v2: "10",
+    v2Unit: "mL",
+  });
+  approx(r.value, 1, 1e-12);
+});
+
+test("molarity MW = '58,44' gives the same mass as '58.44'", () => {
+  const inp = (mw) => ({
+    solveFor: "mass",
+    mw,
+    mass: "",
+    massUnit: "g",
+    vol: "500",
+    volUnit: "mL",
+    conc: "150",
+    concUnit: "mM",
+  });
+  approx(solveMolarity(inp("58,44")).value, solveMolarity(inp("58.44")).value, 1e-12);
+});
+
+test("batch row with MW '58,44' weighs 4.383 g", () => {
+  const r = computeBatchMass("58,44", "150 mM", "500 mL");
+  assert(r.ok, "expected ok row");
+  approx(r.massG, 4.383, 1e-9);
+});
+
 summary();

@@ -91,6 +91,8 @@ export function formatBpResultLine(
   if (res.error) return "⚠ " + res.error;
   if (testName === "studentT" || testName === "welchT")
     return `t(${numCast(res.df).toFixed(2)}) = ${numCast(res.t).toFixed(3)},  p = ${formatP(res.p)}`;
+  if (testName === "mannWhitney" && res.exact)
+    return `U = ${numCast(res.U).toFixed(1)},  p = ${formatP(res.p)} (exact)`;
   if (testName === "mannWhitney")
     return `U = ${numCast(res.U).toFixed(1)},  z = ${numCast(res.z).toFixed(3)},  p = ${formatP(res.p)}`;
   if (testName === "oneWayANOVA" || testName === "welchANOVA") {

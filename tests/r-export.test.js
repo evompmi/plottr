@@ -179,12 +179,9 @@ test("Welch's t-test maps to t.test(var.equal=FALSE)", () => {
   );
 });
 
-test("Mann-Whitney maps to wilcox.test(exact=FALSE)", () => {
+test("Mann-Whitney maps to wilcox.test (R default exact rule)", () => {
   const out = buildRScript(ctxTwoGroups("mannWhitney"));
-  assert(
-    out.includes("wilcox.test(value ~ group, data = df, exact = FALSE)"),
-    "missing wilcox call"
-  );
+  assert(out.includes("wilcox.test(value ~ group, data = df)"), "missing wilcox call");
 });
 
 test("One-way ANOVA emits aov()+summary()", () => {

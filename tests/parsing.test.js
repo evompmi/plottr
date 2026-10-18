@@ -682,4 +682,63 @@ test("newline inside a cell survives the round-trip", () => {
   eq(parsed.rows, [["line1\nline2", "1"]]);
 });
 
+// ── Unterminated quotes ──────────────────────────────────────────────────────
+
+suite("tokenizeDelimited — unterminated leading quote");
+
+test("an unclosed quote is kept literally instead of swallowing later rows", () => {
+  eq(tokenizeDelimited('line,val\n"Col-0,1\nWs,2\nLer,3', ","), [
+    ["line", "val"],
+    ['"Col-0', "1"],
+    ["Ws", "2"],
+    ["Ler", "3"],
+  ]);
+});
+
+test("closed quoted cells before the stray quote still parse as quoted", () => {
+  eq(tokenizeDelimited('a,b\n"x,y",1\n"open,2\n3,4', ","), [
+    ["a", "b"],
+    ["x,y", "1"],
+    ['"open', "2"],
+    ["3", "4"],
+  ]);
+});
+
+test("parseRaw keeps every row after an unclosed quote", () => {
+  const parsed = parseRaw('g,v\n"A,1\nB,2\nC,3', ",");
+  eq(parsed.rows.length, 3);
+  eq(parsed.rows[2], ["C", "3"]);
+});
+
+// ── Large inputs (spread-argument RangeError regression) ─────────────────────
+
+suite("large inputs");
+
+const BIG_N = 200000;
+const bigCsv = (sep, dec) =>
+  ["group" + sep + "value"]
+    .concat(Array.from({ length: BIG_N }, (_, i) => `g${i % 3}${sep}${i % 97}${dec}5`))
+    .join("\n");
+
+test("parseRaw handles 200k rows", () => {
+  const parsed = parseRaw(bigCsv(",", "."), ",");
+  eq(parsed.rows.length, BIG_N);
+  eq(parsed.rows[BIG_N - 1], ["g" + ((BIG_N - 1) % 3), String((BIG_N - 1) % 97) + ".5"]);
+});
+
+test("fixDecimalCommas handles 200k rows", () => {
+  const res = fixDecimalCommas(bigCsv(";", ","), ";");
+  assert(res.commaFixed, "expected decimal commas to be converted");
+  eq(res.count, BIG_N);
+});
+
+test("parseWideMatrix handles 200k data rows", () => {
+  const csv = ["id,a,b"]
+    .concat(Array.from({ length: BIG_N }, (_, i) => `r${i},${i},${i + 1}`))
+    .join("\n");
+  const m = parseWideMatrix(csv, ",");
+  eq(m.matrix.length, BIG_N);
+  eq(m.matrix[BIG_N - 1], [BIG_N - 1, BIG_N]);
+});
+
 summary();

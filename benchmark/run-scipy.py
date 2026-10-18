@@ -87,10 +87,9 @@ def _fmt_num(x: float) -> str:
 
 
 # ── 1. nctcdf — noncentral t CDF ─────────────────────────────────────────
-# `tools/stats.js` implements this via Gauss-Legendre quadrature over a
-# substituted u = √s integral; it has a known numerical pitfall at small
-# ν combined with large |t| where the quadrature window can leak nodes
-# into the tail. The grid below probes that envelope deliberately.
+# `tools/_core/stats/dist.ts` ports R's `pnt` (AS 243 twin series), with a
+# panelled Gauss-Legendre integral for |δ| > 37.62 and for far lower tails.
+# The grid probes small ν with large |t| and deep δ deliberately.
 
 NCT_DFS = [1, 5, 30, 100, 1000]
 NCT_DELTAS = [0.0, 1.0, 5.0, 50.0, 500.0]

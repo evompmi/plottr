@@ -29,6 +29,9 @@ export interface MannWhitneyResult extends SampleErr {
   p: number;
   n1?: number;
   n2?: number;
+  // True when `p` comes from the exact null distribution (R's default for
+  // n1, n2 < 50 with no ties); false for the normal approximation.
+  exact?: boolean;
 }
 
 export interface ShapiroWilkResult extends SampleErr {
@@ -96,6 +99,8 @@ export interface SpearmanResult extends SampleErr {
   p: number;
   n: number;
   ci: CorrelationCI;
+  // True when `p` comes from AS 89 on S = Σd² (R's default without ties).
+  exact?: boolean;
 }
 
 export interface KendallResult extends SampleErr {
@@ -104,6 +109,9 @@ export interface KendallResult extends SampleErr {
   p: number;
   n: number;
   S: number;
+  // True when `p` comes from the exact distribution (R's default for n < 50
+  // with no ties).
+  exact?: boolean;
 }
 
 export interface TukeyPair {
