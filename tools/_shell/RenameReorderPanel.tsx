@@ -73,10 +73,13 @@ export function RenameReorderPanel(props: RenameReorderPanelProps) {
         const colOrder = orderableCols[i];
         const isOrderable = !!colOrder;
         const renamedU = u.map((v) => ({ orig: v, renamed: applyRename(i, v) }));
+        // First entry wins on duplicate renamed labels, as `.find()` did.
+        const byRenamed = new Map<string, { orig: string; renamed: string }>();
+        for (const x of renamedU) if (!byRenamed.has(x.renamed)) byRenamed.set(x.renamed, x);
         const orderedU =
           isOrderable && colOrder.order
             ? colOrder.order
-                .map((g) => renamedU.find((x) => x.renamed === g))
+                .map((g) => byRenamed.get(g))
                 .filter((x): x is { orig: string; renamed: string } => Boolean(x))
             : renamedU;
         const displayList = orderedU.length > 0 ? orderedU : renamedU;
