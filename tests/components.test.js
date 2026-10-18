@@ -607,6 +607,42 @@ test("renders rename inputs and drag handles", function () {
   assert(html.length > 0, "should render");
 });
 
+function renderReorderCol(unique, order, applyRename) {
+  return renderHtml(sc.RenameReorderPanel, {
+    headers: ["Grp"],
+    colNames: ["Group"],
+    colRoles: ["group"],
+    filters: { 0: { unique, included: new Set(unique) } },
+    valueRenames: {},
+    orderableCols: { 0: { order, onReorder: noop } },
+    applyRename,
+    onRenameVal: noop,
+    dragState: null,
+    onDragStart: noop,
+    onDragEnd: noop,
+  });
+}
+
+test("lists values in the saved order, not upload order", function () {
+  const html = renderReorderCol(
+    ["alpha", "beta", "gamma"],
+    ["gamma", "alpha", "beta"],
+    (_i, v) => v
+  );
+  const pos = ["gamma", "alpha", "beta"].map((v) => html.indexOf(">" + v + "<"));
+  assert(
+    pos.every((p) => p >= 0),
+    "every value should be listed: " + pos
+  );
+  assert(pos[0] < pos[1] && pos[1] < pos[2], "order should be gamma, alpha, beta: " + pos);
+});
+
+test("two values renamed to the same label: the first one is listed", function () {
+  const html = renderReorderCol(["wt", "WT2"], ["WT"], () => "WT");
+  assert(html.includes(">wt<"), "first value with the shared label should be listed");
+  assert(!html.includes(">WT2<"), "second value with the shared label should not be listed");
+});
+
 suite("StatsTable");
 
 test("returns null for empty stats", function () {
