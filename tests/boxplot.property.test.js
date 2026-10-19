@@ -37,6 +37,9 @@ const {
   buildCompositionTable,
   compositionTableCsv,
   isCompositionTestable,
+  firstSeenOrder,
+  buildGroups,
+  splitBySubgroup,
 } = require("./helpers/boxplot-loader");
 const { parseRaw: parseRawP, parseCountsTable } = require("./helpers/proportions-loader");
 const { arbAnyCsv, arbLongCsv } = require("./helpers/csv-arbitraries");
@@ -789,5 +792,68 @@ test("every testable table parses back in Proportions unchanged", () => {
       );
     }),
     { numRuns: RUNS }
+  );
+});
+// Minimal group-build spec for the derive.ts properties.
+const DERIVE_SPEC = {
+  groupCol: 0,
+  valueCol: 1,
+  colorByCol: -1,
+  colorByCategories: [],
+  order: [],
+  disabled: {},
+  colors: {},
+  palette: "okabe-ito",
+};
+
+suite("buildGroups — properties");
+
+const cell = fc.constantFrom("A", "B", "C", "x", "", "1.5", "-2", "NaN", "3e2");
+const rowsArb = fc.array(fc.array(cell, { minLength: 0, maxLength: 4 }), { maxLength: 40 });
+
+test("every numeric value of a kept group lands in exactly one source", () => {
+  check(
+    fc.property(rowsArb, fc.boolean(), (rows, colorBy) => {
+      const order = firstSeenOrder(rows, 0).filter((v) => v !== undefined);
+      const spec = {
+        ...DERIVE_SPEC,
+        groupCol: 0,
+        valueCol: 1,
+        colorByCol: colorBy ? 2 : -1,
+        colorByCategories: colorBy
+          ? [...new Set(rows.map((r) => (2 < r.length ? r[2] : null) || "?"))].sort()
+          : [],
+        order,
+      };
+      const groups = buildGroups(rows, spec);
+      for (const grp of groups) {
+        const expected = rows
+          .filter((r) => r.length > 1 && r[0] === grp.name && r[1] !== "" && !isNaN(Number(r[1])))
+          .map((r) => Number(r[1]));
+        const fromSources = grp.sources.flatMap((s) => s.values);
+        if (fromSources.length !== expected.length) return false;
+        if (grp.allValues.length !== expected.length) return false;
+        if (grp.sources.some((s, i) => s.colIndex !== i || s.values.length === 0)) return false;
+      }
+      return groups.every((grp) => grp.allValues.length > 0);
+    })
+  );
+});
+
+test("splitBySubgroup partitions exactly what a per-band build produces", () => {
+  check(
+    fc.property(rowsArb, (rows) => {
+      const build = (cellRows) =>
+        buildGroups(cellRows, { ...DERIVE_SPEC, valueCol: 1, order: ["A", "B", "C"] });
+      const order = firstSeenOrder(rows, 2);
+      const out = splitBySubgroup(rows, 2, order, build);
+      let next = 0;
+      for (const sg of out.subgroups) {
+        if (sg.startIndex !== next || sg.count === 0) return false;
+        next += sg.count;
+      }
+      const expected = order.reduce((n, v) => n + build(rows.filter((r) => r[2] === v)).length, 0);
+      return next === out.flatGroups.length && next === expected;
+    })
   );
 });

@@ -131,27 +131,28 @@ per-file paths so the dependency graph stays visible.
 
 ### Pure helpers / data / dispatchers (`kebab-case.ts`)
 
-| File                  | Role                                                                                                                                                                      |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bracket-levels.ts`   | `assignBracketLevels` — greedy interval-packing for stacked significance brackets.                                                                                        |
-| `chart-layout.ts`     | `CHART_MARGIN` + `buildLineD` for line-plot / aequorin charts.                                                                                                            |
-| `discrete-palette.ts` | Discrete palette catalogue + `resolveDiscretePalette` / `applyDiscretePalette` / hue+viridis.                                                                             |
-| `handoff.ts`          | One-shot localStorage inter-tool hand-off (`setHandoff` / `consumeHandoff` / `navigateToTool`); only the target consumes a payload, which expires after `HANDOFF_TTL_MS`. |
-| `methods-text.ts`     | Methods-section paragraph builder (`buildGroupMethodsText`, `softwareSentence`, …).                                                                                       |
-| `plot-actions.ts`     | `PlotActionsContext` registry linking a tool's `ActionsPanel` to the header export bar.                                                                                   |
-| `power-from-data.ts`  | `computePowerFromData` — achieved power + n-needed dispatched per test family.                                                                                            |
-| `prefs-store.ts`      | Per-tool plot-render-settings persistence (load/save/import/export/migrate/merge).                                                                                        |
-| `r-export.ts`         | `buildRScript` + `buildRScriptForPower` + R-string formatters.                                                                                                            |
-| `scroll-helpers.ts`   | `scrollIntoViewWithinAncestor` + `scrollDisclosureIntoView`.                                                                                                              |
-| `stats-dispatch.ts`   | `runTest` / `runPostHoc` / `postHocForTest` over the stats registry.                                                                                                      |
-| `stats-registry.ts`   | `STATS_TEST_REGISTRY` + `STATS_POSTHOC_REGISTRY` + arity arrays.                                                                                                          |
-| `svg-legend.ts`       | `computeLegendHeight` + `renderSvgLegend` for chart legend layout.                                                                                                        |
+| File                  | Role                                                                                                                                                                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bracket-levels.ts`   | `assignBracketLevels` — greedy interval-packing for stacked significance brackets.                                                                                                                                           |
+| `chart-layout.ts`     | `CHART_MARGIN` + `buildLineD` for line-plot / aequorin charts.                                                                                                                                                               |
+| `discrete-palette.ts` | Discrete palette catalogue + `resolveDiscretePalette` / `applyDiscretePalette` / hue+viridis.                                                                                                                                |
+| `handoff.ts`          | One-shot per-tab (sessionStorage) inter-tool hand-off (`setHandoff` / `consumeHandoff` / `navigateToTool`; destinations receive via `useHandoff`); only the target consumes a payload, which expires after `HANDOFF_TTL_MS`. |
+| `methods-text.ts`     | Methods-section paragraph builder (`buildGroupMethodsText`, `softwareSentence`, …).                                                                                                                                          |
+| `plot-actions.ts`     | `PlotActionsContext` registry linking a tool's `ActionsPanel` to the header export bar.                                                                                                                                      |
+| `power-from-data.ts`  | `computePowerFromData` — achieved power + n-needed dispatched per test family.                                                                                                                                               |
+| `prefs-store.ts`      | Per-tool plot-render-settings persistence (load/save/import/export/migrate/merge).                                                                                                                                           |
+| `r-export.ts`         | `buildRScript` + `buildRScriptForPower` + R-string formatters.                                                                                                                                                               |
+| `scroll-helpers.ts`   | `scrollIntoViewWithinAncestor` + `scrollDisclosureIntoView`.                                                                                                                                                                 |
+| `stats-dispatch.ts`   | `runTest` / `runPostHoc` / `postHocForTest` over the stats registry.                                                                                                                                                         |
+| `stats-registry.ts`   | `STATS_TEST_REGISTRY` + `STATS_POSTHOC_REGISTRY` + arity arrays.                                                                                                                                                             |
+| `svg-legend.ts`       | `computeLegendHeight` + `renderSvgLegend` for chart legend layout.                                                                                                                                                           |
 
-### React hook (`camelCase.ts`)
+### React hooks (`camelCase.ts`)
 
-| File                  | Role                                                                          |
-| --------------------- | ----------------------------------------------------------------------------- |
-| `usePlotToolState.ts` | Shared hook — step state, upload fields, vis reducer with auto-prefs persist. |
+| File                  | Role                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `usePlotToolState.ts` | Shared hook — step state, upload fields, vis reducer with auto-prefs persist.                                      |
+| `useHandoff.ts`       | Hand-off receiver: `useHandoff(tool, apply)` delivers payloads for `tool` at mount and when written while mounted. |
 
 ## Decision tree for adding a new shared helper
 

@@ -1,31 +1,33 @@
 // One-shot inter-tool data hand-off. A source tool (e.g. RLU timecourse's
-// Σ barplot tile) writes a small payload into localStorage under a single
-// fixed key, then top-level-navigates the browser to the destination
-// tool. The destination tool's App() reads-and-clears the payload on
-// mount; if it matches the expected target tool, the payload is consumed
-// instead of running through the regular upload step.
+// Σ barplot tile) writes a small payload into sessionStorage under a single
+// fixed key, then navigates this same tab to the destination tool
+// (`navigateToTool`). The destination reads-and-clears the payload addressed
+// to it and skips its regular upload step.
 //
-// Why localStorage and not postMessage / URL fragments:
-//   • postMessage requires both pages to be alive simultaneously plus a
-//     coordinator iframe; tool navigation hops the top-level frame, so
-//     the source page is gone by the time the destination mounts.
+// Why sessionStorage and not postMessage / URL fragments / localStorage:
+//   • postMessage needs both pages alive at once; the source view is gone
+//     (or hidden) by the time the destination mounts.
 //   • URL fragments hit the ~2 KB browser limit on payloads and leak
 //     data into history / referers.
-//   • localStorage is per-origin, synchronous, and the payload lives only
-//     for the milliseconds between A's setHandoff and B's consumeHandoff:
-//     the target clears it on read, and anything older than
-//     HANDOFF_TTL_MS is discarded by whichever consumer sees it next.
+//   • localStorage is shared by every tab, so an already-open copy of the
+//     destination in another tab could consume the payload first.
+//     sessionStorage is per tab and survives the same-tab page load of the
+//     standalone fallback.
+// The target clears the payload on read, and anything older than
+// HANDOFF_TTL_MS is discarded by whichever receiver sees it next.
 //
-// A consumer whose tool doesn't match leaves the payload alone. Every
-// mounted consumer reacts to every write (same-tab `plottr-handoff` event,
-// cross-tab `storage`), so a source tool that is itself a consumer — Group
-// Plot sending its composition pies to Proportions — would otherwise
-// delete its own outgoing payload before the target mounts.
+// A receiver whose tool doesn't match leaves the payload alone. Every
+// mounted receiver reacts to every write (same-tab `plottr-handoff` event),
+// so a source tool that is itself a receiver — Group Plot sending its
+// composition pies to Proportions — would otherwise delete its own outgoing
+// payload before the target mounts.
 //
+// Destination tools receive with `useHandoff(tool, apply)` (useHandoff.ts).
 // Payload shape is intentionally loose — each consumer decides how to
-// parse the `csv` string and react to `source`. Conventional fields
-// listed in the HandoffPayload interface; tool-specific extensions
-// (e.g. `tools/upset/helpers.ts` → `UpsetHandoffPayload`) extend it.
+// parse the `csv` string and react to `source`. Conventional fields are
+// listed in the HandoffPayload interface; tool-specific fields (Venn →
+// UpSet's `text` / `sep` / `format`) ride on its index signature and are
+// type-checked by the consumer at runtime.
 
 export interface HandoffPayload {
   // Routing key — required. Destination tool's `consumeHandoff(targetTool)`
@@ -62,24 +64,22 @@ declare global {
   }
 }
 
-const KEY = "dataviz-handoff";
+const HANDOFF_KEY = "dataviz-handoff";
 // Long enough for a lazy tool chunk to load on a slow connection; short
 // enough that an unconsumed payload never resurfaces on a later visit.
 export const HANDOFF_TTL_MS = 30_000;
 
 export function setHandoff(payload: HandoffPayload): boolean {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ ...payload, sentAt: Date.now() }));
+    sessionStorage.setItem(HANDOFF_KEY, JSON.stringify({ ...payload, sentAt: Date.now() }));
   } catch (_e) {
     return false;
   }
-  // Notify same-tab consumers. The browser `storage` event only fires
-  // across tabs / iframes, so under the SPA's keep-alive routing (target
-  // tool already mounted) it never reaches the consumer. Dispatching a
-  // synchronous CustomEvent gives the already-mounted destination a
-  // chance to re-run consumeHandoff.
+  // Under the SPA's keep-alive routing the destination may already be
+  // mounted, its mount-time read long past. This synchronous event lets it
+  // re-run consumeHandoff.
   try {
-    window.dispatchEvent(new CustomEvent("plottr-handoff", { detail: { key: KEY } }));
+    window.dispatchEvent(new CustomEvent("plottr-handoff", { detail: { key: HANDOFF_KEY } }));
   } catch (_e) {
     /* swallow */
   }
@@ -89,14 +89,14 @@ export function setHandoff(payload: HandoffPayload): boolean {
 export function consumeHandoff(targetTool: string): HandoffPayload | null {
   let raw: string | null = null;
   try {
-    raw = localStorage.getItem(KEY);
+    raw = sessionStorage.getItem(HANDOFF_KEY);
   } catch (_e) {
     return null;
   }
   if (!raw) return null;
   const clear = (): void => {
     try {
-      localStorage.removeItem(KEY);
+      sessionStorage.removeItem(HANDOFF_KEY);
     } catch (_e) {
       /* swallow */
     }
@@ -131,7 +131,7 @@ export function consumeHandoff(targetTool: string): HandoffPayload | null {
 //      registered by `tools/_app/index.tsx` on boot. Calling it changes
 //      `location.hash` and the SPA router re-renders the new tool
 //      in-place. The destination tool's mount-time `consumeHandoff()`
-//      finds the localStorage payload we just wrote and applies it.
+//      finds the sessionStorage payload we just wrote and applies it.
 //   2. Standalone-page fallback: `__plottrSpaNavigate` is undefined,
 //      so we fall back to a top-level navigation to `<key>.html`. The
 //      destination tool boots fresh and its mount-time `consumeHandoff()`

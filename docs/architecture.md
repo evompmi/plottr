@@ -404,14 +404,14 @@ compatibility shim, but for cross-bundle state correctness.
 ## 8. Cross-tool data handoff
 
 ```
-   Source tool (e.g. RLU timecourse → Group Plot, Venn → UpSet)
+   Source tool (e.g. RLU timecourse → Group Plot)
             │
-            │  setHandoff({ type: "dataviz-handoff",
-            │               tool: "boxplot",
+            │  setHandoff({ tool: "boxplot",
             │               csv: "...",
-            │               sourceTool: "aequorin",
+            │               source: "RLU timecourse — Σ barplot",
             │               fileName: "...", … })
-            │     ◄── writes localStorage["dataviz-handoff"]
+            │     ◄── writes sessionStorage["dataviz-handoff"] (+ sentAt)
+            │     ◄── dispatches window "plottr-handoff" (same tab)
             │
             └─► navigateToTool("boxplot")
                    │
@@ -423,28 +423,36 @@ compatibility shim, but for cross-bundle state correctness.
                    └─► Standalone fallback:
                           window.location.assign("boxplot.html")
 
-   Destination tool mounts → consumeHandoff("boxplot")
-                              ├─► reads localStorage["dataviz-handoff"]
-                              ├─► CLEARS it first (one-shot, even on
-                              │   parse failure)
-                              ├─► hydrates upload-step state from the
-                              │   payload's `csv` / `fileName`
-                              └─► skips the manual upload step
+   Destination tool: useHandoff("boxplot", apply)
+      on mount and on "plottr-handoff"
+                              └─► consumeHandoff("boxplot")
+                                  ├─► reads sessionStorage["dataviz-handoff"]
+                                  ├─► malformed / expired (> HANDOFF_TTL_MS):
+                                  │   clears it, delivers nothing
+                                  ├─► addressed to another tool: leaves it
+                                  └─► addressed here: clears it, then
+                                      apply(payload) hydrates the upload
+                                      state and skips to the plot step
 ```
 
-**Same-tab keep-alive (SPA).** When UpSet was mounted earlier in this
-session, its mount-time `consumeHandoff` already ran. The source tool
-fires `window.dispatchEvent(new CustomEvent("plottr-handoff"))` after
-writing the payload, and UpSet's live listener re-reads sessionStorage
-without remounting. The legacy postMessage listener stays wired
-defensively for external embeds.
+**Same-tab keep-alive (SPA).** A destination mounted earlier in the session
+already ran its mount-time check. `setHandoff` therefore dispatches
+`plottr-handoff`, and `useHandoff`'s live listener consumes the payload
+without a remount. Every mounted receiver hears every write, which is why a
+non-matching receiver leaves the payload alone — Group Plot is both a
+receiver and a source (composition pies → Proportions). The payload lives in
+per-tab sessionStorage: every source navigates its own tab, and a shared
+localStorage payload could be consumed by a copy of the destination open in
+another tab. Current routes: RLU timecourse → Group Plot, Group Plot →
+Proportions, Venn → UpSet.
 
 ---
 
-## 9. Persistence (localStorage keys)
+## 9. Persistence (browser storage keys)
 
 ```
    ─────────────────────────────────────────────────────────────────
+   localStorage:
    dataviz-theme            "light" | "dark"   — picked theme; OS
                                                   preference wins when
                                                   the key is absent
@@ -453,10 +461,11 @@ defensively for external embeds.
                               savedAt: ISO-8601,
                               settings: { ...vis } }
    dataviz-howto-<tool>     "open" | "collapsed"  — HowToCard state
+   ─────────────────────────────────────────────────────────────────
+   sessionStorage (per tab):
    dataviz-handoff          transient cross-tool payload (one-shot;
-                              consumed and cleared on next mount)
-   dataviz-upset-handoff    sessionStorage; venn → upset handoff
-                              (cleared on consume)
+                              cleared by its target, expires after
+                              HANDOFF_TTL_MS)
    ─────────────────────────────────────────────────────────────────
 
    Auto-prefs flow:

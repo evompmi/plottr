@@ -239,17 +239,6 @@ export interface IntersectionSignificance {
   direction: IntersectionDirection;
 }
 
-// Inbound payload from the Venn → UpSet hand-off (postMessage or
-// sessionStorage). Text + an optional separator / format / filename.
-// All fields treated as untrusted — the App validates types and length
-// before forwarding to the parser.
-export interface UpsetHandoffPayload {
-  text: string;
-  fileName?: string;
-  sep?: string;
-  format?: string;
-}
-
 export interface UpsetChartProps {
   setNames: string[];
   setSizes: Map<string, number>;

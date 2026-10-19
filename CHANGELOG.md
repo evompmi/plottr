@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Inter-tool hand-off.** A mounted tool no longer deletes a hand-off meant for another tool;
   undelivered hand-offs now expire after 30 s instead.
+- **Hand-off with Plöttr open in two tabs.** "Open in Group Plot / Proportions / UpSet" now
+  always lands in the tab you clicked it in; a copy of the target tool open in another tab could
+  previously grab the data. All three routes share one receiver.
 
 ## [1.11.0] - 2026-10-18
 
