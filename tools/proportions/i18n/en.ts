@@ -18,6 +18,9 @@ const en = {
     "Group “{group}” appears twice. Sum its rows into one before pasting.",
   "proportions.err.emptyLabel": "Row {row} has no group name in the first column.",
   "proportions.rest": "Other",
+  "proportions.fromGroupPlot":
+    "From Group Plot's composition pies: each count is the number of observations of a “{classes}” class within one “{groups}” group.",
+  "proportions.fromGroupPlotFacet": "Facet “{facet}” only — each facet is tested separately.",
 
   // Configure step
   "proportions.cfg.pasted": "Pasted data",
@@ -140,6 +143,13 @@ const en = {
   "proportions.stats.pAdj": "p ({method})",
   "proportions.stats.pairwiseNote":
     "Each pair is tested on its own 2-row table; adjusted p-values account for the number of pairs.",
+  "proportions.stats.compare": "Compare",
+  "proportions.stats.compareTitle":
+    "Every pair of groups, or each group with one control group only — fewer tests, so the correction costs less power",
+  "proportions.stats.allPairs": "All pairs",
+  "proportions.stats.vsControl": "vs {group} (control)",
+  "proportions.stats.controlNote":
+    "Each group is tested against {control} on its own 2-row table; adjusted p-values account for the {m} comparisons with the control. Groups are not compared with each other.",
 
   // Goodness of fit
   "proportions.gof.title": "Goodness of fit to an expected ratio",
@@ -181,7 +191,7 @@ const en = {
   "proportions.howto.exCaption2":
     "Several outcome classes (e.g. phenotype counts for a 9:3:3:1 test) work the same way: one column per class.",
   "proportions.howto.display":
-    "<strong>Proportion</strong> shows % of one outcome with Wilson 95 % CIs. <strong>Stacked</strong> and <strong>Mosaic</strong> show every outcome; mosaic widths follow group size. The test is picked automatically: Fisher's exact test for 2×2 tables or when expected counts are small, χ² otherwise. Pairwise comparisons use Holm correction by default. The goodness-of-fit panel tests counts against ratios such as 3:1 or 9:3:3:1.",
+    "<strong>Proportion</strong> shows % of one outcome with Wilson 95 % CIs. <strong>Stacked</strong> and <strong>Mosaic</strong> show every outcome; mosaic widths follow group size. The test is picked automatically: Fisher's exact test for 2×2 tables or when expected counts are small, χ² otherwise. Pairwise comparisons use Holm correction by default; pick a control group under Compare to test each group against it only. The goodness-of-fit panel tests counts against ratios such as 3:1 or 9:3:3:1.",
   "proportions.methods.design":
     "Counts in {c} outcome categories were compared between {k} groups (N = {N} observations; {n} per group).",
   "proportions.methods.fisher":
@@ -194,6 +204,8 @@ const en = {
     "The test followed Cochran's rule: Fisher's exact test for 2×2 tables or when expected counts were small (any below 1, or more than 20 % below 5), Pearson's χ² test otherwise.",
   "proportions.methods.pairwise":
     "Pairs of groups were compared with Fisher's exact test, with p-values adjusted by the {method} method.",
+  "proportions.methods.vsControl":
+    "Each group was compared with the control group ({control}) by Fisher's exact test, with p-values adjusted by the {method} method across the {m} comparisons.",
   "proportions.methods.holm": "Holm",
   "proportions.methods.bh": "Benjamini-Hochberg",
   "proportions.methods.wilson": "Proportions are shown with Wilson score 95% confidence intervals.",

@@ -47,6 +47,12 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.ctrl.colorBy": "Colorer par",
   "boxplot.ctrl.noneOption": "— aucun —",
   "boxplot.ctrl.compPies": "Camemberts de composition",
+  "boxplot.ctrl.compTest": "Tester la composition",
+  "boxplot.ctrl.compToProportions": "↗ Ouvrir dans Proportions",
+  "boxplot.ctrl.compToProportionsFacet": "↗ {facet} dans Proportions",
+  "boxplot.ctrl.compToProportionsTitle":
+    "Envoyer les effectifs des camemberts (observations de chaque classe dans chaque groupe) à l'outil Proportions pour les comparer par test exact de Fisher ou χ²",
+  "boxplot.ctrl.compNotTestable": "Il faut au moins deux groupes et deux classes à comparer",
   "boxplot.ctrl.size": "Taille",
   "boxplot.ctrl.jitter": "Dispersion",
   "boxplot.ctrl.opacity": "Opacité",

@@ -21,6 +21,7 @@ import {
   holmAdjust,
   multinomialExactGOF,
   pairwiseFisher,
+  pairwiseFisherVsControl,
   pStars,
   selectCountsTest,
   wilsonCI,
@@ -240,7 +241,11 @@ export interface ProportionsAnalysis {
   // Omnibus p of the test actually used.
   p: number;
   pairs: CountsPair[];
-  // Compact-letter display, one string per group ("" when k < 3).
+  // Index of the control group when every group is compared with it only
+  // (many-to-one); null for all pairs.
+  control: number | null;
+  // Compact-letter display, one string per group ("" when k < 3 or when
+  // comparing with a control — letters need every pair).
   cld: string[];
   error: "tooSmall" | null;
 }
@@ -248,7 +253,8 @@ export interface ProportionsAnalysis {
 export function analyseTable(
   input: CountsTable,
   testChoice: TestChoice,
-  adjust: PAdjustMethod
+  adjust: PAdjustMethod,
+  controlGroup: string | null = null
 ): ProportionsAnalysis {
   const table = dropEmptyCategories(input);
   const chi2 = chiSquareIndependence(table.counts);
@@ -266,6 +272,7 @@ export function analyseTable(
     chi2,
     p: NaN,
     pairs: [],
+    control: null,
     cld: table.groups.map(() => ""),
     error: "tooSmall",
   };
@@ -274,12 +281,20 @@ export function analyseTable(
   const test = testChoice === "auto" ? selection.test : testChoice;
   const fisher = test === "fisher" ? fisherExact(table.counts) : null;
   const p = fisher ? fisher.p : chi2.p;
-  const pairs = table.groups.length > 2 ? pairwiseFisher(table.counts, adjust) : [];
+  const multi = table.groups.length > 2;
+  // A control that isn't among the analysed groups falls back to all pairs.
+  const ci = controlGroup === null ? -1 : table.groups.indexOf(controlGroup);
+  const control = multi && ci >= 0 ? ci : null;
+  const pairs = !multi
+    ? []
+    : control !== null
+      ? pairwiseFisherVsControl(table.counts, control, adjust)
+      : pairwiseFisher(table.counts, adjust);
   const cld =
-    table.groups.length > 2
+    multi && control === null
       ? compactLetterDisplay(pairs, table.groups.length)
       : table.groups.map(() => "");
-  return { table, selection, test, fisher, chi2, p, pairs, cld, error: null };
+  return { table, selection, test, fisher, chi2, p, pairs, control, cld, error: null };
 }
 
 // Brackets for the chart: significant pairs (adjusted p < 0.05) by
@@ -451,6 +466,9 @@ export interface ConfigureStepProps {
 
 export interface StatsPanelProps {
   analysis: ProportionsAnalysis;
+  // Control group name (many-to-one comparisons) or null for all pairs.
+  control: string | null;
+  setControl: (name: string | null) => void;
   // Column names matching `summaries[*].counts`.
   categories: string[];
   summaries: GroupSummary[];
@@ -510,6 +528,8 @@ export interface PlotStepProps {
   focus: number;
   setFocus: (i: number) => void;
   focusLabel: string | null;
+  control: string | null;
+  setControl: (name: string | null) => void;
   vis: ProportionsVis;
   updVis: (patch: Partial<ProportionsVis>) => void;
   ratioText: string;

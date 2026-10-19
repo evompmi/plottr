@@ -34,7 +34,11 @@ const {
   summariseEqualVariance,
   mergeSubgroupAnnotations,
   statsSummaryHeight,
+  buildCompositionTable,
+  compositionTableCsv,
+  isCompositionTestable,
 } = require("./helpers/boxplot-loader");
+const { parseRaw: parseRawP, parseCountsTable } = require("./helpers/proportions-loader");
 const { arbAnyCsv, arbLongCsv } = require("./helpers/csv-arbitraries");
 
 const RUNS = 300;
@@ -720,5 +724,70 @@ test("never throws on arbitrary subgroup metadata", () => {
         return true;
       }
     )
+  );
+});
+
+suite("property: composition pies → Proportions counts table");
+
+// Labels that survive a CSV round-trip untouched: no surrounding blanks
+// (Proportions trims), no leading formula character (the CSV writer
+// neutralises those), but commas and quotes inside are fair game.
+const arbLabel = fc
+  .stringMatching(/^[A-Za-z0-9][A-Za-z0-9 ,"_-]{0,8}[A-Za-z0-9]$/)
+  .filter((x) => x.trim() === x);
+const arbComposition = fc
+  .uniqueArray(arbLabel, { minLength: 1, maxLength: 5 })
+  .chain((cats) =>
+    fc.record({
+      cats: fc.constant(cats),
+      rows: fc.array(
+        fc.record({
+          labelParts: fc.array(arbLabel, { minLength: 1, maxLength: 3 }),
+          counts: fc.array(fc.nat({ max: 30 }), { minLength: cats.length, maxLength: cats.length }),
+        }),
+        { minLength: 1, maxLength: 6 }
+      ),
+    })
+  )
+  .map(({ cats, rows }) => ({
+    cats,
+    rows: rows.map((r) => ({
+      labelParts: r.labelParts,
+      sources: cats
+        .map((category, ci) => ({ category, values: new Array(r.counts[ci]).fill(1) }))
+        .filter((s) => s.values.length > 0),
+    })),
+  }));
+
+test("row sums equal each group's observation count; labels unique; no empty class", () => {
+  fc.assert(
+    fc.property(arbComposition, ({ cats, rows }) => {
+      const t = buildCompositionTable(rows, cats, ["G"], null);
+      if (t.groups.length !== rows.length) return false;
+      if (new Set(t.groups).size !== t.groups.length) return false;
+      for (let g = 0; g < rows.length; g++) {
+        const n = rows[g].sources.reduce((a, s) => a + s.values.length, 0);
+        if (t.counts[g].reduce((a, b) => a + b, 0) !== n) return false;
+      }
+      return t.categories.every((_, c) => t.counts.some((row) => row[c] > 0));
+    }),
+    { numRuns: RUNS }
+  );
+});
+
+test("every testable table parses back in Proportions unchanged", () => {
+  fc.assert(
+    fc.property(arbComposition, ({ cats, rows }) => {
+      const t = buildCompositionTable(rows, cats, ["G"], null);
+      if (!isCompositionTestable(t)) return true;
+      const res = parseCountsTable(parseRawP(compositionTableCsv(t), ","));
+      return (
+        res.error === null &&
+        JSON.stringify(res.table.groups) === JSON.stringify(t.groups) &&
+        JSON.stringify(res.table.categories) === JSON.stringify(t.categories) &&
+        JSON.stringify(res.table.counts) === JSON.stringify(t.counts)
+      );
+    }),
+    { numRuns: RUNS }
   );
 });

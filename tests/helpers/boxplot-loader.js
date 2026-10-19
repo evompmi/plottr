@@ -99,6 +99,10 @@ module.exports = {
   computeBpSummaryText: helpers.computeBpSummaryText,
   mergeSubgroupAnnotations: helpers.mergeSubgroupAnnotations,
   statsSummaryHeight: helpers.statsSummaryHeight,
+  compositionLabel: helpers.compositionLabel,
+  buildCompositionTable: helpers.buildCompositionTable,
+  isCompositionTestable: helpers.isCompositionTestable,
+  compositionTableCsv: helpers.compositionTableCsv,
   // Pure layout arithmetic (tools/boxplot/layout.ts).
   computeChartMargins: layout.computeChartMargins,
 };

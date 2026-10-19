@@ -17,6 +17,10 @@ const fr: Record<ProportionsKey, string> = {
     "Le groupe « {group} » apparaît deux fois. Additionnez ses lignes avant de coller les données.",
   "proportions.err.emptyLabel": "La ligne {row} n’a pas de nom de groupe en première colonne.",
   "proportions.rest": "Autres",
+  "proportions.fromGroupPlot":
+    "Depuis les camemberts de composition de Group Plot : chaque effectif est le nombre d'observations d'une classe « {classes} » dans un groupe « {groups} ».",
+  "proportions.fromGroupPlotFacet":
+    "Facette « {facet} » uniquement — chaque facette est testée séparément.",
 
   "proportions.cfg.pasted": "Données collées",
   "proportions.cfg.shape": " — {groups} groupes × {cats} modalités",
@@ -136,6 +140,13 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.stats.pAdj": "p ({method})",
   "proportions.stats.pairwiseNote":
     "Chaque paire est testée sur son propre tableau à 2 lignes ; les p ajustées tiennent compte du nombre de paires.",
+  "proportions.stats.compare": "Comparer",
+  "proportions.stats.compareTitle":
+    "Toutes les paires de groupes, ou chaque groupe avec un seul groupe témoin — moins de tests, donc une correction moins coûteuse en puissance",
+  "proportions.stats.allPairs": "Toutes les paires",
+  "proportions.stats.vsControl": "vs {group} (témoin)",
+  "proportions.stats.controlNote":
+    "Chaque groupe est testé contre {control} sur son propre tableau à 2 lignes ; les p ajustées tiennent compte des {m} comparaisons avec le témoin. Les groupes ne sont pas comparés entre eux.",
 
   "proportions.gof.title": "Ajustement à une proportion théorique",
   "proportions.gof.intro":
@@ -175,7 +186,7 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.howto.exCaption2":
     "Plusieurs classes (p. ex. effectifs phénotypiques pour un test 9:3:3:1) : même principe, une colonne par classe.",
   "proportions.howto.display":
-    "<strong>Proportion</strong> affiche le % d’une modalité avec IC de Wilson à 95 %. <strong>Empilé</strong> et <strong>Mosaïque</strong> montrent toutes les modalités ; en mosaïque, la largeur suit l’effectif du groupe. Le test est choisi automatiquement : exact de Fisher pour les tableaux 2×2 ou quand les effectifs attendus sont faibles, χ² sinon. Les comparaisons deux à deux utilisent la correction de Holm par défaut. Le panneau d’ajustement compare les effectifs à des proportions comme 3:1 ou 9:3:3:1.",
+    "<strong>Proportion</strong> affiche le % d’une modalité avec IC de Wilson à 95 %. <strong>Empilé</strong> et <strong>Mosaïque</strong> montrent toutes les modalités ; en mosaïque, la largeur suit l’effectif du groupe. Le test est choisi automatiquement : exact de Fisher pour les tableaux 2×2 ou quand les effectifs attendus sont faibles, χ² sinon. Les comparaisons deux à deux utilisent la correction de Holm par défaut ; choisissez un groupe témoin dans « Comparer » pour ne tester chaque groupe que contre lui. Le panneau d’ajustement compare les effectifs à des proportions comme 3:1 ou 9:3:3:1.",
   "proportions.methods.design":
     "Les effectifs de {c} catégories de réponse ont été comparés entre {k} groupes (N = {N} observations ; {n} par groupe).",
   "proportions.methods.fisher":
@@ -188,6 +199,8 @@ const fr: Record<ProportionsKey, string> = {
     "Le test suivait la règle de Cochran : test exact de Fisher pour les tableaux 2×2 ou en cas de faibles effectifs attendus (un inférieur à 1, ou plus de 20 % inférieurs à 5), test du χ² de Pearson sinon.",
   "proportions.methods.pairwise":
     "Les groupes ont été comparés deux à deux par le test exact de Fisher, avec un ajustement des p-values par la méthode de {method}.",
+  "proportions.methods.vsControl":
+    "Chaque groupe a été comparé au groupe témoin ({control}) par le test exact de Fisher, avec un ajustement des p-values par la méthode de {method} sur les {m} comparaisons.",
   "proportions.methods.holm": "Holm",
   "proportions.methods.bh": "Benjamini-Hochberg",
   "proportions.methods.wilson":

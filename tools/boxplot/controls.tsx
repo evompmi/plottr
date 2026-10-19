@@ -22,6 +22,7 @@ import {
   ViolinStyleIcon,
   applyDiscretePalette,
 } from "../_shell";
+import { isCompositionTestable } from "./helpers";
 import type { BoxplotGroup, BoxplotVis, PlotControlsProps } from "./helpers";
 import { useT } from "./i18n";
 
@@ -51,6 +52,8 @@ export function PlotControls({
   setSubgroupByCol,
   onDownloadSvg,
   onDownloadPng,
+  compositionTables,
+  onSendComposition,
 }: PlotControlsProps) {
   const tr = useT();
   const sv = (k: keyof BoxplotVis) => (v: unknown) => updVis({ [k]: v } as Partial<BoxplotVis>);
@@ -360,6 +363,36 @@ export function PlotControls({
                   onChange={(v) => updVis({ showCompPie: v })}
                   ariaLabel={tr("boxplot.ctrl.compPies")}
                 />
+              </div>
+            )}
+            {colorByCol >= 0 && vis.showCompPie && compositionTables.length > 0 && (
+              <div>
+                <div className="dv-label">{tr("boxplot.ctrl.compTest")}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {compositionTables.map((t, i) => {
+                    const ok = isCompositionTestable(t);
+                    return (
+                      <button
+                        key={t.facet ?? "_flat"}
+                        type="button"
+                        className="dv-btn dv-btn-secondary"
+                        data-testid="comp-to-proportions"
+                        disabled={!ok}
+                        onClick={() => onSendComposition(i)}
+                        title={tr(
+                          ok
+                            ? "boxplot.ctrl.compToProportionsTitle"
+                            : "boxplot.ctrl.compNotTestable"
+                        )}
+                        style={{ fontSize: 11, textAlign: "left" }}
+                      >
+                        {t.facet === null
+                          ? tr("boxplot.ctrl.compToProportions")
+                          : tr("boxplot.ctrl.compToProportionsFacet", { facet: t.facet })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
             {colorByCol >= 0 && (

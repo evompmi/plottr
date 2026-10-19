@@ -94,13 +94,18 @@ export function buildProportionsReport(a: ReportArgs): string {
   }
   if (!analysis.chi2.error) L.push(`Cramér's V = ${analysis.chi2.cramersV.toFixed(4)}`);
   if (analysis.pairs.length > 0) {
+    const adj = a.adjust === "holm" ? "Holm" : "Benjamini–Hochberg";
+    const ctrl = analysis.control;
     L.push("");
     L.push(
-      `Pairwise Fisher's exact tests (${a.adjust === "holm" ? "Holm" : "Benjamini–Hochberg"} adjusted)`
+      ctrl !== null
+        ? `Fisher's exact tests vs. control ${t.groups[ctrl]} (${adj} adjusted over ${analysis.pairs.length} comparisons)`
+        : `Pairwise Fisher's exact tests (${adj} adjusted)`
     );
     for (const pr of analysis.pairs) {
+      const [x, y] = ctrl === pr.i ? [pr.j, pr.i] : [pr.i, pr.j];
       L.push(
-        `  ${t.groups[pr.i]} vs ${t.groups[pr.j]}: p = ${formatP(pr.p)}, adjusted p = ${formatP(pr.pAdj)}`
+        `  ${t.groups[x]} vs ${t.groups[y]}: p = ${formatP(pr.p)}, adjusted p = ${formatP(pr.pAdj)}`
       );
     }
   }
@@ -192,7 +197,19 @@ export function buildProportionsRScript(a: RScriptArgs): string {
   L.push("cramers_v <- sqrt(suppressWarnings(chisq.test(counts, correct = FALSE))$statistic /");
   L.push("                  (sum(counts) * (min(dim(counts)) - 1)))");
   L.push("print(unname(cramers_v))");
-  if (analysis.pairs.length > 0) {
+  if (analysis.pairs.length > 0 && analysis.control !== null) {
+    L.push("");
+    L.push("# Fisher's exact test of each group against the control only");
+    L.push(`control <- ${rStr(analysis.table.groups[analysis.control])}`);
+    L.push("others <- setdiff(rownames(counts), control)");
+    L.push("p_raw <- sapply(others, function(g) {");
+    L.push("  sub <- counts[c(control, g), , drop = FALSE]");
+    L.push("  sub <- sub[, colSums(sub) > 0, drop = FALSE]");
+    L.push("  if (ncol(sub) < 2) 1 else fisher.test(sub)$p.value");
+    L.push("})");
+    L.push(`p_adj <- p.adjust(p_raw, method = "${a.adjust === "holm" ? "holm" : "BH"}")`);
+    L.push('print(data.frame(pair = paste(others, "vs", control), p = p_raw, p_adj = p_adj))');
+  } else if (analysis.pairs.length > 0) {
     L.push("");
     L.push("# Pairwise Fisher's exact tests between groups");
     L.push("pairs <- combn(rownames(counts), 2)");

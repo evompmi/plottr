@@ -12,8 +12,15 @@
 //   • URL fragments hit the ~2 KB browser limit on payloads and leak
 //     data into history / referers.
 //   • localStorage is per-origin, synchronous, and the payload lives only
-//     for the milliseconds between A's setHandoff and B's consumeHandoff
-//     because consume always clears first (even if parsing later fails).
+//     for the milliseconds between A's setHandoff and B's consumeHandoff:
+//     the target clears it on read, and anything older than
+//     HANDOFF_TTL_MS is discarded by whichever consumer sees it next.
+//
+// A consumer whose tool doesn't match leaves the payload alone. Every
+// mounted consumer reacts to every write (same-tab `plottr-handoff` event,
+// cross-tab `storage`), so a source tool that is itself a consumer — Group
+// Plot sending its composition pies to Proportions — would otherwise
+// delete its own outgoing payload before the target mounts.
 //
 // Payload shape is intentionally loose — each consumer decides how to
 // parse the `csv` string and react to `source`. Conventional fields
@@ -56,10 +63,13 @@ declare global {
 }
 
 const KEY = "dataviz-handoff";
+// Long enough for a lazy tool chunk to load on a slow connection; short
+// enough that an unconsumed payload never resurfaces on a later visit.
+export const HANDOFF_TTL_MS = 30_000;
 
 export function setHandoff(payload: HandoffPayload): boolean {
   try {
-    localStorage.setItem(KEY, JSON.stringify(payload));
+    localStorage.setItem(KEY, JSON.stringify({ ...payload, sentAt: Date.now() }));
   } catch (_e) {
     return false;
   }
@@ -84,20 +94,34 @@ export function consumeHandoff(targetTool: string): HandoffPayload | null {
     return null;
   }
   if (!raw) return null;
-  // Always remove first — even if parsing or routing later fails, we
-  // don't want this payload to resurrect on the next mount.
+  const clear = (): void => {
+    try {
+      localStorage.removeItem(KEY);
+    } catch (_e) {
+      /* swallow */
+    }
+  };
+  let payload: HandoffPayload | null = null;
   try {
-    localStorage.removeItem(KEY);
+    payload = JSON.parse(raw) as HandoffPayload | null;
   } catch (_e) {
-    /* swallow */
+    payload = null;
   }
-  try {
-    const payload = JSON.parse(raw) as HandoffPayload | null;
-    if (!payload || payload.tool !== targetTool) return null;
-    return payload;
-  } catch (_e) {
+  // Malformed, untargeted or expired payloads can never be delivered.
+  const sentAt = payload ? payload.sentAt : undefined;
+  if (
+    !payload ||
+    typeof payload.tool !== "string" ||
+    typeof sentAt !== "number" ||
+    Date.now() - sentAt > HANDOFF_TTL_MS
+  ) {
+    clear();
     return null;
   }
+  // Someone else's payload: leave it for its target.
+  if (payload.tool !== targetTool) return null;
+  clear();
+  return payload;
 }
 
 // SPA-aware tool navigation. Source tools (e.g. RLU timecourse →

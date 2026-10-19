@@ -25,14 +25,51 @@ test("consumeHandoff clears the localStorage key on success (one-shot)", () => {
   eq(c.consumeHandoff("boxplot"), null);
 });
 
-test("consumeHandoff with mismatched tool returns null AND removes the payload", () => {
-  // Removing on mismatch is intentional: a stale payload meant for a
-  // different tool would otherwise survive every navigation. The user
-  // can re-trigger the source tool's button to write a fresh one.
+test("consumeHandoff with mismatched tool returns null and leaves the payload for its target", () => {
+  // Every mounted consumer reacts to every write. Group Plot is both a
+  // consumer and a source (composition pies → Proportions): its own
+  // listener must not delete the payload it just sent to Proportions.
   const c = freshContext();
-  c.setHandoff({ tool: "boxplot", csv: "..." });
-  eq(c.consumeHandoff("scatter"), null);
+  c.setHandoff({ tool: "proportions", csv: "..." });
+  eq(c.consumeHandoff("boxplot"), null);
+  assert(c.localStorage.getItem("dataviz-handoff") !== null);
+  eq(c.consumeHandoff("proportions").csv, "...");
   eq(c.localStorage.getItem("dataviz-handoff"), null);
+});
+
+test("an expired payload is discarded by any consumer, matching or not", () => {
+  // Stale payloads (target never mounted) must not resurface later.
+  const c = freshContext();
+  const old = Date.now() - c.HANDOFF_TTL_MS - 1;
+  c.localStorage.setItem(
+    "dataviz-handoff",
+    JSON.stringify({ tool: "proportions", csv: "...", sentAt: old })
+  );
+  eq(c.consumeHandoff("boxplot"), null);
+  eq(c.localStorage.getItem("dataviz-handoff"), null);
+  c.localStorage.setItem(
+    "dataviz-handoff",
+    JSON.stringify({ tool: "boxplot", csv: "...", sentAt: old })
+  );
+  eq(c.consumeHandoff("boxplot"), null);
+  eq(c.localStorage.getItem("dataviz-handoff"), null);
+});
+
+test("a payload just inside the TTL is still delivered", () => {
+  const c = freshContext();
+  c.localStorage.setItem(
+    "dataviz-handoff",
+    JSON.stringify({ tool: "boxplot", csv: "ok", sentAt: Date.now() - c.HANDOFF_TTL_MS + 1000 })
+  );
+  eq(c.consumeHandoff("boxplot").csv, "ok");
+});
+
+test("setHandoff stamps sentAt", () => {
+  const c = freshContext();
+  const before = Date.now();
+  c.setHandoff({ tool: "boxplot", csv: "x" });
+  const stored = JSON.parse(c.localStorage.getItem("dataviz-handoff"));
+  assert(typeof stored.sentAt === "number" && stored.sentAt >= before);
 });
 
 test("consumeHandoff with no payload returns null and is idempotent", () => {

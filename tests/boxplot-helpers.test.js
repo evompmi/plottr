@@ -13,7 +13,12 @@ const {
   mergeSubgroupAnnotations,
   computeChartMargins,
   computeBpAnnotationSpec,
+  compositionLabel,
+  buildCompositionTable,
+  isCompositionTestable,
+  compositionTableCsv,
 } = require("./helpers/boxplot-loader");
+const { parseRaw: parseRawP, parseCountsTable } = require("./helpers/proportions-loader");
 
 const cellKey = (f, s) => `${f}::${s}`;
 
@@ -282,6 +287,148 @@ test("no index map (nothing dropped) is unchanged identity behaviour", () => {
   eq(spec.kind, "brackets");
   const asKeys = spec.pairs.map((pr) => `${pr.i}-${pr.j}`).sort();
   eq(asKeys.join(","), "0-1,0-2,1-2");
+});
+
+suite("buildCompositionTable — composition pies → Proportions counts table");
+
+const src = (category, n) => ({ category, values: Array.from({ length: n }, (_, i) => i) });
+
+test("counts are the pie slice sizes, in colour-by order", () => {
+  const t = buildCompositionTable(
+    [
+      { labelParts: ["WT"], sources: [src("dead", 3), src("alive", 7)] },
+      { labelParts: ["mut"], sources: [src("alive", 2)] },
+    ],
+    ["alive", "dead"],
+    ["Genotype"],
+    null
+  );
+  eq(t.header, "Genotype");
+  eq(JSON.stringify(t.groups), JSON.stringify(["WT", "mut"]));
+  eq(JSON.stringify(t.categories), JSON.stringify(["alive", "dead"]));
+  eq(
+    JSON.stringify(t.counts),
+    JSON.stringify([
+      [7, 3],
+      [2, 0],
+    ])
+  );
+  eq(t.facet, null);
+});
+
+test("classes absent from every group are dropped", () => {
+  const t = buildCompositionTable(
+    [
+      { labelParts: ["A"], sources: [src("x", 1), src("z", 4)] },
+      { labelParts: ["B"], sources: [src("z", 2)] },
+    ],
+    ["x", "y", "z"],
+    ["G"],
+    null
+  );
+  eq(JSON.stringify(t.categories), JSON.stringify(["x", "z"]));
+  eq(
+    JSON.stringify(t.counts),
+    JSON.stringify([
+      [1, 4],
+      [0, 2],
+    ])
+  );
+});
+
+test("labels and header join facet.subgroup.group, skipping empty parts", () => {
+  eq(compositionLabel(["Day1", "Wet", "WT"]), "Day1.Wet.WT");
+  eq(compositionLabel(["", "WT"]), "WT");
+  const t = buildCompositionTable(
+    [{ labelParts: ["Day1", "Wet", "WT"], sources: [src("a", 1)] }],
+    ["a"],
+    ["Day", "Watering", "Genotype"],
+    "Day1"
+  );
+  eq(t.groups[0], "Day1.Wet.WT");
+  eq(t.header, "Day.Watering.Genotype");
+  eq(t.facet, "Day1");
+});
+
+test("duplicate labels stay separate rows with a numbered suffix", () => {
+  const t = buildCompositionTable(
+    [
+      { labelParts: ["ctrl"], sources: [src("a", 1)] },
+      { labelParts: ["ctrl"], sources: [src("a", 2)] },
+      { labelParts: ["ctrl"], sources: [src("a", 3)] },
+    ],
+    ["a"],
+    ["G"],
+    null
+  );
+  eq(JSON.stringify(t.groups), JSON.stringify(["ctrl", "ctrl (2)", "ctrl (3)"]));
+});
+
+test("a suffix never collides with a group already named like one", () => {
+  const t = buildCompositionTable(
+    [
+      { labelParts: ["ctrl"], sources: [src("a", 1)] },
+      { labelParts: ["ctrl (2)"], sources: [src("a", 1)] },
+      { labelParts: ["ctrl"], sources: [src("a", 1)] },
+    ],
+    ["a"],
+    ["G"],
+    null
+  );
+  eq(JSON.stringify(t.groups), JSON.stringify(["ctrl", "ctrl (2)", "ctrl (3)"]));
+});
+
+test("isCompositionTestable needs two groups and two classes", () => {
+  const two = buildCompositionTable(
+    [
+      { labelParts: ["A"], sources: [src("x", 1), src("y", 1)] },
+      { labelParts: ["B"], sources: [src("x", 1)] },
+    ],
+    ["x", "y"],
+    ["G"],
+    null
+  );
+  eq(isCompositionTestable(two), true);
+  const oneClass = buildCompositionTable(
+    [
+      { labelParts: ["A"], sources: [src("x", 1)] },
+      { labelParts: ["B"], sources: [src("x", 5)] },
+    ],
+    ["x", "y"],
+    ["G"],
+    null
+  );
+  eq(isCompositionTestable(oneClass), false);
+  const oneGroup = buildCompositionTable(
+    [{ labelParts: ["A"], sources: [src("x", 1), src("y", 2)] }],
+    ["x", "y"],
+    ["G"],
+    null
+  );
+  eq(isCompositionTestable(oneGroup), false);
+});
+
+test("CSV parses back in Proportions to the same table, commas and quotes included", () => {
+  const t = buildCompositionTable(
+    [
+      { labelParts: ["Day 1", 'line "a", T2'], sources: [src("dead, late", 3), src("alive", 7)] },
+      { labelParts: ["Day 1", "WT"], sources: [src("alive", 9)] },
+    ],
+    ["alive", "dead, late"],
+    ["Day", "Line"],
+    "Day 1"
+  );
+  const res = parseCountsTable(parseRawP(compositionTableCsv(t), ","));
+  eq(res.error, null);
+  eq(JSON.stringify(res.table.groups), JSON.stringify(['Day 1.line "a", T2', "Day 1.WT"]));
+  eq(JSON.stringify(res.table.categories), JSON.stringify(["alive", "dead, late"]));
+  eq(
+    JSON.stringify(res.table.counts),
+    JSON.stringify([
+      [7, 3],
+      [9, 0],
+    ])
+  );
 });
 
 summary();

@@ -21,6 +21,7 @@ const {
   fisherExact,
   selectCountsTest,
   pairwiseFisher,
+  pairwiseFisherVsControl,
   logFactorial,
   expectedCounts,
 } = require("./helpers/stats-loader");
@@ -492,6 +493,52 @@ test("pair with a single non-empty column → p = 1", () => {
     [0, 4],
   ]);
   eq(pairs[0].p, 1);
+});
+
+suite("pairwiseFisherVsControl");
+
+// R: others <- setdiff(rownames(counts), ctrl); p_raw <- sapply(others,
+// function(g) fisher.test(counts[c(ctrl, g), ])$p.value); p.adjust(p_raw, …)
+const COLON = [
+  [41, 7],
+  [3, 43],
+  [9, 41],
+  [37, 10],
+];
+
+test("control first: matches R many-to-one fisher.test + p.adjust (k − 1 tests)", () => {
+  const holm = pairwiseFisherVsControl(COLON, 0, "holm");
+  eq(holm.map((p) => `${p.i}-${p.j}`).join(","), "0-1,0-2,0-3");
+  const pRaw = [8.583030883669895e-16, 7.961704035472438e-12, 4.334686147719572e-1];
+  const pHolm = [2.574909e-15, 1.592341e-11, 4.334686e-1];
+  const pBH = [2.574909e-15, 1.194256e-11, 4.334686e-1];
+  holm.forEach((pr, k) => {
+    rel(pr.p, pRaw[k], 1e-10, `raw ${k}`);
+    rel(pr.pAdj, pHolm[k], 1e-6, `holm ${k}`);
+  });
+  pairwiseFisherVsControl(COLON, 0, "bh").forEach((pr, k) => rel(pr.pAdj, pBH[k], 1e-6, `bh ${k}`));
+});
+
+test("control in the middle: pairs keep i < j, matches R", () => {
+  const holm = pairwiseFisherVsControl(COLON, 2, "holm");
+  eq(holm.map((p) => `${p.i}-${p.j}`).join(","), "0-2,1-2,2-3");
+  const pRaw = [7.961704035472438e-12, 1.245413574935661e-1, 1.437501826049327e-9];
+  const pHolm = [2.388511e-11, 1.245414e-1, 2.875004e-9];
+  const pBH = [2.388511e-11, 1.245414e-1, 2.156253e-9];
+  holm.forEach((pr, k) => {
+    rel(pr.p, pRaw[k], 1e-10, `raw ${k}`);
+    rel(pr.pAdj, pHolm[k], 1e-6, `holm ${k}`);
+  });
+  pairwiseFisherVsControl(COLON, 2, "bh").forEach((pr, k) => rel(pr.pAdj, pBH[k], 1e-6, `bh ${k}`));
+});
+
+test("raw p-values equal the matching all-pairs ones; only the adjustment differs", () => {
+  const all = pairwiseFisher(COLON, "holm");
+  for (const pr of pairwiseFisherVsControl(COLON, 3, "holm")) {
+    const twin = all.find((q) => q.i === pr.i && q.j === pr.j);
+    eq(pr.p, twin.p);
+    assert(pr.pAdj <= twin.pAdj, `vs-control Holm never stricter (${pr.i}-${pr.j})`);
+  }
 });
 
 suite("logFactorial");

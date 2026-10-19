@@ -184,6 +184,8 @@ export function PlotStep({
   focus,
   setFocus,
   focusLabel,
+  control,
+  setControl,
   vis,
   updVis,
   ratioText,
@@ -196,9 +198,12 @@ export function PlotStep({
 }: PlotStepProps) {
   const tr = useT();
   const shown = displayed;
-  // Letters need ≥ 3 groups; with two, the single comparison is a bracket.
+  // Letters need ≥ 3 groups compared all-pairs; with two groups, or against
+  // a control, the comparisons are brackets.
   const annotation =
-    vis.annotation === "cld" && shown.groups.length < 3 ? "brackets" : vis.annotation;
+    vis.annotation === "cld" && (shown.groups.length < 3 || analysis.control !== null)
+      ? "brackets"
+      : vis.annotation;
 
   const colorItems: ColorItem[] =
     vis.chartType === "proportion"
@@ -303,6 +308,8 @@ export function PlotStep({
         </div>
         <StatsPanel
           analysis={analysis}
+          control={control}
+          setControl={setControl}
           categories={shown.categories}
           summaries={summaries}
           focusLabel={focusLabel}

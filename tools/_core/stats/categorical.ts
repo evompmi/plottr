@@ -904,24 +904,50 @@ export function pairwiseFisher(
   adjust: PAdjustMethod = "holm",
   opts: FisherOptions = {}
 ): CountsPair[] {
-  const pairs: CountsPair[] = [];
+  const ij: [number, number][] = [];
   for (let i = 0; i < table.length; i++) {
-    for (let j = i + 1; j < table.length; j++) {
-      const sub = [table[i], table[j]];
-      const keep = sub[0].map((_, c) => sub[0][c] + sub[1][c] > 0);
-      const trimmed = sub.map((row) => row.filter((_, c) => keep[c]));
-      const both = trimmed[0].length >= 2 && rowSums(trimmed).every((v) => v > 0);
-      const res = both ? fisherExact(trimmed, opts) : null;
-      pairs.push({
-        i,
-        j,
-        p: res ? res.p : 1,
-        pAdj: NaN,
-        method: res ? res.method : "exact",
-        ...(res && res.oddsRatio !== undefined ? { oddsRatio: res.oddsRatio } : {}),
-      });
-    }
+    for (let j = i + 1; j < table.length; j++) ij.push([i, j]);
   }
+  return fisherPairs(table, ij, adjust, opts);
+}
+
+// Many-to-one design: every other row against the control row only, so the
+// adjustment covers k − 1 comparisons instead of k(k − 1)/2. Pairs keep
+// i < j (the control is i or j depending on its position).
+export function pairwiseFisherVsControl(
+  table: number[][],
+  control: number,
+  adjust: PAdjustMethod = "holm",
+  opts: FisherOptions = {}
+): CountsPair[] {
+  const ij: [number, number][] = [];
+  for (let g = 0; g < table.length; g++) {
+    if (g !== control) ij.push(g < control ? [g, control] : [control, g]);
+  }
+  return fisherPairs(table, ij, adjust, opts);
+}
+
+function fisherPairs(
+  table: number[][],
+  ij: [number, number][],
+  adjust: PAdjustMethod,
+  opts: FisherOptions
+): CountsPair[] {
+  const pairs: CountsPair[] = ij.map(([i, j]) => {
+    const sub = [table[i], table[j]];
+    const keep = sub[0].map((_, c) => sub[0][c] + sub[1][c] > 0);
+    const trimmed = sub.map((row) => row.filter((_, c) => keep[c]));
+    const both = trimmed[0].length >= 2 && rowSums(trimmed).every((v) => v > 0);
+    const res = both ? fisherExact(trimmed, opts) : null;
+    return {
+      i,
+      j,
+      p: res ? res.p : 1,
+      pAdj: NaN,
+      method: res ? res.method : "exact",
+      ...(res && res.oddsRatio !== undefined ? { oddsRatio: res.oddsRatio } : {}),
+    };
+  });
   const raw = pairs.map((p) => p.p);
   const adj = adjust === "holm" ? holmAdjust(raw) : bhAdjust(raw);
   pairs.forEach((p, k) => {

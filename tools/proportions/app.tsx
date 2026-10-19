@@ -13,7 +13,8 @@
 // Statistics live in tools/_core/stats/categorical.ts (Wilson CIs, Fisher,
 // χ², exact goodness-of-fit, Holm), each pinned to R.
 
-import { HowTo, PlotToolShell, UploadPanel, usePlotToolState } from "../_shell";
+import { HowTo, PlotToolShell, UploadPanel, consumeHandoff, usePlotToolState } from "../_shell";
+import type { HandoffPayload } from "../_shell";
 import { resolveDiscretePalette } from "../_shell";
 import "./i18n";
 import { tt, useT } from "./i18n";
@@ -35,7 +36,27 @@ import { buildProportionsCsv, buildProportionsRScript, buildProportionsReport } 
 import { autoDetectSep, fixDecimalCommas, parseRaw } from "../_core/csv";
 import { downloadCsv, downloadText, fileBaseName } from "../_core/download";
 
-const { useState, useMemo, useCallback, useRef } = React;
+const { useState, useMemo, useCallback, useRef, useEffect } = React;
+
+// Where a table handed off from Group Plot's composition pies came from;
+// shown as a banner so the user knows what each count is.
+interface CompositionOrigin {
+  classColumn: string;
+  groupColumn: string;
+  facet: string | null;
+}
+
+function readCompositionOrigin(payload: HandoffPayload): CompositionOrigin | null {
+  const c = payload.composition;
+  if (!c || typeof c !== "object") return null;
+  const o = c as Record<string, unknown>;
+  if (typeof o.classColumn !== "string" || typeof o.groupColumn !== "string") return null;
+  return {
+    classColumn: o.classColumn,
+    groupColumn: o.groupColumn,
+    facet: typeof o.facet === "string" ? o.facet : null,
+  };
+}
 
 const VIS_INIT_PROPORTIONS: ProportionsVis = {
   chartType: "proportion",
@@ -132,9 +153,15 @@ export function App() {
   // persisted vis). Picking a palette clears them, as in the other tools.
   const [groupColorOv, setGroupColorOv] = useState<Record<string, string>>({});
   const [catColorOv, setCatColorOv] = useState<Record<string, string>>({});
+  const [origin, setOrigin] = useState<CompositionOrigin | null>(null);
+  // Control group for many-to-one pairwise comparisons; null = all pairs.
+  // A group name, so it survives reordering; dataset-specific, not persisted.
+  const [control, setControl] = useState<string | null>(null);
 
+  // Returns the parsed table (null on a parse error) so the hand-off path
+  // can decide whether to skip straight to the plot.
   const doParse = useCallback(
-    (text: string, sep: string) => {
+    (text: string, sep: string): CountsTable | null => {
       const resolved = autoDetectSep(text, sep);
       const effectiveSep = typeof resolved === "string" ? resolved : "";
       setDetectedSep(effectiveSep);
@@ -146,7 +173,7 @@ export function App() {
       const res = parseCountsTable(raw);
       if (!res.table) {
         setParseError(res.error ? parseErrorMessage(res.error) : null);
-        return;
+        return null;
       }
       setParseError(null);
       setRawText(dc.text);
@@ -158,7 +185,10 @@ export function App() {
       setRatioText("");
       setGroupColorOv({});
       setCatColorOv({});
+      setOrigin(null);
+      setControl(null);
       setStep("configure");
+      return res.table;
     },
     [setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep]
   );
@@ -191,6 +221,40 @@ export function App() {
     setRatioText("9:3:3:1");
   }, [doParse, setFileName, setSepOverride, updVis]);
 
+  // Inter-tool hand-off from Group Plot's composition pies. Same three
+  // paths as Group Plot's consumer: mount-time read, cross-tab `storage`
+  // event, same-tab `plottr-handoff` event (SPA keep-alive routing). The
+  // applier lives in a ref refreshed every render so the mount-only
+  // listeners always call the current closure.
+  const applyHandoffRef = useRef<(payload: HandoffPayload | null) => void>(() => {});
+  applyHandoffRef.current = (payload) => {
+    if (!payload || typeof payload.csv !== "string") return;
+    setSepOverride("");
+    setFileName(typeof payload.fileName === "string" ? payload.fileName : "from_handoff.csv");
+    const parsed = doParse(payload.csv, "");
+    if (!parsed) return;
+    setOrigin(readCompositionOrigin(payload));
+    // More than two classes: the stacked chart shows (and tests) the full
+    // groups × classes table instead of one focus class vs. the rest.
+    if (parsed.categories.length > 2) updVis({ chartType: "stacked" });
+    if (parsed.groups.length >= 2 && parsed.categories.length >= 2) setStep("plot");
+  };
+  useEffect(() => {
+    applyHandoffRef.current(consumeHandoff("proportions"));
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== "dataviz-handoff" || !e.newValue) return;
+      applyHandoffRef.current(consumeHandoff("proportions"));
+    };
+    const onSameTabHandoff = () => applyHandoffRef.current(consumeHandoff("proportions"));
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("plottr-handoff", onSameTabHandoff);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("plottr-handoff", onSameTabHandoff);
+    };
+    // Mount-only: the body reads only a module import and a stable ref.
+  }, []);
+
   const resetAll = useCallback(() => {
     setRawText(null);
     setTable(null);
@@ -200,6 +264,8 @@ export function App() {
     setRatioText("");
     setGroupColorOv({});
     setCatColorOv({});
+    setOrigin(null);
+    setControl(null);
     setFileName("");
     setInjectionWarning(null);
     setStep("upload");
@@ -218,8 +284,8 @@ export function App() {
     return isProp ? collapseToFocus(selected, focusIdx, tt("proportions.rest")) : selected;
   }, [selected, isProp, focusIdx]);
   const analysis = useMemo(
-    () => (displayed ? analyseTable(displayed, vis.testChoice, vis.adjustMethod) : null),
-    [displayed, vis.testChoice, vis.adjustMethod]
+    () => (displayed ? analyseTable(displayed, vis.testChoice, vis.adjustMethod, control) : null),
+    [displayed, vis.testChoice, vis.adjustMethod, control]
   );
   const summaries = useMemo(() => (displayed ? groupSummaries(displayed) : []), [displayed]);
   const brackets = useMemo(
@@ -353,6 +419,28 @@ export function App() {
         </div>
       )}
 
+      {origin && step !== "upload" && (
+        <div
+          data-testid="composition-origin"
+          style={{
+            background: "var(--info-bg)",
+            color: "var(--info-text)",
+            border: "1px solid var(--info-border)",
+            borderRadius: 6,
+            padding: "8px 12px",
+            fontSize: 12,
+            marginBottom: 12,
+          }}
+        >
+          {tr("proportions.fromGroupPlot", {
+            classes: origin.classColumn,
+            groups: origin.groupColumn,
+          })}
+          {origin.facet !== null &&
+            " " + tr("proportions.fromGroupPlotFacet", { facet: origin.facet })}
+        </div>
+      )}
+
       {step === "configure" && table && selection && (
         <ConfigureStep
           table={table}
@@ -383,6 +471,8 @@ export function App() {
           focus={focusIdx}
           setFocus={setFocus}
           focusLabel={focusLabel}
+          control={analysis.control !== null ? analysis.table.groups[analysis.control] : null}
+          setControl={setControl}
           vis={vis}
           updVis={updVis}
           ratioText={ratioText}
