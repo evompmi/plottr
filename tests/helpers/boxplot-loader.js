@@ -32,6 +32,7 @@ const bracketLevelsCjs = bundleShell("_shell/bracket-levels.ts");
 const powerFromDataCjs = bundleShell("_shell/power-from-data.ts");
 const helpersCjs = bundleShell("boxplot/helpers.ts");
 const layoutCjs = bundleShell("boxplot/layout.ts");
+const deriveCjs = bundleShell("boxplot/derive.ts");
 
 const ctx = {
   ...builtins(),
@@ -67,6 +68,10 @@ const helpers = runCjs(ctx, helpersCjs);
 // layout.ts is bundled standalone — pure layout arithmetic with no
 // shared-kernel free vars, so it evaluates against the same ctx.
 const layout = runCjs(ctx, layoutCjs);
+
+// derive.ts — App's pure data derivations (ordering, group building, stats
+// sets, composition tables).
+const derive = runCjs(ctx, deriveCjs);
 
 module.exports = {
   parseRaw: ctx.parseRaw,
@@ -105,4 +110,14 @@ module.exports = {
   compositionTableCsv: helpers.compositionTableCsv,
   // Pure layout arithmetic (tools/boxplot/layout.ts).
   computeChartMargins: layout.computeChartMargins,
+  // App data derivations (tools/boxplot/derive.ts).
+  firstSeenOrder: derive.firstSeenOrder,
+  mergeStoredOrder: derive.mergeStoredOrder,
+  buildGroups: derive.buildGroups,
+  splitBySubgroup: derive.splitBySubgroup,
+  cellKey: derive.cellKey,
+  FLAT_KEY: derive.FLAT_KEY,
+  statsPanelModeOf: derive.statsPanelModeOf,
+  buildStatsPanelSets: derive.buildStatsPanelSets,
+  buildCompositionTables: derive.buildCompositionTables,
 };

@@ -172,6 +172,8 @@ function ensureSharedBundleLoaded() {
         "PlotSidebar",
         "PlotStyleIconPicker",
         "PlotToolShell",
+        "setHandoff",
+        "useHandoff",
         "BarStyleIcon",
         "BoxStyleIcon",
         "DotStyleIcon",

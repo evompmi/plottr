@@ -1,5 +1,5 @@
-// Unit tests for tools/shared-handoff.js — one-shot inter-tool data
-// hand-off via localStorage. Pins the round-trip contract used by the
+// Unit tests for tools/_shell/handoff.ts — one-shot inter-tool data
+// hand-off via sessionStorage. Pins the round-trip contract used by the
 // "↗ Open in Boxplot" button on RLU timecourse's Σ barplot tile and any
 // future "send to <tool>" buttons.
 
@@ -20,7 +20,7 @@ test("consumeHandoff clears the localStorage key on success (one-shot)", () => {
   const c = freshContext();
   c.setHandoff({ tool: "boxplot", csv: "x,y\n1,2" });
   c.consumeHandoff("boxplot");
-  eq(c.localStorage.getItem("dataviz-handoff"), null);
+  eq(c.sessionStorage.getItem("dataviz-handoff"), null);
   // Second call returns null — no resurrection on a later mount.
   eq(c.consumeHandoff("boxplot"), null);
 });
@@ -32,43 +32,52 @@ test("consumeHandoff with mismatched tool returns null and leaves the payload fo
   const c = freshContext();
   c.setHandoff({ tool: "proportions", csv: "..." });
   eq(c.consumeHandoff("boxplot"), null);
-  assert(c.localStorage.getItem("dataviz-handoff") !== null);
+  assert(c.sessionStorage.getItem("dataviz-handoff") !== null);
   eq(c.consumeHandoff("proportions").csv, "...");
-  eq(c.localStorage.getItem("dataviz-handoff"), null);
+  eq(c.sessionStorage.getItem("dataviz-handoff"), null);
 });
 
 test("an expired payload is discarded by any consumer, matching or not", () => {
   // Stale payloads (target never mounted) must not resurface later.
   const c = freshContext();
   const old = Date.now() - c.HANDOFF_TTL_MS - 1;
-  c.localStorage.setItem(
+  c.sessionStorage.setItem(
     "dataviz-handoff",
     JSON.stringify({ tool: "proportions", csv: "...", sentAt: old })
   );
   eq(c.consumeHandoff("boxplot"), null);
-  eq(c.localStorage.getItem("dataviz-handoff"), null);
-  c.localStorage.setItem(
+  eq(c.sessionStorage.getItem("dataviz-handoff"), null);
+  c.sessionStorage.setItem(
     "dataviz-handoff",
     JSON.stringify({ tool: "boxplot", csv: "...", sentAt: old })
   );
   eq(c.consumeHandoff("boxplot"), null);
-  eq(c.localStorage.getItem("dataviz-handoff"), null);
+  eq(c.sessionStorage.getItem("dataviz-handoff"), null);
 });
 
 test("a payload just inside the TTL is still delivered", () => {
   const c = freshContext();
-  c.localStorage.setItem(
+  c.sessionStorage.setItem(
     "dataviz-handoff",
     JSON.stringify({ tool: "boxplot", csv: "ok", sentAt: Date.now() - c.HANDOFF_TTL_MS + 1000 })
   );
   eq(c.consumeHandoff("boxplot").csv, "ok");
 });
 
+test("the payload lives in per-tab sessionStorage, never in shared localStorage", () => {
+  // localStorage is shared by every tab: an already-open copy of the target
+  // tool in another tab could consume the payload before this tab's does.
+  const c = freshContext();
+  c.setHandoff({ tool: "boxplot", csv: "x" });
+  assert(c.sessionStorage.getItem("dataviz-handoff") !== null);
+  eq(Object.keys(c.localStore), []);
+});
+
 test("setHandoff stamps sentAt", () => {
   const c = freshContext();
   const before = Date.now();
   c.setHandoff({ tool: "boxplot", csv: "x" });
-  const stored = JSON.parse(c.localStorage.getItem("dataviz-handoff"));
+  const stored = JSON.parse(c.sessionStorage.getItem("dataviz-handoff"));
   assert(typeof stored.sentAt === "number" && stored.sentAt >= before);
 });
 
@@ -82,18 +91,18 @@ test("consumeHandoff swallows malformed JSON and clears the bad payload", () => 
   // Direct localStorage write of garbage simulates a corrupted store from
   // a previous Plöttr version with a different payload schema.
   const c = freshContext();
-  c.localStorage.setItem("dataviz-handoff", "{not valid json");
+  c.sessionStorage.setItem("dataviz-handoff", "{not valid json");
   eq(c.consumeHandoff("boxplot"), null);
-  eq(c.localStorage.getItem("dataviz-handoff"), null);
+  eq(c.sessionStorage.getItem("dataviz-handoff"), null);
 });
 
 test("consumeHandoff returns null when payload is JSON but missing the tool field", () => {
   const c = freshContext();
-  c.localStorage.setItem("dataviz-handoff", JSON.stringify({ csv: "..." }));
+  c.sessionStorage.setItem("dataviz-handoff", JSON.stringify({ csv: "..." }));
   eq(c.consumeHandoff("boxplot"), null);
   // Still cleared — null/undefined `tool` can never match anyone, so
   // there's no value to leaving the entry around.
-  eq(c.localStorage.getItem("dataviz-handoff"), null);
+  eq(c.sessionStorage.getItem("dataviz-handoff"), null);
 });
 
 test("payload preserves arbitrary extra fields (loose schema)", () => {

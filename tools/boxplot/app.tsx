@@ -3,27 +3,30 @@
 // wiring — chart rendering, step panels, sidebar controls, and stats-panel
 // live in sibling modules under tools/boxplot/.
 
-import {
-  PlotToolShell,
-  consumeHandoff,
-  navigateToTool,
-  resolveDiscretePalette,
-  setHandoff,
-  usePlotToolState,
-} from "../_shell";
+import { PlotToolShell, navigateToTool, setHandoff, useHandoff, usePlotToolState } from "../_shell";
 import {
   ERROR_BAR_LABELS,
   mergeSubgroupAnnotations,
   AnnotationSpec,
   BoxplotGroup,
-  BoxplotStatsSet,
-  CompositionRowInput,
   CompositionTable,
+  FacetCell,
   DragState,
   Subgroup,
-  buildCompositionTable,
+  SubgroupedData,
   compositionTableCsv,
 } from "./helpers";
+import {
+  FLAT_KEY,
+  buildCompositionTables,
+  buildGroups,
+  buildStatsPanelSets,
+  cellKey,
+  firstSeenOrder,
+  mergeStoredOrder,
+  splitBySubgroup,
+  statsPanelModeOf,
+} from "./derive";
 import { UploadStep, ConfigureStep, FilterStep, OutputStep } from "./steps";
 import { PlotControls } from "./controls";
 import { PlotArea, FacetPlotList } from "./plot-area";
@@ -31,7 +34,6 @@ import { BoxplotStatsPanel, statsInit, statsReducer } from "./stats-panel";
 import "./i18n";
 import { tt, useT } from "./i18n";
 
-import { PALETTE } from "../_core/color";
 import { isNumericValue, seededRandom } from "../_core/numeric";
 import {
   autoDetectSep,
@@ -42,7 +44,7 @@ import {
   reshapeWide,
   wideToLong,
 } from "../_core/csv";
-import { computeGroupStats, computeStats, quartiles } from "../_core/descriptive";
+import { computeGroupStats } from "../_core/descriptive";
 import { downloadPng, downloadPngs, downloadSvg, downloadSvgs } from "../_core/download";
 import { fileBaseName } from "../_core/download";
 import type { ColumnRole } from "../_core/csv";
@@ -398,47 +400,12 @@ export function App() {
     [doParse, setFileName, setSepOverride]
   );
 
-  // Inter-tool hand-off consumer. When the user clicks "↗ Open in Boxplot"
-  // in another tool (e.g. RLU timecourse's Σ barplot tile), that tool
-  // writes a payload to localStorage under the shared `dataviz-handoff`
-  // key and either top-level-navigates here (standalone) or postMessages
-  // the landing page to switch the visible iframe (embedded). We
-  // handle both cases:
-  //
-  //   1. Mount-time: top-level-navigation case — App() mounts fresh,
-  //      consumeHandoff() at first run finds the payload, parses it,
-  //      jumps to the plot step. The source tool already produced
-  //      clean structured data so the configure step is skipped.
-  //
-  //   2. `storage` event: embedded case — the landing page's iframes
-  //      are eagerly mounted, so this App() already finished its
-  //      mount-time check (and found nothing) by the time the user
-  //      clicks the source tool's button. Same-origin writes from
-  //      another window fire `storage` events here; we re-consume
-  //      reactively and route through the same path.
-  //
-  // The source tool already produced clean structured data and the
-  // user has implicitly confirmed the column roles by choosing this
-  // destination, so both paths skip the configure step.
-  interface HandoffPayload {
-    csv?: string;
-    fileName?: string;
-    // Optional y-axis label override sent by the source tool when the
-    // auto-derived label (the value column's name) is an implementation
-    // detail rather than the standard scientific term. E.g. aequorin sends
-    // "A.U.C." instead of letting the boxplot read its CSV column header
-    // "Raw Sum" / "Corrected Sum".
-    yLabel?: string;
-  }
-  // Hand-off applier held in a ref that's refreshed every render. The
-  // listener effect below registers once on mount but always invokes the
-  // CURRENT closure through this ref — so it stays correct even if a future
-  // edit makes `apply` / `doParse` read live component state (the
-  // stale-closure class behind the v1.9.1 regression). Mirrors the
-  // ref-for-callback pattern in stats-panel.tsx.
-  const applyHandoffRef = useRef<(payload: HandoffPayload | null | undefined) => void>(() => {});
-  applyHandoffRef.current = (payload) => {
-    if (!payload || !payload.csv) return;
+  // Inter-tool hand-off consumer (e.g. RLU timecourse's Σ barplot tile →
+  // "↗ Open in Boxplot"). The source tool already produced clean structured
+  // data and the user implicitly confirmed the column roles by choosing this
+  // destination, so the configure step is skipped.
+  useHandoff("boxplot", (payload) => {
+    if (typeof payload.csv !== "string" || !payload.csv) return;
     // Same reasoning as `loadExample`: leave sepOverride empty so the
     // Override disclosure doesn't pop open if the user backtracks to
     // upload. Handoff payloads are always emitted as comma-separated by
@@ -457,36 +424,7 @@ export function App() {
       updVis({ yLabel: payload.yLabel.trim() });
     }
     setStep("plot");
-  };
-  React.useEffect(() => {
-    applyHandoffRef.current(consumeHandoff("boxplot"));
-    const onStorage = (e: StorageEvent) => {
-      // Only react to a fresh write of the hand-off key; deletions
-      // (newValue == null) come from our own consumeHandoff in another
-      // tab and shouldn't trigger anything here.
-      if (e.key !== "dataviz-handoff" || !e.newValue) return;
-      applyHandoffRef.current(consumeHandoff("boxplot"));
-    };
-    // Same-tab path under the SPA's keep-alive router: the `storage`
-    // event never fires for writes from this same tab, so the source
-    // tool dispatches a `plottr-handoff` CustomEvent right after
-    // localStorage.setItem. We listen for both to cover same-tab and
-    // cross-tab handoffs.
-    const onSameTabHandoff = () => {
-      applyHandoffRef.current(consumeHandoff("boxplot"));
-    };
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("plottr-handoff", onSameTabHandoff);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("plottr-handoff", onSameTabHandoff);
-    };
-    // Mount-only registration: re-running would re-add the listeners and
-    // risk double-applying a hand-off. The body reads only `consumeHandoff`
-    // (a module import) and `applyHandoffRef` (a stable ref), so there are
-    // no reactive deps to list — the empty array is exhaustive, no
-    // suppression needed.
-  }, []);
+  });
 
   const resetAll = () => {
     setRawText(null);
@@ -575,29 +513,15 @@ export function App() {
     [renamedRows, groupColIdx, valueColIdx]
   );
 
-  const naturalGroupOrder = useMemo(() => {
-    if (groupColIdx < 0 || valueColIdx < 0) return [];
-    const seen = new Set();
-    const order: string[] = [];
-    renamedRows.forEach((r) => {
-      const g = r[groupColIdx];
-      if (!seen.has(g)) {
-        seen.add(g);
-        order.push(g);
-      }
-    });
-    return order;
-  }, [renamedRows, groupColIdx, valueColIdx]);
+  const naturalGroupOrder = useMemo(
+    () => (groupColIdx < 0 || valueColIdx < 0 ? [] : firstSeenOrder(renamedRows, groupColIdx)),
+    [renamedRows, groupColIdx, valueColIdx]
+  );
 
-  const effectiveOrder = useMemo(() => {
-    const stored = columnOrders[groupColIdx];
-    if (stored && stored.length > 0) {
-      const valid = stored.filter((g) => naturalGroupOrder.includes(g));
-      const missing = naturalGroupOrder.filter((g) => !stored.includes(g));
-      return [...valid, ...missing];
-    }
-    return naturalGroupOrder;
-  }, [columnOrders, groupColIdx, naturalGroupOrder]);
+  const effectiveOrder = useMemo(
+    () => mergeStoredOrder(naturalGroupOrder, columnOrders[groupColIdx]),
+    [columnOrders, groupColIdx, naturalGroupOrder]
+  );
 
   const colorByCandidates = useMemo(
     () =>
@@ -617,68 +541,34 @@ export function App() {
     return [...new Set(renamedRows.map((r) => r[colorByCol]))].sort();
   }, [colorByCol, renamedRows]);
 
-  const boxplotGroups = useMemo(() => {
-    if (groupColIdx < 0 || valueColIdx < 0) return [];
-    const gm: Record<string, Record<string, number[]>> = {};
-    renamedRows.forEach((r) => {
-      if (groupColIdx >= r.length || valueColIdx >= r.length) return;
-      const g = r[groupColIdx],
-        v = Number(r[valueColIdx]);
-      if (r[valueColIdx] === "" || isNaN(v)) return;
-      if (!gm[g]) gm[g] = {};
-      if (colorByCol >= 0) {
-        const cat = (colorByCol < r.length ? r[colorByCol] : null) || "?";
-        if (!gm[g][cat]) gm[g][cat] = [];
-        gm[g][cat].push(v);
-      } else {
-        if (!gm[g]["_all"]) gm[g]["_all"] = [];
-        gm[g]["_all"].push(v);
-      }
-    });
-    const cats = colorByCol >= 0 ? colorByCategories : ["_all"];
-    const filtered = effectiveOrder.filter((name) => gm[name]);
-    // Resolve the per-group default colour list from the picked discrete
-    // palette. Sized to the number of groups so ggplot2-hue / viridis-d
-    // generate the right count; fixed palettes (set1/dark2/…) recycle
-    // modulo. Falls back to PALETTE if a stale palette name slips through.
-    const seedColors = resolveDiscretePalette(vis.discretePalette || "okabe-ito", filtered.length);
-    return filtered.map((name, gi) => {
-      const catMap = gm[name];
-      const sources = cats
-        .filter((c) => catMap[c])
-        .map((cat, si) => ({
-          colIndex: si,
-          values: catMap[cat],
-          category: cat,
-        }));
-      const allValues = sources.flatMap((s) => s.values);
-      // `quartiles` and `computeStats` both return null on an empty array;
-      // we only spread when both succeed so the chart's `if (!g.stats)`
-      // narrowing carries through to typed field access.
-      const q = quartiles(allValues);
-      const cs = computeStats(allValues);
-      const stats = q && cs ? { ...q, ...cs } : null;
-      return {
-        name,
-        sources,
-        allValues,
-        stats,
-        color:
-          boxplotColors[name] ||
-          seedColors[gi % Math.max(1, seedColors.length)] ||
-          PALETTE[gi % PALETTE.length],
-      };
-    });
-  }, [
-    renamedRows,
-    groupColIdx,
-    valueColIdx,
-    boxplotColors,
-    effectiveOrder,
-    colorByCol,
-    colorByCategories,
-    vis.discretePalette,
-  ]);
+  // Shared by the flat plot and every facet / subgroup cell. Facet and
+  // subgroup cells also hide disabled groups; the flat list keeps them so
+  // the Conditions tile can show and re-enable them.
+  const groupSpec = useMemo(
+    () => ({
+      groupCol: groupColIdx,
+      valueCol: valueColIdx,
+      colorByCol,
+      colorByCategories,
+      order: effectiveOrder,
+      colors: boxplotColors,
+      palette: vis.discretePalette,
+    }),
+    [
+      groupColIdx,
+      valueColIdx,
+      colorByCol,
+      colorByCategories,
+      effectiveOrder,
+      boxplotColors,
+      vis.discretePalette,
+    ]
+  );
+
+  const boxplotGroups = useMemo(
+    () => buildGroups(renamedRows, { ...groupSpec, disabled: {} }),
+    [renamedRows, groupSpec]
+  );
 
   const allDisplayGroups = useMemo(
     () =>
@@ -698,29 +588,15 @@ export function App() {
   // Facet column candidates (same pool as colorBy). The natural order is the
   // first-seen order of unique values in the (renamed) data so it matches what
   // the user sees in the rename panel.
-  const naturalFacetOrder = useMemo(() => {
-    if (facetByCol < 0) return [];
-    const seen = new Set();
-    const order: string[] = [];
-    renamedRows.forEach((r) => {
-      const v = r[facetByCol];
-      if (!seen.has(v)) {
-        seen.add(v);
-        order.push(v);
-      }
-    });
-    return order;
-  }, [facetByCol, renamedRows]);
+  const naturalFacetOrder = useMemo(
+    () => (facetByCol < 0 ? [] : firstSeenOrder(renamedRows, facetByCol)),
+    [facetByCol, renamedRows]
+  );
 
-  const effectiveFacetOrder = useMemo(() => {
-    const stored = columnOrders[facetByCol];
-    if (stored && stored.length > 0) {
-      const valid = stored.filter((g) => naturalFacetOrder.includes(g));
-      const missing = naturalFacetOrder.filter((g) => !stored.includes(g));
-      return [...valid, ...missing];
-    }
-    return naturalFacetOrder;
-  }, [columnOrders, facetByCol, naturalFacetOrder]);
+  const effectiveFacetOrder = useMemo(
+    () => mergeStoredOrder(naturalFacetOrder, columnOrders[facetByCol]),
+    [columnOrders, facetByCol, naturalFacetOrder]
+  );
 
   const facetByCategories = effectiveFacetOrder;
 
@@ -734,160 +610,49 @@ export function App() {
     parsedHeaders.forEach((_, i) => {
       if (i === valueColIdx) return;
       if (colRoles[i] !== "group" && colRoles[i] !== "filter") return;
-      const seen = new Set();
-      const natural: string[] = [];
-      renamedRows.forEach((r) => {
-        const v = r[i];
-        if (!seen.has(v)) {
-          seen.add(v);
-          natural.push(v);
-        }
-      });
-      const stored = columnOrders[i];
-      let order = natural;
-      if (stored && stored.length > 0) {
-        const valid = stored.filter((g) => natural.includes(g));
-        const missing = natural.filter((g) => !stored.includes(g));
-        order = [...valid, ...missing];
-      }
+      const order = mergeStoredOrder(firstSeenOrder(renamedRows, i), columnOrders[i]);
       m[i] = { order, onReorder: (newOrder: string[]) => setOrderForCol(i, newOrder) };
     });
     return m;
   }, [parsedHeaders, colRoles, valueColIdx, renamedRows, columnOrders]);
 
-  // Build the boxplot groups for one (facet, subgroup) cell. Pure helper —
-  // closes over global color map / disabled groups / color-by state to match
-  // what `boxplotGroups` does for the flat case. `cellRows` is already
-  // filtered to a single facet × subgroup combo.
-  const buildCellGroups = useCallback(
-    (cellRows: string[][], globalColorMap: Record<string, string>) => {
-      const gm: Record<string, Record<string, number[]>> = {};
-      cellRows.forEach((r) => {
-        if (groupColIdx >= r.length || valueColIdx >= r.length) return;
-        const g = r[groupColIdx],
-          v = Number(r[valueColIdx]);
-        if (r[valueColIdx] === "" || isNaN(v)) return;
-        if (!gm[g]) gm[g] = {};
-        if (colorByCol >= 0) {
-          const cc = (colorByCol < r.length ? r[colorByCol] : null) || "?";
-          if (!gm[g][cc]) gm[g][cc] = [];
-          gm[g][cc].push(v);
-        } else {
-          if (!gm[g]["_all"]) gm[g]["_all"] = [];
-          gm[g]["_all"].push(v);
-        }
-      });
-      const cats = colorByCol >= 0 ? colorByCategories : ["_all"];
-      const filtered = effectiveOrder.filter((name) => gm[name] && !disabledGroups[name]);
-      const seedColors = resolveDiscretePalette(
-        vis.discretePalette || "okabe-ito",
-        filtered.length
-      );
-      return filtered.map((name, gi) => {
-        const catMap = gm[name];
-        const sources = cats
-          .filter((c) => catMap[c])
-          .map((c, si) => ({
-            colIndex: si,
-            values: catMap[c],
-            category: c,
-          }));
-        const allValues = sources.flatMap((s) => s.values);
-        const q = quartiles(allValues);
-        const cs = computeStats(allValues);
-        const stats = q && cs ? { ...q, ...cs } : null;
-        return {
-          name,
-          sources,
-          allValues,
-          stats,
-          color:
-            globalColorMap[name] ||
-            boxplotColors[name] ||
-            seedColors[gi % Math.max(1, seedColors.length)] ||
-            PALETTE[gi % PALETTE.length],
-        };
-      });
-    },
-    [
-      groupColIdx,
-      valueColIdx,
-      colorByCol,
-      colorByCategories,
-      effectiveOrder,
-      disabledGroups,
-      boxplotColors,
-      vis.discretePalette,
-    ]
-  );
+  // Groups for one facet / subgroup cell: disabled groups hidden, colours
+  // taken from the flat plot so a group keeps one colour across cells.
+  const buildCellGroups = useMemo(() => {
+    const colorOverrides: Record<string, string> = {};
+    for (const g of boxplotGroups) colorOverrides[g.name] = g.color;
+    const spec = { ...groupSpec, disabled: disabledGroups, colorOverrides };
+    return (cellRows: string[][]) => buildGroups(cellRows, spec);
+  }, [groupSpec, disabledGroups, boxplotGroups]);
 
-  // Faceted data with optional subgroup nesting. Shape per entry:
-  //   { category, groups, subgroups | null, flatGroups | null }
-  // — `groups` is what BoxplotChart consumes (== flatGroups when subgrouped,
-  // else the per-facet boxes). `subgroups` carries the {name,startIndex,count}
-  // band metadata when subgroupByCol is active. The non-facet flat path is
-  // handled separately below.
-  const facetedData = useMemo(() => {
+  // Faceted data with optional subgroup nesting. `groups` is what
+  // BoxplotChart consumes (== flatGroups when subgrouped, else the per-facet
+  // boxes); `subgroups` carries the band metadata when subgroupByCol is active.
+  const facetedData = useMemo((): FacetCell[] => {
     if (facetByCol < 0) return [];
-    const globalColorMap: Record<string, string> = {};
-    boxplotGroups.forEach((g) => {
-      globalColorMap[g.name] = g.color;
-    });
     const sgOrder = subgroupByCol >= 0 ? orderableCols[subgroupByCol]?.order || [] : null;
     return facetByCategories.map((cat) => {
       const catRows = renamedRows.filter((r) => r[facetByCol] === cat);
       if (sgOrder && sgOrder.length > 0) {
-        const subgroups: Array<{ name: string; startIndex: number; count: number }> = [];
-        const flatGroups: BoxplotGroup[] = [];
-        let startIndex = 0;
-        for (const sgCat of sgOrder) {
-          const sgRows = catRows.filter((r) => r[subgroupByCol] === sgCat);
-          const groups = buildCellGroups(sgRows, globalColorMap);
-          if (groups.length > 0) {
-            subgroups.push({ name: sgCat, startIndex, count: groups.length });
-            flatGroups.push(...groups);
-            startIndex += groups.length;
-          }
-        }
+        const { subgroups, flatGroups } = splitBySubgroup(
+          catRows,
+          subgroupByCol,
+          sgOrder,
+          buildCellGroups
+        );
         return { category: cat, groups: flatGroups, subgroups, flatGroups };
       }
-      const groups = buildCellGroups(catRows, globalColorMap);
-      return { category: cat, groups, subgroups: null, flatGroups: null };
+      return { category: cat, groups: buildCellGroups(catRows), subgroups: null, flatGroups: null };
     });
-  }, [
-    facetByCol,
-    facetByCategories,
-    subgroupByCol,
-    orderableCols,
-    renamedRows,
-    boxplotGroups,
-    buildCellGroups,
-  ]);
+  }, [facetByCol, facetByCategories, subgroupByCol, orderableCols, renamedRows, buildCellGroups]);
 
   // Subgroup-only data: single plot with groups partitioned by subgroup column.
   // (Facet+subgroup mode threads subgroups through facetedData above instead.)
-  const subgroupedData = useMemo(() => {
+  const subgroupedData = useMemo((): SubgroupedData | null => {
     if (subgroupByCol < 0 || facetByCol >= 0 || groupColIdx < 0 || valueColIdx < 0) return null;
     const sgOrder = orderableCols[subgroupByCol]?.order || [];
-    if (sgOrder.length === 0) return null;
-    const globalColorMap: Record<string, string> = {};
-    boxplotGroups.forEach((g) => {
-      globalColorMap[g.name] = g.color;
-    });
-    const subgroups: Array<{ name: string; startIndex: number; count: number }> = [];
-    const flatGroups: BoxplotGroup[] = [];
-    let startIndex = 0;
-    for (const sgCat of sgOrder) {
-      const sgRows = renamedRows.filter((r) => r[subgroupByCol] === sgCat);
-      const groups = buildCellGroups(sgRows, globalColorMap);
-      if (groups.length > 0) {
-        subgroups.push({ name: sgCat, startIndex, count: groups.length });
-        flatGroups.push(...groups);
-        startIndex += groups.length;
-      }
-    }
-    if (subgroups.length === 0) return null;
-    return { subgroups, flatGroups };
+    const data = splitBySubgroup(renamedRows, subgroupByCol, sgOrder, buildCellGroups);
+    return data.subgroups.length > 0 ? data : null;
   }, [
     subgroupByCol,
     facetByCol,
@@ -895,18 +660,8 @@ export function App() {
     renamedRows,
     groupColIdx,
     valueColIdx,
-    boxplotGroups,
     buildCellGroups,
   ]);
-
-  // Cell key composition. App owns the keying convention; the panel and
-  // reducer treat keys as opaque strings. Using "::" as separator with empty
-  // strings for missing dimensions guarantees a stable, unique key per cell.
-  const FLAT_KEY = "flat";
-  // JSON-encoded so a category named e.g. "S3::pGFP" cannot collide with a
-  // facet × subgroup combination of "S3" × "pGFP" — plant-science labels
-  // routinely contain "::".
-  const cellKey = (facetCat: string, sgName: string) => JSON.stringify([facetCat, sgName]);
 
   // Merge per-subgroup annotation specs (from the unified cellAnnotations
   // dict) into a single chart-level spec with offset indices. Used by
@@ -989,71 +744,24 @@ export function App() {
   // facet × subgroup — and the `key` matches the cellAnnotations / cellSummaries
   // dict the panel writes back into. ≥2-group filter mirrors the panel's own
   // skip rule (a single group can't be tested against itself).
-  const statsPanelMode: "flat" | "facet" | "subgroup" | "facetSubgroup" =
-    facetByCol >= 0 && subgroupByCol >= 0
-      ? "facetSubgroup"
-      : facetByCol >= 0
-        ? "facet"
-        : subgroupByCol >= 0
-          ? "subgroup"
-          : "flat";
+  const statsPanelMode = statsPanelModeOf(facetByCol, subgroupByCol);
   const statsPanelLabel = useMemo(() => {
     if (statsPanelMode === "facet") return trApp("boxplot.set.facet");
     if (statsPanelMode === "subgroup") return trApp("boxplot.set.subgroup");
     if (statsPanelMode === "facetSubgroup") return trApp("boxplot.set.facetSubgroup");
     return "";
   }, [statsPanelMode, trApp]);
-  const statsPanelSets = useMemo(() => {
-    const renamedValues = (gs: BoxplotGroup[]) =>
-      gs.map((g) => ({ name: plotGroupRenames[g.name] ?? g.name, values: g.allValues }));
-    if (statsPanelMode === "flat") {
-      if (displayBoxplotGroups.length < 2) return [];
-      return [
-        {
-          key: FLAT_KEY,
-          name: "",
-          groups: displayBoxplotGroups.map((g) => ({ name: g.name, values: g.allValues })),
-        },
-      ];
-    }
-    if (statsPanelMode === "facet") {
-      return facetedData
-        .filter((fd) => fd.groups.length >= 2)
-        .map((fd) => ({
-          key: cellKey(fd.category, ""),
-          name: fd.category,
-          groups: renamedValues(fd.groups),
-        }));
-    }
-    if (statsPanelMode === "subgroup") {
-      if (!subgroupedData) return [];
-      return subgroupedData.subgroups
-        .map((sg) => {
-          const sgGroups = subgroupedData.flatGroups.slice(sg.startIndex, sg.startIndex + sg.count);
-          return {
-            key: cellKey("", sg.name),
-            name: sg.name,
-            groups: renamedValues(sgGroups),
-          };
-        })
-        .filter((s) => s.groups.length >= 2);
-    }
-    // facet × subgroup
-    const out: BoxplotStatsSet[] = [];
-    for (const fd of facetedData) {
-      if (!fd.subgroups || !fd.flatGroups) continue;
-      for (const sg of fd.subgroups) {
-        const sgGroups = fd.flatGroups.slice(sg.startIndex, sg.startIndex + sg.count);
-        if (sgGroups.length < 2) continue;
-        out.push({
-          key: cellKey(fd.category, sg.name),
-          name: `${fd.category} — ${sg.name}`,
-          groups: renamedValues(sgGroups),
-        });
-      }
-    }
-    return out;
-  }, [statsPanelMode, displayBoxplotGroups, facetedData, subgroupedData, plotGroupRenames]);
+  const statsPanelSets = useMemo(
+    () =>
+      buildStatsPanelSets(
+        statsPanelMode,
+        displayBoxplotGroups,
+        facetedData,
+        subgroupedData,
+        plotGroupRenames
+      ),
+    [statsPanelMode, displayBoxplotGroups, facetedData, subgroupedData, plotGroupRenames]
+  );
 
   const toggleFilter = (ci: number, v: string) =>
     setFilters((p) => {
@@ -1156,71 +864,36 @@ export function App() {
     }
   }, [facetByCol, facetedData, fileStem]);
 
-  // Composition pies → Proportions. One counts table per facet (facets are
-  // never pooled into one test), groups labelled `facet.subgroup.group` with
-  // the user's renames — the same groups, order and counts the pies draw.
-  const compositionTables = useMemo((): CompositionTable[] => {
-    if (colorByCol < 0 || !vis.showCompPie || groupColIdx < 0) return [];
-    const display = (name: string) => plotGroupRenames[name] ?? name;
-    const toRows = (
-      groups: BoxplotGroup[],
-      subgroups: Subgroup[] | null,
-      prefix: string[]
-    ): CompositionRowInput[] =>
-      groups.map((g, gi) => {
-        const sg = subgroups?.find((s) => gi >= s.startIndex && gi < s.startIndex + s.count);
-        return {
-          labelParts: [...prefix, ...(sg ? [sg.name] : []), display(g.name)],
-          sources: g.sources,
-        };
-      });
-    const sgHeader = subgroupByCol >= 0 ? [colNames[subgroupByCol] || ""] : [];
-    const groupHeader = colNames[groupColIdx] || "";
-    if (facetByCol >= 0) {
-      const header = [colNames[facetByCol] || "", ...sgHeader, groupHeader];
-      return facetedData
-        .filter((fd) => fd.groups.length > 0)
-        .map((fd) =>
-          buildCompositionTable(
-            toRows(fd.groups, fd.subgroups, [fd.category]),
+  // Composition pies → Proportions: one counts table per facet.
+  const compositionTables = useMemo(
+    (): CompositionTable[] =>
+      colorByCol < 0 || !vis.showCompPie || groupColIdx < 0
+        ? []
+        : buildCompositionTables({
+            colNames,
+            groupCol: groupColIdx,
+            facetByCol,
+            subgroupByCol,
             colorByCategories,
-            header,
-            fd.category
-          )
-        );
-    }
-    if (subgroupByCol >= 0 && subgroupedData) {
-      return [
-        buildCompositionTable(
-          toRows(subgroupedData.flatGroups, subgroupedData.subgroups, []),
-          colorByCategories,
-          [...sgHeader, groupHeader],
-          null
-        ),
-      ];
-    }
-    // displayBoxplotGroups already carry the renamed display name.
-    return [
-      buildCompositionTable(
-        displayBoxplotGroups.map((g) => ({ labelParts: [g.name], sources: g.sources })),
-        colorByCategories,
-        [groupHeader],
-        null
-      ),
-    ];
-  }, [
-    colorByCol,
-    vis.showCompPie,
-    groupColIdx,
-    facetByCol,
-    subgroupByCol,
-    colNames,
-    colorByCategories,
-    facetedData,
-    subgroupedData,
-    displayBoxplotGroups,
-    plotGroupRenames,
-  ]);
+            facetedData,
+            subgroupedData,
+            displayGroups: displayBoxplotGroups,
+            renames: plotGroupRenames,
+          }),
+    [
+      colorByCol,
+      vis.showCompPie,
+      groupColIdx,
+      facetByCol,
+      subgroupByCol,
+      colNames,
+      colorByCategories,
+      facetedData,
+      subgroupedData,
+      displayBoxplotGroups,
+      plotGroupRenames,
+    ]
+  );
 
   const handleSendComposition = useCallback(
     (i: number) => {

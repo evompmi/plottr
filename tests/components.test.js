@@ -3173,4 +3173,72 @@ test("renders headers, rows, a continuation row and the caption", () => {
   assert(/<th style="[^"]*background:var\(--info-bg\)[^"]*">Ct</.test(html), "highlighted column");
 });
 
+suite("useHandoff");
+
+// Install an in-memory sessionStorage so handoff.ts reads and writes a
+// working per-test store regardless of the Node / happy-dom Storage globals.
+Object.defineProperty(globalThis, "sessionStorage", {
+  value: require("./helpers/_shell-test-utils").makeLocalStorage().localStorage,
+  configurable: true,
+  writable: true,
+});
+const clearHandoff = () => sessionStorage.removeItem("dataviz-handoff");
+
+// Mounts a probe that records every payload `useHandoff(tool, …)` delivers.
+// `tag` changes between renders to prove the listener calls the latest closure.
+function mountHandoffProbe(tool) {
+  const got = [];
+  let rerender = null;
+  function Probe() {
+    const [tag, setTag] = React.useState("first");
+    rerender = setTag;
+    sc.useHandoff(tool, (p) => got.push({ csv: p.csv, tag }));
+    return null;
+  }
+  const { root } = renderWithEffects(Probe, {});
+  return { got, root, retag: (t) => React.act(() => rerender(t)) };
+}
+
+test("useHandoff delivers a payload already waiting at mount, then clears it", () => {
+  clearHandoff();
+  sc.setHandoff({ tool: "proportions", csv: "waiting" });
+  const { got, root } = mountHandoffProbe("proportions");
+  eq(got, [{ csv: "waiting", tag: "first" }]);
+  eq(sessionStorage.getItem("dataviz-handoff"), null);
+  React.act(() => root.unmount());
+});
+
+test("useHandoff receives same-tab writes with the latest closure", () => {
+  clearHandoff();
+  const { got, root, retag } = mountHandoffProbe("proportions");
+  eq(got, []);
+  retag("second");
+  React.act(() => {
+    sc.setHandoff({ tool: "proportions", csv: "live" });
+  });
+  eq(got, [{ csv: "live", tag: "second" }]);
+  React.act(() => root.unmount());
+});
+
+test("useHandoff ignores payloads addressed to another tool and leaves them", () => {
+  clearHandoff();
+  const { got, root } = mountHandoffProbe("boxplot");
+  React.act(() => {
+    sc.setHandoff({ tool: "proportions", csv: "not mine" });
+  });
+  eq(got, []);
+  assert(sessionStorage.getItem("dataviz-handoff") !== null);
+  React.act(() => root.unmount());
+  clearHandoff();
+});
+
+test("useHandoff stops listening after unmount", () => {
+  clearHandoff();
+  const { got, root } = mountHandoffProbe("boxplot");
+  React.act(() => root.unmount());
+  sc.setHandoff({ tool: "boxplot", csv: "too late" });
+  eq(got, []);
+  clearHandoff();
+});
+
 summary();

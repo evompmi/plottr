@@ -8,6 +8,7 @@ import {
   PlotToolShell,
   ScrollablePlotCard,
   detectLongFormat,
+  useHandoff,
   usePlotToolState,
 } from "../_shell";
 import "./i18n";
@@ -18,7 +19,6 @@ import {
   sortIntersections,
   truncateIntersections,
 } from "./helpers";
-import type { UpsetHandoffPayload } from "./helpers";
 import { UpsetChart } from "./chart";
 import { UploadStep, ConfigureStep, ItemListPanel } from "./steps";
 import { PlotControls } from "./controls";
@@ -33,7 +33,7 @@ import {
 } from "../_core/csv";
 import { bhAdjust } from "../_core/stats/posthoc";
 import { multisetExclusiveExpected, multisetExclusiveP } from "../_core/stats/msi";
-const { useState, useMemo, useCallback, useRef, useEffect } = React;
+const { useState, useMemo, useCallback, useRef } = React;
 
 // parseSetData and parseLongFormatSets live in tools/shared.js.
 
@@ -507,75 +507,27 @@ export function App() {
 
   // Hand-off from the Venn tool's "Open in UpSet" nudge: replaces whatever
   // file the user had previously loaded so the UpSet view shows the same
-  // dataset they were just looking at in Venn. Two delivery channels:
-  //   1. postMessage from the sibling Venn iframe (when both tools live
-  //      under index.html — the common case).
-  //   2. sessionStorage one-shot (when Venn was opened standalone and the
-  //      "Open in UpSet" link navigates the same window to upset.html).
-  // Both are consumed by the same handler so behaviour is identical either
-  // way; the sessionStorage entry is removed immediately so a future page
-  // load with no fresh hand-off doesn't re-load stale data.
-  const handleHandoff = useCallback(
-    (payload: UpsetHandoffPayload | null | undefined) => {
-      if (!payload || typeof payload.text !== "string") return;
-      // Audit policy: any ingest surface must gate on FILE_LIMIT_BYTES (see
-      // doc-comment in tools/shared-file-drop.js). Same-origin only after
-      // the origin check on the message listener — but a 100 MB hostile
-      // payload from a compromised sibling tool would freeze the main thread
-      // on next load with no error UX, so reject before doParse sees the
-      // bytes.
-      if (payload.text.length > FILE_LIMIT_BYTES) return;
-      const sep = typeof payload.sep === "string" ? payload.sep : "";
-      const fmt = payload.format === "long" ? "long" : "wide";
-      // Bound fileName length and strip path separators / leading dots so a
-      // crafted payload can't produce a download name like "../../etc/passwd"
-      // when the user later exports a CSV.
-      const rawName = typeof payload.fileName === "string" ? payload.fileName : "";
-      const safeName = rawName.slice(0, 255).replace(/[/\\]/g, "_").replace(/^\.+/, "");
-      setFileName(safeName);
-      setSepOverride(sep);
-      setFormat(fmt);
-      setSelectedMask(null);
-      doParse(payload.text, sep, fmt);
-    },
-    [doParse, setFileName, setSepOverride]
-  );
-
-  useEffect(() => {
-    const consume = () => {
-      try {
-        const raw = sessionStorage.getItem("dataviz-upset-handoff");
-        if (!raw) return;
-        sessionStorage.removeItem("dataviz-upset-handoff");
-        handleHandoff(JSON.parse(raw));
-      } catch {
-        /* storage disabled — handoff just won't fire */
-      }
-    };
-    // Mount-time path: UpSet boots after a top-level navigation /
-    // first SPA visit and finds the payload Venn just wrote.
-    consume();
-    // Same-tab path under keep-alive: UpSet was already mounted from
-    // an earlier visit, so the mount-time read happened with empty
-    // storage. Venn now dispatches `plottr-handoff` right after the
-    // sessionStorage write so we can re-consume.
-    const onSameTabHandoff = () => consume();
-    // Defensive postMessage listener for any external embed that still
-    // sends a `dataviz-handoff` payload directly (no current in-tree
-    // sender). Same-origin only.
-    const onMessage = (e: MessageEvent) => {
-      if (!e || e.origin !== window.location.origin) return;
-      const d = e.data;
-      if (!d || d.type !== "dataviz-handoff") return;
-      handleHandoff(d);
-    };
-    window.addEventListener("plottr-handoff", onSameTabHandoff);
-    window.addEventListener("message", onMessage);
-    return () => {
-      window.removeEventListener("plottr-handoff", onSameTabHandoff);
-      window.removeEventListener("message", onMessage);
-    };
-  }, [handleHandoff]);
+  // dataset they were just looking at in Venn.
+  useHandoff("upset", (payload) => {
+    // Every field is untrusted: validate types and size before parsing.
+    if (typeof payload.text !== "string") return;
+    // Ingest policy: every surface gates on FILE_LIMIT_BYTES (see
+    // `_shell/FileDropZone.tsx`), so an oversized payload can't freeze the
+    // main thread before doParse sees the bytes.
+    if (payload.text.length > FILE_LIMIT_BYTES) return;
+    const sep = typeof payload.sep === "string" ? payload.sep : "";
+    const fmt = payload.format === "long" ? "long" : "wide";
+    // Bound fileName length and strip path separators / leading dots so a
+    // crafted payload can't produce a download name like "../../etc/passwd"
+    // when the user later exports a CSV.
+    const rawName = typeof payload.fileName === "string" ? payload.fileName : "";
+    const safeName = rawName.slice(0, 255).replace(/[/\\]/g, "_").replace(/^\.+/, "");
+    setFileName(safeName);
+    setSepOverride(sep);
+    setFormat(fmt);
+    setSelectedMask(null);
+    doParse(payload.text, sep, fmt);
+  });
 
   const resetAll = () => {
     setStep("upload");

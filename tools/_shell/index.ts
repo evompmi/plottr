@@ -89,6 +89,7 @@ export {
 } from "./discrete-palette";
 export { consumeHandoff, navigateToTool, setHandoff } from "./handoff";
 export type { HandoffPayload } from "./handoff";
+export { useHandoff } from "./useHandoff";
 export { detectLongFormat } from "./long-format-detect";
 export type { LongFormatDetection } from "./long-format-detect";
 export { computePowerFromData } from "./power-from-data";

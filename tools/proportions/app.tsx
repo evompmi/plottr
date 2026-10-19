@@ -13,7 +13,7 @@
 // Statistics live in tools/_core/stats/categorical.ts (Wilson CIs, Fisher,
 // χ², exact goodness-of-fit, Holm), each pinned to R.
 
-import { HowTo, PlotToolShell, UploadPanel, consumeHandoff, usePlotToolState } from "../_shell";
+import { HowTo, PlotToolShell, UploadPanel, useHandoff, usePlotToolState } from "../_shell";
 import type { HandoffPayload } from "../_shell";
 import { resolveDiscretePalette } from "../_shell";
 import "./i18n";
@@ -36,7 +36,7 @@ import { buildProportionsCsv, buildProportionsRScript, buildProportionsReport } 
 import { autoDetectSep, fixDecimalCommas, parseRaw } from "../_core/csv";
 import { downloadCsv, downloadText, fileBaseName } from "../_core/download";
 
-const { useState, useMemo, useCallback, useRef, useEffect } = React;
+const { useState, useMemo, useCallback, useRef } = React;
 
 // Where a table handed off from Group Plot's composition pies came from;
 // shown as a banner so the user knows what each count is.
@@ -221,14 +221,9 @@ export function App() {
     setRatioText("9:3:3:1");
   }, [doParse, setFileName, setSepOverride, updVis]);
 
-  // Inter-tool hand-off from Group Plot's composition pies. Same three
-  // paths as Group Plot's consumer: mount-time read, cross-tab `storage`
-  // event, same-tab `plottr-handoff` event (SPA keep-alive routing). The
-  // applier lives in a ref refreshed every render so the mount-only
-  // listeners always call the current closure.
-  const applyHandoffRef = useRef<(payload: HandoffPayload | null) => void>(() => {});
-  applyHandoffRef.current = (payload) => {
-    if (!payload || typeof payload.csv !== "string") return;
+  // Inter-tool hand-off from Group Plot's composition pies.
+  useHandoff("proportions", (payload) => {
+    if (typeof payload.csv !== "string") return;
     setSepOverride("");
     setFileName(typeof payload.fileName === "string" ? payload.fileName : "from_handoff.csv");
     const parsed = doParse(payload.csv, "");
@@ -238,22 +233,7 @@ export function App() {
     // groups × classes table instead of one focus class vs. the rest.
     if (parsed.categories.length > 2) updVis({ chartType: "stacked" });
     if (parsed.groups.length >= 2 && parsed.categories.length >= 2) setStep("plot");
-  };
-  useEffect(() => {
-    applyHandoffRef.current(consumeHandoff("proportions"));
-    const onStorage = (e: StorageEvent) => {
-      if (e.key !== "dataviz-handoff" || !e.newValue) return;
-      applyHandoffRef.current(consumeHandoff("proportions"));
-    };
-    const onSameTabHandoff = () => applyHandoffRef.current(consumeHandoff("proportions"));
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("plottr-handoff", onSameTabHandoff);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("plottr-handoff", onSameTabHandoff);
-    };
-    // Mount-only: the body reads only a module import and a stable ref.
-  }, []);
+  });
 
   const resetAll = useCallback(() => {
     setRawText(null);

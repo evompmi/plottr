@@ -3,7 +3,14 @@
 // only the upload and configure steps live here.
 
 import type { UploadStepProps, ConfigureStepProps } from "./helpers";
-import { DataPreview, DetectedSeparatorBadge, HowTo, UploadPanel, navigateToTool } from "../_shell";
+import {
+  DataPreview,
+  DetectedSeparatorBadge,
+  HowTo,
+  UploadPanel,
+  navigateToTool,
+  setHandoff,
+} from "../_shell";
 import { useVennHowTo } from "./howto";
 import { useT } from "./i18n";
 
@@ -65,37 +72,15 @@ export function ConfigureStep({
       parsedHeaders.map(escape).join("\t"),
       ...parsedRows.map((r: string[]) => r.map(escape).join("\t")),
     ].join("\n");
-    const payload = {
-      type: "dataviz-handoff",
+    // UpSet validates every field on arrival. If storage is disabled
+    // UpSet simply opens without the data.
+    setHandoff({
+      tool: "upset",
       text: tsv,
       fileName: fileName || "",
       sep: "\t",
       format: isLongFormat ? "long" : "wide",
-    };
-    // Stash in sessionStorage (UpSet's mount-time effect consumes the
-    // entry and clears it) and ask `navigateToTool` to switch the view.
-    // In SPA mode the helper calls the registered hash-router navigator
-    // and the same document just rerenders; in standalone-page mode it
-    // falls back to a top-level navigation to upset.html.
-    try {
-      sessionStorage.setItem("dataviz-upset-handoff", JSON.stringify(payload));
-    } catch {
-      /* storage disabled — fall back to opening UpSet without the data */
-    }
-    // Notify same-tab consumers. Under the SPA's keep-alive routing,
-    // UpSet may already be mounted from an earlier visit, in which
-    // case its mount-time sessionStorage read happened long ago and
-    // won't fire again. Dispatching a synchronous CustomEvent gives
-    // the already-mounted UpSet a chance to re-read the sessionStorage
-    // key. If UpSet hasn't been visited yet, no listener is attached
-    // and the mount-time path picks up the payload after navigation.
-    try {
-      window.dispatchEvent(
-        new CustomEvent("plottr-handoff", { detail: { key: "dataviz-upset-handoff" } })
-      );
-    } catch {
-      /* swallow */
-    }
+    });
     navigateToTool("upset");
   };
   const showNudge = allColumnNames.length >= 4;

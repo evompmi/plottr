@@ -1,5 +1,6 @@
-// Loads `tools/_shell/handoff.ts` into a Node vm context with an
-// in-memory localStorage stub, so the round-trip between `setHandoff`
+// Loads `tools/_shell/handoff.ts` into a Node vm context with in-memory
+// sessionStorage and localStorage stubs (the hand-off must only use the
+// per-tab sessionStorage), so the round-trip between `setHandoff`
 // and `consumeHandoff` can be unit-tested without a browser.
 //
 // `freshContext()` returns a fresh sandbox per call — handoff round-trip
@@ -11,9 +12,11 @@ const { builtins, bundleShell, makeLocalStorage, runCjs } = require("./_shell-te
 const HANDOFF_CJS = bundleShell("_shell/handoff.ts", { transform: true });
 
 function freshContext() {
-  const { store, localStorage } = makeLocalStorage();
+  const { store, localStorage: sessionStorage } = makeLocalStorage();
+  const { store: localStore, localStorage } = makeLocalStorage();
   const ctx = {
     ...builtins(),
+    sessionStorage,
     localStorage,
     // setHandoff dispatches a CustomEvent on the same-tab path; stub
     // `window.dispatchEvent` and the constructor so the dispatch
@@ -28,7 +31,8 @@ function freshContext() {
   const exports_ = runCjs(ctx, HANDOFF_CJS);
   return {
     store,
-    localStorage,
+    sessionStorage,
+    localStore,
     setHandoff: exports_.setHandoff,
     consumeHandoff: exports_.consumeHandoff,
     HANDOFF_TTL_MS: exports_.HANDOFF_TTL_MS,
