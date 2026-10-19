@@ -18,6 +18,9 @@ const en = {
     "Group “{group}” appears twice. Sum its rows into one before pasting.",
   "proportions.err.emptyLabel": "Row {row} has no group name in the first column.",
   "proportions.rest": "Other",
+  "proportions.fromGroupPlot":
+    "From Group Plot's composition pies: each count is the number of observations of a “{classes}” class within one “{groups}” group.",
+  "proportions.fromGroupPlotFacet": "Facet “{facet}” only — each facet is tested separately.",
 
   // Configure step
   "proportions.cfg.pasted": "Pasted data",

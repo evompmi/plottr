@@ -3,15 +3,26 @@
 // wiring — chart rendering, step panels, sidebar controls, and stats-panel
 // live in sibling modules under tools/boxplot/.
 
-import { PlotToolShell, consumeHandoff, resolveDiscretePalette, usePlotToolState } from "../_shell";
+import {
+  PlotToolShell,
+  consumeHandoff,
+  navigateToTool,
+  resolveDiscretePalette,
+  setHandoff,
+  usePlotToolState,
+} from "../_shell";
 import {
   ERROR_BAR_LABELS,
   mergeSubgroupAnnotations,
   AnnotationSpec,
   BoxplotGroup,
   BoxplotStatsSet,
+  CompositionRowInput,
+  CompositionTable,
   DragState,
   Subgroup,
+  buildCompositionTable,
+  compositionTableCsv,
 } from "./helpers";
 import { UploadStep, ConfigureStep, FilterStep, OutputStep } from "./steps";
 import { PlotControls } from "./controls";
@@ -1145,6 +1156,93 @@ export function App() {
     }
   }, [facetByCol, facetedData, fileStem]);
 
+  // Composition pies → Proportions. One counts table per facet (facets are
+  // never pooled into one test), groups labelled `facet.subgroup.group` with
+  // the user's renames — the same groups, order and counts the pies draw.
+  const compositionTables = useMemo((): CompositionTable[] => {
+    if (colorByCol < 0 || !vis.showCompPie || groupColIdx < 0) return [];
+    const display = (name: string) => plotGroupRenames[name] ?? name;
+    const toRows = (
+      groups: BoxplotGroup[],
+      subgroups: Subgroup[] | null,
+      prefix: string[]
+    ): CompositionRowInput[] =>
+      groups.map((g, gi) => {
+        const sg = subgroups?.find((s) => gi >= s.startIndex && gi < s.startIndex + s.count);
+        return {
+          labelParts: [...prefix, ...(sg ? [sg.name] : []), display(g.name)],
+          sources: g.sources,
+        };
+      });
+    const sgHeader = subgroupByCol >= 0 ? [colNames[subgroupByCol] || ""] : [];
+    const groupHeader = colNames[groupColIdx] || "";
+    if (facetByCol >= 0) {
+      const header = [colNames[facetByCol] || "", ...sgHeader, groupHeader];
+      return facetedData
+        .filter((fd) => fd.groups.length > 0)
+        .map((fd) =>
+          buildCompositionTable(
+            toRows(fd.groups, fd.subgroups, [fd.category]),
+            colorByCategories,
+            header,
+            fd.category
+          )
+        );
+    }
+    if (subgroupByCol >= 0 && subgroupedData) {
+      return [
+        buildCompositionTable(
+          toRows(subgroupedData.flatGroups, subgroupedData.subgroups, []),
+          colorByCategories,
+          [...sgHeader, groupHeader],
+          null
+        ),
+      ];
+    }
+    // displayBoxplotGroups already carry the renamed display name.
+    return [
+      buildCompositionTable(
+        displayBoxplotGroups.map((g) => ({ labelParts: [g.name], sources: g.sources })),
+        colorByCategories,
+        [groupHeader],
+        null
+      ),
+    ];
+  }, [
+    colorByCol,
+    vis.showCompPie,
+    groupColIdx,
+    facetByCol,
+    subgroupByCol,
+    colNames,
+    colorByCategories,
+    facetedData,
+    subgroupedData,
+    displayBoxplotGroups,
+    plotGroupRenames,
+  ]);
+
+  const handleSendComposition = useCallback(
+    (i: number) => {
+      const t = compositionTables[i];
+      if (!t) return;
+      const suffix = t.facet !== null ? `_${t.facet}` : "";
+      setHandoff({
+        tool: "proportions",
+        csv: compositionTableCsv(t),
+        source: "Group Plot",
+        fileName: `${fileStem}_composition${suffix}.csv`,
+        composition: {
+          classColumn: colNames[colorByCol] || "",
+          groupColumn: t.header,
+          facet: t.facet,
+        },
+      });
+      navigateToTool("proportions");
+    },
+    [compositionTables, fileStem, colNames, colorByCol]
+  );
+
   return (
     <PlotToolShell
       state={shell}
@@ -1264,6 +1362,8 @@ export function App() {
             setSubgroupByCol={handleSetSubgroupByCol}
             onDownloadSvg={handleDownloadSvg}
             onDownloadPng={handleDownloadPng}
+            compositionTables={compositionTables}
+            onSendComposition={handleSendComposition}
           />
           <div style={{ flex: 1, minWidth: 0 }}>
             {vis.yScale !== "linear" &&

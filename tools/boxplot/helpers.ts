@@ -14,6 +14,7 @@ import {
 import type { LegendBlock, PowerFromDataResult, TestResult } from "../_shell";
 import { compactLetterDisplay, selectTest } from "../_core/stats/posthoc";
 import { pStars } from "../_core/stats/format";
+import { buildCsvString } from "../_core/csv";
 import type { ColumnRole } from "../_core/csv";
 import type { GroupStats } from "../_core/descriptive";
 import { formatP } from "../_core/stats/format";
@@ -694,4 +695,81 @@ export interface PlotControlsProps {
   setSubgroupByCol: (i: number) => void;
   onDownloadSvg: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onDownloadPng: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  compositionTables: CompositionTable[];
+  onSendComposition: (i: number) => void;
+}
+
+// ── Composition pies → Proportions hand-off ─────────────────────────────
+// Each composition pie counts the observations of every colour-by class
+// inside one group, so the pies side by side are a groups × classes counts
+// table — the Proportions tool's input. One table per facet (a facet is a
+// separate experiment, never pooled); groups are labelled with their full
+// path (`facet.subgroup.group`) so a row can't be mistaken for another once
+// it leaves the plot.
+
+export interface CompositionRowInput {
+  // Label path, outermost first (facet, subgroup, group); empty parts skipped.
+  labelParts: string[];
+  sources: Array<{ category: string; values: number[] }>;
+}
+
+export interface CompositionTable {
+  // Facet value this table covers; null when the plot isn't faceted.
+  facet: string | null;
+  // First-column header, built from the column names the same way as labels.
+  header: string;
+  groups: string[];
+  categories: string[];
+  // counts[g][c] — number of observations, exactly the pie's slice sizes.
+  counts: number[][];
+}
+
+export function compositionLabel(parts: string[]): string {
+  return parts.filter((p) => p !== "").join(".");
+}
+
+export function buildCompositionTable(
+  rows: CompositionRowInput[],
+  categoryOrder: string[],
+  headerParts: string[],
+  facet: string | null
+): CompositionTable {
+  const allCounts = rows.map((r) =>
+    categoryOrder.map((c) => {
+      const src = r.sources.find((s) => s.category === c);
+      return src ? src.values.length : 0;
+    })
+  );
+  // Classes absent from every group of this table would be empty columns.
+  const keep = categoryOrder.map((_, ci) => allCounts.some((row) => row[ci] > 0));
+  const categories = categoryOrder.filter((_, ci) => keep[ci]);
+  // Proportions rejects duplicate group labels; two groups renamed alike
+  // stay separate rows with a numbered suffix rather than being merged.
+  const used = new Set<string>();
+  const groups = rows.map((r) => {
+    const base = compositionLabel(r.labelParts);
+    let label = base;
+    for (let n = 2; used.has(label); n++) label = `${base} (${n})`;
+    used.add(label);
+    return label;
+  });
+  return {
+    facet,
+    header: compositionLabel(headerParts),
+    groups,
+    categories,
+    counts: allCounts.map((row) => row.filter((_, ci) => keep[ci])),
+  };
+}
+
+// The Proportions tool needs at least two groups and two classes.
+export function isCompositionTestable(t: CompositionTable): boolean {
+  return t.groups.length >= 2 && t.categories.length >= 2;
+}
+
+export function compositionTableCsv(t: CompositionTable): string {
+  return buildCsvString(
+    [t.header, ...t.categories],
+    t.groups.map((g, gi) => [g, ...t.counts[gi]])
+  );
 }

@@ -60,6 +60,12 @@ const en = {
   "boxplot.ctrl.colorBy": "Color by",
   "boxplot.ctrl.noneOption": "— none —",
   "boxplot.ctrl.compPies": "Composition pies",
+  "boxplot.ctrl.compTest": "Test composition",
+  "boxplot.ctrl.compToProportions": "↗ Open in Proportions",
+  "boxplot.ctrl.compToProportionsFacet": "↗ {facet} in Proportions",
+  "boxplot.ctrl.compToProportionsTitle":
+    "Send the pie counts (observations of each class in each group) to the Proportions tool to compare them with Fisher's exact or χ² tests",
+  "boxplot.ctrl.compNotTestable": "Needs at least two groups and two classes to compare",
   "boxplot.ctrl.size": "Size",
   "boxplot.ctrl.jitter": "Jitter",
   "boxplot.ctrl.opacity": "Opacity",

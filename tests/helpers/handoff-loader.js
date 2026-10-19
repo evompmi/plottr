@@ -31,6 +31,7 @@ function freshContext() {
     localStorage,
     setHandoff: exports_.setHandoff,
     consumeHandoff: exports_.consumeHandoff,
+    HANDOFF_TTL_MS: exports_.HANDOFF_TTL_MS,
   };
 }
 

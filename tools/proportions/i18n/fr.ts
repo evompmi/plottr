@@ -17,6 +17,10 @@ const fr: Record<ProportionsKey, string> = {
     "Le groupe « {group} » apparaît deux fois. Additionnez ses lignes avant de coller les données.",
   "proportions.err.emptyLabel": "La ligne {row} n’a pas de nom de groupe en première colonne.",
   "proportions.rest": "Autres",
+  "proportions.fromGroupPlot":
+    "Depuis les camemberts de composition de Group Plot : chaque effectif est le nombre d'observations d'une classe « {classes} » dans un groupe « {groups} ».",
+  "proportions.fromGroupPlotFacet":
+    "Facette « {facet} » uniquement — chaque facette est testée séparément.",
 
   "proportions.cfg.pasted": "Données collées",
   "proportions.cfg.shape": " — {groups} groupes × {cats} modalités",
