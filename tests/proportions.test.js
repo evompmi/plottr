@@ -149,6 +149,39 @@ test("fewer than 2 informative categories → tooSmall", () => {
   eq(L.bracketPairs(a, true).length, 0);
 });
 
+test("control group: k − 1 Fisher tests vs the control, Holm over k − 1, no letters", () => {
+  const t = parse(COLON).table;
+  const a = L.analyseTable(t, "auto", "holm", "ram1-1");
+  eq(a.control, 2);
+  eq(a.pairs.map((p) => `${p.i}-${p.j}`).join(","), "0-2,1-2,2-3");
+  // R: p.adjust(c(fisher(ram1 vs A17), fisher(ram1 vs dmi3), fisher(ram1 vs comp)), "holm")
+  approx(a.pairs[0].pAdj, 2.388511e-11, 1e-16);
+  approx(a.pairs[1].pAdj, 1.245414e-1, 1e-6);
+  approx(a.pairs[2].pAdj, 2.875004e-9, 1e-14);
+  eq(a.cld.join(""), "");
+  // The omnibus test is unchanged by the comparison design.
+  approx(a.p, L.analyseTable(t, "auto", "holm").p, 0);
+});
+
+test("control not among the analysed groups, or only two groups → all pairs", () => {
+  const t = parse(COLON).table;
+  const gone = L.analyseTable(t, "auto", "holm", "dropped");
+  eq(gone.control, null);
+  eq(gone.pairs.length, 6);
+  eq(gone.cld.join("|"), "a|b|b|a");
+  const two = {
+    groups: ["a", "b"],
+    categories: ["y", "n"],
+    counts: [
+      [10, 3],
+      [2, 15],
+    ],
+  };
+  const a2 = L.analyseTable(two, "auto", "holm", "a");
+  eq(a2.control, null);
+  eq(a2.pairs.length, 0);
+});
+
 suite("bracketPairs");
 
 test("two groups: the omnibus test is the single bracket", () => {
@@ -179,6 +212,16 @@ test("k ≥ 3: significant adjusted pairs only, unless showNs", () => {
   const sig = L.bracketPairs(a, false);
   eq(sig.map((b) => `${b.i}-${b.j}:${b.label}`).join(","), "0-1:****,0-2:****,1-3:****,2-3:****");
   eq(L.bracketPairs(a, true).length, 6);
+});
+
+test("control: brackets only from the control", () => {
+  const a = L.analyseTable(parse(COLON).table, "auto", "holm", "A17 (WT)");
+  eq(
+    L.bracketPairs(a, true)
+      .map((b) => `${b.i}-${b.j}:${b.label}`)
+      .join(","),
+    "0-1:****,0-2:****,0-3:ns"
+  );
 });
 
 suite("parseRatio / gofPerGroup");
@@ -259,6 +302,46 @@ test("text report names the test, effect size and pairwise method", () => {
   assert(txt.includes("Pairwise Fisher's exact tests (Benjamini–Hochberg adjusted)"));
   assert(txt.includes("A17 (WT): exact, p = 0.1316"));
   assert(txt.includes("doi:10.1214/ss/1009213286"));
+});
+
+test("control: report and R script compare each group with the control only", () => {
+  const t = parse(COLON).table;
+  const a = L.analyseTable(t, "auto", "holm", "ram1-1");
+  const txt = L.buildProportionsReport({
+    fileName: "x.csv",
+    chartType: "stacked",
+    focusLabel: null,
+    analysis: a,
+    summaries: L.groupSummaries(t),
+    displayedCategories: t.categories,
+    adjust: "holm",
+    ratio: null,
+    generatedAt: "T",
+  });
+  assert(
+    txt.includes("Fisher's exact tests vs. control ram1-1 (Holm adjusted over 3 comparisons)"),
+    txt
+  );
+  assert(txt.includes("  A17 (WT) vs ram1-1: p = "), txt);
+  assert(txt.includes("  dmi3-1 + DMI3 vs ram1-1: p = "), txt);
+  assert(!txt.includes("A17 (WT) vs dmi3-1"), "no other pairs");
+  const r = L.buildProportionsRScript({
+    analysis: a,
+    displayed: t,
+    chartType: "stacked",
+    adjust: "holm",
+    ratio: null,
+    colors: ["#E69F00", "#56B4E9"],
+    groupColors: [],
+    outlineWidth: 1,
+    xLabelAngle: 0,
+    plotTitle: "",
+    generatedAt: "T",
+  });
+  assert(r.includes('control <- "ram1-1"'));
+  assert(r.includes("others <- setdiff(rownames(counts), control)"));
+  assert(r.includes('p.adjust(p_raw, method = "holm")'));
+  assert(!r.includes("combn"), "no all-pairs block");
 });
 
 test("R script: sanitised names, chosen test, pairwise + GOF blocks", () => {

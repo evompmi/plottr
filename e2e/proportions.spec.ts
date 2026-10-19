@@ -84,3 +84,20 @@ test("F2 example: stacked by default, 9:3:3:1 goodness of fit per family", async
   await page.getByTestId("proportions-gof-ratio").fill("9:3");
   await expect(gof).toContainText("Enter 4 positive numbers");
 });
+
+test("control group: each group vs the control only, brackets, no letters", async ({ page }) => {
+  await loadColonisation(page);
+  const stats = page.getByTestId("proportions-stats");
+  await stats.getByRole("button", { name: "Letters", exact: true }).click();
+  await page.getByTestId("proportions-control").selectOption({ label: "vs A17 (WT) (control)" });
+  const rows = page.getByTestId("proportions-pairs").locator("tbody tr");
+  await expect(rows).toHaveCount(3);
+  await expect(rows.first().locator("td").first()).toHaveText("dmi3-1 vs A17 (WT)");
+  // Letters need every pair: the option disappears and brackets take over.
+  await expect(stats.getByRole("button", { name: "Letters", exact: true })).toHaveCount(0);
+  await expect(page.locator("g#cld-annotations")).toHaveCount(0);
+  // Both mutants differ from WT; the complemented line does not.
+  await expect(page.locator("g#significance-brackets > g")).toHaveCount(2);
+  await page.getByTestId("proportions-control").selectOption({ label: "All pairs" });
+  await expect(rows).toHaveCount(6);
+});

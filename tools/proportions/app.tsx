@@ -154,6 +154,9 @@ export function App() {
   const [groupColorOv, setGroupColorOv] = useState<Record<string, string>>({});
   const [catColorOv, setCatColorOv] = useState<Record<string, string>>({});
   const [origin, setOrigin] = useState<CompositionOrigin | null>(null);
+  // Control group for many-to-one pairwise comparisons; null = all pairs.
+  // A group name, so it survives reordering; dataset-specific, not persisted.
+  const [control, setControl] = useState<string | null>(null);
 
   // Returns the parsed table (null on a parse error) so the hand-off path
   // can decide whether to skip straight to the plot.
@@ -183,6 +186,7 @@ export function App() {
       setGroupColorOv({});
       setCatColorOv({});
       setOrigin(null);
+      setControl(null);
       setStep("configure");
       return res.table;
     },
@@ -261,6 +265,7 @@ export function App() {
     setGroupColorOv({});
     setCatColorOv({});
     setOrigin(null);
+    setControl(null);
     setFileName("");
     setInjectionWarning(null);
     setStep("upload");
@@ -279,8 +284,8 @@ export function App() {
     return isProp ? collapseToFocus(selected, focusIdx, tt("proportions.rest")) : selected;
   }, [selected, isProp, focusIdx]);
   const analysis = useMemo(
-    () => (displayed ? analyseTable(displayed, vis.testChoice, vis.adjustMethod) : null),
-    [displayed, vis.testChoice, vis.adjustMethod]
+    () => (displayed ? analyseTable(displayed, vis.testChoice, vis.adjustMethod, control) : null),
+    [displayed, vis.testChoice, vis.adjustMethod, control]
   );
   const summaries = useMemo(() => (displayed ? groupSummaries(displayed) : []), [displayed]);
   const brackets = useMemo(
@@ -466,6 +471,8 @@ export function App() {
           focus={focusIdx}
           setFocus={setFocus}
           focusLabel={focusLabel}
+          control={analysis.control !== null ? analysis.table.groups[analysis.control] : null}
+          setControl={setControl}
           vis={vis}
           updVis={updVis}
           ratioText={ratioText}

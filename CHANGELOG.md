@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Composition pies → Proportions.** With composition pies on, Group Plot sends the pie counts
   (observations of each colour-by class per group) to Proportions for Fisher / χ² tests: one
   table per facet, groups labelled `facet.subgroup.group`.
+- **Proportions: compare with a control.** Pairwise comparisons can test each group against one
+  control group only (k − 1 Fisher tests, adjusted over those) instead of every pair; the report,
+  R script and Methods text follow. Matches R `fisher.test` + `p.adjust`.
 
 ### Fixed
 

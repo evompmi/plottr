@@ -72,6 +72,8 @@ export function formatOR(v: number | undefined): string {
 
 export function StatsPanel({
   analysis,
+  control,
+  setControl,
   categories,
   summaries,
   focusLabel,
@@ -110,6 +112,12 @@ export function StatsPanel({
   const fwer = (100 * (1 - Math.pow(0.95, m))).toFixed(0);
 
   const multi = table.groups.length > 2;
+  const hasControl = analysis.control !== null;
+  // Many-to-one rows read "<group> vs <control>"; all-pairs rows in table order.
+  const pairLabel = (i: number, j: number): string =>
+    analysis.control === i
+      ? `${table.groups[j]} vs ${table.groups[i]}`
+      : `${table.groups[i]} vs ${table.groups[j]}`;
 
   const methodsText = (): string => {
     if (analysis.error) return "";
@@ -131,14 +139,16 @@ export function StatsPanel({
           : tr("proportions.methods.fisher")
     );
     if (!overridden && vis.testChoice === "auto") out.push(tr("proportions.methods.policy"));
-    if (multi && m > 0)
-      out.push(
-        tr("proportions.methods.pairwise", {
-          method: tr(
-            vis.adjustMethod === "holm" ? "proportions.methods.holm" : "proportions.methods.bh"
-          ),
-        })
+    if (multi && m > 0) {
+      const method = tr(
+        vis.adjustMethod === "holm" ? "proportions.methods.holm" : "proportions.methods.bh"
       );
+      out.push(
+        hasControl && control !== null
+          ? tr("proportions.methods.vsControl", { control, m, method })
+          : tr("proportions.methods.pairwise", { method })
+      );
+    }
     out.push(alphaSentence());
     if (vis.chartType === "proportion" && vis.showCI) out.push(tr("proportions.methods.wilson"));
     const calls = [
@@ -155,7 +165,10 @@ export function StatsPanel({
     out.push(softwareSentence(calls));
     return out.join(" ");
   };
-  const display: AnnotationMode = vis.annotation === "cld" && !multi ? "brackets" : vis.annotation;
+  // Letters need every pair: not with two groups, nor against a control.
+  const lettersOk = multi && !hasControl;
+  const display: AnnotationMode =
+    vis.annotation === "cld" && !lettersOk ? "brackets" : vis.annotation;
   const nsDisabled = display !== "brackets";
 
   return (
@@ -231,10 +244,10 @@ export function StatsPanel({
           value={display}
           onChange={(v) => updVis({ annotation: v })}
           ariaLabel={tr("proportions.stats.displayOnPlot")}
-          style={{ width: multi ? 220 : 150 }}
+          style={{ width: lettersOk ? 220 : 150 }}
           options={[
             { value: "none", label: tr("proportions.stats.off") },
-            ...(multi
+            ...(lettersOk
               ? [
                   {
                     value: "cld" as const,
@@ -419,7 +432,37 @@ export function StatsPanel({
             {analysis.pairs.length > 0 && (
               <>
                 <div style={subhead}>{tr("proportions.stats.pairwise")}</div>
-                <div style={{ marginBottom: 6 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    marginBottom: 6,
+                  }}
+                >
+                  <label
+                    style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+                    title={tr("proportions.stats.compareTitle")}
+                  >
+                    <span style={{ color: "var(--text-muted)" }}>
+                      {tr("proportions.stats.compare")}
+                    </span>
+                    <select
+                      className="dv-select"
+                      data-testid="proportions-control"
+                      value={control ?? ""}
+                      onChange={(e) => setControl(e.target.value === "" ? null : e.target.value)}
+                      style={{ fontSize: 12 }}
+                    >
+                      <option value="">{tr("proportions.stats.allPairs")}</option>
+                      {table.groups.map((g) => (
+                        <option key={g} value={g}>
+                          {tr("proportions.stats.vsControl", { group: g })}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <SegToggle<PAdjustMethod>
                     value={vis.adjustMethod}
                     onChange={(v) => updVis({ adjustMethod: v })}
@@ -451,7 +494,7 @@ export function StatsPanel({
                   <tbody>
                     {analysis.pairs.map((pr) => (
                       <tr key={`${pr.i}-${pr.j}`}>
-                        <td style={tdS}>{`${table.groups[pr.i]} vs ${table.groups[pr.j]}`}</td>
+                        <td style={tdS}>{pairLabel(pr.i, pr.j)}</td>
                         {table.categories.length === 2 && (
                           <td style={tdS}>{formatOR(pr.oddsRatio)}</td>
                         )}
@@ -481,7 +524,11 @@ export function StatsPanel({
                     </div>
                   ))}
                 </div>
-                <p style={note}>{tr("proportions.stats.pairwiseNote")}</p>
+                <p style={note}>
+                  {hasControl && control !== null
+                    ? tr("proportions.stats.controlNote", { control, m })
+                    : tr("proportions.stats.pairwiseNote")}
+                </p>
               </>
             )}
           </>
