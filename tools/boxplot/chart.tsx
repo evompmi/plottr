@@ -127,6 +127,7 @@ export const BoxplotChart = memo(
       boxOutlineColor = "#000000",
       pointSize,
       showPoints,
+      markOutliers = true,
       jitterWidth,
       pointOpacity,
       xLabelAngle,
@@ -787,9 +788,13 @@ export const BoxplotChart = memo(
                 });
               });
 
-            /* ── Outlier dots (always visible) ── */
+            /* ── Outlier dots ── */
+            // Always drawn when points are hidden, so outliers never vanish; with
+            // points shown the user can drop the black mark and keep the coloured
+            // point alone.
             const outlierCx = isRain ? cx + ptOffset : cx;
-            const outlierEls = g.sources.flatMap((src, si) =>
+            const showOutlierMarks = !showPoints || markOutliers;
+            const outlierEls = (showOutlierMarks ? g.sources : []).flatMap((src, si) =>
               src.values
                 .filter((v) => v < wLo || v > wHi)
                 .map((v, oi) => (

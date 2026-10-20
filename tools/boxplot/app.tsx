@@ -64,6 +64,7 @@ const VIS_INIT_BOXPLOT = {
   boxGap: 0,
   pointSize: 2.5,
   showPoints: true,
+  markOutliers: true,
   jitterWidth: 0.6,
   pointOpacity: 0.6,
   xLabelAngle: 0,

@@ -887,6 +887,46 @@ suite("BoxplotChart");
     assert(!html.includes('stroke="#000000"'), "no black stroke without custom mode");
   });
 
+  // Two outliers (30 above wHi, -20 below wLo) on top of five in-range values.
+  const outlierGroups = [
+    {
+      name: "Spiky",
+      color: "#648FFF",
+      allValues: [-20, 3, 5, 7, 9, 11, 30],
+      stats: { q1: 4, med: 7, q3: 10, wLo: 3, wHi: 11 },
+      sources: [{ colIndex: 0, values: [-20, 3, 5, 7, 9, 11, 30], category: null }],
+    },
+  ];
+  const blackMarks = (html) => html.match(/<circle[^>]*fill="#000"[^>]*>/g) || [];
+  const groupPoints = (html) => html.match(/<circle[^>]*fill="#648FFF"[^>]*>/g) || [];
+
+  test("outliers get a black mark on top of the coloured points by default", function () {
+    const html = renderHtml(
+      BoxplotChart,
+      styleProps({ groups: outlierGroups, showPoints: true, jitterWidth: 0.4 })
+    );
+    eq(blackMarks(html).length, 2);
+    eq(groupPoints(html).length, 7);
+  });
+
+  test("markOutliers off drops the black marks, coloured points stay", function () {
+    const html = renderHtml(
+      BoxplotChart,
+      styleProps({ groups: outlierGroups, showPoints: true, jitterWidth: 0.4, markOutliers: false })
+    );
+    eq(blackMarks(html).length, 0);
+    eq(groupPoints(html).length, 7);
+  });
+
+  test("outliers stay marked when points are hidden, whatever markOutliers says", function () {
+    const html = renderHtml(
+      BoxplotChart,
+      styleProps({ groups: outlierGroups, showPoints: false, markOutliers: false })
+    );
+    eq(blackMarks(html).length, 2);
+    eq(groupPoints(html).length, 0);
+  });
+
   test("custom outline also draws the violin edge", function () {
     const html = renderHtml(
       BoxplotChart,

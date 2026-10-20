@@ -44,3 +44,23 @@ test("boxplot: square corners + custom outline restyle box and median", async ({
   await expect(median).toHaveAttribute("stroke", "#000000");
   await expect(rect).toHaveAttribute("fill", groupColor ?? "");
 });
+
+test("boxplot: outlier marks can be turned off while points are shown", async ({ page }) => {
+  await page.goto("/index.html#/boxplot");
+  await page.getByTestId("load-example").click();
+  await page.getByTestId("step-plot").click();
+
+  const marks = page.locator('svg g#groups circle[fill="#000"]');
+  const points = page.locator('svg g#groups circle:not([fill="#000"])');
+  await expect(marks.first()).toBeVisible();
+  const pointCount = await points.count();
+
+  await page.getByRole("button", { name: "Data points" }).click();
+  await page
+    .getByRole("group", { name: "Mark outliers in black" })
+    .getByRole("button", { name: "Off" })
+    .click();
+
+  await expect(marks).toHaveCount(0);
+  await expect(points).toHaveCount(pointCount);
+});
