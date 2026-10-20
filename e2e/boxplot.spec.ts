@@ -36,6 +36,7 @@ test("boxplot: square corners + custom outline restyle box and median", async ({
   const groupColor = await rect.getAttribute("fill");
   await expect(rect).toHaveAttribute("stroke", groupColor ?? "");
 
+  await page.getByRole("tab", { name: "Style" }).click();
   await page.getByRole("button", { name: "Square" }).click();
   await page.getByRole("button", { name: "Custom" }).click();
 
@@ -55,7 +56,7 @@ test("boxplot: outlier marks can be turned off while points are shown", async ({
   await expect(marks.first()).toBeVisible();
   const pointCount = await points.count();
 
-  await page.getByRole("button", { name: "Data points" }).click();
+  await page.getByRole("tab", { name: "Style" }).click();
   await page
     .getByRole("group", { name: "Mark outliers in black" })
     .getByRole("button", { name: "Off" })

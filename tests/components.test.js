@@ -3513,3 +3513,130 @@ test("FileChip names the file and renders nothing without one", function () {
   assert(renderHtml(sc.FileChip, { name: "plants.csv" }).includes("plants.csv"));
   eq(renderHtml(sc.FileChip, { name: "" }), "");
 });
+
+suite("Group Plot statistics inspector");
+
+(function () {
+  const bp = loadTool("boxplot").exports;
+  const range = (a, n, step = 1) => Array.from({ length: n }, (_, i) => a + i * step);
+  const three = [
+    { name: "WT", values: range(10, 8, 1.3) },
+    { name: "abi4", values: range(11, 8, 1.1) },
+    { name: "ox", values: range(20, 8, 1.2) },
+  ];
+  const panelProps = (sets, extra) => ({
+    sets,
+    setLabel: "Facet",
+    fileStem: "plants",
+    onAnnotationForKey: noop,
+    onSummaryForKey: noop,
+    displayMode: "none",
+    showNs: false,
+    showSummary: false,
+    errorBarLabel: null,
+    displayKind: "box",
+    ...extra,
+  });
+  const headings = (container) =>
+    [...container.querySelectorAll("h3.dv-tile-title")].map((h) => h.textContent);
+
+  test("one set: its sections in order, the result line intact, then the exports", function () {
+    const React = require("react");
+    const { container, root } = renderWithEffects(
+      bp.BoxplotStatsPanel,
+      panelProps([{ key: "flat", name: "", groups: three }])
+    );
+    const hs = headings(container);
+    eq(hs[0], "Omnibus test");
+    eq(hs[1], "Assumptions checked");
+    assert(hs[2].startsWith("Post-hoc · "), "post-hoc section for k = 3");
+    eq(hs.slice(3).join("|"), "Groups|Replication planning");
+    const line = container.querySelector('[data-testid="bp-result-line"]');
+    assert(
+      /^F\(2, [\d.]+\) = [\d.]+$/.test(line.children[0].textContent),
+      "F(df1, df2) kept whole"
+    );
+    assert(line.children[1].textContent.startsWith("p = "));
+    const footer = container.querySelector(".dv-inspector-exports");
+    const labels = [...footer.querySelectorAll("button")].map((b) => b.textContent);
+    eq(labels[0], "R script");
+    assert(labels.some((l) => l.includes("Methods")) && labels.includes("Report .txt"));
+    eq(container.querySelectorAll(".dv-set-row").length, 0, "no set list for one set");
+    React.act(() => root.unmount());
+  });
+
+  test("two groups: a two-group test and no post-hoc section", function () {
+    const React = require("react");
+    const { container, root } = renderWithEffects(
+      bp.BoxplotStatsPanel,
+      panelProps([{ key: "flat", name: "", groups: three.slice(0, 2) }])
+    );
+    const hs = headings(container);
+    eq(hs[0], "Two-group test");
+    assert(!hs.some((h) => h.startsWith("Post-hoc")));
+    React.act(() => root.unmount());
+  });
+
+  test("several sets: a row per set, details open on demand, one-group sets explained", function () {
+    const React = require("react");
+    const sets = [
+      { key: "a", name: "control", groups: three },
+      { key: "b", name: "drought", groups: three.slice(0, 2) },
+      { key: "c", name: "salt", groups: three.slice(0, 1) },
+    ];
+    const { container, root } = renderWithEffects(bp.BoxplotStatsPanel, panelProps(sets));
+    const rows = container.querySelectorAll("button.dv-set-row");
+    eq(rows.length, 2, "testable sets are buttons");
+    assert(container.textContent.includes("Needs ≥ 2 groups"), "untestable set explained");
+    eq(headings(container).filter((h) => h === "Omnibus test").length, 0, "collapsed at first");
+    React.act(() => rows[0].click());
+    eq(rows[0].getAttribute("aria-expanded"), "true");
+    eq(headings(container).filter((h) => h === "Omnibus test").length, 1);
+    React.act(() => root.unmount());
+  });
+
+  test("the panel reports chart annotations for the display mode it is given", function () {
+    const React = require("react");
+    const seen = [];
+    const { root } = renderWithEffects(
+      bp.BoxplotStatsPanel,
+      panelProps([{ key: "flat", name: "", groups: three }], {
+        displayMode: "brackets",
+        onAnnotationForKey: (k, spec) => seen.push([k, spec && spec.kind]),
+      })
+    );
+    eq(JSON.stringify(seen[seen.length - 1]), JSON.stringify(["flat", "brackets"]));
+    React.act(() => root.unmount());
+  });
+
+  test("display bar: Letters need ≥ 3 groups; Show ns follows the mode", function () {
+    const React = require("react");
+    const calls = [];
+    const props = (sets, mode) => ({
+      sets,
+      displayMode: mode,
+      onDisplayModeChange: (m) => calls.push(m),
+      showNs: true,
+      onShowNsChange: noop,
+      showSummary: false,
+      onShowSummaryChange: noop,
+    });
+    const flat3 = [{ key: "flat", name: "", groups: three }];
+    const flat2 = [{ key: "flat", name: "", groups: three.slice(0, 2) }];
+    const seg = (c) => [...c.querySelectorAll(".dv-seg-btn")].map((b) => b.textContent).join("|");
+    const ns = (c) => c.querySelectorAll('input[type="checkbox"]')[0];
+    let r = renderWithEffects(bp.BoxplotStatsDisplayBar, props(flat3, "brackets"));
+    eq(seg(r.container), "Off|Letters|Brackets");
+    eq(ns(r.container).disabled, false);
+    React.act(() => r.container.querySelectorAll(".dv-seg-btn")[1].click());
+    eq(calls.join(","), "cld");
+    React.act(() => r.root.unmount());
+    r = renderWithEffects(bp.BoxplotStatsDisplayBar, props(flat3, "cld"));
+    eq(ns(r.container).disabled, true, "letters already show every difference");
+    React.act(() => r.root.unmount());
+    r = renderWithEffects(bp.BoxplotStatsDisplayBar, props(flat2, "none"));
+    eq(seg(r.container), "Off|Brackets");
+    eq(ns(r.container).disabled, true, "nothing to mark when off");
+    React.act(() => r.root.unmount());
+  });
+})();

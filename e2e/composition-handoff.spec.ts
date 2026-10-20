@@ -31,9 +31,9 @@ async function plotWithPies(page: Page) {
   await page.getByTestId("paste-parse").click();
   await page.getByTestId("step-plot").click();
   await expect(page.locator("svg g#groups").first()).toBeVisible();
-  await page.getByRole("button", { name: "Data points" }).click();
+  await page.getByRole("tab", { name: "Style" }).click();
   const colorBy = page
-    .locator("select")
+    .locator("select:visible")
     .filter({ has: page.locator("option", { hasText: "Phenotype" }) });
   await colorBy.first().selectOption({ label: "Phenotype" });
   await page
@@ -55,12 +55,14 @@ test("composition pies open in Proportions as a counts table", async ({ page }) 
 
 test("facets: one export per facet, groups labelled facet.group", async ({ page }) => {
   await plotWithPies(page);
-  await page.getByRole("button", { name: "Split by" }).click();
+  await page.getByRole("tab", { name: "Facets" }).click();
   const facetBy = page
     .locator("select")
     .filter({ has: page.locator("option", { hasText: "Day" }) });
   // Colour by, Facet by, Subgroup by all list "Day"; Facet by is the second.
   await facetBy.nth(1).selectOption({ label: "Day" });
+  // The send buttons sit with the composition-pies switch on the Style tab.
+  await page.getByRole("tab", { name: "Style" }).click();
   const send = page.getByTestId("comp-to-proportions");
   await expect(send).toHaveText(["↗ Day1 in Proportions", "↗ Day2 in Proportions"]);
   await send.nth(1).click();
@@ -72,11 +74,12 @@ test("facets: one export per facet, groups labelled facet.group", async ({ page 
 
 test("subgroups: one table, groups labelled subgroup.group", async ({ page }) => {
   await plotWithPies(page);
-  await page.getByRole("button", { name: "Split by" }).click();
+  await page.getByRole("tab", { name: "Facets" }).click();
   const subgroupBy = page
     .locator("select")
     .filter({ has: page.locator("option", { hasText: "Day" }) });
   await subgroupBy.nth(2).selectOption({ label: "Day" });
+  await page.getByRole("tab", { name: "Style" }).click();
   const send = page.getByTestId("comp-to-proportions");
   await expect(send).toHaveText(["↗ Open in Proportions"]);
   await send.click();

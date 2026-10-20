@@ -554,7 +554,8 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 16px 20px;
+  /* !important: older tiles still carry an inline padding of their own. */
+  padding: 16px 20px !important;
   margin: 0;
   border: none;
   border-radius: 0;
@@ -632,6 +633,81 @@ input[type="range"]::-moz-range-thumb {
   outline: 2px solid var(--accent-primary);
   outline-offset: 4px;
   border-radius: var(--radius-sm);
+}
+
+/* Inside the workspace canvas a plot card is a white "sheet" lying on the
+   dotted bench: no rounded border, a soft lift instead. */
+.dv-workspace-figure .dv-plot-card {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: var(--shadow-sheet);
+  width: fit-content;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Dark "ink" button — the inspector's main analysis export (R script). */
+.dv-btn-ink {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--seg-selected-bg);
+  color: var(--seg-selected-text);
+  border: 1px solid var(--seg-selected-bg);
+}
+.dv-btn-ink:hover:not(:disabled) {
+  filter: brightness(1.25);
+}
+.dv-inspector-exports .dv-btn {
+  flex: 1 1 auto;
+  min-height: 38px;
+}
+
+/* Inspector rows. */
+.dv-assumption-row {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text);
+}
+.dv-mono-faint {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.dv-set-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.dv-set-row:hover {
+  background: var(--surface-subtle);
+}
+.dv-set-row[aria-expanded="true"] {
+  background: var(--accent-primary-weak);
+}
+.dv-set-row:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+.dv-inspector input[type="checkbox"],
+.dv-workspace-toolbar input[type="checkbox"] {
+  accent-color: var(--cta-primary-bg);
 }
 
 /* Visually hidden, still read by screen readers. */

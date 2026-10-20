@@ -3,7 +3,14 @@
 // wiring — chart rendering, step panels, sidebar controls, and stats-panel
 // live in sibling modules under tools/boxplot/.
 
-import { PlotToolShell, navigateToTool, setHandoff, useHandoff, usePlotToolState } from "../_shell";
+import {
+  PlotToolShell,
+  WorkspaceLayout,
+  navigateToTool,
+  setHandoff,
+  useHandoff,
+  usePlotToolState,
+} from "../_shell";
 import {
   ERROR_BAR_LABELS,
   mergeSubgroupAnnotations,
@@ -30,7 +37,7 @@ import {
 import { UploadStep, ConfigureStep, FilterStep, OutputStep } from "./steps";
 import { PlotControls } from "./controls";
 import { PlotArea, FacetPlotList } from "./plot-area";
-import { BoxplotStatsPanel, statsInit, statsReducer } from "./stats-panel";
+import { BoxplotStatsDisplayBar, BoxplotStatsPanel, statsInit, statsReducer } from "./stats-panel";
 import "./i18n";
 import { tt, useT } from "./i18n";
 
@@ -928,6 +935,7 @@ export function App() {
       visInit={VIS_INIT_BOXPLOT}
       steps={["upload", "configure", "filter", "output", "plot"]}
       canNavigate={(s) => s === "upload" || parsedRows.length > 0}
+      workspace
     >
       {step === "upload" && (
         <UploadStep
@@ -993,156 +1001,171 @@ export function App() {
         />
       )}
 
-      {step === "plot" && canPlot && wideSkipped > 0 && (
-        <div
-          role="status"
-          style={{
-            background: "var(--warning-bg)",
-            color: "var(--warning-text)",
-            border: "1px solid var(--warning-border)",
-            borderRadius: 6,
-            padding: "8px 12px",
-            fontSize: 12,
-            marginBottom: 12,
-          }}
-        >
-          Wide-to-long reshape skipped <strong>{wideSkipped}</strong>{" "}
-          {wideSkipped === 1 ? "cell" : "cells"} that were empty or non-numeric. Sample size shrank
-          silently — verify the kept rows match what you expected.
-        </div>
-      )}
       {step === "plot" && canPlot && (
-        <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-          <PlotControls
-            dataFormat={dataFormat}
-            setDataFormat={setDataFormat}
-            setStep={setStep}
-            resetAll={resetAll}
-            allDisplayGroups={allDisplayGroups}
-            boxplotGroups={boxplotGroups}
-            renamedRows={renamedRows}
-            setPlotGroupRenames={setPlotGroupRenames}
-            setBoxplotColors={setBoxplotColors}
-            onToggleGroup={handleToggleGroup}
-            vis={vis}
-            updVis={updVis}
-            colorByCol={colorByCol}
-            setColorByCol={setColorByCol}
-            colorByCandidates={colorByCandidates}
-            colNames={colNames}
-            categoryColors={categoryColors}
-            setCategoryColors={setCategoryColors}
-            colorByCategories={colorByCategories}
-            facetByCol={facetByCol}
-            setFacetByCol={handleSetFacetByCol}
-            subgroupByCol={subgroupByCol}
-            setSubgroupByCol={handleSetSubgroupByCol}
-            onDownloadSvg={handleDownloadSvg}
-            onDownloadPng={handleDownloadPng}
-            compositionTables={compositionTables}
-            onSendComposition={handleSendComposition}
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {vis.yScale !== "linear" &&
-              boxplotGroups.some((g) => g.allValues.some((v) => v <= 0)) && (
+        <WorkspaceLayout
+          controlsLabel={trApp("boxplot.ctrl.controlsLabel")}
+          inspectorLabel={trApp("boxplot.sp.statistics")}
+          controls={
+            <PlotControls
+              dataFormat={dataFormat}
+              setDataFormat={setDataFormat}
+              setStep={setStep}
+              resetAll={resetAll}
+              allDisplayGroups={allDisplayGroups}
+              boxplotGroups={boxplotGroups}
+              renamedRows={renamedRows}
+              setPlotGroupRenames={setPlotGroupRenames}
+              setBoxplotColors={setBoxplotColors}
+              onToggleGroup={handleToggleGroup}
+              vis={vis}
+              updVis={updVis}
+              colorByCol={colorByCol}
+              setColorByCol={setColorByCol}
+              colorByCandidates={colorByCandidates}
+              colNames={colNames}
+              categoryColors={categoryColors}
+              setCategoryColors={setCategoryColors}
+              colorByCategories={colorByCategories}
+              facetByCol={facetByCol}
+              setFacetByCol={handleSetFacetByCol}
+              subgroupByCol={subgroupByCol}
+              setSubgroupByCol={handleSetSubgroupByCol}
+              onDownloadSvg={handleDownloadSvg}
+              onDownloadPng={handleDownloadPng}
+              compositionTables={compositionTables}
+              onSendComposition={handleSendComposition}
+            />
+          }
+          toolbar={
+            statsPanelSets.length > 0 ? (
+              <BoxplotStatsDisplayBar
+                sets={statsPanelSets}
+                displayMode={statsUi.displayMode}
+                onDisplayModeChange={handleStatsDisplayModeChange}
+                showNs={statsUi.showNs}
+                onShowNsChange={setStatsShowNs}
+                showSummary={statsUi.showSummary}
+                onShowSummaryChange={handleStatsShowSummaryChange}
+              />
+            ) : null
+          }
+          figure={
+            <>
+              {wideSkipped > 0 && (
                 <div
+                  role="status"
                   style={{
                     background: "var(--warning-bg)",
                     color: "var(--warning-text)",
                     border: "1px solid var(--warning-border)",
                     borderRadius: 6,
-                    padding: "6px 10px",
+                    padding: "8px 12px",
                     fontSize: 12,
-                    marginBottom: 8,
+                    marginBottom: 12,
                   }}
                 >
-                  Some values are &le; 0 and cannot be shown on a{" "}
-                  {vis.yScale === "log10"
-                    ? "log\u2081\u2080"
-                    : vis.yScale === "log2"
-                      ? "log\u2082"
-                      : "ln"}{" "}
-                  scale.
+                  Wide-to-long reshape skipped <strong>{wideSkipped}</strong>{" "}
+                  {wideSkipped === 1 ? "cell" : "cells"} that were empty or non-numeric. Sample size
+                  shrank silently — verify the kept rows match what you expected.
                 </div>
               )}
-            {facetByCol < 0 ? (
-              <PlotArea
-                colorByCol={colorByCol}
-                colorByCategories={colorByCategories}
-                colNames={colNames}
-                categoryColors={categoryColors}
-                facetByCol={facetByCol}
-                facetedData={facetedData}
-                chartRef={chartRef}
-                displayBoxplotGroups={
-                  subgroupByCol >= 0 && subgroupedData
-                    ? subgroupedData.flatGroups.map((g) => ({
-                        ...g,
-                        name: plotGroupRenames[g.name] ?? g.name,
-                        color: boxplotColors[g.name] ?? g.color,
-                      }))
-                    : displayBoxplotGroups
-                }
-                vis={vis}
-                yMinVal={yMinVal}
-                yMaxVal={yMaxVal}
-                chartAnnotations={chartAnnotations}
-                chartSummary={chartSummary}
-                subgroups={subgroupByCol >= 0 && subgroupedData ? subgroupedData.subgroups : null}
-                subgroupSummaries={
-                  subgroupByCol >= 0 && subgroupedData
-                    ? Object.fromEntries(
-                        subgroupedData.subgroups.map((sg) => [
-                          sg.name,
-                          statsUi.cellSummaries[cellKey("", sg.name)] || null,
-                        ])
-                      )
-                    : null
-                }
-              />
-            ) : (
-              <FacetPlotList
-                facetedData={facetedData}
-                facetRefs={facetRefs}
-                vis={vis}
-                yMinVal={yMinVal}
-                yMaxVal={yMaxVal}
-                plotGroupRenames={plotGroupRenames}
-                boxplotColors={boxplotColors}
-                categoryColors={categoryColors}
-                colorByCol={colorByCol}
-                colorByCategories={colorByCategories}
-                colNames={colNames}
-                facetStatsAnnotations={perFacetChartAnnotations}
-                facetStatsSummary={perFacetSummaries}
-                facetSubgroupSummaries={perFacetSubgroupSummaries}
-              />
-            )}
-            {statsPanelSets.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <BoxplotStatsPanel
-                  key={`stats-panel-${statsPanelMode}`}
-                  sets={statsPanelSets}
-                  setLabel={statsPanelLabel}
-                  fileStem={fileStem}
-                  singletonAutoExpand={statsPanelMode === "flat"}
-                  onAnnotationForKey={setCellAnnotation}
-                  onSummaryForKey={setCellSummary}
-                  displayMode={statsUi.displayMode}
-                  onDisplayModeChange={handleStatsDisplayModeChange}
-                  showNs={statsUi.showNs}
-                  onShowNsChange={setStatsShowNs}
-                  showSummary={statsUi.showSummary}
-                  onShowSummaryChange={handleStatsShowSummaryChange}
-                  errorBarLabel={vis.plotStyle === "bar" ? ERROR_BAR_LABELS[vis.errorType] : null}
-                  displayKind={
-                    vis.plotStyle === "bar" ? vis.errorType : vis.plotStyle === "box" ? "box" : null
+              {vis.yScale !== "linear" &&
+                boxplotGroups.some((g) => g.allValues.some((v) => v <= 0)) && (
+                  <div
+                    style={{
+                      background: "var(--warning-bg)",
+                      color: "var(--warning-text)",
+                      border: "1px solid var(--warning-border)",
+                      borderRadius: 6,
+                      padding: "6px 10px",
+                      fontSize: 12,
+                      marginBottom: 8,
+                    }}
+                  >
+                    Some values are &le; 0 and cannot be shown on a{" "}
+                    {vis.yScale === "log10"
+                      ? "log\u2081\u2080"
+                      : vis.yScale === "log2"
+                        ? "log\u2082"
+                        : "ln"}{" "}
+                    scale.
+                  </div>
+                )}
+              {facetByCol < 0 ? (
+                <PlotArea
+                  colorByCol={colorByCol}
+                  colorByCategories={colorByCategories}
+                  colNames={colNames}
+                  categoryColors={categoryColors}
+                  facetByCol={facetByCol}
+                  facetedData={facetedData}
+                  chartRef={chartRef}
+                  displayBoxplotGroups={
+                    subgroupByCol >= 0 && subgroupedData
+                      ? subgroupedData.flatGroups.map((g) => ({
+                          ...g,
+                          name: plotGroupRenames[g.name] ?? g.name,
+                          color: boxplotColors[g.name] ?? g.color,
+                        }))
+                      : displayBoxplotGroups
+                  }
+                  vis={vis}
+                  yMinVal={yMinVal}
+                  yMaxVal={yMaxVal}
+                  chartAnnotations={chartAnnotations}
+                  chartSummary={chartSummary}
+                  subgroups={subgroupByCol >= 0 && subgroupedData ? subgroupedData.subgroups : null}
+                  subgroupSummaries={
+                    subgroupByCol >= 0 && subgroupedData
+                      ? Object.fromEntries(
+                          subgroupedData.subgroups.map((sg) => [
+                            sg.name,
+                            statsUi.cellSummaries[cellKey("", sg.name)] || null,
+                          ])
+                        )
+                      : null
                   }
                 />
-              </div>
-            )}
-          </div>
-        </div>
+              ) : (
+                <FacetPlotList
+                  facetedData={facetedData}
+                  facetRefs={facetRefs}
+                  vis={vis}
+                  yMinVal={yMinVal}
+                  yMaxVal={yMaxVal}
+                  plotGroupRenames={plotGroupRenames}
+                  boxplotColors={boxplotColors}
+                  categoryColors={categoryColors}
+                  colorByCol={colorByCol}
+                  colorByCategories={colorByCategories}
+                  colNames={colNames}
+                  facetStatsAnnotations={perFacetChartAnnotations}
+                  facetStatsSummary={perFacetSummaries}
+                  facetSubgroupSummaries={perFacetSubgroupSummaries}
+                />
+              )}
+            </>
+          }
+          inspector={
+            statsPanelSets.length > 0 ? (
+              <BoxplotStatsPanel
+                key={`stats-panel-${statsPanelMode}`}
+                sets={statsPanelSets}
+                setLabel={statsPanelLabel}
+                fileStem={fileStem}
+                onAnnotationForKey={setCellAnnotation}
+                onSummaryForKey={setCellSummary}
+                displayMode={statsUi.displayMode}
+                showNs={statsUi.showNs}
+                showSummary={statsUi.showSummary}
+                errorBarLabel={vis.plotStyle === "bar" ? ERROR_BAR_LABELS[vis.errorType] : null}
+                displayKind={
+                  vis.plotStyle === "bar" ? vis.errorType : vis.plotStyle === "box" ? "box" : null
+                }
+              />
+            ) : null
+          }
+        />
       )}
 
       {step === "plot" && !canPlot && (

@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New app bar (2.0).** One bar across every tool: the Plöttr mark (home), a menu to switch tool
   (grouped by the question each tool answers), the steps, the file name, Start over, PNG and a
   primary "Download SVG" button, settings, theme, language and feedback.
+- **Group Plot workspace (2.0).** Controls in four tabs (Groups / Style / Facets / Axes) on the
+  left, the figure on a canvas in the middle with the marks-on-plot options above it, and the
+  statistics in their own column on the right: test result, assumptions, post-hoc, group
+  summaries, replication planning and the R / Methods / report exports.
 
 ### Added
 
