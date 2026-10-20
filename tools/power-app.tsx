@@ -1,7 +1,7 @@
 // power.jsx — editable source. Run `npm run build` to compile to power.js
 // Do NOT edit the .js file directly.
 
-import { NumberInput, PageHeader, buildRScriptForPower, useIsMobile } from "./_shell";
+import { NumberInput, buildRScriptForPower, useIsMobile } from "./_shell";
 import { makeTicks } from "./_core/scale";
 import { parseDecimal } from "./_core/numeric";
 import { downloadText, flashSaved } from "./_core/download";
@@ -867,8 +867,17 @@ export function App() {
     tr(EXPLAIN_TEST_KEYS[testKey]);
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 32px" }}>
-      <PageHeader toolName="power" title="Power Analysis" />
+    <div
+      className="dv-calc"
+      style={{
+        maxWidth: 960,
+        margin: "0 auto",
+        padding: isMobile ? "16px 16px 80px" : "28px 32px",
+      }}
+    >
+      {/* The tool's name is in the app bar's switcher; the heading stays for
+          screen readers and the document outline. */}
+      <h1 className="dv-sr-only">Power Analysis</h1>
 
       {/* ── Top group: test picker + solve-for picker share the first row;
           question banner takes its own full-width row beneath them. The

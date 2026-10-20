@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   summaries, replication planning and the R / Methods / report exports. UpSet and Venn list
   their intersections and items there. Extra downloads sit in a "More" menu in the app bar.
 - **"per group" in French.** The replication-planning sample size is now translated.
+- **Calculators on phones (2.0).** Power Analysis and the Calculator use the new app bar (one row
+  on a phone) without a second title, and every button, switch and field is at least 44 px tall
+  for fingers.
 - **New landing page (2.0).** A hero with Group Plot's real output on its example data (figure,
   test and post-hoc results), a proof strip (1,701 comparisons against R and SciPy, privacy,
   citation), tools grouped by the question they answer, a calculator band that works on phones,

@@ -170,7 +170,6 @@ function ensureSharedBundleLoaded() {
         "HowToExampleTable",
         "InspectorSection",
         "NumberInput",
-        "PageHeader",
         "ParseErrorBanner",
         "MethodsButton",
         "PlotActionsBar",

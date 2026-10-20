@@ -1,7 +1,7 @@
 // molarity.jsx — editable source. Run `npm run build` to compile to molarity.js
 // Do NOT edit the .js file directly.
 
-import { PageHeader, useIsMobile, FILE_LIMIT_BYTES } from "./_shell";
+import { useIsMobile, FILE_LIMIT_BYTES } from "./_shell";
 import { parseRaw } from "./_core/csv";
 import { downloadCsv } from "./_core/download";
 import "./molarity-app/i18n";
@@ -1032,9 +1032,12 @@ export function App() {
 
   return (
     <div
-      style={{ maxWidth: 720, margin: "0 auto", padding: compact ? "16px 10px 80px" : "32px 20px" }}
+      className="dv-calc"
+      style={{ maxWidth: 720, margin: "0 auto", padding: compact ? "16px 16px 80px" : "28px 20px" }}
     >
-      <PageHeader toolName="molarity" title="Calculator" />
+      {/* The tool's name is in the app bar's switcher; the heading stays for
+          screen readers and the document outline. */}
+      <h1 className="dv-sr-only">Calculator</h1>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 6px" }}>
         <span

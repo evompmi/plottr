@@ -429,7 +429,10 @@ function BrandLink() {
           </g>
         </svg>
       </span>
-      <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 18 }}>
+      <span
+        className="dv-brand-word"
+        style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 18 }}
+      >
         Plöttr
       </span>
     </a>
@@ -582,7 +585,7 @@ export function ToolSwitcher({ current }: { current: ToolEntry }) {
 
 function AppUtilities({ currentKey }: { currentKey: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div className="dv-appbar-utils" style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <ThemeButton />
       <LangButton />
       <FeedbackButton currentKey={currentKey} />

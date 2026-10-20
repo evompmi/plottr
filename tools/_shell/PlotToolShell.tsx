@@ -1,9 +1,9 @@
-// Outer page frame shared by every plot tool. Renders PageHeader (with the
-// PrefsPanel in the top-right slot — plus, on the plot step, the export bar
-// the tool's ActionsPanel registers and a compact, sticky header), the StepNavBar, the comma-fix banner,
-// the parse-error banner, and delegates everything else to children — each
-// tool still owns the per-step content (UploadStep, ConfigureStep, plot
-// layout, etc.) since those differ per tool.
+// Outer page frame shared by every plot tool. Renders the AppBar (step nav,
+// file chip, and on the plot step the export bar the tool's ActionsPanel
+// registers plus PrefsPanel), the comma-fix / formula-injection / parse-error
+// banners, and delegates everything else to children — each tool still owns
+// the per-step content (UploadStep, ConfigureStep, the plot workspace, etc.)
+// since those differ per tool.
 //
 import type { PlotToolState } from "./usePlotToolState";
 import { PrefsPanel } from "./PrefsPanel";

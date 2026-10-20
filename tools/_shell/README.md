@@ -115,7 +115,6 @@ per-file paths so the dependency graph stays visible.
 | `HowToCard.tsx`              | Collapsible header + body wrapper for `HowTo`.                                           |
 | `MethodsButton.tsx`          | "Methods" button + read-only popover with the methods-section paragraph and Copy.        |
 | `NumberInput.tsx`            | Numeric input with hold-to-repeat ± buttons.                                             |
-| `PageHeader.tsx`             | In-page icon + title header (calculators).                                               |
 | `ParseErrorBanner.tsx`       | Red alert banner for parse-error strings.                                                |
 | `PlotActionsBar.tsx`         | App-bar export bar: two-click Start over, downloads, SVG last as primary.                |
 | `PlotToolShell.tsx`          | Outer page frame — AppBar (steps, file chip, exports, prefs) + banners + children.       |

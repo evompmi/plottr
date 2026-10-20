@@ -198,32 +198,6 @@ test("renders banner with error message", function () {
   assert(html.includes("Bad CSV"), "banner should include the error message");
 });
 
-suite("PageHeader");
-
-test("renders header with title", function () {
-  const html = renderHtml(sc.PageHeader, { toolName: "boxplot", title: "Boxplot Tool" });
-  assert(html.length > 0, "should render");
-  assert(html.includes("Boxplot Tool"), "should include the title text");
-});
-
-test("renders header with right-slot content", function () {
-  // PageHeader exposes `middle` and `right` slots for inline children
-  // (theme toggle, prefs button, …) — there is no `subtitle` prop. The
-  // pre-Vitest mock's element-tree happened to include the unused
-  // `subtitle` string in its serialized form, so the legacy assertion
-  // matched on a value the component never rendered. Assert on a real
-  // slot instead — the right slot is the canonical home for the
-  // ThemeToggle / PrefsPanel buttons every tool surfaces.
-  const html = renderHtml(sc.PageHeader, {
-    toolName: "scatter",
-    title: "Scatter",
-    right: React.createElement("button", null, "extras"),
-  });
-  assert(html.includes("Scatter"), "should render the title");
-  assert(html.includes("extras"), "right-slot content should render");
-  assert(tagCount(html) > 3, "right slot should add elements");
-});
-
 suite("UploadPanel");
 
 test("renders with no separator selected (disabled state)", function () {

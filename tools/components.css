@@ -689,6 +689,52 @@ input[type="range"]::-moz-range-thumb {
   color: var(--text-muted);
 }
 
+/* Phones: keep the app bar on one row (rune without the wordmark, tighter
+   gaps) and give the calculators' controls 44 px touch targets. The plot
+   tools aren't offered on phones (see the landing / tool switcher). */
+@media (max-width: 600px) {
+  .dv-appbar > div {
+    gap: 8px !important;
+    padding: 8px 12px !important;
+  }
+  .dv-brand-word,
+  .dv-appbar-divider,
+  .dv-switcher-btn .dv-tool-glyph {
+    display: none;
+  }
+  .dv-appbar-utils {
+    gap: 4px !important;
+  }
+  .dv-appbar .dv-switcher-btn {
+    padding: 0 8px !important;
+    font-size: 13px !important;
+  }
+  .dv-icon-btn {
+    height: 44px;
+    min-width: 44px;
+  }
+  .dv-calc button,
+  .dv-calc select,
+  .dv-calc input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+    min-height: 44px;
+  }
+  .dv-calc .dv-num {
+    height: 44px;
+  }
+  .dv-calc .dv-num-btn {
+    width: 44px;
+    flex-basis: 44px;
+  }
+  .dv-calc .dv-seg-btn {
+    min-height: 44px;
+  }
+  .dv-brand {
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+  }
+}
+
 /* Visually hidden, still read by screen readers. */
 .dv-sr-only {
   position: absolute;

@@ -49,6 +49,7 @@ function Divider() {
   return (
     <span
       aria-hidden="true"
+      className="dv-appbar-divider"
       style={{ flex: "0 0 auto", width: 1, height: 24, background: "var(--border)" }}
     />
   );
