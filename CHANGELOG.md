@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New look (2.0).** A calmer interface: IBM Plex Sans for text with Plex Mono for numbers,
   a cool grey background, one deeper blue accent, dark selected pills on switches, and quieter
   buttons. Fonts stay self-hosted. Light-mode error text is darker so it is easier to read.
+- **New app bar (2.0).** One bar across every tool: the Plöttr mark (home), a menu to switch tool
+  (grouped by the question each tool answers), the steps, the file name, Start over, PNG and a
+  primary "Download SVG" button, settings, theme, language and feedback.
 
 ### Added
 

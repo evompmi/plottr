@@ -431,7 +431,7 @@ function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchR
                 margin: "2px 0 0",
                 padding: "4px 8px 4px 18px",
                 fontSize: 10,
-                fontFamily: "monospace",
+                fontFamily: "var(--font-mono)",
                 color: "var(--warning-text)",
                 background: "var(--warning-bg)",
                 border: "1px solid var(--warning-border)",

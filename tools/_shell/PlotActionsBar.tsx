@@ -1,7 +1,8 @@
-// Export bar shown in the page header on the plot step: one compact chip per
-// download the tool's `ActionsPanel` registered (SVG / PNG / CSV / R / …),
-// then Start over. Start over asks for a second click (within 4 s) before it
-// clears the session, since it discards the loaded data.
+// Export bar shown in the app bar on the plot step: Start over, then one
+// button per download the tool's `ActionsPanel` registered (PNG / CSV / …),
+// with the SVG figure export last as the primary button. Start over asks
+// for a second click (within 4 s) before it clears the session, since it
+// discards the loaded data.
 
 import { flashSaved } from "../_core/download";
 import { useShellT } from "./i18n";
@@ -14,6 +15,24 @@ interface PlotActionsBarProps {
   entryRef: React.MutableRefObject<PlotActionsEntry | null>;
 }
 
+function DownloadIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+    </svg>
+  );
+}
+
 export function PlotActionsBar({ entryRef }: PlotActionsBarProps) {
   const tr = useShellT();
   const [confirming, setConfirming] = useState(false);
@@ -24,35 +43,23 @@ export function PlotActionsBar({ entryRef }: PlotActionsBarProps) {
   }, [confirming]);
   const entry = entryRef.current;
   if (!entry) return null;
+  // Original indices are kept so the click handler re-reads the live entry.
+  const indexed = entry.downloads.map((d, i) => ({ d, i }));
+  const ordered = [
+    ...indexed.filter(({ d }) => d.label !== "SVG"),
+    ...indexed.filter(({ d }) => d.label === "SVG"),
+  ];
   return (
     <div
       role="toolbar"
       aria-label={tr("shell.actions.title")}
-      style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "nowrap" }}
+      style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap" }}
     >
-      {entry.downloads.map((d, i) => (
-        <button
-          key={d.label + i}
-          type="button"
-          title={d.title || undefined}
-          className="dv-btn dv-btn-dl"
-          style={{ padding: "5px 10px", fontSize: 12, whiteSpace: "nowrap" }}
-          onClick={(e) => {
-            const cur = entryRef.current;
-            const target = cur && cur.downloads[i];
-            if (!target) return;
-            target.onClick(e);
-            flashSaved(e.currentTarget);
-          }}
-        >
-          {"⬇ " + d.label}
-        </button>
-      ))}
       <button
         type="button"
         title={tr("shell.actions.resetTitle")}
         className={confirming ? "dv-btn dv-btn-danger" : "dv-btn dv-btn-secondary"}
-        style={{ padding: "5px 10px", fontSize: 12, whiteSpace: "nowrap", marginLeft: 6 }}
+        style={{ width: "auto", minHeight: "var(--control-h)", whiteSpace: "nowrap" }}
         aria-live="polite"
         onClick={() => {
           if (!confirming) {
@@ -64,8 +71,42 @@ export function PlotActionsBar({ entryRef }: PlotActionsBarProps) {
           if (cur) cur.onReset();
         }}
       >
-        {confirming ? tr("shell.actions.confirmReset") : "↺ " + tr("shell.actions.startOver")}
+        {confirming ? tr("shell.actions.confirmReset") : tr("shell.actions.startOver")}
       </button>
+      <span
+        aria-hidden="true"
+        style={{ width: 1, height: 24, background: "var(--border)", margin: "0 2px" }}
+      />
+      {ordered.map(({ d, i }) => {
+        const primary = d.label === "SVG";
+        return (
+          <button
+            key={d.label + i}
+            type="button"
+            title={d.title || undefined}
+            className={primary ? "dv-btn dv-btn-primary" : "dv-btn dv-btn-dl"}
+            style={{
+              minHeight: "var(--control-h)",
+              padding: "0 14px",
+              fontSize: 13,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              whiteSpace: "nowrap",
+            }}
+            onClick={(e) => {
+              const cur = entryRef.current;
+              const target = cur && cur.downloads[i];
+              if (!target) return;
+              target.onClick(e);
+              flashSaved(e.currentTarget);
+            }}
+          >
+            {primary && <DownloadIcon />}
+            {primary ? tr("shell.actions.downloadSvg") : d.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

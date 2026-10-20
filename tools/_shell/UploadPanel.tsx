@@ -441,7 +441,7 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
                   width: "100%",
                   minHeight: 160,
                   boxSizing: "border-box",
-                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+                  fontFamily: "var(--font-mono)",
                   fontSize: 12,
                   lineHeight: 1.4,
                   padding: "10px 12px",

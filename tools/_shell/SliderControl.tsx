@@ -44,9 +44,20 @@ function SliderControlImpl(props: SliderControlProps) {
     null,
     h(
       "div",
-      { style: { display: "flex", justifyContent: "space-between", marginBottom: 2 } },
+      {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          marginBottom: 6,
+        },
+      },
       h("span", { className: "dv-label", id: labelId }, label),
-      h("span", { style: { fontSize: 10, color: "var(--text-faint)" } }, dv)
+      h(
+        "span",
+        { style: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)" } },
+        dv
+      )
     ),
     h("input", {
       type: "range",

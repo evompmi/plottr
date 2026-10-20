@@ -282,7 +282,7 @@ function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsD
           background: "var(--surface)",
           border: "1px solid var(--border)",
           borderRadius: 6,
-          fontFamily: "ui-monospace, Menlo, monospace",
+          fontFamily: "var(--font-mono)",
           fontSize: 12,
           fontWeight: 700,
           color: "var(--text)",
@@ -656,7 +656,7 @@ export function BoxplotStatsPanel({
     color: "var(--text)",
     fontSize: 12,
   };
-  const mono: React.CSSProperties = { fontFamily: "ui-monospace, Menlo, monospace" };
+  const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
   const segBtn = (value: "none" | "cld" | "brackets", label: string) => {
     const active = displayMode === value;

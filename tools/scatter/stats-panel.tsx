@@ -232,7 +232,7 @@ function ScatterStatsDetail({
           background: "var(--surface)",
           border: "1px solid var(--border)",
           borderRadius: 6,
-          fontFamily: "ui-monospace, Menlo, monospace",
+          fontFamily: "var(--font-mono)",
           fontSize: 12,
           fontWeight: 700,
           color: "var(--text)",
@@ -471,7 +471,7 @@ export function ScatterStatsPanel({
     color: "var(--text)",
     fontSize: 12,
   };
-  const mono: React.CSSProperties = { fontFamily: "ui-monospace, Menlo, monospace" };
+  const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
   return (
     <div className="dv-panel" style={{ padding: 0, overflow: "hidden" }}>

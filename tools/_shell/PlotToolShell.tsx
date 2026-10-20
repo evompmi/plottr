@@ -7,7 +7,7 @@
 //
 import type { PlotToolState } from "./usePlotToolState";
 import { PrefsPanel } from "./PrefsPanel";
-import { PageHeader } from "./PageHeader";
+import { AppBar, FileChip } from "./AppBar";
 import { StepNavBar } from "./StepNavBar";
 import { CommaFixBanner } from "./CommaFixBanner";
 import { FormulaInjectionBanner } from "./FormulaInjectionBanner";
@@ -34,6 +34,9 @@ interface PlotToolShellProps<TVis extends object> {
   // import check with ≤ 3 sets but becomes a real configure flow with ≥ 4).
   // Keys = step identifiers (unchanged); values = human-readable labels.
   stepLabels?: Record<string, string>;
+  // The plot step renders a `WorkspaceLayout` that fills the window edge to
+  // edge (no page padding). Tools still on the older plot layout leave it off.
+  workspace?: boolean;
   children: React.ReactNode;
 }
 
@@ -71,6 +74,7 @@ export function PlotToolShell<TVis extends object>({
   steps,
   canNavigate,
   stepLabels,
+  workspace = false,
   children,
 }: PlotToolShellProps<TVis>) {
   // The plot step's ActionsPanel registers its downloads + reset here; the
@@ -89,37 +93,58 @@ export function PlotToolShell<TVis extends object>({
     []
   );
   const onPlot = state.step === "plot";
+  const fullBleed = onPlot && workspace;
   return (
-    <div style={{ padding: "24px 32px", maxWidth: 1400 }}>
-      <PageHeader
-        toolName={toolName}
-        title={title}
-        compact={onPlot}
-        middle={
+    <div className="dv-tool" data-tool-key={toolName}>
+      {/* The visible tool name lives in the app bar's switcher button; the
+          page heading stays for screen readers and the document outline. */}
+      <h1 className="dv-sr-only">{title}</h1>
+      <AppBar
+        steps={
           <StepNavBar
             steps={steps}
             currentStep={state.step}
             onStepChange={state.setStep}
             canNavigate={canNavigate}
             stepLabels={stepLabels}
-            compact={onPlot}
           />
         }
-        right={
-          onPlot ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <PlotActionsBar entryRef={actionsRef} />
-              <PrefsPanel tool={toolName} vis={state.vis} visInit={visInit} updVis={state.updVis} />
+        actions={
+          state.step !== "upload" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <FileChip name={state.fileName} />
+              {onPlot && <PlotActionsBar entryRef={actionsRef} />}
+              {onPlot && (
+                <PrefsPanel
+                  tool={toolName}
+                  vis={state.vis}
+                  visInit={visInit}
+                  updVis={state.updVis}
+                />
+              )}
             </div>
           ) : null
         }
       />
-      <CommaFixBanner commaFixed={state.commaFixed} commaFixCount={state.commaFixCount} />
-      <FormulaInjectionBanner warning={state.injectionWarning} />
-      <ParseErrorBanner error={state.parseError} />
-      <PlotActionsContext.Provider value={registry}>
-        <StepFade step={state.step}>{children}</StepFade>
-      </PlotActionsContext.Provider>
+      <div
+        className={fullBleed ? "dv-tool-body dv-tool-body-full" : "dv-tool-body"}
+        style={
+          fullBleed
+            ? undefined
+            : {
+                padding: onPlot ? "20px 24px 32px" : "28px 32px 48px",
+                maxWidth: 1400,
+                margin: "0 auto",
+              }
+        }
+      >
+        <CommaFixBanner commaFixed={state.commaFixed} commaFixCount={state.commaFixCount} />
+        <FormulaInjectionBanner warning={state.injectionWarning} />
+        <ParseErrorBanner error={state.parseError} />
+        <PlotActionsContext.Provider value={registry}>
+          <StepFade step={state.step}>{children}</StepFade>
+        </PlotActionsContext.Provider>
+      </div>
     </div>
   );
 }

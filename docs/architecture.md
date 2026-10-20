@@ -58,14 +58,16 @@ that share `theme.css` and the bundled theme controls but nothing else.
    │                              "" / "#" / "#/" → null (landing)
    │
    ├── tool-registry.ts ────►  TOOL_REGISTRY[]: each entry =
-   │                              { key, label, iconSvg,
+   │                              { key, label, category, iconSvg,
    │                                Component: React.lazy(() =>
    │                                  import("../<tool>/app")) }
    │                            One lazy chunk per tool.
    │
    └── App.tsx ─────────────►  reads route → finds registry entry
-                                  → ToolTopbar (home, sibling tools,
-                                                theme, feedback)
+                                  → AppChromeContext (brand, tool
+                                      switcher, theme, language, feedback)
+                                  → AppBar here for calculators;
+                                    plot tools draw it in PlotToolShell
                                   → <Suspense fallback={Spinner}>
                                       <ErrorBoundary toolName>
                                         <Component/>
@@ -156,8 +158,8 @@ tests deliberately reach across layers and are excluded.
         │     │       │                FilterStep / OutputStep  │
         │     │       │                                          │
         │     │       └─► PlotToolShell (_shell)                │
-        │     │             • PageHeader + PrefsPanel slot      │
-        │     │             • StepNavBar                        │
+        │     │             • AppBar: StepNavBar, file chip,    │
+        │     │               exports, PrefsPanel               │
         │     │             • CommaFixBanner / ParseErrorBanner │
         │     │                                                 │
         │     ├─► plot-area.tsx      composes chart + sidebar + │
@@ -383,7 +385,7 @@ compatibility shim, but for cross-bundle state correctness.
               │
               ▼
    React widgets pull current theme via useThemeMode():
-     • <ThemeToggle/>   button in PageHeader + landing
+     • <ThemeToggle/>   button in the AppBar + landing
      • per-chart dark/light accent colours
 
    ┌──────────────────────────────────────────────────────────┐

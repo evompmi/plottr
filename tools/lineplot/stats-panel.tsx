@@ -272,7 +272,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
           background: "var(--surface)",
           border: "1px solid var(--border)",
           borderRadius: 6,
-          fontFamily: "ui-monospace, Menlo, monospace",
+          fontFamily: "var(--font-mono)",
           fontSize: 12,
           fontWeight: 700,
           color: "var(--text)",
@@ -703,20 +703,18 @@ export function PerXStatsPanel({
                     transition: "background 120ms ease",
                   }}
                 >
-                  <td style={{ ...tdS, fontFamily: "ui-monospace, Menlo, monospace" }}>
-                    {formatX(r.x)}
-                  </td>
+                  <td style={{ ...tdS, fontFamily: "var(--font-mono)" }}>{formatX(r.x)}</td>
                   <td style={tdS}>{r.chosenTest ? lpTestLabel(r.chosenTest) : "—"}</td>
-                  <td style={{ ...tdS, fontFamily: "ui-monospace, Menlo, monospace" }}>
+                  <td style={{ ...tdS, fontFamily: "var(--font-mono)" }}>
                     {formatStat(r.chosenTest, r.result)}
                   </td>
-                  <td style={{ ...tdS, fontFamily: "ui-monospace, Menlo, monospace" }}>
+                  <td style={{ ...tdS, fontFamily: "var(--font-mono)" }}>
                     {p != null ? formatP(p) : "—"}
                   </td>
                   <td
                     style={{
                       ...tdS,
-                      fontFamily: "ui-monospace, Menlo, monospace",
+                      fontFamily: "var(--font-mono)",
                       fontWeight: sig ? 700 : 400,
                       color: sig ? "var(--step-ready)" : "var(--text)",
                     }}

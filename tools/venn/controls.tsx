@@ -149,7 +149,7 @@ export function PlotControls({
                     color: active ? "var(--text)" : "var(--text-faint)",
                     border: "1px solid var(--border-strong)",
                     background: "var(--surface)",
-                    fontFamily: "monospace",
+                    fontFamily: "var(--font-mono)",
                     fontSize: 12,
                     padding: "2px 6px",
                     borderRadius: 3,

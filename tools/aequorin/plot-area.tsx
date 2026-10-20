@@ -559,7 +559,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                             style={{
                               padding: "3px 8px",
                               color: "var(--text)",
-                              fontFamily: "monospace",
+                              fontFamily: "var(--font-mono)",
                             }}
                           >
                             {rep[sumKey] != null ? rep[sumKey].toFixed(4) : "—"}

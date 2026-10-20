@@ -1,15 +1,9 @@
-// `StepNavBar` — horizontal stepper with circles + labels + connector
-// line. Past steps render a ✓ on a filled --step-ready circle; the
-// current step renders its number on --step-active-bg chrome;
-// reachable-unvisited steps render a --step-ready outline; locked
-// steps render a neutral outline. Connector line between circles
-// fills --step-ready up to the last completed step. With `compact` (the
-// plot step) it collapses to a one-line breadcrumb — small dots + labels
-// separated by "›" — so the chart gets the vertical space.
+// `StepNavBar` — the inline step navigation in the app bar
+// (Upload › Configure › Filter › Output › Plot). Past steps show a green
+// check, the current step a tinted pill with a dot, later steps their
+// number; locked steps are greyed out and disabled.
 
 import { useShellT, type ShellKey } from "./i18n";
-
-const h = React.createElement;
 
 // Default localized labels for the canonical step keys. Tools may still
 // override any of these via the `stepLabels` prop (e.g. heatmap's
@@ -31,328 +25,122 @@ interface StepNavBarProps {
   // the stable identifier used by navigation state; labels can be
   // dynamic (e.g. venn showing "Import check" vs "Configure").
   stepLabels?: Record<string, string>;
-  compact?: boolean;
 }
 
-export function StepNavBar(props: StepNavBarProps) {
+function CheckIcon() {
+  return (
+    <span style={{ color: "var(--step-ready)", display: "inline-flex", flex: "0 0 auto" }}>
+      <svg
+        viewBox="0 0 24 24"
+        width="14"
+        height="14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M5 12l5 5L20 7" />
+      </svg>
+    </span>
+  );
+}
+
+export function StepNavBar({
+  steps,
+  currentStep,
+  onStepChange,
+  canNavigate,
+  stepLabels = {},
+}: StepNavBarProps) {
   const tr = useShellT();
-  const { steps, currentStep, onStepChange } = props;
-  const canNavigate = props.canNavigate;
-  const stepLabels = props.stepLabels || {};
   const currentIdx = steps.indexOf(currentStep);
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   // Priority: explicit per-tool override → localized default → capitalize.
   const labelFor = (s: string) =>
     stepLabels[s] || (STEP_LABEL_KEYS[s] ? tr(STEP_LABEL_KEYS[s]) : capitalize(s));
-  if (props.compact) return compactNav(props, labelFor, tr);
-  const cells = steps.map((s, i) => {
-    const enabled = canNavigate ? canNavigate(s) : true;
-    const isCurrent = i === currentIdx;
-    const isPast = i < currentIdx;
-    const isReachableUnvisited = enabled && !isCurrent && !isPast;
-
-    let circleBg: string;
-    let circleBorder: string;
-    let circleColor: string;
-    let circleContent: React.ReactNode;
-    if (isPast) {
-      circleBg = "var(--step-ready)";
-      circleBorder = "none";
-      circleColor = "var(--on-accent)";
-      circleContent = h(
-        "svg",
-        {
-          key: "check",
-          width: 18,
-          height: 18,
-          viewBox: "0 0 24 24",
-          "aria-hidden": "true",
-          style: { display: "block" },
-        },
-        h("path", {
-          d: "M5 12.5l4.2 4.2L19 7",
-          fill: "none",
-          stroke: "currentColor",
-          strokeWidth: 3,
-          strokeLinecap: "round",
-          strokeLinejoin: "round",
-        })
-      );
-    } else if (isCurrent) {
-      circleBg = "var(--step-active-bg)";
-      circleBorder = "1px solid var(--step-active-border)";
-      circleColor = "var(--on-accent)";
-      circleContent = String(i + 1);
-    } else if (isReachableUnvisited) {
-      circleBg = "var(--surface)";
-      circleBorder = "2px solid var(--step-ready)";
-      circleColor = "var(--step-ready)";
-      circleContent = String(i + 1);
-    } else {
-      circleBg = "var(--surface)";
-      circleBorder = "1px solid var(--border)";
-      circleColor = "var(--text-faint)";
-      circleContent = String(i + 1);
-    }
-
-    const labelColor = isCurrent
-      ? "var(--text)"
-      : isPast
-        ? "var(--text-muted)"
-        : isReachableUnvisited
-          ? "var(--text-faint)"
-          : "var(--border)";
-    const labelWeight = isCurrent ? 600 : 500;
-
-    const connector =
-      i < steps.length - 1
-        ? h("div", {
-            key: "conn",
-            "aria-hidden": "true",
-            style: {
-              position: "absolute",
-              top: 18,
-              left: "50%",
-              right: "-50%",
-              height: 2,
-              background: isPast ? "var(--step-ready)" : "var(--border-strong)",
-              zIndex: 0,
-              transition: "background 160ms ease-out",
-            },
-          })
-        : null;
-
-    // Visual weight scales with progress: past + current circles are large
-    // (36 px) and reachable / locked future circles are smaller (28 px) so
-    // the user's place in the flow is obvious at a glance. The current step
-    // gets an additional outer ring (rendered as a CSS outline so it never
-    // affects layout) in the same accent colour as the filled body —
-    // distinct from the 1 px border by virtue of the 2 px offset gap.
-    const isLarge = isCurrent || isPast;
-    const size = isLarge ? 36 : 28;
-    const numberFontSize = isLarge ? 16 : 13;
-
-    const circle = h(
-      "span",
-      {
-        key: "circle",
-        style: {
-          position: "relative",
-          zIndex: 1,
-          width: size,
-          height: size,
-          borderRadius: "50%",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: circleBg,
-          border: circleBorder,
-          color: circleColor,
-          fontSize: numberFontSize,
-          fontWeight: 600,
-          lineHeight: 1,
-          boxSizing: "border-box",
-          // Current-step halo: an outline sits OUTSIDE the box without
-          // contributing to layout (unlike `border`), so the surrounding
-          // circles stay anchored to the same baseline. `outlineOffset`
-          // creates the visible gap between the filled body and the ring.
-          ...(isCurrent
-            ? {
-                outline: "2px solid var(--step-active-border)",
-                outlineOffset: "2px",
-              }
-            : null),
-          transition:
-            "background 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out, width 160ms ease-out, height 160ms ease-out, outline-color 160ms ease-out",
-        },
-      },
-      circleContent
-    );
-
-    // Fixed 36 px row containing the circle so smaller (future) circles stay
-    // vertically centred on the connector line and labels keep a consistent
-    // baseline across the row.
-    const circleRow = h(
-      "div",
-      {
-        key: "circle-row",
-        style: {
-          height: 36,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
-          zIndex: 1,
-        },
-      },
-      circle
-    );
-
-    const label = h(
-      "span",
-      {
-        key: "label",
-        style: {
-          marginTop: 6,
-          fontSize: 11,
-          fontWeight: labelWeight,
-          color: labelColor,
-          textTransform: "capitalize",
-          letterSpacing: 0.2,
-          whiteSpace: "nowrap",
-        },
-      },
-      labelFor(s)
-    );
-
-    const button = h(
-      "button",
-      {
-        key: "btn",
-        type: "button",
-        onClick: enabled ? () => onStepChange(s) : undefined,
-        disabled: !enabled,
-        "aria-current": isCurrent ? "step" : undefined,
-        "aria-label": tr("shell.step.aria", { n: i + 1, total: steps.length, label: labelFor(s) }),
-        // Stable test handle. The previous e2e selector
-        // `getByRole("button", { name: /Plot$/ })` matched both this pill
-        // and the SPA topbar's tool-icon buttons (which also end in
-        // "... Plot"), so .first() picked the wrong one. Tests now use
-        // `getByTestId("step-plot")` etc.
-        "data-testid": "step-" + s,
-        style: {
-          all: "unset",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          cursor: enabled ? "pointer" : "default",
-          position: "relative",
-          zIndex: 1,
-        },
-      },
-      circleRow,
-      label
-    );
-
-    return h(
-      "div",
-      {
-        key: "step-" + s,
-        style: {
-          flex: "1 1 0",
-          position: "relative",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          minWidth: 0,
-        },
-      },
-      connector,
-      button
-    );
-  });
-
-  return h(
-    "div",
-    {
-      style: {
-        display: "flex",
-        alignItems: "flex-start",
-        padding: "8px 0 4px",
-        width: "100%",
-      },
-    },
-    cells
-  );
-}
-
-function compactNav(
-  props: StepNavBarProps,
-  labelFor: (s: string) => string,
-  tr: ReturnType<typeof useShellT>
-): React.ReactElement {
-  const { steps, currentStep, onStepChange, canNavigate } = props;
-  const currentIdx = steps.indexOf(currentStep);
-  const items: React.ReactNode[] = [];
-  steps.forEach((s, i) => {
-    const enabled = canNavigate ? canNavigate(s) : true;
-    const isCurrent = i === currentIdx;
-    const isPast = i < currentIdx;
-    if (i > 0) {
-      items.push(
-        h(
-          "span",
-          { key: "sep" + i, "aria-hidden": "true", style: { color: "var(--text-faint)" } },
-          "›"
-        )
-      );
-    }
-    const dot = h(
-      "span",
-      {
-        key: "dot",
-        "aria-hidden": "true",
-        style: {
-          width: 16,
-          height: 16,
-          borderRadius: "50%",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 10,
-          fontWeight: 700,
-          lineHeight: 1,
-          flex: "0 0 auto",
-          background: isPast
-            ? "var(--step-ready)"
-            : isCurrent
-              ? "var(--step-active-bg)"
-              : "var(--surface)",
-          color: isPast || isCurrent ? "var(--on-accent)" : "var(--text-faint)",
-          border: isPast || isCurrent ? "none" : "1px solid var(--border-strong)",
-        },
-      },
-      isPast ? "✓" : String(i + 1)
-    );
-    items.push(
-      h(
-        "button",
-        {
-          key: "step-" + s,
-          type: "button",
-          onClick: enabled && !isCurrent ? () => onStepChange(s) : undefined,
-          disabled: !enabled,
-          "aria-current": isCurrent ? "step" : undefined,
-          "aria-label": tr("shell.step.aria", {
-            n: i + 1,
-            total: steps.length,
-            label: labelFor(s),
-          }),
-          "data-testid": "step-" + s,
-          style: {
-            all: "unset",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            cursor: enabled && !isCurrent ? "pointer" : "default",
-            fontSize: 12,
-            fontWeight: isCurrent ? 700 : 500,
-            color: isCurrent ? "var(--text)" : enabled ? "var(--text-muted)" : "var(--text-faint)",
-            whiteSpace: "nowrap",
-            textTransform: "capitalize",
-          },
-        },
-        dot,
-        labelFor(s)
-      )
-    );
-  });
-  return h(
-    "nav",
-    {
-      "aria-label": tr("shell.step.navLabel"),
-      style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0 },
-    },
-    items
+  return (
+    <nav
+      aria-label={tr("shell.step.navLabel")}
+      className="dv-stepnav"
+      style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", minWidth: 0 }}
+    >
+      {steps.map((s, i) => {
+        const enabled = canNavigate ? canNavigate(s) : true;
+        const isCurrent = i === currentIdx;
+        const isPast = i < currentIdx;
+        let marker: React.ReactNode;
+        if (isPast) marker = <CheckIcon />;
+        else if (isCurrent)
+          marker = (
+            <span
+              aria-hidden="true"
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: "var(--accent-primary)",
+                flex: "0 0 auto",
+              }}
+            />
+          );
+        else
+          marker = (
+            <span
+              aria-hidden="true"
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                color: "var(--text-faint)",
+                flex: "0 0 auto",
+              }}
+            >
+              {i + 1}
+            </span>
+          );
+        return (
+          <button
+            key={s}
+            type="button"
+            className="dv-step"
+            onClick={enabled && !isCurrent ? () => onStepChange(s) : undefined}
+            disabled={!enabled}
+            aria-current={isCurrent ? "step" : undefined}
+            aria-label={tr("shell.step.aria", {
+              n: i + 1,
+              total: steps.length,
+              label: labelFor(s),
+            })}
+            // Stable test handle (the visible label alone also matches tool
+            // names like "… Plot" elsewhere in the page).
+            data-testid={"step-" + s}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: isCurrent ? "6px 10px" : "6px 8px",
+              border: "none",
+              borderRadius: "var(--radius-md)",
+              background: isCurrent ? "var(--accent-primary-weak)" : "transparent",
+              color: isCurrent
+                ? "var(--link)"
+                : enabled
+                  ? "var(--text-muted)"
+                  : "var(--text-faint)",
+              opacity: enabled || isCurrent ? 1 : 0.6,
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: isCurrent ? 600 : 400,
+              whiteSpace: "nowrap",
+              cursor: enabled && !isCurrent ? "pointer" : "default",
+            }}
+          >
+            {marker}
+            {labelFor(s)}
+          </button>
+        );
+      })}
+    </nav>
   );
 }

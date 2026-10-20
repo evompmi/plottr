@@ -7,7 +7,12 @@
 // when the body is folded. With no `headerRight` the row renders exactly like
 // the plain "button is the whole header" variant the simpler tools used, so
 // this is a drop-in replacement for both shapes.
+//
+// Inside a `ControlTabs` panel the section is always open and renders as a
+// plain titled group (no chevron, no card): the tab already does the
+// grouping, so a second level of folding would only hide controls.
 
+import { ControlTabsContext } from "./ControlTabs";
 import { scrollDisclosureIntoView } from "./scroll-helpers";
 
 const { useState, useRef, useEffect } = React;
@@ -26,6 +31,7 @@ export function ControlSection({
   headerRight,
   children,
 }: ControlSectionProps) {
+  const inTabs = React.useContext(ControlTabsContext);
   const [open, setOpen] = useState(defaultOpen);
   const rootRef = useRef<HTMLDivElement>(null);
   // Reveal a section the user just opened — not the ones that start open,
@@ -40,6 +46,19 @@ export function ControlSection({
     if (!open) return;
     requestAnimationFrame(() => scrollDisclosureIntoView(rootRef.current));
   }, [open]);
+  if (inTabs) {
+    return (
+      <section className="dv-ctrl-group">
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 20 }}>
+          <h3 className="dv-tile-title" style={{ margin: 0, flex: 1 }}>
+            {title}
+          </h3>
+          {headerRight}
+        </div>
+        {children}
+      </section>
+    );
+  }
   return (
     <div ref={rootRef} className="dv-panel" style={{ padding: 0 }}>
       <div

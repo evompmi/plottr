@@ -264,6 +264,14 @@ const fr: Record<ShellKey, string> = {
     " Si la non-normalité semble substantielle (queues lourdes, forte asymétrie, données ordinales), envisagez de passer à Spearman ρ via le menu déroulant des tests ; pour de très petits échantillons ou fortement ex æquo, Kendall τ-b est une autre alternative.",
 
   "shell.chrome.home": "Accueil",
+  "shell.chrome.homeAria": "Accueil Plöttr",
+  "shell.chrome.switchTool": "Changer d’outil",
+  "shell.chrome.cat.compare": "Comparer des groupes",
+  "shell.chrome.cat.trends": "Tendances et relations",
+  "shell.chrome.cat.sets": "Ensembles et omiques",
+  "shell.chrome.cat.bench": "À la paillasse",
+  "shell.actions.downloadSvg": "Télécharger le SVG",
+  "shell.tabs.label": "Réglages du graphique",
   "shell.chrome.themeToLight": "Passer en mode clair",
   "shell.chrome.themeToDark": "Passer en mode sombre",
 

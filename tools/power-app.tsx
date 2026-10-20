@@ -1178,7 +1178,7 @@ export function App() {
                       : solveFor === "power" && result < 0.8
                         ? "var(--accent-warning)"
                         : "var(--accent-blue)",
-                fontFamily: "monospace",
+                fontFamily: "var(--font-mono)",
               }}
             >
               {resultText}

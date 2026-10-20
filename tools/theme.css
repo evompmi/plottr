@@ -165,6 +165,8 @@
   /* ── 2.0 design tokens ──────────────────────────────────────────────────
      Hover / pressed shade of the accent (links, primary-button hover). */
   --accent-primary-hover: #23409f;
+  /* Stroke of the Plöttr rune (brand mark) in the app bar and landing. */
+  --brand-rune: #648fff;
   /* Link / accent-coloured TEXT. Same blue as the accent in light; in dark it
      is a soft periwinkle, because a text colour has to be lighter than the
      surface to stay legible (4.5:1) — the dimmer-accent rule governs fills,

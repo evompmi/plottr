@@ -287,6 +287,14 @@ const en = {
 
   // SPA topbar chrome + shell-level fallbacks (tools/_app/App.tsx)
   "shell.chrome.home": "Home",
+  "shell.chrome.homeAria": "Plöttr home",
+  "shell.chrome.switchTool": "Switch tool",
+  "shell.chrome.cat.compare": "Compare groups",
+  "shell.chrome.cat.trends": "Trends & relationships",
+  "shell.chrome.cat.sets": "Sets & omics",
+  "shell.chrome.cat.bench": "At the bench",
+  "shell.actions.downloadSvg": "Download SVG",
+  "shell.tabs.label": "Plot controls",
   "shell.chrome.themeToLight": "Switch to light mode",
   "shell.chrome.themeToDark": "Switch to dark mode",
 

@@ -58,7 +58,7 @@ const resultBox: React.CSSProperties = {
   padding: "8px 10px",
   background: "var(--surface-sunken)",
   borderRadius: 6,
-  fontFamily: "ui-monospace, Menlo, monospace",
+  fontFamily: "var(--font-mono)",
   fontSize: 12,
   fontWeight: 700,
   color: "var(--text)",

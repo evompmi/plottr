@@ -155,7 +155,7 @@ export function HowToExampleTable({
         <table
           style={{
             borderCollapse: "collapse",
-            fontFamily: "ui-monospace, Menlo, monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 11,
             color: "var(--text)",
             background: "var(--surface-subtle)",

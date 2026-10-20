@@ -140,14 +140,37 @@ test("shows a truncation note when provided", function () {
 
 suite("StepNavBar");
 
-test("renders step buttons", function () {
+test("one button per step, in order, inside a labelled nav", function () {
   const html = renderHtml(sc.StepNavBar, {
-    steps: ["Upload", "Configure", "Plot"],
-    currentStep: "Upload",
+    steps: ["upload", "configure", "plot"],
+    currentStep: "upload",
     onStepChange: noop,
   });
-  // One per-step wrapper <div> per step at the root level.
-  assert(rootChildCount(html) === 3, "should have 3 per-step wrappers");
+  assert(html.startsWith("<nav"), "nav root");
+  eq(rootChildCount(html), 3);
+  const ids = [...html.matchAll(/data-testid="(step-[a-z]+)"/g)].map((m) => m[1]);
+  eq(ids.join(","), "step-upload,step-configure,step-plot");
+});
+
+test("past steps show a check and navigate; the current step is marked and inert", function () {
+  const React = require("react");
+  const calls = [];
+  const { container, root } = renderWithEffects(sc.StepNavBar, {
+    steps: ["upload", "configure", "plot"],
+    currentStep: "configure",
+    onStepChange: (s) => calls.push(s),
+    canNavigate: (s) => s !== "plot",
+  });
+  const [up, conf, plot] = container.querySelectorAll("button");
+  assert(up.querySelector("svg"), "past step carries the check icon");
+  eq(conf.getAttribute("aria-current"), "step");
+  eq(plot.disabled, true, "locked step is disabled");
+  eq(plot.textContent, "3Plot", "later steps show their number");
+  React.act(() => conf.click());
+  eq(calls.length, 0, "clicking the current step does nothing");
+  React.act(() => up.click());
+  eq(calls.join(","), "upload");
+  React.act(() => root.unmount());
 });
 
 suite("CommaFixBanner");
@@ -462,7 +485,7 @@ test("inside a PlotToolShell it registers its buttons and draws nothing", functi
 
 suite("PlotActionsBar");
 
-test("renders one chip per download and asks twice before starting over", function () {
+test("Start over first, other downloads next, SVG last as the primary button", function () {
   const React = require("react");
   let resets = 0;
   let svgClicks = 0;
@@ -470,43 +493,29 @@ test("renders one chip per download and asks twice before starting over", functi
     current: {
       downloads: [
         { label: "SVG", onClick: () => svgClicks++ },
+        { label: "PNG", onClick: noop },
         { label: "CSV", title: "data", onClick: noop },
       ],
       onReset: () => resets++,
     },
   };
   const { container, root } = renderWithEffects(sc.PlotActionsBar, { entryRef });
-  const buttons = container.querySelectorAll("button");
-  eq(buttons.length, 3);
-  assert(buttons[0].textContent.includes("SVG"), "SVG chip");
-  React.act(() => buttons[0].click());
+  const labels = () => [...container.querySelectorAll("button")].map((b) => b.textContent);
+  eq(labels().join("|"), "Start over|PNG|CSV|Download SVG");
+  const svgBtn = container.querySelectorAll("button")[3];
+  assert(svgBtn.className.includes("dv-btn-primary"), "SVG is the primary export");
+  React.act(() => svgBtn.click());
   eq(svgClicks, 1);
-  React.act(() => buttons[2].click());
+  React.act(() => container.querySelectorAll("button")[0].click());
   eq(resets, 0, "first click only arms the reset");
-  assert(container.querySelectorAll("button")[2].textContent.includes("Really clear?"));
-  React.act(() => container.querySelectorAll("button")[2].click());
+  eq(labels()[0], "Really clear?");
+  React.act(() => container.querySelectorAll("button")[0].click());
   eq(resets, 1, "second click resets");
   React.act(() => root.unmount());
 });
 
 test("renders nothing when no tool registered actions", function () {
   eq(renderHtml(sc.PlotActionsBar, { entryRef: { current: null } }), "");
-});
-
-suite("StepNavBar compact");
-
-test("collapses to a breadcrumb that keeps the step test ids", function () {
-  const html = renderHtml(sc.StepNavBar, {
-    steps: ["upload", "configure", "plot"],
-    currentStep: "plot",
-    onStepChange: noop,
-    compact: true,
-  });
-  assert(html.includes("<nav"), "breadcrumb nav");
-  assert(html.includes('data-testid="step-upload"'), "upload test id");
-  assert(html.includes('data-testid="step-plot"'), "plot test id");
-  assert(html.includes('aria-current="step"'), "current step marked");
-  eq((html.match(/›/g) || []).length, 2);
 });
 
 suite("WhyThisTest");
@@ -3355,3 +3364,152 @@ test("useHandoff stops listening after unmount", () => {
 });
 
 summary();
+
+// ── 2.0 workspace chrome ────────────────────────────────────────────────────
+
+// Same Node 25 caveat as sessionStorage above: give ControlTabs a working
+// in-memory localStorage so the remembered-tab path is exercised.
+Object.defineProperty(globalThis, "localStorage", {
+  value: require("./helpers/_shell-test-utils").makeLocalStorage().localStorage,
+  configurable: true,
+  writable: true,
+});
+
+suite("ControlTabs");
+
+const TABS = (React) => [
+  {
+    id: "groups",
+    label: "Groups",
+    content: React.createElement(sc.ControlSection, { title: "Palette" }, "palette body"),
+  },
+  { id: "style", label: "Style", content: "style body" },
+  { id: "axes", label: "Axes", content: "axes body" },
+];
+
+test("first tab is selected by default; panels are linked and the rest hidden", function () {
+  const React = require("react");
+  localStorage.clear();
+  const { container, root } = renderWithEffects(sc.ControlTabs, { tool: "t1", tabs: TABS(React) });
+  const tabs = container.querySelectorAll('[role="tab"]');
+  eq(tabs.length, 3);
+  eq(tabs[0].getAttribute("aria-selected"), "true");
+  eq(tabs[1].getAttribute("tabindex"), "-1", "roving tabindex");
+  const panels = container.querySelectorAll('[role="tabpanel"]');
+  eq(panels[0].id, tabs[0].getAttribute("aria-controls"));
+  eq(panels[0].hidden, false);
+  eq(panels[1].hidden, true);
+  React.act(() => root.unmount());
+});
+
+test("a ControlSection inside a tab is an open titled group, not a fold-out", function () {
+  const React = require("react");
+  const { container, root } = renderWithEffects(sc.ControlTabs, { tool: "t2", tabs: TABS(React) });
+  const group = container.querySelector("section.dv-ctrl-group");
+  assert(group, "rendered as a group");
+  assert(group.textContent.includes("palette body"), "body shown without opening");
+  eq(group.querySelector(".dv-disclosure"), null, "no chevron");
+  React.act(() => root.unmount());
+  // Outside tabs the same section still folds.
+  const html = renderHtml(sc.ControlSection, { title: "Palette", children: "palette body" });
+  assert(html.includes("dv-disclosure") && !html.includes("palette body"));
+});
+
+test("click and arrow keys switch tabs; the choice is remembered per tool", function () {
+  const React = require("react");
+  localStorage.clear();
+  const first = renderWithEffects(sc.ControlTabs, { tool: "boxplot", tabs: TABS(React) });
+  const tabs = () => first.container.querySelectorAll('[role="tab"]');
+  React.act(() => tabs()[1].click());
+  eq(tabs()[1].getAttribute("aria-selected"), "true");
+  eq(localStorage.getItem("plottr-tab-boxplot"), "style");
+  const list = first.container.querySelector('[role="tablist"]');
+  const key = (k) =>
+    React.act(() => {
+      list.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
+    });
+  key("ArrowRight");
+  eq(localStorage.getItem("plottr-tab-boxplot"), "axes");
+  key("ArrowRight");
+  eq(localStorage.getItem("plottr-tab-boxplot"), "groups", "wraps around");
+  key("End");
+  eq(localStorage.getItem("plottr-tab-boxplot"), "axes");
+  assert(document.activeElement === tabs()[2], "keyboard moves focus with selection");
+  React.act(() => first.root.unmount());
+  // A fresh mount reopens the remembered tab; another tool is unaffected.
+  const again = renderWithEffects(sc.ControlTabs, { tool: "boxplot", tabs: TABS(React) });
+  eq(again.container.querySelectorAll('[role="tab"]')[2].getAttribute("aria-selected"), "true");
+  React.act(() => again.root.unmount());
+  const other = renderWithEffects(sc.ControlTabs, { tool: "scatter", tabs: TABS(React) });
+  eq(other.container.querySelectorAll('[role="tab"]')[0].getAttribute("aria-selected"), "true");
+  React.act(() => other.root.unmount());
+});
+
+test("a remembered tab the tool no longer has falls back to the first", function () {
+  const React = require("react");
+  localStorage.setItem("plottr-tab-t3", "gone");
+  const { container, root } = renderWithEffects(sc.ControlTabs, { tool: "t3", tabs: TABS(React) });
+  eq(container.querySelectorAll('[role="tab"]')[0].getAttribute("aria-selected"), "true");
+  React.act(() => root.unmount());
+});
+
+suite("WorkspaceLayout");
+
+test("three labelled columns with an inspector, two without", function () {
+  const three = renderHtml(sc.WorkspaceLayout, {
+    controls: "C",
+    figure: "F",
+    inspector: "I",
+    controlsLabel: "Plot controls",
+    inspectorLabel: "Statistics",
+  });
+  assert(three.includes('data-columns="3"'));
+  assert(three.includes('aria-label="Plot controls"') && three.includes('aria-label="Statistics"'));
+  const two = renderHtml(sc.WorkspaceLayout, {
+    controls: "C",
+    figure: "F",
+    controlsLabel: "Plot controls",
+  });
+  assert(two.includes('data-columns="2"'));
+  assert(!two.includes("dv-workspace-inspector"), "no inspector column");
+  assert(!two.includes("dv-workspace-toolbar"), "no toolbar row without a toolbar");
+  const withBar = renderHtml(sc.WorkspaceLayout, {
+    controls: "C",
+    figure: "F",
+    toolbar: "T",
+    controlsLabel: "Plot controls",
+  });
+  assert(withBar.includes("dv-workspace-toolbar"));
+});
+
+test("InspectorSection renders its label as a heading", function () {
+  const html = renderHtml(sc.InspectorSection, { label: "Omnibus test", children: "body" });
+  assert(/<h3[^>]*>Omnibus test<\/h3>/.test(html));
+  assert(html.includes("body"));
+});
+
+suite("AppBar");
+
+test("without app chrome it shows only the tool's steps and actions", function () {
+  const html = renderHtml(sc.AppBar, { steps: "STEPS", actions: "ACTIONS" });
+  assert(html.startsWith("<header"), "banner landmark");
+  assert(html.includes("STEPS") && html.includes("ACTIONS"));
+});
+
+test("with app chrome it adds brand, switcher and utilities around the tool's content", function () {
+  const React = require("react");
+  const chrome = { brand: "BRAND", switcher: "SWITCH", utilities: "UTILS" };
+  const Wrapped = () =>
+    React.createElement(
+      sc.AppChromeContext.Provider,
+      { value: chrome },
+      React.createElement(sc.AppBar, { steps: "STEPS", actions: "ACTIONS" })
+    );
+  const text = renderHtml(Wrapped, {}).replace(/<[^>]+>/g, "");
+  eq(text, "BRANDSWITCHSTEPSACTIONSUTILS");
+});
+
+test("FileChip names the file and renders nothing without one", function () {
+  assert(renderHtml(sc.FileChip, { name: "plants.csv" }).includes("plants.csv"));
+  eq(renderHtml(sc.FileChip, { name: "" }), "");
+});

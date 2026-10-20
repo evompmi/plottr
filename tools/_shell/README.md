@@ -93,41 +93,44 @@ per-file paths so the dependency graph stays visible.
 
 ### React components (`PascalCase.tsx`)
 
-| File                         | Role                                                                                    |
-| ---------------------------- | --------------------------------------------------------------------------------------- |
-| `ActionsPanel.tsx`           | Plot-step downloads + Start over; hands them to the shell's header export bar.          |
-| `BaseStyleControls.tsx`      | Background / grid on-off / grid colour controls.                                        |
-| `CldLabels.tsx`              | Compact-letter-display annotation renderer.                                             |
-| `ColorInput.tsx`             | Swatch + hex-text widget (`normalizeHexColor` lives alongside).                         |
-| `ColumnRoleEditor.tsx`       | Column-role assignment for the long-format pipeline.                                    |
-| `CommaFixBanner.tsx`         | Yellow status banner for decimal-comma auto-conversion.                                 |
-| `DataPreview.tsx`            | Compact table preview for parsed CSV/TSV.                                               |
-| `DiscretePaletteRow.tsx`     | Dropdown + swatch strip for picking a discrete palette.                                 |
-| `DownloadTiles.tsx`          | `ActionsPanel` wrapper auto-building SVG / PNG callbacks.                               |
-| `ErrorBoundary.tsx`          | Class-component error boundary used by the SPA shell.                                   |
-| `FileDropZone.tsx`           | Drag/drop / click-to-browse upload widget; ingest-size constants alongside.             |
-| `FilterCheckboxPanel.tsx`    | Per-column filter checkbox grid for the filter step.                                    |
-| `FormulaInjectionBanner.tsx` | Yellow alert for cells that would trigger Excel formula evaluation.                     |
-| `GroupColorEditor.tsx`       | Per-group colour editor list.                                                           |
-| `HowTo.tsx`                  | Tool-specific "How to use" content renderer.                                            |
-| `HowToCard.tsx`              | Collapsible header + body wrapper for `HowTo`.                                          |
-| `MethodsButton.tsx`          | "Methods" button + read-only popover with the methods-section paragraph and Copy.       |
-| `NumberInput.tsx`            | Numeric input with hold-to-repeat ± buttons.                                            |
-| `PageHeader.tsx`             | Top-of-tool header with icon + title + nav slots; compact + sticky on the plot step.    |
-| `ParseErrorBanner.tsx`       | Red alert banner for parse-error strings.                                               |
-| `PlotActionsBar.tsx`         | Header export bar (download chips + two-click Start over) on the plot step.             |
-| `PlotSidebar.tsx`            | Sticky right-rail wrapper for every plot tool's controls panel.                         |
-| `PlotToolShell.tsx`          | Outer page frame — PageHeader + StepNavBar + banners, delegates to children.            |
-| `PrefsPanel.tsx`             | Gear-menu UI on top of `prefs-store`.                                                   |
-| `RenameReorderPanel.tsx`     | Per-column rename + drag-to-reorder list.                                               |
-| `ScrollablePlotCard.tsx`     | Horizontal-scroll affordance (edge fades + "Scroll for more →" pill).                   |
-| `SignificanceBrackets.tsx`   | Pair-wise significance-bracket renderer (vertical / horizontal).                        |
-| `SliderControl.tsx`          | Labelled range slider (memo-wrapped).                                                   |
-| `StatsTable.tsx`             | Summary stats table used in group-plot output steps.                                    |
-| `StatsTile.tsx`              | Collapsible stats tile — assumption checks, test selection, post-hocs, annotation emit. |
-| `StepNavBar.tsx`             | Horizontal stepper (circles + connector); one-line breadcrumb with `compact`.           |
-| `UploadPanel.tsx`            | Separator selector + `FileDropZone` composition for the upload step.                    |
-| `WhyThisTest.tsx`            | Collapsed "Why this test?" disclosure under a stats panel's result line.                |
+| File                         | Role                                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| `ActionsPanel.tsx`           | Plot-step downloads + Start over; hands them to the shell's header export bar.           |
+| `AppBar.tsx`                 | Sticky top bar; `AppChromeContext` (brand, switcher, utilities from `_app`), `FileChip`. |
+| `BaseStyleControls.tsx`      | Background / grid on-off / grid colour controls.                                         |
+| `CldLabels.tsx`              | Compact-letter-display annotation renderer.                                              |
+| `ColorInput.tsx`             | Swatch + hex-text widget (`normalizeHexColor` lives alongside).                          |
+| `ColumnRoleEditor.tsx`       | Column-role assignment for the long-format pipeline.                                     |
+| `CommaFixBanner.tsx`         | Yellow status banner for decimal-comma auto-conversion.                                  |
+| `ControlTabs.tsx`            | Plot controls as remembered ARIA tabs; `ControlSection` flattens inside them.            |
+| `DataPreview.tsx`            | Compact table preview for parsed CSV/TSV.                                                |
+| `DiscretePaletteRow.tsx`     | Dropdown + swatch strip for picking a discrete palette.                                  |
+| `DownloadTiles.tsx`          | `ActionsPanel` wrapper auto-building SVG / PNG callbacks.                                |
+| `ErrorBoundary.tsx`          | Class-component error boundary used by the SPA shell.                                    |
+| `FileDropZone.tsx`           | Drag/drop / click-to-browse upload widget; ingest-size constants alongside.              |
+| `FilterCheckboxPanel.tsx`    | Per-column filter checkbox grid for the filter step.                                     |
+| `FormulaInjectionBanner.tsx` | Yellow alert for cells that would trigger Excel formula evaluation.                      |
+| `GroupColorEditor.tsx`       | Per-group colour editor list.                                                            |
+| `HowTo.tsx`                  | Tool-specific "How to use" content renderer.                                             |
+| `HowToCard.tsx`              | Collapsible header + body wrapper for `HowTo`.                                           |
+| `MethodsButton.tsx`          | "Methods" button + read-only popover with the methods-section paragraph and Copy.        |
+| `NumberInput.tsx`            | Numeric input with hold-to-repeat ± buttons.                                             |
+| `PageHeader.tsx`             | In-page icon + title header (calculators).                                               |
+| `ParseErrorBanner.tsx`       | Red alert banner for parse-error strings.                                                |
+| `PlotActionsBar.tsx`         | App-bar export bar: two-click Start over, downloads, SVG last as primary.                |
+| `PlotSidebar.tsx`            | Sticky right-rail wrapper for every plot tool's controls panel.                          |
+| `PlotToolShell.tsx`          | Outer page frame — AppBar (steps, file chip, exports, prefs) + banners + children.       |
+| `PrefsPanel.tsx`             | Gear-menu UI on top of `prefs-store`.                                                    |
+| `RenameReorderPanel.tsx`     | Per-column rename + drag-to-reorder list.                                                |
+| `ScrollablePlotCard.tsx`     | Horizontal-scroll affordance (edge fades + "Scroll for more →" pill).                    |
+| `SignificanceBrackets.tsx`   | Pair-wise significance-bracket renderer (vertical / horizontal).                         |
+| `SliderControl.tsx`          | Labelled range slider (memo-wrapped).                                                    |
+| `StatsTable.tsx`             | Summary stats table used in group-plot output steps.                                     |
+| `StatsTile.tsx`              | Collapsible stats tile — assumption checks, test selection, post-hocs, annotation emit.  |
+| `StepNavBar.tsx`             | Inline step navigation for the app bar (check / current pill / number).                  |
+| `UploadPanel.tsx`            | Separator selector + `FileDropZone` composition for the upload step.                     |
+| `WhyThisTest.tsx`            | Collapsed "Why this test?" disclosure under a stats panel's result line.                 |
+| `WorkspaceLayout.tsx`        | Plot-step workspace: controls \| figure canvas \| inspector; `InspectorSection`.         |
 
 ### Pure helpers / data / dispatchers (`kebab-case.ts`)
 

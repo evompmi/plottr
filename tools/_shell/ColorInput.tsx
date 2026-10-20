@@ -89,7 +89,7 @@ export function ColorInput({ value, onChange, size = 22, label }: ColorInputProp
         spellCheck={false}
         style={{
           width: 64,
-          fontFamily: "monospace",
+          fontFamily: "var(--font-mono)",
           fontSize: 11,
           border: "1px solid var(--border-strong)",
           borderRadius: 4,

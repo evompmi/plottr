@@ -111,7 +111,7 @@ export function ChartDataTable({
                     style={{
                       padding: "3px 10px",
                       textAlign: "right",
-                      fontFamily: "monospace",
+                      fontFamily: "var(--font-mono)",
                       color: "var(--text)",
                     }}
                   >

@@ -97,7 +97,7 @@ export function IntersectionTable({
                   textAlign: "right",
                   color: "var(--accent-primary)",
                   fontWeight: 700,
-                  fontFamily: "monospace",
+                  fontFamily: "var(--font-mono)",
                 }}
               >
                 {inter.size}
@@ -182,7 +182,7 @@ export function ItemListPanel({ intersection, allSetNames, fileName }: ItemListP
               fontSize: 12,
               color: "var(--text)",
               borderBottom: "1px solid var(--border)",
-              fontFamily: "monospace",
+              fontFamily: "var(--font-mono)",
             }}
           >
             {item}

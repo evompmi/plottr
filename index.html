@@ -110,20 +110,6 @@
         display: flex;
         flex-direction: column;
       }
-      /* Faint accent vignette at the top so the flat dot-grid gains depth —
-         shows on the landing and on every in-app tool page. */
-      body::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        z-index: 0;
-        pointer-events: none;
-        background: radial-gradient(
-          120% 70% at 50% -10%,
-          var(--accent-primary-weak),
-          transparent 55%
-        );
-      }
       .landing,
       #root {
         position: relative;
@@ -693,87 +679,6 @@
         background: #16a34a;
       }
 
-      .tool-view {
-        display: none;
-        flex-direction: column;
-        height: 100vh;
-      }
-      .tool-view.active {
-        display: flex;
-      }
-      .tool-topbar {
-        display: flex;
-        align-items: center;
-        /* Left-padding matches the tool's outer padding (32px) so the first
-           icon button's left edge lines up with the PageHeader — and every
-           other page-content row — beneath it. We previously matched
-           glyph-centers instead, but with the larger 40px button the
-           resulting negative offset read as "misaligned." */
-        padding: 0 16px 0 32px;
-        background: var(--surface);
-        border-bottom: 1px solid var(--border);
-        flex-shrink: 0;
-        height: 50px;
-        gap: 6px;
-      }
-      .tb-icon-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 40px;
-        height: 40px;
-        padding: 0;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--surface);
-        color: var(--text-muted);
-        cursor: pointer;
-        line-height: 0;
-        transition:
-          border-color 0.15s,
-          color 0.15s,
-          background 0.15s;
-      }
-      .tb-icon-btn:hover {
-        border-color: var(--accent-primary);
-        color: var(--accent-primary);
-        background: var(--surface-subtle);
-      }
-      /* Tool quick-jumps carry a per-tool accent (inline color); mute them at
-         rest so the topbar reads calm, full colour on hover — mirroring the
-         muted-at-rest landing tiles. */
-      .tool-topbar .tb-icon-btn[data-tool] {
-        opacity: 0.82;
-        transition:
-          opacity 0.15s,
-          border-color 0.15s,
-          background 0.15s;
-      }
-      .tool-topbar .tb-icon-btn[data-tool]:hover {
-        opacity: 1;
-      }
-      .tb-icon-btn:focus-visible {
-        outline: 2px solid var(--accent-primary);
-        outline-offset: 2px;
-      }
-      .tb-icon-btn svg {
-        width: 20px;
-        height: 20px;
-        display: block;
-      }
-      .tb-sep {
-        width: 1px;
-        height: 22px;
-        background: var(--border);
-        margin: 0 4px;
-        flex-shrink: 0;
-      }
-      .tool-view iframe {
-        flex: 1;
-        width: 100%;
-        border: none;
-      }
-
       .theme-toggle-btn {
         display: inline-flex;
         align-items: center;
@@ -925,14 +830,10 @@
           font-size: 14px;
         }
 
-        /* Tool topbar on mobile: strip cross-tool navigation down to the two
-           allowed calculators (power + molarity) plus the theme toggle. The
-           home button and links to plot tools are hidden so a user who
-           opened one calculator can only switch to the other calculator —
-           no invitation to try a plot tool that won't render usefully. */
-        .tool-topbar [data-back],
-        .tool-topbar .tb-sep,
-        .tool-topbar [data-tool]:not([data-tool="power"]):not([data-tool="molarity"]) {
+        /* App bar on phones: the tool switcher offers only the two
+           calculators (power + molarity) — plot tools need a wide screen,
+           so a phone user isn't invited into one. */
+        .dv-switcher-menu [data-category]:not([data-category="bench"]) {
           display: none !important;
         }
       }

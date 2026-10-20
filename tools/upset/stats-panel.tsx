@@ -84,7 +84,7 @@ export function IntersectionStatsPanel({
         "span",
         {
           style: {
-            fontFamily: "monospace",
+            fontFamily: "var(--font-mono)",
             color: "var(--text)",
             cursor: tooltip ? "help" : undefined,
           },
@@ -245,11 +245,13 @@ export function IntersectionStatsPanel({
                 </span>
                 <span>
                   <span style={{ color: "var(--text-muted)" }}>p = </span>
-                  <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{fmtP(p)}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>{fmtP(p)}</span>
                 </span>
                 <span>
                   <span style={{ color: "var(--text-muted)" }}>p_adj = </span>
-                  <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{fmtP(pAdj)}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>
+                    {fmtP(pAdj)}
+                  </span>
                 </span>
                 <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{hint}</span>
               </div>

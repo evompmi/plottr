@@ -115,7 +115,7 @@ export function StdCurvePanel({ text, setText, curves, onApply }: StdCurvePanelP
         style={{
           width: "100%",
           minHeight: 90,
-          fontFamily: "ui-monospace, Menlo, monospace",
+          fontFamily: "var(--font-mono)",
           fontSize: 11,
         }}
         value={text}

@@ -31,7 +31,7 @@
 /* Small label — `lbl` */
 .dv-label {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-muted);
   margin-bottom: 2px;
 }
@@ -530,6 +530,121 @@ input[type="range"]::-moz-range-thumb {
     gap: 8px;
     margin-bottom: 8px;
   }
+}
+
+/* ── 2.0 workspace chrome ─────────────────────────────────────────────
+   App bar step buttons, control tabs and the groups inside them. Inline
+   styles in the components set the resting look; hover / focus states
+   live here because inline styles can't express them. */
+.dv-step:not(:disabled):not([aria-current="step"]):hover {
+  background: var(--surface-sunken);
+  color: var(--text);
+}
+.dv-step:focus-visible,
+.dv-ctrl-tab:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+.dv-ctrl-tab:hover {
+  color: var(--text) !important;
+}
+/* A control group inside a tab: flat section separated by a hairline. */
+.dv-ctrl-group,
+.dv-ctrl-panel > .dv-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+}
+/* Shell icon buttons in the app bar (switcher, settings, theme, language). */
+.dv-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: var(--control-h);
+  min-width: var(--control-h);
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  line-height: 1;
+}
+.dv-icon-btn:hover {
+  background: var(--surface-subtle);
+  color: var(--text);
+  border-color: var(--text-faint);
+}
+.dv-icon-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+.dv-icon-btn svg {
+  display: block;
+}
+/* Utility glyphs injected as raw SVG strings carry no size of their own. */
+.dv-icon-btn > svg:only-child {
+  width: 16px;
+  height: 16px;
+}
+.dv-tool-glyph {
+  display: inline-flex;
+}
+.dv-tool-glyph svg {
+  width: 100%;
+  height: 100%;
+}
+.dv-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.dv-switcher-item:hover,
+.dv-switcher-item:focus-visible {
+  background: var(--surface-sunken);
+  outline: none;
+}
+.dv-switcher-item[aria-current="page"] {
+  background: var(--accent-primary-weak);
+  color: var(--link);
+  font-weight: 600;
+}
+.dv-brand:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+/* Visually hidden, still read by screen readers. */
+.dv-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ── Chunk-load spinner ──────────────────────────────────────────────

@@ -203,7 +203,11 @@ export function ConfigureStep({
                     {name}
                   </span>
                   <span
-                    style={{ color: "var(--text-faint)", fontFamily: "monospace", fontSize: 11 }}
+                    style={{
+                      color: "var(--text-faint)",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 11,
+                    }}
                   >
                     {size}
                   </span>

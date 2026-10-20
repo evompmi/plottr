@@ -966,7 +966,7 @@ export function StatsTile({
         background: "var(--surface)",
         border: "1px solid var(--border)",
         borderRadius: 6,
-        fontFamily: "ui-monospace, Menlo, monospace",
+        fontFamily: "var(--font-mono)",
         fontSize: 12,
         fontWeight: 700,
         color: "var(--text)",

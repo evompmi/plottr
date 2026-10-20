@@ -12,6 +12,8 @@
 // ── React components ────────────────────────────────────────────────
 export { ActionsPanel } from "./ActionsPanel";
 export type { ActionsPanelDownload } from "./ActionsPanel";
+export { AppBar, AppChromeContext, FileChip } from "./AppBar";
+export type { AppChrome } from "./AppBar";
 export { BaseStyleControls } from "./BaseStyleControls";
 export { ChartDataTable } from "./ChartDataTable";
 export type { ChartDataTableRow } from "./ChartDataTable";
@@ -20,6 +22,8 @@ export { ColorInput, normalizeHexColor } from "./ColorInput";
 export { ColumnRoleEditor } from "./ColumnRoleEditor";
 export { CommaFixBanner } from "./CommaFixBanner";
 export { ControlSection } from "./ControlSection";
+export { ControlTabs, ControlTabsContext } from "./ControlTabs";
+export type { ControlTab } from "./ControlTabs";
 export type { ControlSectionProps } from "./ControlSection";
 export { DataPreview } from "./DataPreview";
 export { DatasheetIcon } from "./DatasheetIcon";
@@ -62,6 +66,8 @@ export { StatsTile } from "./StatsTile";
 export { StepNavBar } from "./StepNavBar";
 export { UploadPanel } from "./UploadPanel";
 export { WhyThisTest } from "./WhyThisTest";
+export { InspectorSection, WorkspaceLayout } from "./WorkspaceLayout";
+export type { WorkspaceLayoutProps } from "./WorkspaceLayout";
 
 // ── Pure helpers / data / hooks ─────────────────────────────────────
 export { assignBracketLevels } from "./bracket-levels";

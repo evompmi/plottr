@@ -632,7 +632,7 @@ function BatchMode() {
           rows={8}
           style={{
             width: "100%",
-            fontFamily: "monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 12,
             padding: 10,
             border: "1px solid var(--border-strong)",
