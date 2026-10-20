@@ -7,11 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-10-20
+
+> Long-form release notes live in
+> [`docs/release-notes/v1.12.0.md`](docs/release-notes/v1.12.0.md). The
+> entries below are summary bullets that link there.
+>
+> The "Hand in Hand" release: Group Plot's composition pies go to Proportions, Proportions
+> compares groups with a control, box styling in Group Plot, and more reliable hand-offs
+> between tools.
+
 ### Added
 
 - **Composition pies → Proportions.** With composition pies on, Group Plot sends the pie counts
   (observations of each colour-by class per group) to Proportions for Fisher / χ² tests: one
-  table per facet, groups labelled `facet.subgroup.group`.
+  table per facet, groups labelled `facet.subgroup.group`. See
+  [`docs/release-notes/v1.12.0.md`](docs/release-notes/v1.12.0.md#-added).
 - **Proportions: compare with a control.** Pairwise comparisons can test each group against one
   control group only (k − 1 Fisher tests, adjusted over those) instead of every pair; the report,
   R script and Methods text follow. Matches R `fisher.test` + `p.adjust`.
@@ -25,7 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   undelivered hand-offs now expire after 30 s instead.
 - **Hand-off with Plöttr open in two tabs.** "Open in Group Plot / Proportions / UpSet" now
   always lands in the tab you clicked it in; a copy of the target tool open in another tab could
-  previously grab the data. All three routes share one receiver.
+  previously grab the data. All three routes share one receiver. See
+  [`docs/release-notes/v1.12.0.md`](docs/release-notes/v1.12.0.md#-fixed).
 
 ## [1.11.0] - 2026-10-18
 
