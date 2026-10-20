@@ -414,6 +414,9 @@ export interface BoxplotVis {
   showGrid: boolean;
   gridColor: string;
   boxFillOpacity: number;
+  boxCorners: string;
+  boxOutline: string;
+  boxOutlineColor: string;
   boxWidth: number;
   boxGap: number;
   pointSize: number;
@@ -580,6 +583,12 @@ export interface ChartProps {
   gridColor: string;
   boxWidth: number;
   boxFillOpacity: number;
+  // Box / violin styles only. "rounded" | "square" corners on the IQR box.
+  boxCorners?: string;
+  // "group" draws the box border, median and violin edge in the group colour;
+  // "custom" draws all three in `boxOutlineColor`.
+  boxOutline?: string;
+  boxOutlineColor?: string;
   pointSize: number;
   showPoints: boolean;
   jitterWidth: number;

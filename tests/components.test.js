@@ -823,6 +823,79 @@ suite("BoxplotChart");
     });
     assert(html.startsWith("<svg"), "root should be an SVG");
   });
+  const styleProps = (extra) => ({
+    groups: sampleGroups,
+    yLabel: "Value",
+    plotTitle: "",
+    plotBg: "#fff",
+    showGrid: false,
+    gridColor: "#eee",
+    boxWidth: 60,
+    boxFillOpacity: 0.3,
+    pointSize: 3,
+    showPoints: false,
+    jitterWidth: 0,
+    pointOpacity: 0.6,
+    xLabelAngle: 0,
+    categoryColors: {},
+    colorByCol: -1,
+    boxGap: 0,
+    svgLegend: [],
+    showCompPie: false,
+    ...extra,
+  });
+  // IQR boxes are the only rects with stroke-width 1.5; medians the only
+  // lines with stroke-width 2.5.
+  const boxRects = (html) => html.match(/<rect[^>]*stroke-width="1.5"[^>]*>/g) || [];
+  const medianLines = (html) => html.match(/<line[^>]*stroke-width="2.5"[^>]*>/g) || [];
+
+  test("default boxes: rounded corners, outline + median in group colour", function () {
+    const html = renderHtml(BoxplotChart, styleProps({}));
+    const rects = boxRects(html);
+    const meds = medianLines(html);
+    eq(rects.length, sampleGroups.length);
+    eq(meds.length, sampleGroups.length);
+    sampleGroups.forEach((g, i) => {
+      assert(rects[i].includes('rx="2"'), "rounded by default");
+      assert(rects[i].includes(`stroke="${g.color}"`), "outline in group colour");
+      assert(meds[i].includes(`stroke="${g.color}"`), "median in group colour");
+    });
+  });
+
+  test("square corners drop the rx radius", function () {
+    const rects = boxRects(renderHtml(BoxplotChart, styleProps({ boxCorners: "square" })));
+    eq(rects.length, sampleGroups.length);
+    rects.forEach((r) => assert(r.includes('rx="0"'), "square box should have rx=0: " + r));
+  });
+
+  test("custom outline colours box border and median together, fill unchanged", function () {
+    const html = renderHtml(
+      BoxplotChart,
+      styleProps({ boxOutline: "custom", boxOutlineColor: "#000000" })
+    );
+    const rects = boxRects(html);
+    const meds = medianLines(html);
+    sampleGroups.forEach((g, i) => {
+      assert(rects[i].includes('stroke="#000000"'), "black outline");
+      assert(rects[i].includes(`fill="${g.color}"`), "fill stays the group colour");
+      assert(meds[i].includes('stroke="#000000"'), "median follows the outline");
+    });
+  });
+
+  test("custom outline colour is ignored while boxOutline is group", function () {
+    const html = renderHtml(BoxplotChart, styleProps({ boxOutlineColor: "#000000" }));
+    assert(!html.includes('stroke="#000000"'), "no black stroke without custom mode");
+  });
+
+  test("custom outline also draws the violin edge", function () {
+    const html = renderHtml(
+      BoxplotChart,
+      styleProps({ plotStyle: "violin", boxOutline: "custom", boxOutlineColor: "#123456" })
+    );
+    const paths = html.match(/<path[^>]*stroke="#123456"[^>]*>/g) || [];
+    eq(paths.length, sampleGroups.length);
+    eq(medianLines(html).filter((l) => l.includes('stroke="#123456"')).length, sampleGroups.length);
+  });
 })();
 
 // ── BoxplotChart (bar mode) ─────────────────────────────────────────────────

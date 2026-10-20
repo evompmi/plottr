@@ -172,6 +172,9 @@ export function PlotArea({
             gridColor={vis.gridColor}
             boxWidth={vis.boxWidth}
             boxFillOpacity={vis.boxFillOpacity}
+            boxCorners={vis.boxCorners}
+            boxOutline={vis.boxOutline}
+            boxOutlineColor={vis.boxOutlineColor}
             pointSize={vis.pointSize}
             showPoints={vis.showPoints}
             jitterWidth={vis.jitterWidth}
@@ -257,6 +260,9 @@ const FacetTrio = memo(function FacetTrio({
       gridColor: vis.gridColor,
       boxWidth: vis.boxWidth,
       boxFillOpacity: vis.boxFillOpacity,
+      boxCorners: vis.boxCorners,
+      boxOutline: vis.boxOutline,
+      boxOutlineColor: vis.boxOutlineColor,
       pointSize: vis.pointSize,
       showPoints: vis.showPoints,
       jitterWidth: vis.jitterWidth,
