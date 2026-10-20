@@ -179,6 +179,7 @@ function ensureSharedBundleLoaded() {
         "PlotToolShell",
         "setHandoff",
         "useHandoff",
+        "useExampleLink",
         "BarStyleIcon",
         "BoxStyleIcon",
         "DotStyleIcon",
@@ -335,6 +336,7 @@ function loadTool(toolName) {
     "BoxplotStatsPanel: typeof BoxplotStatsPanel !== 'undefined' ? BoxplotStatsPanel : undefined," +
     "BoxplotStatsDisplayBar: typeof BoxplotStatsDisplayBar !== 'undefined' ? BoxplotStatsDisplayBar : undefined," +
     "ShapeFillTile: typeof ShapeFillTile !== 'undefined' ? ShapeFillTile : undefined," +
+    "EXAMPLE_CSV: typeof EXAMPLE_CSV !== 'undefined' ? EXAMPLE_CSV : undefined," +
     "App: typeof App !== 'undefined' ? App : undefined," +
     "};";
   const withReturn = compiled.slice(0, closingIdx) + returnObj + compiled.slice(closingIdx);

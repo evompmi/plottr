@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   summaries, replication planning and the R / Methods / report exports. UpSet and Venn list
   their intersections and items there. Extra downloads sit in a "More" menu in the app bar.
 - **"per group" in French.** The replication-planning sample size is now translated.
+- **New landing page (2.0).** A hero with Group Plot's real output on its example data (figure,
+  test and post-hoc results), a proof strip (1,701 comparisons against R and SciPy, privacy,
+  citation), tools grouped by the question they answer, a calculator band that works on phones,
+  and a citation footer with a copy button. "Try it on example data" opens Group Plot's plot
+  with the example loaded.
 
 ### Added
 

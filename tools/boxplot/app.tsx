@@ -8,6 +8,7 @@ import {
   WorkspaceLayout,
   navigateToTool,
   setHandoff,
+  useExampleLink,
   useHandoff,
   usePlotToolState,
 } from "../_shell";
@@ -397,6 +398,13 @@ export function App() {
     setFileName("example_plant_growth.csv");
     doParse(EXAMPLE_CSV, "");
   }, [doParse, setFileName, setSepOverride]);
+
+  // The landing's "Try it on example data" link (#/boxplot?example) opens the
+  // example straight on the plot step.
+  useExampleLink("boxplot", () => {
+    loadExample();
+    setStep("plot");
+  });
 
   // Paste-data ingestion path. UploadPanel hands us raw text + a synthetic
   // file name ("pasted_data.csv"); size has already been gated against

@@ -110,6 +110,7 @@ export {
 export { consumeHandoff, navigateToTool, setHandoff } from "./handoff";
 export type { HandoffPayload } from "./handoff";
 export { useHandoff } from "./useHandoff";
+export { exampleLinkHash, useExampleLink } from "./useExampleLink";
 export { detectLongFormat } from "./long-format-detect";
 export type { LongFormatDetection } from "./long-format-detect";
 export { computePowerFromData } from "./power-from-data";

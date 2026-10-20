@@ -211,7 +211,8 @@ export function applyStaticI18n(root: ParentNode = document): void {
   // are ours, not user input, so innerHTML is safe); `data-i18n-title` → the
   // title attribute (tooltips on trust badges etc.); `data-i18n-aria` → the
   // aria-label attribute (the diagram card + the SVG security-guard pills,
-  // whose accessible name is richer than their on-screen glyph). `dataset` is
+  // whose accessible name is richer than their on-screen glyph);
+  // `data-i18n-alt` → an image's alt text (the landing specimen). `dataset` is
   // an HTMLElement-only API, so query SVG nodes via getAttribute too.
   root.querySelectorAll<Element>("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
@@ -228,6 +229,10 @@ export function applyStaticI18n(root: ParentNode = document): void {
   root.querySelectorAll<Element>("[data-i18n-aria]").forEach((el) => {
     const key = el.getAttribute("data-i18n-aria");
     if (key) el.setAttribute("aria-label", t(key));
+  });
+  root.querySelectorAll<Element>("[data-i18n-alt]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-alt");
+    if (key) el.setAttribute("alt", t(key));
   });
 }
 

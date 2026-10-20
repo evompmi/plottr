@@ -3627,3 +3627,33 @@ suite("Group Plot statistics inspector");
     React.act(() => r.root.unmount());
   });
 })();
+
+suite("useExampleLink");
+
+test("loads once for #/<tool>?example, cleans the hash, ignores other routes", function () {
+  const React = require("react");
+  let loads = 0;
+  const Probe = () => {
+    sc.useExampleLink("boxplot", () => loads++);
+    return null;
+  };
+  window.history.replaceState(null, "", "#/boxplot?example");
+  const { root } = renderWithEffects(Probe, {});
+  eq(loads, 1, "loads at mount");
+  eq(window.location.hash, "#/boxplot", "hash rewritten so a reload doesn't reload the example");
+  React.act(() => {
+    window.history.replaceState(null, "", "#/scatter?example");
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  });
+  eq(loads, 1, "another tool's link is ignored");
+  React.act(() => {
+    window.history.replaceState(null, "", "#/boxplot?example");
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  });
+  eq(loads, 2, "a later link to the mounted tool loads again");
+  React.act(() => root.unmount());
+  window.history.replaceState(null, "", "#/boxplot?example");
+  window.dispatchEvent(new HashChangeEvent("hashchange"));
+  eq(loads, 2, "no listener after unmount");
+  window.history.replaceState(null, "", "#");
+});
