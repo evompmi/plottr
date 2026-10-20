@@ -10,9 +10,9 @@
 
 /* Section / panel — `sec` */
 .dv-panel {
-  background: var(--surface-subtle);
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -31,7 +31,8 @@
 /* Small label — `lbl` */
 .dv-label {
   font-size: 12px;
-  color: var(--text-faint);
+  font-weight: 500;
+  color: var(--text-muted);
   margin-bottom: 2px;
 }
 
@@ -39,10 +40,10 @@
 .dv-input {
   background: var(--surface);
   border: 1px solid var(--border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   color: var(--text);
-  padding: 4px 8px;
-  font-size: 12px;
+  padding: 5px 8px;
+  font-size: 13px;
   font-family: inherit;
 }
 .dv-input:focus-visible {
@@ -59,12 +60,12 @@
   width: 72px;
   background: var(--surface);
   border: 1px solid var(--border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   color: var(--text);
-  padding: 4px 8px;
+  padding: 5px 8px;
   font-size: 13px;
   text-align: center;
-  font-family: inherit;
+  font-family: var(--font-mono);
 }
 .dv-input-num:focus-visible {
   outline: 2px solid var(--accent-primary);
@@ -82,9 +83,9 @@
   align-items: stretch;
   background: var(--surface);
   border: 1px solid var(--border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  height: 26px;
+  height: var(--seg-h);
   box-sizing: border-box;
 }
 .dv-num:focus-within {
@@ -102,7 +103,7 @@
   border: none;
   background: transparent;
   color: var(--text);
-  font-family: inherit;
+  font-family: var(--font-mono);
   font-size: 13px;
   text-align: center;
   padding: 0 4px;
@@ -125,8 +126,8 @@
   font-weight: 700;
   line-height: 1;
   padding: 0;
-  width: 22px;
-  flex: 0 0 22px;
+  width: 26px;
+  flex: 0 0 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -209,10 +210,10 @@
 .dv-select {
   background: var(--surface);
   border: 1px solid var(--border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   color: var(--text);
-  padding: 4px 8px;
-  font-size: 12px;
+  padding: 5px 8px;
+  font-size: 13px;
   font-family: inherit;
   cursor: pointer;
 }
@@ -229,7 +230,7 @@
 .dv-select-sep {
   background: var(--surface);
   border: 2px solid var(--accent-primary);
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   color: var(--text);
   padding: 6px 12px;
   font-size: 13px;
@@ -302,30 +303,28 @@ input[type="range"]::-moz-range-thumb {
 
 /* Primary CTA — `btnPrimary` */
 .dv-btn-primary {
-  padding: 10px 28px;
-  border-radius: 8px;
+  min-height: var(--control-h);
+  padding: 0 18px;
+  border-radius: var(--radius-lg);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   background: var(--cta-primary-bg);
   color: var(--on-accent);
 }
 .dv-btn-primary:hover:not(:disabled) {
-  filter: brightness(1.15) saturate(1.05);
-  transform: translateY(-1px);
-  box-shadow: var(--cta-primary-shadow);
+  background: var(--accent-primary-hover);
 }
 .dv-btn-primary:active:not(:disabled) {
   transform: translateY(1px);
-  filter: brightness(0.96);
-  box-shadow: none;
 }
 
 /* Plot CTA — `btnPlot` (teal accent) */
 .dv-btn-plot {
-  padding: 10px 28px;
-  border-radius: 8px;
+  min-height: var(--control-h);
+  padding: 0 18px;
+  border-radius: var(--radius-lg);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   background: var(--cta-plot-bg);
   color: var(--on-accent);
 }
@@ -342,19 +341,17 @@ input[type="range"]::-moz-range-thumb {
 
 /* Secondary / quiet button — `btnSecondary` */
 .dv-btn-secondary {
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 12px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-lg);
+  font-size: 13px;
   background: var(--surface);
   border: 1px solid var(--border-strong);
-  color: var(--text-muted);
+  color: var(--text);
 }
 .dv-btn-secondary:hover:not(:disabled) {
   background: var(--surface-subtle);
-  border-color: var(--accent-primary);
-  color: var(--text);
-  transform: translateY(-1px);
-  box-shadow: var(--btn-secondary-hover-shadow);
+  border-color: var(--text-faint);
 }
 .dv-btn-secondary:active:not(:disabled) {
   transform: translateY(1px);
@@ -363,25 +360,23 @@ input[type="range"]::-moz-range-thumb {
 
 /* Unified download chip — icon + short filetype label (SVG / PNG / CSV / TXT).
    Used in ActionsPanel and standalone (per-replicate CSV, stats report TXT,
-   molarity prep sheet). Ghost style off the shared `--success-*` triplet so it
-   themes cleanly in dark mode (pale mint chip in light mode → deep-green chip
-   with mint text in dark mode) instead of a neon-green fill. */
+   molarity prep sheet). A quiet bordered button with a semibold label: the
+   primary blue is reserved for the one main export per screen. */
 .dv-btn-dl {
-  padding: 8px 10px;
-  border-radius: 6px;
-  font-size: 12px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-lg);
+  font-size: 13px;
   font-weight: 600;
-  background: var(--step-ready-bg);
-  border: 1px solid var(--step-ready-border);
-  color: var(--step-ready);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
   white-space: nowrap;
-  min-width: 78px;
+  min-width: 72px;
 }
 .dv-btn-dl:hover:not(:disabled) {
-  filter: brightness(0.96);
-  border-color: var(--step-ready);
-  transform: translateY(-1px);
-  box-shadow: var(--btn-dl-hover-shadow);
+  background: var(--surface-subtle);
+  border-color: var(--text-faint);
 }
 .dv-btn-dl:active:not(:disabled) {
   transform: translateY(1px);
@@ -391,18 +386,17 @@ input[type="range"]::-moz-range-thumb {
 /* Destructive button — `btnDanger` (full width) */
 .dv-btn-danger {
   width: 100%;
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-size: 12px;
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-lg);
+  font-size: 13px;
   background: var(--danger-bg);
   border: 1px solid var(--danger-border);
   color: var(--danger-text);
 }
 .dv-btn-danger:hover:not(:disabled) {
-  filter: brightness(0.94);
+  filter: brightness(0.96);
   border-color: var(--danger-text);
-  transform: translateY(-1px);
-  box-shadow: var(--btn-danger-hover-shadow);
 }
 .dv-btn-danger:active:not(:disabled) {
   transform: translateY(1px);
@@ -417,19 +411,23 @@ input[type="range"]::-moz-range-thumb {
    previously re-implemented. */
 .dv-seg {
   display: flex;
-  border-radius: 6px;
-  overflow: hidden;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   border: 1px solid var(--border-strong);
 }
 .dv-seg-btn {
   flex: 1;
-  padding: 4px 0;
-  font-size: 11px;
+  min-height: 26px;
+  padding: 0 8px;
+  font-size: 12px;
   font-weight: 400;
   font-family: inherit;
   cursor: pointer;
   border: none;
-  background: var(--surface);
+  border-radius: var(--radius-md);
+  background: transparent;
   color: var(--text-muted);
   transition:
     background 120ms ease,
@@ -448,9 +446,9 @@ input[type="range"]::-moz-range-thumb {
   opacity: 0.55;
 }
 .dv-seg-btn-active {
-  background: var(--accent-primary);
-  color: var(--on-accent);
-  font-weight: 700;
+  background: var(--seg-selected-bg);
+  color: var(--seg-selected-text);
+  font-weight: 600;
 }
 
 /* Facet-mode statistics summary: fill the scroll wrapper so its bottom
@@ -481,16 +479,14 @@ input[type="range"]::-moz-range-thumb {
    `style={…}` — inline styles win against external rules, so leaving
    them in keeps the old look. */
 .dv-tile-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-faint);
   text-transform: uppercase;
-  /* Slightly wider tracking reads as a deliberate section kicker, echoing
-     the landing's mono section-kickers (--accent-colour is skipped here on
-     purpose: in dark mode the dimmed accent would fail contrast as body-size
-     header text). */
-  letter-spacing: 1px;
-  font-family: inherit;
+  /* Wide tracking reads as a deliberate section kicker, matching the
+     landing's mono section labels. */
+  letter-spacing: 0.1em;
 }
 
 /* RLU timecourse — chart column responsive toggles.

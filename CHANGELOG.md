@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **New look (2.0).** A calmer interface: IBM Plex Sans for text with Plex Mono for numbers,
+  a cool grey background, one deeper blue accent, dark selected pills on switches, and quieter
+  buttons. Fonts stay self-hosted. Light-mode error text is darker so it is easier to read.
+
 ### Added
 
 - **Group Plot: optional outlier marks.** With points shown, a new "Mark outliers in black" switch
