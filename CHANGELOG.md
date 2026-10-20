@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Group Plot: optional outlier marks.** With points shown, a new "Mark outliers in black" switch
+  (on by default) can remove the black dot drawn over each outlier, leaving only its coloured
+  point. With points hidden, outliers are always marked.
+
 ## [1.12.0] - 2026-10-20
 
 > Long-form release notes live in

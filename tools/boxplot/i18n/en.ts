@@ -63,6 +63,7 @@ const en = {
   // Controls — data points
   "boxplot.ctrl.dataPoints": "Data points",
   "boxplot.ctrl.showPoints": "Show points",
+  "boxplot.ctrl.markOutliers": "Mark outliers in black",
   "boxplot.ctrl.colorBy": "Color by",
   "boxplot.ctrl.noneOption": "— none —",
   "boxplot.ctrl.compPies": "Composition pies",

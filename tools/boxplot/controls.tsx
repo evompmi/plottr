@@ -375,6 +375,16 @@ export function PlotControls({
         </div>
         {vis.showPoints && (
           <>
+            {vis.plotStyle !== "bar" && (
+              <div>
+                <div className="dv-label">{tr("boxplot.ctrl.markOutliers")}</div>
+                <OnOffToggle
+                  value={vis.markOutliers}
+                  onChange={(v) => updVis({ markOutliers: v })}
+                  ariaLabel={tr("boxplot.ctrl.markOutliers")}
+                />
+              </div>
+            )}
             <div>
               <div className="dv-label">{tr("boxplot.ctrl.colorBy")}</div>
               <select

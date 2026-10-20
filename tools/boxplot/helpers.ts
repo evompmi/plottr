@@ -421,6 +421,7 @@ export interface BoxplotVis {
   boxGap: number;
   pointSize: number;
   showPoints: boolean;
+  markOutliers: boolean;
   jitterWidth: number;
   pointOpacity: number;
   xLabelAngle: number;
@@ -591,6 +592,9 @@ export interface ChartProps {
   boxOutlineColor?: string;
   pointSize: number;
   showPoints: boolean;
+  // Black outlier marks on top of the jittered points (default on). Ignored
+  // while points are hidden: outliers are then always marked.
+  markOutliers?: boolean;
   jitterWidth: number;
   pointOpacity: number;
   xLabelAngle: number;

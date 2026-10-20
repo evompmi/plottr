@@ -177,6 +177,7 @@ export function PlotArea({
             boxOutlineColor={vis.boxOutlineColor}
             pointSize={vis.pointSize}
             showPoints={vis.showPoints}
+            markOutliers={vis.markOutliers}
             jitterWidth={vis.jitterWidth}
             pointOpacity={vis.pointOpacity}
             xLabelAngle={vis.xLabelAngle}
@@ -265,6 +266,7 @@ const FacetTrio = memo(function FacetTrio({
       boxOutlineColor: vis.boxOutlineColor,
       pointSize: vis.pointSize,
       showPoints: vis.showPoints,
+      markOutliers: vis.markOutliers,
       jitterWidth: vis.jitterWidth,
       pointOpacity: vis.pointOpacity,
       xLabelAngle: vis.xLabelAngle,

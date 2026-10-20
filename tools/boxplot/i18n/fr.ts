@@ -50,6 +50,7 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.ctrl.outlineColor": "Couleur du contour",
   "boxplot.ctrl.dataPoints": "Points de données",
   "boxplot.ctrl.showPoints": "Afficher les points",
+  "boxplot.ctrl.markOutliers": "Marquer les valeurs aberrantes en noir",
   "boxplot.ctrl.colorBy": "Colorer par",
   "boxplot.ctrl.noneOption": "— aucun —",
   "boxplot.ctrl.compPies": "Camemberts de composition",
