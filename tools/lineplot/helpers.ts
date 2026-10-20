@@ -347,8 +347,6 @@ export interface PerXStatsPanelProps {
   rows: PerXRow[];
   xLabel: string;
   fileName: string;
-  showStars: boolean;
-  setShowStars: (b: boolean) => void;
   // Error-bar kind (sem / sd / ci95) for the methods text.
   displayKind?: string;
 }

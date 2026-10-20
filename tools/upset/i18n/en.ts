@@ -109,6 +109,13 @@ const en = {
   "upset.cfg.preview": "Preview (first 8 rows):",
 
   // Stats panel
+  "upset.tab.sets": "Sets",
+  "upset.tab.display": "Display",
+  "upset.tab.statistics": "Statistics",
+  "upset.app.controlsLabel": "Plot controls",
+  "upset.app.items": "Items",
+  "upset.app.pickBar":
+    "Click an intersection bar to see its overlap test and the items it contains.",
   "upset.sp.title": "Intersection significance",
   "upset.sp.subtitle": "SuperExactTest-style exact test against the fixed-margin null",
   "upset.sp.setsTested": "Sets tested",

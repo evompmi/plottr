@@ -34,9 +34,6 @@ interface PlotToolShellProps<TVis extends object> {
   // import check with ≤ 3 sets but becomes a real configure flow with ≥ 4).
   // Keys = step identifiers (unchanged); values = human-readable labels.
   stepLabels?: Record<string, string>;
-  // The plot step renders a `WorkspaceLayout` that fills the window edge to
-  // edge (no page padding). Tools still on the older plot layout leave it off.
-  workspace?: boolean;
   children: React.ReactNode;
 }
 
@@ -74,7 +71,6 @@ export function PlotToolShell<TVis extends object>({
   steps,
   canNavigate,
   stepLabels,
-  workspace = false,
   children,
 }: PlotToolShellProps<TVis>) {
   // The plot step's ActionsPanel registers its downloads + reset here; the
@@ -93,7 +89,8 @@ export function PlotToolShell<TVis extends object>({
     []
   );
   const onPlot = state.step === "plot";
-  const fullBleed = onPlot && workspace;
+  // The plot step is a `WorkspaceLayout` that fills the window edge to edge.
+  const fullBleed = onPlot;
   return (
     <div className="dv-tool" data-tool-key={toolName}>
       {/* The visible tool name lives in the app bar's switcher button; the

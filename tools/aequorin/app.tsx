@@ -4,7 +4,7 @@
 // step panels, sidebar controls, stats-panel, reports, and pure helpers
 // live in sibling modules under tools/aequorin/.
 
-import { PlotToolShell, usePlotToolState } from "../_shell";
+import { PlotToolShell, SegToggle, WorkspaceLayout, usePlotToolState } from "../_shell";
 import {
   DEFAULT_KR,
   DEFAULT_KTR,
@@ -23,10 +23,12 @@ import {
   RepSum,
   ReplicateSumsRow,
 } from "./helpers";
-import type { CalibrationFormula } from "./helpers";
+import type { AnnotationSpec, CalibrationFormula } from "./helpers";
 import { UploadStep, ConfigureStep } from "./steps";
 import { PlotControls } from "./controls";
 import { PlotPanel, SampleSelectionOverlay } from "./plot-area";
+import { AequorinStatsPanel } from "./stats-panel";
+import { AQ_ERROR_BAR_LABELS } from "./reports";
 import "./i18n";
 import { tt, useT } from "./i18n";
 
@@ -1452,6 +1454,23 @@ export function App() {
     [stats, replicateSumsByPrefix]
   );
 
+  // Σ-barplot statistics: which sums are tested, and the marks + summary
+  // line the stats panel (inspector column) emits for the barplot.
+  const [statsDataMode, setStatsDataMode] = useState<"raw" | "corrected">("corrected");
+  const [statsAnnotations, setStatsAnnotations] = useState<AnnotationSpec | null>(null);
+  const [statsSummary, setStatsSummary] = useState<string | null>(null);
+  const statsGroups = useMemo(() => {
+    if (!vis.showInset || !replicateSums || replicateSums.length < 2) return null;
+    // Only conditions that are enabled (the ones the chart draws).
+    const activeLabels = new Set(stats.filter((st) => st.enabled).map((st) => st.prefix));
+    const filtered = replicateSums.filter((rs) => activeLabels.has(rs.prefix));
+    if (filtered.length < 2) return null;
+    return filtered.map((rs) => ({
+      name: rs.label,
+      values: rs.repSums.map((rep) => (statsDataMode === "raw" ? rep.rawSum : rep.corrSum)),
+    }));
+  }, [vis.showInset, replicateSums, stats, statsDataMode]);
+
   // Effective y-range for the chart. When `autoYRange` is on, recompute
   // every render from the per-condition stats — specifically the
   // mean ± SD ribbon edges, which is what the chart actually draws.
@@ -1756,9 +1775,10 @@ export function App() {
       )}
 
       {step === "plot" && parsed && calData && (
-        <div>
-          <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-            {/* LEFT: controls panel */}
+        <WorkspaceLayout
+          controlsLabel={trApp("aequorin.app.controlsLabel")}
+          inspectorLabel={trApp("aequorin.app.statisticsLabel")}
+          controls={
             <PlotControls
               conditions={conditions}
               setConditions={handleConditionsChange}
@@ -1768,232 +1788,115 @@ export function App() {
               downloadCalibrated={downloadCalibrated}
               resetAll={resetAll}
             />
-
-            {/* RIGHT: chart area */}
-            <div
-              className="dv-aeq-chart-area"
-              style={{ flex: 1, minWidth: 0, position: "relative" }}
-            >
-              {/* Non-sticky Series (Pool/Individual) + Layout (Combined/Faceted)
-                  toggles. On wide chart columns they're absolutely positioned
-                  at the top-right so on landing they share a row with the
-                  sticky Sample-selection pill, but scroll away normally
-                  while Sample selection alone continues to stick. The two
-                  groups are separated by a gap and carry tiny captions
-                  because they're orthogonal axes: Series is a data-shape
-                  decision (how replicates are pooled), Layout is a visual
-                  decision (one plot vs. one per condition). Both use the
-                  shared --step-active-* slate accent to match the rest of
-                  the app chrome — the caption + grouping carries the
-                  distinction, not a bespoke hue.
-
-                  All positioning + the responsive collapse live in
-                  components.css under `.dv-aeq-toggles-group`. A container
-                  query on `.dv-aeq-chart-area` (max-width: 620px) flips
-                  this to a right-aligned vertical stack AND drops it back
-                  into flow (`position: static`) so the chart below moves
-                  downstairs instead of being overlapped. */}
-              <div className="dv-aeq-toggles-group">
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                  <span
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      letterSpacing: "0.04em",
-                      textTransform: "uppercase",
-                      color: "var(--text-faint)",
-                      marginBottom: 2,
-                    }}
-                  >
-                    {trApp("aequorin.app.series")}
-                  </span>
-                  <div
-                    role="group"
-                    aria-label={trApp("aequorin.app.seriesDef")}
-                    style={{
-                      display: "inline-flex",
-                      border: "1px solid var(--step-active-border)",
-                      borderRadius: 8,
-                      overflow: "hidden",
-                      background: "var(--surface)",
-                    }}
-                  >
-                    <button
-                      onClick={() => handlePoolChange(true)}
-                      aria-pressed={poolReplicates}
-                      style={{
-                        padding: "6px 14px",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        fontFamily: "inherit",
-                        cursor: "pointer",
-                        background: poolReplicates ? "var(--step-active-bg)" : "transparent",
-                        color: poolReplicates ? "var(--on-accent)" : "var(--text-faint)",
-                        border: "none",
-                        borderRight: "1px solid var(--step-active-border)",
-                      }}
-                    >
-                      {trApp("aequorin.app.poolByName")}
-                    </button>
-                    <button
-                      onClick={() => handlePoolChange(false)}
-                      aria-pressed={!poolReplicates}
-                      style={{
-                        padding: "6px 14px",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        fontFamily: "inherit",
-                        cursor: "pointer",
-                        background: !poolReplicates ? "var(--step-active-bg)" : "transparent",
-                        color: !poolReplicates ? "var(--on-accent)" : "var(--text-faint)",
-                        border: "none",
-                      }}
-                    >
-                      {trApp("aequorin.app.individual")}
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                  <span
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      letterSpacing: "0.04em",
-                      textTransform: "uppercase",
-                      color: "var(--text-faint)",
-                      marginBottom: 2,
-                    }}
-                  >
-                    {trApp("aequorin.app.layout")}
-                  </span>
-                  <div
-                    role="group"
-                    aria-label={trApp("aequorin.app.plotLayout")}
-                    style={{
-                      display: "inline-flex",
-                      border: "1px solid var(--step-active-border)",
-                      borderRadius: 8,
-                      overflow: "hidden",
-                      background: "var(--surface)",
-                    }}
-                  >
-                    <button
-                      onClick={() => updVis({ faceted: false })}
-                      aria-pressed={!vis.faceted}
-                      style={{
-                        padding: "6px 14px",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        fontFamily: "inherit",
-                        cursor: "pointer",
-                        background: !vis.faceted ? "var(--step-active-bg)" : "transparent",
-                        color: !vis.faceted ? "var(--on-accent)" : "var(--text-faint)",
-                        border: "none",
-                        borderRight: "1px solid var(--step-active-border)",
-                      }}
-                    >
-                      {trApp("aequorin.app.combined")}
-                    </button>
-                    <button
-                      onClick={() => updVis({ faceted: true })}
-                      aria-pressed={vis.faceted}
-                      style={{
-                        padding: "6px 14px",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        fontFamily: "inherit",
-                        cursor: "pointer",
-                        background: vis.faceted ? "var(--step-active-bg)" : "transparent",
-                        color: vis.faceted ? "var(--on-accent)" : "var(--text-faint)",
-                        border: "none",
-                      }}
-                    >
-                      {trApp("aequorin.app.faceted")}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              {/* Sticky row: Sample selection. `width: fit-content` keeps
-                  the wrapper from stretching across the column — otherwise
-                  its empty right half (higher zIndex) sits on top of the
-                  absolutely-positioned Combined/Faceted toggle and blocks
-                  clicks. */}
-              <div
-                style={{
-                  position: "sticky",
-                  top: 0,
-                  zIndex: 20,
-                  marginBottom: 10,
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 12,
-                  width: "fit-content",
-                }}
-              >
-                <SampleSelectionOverlay
-                  showColumnOverlay={vis.showColumnOverlay}
-                  setShowColumnOverlay={(v: boolean) => updVis({ showColumnOverlay: v })}
-                  poolReplicates={poolReplicates}
-                  colInfo={colInfo}
-                  columnEnabled={columnEnabled}
-                  handleColumnToggle={handleColumnToggle}
-                  conditions={conditions}
-                />
-              </div>
-              <PlotPanel
-                ref={plotPanelRef}
-                stats={stats}
-                xStart={vis.xStart}
-                xEnd={vis.xEnd}
-                yMin={effYRange.yMin}
-                yMax={effYRange.yMax}
-                faceted={vis.faceted}
-                title={vis.plotTitle}
-                subtitle={vis.plotSubtitle}
-                smoothWidth={vis.smoothWidth}
-                formula={formula}
-                replicateSums={replicateSums}
-                fileName={fileName}
-                plotBg={vis.plotBg}
-                showGrid={vis.showGrid}
-                lineWidth={vis.lineWidth}
-                ribbonOpacity={vis.ribbonOpacity}
-                gridColor={vis.gridColor}
-                tickFontSize={vis.tickFontSize}
-                plotHeight={vis.plotHeight}
-                timeStep={vis.timeStep}
-                baseUnit={vis.baseUnit}
-                displayUnit={vis.displayUnit}
-                showInset={vis.showInset}
-                insetFillOpacity={vis.insetFillOpacity}
-                insetBarWidth={vis.insetBarWidth}
-                insetBarGap={vis.insetBarGap}
-                insetYMin={vis.insetYMinCustom !== "" ? Number(vis.insetYMinCustom) : null}
-                insetYMax={vis.insetYMaxCustom !== "" ? Number(vis.insetYMaxCustom) : null}
-                insetW={vis.insetW}
-                insetH={vis.insetH}
-                insetErrorType={vis.insetErrorType}
-                insetShowBarOutline={vis.insetShowBarOutline}
-                insetBarOutlineColor={vis.insetBarOutlineColor}
-                insetBarStrokeWidth={vis.insetBarStrokeWidth}
-                insetShowGrid={vis.insetShowGrid}
-                insetGridColor={vis.insetGridColor}
-                insetErrorStrokeWidth={vis.insetErrorStrokeWidth}
-                insetXFontSize={vis.insetXFontSize}
-                insetYFontSize={vis.insetYFontSize}
-                insetXLabelAngle={vis.insetXLabelAngle}
-                insetShowPoints={vis.insetShowPoints}
-                insetPointSize={vis.insetPointSize}
-                insetPointColor={vis.insetPointColor}
-                onXRangeChange={(xStartRow, xEndRow) =>
-                  updVis({ xStart: xStartRow, xEnd: xEndRow })
-                }
-                onResetXRange={() => updVis({ xStart: 0, xEnd: calData.length, autoYRange: true })}
-                xZoomed={vis.xStart > 0 || vis.xEnd < calData.length}
+          }
+          toolbar={
+            <>
+              <span className="dv-toolbar-label">{trApp("aequorin.app.series")}</span>
+              <SegToggle<"pool" | "individual">
+                ariaLabel={trApp("aequorin.app.seriesDef")}
+                value={poolReplicates ? "pool" : "individual"}
+                onChange={(v) => handlePoolChange(v === "pool")}
+                options={[
+                  { value: "pool", label: trApp("aequorin.app.poolByName") },
+                  { value: "individual", label: trApp("aequorin.app.individual") },
+                ]}
+                style={{ flex: "0 0 auto" }}
               />
-            </div>
-          </div>
-        </div>
+              <span className="dv-toolbar-label">{trApp("aequorin.app.layout")}</span>
+              <SegToggle<"combined" | "faceted">
+                ariaLabel={trApp("aequorin.app.plotLayout")}
+                value={vis.faceted ? "faceted" : "combined"}
+                onChange={(v) => updVis({ faceted: v === "faceted" })}
+                options={[
+                  { value: "combined", label: trApp("aequorin.app.combined") },
+                  { value: "faceted", label: trApp("aequorin.app.faceted") },
+                ]}
+                style={{ flex: "0 0 auto" }}
+              />
+              <SampleSelectionOverlay
+                showColumnOverlay={vis.showColumnOverlay}
+                setShowColumnOverlay={(v: boolean) => updVis({ showColumnOverlay: v })}
+                poolReplicates={poolReplicates}
+                colInfo={colInfo}
+                columnEnabled={columnEnabled}
+                handleColumnToggle={handleColumnToggle}
+                conditions={conditions}
+              />
+            </>
+          }
+          figure={
+            <PlotPanel
+              ref={plotPanelRef}
+              stats={stats}
+              xStart={vis.xStart}
+              xEnd={vis.xEnd}
+              yMin={effYRange.yMin}
+              yMax={effYRange.yMax}
+              faceted={vis.faceted}
+              title={vis.plotTitle}
+              subtitle={vis.plotSubtitle}
+              smoothWidth={vis.smoothWidth}
+              formula={formula}
+              replicateSums={replicateSums}
+              fileName={fileName}
+              plotBg={vis.plotBg}
+              showGrid={vis.showGrid}
+              lineWidth={vis.lineWidth}
+              ribbonOpacity={vis.ribbonOpacity}
+              gridColor={vis.gridColor}
+              tickFontSize={vis.tickFontSize}
+              plotHeight={vis.plotHeight}
+              timeStep={vis.timeStep}
+              baseUnit={vis.baseUnit}
+              displayUnit={vis.displayUnit}
+              showInset={vis.showInset}
+              insetFillOpacity={vis.insetFillOpacity}
+              insetBarWidth={vis.insetBarWidth}
+              insetBarGap={vis.insetBarGap}
+              insetYMin={vis.insetYMinCustom !== "" ? Number(vis.insetYMinCustom) : null}
+              insetYMax={vis.insetYMaxCustom !== "" ? Number(vis.insetYMaxCustom) : null}
+              insetW={vis.insetW}
+              insetH={vis.insetH}
+              insetErrorType={vis.insetErrorType}
+              insetShowBarOutline={vis.insetShowBarOutline}
+              insetBarOutlineColor={vis.insetBarOutlineColor}
+              insetBarStrokeWidth={vis.insetBarStrokeWidth}
+              insetShowGrid={vis.insetShowGrid}
+              insetGridColor={vis.insetGridColor}
+              insetErrorStrokeWidth={vis.insetErrorStrokeWidth}
+              insetXFontSize={vis.insetXFontSize}
+              insetYFontSize={vis.insetYFontSize}
+              insetXLabelAngle={vis.insetXLabelAngle}
+              insetShowPoints={vis.insetShowPoints}
+              insetPointSize={vis.insetPointSize}
+              insetPointColor={vis.insetPointColor}
+              onXRangeChange={(xStartRow, xEndRow) => updVis({ xStart: xStartRow, xEnd: xEndRow })}
+              onResetXRange={() => updVis({ xStart: 0, xEnd: calData.length, autoYRange: true })}
+              xZoomed={vis.xStart > 0 || vis.xEnd < calData.length}
+              statsDataMode={statsDataMode}
+              onStatsDataModeChange={setStatsDataMode}
+              statsAnnotations={statsAnnotations}
+              statsSummary={statsSummary}
+            />
+          }
+          inspector={
+            statsGroups ? (
+              <AequorinStatsPanel
+                groups={statsGroups}
+                fileStem={`${fileBaseName(fileName, "rlu_timecourse")}_stats`}
+                onAnnotationChange={setStatsAnnotations}
+                onSummaryChange={setStatsSummary}
+                errorBarLabel={AQ_ERROR_BAR_LABELS[vis.insetErrorType]}
+                displayKind={vis.insetErrorType}
+                valueNote={trApp(
+                  statsDataMode === "raw"
+                    ? "aequorin.methods.valueRaw"
+                    : "aequorin.methods.valueCorrected"
+                )}
+              />
+            ) : null
+          }
+        />
       )}
     </PlotToolShell>
   );

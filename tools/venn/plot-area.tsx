@@ -4,6 +4,7 @@
 // just composes the chart with the data-extraction panels.
 
 import { VennChart } from "./chart";
+import { InspectorSection, WorkspaceLayout } from "../_shell";
 import { useT } from "./i18n";
 import { regionLabel, regionFilenamePart } from "./helpers";
 import type { IntersectionTableProps, ItemListPanelProps, PlotAreaProps, Region } from "./helpers";
@@ -268,73 +269,57 @@ export function PlotArea({
   setLayoutInfo,
   selectedIntersection,
   fileName,
+  controls,
 }: PlotAreaProps) {
+  const tr = useT();
   return (
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <div
-        className="dv-panel dv-plot-card"
-        style={{
-          padding: 20,
-          background: "var(--plot-card-bg)",
-          borderColor: "var(--plot-card-border)",
-        }}
-      >
-        <VennChart
-          ref={chartRef}
-          setNames={activeSetNames}
-          sets={activeSetsMap}
-          intersections={intersections}
-          colors={setColors}
-          selectedMask={selectedMask}
-          onRegionClick={setSelectedMask}
-          plotTitle={vis.plotTitle}
-          plotBg={vis.plotBg}
-          fontSize={vis.fontSize}
-          fillOpacity={vis.fillOpacity}
-          readabilityBlend={vis.readabilityBlend}
-          showOutline={vis.showOutline}
-          onLayoutInfo={setLayoutInfo}
-          proportional={proportional}
-        />
-      </div>
-      <LayoutInfoBanner proportional={proportional} layoutInfo={layoutInfo} />
-
-      {/* Data extraction panels */}
-      <div className="dv-panel" style={{ marginTop: 16 }}>
-        <p
-          style={{
-            margin: "0 0 10px",
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text-muted)",
-          }}
-        >
-          Intersections
-        </p>
-        <IntersectionTable
-          intersections={intersections}
-          allSetNames={activeSetNames}
-          selectedMask={selectedMask}
-          onSelect={setSelectedMask}
-        />
-      </div>
-      <div className="dv-panel" style={{ marginTop: 16 }}>
-        <p
-          style={{
-            margin: "0 0 10px",
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text-muted)",
-          }}
-        >
-          Items
-        </p>
-        <ItemListPanel
-          intersection={selectedIntersection}
-          allSetNames={activeSetNames}
-          fileName={fileName}
-        />
-      </div>
-    </div>
+    <WorkspaceLayout
+      controlsLabel={tr("venn.controlsLabel")}
+      inspectorLabel={tr("venn.inspectorLabel")}
+      controls={controls}
+      figure={
+        <>
+          <div className="dv-plot-card" style={{ background: "var(--plot-card-bg)", padding: 20 }}>
+            <VennChart
+              ref={chartRef}
+              setNames={activeSetNames}
+              sets={activeSetsMap}
+              intersections={intersections}
+              colors={setColors}
+              selectedMask={selectedMask}
+              onRegionClick={setSelectedMask}
+              plotTitle={vis.plotTitle}
+              plotBg={vis.plotBg}
+              fontSize={vis.fontSize}
+              fillOpacity={vis.fillOpacity}
+              readabilityBlend={vis.readabilityBlend}
+              showOutline={vis.showOutline}
+              onLayoutInfo={setLayoutInfo}
+              proportional={proportional}
+            />
+          </div>
+          <LayoutInfoBanner proportional={proportional} layoutInfo={layoutInfo} />
+        </>
+      }
+      inspector={
+        <>
+          <InspectorSection label={tr("venn.intersections")}>
+            <IntersectionTable
+              intersections={intersections}
+              allSetNames={activeSetNames}
+              selectedMask={selectedMask}
+              onSelect={setSelectedMask}
+            />
+          </InspectorSection>
+          <InspectorSection label={tr("venn.items")}>
+            <ItemListPanel
+              intersection={selectedIntersection}
+              allSetNames={activeSetNames}
+              fileName={fileName}
+            />
+          </InspectorSection>
+        </>
+      }
+    />
   );
 }

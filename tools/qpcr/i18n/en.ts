@@ -168,6 +168,13 @@ const en = {
   "qpcr.dl.rTitle": "R script recomputing ΔCt from the raw Ct and running the same tests",
 
   // Statistics panel
+  "qpcr.stats.analysisExports": "Analysis exports",
+  "qpcr.stats.rScript": "R script",
+  "qpcr.stats.reportTxt": "Report .txt",
+  "qpcr.tab.chart": "Chart",
+  "qpcr.tab.style": "Style",
+  "qpcr.tab.axes": "Axes",
+  "qpcr.plot.controlsLabel": "Plot controls",
   "qpcr.stats.title": "Statistics",
   "qpcr.stats.desc": "Tests on ΔCt per target gene; fold changes are back-transformed estimates.",
   "qpcr.stats.displayOnPlot": "Display on plot",

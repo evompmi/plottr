@@ -86,6 +86,13 @@ const en = {
   // Statistics panel
   "proportions.stats.focusNote":
     "Analysing “{cat}” vs. all other outcomes pooled (as on the chart). Switch to Stacked or Mosaic to test every outcome.",
+  "proportions.stats.analysisExports": "Analysis exports",
+  "proportions.stats.rScript": "R script",
+  "proportions.stats.reportTxt": "Report .txt",
+  "proportions.tab.chart": "Chart",
+  "proportions.tab.colors": "Colours",
+  "proportions.tab.style": "Style",
+  "proportions.controlsLabel": "Plot controls",
   "proportions.stats.title": "Statistics",
   "proportions.stats.desc": "Counts with Wilson CIs and tests on the table shown in the chart.",
   "proportions.stats.displayOnPlot": "Display on plot",

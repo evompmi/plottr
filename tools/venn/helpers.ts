@@ -155,6 +155,8 @@ export interface PlotAreaProps {
   setLayoutInfo: (info: VennLayoutInfo) => void;
   selectedIntersection: Region | null;
   fileName: string;
+  // The tool's tabbed controls, shown in the workspace's left column.
+  controls: React.ReactNode;
 }
 
 export interface PlotControlsProps {

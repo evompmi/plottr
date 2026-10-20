@@ -121,6 +121,10 @@ const fr: Record<HeatmapKey, string> = {
     "Valeurs de la carte — {rows} lignes × {cols} colonnes, dans l’ordre affiché",
   "heatmap.table.truncated": "Grande matrice — affichage des {shown} premières lignes sur {total}.",
   "heatmap.table.rowHeader": "Ligne",
+  "heatmap.plot.controlsLabel": "Réglages du graphique",
+  "heatmap.tab.data": "Données",
+  "heatmap.tab.colours": "Couleurs",
+  "heatmap.tab.labels": "Étiquettes",
   "heatmap.plot.clear": "Effacer",
   "heatmap.plot.dragHint":
     "↳ Glissez sur la heatmap ou cliquez sur un dendrogramme / une bande k-means pour ouvrir une vue zoomée",

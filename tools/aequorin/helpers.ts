@@ -874,4 +874,11 @@ export interface PlotPanelProps {
   // true when zoomed via either the brush or the Axes number inputs. Gates the
   // visibility of the "Clear" button (and its mention in the tip).
   xZoomed?: boolean;
+  // Σ-barplot statistics, owned by App so the inspector column can show the
+  // stats panel: which sums are tested (raw / baseline-corrected) and the
+  // marks + summary the panel emits for the barplot.
+  statsDataMode: "raw" | "corrected";
+  onStatsDataModeChange: (mode: "raw" | "corrected") => void;
+  statsAnnotations: AnnotationSpec | null;
+  statsSummary: string | null;
 }

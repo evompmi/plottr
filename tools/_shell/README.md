@@ -55,7 +55,7 @@ handoff). Order matters — see the `FILES` array in
   `import` statements. _Not_ exposed as globals.
 - **Constraint**: **TypeScript with full strict mode**. Pure helpers
   (`chart-layout.ts`, `stats-dispatch.ts`) are fully annotated; React
-  components (`PlotToolShell.tsx`, `PlotSidebar.tsx`,
+  components (`PlotToolShell.tsx`, `WorkspaceLayout.tsx`,
   `DownloadTiles.tsx`, `ScrollablePlotCard.tsx`,
   `chart-annotations.tsx`) ship typed props.
 - **Why it exists**: cross-tool React composition + cross-tool typed
@@ -118,7 +118,6 @@ per-file paths so the dependency graph stays visible.
 | `PageHeader.tsx`             | In-page icon + title header (calculators).                                               |
 | `ParseErrorBanner.tsx`       | Red alert banner for parse-error strings.                                                |
 | `PlotActionsBar.tsx`         | App-bar export bar: two-click Start over, downloads, SVG last as primary.                |
-| `PlotSidebar.tsx`            | Sticky right-rail wrapper for every plot tool's controls panel.                          |
 | `PlotToolShell.tsx`          | Outer page frame — AppBar (steps, file chip, exports, prefs) + banners + children.       |
 | `PrefsPanel.tsx`             | Gear-menu UI on top of `prefs-store`.                                                    |
 | `RenameReorderPanel.tsx`     | Per-column rename + drag-to-reorder list.                                                |
@@ -129,6 +128,8 @@ per-file paths so the dependency graph stays visible.
 | `StatsTile.tsx`              | Collapsible stats tile — assumption checks, test selection, post-hocs, annotation emit.  |
 | `StepNavBar.tsx`             | Inline step navigation for the app bar (check / current pill / number).                  |
 | `UploadPanel.tsx`            | Separator selector + `FileDropZone` composition for the upload step.                     |
+| `GroupTestSections.tsx`      | Inspector sections for a `selectTest` result (shared by Group Plot / Line Plot / RLU).   |
+| `Inspector.tsx`              | Inspector vocabulary: compact tables, stars badge, assumption rows, set rows, exports.   |
 | `WhyThisTest.tsx`            | Collapsed "Why this test?" disclosure under a stats panel's result line.                 |
 | `WorkspaceLayout.tsx`        | Plot-step workspace: controls \| figure canvas \| inspector; `InspectorSection`.         |
 

@@ -35,7 +35,7 @@ test("plot: one facet per target, tests on ΔCt, y-scale and letters", async ({ 
   await page.getByRole("button", { name: "−ΔΔCt", exact: true }).click();
   await expect(page.locator("g#facet-RD29A")).toContainText("−ΔΔCt");
   await page
-    .getByTestId("qpcr-stats")
+    .getByTestId("qpcr-display")
     .getByRole("button", { name: "Letters", exact: true })
     .click();
   await expect(page.locator("g#facet-RD29A g#cld-annotations text")).toHaveCount(3);
@@ -72,7 +72,7 @@ test("calibrator column hidden: vs-control stars, letters unavailable", async ({
   await expect(page.locator("#reference-line-RD29A")).toHaveCount(1);
   await expect(page.locator("g#footnote")).toContainText("vs Control (not shown)");
   await expect(
-    page.getByTestId("qpcr-stats").getByRole("button", { name: "Letters", exact: true })
+    page.getByTestId("qpcr-display").getByRole("button", { name: "Letters", exact: true })
   ).toHaveCount(0);
 });
 
@@ -95,7 +95,7 @@ test("display options: boxes, horizontal, fixed axis range and title", async ({ 
   await expect(page.locator("g#error-bars-RD29A")).toHaveCount(0);
   await page.getByRole("button", { name: "Horizontal", exact: true }).click();
   await expect(page.locator("g#axis-x-RD29A text[text-anchor=end]")).toHaveCount(3);
-  await page.getByRole("button", { name: "Axes & labels" }).click();
+  await page.getByRole("tab", { name: "Axes" }).click();
   await page.getByTestId("qpcr-ymin").fill("0.5");
   await page.getByTestId("qpcr-ymax").fill("64");
   await page.getByTestId("qpcr-ylabel").fill("Relative level");

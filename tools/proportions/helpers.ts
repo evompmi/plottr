@@ -477,6 +477,14 @@ export interface StatsPanelProps {
   updVis: (patch: Partial<ProportionsVis>) => void;
   onDownloadReport: () => void;
   onDownloadR: () => void;
+  // Further inspector sections (goodness of fit) shown above the exports.
+  extra?: React.ReactNode;
+}
+
+export interface ProportionsStatsDisplayBarProps {
+  analysis: ProportionsAnalysis;
+  vis: ProportionsVis;
+  updVis: (patch: Partial<ProportionsVis>) => void;
 }
 
 export interface GofPanelProps {

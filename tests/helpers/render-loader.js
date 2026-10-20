@@ -175,7 +175,6 @@ function ensureSharedBundleLoaded() {
         "MethodsButton",
         "PlotActionsBar",
         "PlotActionsContext",
-        "PlotSidebar",
         "PlotStyleIconPicker",
         "PlotToolShell",
         "setHandoff",
@@ -329,6 +328,7 @@ function loadTool(toolName) {
     "buildHeatmapRScript: typeof buildHeatmapRScript !== 'undefined' ? buildHeatmapRScript : undefined," +
     "ProportionsChart: typeof ProportionsChart !== 'undefined' ? ProportionsChart : undefined," +
     "StatsPanel: typeof StatsPanel !== 'undefined' ? StatsPanel : undefined," +
+    "ProportionsStatsDisplayBar: typeof ProportionsStatsDisplayBar !== 'undefined' ? ProportionsStatsDisplayBar : undefined," +
     "GofPanel: typeof GofPanel !== 'undefined' ? GofPanel : undefined," +
     "QpcrChart: typeof QpcrChart !== 'undefined' ? QpcrChart : undefined," +
     "QpcrStatsPanel: typeof QpcrStatsPanel !== 'undefined' ? QpcrStatsPanel : undefined," +

@@ -93,6 +93,13 @@ const fr: Record<UpsetKey, string> = {
     "Le degré 1 conserve les singletons (éléments propres à un seul ensemble) ; le degré = {sets} conserve l’intersection de tous les ensembles. Vous pouvez modifier cela plus tard dans les contrôles du tracé.",
   "upset.cfg.colsRows": " — {cols} colonnes × {rows} lignes",
   "upset.cfg.preview": "Aperçu (8 premières lignes) :",
+  "upset.tab.sets": "Ensembles",
+  "upset.tab.display": "Affichage",
+  "upset.tab.statistics": "Statistiques",
+  "upset.app.controlsLabel": "Réglages du graphique",
+  "upset.app.items": "Éléments",
+  "upset.app.pickBar":
+    "Cliquez sur une barre d’intersection pour voir son test de chevauchement et les éléments qu’elle contient.",
   "upset.sp.title": "Significativité d’intersection",
   "upset.sp.subtitle": "Test exact de type SuperExactTest contre l’hypothèse nulle à marges fixes",
   "upset.sp.setsTested": "Ensembles testés",

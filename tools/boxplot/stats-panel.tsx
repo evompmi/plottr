@@ -29,15 +29,17 @@
 import {
   TestResult,
   buildRScript,
-  buildSelectTestReason,
   computePowerFromData,
   postHocForTest,
   runPostHoc,
   runTest,
-  WhyThisTest,
   MethodsButton,
+  GroupTestSections,
+  InspectorExports,
   InspectorSection,
   SegToggle,
+  SetDetail,
+  SetRow,
   buildGroupMethodsText,
   methodsDisplay,
 } from "../_shell";
@@ -55,7 +57,6 @@ import {
   BoxplotStatsPanelProps,
   BoxplotStatsSet,
   EnrichedBoxplotStatsRow,
-  PostHocPair,
   PostHocResult,
   SelectTestResult,
 } from "./helpers";
@@ -63,10 +64,8 @@ import { buildBpAggregateReport, buildBpAggregateRScript } from "./reports";
 
 import { svgSafeId } from "../_core/svg-export";
 import { downloadText, downloadTexts, flashSaved } from "../_core/download";
-import { tinv } from "../_core/stats/dist";
-import { sampleMean, sampleSD } from "../_core/stats/tests";
 import { selectTest } from "../_core/stats/posthoc";
-import { formatP, pStars } from "../_core/stats/format";
+import { formatP } from "../_core/stats/format";
 import { tt, useT, type BoxplotKey } from "./i18n";
 const { useState, useMemo, useRef, useEffect } = React;
 
@@ -96,370 +95,34 @@ function bpPosthocLabel(key: string): string {
     : POSTHOC_LABELS_BP[key] || key;
 }
 
-// Shared inline styles for the inspector's compact mono tables.
-const tableS: React.CSSProperties = {
-  width: "100%",
-  borderCollapse: "collapse",
-  fontFamily: "var(--font-mono)",
-  fontSize: 12,
-};
-const thS: React.CSSProperties = {
-  fontWeight: 500,
-  padding: "4px 0 4px 8px",
-  color: "var(--text-faint)",
-  textAlign: "right",
-  whiteSpace: "nowrap",
-};
-const tdS: React.CSSProperties = {
-  padding: "6px 0 6px 8px",
-  borderTop: "1px solid var(--border-subtle)",
-  color: "var(--text)",
-  textAlign: "right",
-  whiteSpace: "nowrap",
-};
-const firstCol: React.CSSProperties = { paddingLeft: 0, textAlign: "left" };
-
-// Check / cross / dash marker for an assumption row.
-function Verdict({ ok }: { ok: boolean | null | undefined }) {
-  const color =
-    ok === true ? "var(--step-ready)" : ok === false ? "var(--danger-text)" : "var(--text-faint)";
-  const d = ok === true ? "M5 12l5 5L20 7" : ok === false ? "M6 6l12 12M18 6L6 18" : "M6 12h12";
-  return (
-    <span style={{ color, display: "inline-flex" }}>
-      <svg
-        viewBox="0 0 24 24"
-        width="14"
-        height="14"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d={d} />
-      </svg>
-    </span>
-  );
-}
-
-function StarsBadge({ p }: { p: number | null }) {
-  if (p == null) return null;
-  const sig = p < 0.05;
-  return (
-    <span
-      style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: 12,
-        fontWeight: 600,
-        borderRadius: "var(--radius-sm)",
-        padding: "2px 6px",
-        color: sig ? "var(--success-text)" : "var(--text-faint)",
-        background: sig ? "var(--success-bg)" : "var(--surface-sunken)",
-      }}
-    >
-      {pStars(p)}
-    </span>
-  );
-}
-
-// One stat set's results as inspector sections: test result + picker,
-// assumptions, post-hoc, group summaries, replication planning.
+// One stat set's results as inspector sections (shared with Line Plot and
+// RLU Timecourse through `GroupTestSections`).
 function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsDetailProps) {
-  const tr = useT();
-  const names = row.names;
-  const values = row.values;
-  const k = names.length;
   const res = row.testResult ?? ({} as TestResult);
-  const rec = (row.rec ?? {}) as SelectTestResult;
-  const recReason = buildSelectTestReason(rec);
-  const recTest = rec.recommendation?.test ?? null;
-  const suggestion = rec.suggestion ?? null;
-  const testOptions = k === 2 ? TEST_OPTIONS_BP_2 : TEST_OPTIONS_BP_K;
-  const postHoc = row.postHocResult;
-  const power = row.powerResult;
   const p = res.error ? null : typeof res.p === "number" ? res.p : null;
-  const norm = rec.normality ?? [];
-  const lev = (rec.levene ?? {}) as {
-    F?: number;
-    df1?: number;
-    df2?: number;
-    p?: number;
-    equalVar?: boolean | null;
-    error?: string;
-  };
-  const nNormal = norm.filter((r) => r.normal === true).length;
-  const notNormal = norm
-    .filter((r) => r.normal === false)
-    .map((r) => names[r.group] || `g${r.group}`);
-  // The result line's parts ("F(2, 45.51) = 37.326", "p = 2.5e-10", …):
-  // formatBpResultLine separates them with a comma + two spaces, which never
-  // occurs inside a part.
+  // formatBpResultLine separates its parts with a comma + two spaces, which
+  // never occurs inside a part ("F(2, 45.51) = 37.326").
   const resultParts = row.chosenTest
     ? formatBpResultLine(row.chosenTest, res).split(/,\s{2,}/)
     : ["—"];
-
   return (
-    <>
-      <InspectorSection label={k > 2 ? tr("boxplot.sp.omnibus") : tr("boxplot.sp.twoGroupTest")}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            gap: 12,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: 22,
-              fontWeight: 600,
-              color: "var(--text)",
-              lineHeight: 1.2,
-            }}
-          >
-            {bpTestLabel(row.chosenTest)}
-          </span>
-          <StarsBadge p={p} />
-        </div>
-        <div
-          data-testid="bp-result-line"
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 13,
-            color: res.error ? "var(--danger-text)" : "var(--text)",
-            display: "flex",
-            gap: "4px 16px",
-            flexWrap: "wrap",
-          }}
-        >
-          {resultParts.map((part, i) => (
-            <span key={i}>{part}</span>
-          ))}
-        </div>
-        <label
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-            fontSize: 12,
-            color: "var(--text-muted)",
-          }}
-        >
-          {tr("boxplot.sp.test")}
-          <select
-            value={row.chosenTest || ""}
-            onChange={(e) => {
-              const next = e.target.value === "" ? null : (e.target.value as RecommendedTest);
-              if (onOverrideTest) onOverrideTest(next === recTest ? null : next);
-            }}
-            className="dv-select"
-            style={{ width: "100%", minHeight: 34 }}
-          >
-            {testOptions.map((t) => (
-              <option key={t} value={t}>
-                {bpTestLabel(t)}
-                {t === recTest ? tr("boxplot.sp.recommendedSuffix") : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-        {isOverridden && (
-          <button
-            type="button"
-            onClick={() => onOverrideTest && onOverrideTest(null)}
-            className="dv-btn dv-btn-secondary"
-            style={{ alignSelf: "flex-start" }}
-          >
-            {tr("boxplot.sp.useRecommendation")}
-          </button>
-        )}
-        {suggestion && row.chosenTest !== suggestion.test && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-              padding: "8px 10px",
-              background: "var(--info-bg)",
-              border: "1px solid var(--info-border)",
-              borderRadius: "var(--radius-md)",
-              fontSize: 12,
-              color: "var(--info-text)",
-            }}
-          >
-            <span>
-              <strong>{tr("boxplot.sp.suggestedAlt")}</strong> {tr("boxplot.sp.suggestConsider")}
-              <strong>{bpTestLabel(suggestion.test)}</strong>.
-            </span>
-            <button
-              type="button"
-              onClick={() => onOverrideTest && onOverrideTest(suggestion.test)}
-              className="dv-btn dv-btn-secondary"
-              style={{ alignSelf: "flex-start" }}
-            >
-              {tr("boxplot.sp.useSuggestion")}
-            </button>
-          </div>
-        )}
-      </InspectorSection>
-
-      {(norm.length > 0 || lev.F != null) && (
-        <InspectorSection label={tr("boxplot.sp.assumptionsChecked")}>
-          {norm.length > 0 && (
-            <div className="dv-assumption-row">
-              <Verdict ok={notNormal.length > 0 ? false : nNormal === norm.length ? true : null} />
-              <span>{tr("boxplot.sp.normalityRow")}</span>
-              <span className="dv-mono-faint">
-                {tr("boxplot.sp.nNormal", { k: nNormal, n: norm.length })}
-              </span>
-            </div>
-          )}
-          {notNormal.length > 0 && (
-            <div style={{ fontSize: 12, color: "var(--danger-text)", paddingLeft: 22 }}>
-              {tr("boxplot.sp.notNormalList", { list: notNormal.join(", ") })}
-            </div>
-          )}
-          {lev.F != null && (
-            <div
-              className="dv-assumption-row"
-              title={`F(${lev.df1}, ${lev.df2}) = ${lev.F.toFixed(3)}`}
-            >
-              <Verdict ok={lev.equalVar} />
-              <span>{tr("boxplot.sp.equalVarRow")}</span>
-              <span className="dv-mono-faint">p = {formatP(lev.p)}</span>
-            </div>
-          )}
-          <WhyThisTest text={recReason} />
-        </InspectorSection>
-      )}
-
-      {k >= 3 && postHoc && !postHoc.error && row.postHocName && (
-        <InspectorSection label={tr("boxplot.sp.posthocPrefix") + bpPosthocLabel(row.postHocName)}>
-          <table style={tableS}>
-            <thead>
-              <tr>
-                <th style={{ ...thS, ...firstCol }}>{tr("boxplot.sp.pair")}</th>
-                <th style={thS}>
-                  {row.postHocName === "dunn"
-                    ? tr("boxplot.sp.rankDiff")
-                    : tr("boxplot.sp.meanDiff")}
-                </th>
-                <th style={thS}>{tr("boxplot.sp.colP")}</th>
-                <th style={thS}>
-                  <span className="dv-sr-only">{tr("boxplot.sp.signif")}</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {postHoc.pairs.map((pr: PostHocPair, i: number) => {
-                const pp = pr.pAdj != null ? pr.pAdj : pr.p;
-                const diff =
-                  pr.diff != null
-                    ? pr.diff.toFixed(3)
-                    : pr.z != null
-                      ? `z = ${pr.z.toFixed(3)}`
-                      : "—";
-                return (
-                  <tr key={i}>
-                    <td style={{ ...tdS, ...firstCol, whiteSpace: "normal" }}>
-                      {names[pr.i]} – {names[pr.j]}
-                    </td>
-                    <td style={tdS}>{diff}</td>
-                    <td style={tdS}>{formatP(pp)}</td>
-                    <td
-                      style={{
-                        ...tdS,
-                        fontWeight: 600,
-                        color: pp < 0.05 ? "var(--step-ready)" : "var(--text-faint)",
-                      }}
-                    >
-                      {pStars(pp)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </InspectorSection>
-      )}
-
-      <InspectorSection label={tr("boxplot.sp.groups")}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={tableS}>
-            <thead>
-              <tr>
-                <th style={{ ...thS, ...firstCol }}>
-                  <span className="dv-sr-only">{tr("boxplot.sp.group")}</span>
-                </th>
-                <th style={thS}>{tr("boxplot.sp.n")}</th>
-                <th style={thS}>{tr("boxplot.sp.mean")}</th>
-                <th style={thS}>{tr("boxplot.sp.sd")}</th>
-                <th style={thS}>{tr("boxplot.sp.sem")}</th>
-                <th style={thS}>{tr("boxplot.sp.ci95")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {names.map((name, i) => {
-                const vs = values[i];
-                const n = vs.length;
-                const m = sampleMean(vs);
-                const sd = n > 1 ? sampleSD(vs) : 0;
-                const sem = n > 1 ? sd / Math.sqrt(n) : 0;
-                const ci95 = n > 1 ? tinv(0.975, n - 1) * sem : 0;
-                return (
-                  <tr key={i}>
-                    <td style={{ ...tdS, ...firstCol, whiteSpace: "normal" }}>{name}</td>
-                    <td style={tdS}>{n}</td>
-                    <td style={tdS}>{m.toFixed(3)}</td>
-                    <td style={tdS}>{sd.toFixed(3)}</td>
-                    <td style={tdS}>{n > 1 ? sem.toFixed(3) : "—"}</td>
-                    <td style={tdS}>{n > 1 ? `±${ci95.toFixed(3)}` : "—"}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </InspectorSection>
-
-      {power && power.rows.length > 0 && (
-        <InspectorSection label={tr("boxplot.sp.replicationShort")}>
-          <div style={{ fontSize: 13, lineHeight: 1.5, color: "var(--text)" }}>
-            {tr("boxplot.sp.replicationLine", {
-              effect: `${power.effectLabel} = ${power.effect.toFixed(3)}`,
-              n:
-                power.rows[0].nForTarget != null
-                  ? `${power.rows[0].nForTarget} ${power.nLabel}`
-                  : tr("boxplot.sp.gt5000"),
-              alpha: String(power.rows[0].alpha),
-            })}
-          </div>
-          {power.effectCI && (
-            <div className="dv-mono-faint">
-              95% CI [{power.effectCI.lo.toFixed(3)}, {power.effectCI.hi.toFixed(3)}]
-            </div>
-          )}
-          {power.rows.slice(1).map((pr, i) => (
-            <div key={i} className="dv-mono-faint">
-              {tr("boxplot.sp.atAlpha", {
-                alpha: String(pr.alpha),
-                n:
-                  pr.nForTarget != null
-                    ? `${pr.nForTarget} ${power.nLabel}`
-                    : tr("boxplot.sp.gt5000"),
-              })}
-            </div>
-          ))}
-          {power.approximate && (
-            <div style={{ fontSize: 11, color: "var(--text-faint)", fontStyle: "italic" }}>
-              {tr("boxplot.sp.approxNote")}
-            </div>
-          )}
-        </InspectorSection>
-      )}
-    </>
+    <GroupTestSections
+      names={row.names}
+      values={row.values}
+      rec={row.rec as SelectTestResult | null | undefined}
+      chosenTest={row.chosenTest ?? null}
+      testOptions={row.names.length === 2 ? TEST_OPTIONS_BP_2 : TEST_OPTIONS_BP_K}
+      testLabel={bpTestLabel}
+      posthocLabel={bpPosthocLabel}
+      resultParts={resultParts}
+      p={p}
+      error={!!res.error}
+      postHocName={row.postHocName}
+      postHocResult={row.postHocResult}
+      powerResult={row.powerResult}
+      isOverridden={!!isOverridden}
+      onOverrideTest={(t) => onOverrideTest && onOverrideTest(t)}
+    />
   );
 }
 
@@ -662,36 +325,22 @@ export function BoxplotStatsPanel({
     : tr("boxplot.sp.rTitleSingle");
 
   const exportsFooter = (
-    <div
-      className="dv-inspector-exports"
-      style={{
-        padding: "16px 20px 20px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        background: "var(--surface-subtle)",
-      }}
-    >
-      <span style={{ fontSize: 12, color: "var(--text-faint)" }}>
-        {tr("boxplot.sp.analysisExports")}
-      </span>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {hasR && (
-          <button type="button" className="dv-btn dv-btn-ink" onClick={downloadR} title={rTitle}>
-            {tr("boxplot.sp.rScript")}
-          </button>
-        )}
-        <MethodsButton getText={methodsText} />
-        <button
-          type="button"
-          className="dv-btn dv-btn-secondary"
-          onClick={downloadReport}
-          title={reportTitle}
-        >
-          {tr("boxplot.sp.reportTxt")}
+    <InspectorExports label={tr("boxplot.sp.analysisExports")}>
+      {hasR && (
+        <button type="button" className="dv-btn dv-btn-ink" onClick={downloadR} title={rTitle}>
+          {tr("boxplot.sp.rScript")}
         </button>
-      </div>
-    </div>
+      )}
+      <MethodsButton getText={methodsText} />
+      <button
+        type="button"
+        className="dv-btn dv-btn-secondary"
+        onClick={downloadReport}
+        title={reportTitle}
+      >
+        {tr("boxplot.sp.reportTxt")}
+      </button>
+    </InspectorExports>
   );
 
   const detailFor = (r: EnrichedBoxplotStatsRow) => (
@@ -736,22 +385,15 @@ export function BoxplotStatsPanel({
         const p = r.testResult && !r.testResult.error ? (r.testResult.p ?? null) : null;
         return (
           <div key={key}>
-            <button
-              type="button"
-              className="dv-set-row"
-              aria-expanded={isOpen}
-              onClick={() => setExpanded((prev) => ({ ...prev, [key]: !isOpen }))}
-            >
-              <span style={{ fontWeight: 600, textAlign: "left" }}>{r.name || "—"}</span>
-              <span style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "left" }}>
-                {bpTestLabel(r.chosenTest)}
-              </span>
-              <span className="dv-mono-faint">{p != null ? formatP(p) : "—"}</span>
-              <StarsBadge p={p} />
-            </button>
-            {isOpen && (
-              <div style={{ borderLeft: "3px solid var(--accent-primary)" }}>{detailFor(r)}</div>
-            )}
+            <SetRow
+              name={r.name || "—"}
+              detail={bpTestLabel(r.chosenTest)}
+              p={p}
+              pText={p != null ? formatP(p) : "—"}
+              open={isOpen}
+              onToggle={() => setExpanded((prev) => ({ ...prev, [key]: !isOpen }))}
+            />
+            {isOpen && <SetDetail>{detailFor(r)}</SetDetail>}
           </div>
         );
       })}

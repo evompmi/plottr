@@ -33,8 +33,7 @@ test("heatmap: sample data triggers the outlier alert; excluding clips only the 
   await page.getByTestId("load-example").click();
   await page.getByTestId("step-plot").click();
 
-  // One alert, above the plot (the Colour scale section still opens on its
-  // own while it is active).
+  // One alert, above the plot.
   const alerts = page.getByTestId("heatmap-skew-alert");
   await expect(alerts).toHaveCount(1);
   await expect(alerts.first()).toContainText("3 of 3000 cells (0.1%) stretch the colour scale");
@@ -51,6 +50,7 @@ test("heatmap: sample data triggers the outlier alert; excluding clips only the 
   await expect(alerts).toHaveCount(0);
   // Only the three spikes saturate; every ordinary cell keeps its colour.
   await expect(topTick).toHaveText(/^≥ \d+\.\d \(n=3\)$/);
+  await page.getByRole("tab", { name: "Colours" }).click();
   await expect(page.getByRole("button", { name: "Outliers", pressed: true })).toBeVisible();
 });
 
@@ -60,12 +60,12 @@ test("heatmap: range histogram — drag the Max handle, then a percentile preset
   await page.goto("/index.html#/heatmap");
   await page.getByTestId("load-example").click();
   await page.getByTestId("step-plot").click();
+  await page.getByRole("tab", { name: "Colours" }).click();
 
   const handle = page.getByTestId("heatmap-range-hi");
   const before = Number(await handle.getAttribute("aria-valuenow"));
   const track = page.getByRole("group", { name: /Distribution of cell values/ });
-  // hover() scrolls the handle into view (the Colour scale section scrolls
-  // itself into view as it auto-opens) — measure only after that settles.
+  // hover() scrolls the handle into view — measure only after that settles.
   await handle.hover();
   await page.waitForTimeout(300);
   await handle.hover();

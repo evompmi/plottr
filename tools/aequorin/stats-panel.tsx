@@ -1,10 +1,9 @@
-// AequorinStatsDetail (row expander) + AequorinStatsPanel (unified stats
-// panel). Aequorin only ever has a single "set" (one bar per condition), so
-// the panel runs in singleton-auto-expand mode: one row, already expanded.
-// Panel-level controls (Display on plot: Off / Letters / Brackets, Show ns,
-// Print summary below plot) drive the inset barplot's annotations and
-// summary text via the onAnnotationChange / onSummaryChange callbacks that
-// PlotPanel threads into the InsetBarplot chart.
+// AequorinStatsDetail + AequorinStatsPanel: the Σ-barplot statistics, shown
+// in the workspace's inspector column. Aequorin only ever has one set (one
+// bar per condition), so the panel shows the test's sections directly. Its
+// first section sets the marks on the Σ barplot (Off / Letters / Brackets,
+// Show ns, Print summary below plot); they drive the barplot's annotations
+// and summary text via the onAnnotationChange / onSummaryChange callbacks.
 //
 // Pure helpers (formatters, annotation-spec builder, summary-text builder,
 // aggregate text / R-script builders) live in ./reports so they stay
@@ -15,7 +14,6 @@ import {
   POSTHOC_LABELS_AQ,
   TEST_OPTIONS_AQ_2,
   TEST_OPTIONS_AQ_K,
-  formatAqStatShort,
   formatAqResultLine,
   computeAqAnnotationSpec,
   computeAqSummaryText,
@@ -25,22 +23,23 @@ import {
 import {
   TestResult,
   buildRScript,
-  buildSelectTestReason,
   computePowerFromData,
   postHocForTest,
   runPostHoc,
   runTest,
-  WhyThisTest,
   MethodsButton,
   buildGroupMethodsText,
   methodsDisplay,
+  GroupTestSections,
+  InspectorExports,
+  InspectorSection,
+  SegToggle,
 } from "../_shell";
 import {
   AequorinStatsDetailProps,
   AequorinStatsPanelProps,
   AnnotationSpec,
   EnrichedAequorinStatsRow,
-  PostHocPair,
   PostHocResult,
   SelectTestResult,
   StatsGroup,
@@ -48,10 +47,7 @@ import {
 
 import { svgSafeId } from "../_core/svg-export";
 import { downloadText, flashSaved } from "../_core/download";
-import { tinv } from "../_core/stats/dist";
-import { sampleMean, sampleSD } from "../_core/stats/tests";
 import { selectTest } from "../_core/stats/posthoc";
-import { formatP, pStars } from "../_core/stats/format";
 import { tt, useT, type AequorinKey } from "./i18n";
 const { useState, useMemo, useEffect, useRef } = React;
 
@@ -81,354 +77,37 @@ function aqPosthocLabel(key: string): string {
     : POSTHOC_LABELS_AQ[key] || key;
 }
 
+// The test's results as inspector sections (shared with Group Plot and Line
+// Plot through `GroupTestSections`).
 export function AequorinStatsDetail({
   row,
   onOverrideTest,
   isOverridden,
 }: AequorinStatsDetailProps) {
-  const tr = useT();
-  const names = row.names;
-  const values = row.values;
-  const k = names.length;
   const res = row.testResult ?? ({} as TestResult);
-  const rec = (row.rec ?? {}) as SelectTestResult;
-  const recReason = buildSelectTestReason(rec);
-  const recTest = rec.recommendation?.test ?? null;
-  const suggestion = rec.suggestion ?? null;
-  const testOptions = k === 2 ? TEST_OPTIONS_AQ_2 : TEST_OPTIONS_AQ_K;
-  // Hoist nullable conditionally-rendered fields into local consts so the
-  // JSX `{x && (…)}` narrowing survives into closure-captured .map callbacks.
-  const postHoc = row.postHocResult;
-  const power = row.powerResult;
-
-  const subhead: React.CSSProperties = {
-    margin: "10px 0 6px",
-    padding: "4px 10px",
-    fontSize: 10,
-    fontWeight: 800,
-    textTransform: "uppercase",
-    letterSpacing: "0.8px",
-    color: "var(--subhead-text)",
-    background: "var(--subhead-bg)",
-    borderRadius: 4,
-    display: "block",
-  };
-  const thS: React.CSSProperties = {
-    textAlign: "left",
-    padding: "3px 6px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--text-muted)",
-    fontWeight: 600,
-    fontSize: 11,
-  };
-  const tdS: React.CSSProperties = {
-    padding: "3px 6px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--text)",
-    fontSize: 11,
-  };
-  const pillOk: React.CSSProperties = {
-    display: "inline-block",
-    padding: "1px 6px",
-    borderRadius: 8,
-    fontSize: 9,
-    fontWeight: 700,
-    background: "var(--step-ready-bg)",
-    color: "var(--step-ready)",
-  };
-  const pillBad: React.CSSProperties = {
-    ...pillOk,
-    background: "var(--danger-bg)",
-    color: "var(--danger-text)",
-  };
-  const pillNeutral: React.CSSProperties = {
-    ...pillOk,
-    background: "var(--neutral-bg)",
-    color: "var(--neutral-text)",
-  };
-  const norm = rec.normality ?? [];
-  // Widen `rec.levene` so this block can index `.F` / `.df1` etc. without
-  // per-access narrowing; the `lev.F != null` guard below covers the error
-  // / undefined cases at runtime.
-  const lev = (rec.levene ?? {}) as {
-    F?: number;
-    df1?: number;
-    df2?: number;
-    p?: number;
-    equalVar?: boolean | null;
-    error?: string;
-  };
-
+  const p = res.error ? null : typeof res.p === "number" ? res.p : null;
+  // formatAqResultLine separates its parts with a comma + two spaces.
+  const resultParts = row.chosenTest
+    ? formatAqResultLine(row.chosenTest, res).split(/,\s{2,}/)
+    : ["—"];
   return (
-    <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>
-      <div style={subhead}>{tr("aequorin.sp.groups")}</div>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={thS}>{tr("aequorin.sp.group")}</th>
-            <th style={thS}>{tr("aequorin.sp.n")}</th>
-            <th style={thS}>{tr("aequorin.sp.mean")}</th>
-            <th style={thS}>{tr("aequorin.sp.sd")}</th>
-            <th style={thS}>{tr("aequorin.sp.sem")}</th>
-            <th style={thS}>{tr("aequorin.sp.ci95")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {names.map((name, i) => {
-            const vs = values[i];
-            const n = vs.length;
-            const m = sampleMean(vs);
-            const sd = n > 1 ? sampleSD(vs) : 0;
-            const sem = n > 1 ? sd / Math.sqrt(n) : 0;
-            const ci95 = n > 1 ? tinv(0.975, n - 1) * sem : 0;
-            return (
-              <tr key={i}>
-                <td style={tdS}>{name}</td>
-                <td style={tdS}>{n}</td>
-                <td style={tdS}>{m.toFixed(3)}</td>
-                <td style={tdS}>{sd.toFixed(3)}</td>
-                <td style={tdS}>{n > 1 ? sem.toFixed(3) : "—"}</td>
-                <td style={tdS}>{n > 1 ? `±${ci95.toFixed(3)}` : "—"}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      <div style={subhead}>{tr("aequorin.sp.assumptions")}</div>
-      {norm.length > 0 && (
-        <div style={{ marginBottom: 6 }}>
-          <div
-            style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 2 }}
-          >
-            {tr("aequorin.sp.shapiro")}
-          </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {norm.map((r, i) => {
-              const label = names[r.group] || `g${r.group}`;
-              const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
-              const verdict =
-                r.normal === true
-                  ? tr("aequorin.sp.normal")
-                  : r.normal === false
-                    ? tr("aequorin.sp.notNormal")
-                    : "—";
-              return (
-                <span key={i} style={{ fontSize: 11, color: "var(--text)" }}>
-                  {label}: <span style={pill}>{verdict}</span>
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      {lev.F != null && (
-        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-          <span style={{ fontWeight: 600 }}>{tr("aequorin.sp.levene")}</span> — F({lev.df1},{" "}
-          {lev.df2}) = {lev.F.toFixed(3)}, p = {formatP(lev.p)}{" "}
-          <span style={lev.equalVar ? pillOk : pillBad}>
-            {lev.equalVar ? tr("aequorin.sp.equalVar") : tr("aequorin.sp.unequalVar")}
-          </span>
-        </div>
-      )}
-
-      <div style={subhead}>{tr("aequorin.sp.test")}</div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          flexWrap: "wrap",
-          marginBottom: 6,
-        }}
-      >
-        <select
-          value={row.chosenTest || ""}
-          onChange={(e) => {
-            const next = e.target.value === "" ? null : (e.target.value as RecommendedTest);
-            if (onOverrideTest) onOverrideTest(next === recTest ? null : next);
-          }}
-          className="dv-select"
-          style={{ fontSize: 11, padding: "2px 6px", minWidth: 180 }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {testOptions.map((t) => (
-            <option key={t} value={t}>
-              {aqTestLabel(t)}
-              {t === recTest ? tr("aequorin.sp.recommendedSuffix") : ""}
-            </option>
-          ))}
-        </select>
-        {isOverridden && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOverrideTest && onOverrideTest(null);
-            }}
-            className="dv-btn dv-btn-secondary"
-            style={{ padding: "2px 8px", fontSize: 10 }}
-          >
-            {tr("aequorin.sp.useRecommendation")}
-          </button>
-        )}
-      </div>
-      <div
-        style={{
-          padding: "6px 10px",
-          marginBottom: 6,
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-          fontWeight: 700,
-          color: "var(--text)",
-        }}
-      >
-        {res.error
-          ? `⚠ ${res.error}`
-          : row.chosenTest
-            ? formatAqResultLine(row.chosenTest, res)
-            : "—"}
-      </div>
-      {suggestion && row.chosenTest !== suggestion.test && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-            padding: "6px 10px",
-            marginBottom: 6,
-            background: "var(--info-bg)",
-            border: "1px solid var(--info-border)",
-            borderRadius: 6,
-            fontSize: 11,
-            color: "var(--info-text)",
-          }}
-        >
-          <span style={{ fontWeight: 700 }}>{tr("aequorin.sp.suggestedAlt")}</span>
-          <span>
-            {tr("aequorin.sp.suggestConsider")}
-            <strong>{aqTestLabel(suggestion.test)}</strong>.
-          </span>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOverrideTest && onOverrideTest(suggestion.test);
-            }}
-            className="dv-btn dv-btn-secondary"
-            style={{ padding: "2px 8px", fontSize: 10, marginLeft: "auto" }}
-          >
-            {tr("aequorin.sp.useSuggestion")}
-          </button>
-        </div>
-      )}
-      <WhyThisTest text={recReason} />
-
-      {k >= 3 && postHoc && !postHoc.error && row.postHocName && (
-        <>
-          <div style={subhead}>
-            {tr("aequorin.sp.posthocPrefix")}
-            {aqPosthocLabel(row.postHocName)}
-          </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={thS}>{tr("aequorin.sp.pair")}</th>
-                <th style={thS}>
-                  {row.postHocName === "dunn"
-                    ? tr("aequorin.sp.rankDiff")
-                    : tr("aequorin.sp.meanDiff")}
-                </th>
-                <th style={thS}>{tr("aequorin.sp.colP")}</th>
-                <th style={thS}>{tr("aequorin.sp.signif")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {postHoc.pairs.map((pr: PostHocPair, i: number) => {
-                const p = pr.pAdj != null ? pr.pAdj : pr.p;
-                const diff =
-                  pr.diff != null
-                    ? pr.diff.toFixed(3)
-                    : pr.z != null
-                      ? `z = ${pr.z.toFixed(3)}`
-                      : "—";
-                return (
-                  <tr key={i}>
-                    <td style={tdS}>
-                      {names[pr.i]} {tr("aequorin.sp.vs")} {names[pr.j]}
-                    </td>
-                    <td style={tdS}>{diff}</td>
-                    <td style={tdS}>{formatP(p)}</td>
-                    <td
-                      style={{
-                        ...tdS,
-                        fontWeight: 700,
-                        color: p < 0.05 ? "var(--step-ready)" : "var(--text-faint)",
-                      }}
-                    >
-                      {pStars(p)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </>
-      )}
-      {power && (
-        <>
-          <div style={subhead}>{tr("aequorin.sp.replication")}</div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>
-            {tr("aequorin.sp.replicationDesc")}
-          </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={thS}>{tr("aequorin.sp.effectSize")}</th>
-                <th style={thS}>α</th>
-                <th style={thS}>{tr("aequorin.sp.nFor80")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {power.rows.map((pr, i) => (
-                <tr key={i}>
-                  {i === 0 ? (
-                    <td style={tdS} rowSpan={power.rows.length}>
-                      {power.effectLabel} = {power.effect.toFixed(3)}
-                      {power.effectCI
-                        ? `, 95% CI [${power.effectCI.lo.toFixed(3)}, ${power.effectCI.hi.toFixed(3)}]`
-                        : ""}
-                    </td>
-                  ) : null}
-                  <td style={tdS}>{String(pr.alpha)}</td>
-                  <td style={tdS}>
-                    {pr.nForTarget != null
-                      ? `${pr.nForTarget} ${power.nLabel}`
-                      : tr("aequorin.sp.gt5000")}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {power.approximate && (
-            <div
-              style={{
-                fontSize: 10,
-                color: "var(--text-faint)",
-                fontStyle: "italic",
-                marginTop: 4,
-              }}
-            >
-              {tr("aequorin.sp.approxNote")}
-            </div>
-          )}
-        </>
-      )}
-    </div>
+    <GroupTestSections
+      names={row.names}
+      values={row.values}
+      rec={row.rec as SelectTestResult | null | undefined}
+      chosenTest={row.chosenTest ?? null}
+      testOptions={row.names.length === 2 ? TEST_OPTIONS_AQ_2 : TEST_OPTIONS_AQ_K}
+      testLabel={aqTestLabel}
+      posthocLabel={aqPosthocLabel}
+      resultParts={resultParts}
+      p={p}
+      error={!!res.error}
+      postHocName={row.postHocName}
+      postHocResult={row.postHocResult}
+      powerResult={row.powerResult}
+      isOverridden={!!isOverridden}
+      onOverrideTest={(t) => onOverrideTest && onOverrideTest(t)}
+    />
   );
 }
 
@@ -449,8 +128,6 @@ export function AequorinStatsPanel({
 }: AequorinStatsPanelProps) {
   const tr = useT();
   const singleKey = "_global";
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({ [singleKey]: true });
-  const [hovered, setHovered] = useState<string | null>(null);
   const [override, setOverride] = useState<RecommendedTest | null>(null);
   const [displayMode, setDisplayMode] = useState<"none" | "cld" | "brackets">("none");
   const [showNs, setShowNs] = useState(false);
@@ -550,238 +227,77 @@ export function AequorinStatsPanel({
     flashSaved(e.currentTarget);
   };
 
-  const isOpen = !!expanded[singleKey];
-  const p =
-    enriched.testResult && !enriched.testResult.error ? (enriched.testResult.p ?? null) : null;
-  const sig = p != null && p < 0.05;
-  const stars = p != null ? pStars(p) : "";
-
-  const thS: React.CSSProperties = {
-    textAlign: "left",
-    padding: "6px 8px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--subhead-text)",
-    fontWeight: 600,
-    fontSize: 12,
-    background: "var(--subhead-bg)",
-  };
-  const tdS: React.CSSProperties = {
-    padding: "6px 8px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--text)",
-    fontSize: 12,
-  };
-  const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
-
-  const segBtn = (value: "none" | "cld" | "brackets", label: string) => {
-    const active = displayMode === value;
-    return (
-      <button
-        key={value}
-        type="button"
-        onClick={() => setDisplayMode(value)}
-        style={{
-          flex: "0 0 auto",
-          padding: "4px 10px",
-          fontSize: 11,
-          fontWeight: active ? 700 : 400,
-          fontFamily: "inherit",
-          cursor: "pointer",
-          border: "none",
-          background: active ? "var(--accent-primary)" : "var(--surface)",
-          color: active ? "var(--on-accent)" : "var(--text-muted)",
-          transition: "background 120ms ease, color 120ms ease",
-        }}
-      >
-        {label}
-      </button>
-    );
-  };
   const anyMulti = enriched.k > 2;
   const nsDisabled = displayMode === "none" || (anyMulti && displayMode === "cld");
+  const check = (disabled: boolean): React.CSSProperties => ({
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 13,
+    color: disabled ? "var(--text-faint)" : "var(--text-muted)",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.6 : 1,
+  });
 
   return (
-    <div className="dv-panel" style={{ padding: 0, overflow: "hidden" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "12px 14px",
-          borderBottom: "1px solid var(--border)",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: 14,
-              fontWeight: 700,
-              color: "var(--text)",
-              letterSpacing: "0.2px",
-            }}
-          >
-            {tr("aequorin.sp.statistics")}
-          </h3>
-          <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
-            {tr("aequorin.sp.desc")}
-          </p>
+    <div data-testid="aq-stats" className="dv-inspector">
+      <InspectorSection label={tr("aequorin.sp.marksOnBarplot")}>
+        <SegToggle<"none" | "cld" | "brackets">
+          ariaLabel={tr("aequorin.sp.displayOnPlot")}
+          value={displayMode}
+          onChange={setDisplayMode}
+          options={[
+            { value: "none", label: tr("aequorin.sp.off") },
+            ...(anyMulti ? [{ value: "cld" as const, label: tr("aequorin.sp.letters") }] : []),
+            { value: "brackets", label: tr("aequorin.sp.brackets") },
+          ]}
+        />
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <label style={check(nsDisabled)}>
+            <input
+              type="checkbox"
+              checked={!nsDisabled && showNs}
+              disabled={nsDisabled}
+              onChange={(e) => setShowNs(e.target.checked)}
+            />
+            {tr("aequorin.sp.showNs")}
+          </label>
+          <label style={check(false)}>
+            <input
+              type="checkbox"
+              checked={showSummary}
+              onChange={(e) => setShowSummary(e.target.checked)}
+            />
+            {tr("aequorin.sp.printSummary")}
+          </label>
         </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
-          <MethodsButton getText={methodsText} />
+      </InspectorSection>
+      <AequorinStatsDetail
+        row={enriched}
+        isOverridden={override != null}
+        onOverrideTest={(t) => setOverride(t)}
+      />
+      <InspectorExports label={tr("aequorin.sp.analysisExports")}>
+        {hasR && (
           <button
             type="button"
-            className="dv-btn dv-btn-dl"
-            onClick={downloadReport}
-            title={tr("aequorin.sp.txtTitle")}
+            className="dv-btn dv-btn-ink"
+            onClick={downloadR}
+            title={tr("aequorin.sp.rTitle")}
           >
-            ⬇ TXT
+            {tr("aequorin.sp.rScript")}
           </button>
-          {hasR && (
-            <button
-              type="button"
-              className="dv-btn dv-btn-dl"
-              onClick={downloadR}
-              title={tr("aequorin.sp.rTitle")}
-            >
-              ⬇ R
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          flexWrap: "wrap",
-          padding: "10px 14px",
-          borderBottom: "1px solid var(--border)",
-          background: "var(--surface-subtle)",
-        }}
-      >
-        <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>
-          {tr("aequorin.sp.displayOnPlot")}
-        </span>
-        <div
-          style={{
-            display: "flex",
-            borderRadius: 6,
-            overflow: "hidden",
-            border: "1px solid var(--border-strong)",
-          }}
+        )}
+        <MethodsButton getText={methodsText} />
+        <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
+          onClick={downloadReport}
+          title={tr("aequorin.sp.txtTitle")}
         >
-          {segBtn("none", tr("aequorin.sp.off"))}
-          {anyMulti && segBtn("cld", tr("aequorin.sp.letters"))}
-          {segBtn("brackets", tr("aequorin.sp.brackets"))}
-        </div>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            color: nsDisabled ? "var(--text-faint)" : "var(--text)",
-            cursor: nsDisabled ? "not-allowed" : "pointer",
-            opacity: nsDisabled ? 0.55 : 1,
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={!nsDisabled && showNs}
-            disabled={nsDisabled}
-            onChange={(e) => setShowNs(e.target.checked)}
-            style={{ accentColor: "var(--cta-primary-bg)" }}
-          />
-          {tr("aequorin.sp.showNs")}
-        </label>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            color: "var(--text)",
-            cursor: "pointer",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={showSummary}
-            onChange={(e) => setShowSummary(e.target.checked)}
-            style={{ accentColor: "var(--cta-primary-bg)" }}
-          />
-          {tr("aequorin.sp.printSummary")}
-        </label>
-      </div>
-
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={thS}>{tr("aequorin.sp.groups")}</th>
-            <th style={thS}>{tr("aequorin.sp.test")}</th>
-            <th style={thS}>{tr("aequorin.sp.statistic")}</th>
-            <th style={thS}>{tr("aequorin.sp.colP")}</th>
-            <th style={{ ...thS, width: 60 }}></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            onClick={() => setExpanded((prev) => ({ ...prev, [singleKey]: !isOpen }))}
-            onMouseEnter={() => setHovered(singleKey)}
-            onMouseLeave={() => setHovered((h) => (h === singleKey ? null : h))}
-            style={{
-              cursor: "pointer",
-              background: isOpen
-                ? "var(--surface-subtle)"
-                : hovered === singleKey
-                  ? "var(--row-hover-bg)"
-                  : undefined,
-              transition: "background 120ms ease",
-            }}
-          >
-            <td style={tdS}>{enriched.k}</td>
-            <td style={tdS}>{aqTestLabel(enriched.chosenTest)}</td>
-            <td style={{ ...tdS, ...mono }}>
-              {formatAqStatShort(enriched.chosenTest, enriched.testResult)}
-            </td>
-            <td
-              style={{
-                ...tdS,
-                ...mono,
-                fontWeight: sig ? 700 : 400,
-                color: sig ? "var(--step-ready)" : "var(--text)",
-              }}
-            >
-              {p != null ? formatP(p) : "—"}
-            </td>
-            <td
-              style={{
-                ...tdS,
-                textAlign: "right",
-                color: sig ? "var(--step-ready)" : "var(--text-faint)",
-                fontWeight: 700,
-              }}
-            >
-              {stars && stars !== "ns" ? stars : ""}
-            </td>
-          </tr>
-          {isOpen && (
-            <tr>
-              <td colSpan={5} style={{ padding: 0, borderBottom: "1px solid var(--border)" }}>
-                <AequorinStatsDetail
-                  row={enriched}
-                  isOverridden={!!override}
-                  onOverrideTest={(t) => setOverride(t)}
-                />
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+          {tr("aequorin.sp.reportTxt")}
+        </button>
+      </InspectorExports>
     </div>
   );
 }

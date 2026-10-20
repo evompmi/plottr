@@ -10,6 +10,12 @@ const fr: Record<VennKey, string> = {
   "venn.dl.regions": "Régions",
   "venn.dl.regionsTitle":
     "Télécharger un CSV par région non vide (déclenche plusieurs enregistrements — votre navigateur peut demander une autorisation)",
+  "venn.tab.sets": "Ensembles",
+  "venn.tab.display": "Affichage",
+  "venn.controlsLabel": "Réglages du graphique",
+  "venn.inspectorLabel": "Intersections et éléments",
+  "venn.intersections": "Intersections",
+  "venn.items": "Éléments",
   "venn.tile.sets": "Ensembles",
   "venn.tile.display": "Affichage",
   "venn.ctrl.proportionalAreas": "Aires proportionnelles",

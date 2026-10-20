@@ -485,7 +485,7 @@ test("inside a PlotToolShell it registers its buttons and draws nothing", functi
 
 suite("PlotActionsBar");
 
-test("Start over first, other downloads next, SVG last as the primary button", function () {
+test("Start over, the first download, a More menu for the rest, SVG last as primary", function () {
   const React = require("react");
   let resets = 0;
   let svgClicks = 0;
@@ -501,7 +501,13 @@ test("Start over first, other downloads next, SVG last as the primary button", f
   };
   const { container, root } = renderWithEffects(sc.PlotActionsBar, { entryRef });
   const labels = () => [...container.querySelectorAll("button")].map((b) => b.textContent);
-  eq(labels().join("|"), "Start over|PNG|CSV|Download SVG");
+  eq(labels().join("|"), "Start over|PNG|More ▾|Download SVG");
+  const more = container.querySelectorAll("button")[2];
+  eq(more.getAttribute("aria-haspopup"), "menu");
+  React.act(() => more.click());
+  const items = [...container.querySelectorAll('[role="menuitem"]')].map((b) => b.textContent);
+  eq(items.join("|"), "CSV", "further downloads live in the menu");
+  React.act(() => more.click());
   const svgBtn = container.querySelectorAll("button")[3];
   assert(svgBtn.className.includes("dv-btn-primary"), "SVG is the primary export");
   React.act(() => svgBtn.click());
@@ -2494,7 +2500,7 @@ suite("ProportionsChart + stats panels");
 
 (function () {
   const tool = loadTool("proportions");
-  const { ProportionsChart, StatsPanel, GofPanel } = tool.exports;
+  const { ProportionsChart, StatsPanel, GofPanel, ProportionsStatsDisplayBar } = tool.exports;
   const P = require("./helpers/proportions-loader");
   const table = {
     groups: ["WT", "mut-1", "mut-2", "comp"],
@@ -2674,15 +2680,9 @@ suite("ProportionsChart + stats panels");
     });
     assert(html.includes("41 · 85.4 % [72.8 %, 92.8 %]"), "Wilson summary cell");
     assert(/<h3[^>]*>Statistics<\/h3>/.test(html), "Statistics title");
-    const header = html.slice(0, html.indexOf("Display on plot"));
-    assert(
-      header.includes('data-testid="proportions-dl-txt"') && header.includes(">⬇ TXT<"),
-      "TXT in header"
-    );
-    assert(
-      header.includes('data-testid="proportions-dl-r"') && header.includes(">⬇ R<"),
-      "R in header"
-    );
+    assert(/data-testid="proportions-dl-r"[^>]*>R script</.test(html), "R script export");
+    assert(/data-testid="proportions-dl-txt"[^>]*>Report \.txt</.test(html), "report export");
+    assert(!html.includes("Display on plot"), "display controls live in the toolbar");
     assert(html.includes("Cochran"), "selection reason");
     assert(html.includes("Pearson χ²(3) = 94.537, p = 2.3e-20"));
     assert(html.includes("Cramér&#x27;s V = 0.704 · N = 191"));
@@ -2691,15 +2691,8 @@ suite("ProportionsChart + stats panels");
     assert(html.includes("+6.14"), "standardised residual");
   });
 
-  test("StatsPanel: Display on plot offers Off / Letters / Brackets (letters only for ≥ 3 groups)", () => {
-    const html = renderHtml(StatsPanel, {
-      analysis,
-      categories: table.categories,
-      summaries,
-      focusLabel: null,
-      vis,
-      updVis: noop,
-    });
+  test("display bar: Display on plot offers Off / Letters / Brackets (letters only for ≥ 3 groups)", () => {
+    const html = renderHtml(ProportionsStatsDisplayBar, { analysis, vis, updVis: noop });
     assert(html.includes("Display on plot"));
     const seg = html.match(/aria-label="Display on plot"[^>]*>(.*?)<\/div>/s)[1];
     eq(
@@ -2708,11 +2701,8 @@ suite("ProportionsChart + stats panels");
     );
     assert(/aria-pressed="true"[^>]*>Brackets</.test(seg), "brackets active");
     assert(!/disabled=""[^>]*data-testid="proportions-show-ns"/.test(html), "show ns enabled");
-    const cldHtml = renderHtml(StatsPanel, {
+    const cldHtml = renderHtml(ProportionsStatsDisplayBar, {
       analysis,
-      categories: table.categories,
-      summaries,
-      focusLabel: null,
       vis: { ...vis, annotation: "cld" },
       updVis: noop,
     });
@@ -2729,11 +2719,8 @@ suite("ProportionsChart + stats panels");
         [2, 15],
       ],
     };
-    const two = renderHtml(StatsPanel, {
+    const two = renderHtml(ProportionsStatsDisplayBar, {
       analysis: P.analyseTable(t2, "auto", "holm"),
-      categories: t2.categories,
-      summaries: P.groupSummaries(t2),
-      focusLabel: null,
       vis: { ...vis, annotation: "cld" },
       updVis: noop,
     });
@@ -3219,7 +3206,7 @@ suite("QpcrChart + QpcrStatsPanel");
     React.act(() => off.r.root.unmount());
   });
 
-  test("stats panel: Statistics header with TXT/R, ΔCt explainer, decision trace, send button", () => {
+  test("stats panel: Statistics heading, ΔCt explainer, decision trace, R / report exports", () => {
     const html = renderHtml(QpcrStatsPanel, {
       genes,
       stats,
@@ -3228,13 +3215,13 @@ suite("QpcrChart + QpcrStatsPanel");
       overrides: {},
       onOverride: noop,
       vis,
-      updVis: noop,
       onDownloadReport: noop,
       onDownloadR: noop,
     });
     assert(/<h3[^>]*>Statistics<\/h3>/.test(html));
-    const header = html.slice(0, html.indexOf("Display on plot"));
-    assert(header.includes(">⬇ TXT<") && header.includes(">⬇ R<"));
+    assert(/data-testid="qpcr-dl-r"[^>]*>R script</.test(html), "R script export");
+    assert(/data-testid="qpcr-dl-txt"[^>]*>Report \.txt</.test(html), "report export");
+    assert(html.indexOf("Why the tests use ΔCt") < html.indexOf("R script"), "exports last");
     assert(html.includes("Why the tests use ΔCt"));
     assert(html.includes("Do not run t-tests or ANOVA on 2^−ΔΔCt values."));
     assert(html.includes("Auto — Welch&#x27;s ANOVA"));
@@ -3551,7 +3538,7 @@ suite("Group Plot statistics inspector");
     eq(hs[1], "Assumptions checked");
     assert(hs[2].startsWith("Post-hoc · "), "post-hoc section for k = 3");
     eq(hs.slice(3).join("|"), "Groups|Replication planning");
-    const line = container.querySelector('[data-testid="bp-result-line"]');
+    const line = container.querySelector('[data-testid="inspector-result-line"]');
     assert(
       /^F\(2, [\d.]+\) = [\d.]+$/.test(line.children[0].textContent),
       "F(df1, df2) kept whole"

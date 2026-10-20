@@ -46,6 +46,11 @@ const en = {
   "volcano.aes.sizeMap": "Size",
 
   // Thresholds tile
+  "volcano.tab.thresholds": "Thresholds",
+  "volcano.tab.mapping": "Mapping",
+  "volcano.tab.labels": "Labels",
+  "volcano.tab.style": "Style",
+  "volcano.controlsLabel": "Plot controls",
   "volcano.thresh.title": "Thresholds",
   "volcano.thresh.fcCutoff": "|log2FC| cutoff",
   "volcano.thresh.pCutoff": "p-value cutoff",

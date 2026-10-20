@@ -20,14 +20,14 @@ test("colonisation example: bars, CI whiskers, brackets, χ² chosen", async ({ 
   await expect(page.locator("g#significance-brackets > g")).toHaveCount(4);
   await expect(page.getByTestId("proportions-omnibus")).toContainText("Pearson χ²(3) = 94.537");
   await expect(page.getByTestId("proportions-pairs").locator("tbody tr")).toHaveCount(6);
-  // TXT / R downloads live in the Statistics panel header.
+  // R / report downloads live in the statistics column's exports.
   await expect(
     page.getByTestId("proportions-stats").getByRole("heading", { name: "Statistics" })
   ).toBeVisible();
   await expect(page.getByTestId("proportions-dl-txt")).toBeVisible();
   await expect(page.getByTestId("proportions-dl-r")).toBeVisible();
-  // Display on plot: letters replace brackets, Off removes both.
-  const stats = page.getByTestId("proportions-stats");
+  // Display on plot (toolbar above the chart): letters replace brackets, Off removes both.
+  const stats = page.getByTestId("proportions-display");
   await stats.getByRole("button", { name: "Letters", exact: true }).click();
   await expect(page.locator("g#significance-brackets")).toHaveCount(0);
   await expect(page.locator("g#cld-annotations text")).toHaveText(["a", "b", "b", "a"]);
@@ -40,6 +40,7 @@ test("colonisation example: bars, CI whiskers, brackets, χ² chosen", async ({ 
 
 test("per-group bar colours and per-outcome segment colours are editable", async ({ page }) => {
   await loadColonisation(page);
+  await page.getByRole("tab", { name: "Colours" }).click();
   const list = page.getByTestId("proportions-color-list");
   await expect(list.locator("> div")).toHaveCount(4);
   const hex = page.getByLabel("dmi3-1, hex value", { exact: true });
@@ -49,7 +50,9 @@ test("per-group bar colours and per-outcome segment colours are editable", async
   // Other bars keep their palette colours.
   await expect(page.locator("g#bars rect").nth(0)).not.toHaveAttribute("fill", "#123456");
   // Stacked: the list switches to the outcomes.
+  await page.getByRole("tab", { name: "Chart" }).click();
   await page.getByRole("button", { name: "Stacked", exact: true }).click();
+  await page.getByRole("tab", { name: "Colours" }).click();
   await expect(list.locator("> div")).toHaveCount(2);
   const cat = page.getByLabel("Not colonised, hex value", { exact: true });
   await cat.fill("#abcdef");
@@ -87,7 +90,7 @@ test("F2 example: stacked by default, 9:3:3:1 goodness of fit per family", async
 
 test("control group: each group vs the control only, brackets, no letters", async ({ page }) => {
   await loadColonisation(page);
-  const stats = page.getByTestId("proportions-stats");
+  const stats = page.getByTestId("proportions-display");
   await stats.getByRole("button", { name: "Letters", exact: true }).click();
   await page.getByTestId("proportions-control").selectOption({ label: "vs A17 (WT) (control)" });
   const rows = page.getByTestId("proportions-pairs").locator("tbody tr");

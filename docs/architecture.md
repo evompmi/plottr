@@ -162,15 +162,15 @@ tests deliberately reach across layers and are excluded.
         │     │               exports, PrefsPanel               │
         │     │             • CommaFixBanner / ParseErrorBanner │
         │     │                                                 │
-        │     ├─► plot-area.tsx      composes chart + sidebar + │
-        │     │       │                stats panel + overlays   │
+        │     ├─► plot-area.tsx      WorkspaceLayout: controls  │
+        │     │       │                | figure | inspector     │
         │     │       │                                          │
         │     │       ├─► chart.tsx       SVG renderer          │
         │     │       │                    (forwardRef ref↦SVG) │
         │     │       │                                          │
-        │     │       ├─► controls.tsx    sidebar tiles         │
+        │     │       ├─► controls.tsx    ControlTabs + tiles   │
         │     │       │                                          │
-        │     │       └─► stats-panel.tsx inline stats tile     │
+        │     │       └─► stats-panel.tsx inspector sections    │
         │     │                                                 │
         │     ├─► helpers.ts         pure data + layout helpers │
         │     │                      (tested in isolation)      │

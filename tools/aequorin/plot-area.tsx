@@ -8,13 +8,10 @@
 // and the co-located imports below.
 
 import { Chart, InsetBarplot, FacetChartItem } from "./chart";
-import { AequorinStatsPanel } from "./stats-panel";
-import { AQ_ERROR_BAR_LABELS } from "./reports";
 import { ColorInput, navigateToTool, setHandoff } from "../_shell";
 import {
   convertTime,
   smooth,
-  AnnotationSpec,
   CalibrationFormula,
   ColInfo,
   Condition,
@@ -91,6 +88,10 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
     onXRangeChange,
     onResetXRange,
     xZoomed,
+    statsDataMode,
+    onStatsDataModeChange: setStatsDataMode,
+    statsAnnotations,
+    statsSummary,
   },
   ref
 ) {
@@ -98,9 +99,6 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
   const activeStats = stats.filter((s) => s.enabled);
   const combinedRef = useRef<SVGSVGElement | null>(null);
   const facetRefs = useRef<Record<string, SVGSVGElement | null>>({});
-  const [statsDataMode, setStatsDataMode] = useState<"raw" | "corrected">("corrected");
-  const [statsAnnotations, setStatsAnnotations] = useState<AnnotationSpec | null>(null);
-  const [statsSummary, setStatsSummary] = useState<string | null>(null);
   const [chartOpen, setChartOpen] = useState(true);
   const [replicateTableOpen, setReplicateTableOpen] = useState(false);
   const [insetOpen, setInsetOpen] = useState(true);
@@ -108,18 +106,6 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
     if (showInset) setInsetOpen(true);
   }, [showInset]);
   const barRef = useRef<SVGSVGElement | null>(null);
-
-  const statsGroups = useMemo(() => {
-    if (!showInset || !replicateSums || replicateSums.length < 2) return null;
-    // Only include conditions that are enabled (match activeStats)
-    const activeLabels = new Set(activeStats.map((s) => s.prefix));
-    const filtered = replicateSums.filter((rs) => activeLabels.has(rs.prefix));
-    if (filtered.length < 2) return null;
-    return filtered.map((rs) => ({
-      name: rs.label,
-      values: rs.repSums.map((rep) => (statsDataMode === "raw" ? rep.rawSum : rep.corrSum)),
-    }));
-  }, [showInset, replicateSums, activeStats, statsDataMode]);
 
   // Hash signature of activeStats keyed on prefix/label/color/enabled +
   // active column indices. Lifted out of the deps array so eslint can
@@ -570,25 +556,6 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                   </tbody>
                 </table>
               )}
-            </div>
-          )}
-
-          {/* Stats panel */}
-          {statsGroups && (
-            <div style={{ marginTop: 12 }}>
-              <AequorinStatsPanel
-                groups={statsGroups}
-                fileStem={`${baseName}_stats`}
-                onAnnotationChange={setStatsAnnotations}
-                onSummaryChange={setStatsSummary}
-                errorBarLabel={AQ_ERROR_BAR_LABELS[insetErrorType]}
-                displayKind={insetErrorType}
-                valueNote={tr(
-                  statsDataMode === "raw"
-                    ? "aequorin.methods.valueRaw"
-                    : "aequorin.methods.valueCorrected"
-                )}
-              />
             </div>
           )}
         </div>

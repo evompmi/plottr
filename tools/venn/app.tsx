@@ -383,8 +383,21 @@ export function App() {
       )}
 
       {step === "plot" && activeSetNames.length >= 2 && (
-        <div>
-          <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+        <PlotArea
+          chartRef={chartRef}
+          activeSetNames={activeSetNames}
+          activeSetsMap={activeSetsMap}
+          intersections={intersections}
+          setColors={setColors}
+          selectedMask={selectedMask}
+          setSelectedMask={setSelectedMask}
+          vis={vis}
+          proportional={proportional}
+          layoutInfo={layoutInfo}
+          setLayoutInfo={setLayoutInfo}
+          selectedIntersection={selectedIntersection}
+          fileName={fileName}
+          controls={
             <PlotControls
               allSetNames={setNames}
               allSets={sets}
@@ -403,23 +416,8 @@ export function App() {
               onProportionalChange={setProportional}
               fileName={fileName}
             />
-            <PlotArea
-              chartRef={chartRef}
-              activeSetNames={activeSetNames}
-              activeSetsMap={activeSetsMap}
-              intersections={intersections}
-              setColors={setColors}
-              selectedMask={selectedMask}
-              setSelectedMask={setSelectedMask}
-              vis={vis}
-              proportional={proportional}
-              layoutInfo={layoutInfo}
-              setLayoutInfo={setLayoutInfo}
-              selectedIntersection={selectedIntersection}
-              fileName={fileName}
-            />
-          </div>
-        </div>
+          }
+        />
       )}
     </PlotToolShell>
   );

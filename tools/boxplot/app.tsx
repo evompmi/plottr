@@ -935,7 +935,6 @@ export function App() {
       visInit={VIS_INIT_BOXPLOT}
       steps={["upload", "configure", "filter", "output", "plot"]}
       canNavigate={(s) => s === "upload" || parsedRows.length > 0}
-      workspace
     >
       {step === "upload" && (
         <UploadStep

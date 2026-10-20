@@ -1,8 +1,10 @@
-// lineplot/plot-area.tsx — composes the chart + per-x stats panel under
-// the sidebar. Owns the SVG-legend computation that the chart needs.
+// lineplot/plot-area.tsx — the plot step's workspace: tabbed controls, the
+// chart (with the stars toggle above it) and the per-x statistics column.
 
 import { Chart } from "./chart";
-import { PerXStatsPanel } from "./stats-panel";
+import { LineplotStatsDisplayBar, PerXStatsPanel } from "./stats-panel";
+import { WorkspaceLayout } from "../_shell";
+import { useT } from "./i18n";
 import { PlotControls } from "./controls";
 import type { PlotStepProps } from "./helpers";
 
@@ -24,18 +26,23 @@ export function PlotStep(props: PlotStepProps) {
     svgRef,
     svgLegend,
   } = props;
+  const tr = useT();
 
   const vbW = 700;
   const vbH = 440;
   const xLabelForStats = vis.xLabel || (parsed ? parsed.headers[xCol] : "x");
 
   return (
-    <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-      {/* LEFT: controls */}
-      <PlotControls {...props} />
-
-      {/* RIGHT: chart + per-x stats */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+    <WorkspaceLayout
+      controlsLabel={tr("lineplot.controlsLabel")}
+      inspectorLabel={tr("lineplot.sp.inspectorLabel")}
+      controls={<PlotControls {...props} />}
+      toolbar={
+        statsRows.length > 0 ? (
+          <LineplotStatsDisplayBar showStars={showStars} setShowStars={setShowStars} />
+        ) : null
+      }
+      figure={
         <div
           className="dv-panel dv-plot-card"
           style={{
@@ -85,18 +92,17 @@ export function PlotStep(props: PlotStepProps) {
             />
           )}
         </div>
-
-        {statsRows.length > 0 && (
+      }
+      inspector={
+        statsRows.length > 0 ? (
           <PerXStatsPanel
             rows={statsRows}
             xLabel={xLabelForStats}
             fileName={fileName}
-            showStars={showStars}
-            setShowStars={setShowStars}
             displayKind={errorType}
           />
-        )}
-      </div>
-    </div>
+        ) : null
+      }
+    />
   );
 }

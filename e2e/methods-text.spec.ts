@@ -37,6 +37,7 @@ const CASES: Array<{ tool: string; expects: RegExp[]; prepare?: (page: Page) => 
   {
     tool: "aequorin",
     prepare: async (page) => {
+      await page.getByRole("tab", { name: "Σ barplot" }).click();
       await page
         .getByTitle("Barplot of the sum (Σ) of plotted values per condition")
         .getByRole("button", { name: "On", exact: true })
@@ -50,7 +51,7 @@ const CASES: Array<{ tool: string; expects: RegExp[]; prepare?: (page: Page) => 
       // Wait for the plot step to settle, or the section click is lost to a remount.
       const bar = page.locator('svg g[id^="intersection-bar-"][role="button"]').first();
       await expect(bar).toBeVisible();
-      await page.getByRole("button", { name: "Statistics", exact: true }).click();
+      await page.getByRole("tab", { name: "Statistics", exact: true }).click();
       await page.getByRole("button", { name: /Compute stats/ }).click();
       await bar.click();
     },

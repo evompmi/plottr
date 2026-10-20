@@ -848,12 +848,18 @@ export interface QpcrStatsPanelProps {
   overrides: Record<string, string | null>;
   onOverride: (gene: string, test: string | null) => void;
   vis: QpcrVis;
-  updVis: (patch: Partial<QpcrVis>) => void;
   onDownloadReport: () => void;
   onDownloadR: () => void;
   // For the methods text.
   refs: string[];
   eff: Record<string, number>;
+}
+
+export interface QpcrStatsDisplayBarProps {
+  genes: GeneAnalysis[];
+  normalize: Normalization;
+  vis: QpcrVis;
+  updVis: (patch: Partial<QpcrVis>) => void;
 }
 
 export interface TileProps {

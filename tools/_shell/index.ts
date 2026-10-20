@@ -35,6 +35,8 @@ export { FileDropZone, FILE_LIMIT_BYTES, FILE_WARN_BYTES } from "./FileDropZone"
 export { FilterCheckboxPanel } from "./FilterCheckboxPanel";
 export { FormulaInjectionBanner } from "./FormulaInjectionBanner";
 export { GroupColorEditor } from "./GroupColorEditor";
+export { GroupTestSections } from "./GroupTestSections";
+export type { GroupTestSectionsProps } from "./GroupTestSections";
 export { HowTo, HowToExampleTable } from "./HowTo";
 export type { HowToContent, HowToExampleTableProps } from "./HowTo";
 export { HowToCard } from "./HowToCard";
@@ -43,7 +45,6 @@ export { PageHeader } from "./PageHeader";
 export { ParseErrorBanner } from "./ParseErrorBanner";
 export { MethodsButton } from "./MethodsButton";
 export { PlotActionsBar } from "./PlotActionsBar";
-export { PlotSidebar } from "./PlotSidebar";
 export { PlotToolShell } from "./PlotToolShell";
 export { PrefsPanel } from "./PrefsPanel";
 export { RenameReorderPanel } from "./RenameReorderPanel";
@@ -67,6 +68,19 @@ export { StepNavBar } from "./StepNavBar";
 export { UploadPanel } from "./UploadPanel";
 export { WhyThisTest } from "./WhyThisTest";
 export { InspectorSection, WorkspaceLayout } from "./WorkspaceLayout";
+export {
+  AssumptionRow,
+  InspectorExports,
+  ResultHeadline,
+  SetDetail,
+  SetRow,
+  StarsBadge,
+  Verdict,
+  inspectorFirstCol,
+  inspectorTable,
+  inspectorTd,
+  inspectorTh,
+} from "./Inspector";
 export type { WorkspaceLayoutProps } from "./WorkspaceLayout";
 
 // ── Pure helpers / data / hooks ─────────────────────────────────────

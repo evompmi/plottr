@@ -15,6 +15,12 @@ const en = {
     "Download one CSV per non-empty region (fires multiple saves — your browser may ask once to allow them)",
 
   // Sidebar tiles + controls
+  "venn.tab.sets": "Sets",
+  "venn.tab.display": "Display",
+  "venn.controlsLabel": "Plot controls",
+  "venn.inspectorLabel": "Intersections and items",
+  "venn.intersections": "Intersections",
+  "venn.items": "Items",
   "venn.tile.sets": "Sets",
   "venn.tile.display": "Display",
   "venn.ctrl.proportionalAreas": "Proportional areas",

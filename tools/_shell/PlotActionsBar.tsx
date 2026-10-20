@@ -1,14 +1,14 @@
-// Export bar shown in the app bar on the plot step: Start over, then one
-// button per download the tool's `ActionsPanel` registered (PNG / CSV / …),
-// with the SVG figure export last as the primary button. Start over asks
-// for a second click (within 4 s) before it clears the session, since it
-// discards the loaded data.
+// Export bar shown in the app bar on the plot step: Start over, the first
+// secondary download (usually PNG), a "More" menu holding any further ones
+// (CSV, tables, …) so the bar stays on one line, and the SVG figure export
+// last as the primary button. Start over asks for a second click (within
+// 4 s) before it clears the session, since it discards the loaded data.
 
 import { flashSaved } from "../_core/download";
 import { useShellT } from "./i18n";
 import type { PlotActionsEntry } from "./plot-actions";
 
-const { useEffect, useState } = React;
+const { useEffect, useRef, useState } = React;
 
 interface PlotActionsBarProps {
   // Ref the shell keeps current; handlers are read from it at click time.
@@ -41,14 +41,41 @@ export function PlotActionsBar({ entryRef }: PlotActionsBarProps) {
     const id = window.setTimeout(() => setConfirming(false), 4000);
     return () => window.clearTimeout(id);
   }, [confirming]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onDown = (ev: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(ev.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [menuOpen]);
   const entry = entryRef.current;
   if (!entry) return null;
-  // Original indices are kept so the click handler re-reads the live entry.
+  // Original indices are kept so a click re-reads the live entry.
   const indexed = entry.downloads.map((d, i) => ({ d, i }));
-  const ordered = [
-    ...indexed.filter(({ d }) => d.label !== "SVG"),
-    ...indexed.filter(({ d }) => d.label === "SVG"),
-  ];
+  const others = indexed.filter(({ d }) => d.label !== "SVG");
+  const svg = indexed.find(({ d }) => d.label === "SVG") || null;
+  const first = others[0] || null;
+  const extra = others.slice(1);
+  const runDownload = (i: number, e: React.MouseEvent<HTMLButtonElement>) => {
+    const cur = entryRef.current;
+    const target = cur && cur.downloads[i];
+    if (!target) return;
+    target.onClick(e);
+    flashSaved(e.currentTarget);
+  };
+  const btnStyle: React.CSSProperties = {
+    minHeight: "var(--control-h)",
+    padding: "0 14px",
+    fontSize: 13,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    whiteSpace: "nowrap",
+  };
   return (
     <div
       role="toolbar"
@@ -77,36 +104,80 @@ export function PlotActionsBar({ entryRef }: PlotActionsBarProps) {
         aria-hidden="true"
         style={{ width: 1, height: 24, background: "var(--border)", margin: "0 2px" }}
       />
-      {ordered.map(({ d, i }) => {
-        const primary = d.label === "SVG";
-        return (
+      {first && (
+        <button
+          type="button"
+          title={first.d.title || undefined}
+          className="dv-btn dv-btn-dl"
+          style={btnStyle}
+          onClick={(e) => runDownload(first.i, e)}
+        >
+          {first.d.label}
+        </button>
+      )}
+      {extra.length > 0 && (
+        <div ref={menuRef} style={{ position: "relative" }}>
           <button
-            key={d.label + i}
+            ref={moreRef}
             type="button"
-            title={d.title || undefined}
-            className={primary ? "dv-btn dv-btn-primary" : "dv-btn dv-btn-dl"}
-            style={{
-              minHeight: "var(--control-h)",
-              padding: "0 14px",
-              fontSize: 13,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              whiteSpace: "nowrap",
-            }}
-            onClick={(e) => {
-              const cur = entryRef.current;
-              const target = cur && cur.downloads[i];
-              if (!target) return;
-              target.onClick(e);
-              flashSaved(e.currentTarget);
-            }}
+            className="dv-btn dv-btn-dl"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((x) => !x)}
+            style={btnStyle}
           >
-            {primary && <DownloadIcon />}
-            {primary ? tr("shell.actions.downloadSvg") : d.label}
+            {tr("shell.actions.more")}
           </button>
-        );
-      })}
+          {menuOpen && (
+            <div
+              role="menu"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setMenuOpen(false);
+                  moreRef.current?.focus();
+                }
+              }}
+              style={{
+                position: "absolute",
+                top: "calc(100% + 6px)",
+                right: 0,
+                zIndex: 40,
+                minWidth: 180,
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-lg)",
+                boxShadow: "var(--shadow-lg)",
+                padding: 6,
+              }}
+            >
+              {extra.map(({ d, i }) => (
+                <button
+                  key={d.label + i}
+                  type="button"
+                  role="menuitem"
+                  className="dv-switcher-item"
+                  title={d.title || undefined}
+                  onClick={(e) => runDownload(i, e)}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {svg && (
+        <button
+          type="button"
+          title={svg.d.title || undefined}
+          className="dv-btn dv-btn-primary"
+          style={btnStyle}
+          onClick={(e) => runDownload(svg.i, e)}
+        >
+          <DownloadIcon />
+          {tr("shell.actions.downloadSvg")}
+        </button>
+      )}
     </div>
   );
 }

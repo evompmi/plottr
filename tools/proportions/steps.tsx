@@ -1,7 +1,14 @@
 // Step components for the Proportions tool: ConfigureStep (choose and
-// order groups / categories) and PlotStep (sidebar + chart + statistics).
+// order groups / categories) and PlotStep (workspace: tabbed controls, chart,
+// statistics column).
 
-import { ChartDataTable, DetectedSeparatorBadge, DownloadTiles, PlotSidebar } from "../_shell";
+import {
+  ChartDataTable,
+  ControlTabs,
+  DetectedSeparatorBadge,
+  DownloadTiles,
+  WorkspaceLayout,
+} from "../_shell";
 import type { ChartDataTableRow } from "../_shell";
 import { fileBaseName } from "../_core/download";
 import { formatPct } from "./helpers";
@@ -14,7 +21,7 @@ import type {
 } from "./helpers";
 import { ChartTile, ColorsTile, StyleTile } from "./controls";
 import { ProportionsChart } from "./chart";
-import { GofPanel, StatsPanel } from "./stats-panel";
+import { GofPanel, ProportionsStatsDisplayBar, StatsPanel } from "./stats-panel";
 import { useT } from "./i18n";
 
 const { useMemo } = React;
@@ -232,80 +239,108 @@ export function PlotStep({
   );
 
   return (
-    <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-      <PlotSidebar>
-        <DownloadTiles
-          chartRef={chartRef}
-          fileStem={fileBaseName(fileName, "proportions")}
-          onReset={onReset}
-          extraDownloads={[
+    <WorkspaceLayout
+      controlsLabel={tr("proportions.controlsLabel")}
+      inspectorLabel={tr("proportions.stats.title")}
+      controls={
+        <ControlTabs
+          tool="proportions"
+          tabs={[
             {
-              label: tr("proportions.dl.csv"),
-              title: tr("proportions.dl.csvTitle"),
-              onClick: onDownloadCsv,
+              id: "chart",
+              label: tr("proportions.tab.chart"),
+              content: (
+                <>
+                  <DownloadTiles
+                    chartRef={chartRef}
+                    fileStem={fileBaseName(fileName, "proportions")}
+                    onReset={onReset}
+                    extraDownloads={[
+                      {
+                        label: tr("proportions.dl.csv"),
+                        title: tr("proportions.dl.csvTitle"),
+                        onClick: onDownloadCsv,
+                      },
+                    ]}
+                  />
+                  <ChartTile
+                    vis={vis}
+                    updVis={updVis}
+                    categories={selected.categories}
+                    focus={focus}
+                    setFocus={setFocus}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "colors",
+              label: tr("proportions.tab.colors"),
+              content: (
+                <ColorsTile
+                  vis={vis}
+                  updVis={updVis}
+                  items={colorItems}
+                  itemsLabel={
+                    vis.chartType === "proportion"
+                      ? tr("proportions.colors.groups")
+                      : tr("proportions.colors.categories")
+                  }
+                  onColorChange={vis.chartType === "proportion" ? onGroupColor : onCategoryColor}
+                  onPaletteChange={onPaletteChange}
+                />
+              ),
+            },
+            {
+              id: "style",
+              label: tr("proportions.tab.style"),
+              content: <StyleTile vis={vis} updVis={updVis} />,
             },
           ]}
         />
-        <ChartTile
-          vis={vis}
-          updVis={updVis}
-          categories={selected.categories}
-          focus={focus}
-          setFocus={setFocus}
-        />
-        <ColorsTile
-          vis={vis}
-          updVis={updVis}
-          items={colorItems}
-          itemsLabel={
-            vis.chartType === "proportion"
-              ? tr("proportions.colors.groups")
-              : tr("proportions.colors.categories")
-          }
-          onColorChange={vis.chartType === "proportion" ? onGroupColor : onCategoryColor}
-          onPaletteChange={onPaletteChange}
-        />
-        <StyleTile vis={vis} updVis={updVis} />
-      </PlotSidebar>
-
-      <div
-        style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}
-      >
-        <div
-          style={{
-            background: "var(--plot-card-bg)",
-            border: "1.5px solid var(--plot-card-border)",
-            borderRadius: 10,
-            padding: 16,
-          }}
-        >
-          <ProportionsChart
-            ref={chartRef}
-            table={shown}
-            chartType={vis.chartType}
-            summaries={summaries}
-            brackets={brackets}
-            cld={analysis.cld}
-            annotation={annotation}
-            colors={colors}
-            groupColors={groupColors}
-            showCI={vis.showCI}
-            showN={vis.showN}
-            segmentLabels={vis.segmentLabels}
-            barWidthFrac={vis.barWidthFrac}
-            barOutline={vis.barOutline}
-            barOutlineWidth={vis.barOutlineWidth}
-            xLabelAngle={vis.xLabelAngle}
-            plotWidth={vis.plotWidth}
-            plotHeight={vis.plotHeight}
-            tickFontSize={vis.tickFontSize}
-            title={vis.plotTitle}
-            yLabel={vis.yLabel}
-            plotBg={vis.plotBg}
-            showGrid={vis.showGrid}
-            gridColor={vis.gridColor}
-          />
-        </div>
+      }
+      toolbar={<ProportionsStatsDisplayBar analysis={analysis} vis={vis} updVis={updVis} />}
+      figure={
+        <>
+          <div className="dv-plot-card" style={{ background: "var(--plot-card-bg)", padding: 16 }}>
+            <ProportionsChart
+              ref={chartRef}
+              table={shown}
+              chartType={vis.chartType}
+              summaries={summaries}
+              brackets={brackets}
+              cld={analysis.cld}
+              annotation={annotation}
+              colors={colors}
+              groupColors={groupColors}
+              showCI={vis.showCI}
+              showN={vis.showN}
+              segmentLabels={vis.segmentLabels}
+              barWidthFrac={vis.barWidthFrac}
+              barOutline={vis.barOutline}
+              barOutlineWidth={vis.barOutlineWidth}
+              xLabelAngle={vis.xLabelAngle}
+              plotWidth={vis.plotWidth}
+              plotHeight={vis.plotHeight}
+              tickFontSize={vis.tickFontSize}
+              title={vis.plotTitle}
+              yLabel={vis.yLabel}
+              plotBg={vis.plotBg}
+              showGrid={vis.showGrid}
+              gridColor={vis.gridColor}
+            />
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <ChartDataTable
+              summaryLabel={tr("proportions.table.summary")}
+              caption={tr("proportions.table.caption")}
+              columnHeaders={[tr("proportions.stats.group"), "n", ...shown.categories]}
+              rows={tableRows}
+            />
+          </div>
+        </>
+      }
+      inspector={
         <StatsPanel
           analysis={analysis}
           control={control}
@@ -317,15 +352,9 @@ export function PlotStep({
           updVis={updVis}
           onDownloadReport={onDownloadReport}
           onDownloadR={onDownloadR}
+          extra={<GofPanel table={shown} ratioText={ratioText} setRatioText={setRatioText} />}
         />
-        <GofPanel table={shown} ratioText={ratioText} setRatioText={setRatioText} />
-        <ChartDataTable
-          summaryLabel={tr("proportions.table.summary")}
-          caption={tr("proportions.table.caption")}
-          columnHeaders={[tr("proportions.stats.group"), "n", ...shown.categories]}
-          rows={tableRows}
-        />
-      </div>
-    </div>
+      }
+    />
   );
 }

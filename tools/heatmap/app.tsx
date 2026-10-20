@@ -10,6 +10,7 @@ import {
   DetectedSeparatorBadge,
   MethodsButton,
   PlotToolShell,
+  WorkspaceLayout,
   softwareSentence,
   usePlotToolState,
 } from "../_shell";
@@ -675,8 +676,9 @@ export function App() {
       )}
 
       {step === "plot" && nRows > 0 && (
-        <div>
-          <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+        <WorkspaceLayout
+          controlsLabel={tr("heatmap.plot.controlsLabel")}
+          controls={
             <PlotControls
               vis={vis}
               updVis={updVis}
@@ -709,70 +711,49 @@ export function App() {
               rangeIsDiverging={rangeIsDiverging}
               setRange={setRange}
             />
-
-            <div
-              style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}
-            >
+          }
+          toolbar={
+            <>
+              {hasSelection ? (
+                <button
+                  onClick={clearSelection}
+                  className="dv-btn dv-btn-secondary"
+                  style={{ padding: "4px 10px", fontSize: 11 }}
+                >
+                  {tr("heatmap.plot.clear")}
+                </button>
+              ) : (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "var(--text-muted)",
+                    fontStyle: "italic",
+                  }}
+                >
+                  {tr("heatmap.plot.dragHint")}
+                </span>
+              )}
+              <div style={{ marginLeft: "auto" }}>
+                <MethodsButton getText={methodsText} />
+              </div>
+            </>
+          }
+          figure={
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {skew && <SkewAlert skew={skew} onApply={applyRobustRange} />}
               <div
                 style={{
                   display: "flex",
-                  gap: 12,
+                  gap: 16,
                   alignItems: "flex-start",
                   flexWrap: "wrap",
+                  justifyContent: "center",
                 }}
               >
                 <div
-                  className="dv-panel dv-plot-card"
-                  style={{
-                    padding: 20,
-                    background: "var(--plot-card-bg)",
-                    borderColor: "var(--plot-card-border)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 12,
-                    alignItems: "center",
-                    flex: 1,
-                    minWidth: 0,
-                  }}
+                  className="dv-plot-card"
+                  style={{ background: "var(--plot-card-bg)", padding: 20 }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      alignSelf: "stretch",
-                      gap: 12,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
-                    >
-                      {hasSelection ? (
-                        <button
-                          onClick={clearSelection}
-                          className="dv-btn dv-btn-secondary"
-                          style={{ padding: "4px 10px", fontSize: 11 }}
-                        >
-                          {tr("heatmap.plot.clear")}
-                        </button>
-                      ) : (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            color: "var(--text-muted)",
-                            fontStyle: "italic",
-                          }}
-                        >
-                          {tr("heatmap.plot.dragHint")}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ marginLeft: "auto" }}>
-                      <MethodsButton getText={methodsText} />
-                    </div>
-                  </div>
                   <HeatmapChart
                     ref={chartRef}
                     rowLabels={rawMatrix.rowLabels}
@@ -804,7 +785,6 @@ export function App() {
                     onClearSelection={clearSelection}
                   />
                 </div>
-
                 {hasSelection && (
                   <DetailView
                     rawMatrix={rawMatrix}
@@ -843,8 +823,8 @@ export function App() {
                 }
               />
             </div>
-          </div>
-        </div>
+          }
+        />
       )}
     </PlotToolShell>
   );

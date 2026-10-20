@@ -913,8 +913,8 @@ export function SummaryTile({ summary, fcCutoff, pCutoff }: SummaryTileProps) {
   const tr = useT();
   return (
     <div
-      className="dv-panel"
-      style={{ padding: "10px 14px", display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12 }}
+      data-testid="volcano-summary"
+      style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "baseline", fontSize: 13 }}
     >
       <span>
         <strong style={{ color: VOLCANO_DEFAULT_COLORS.up }}>{tr("volcano.summary.up")}</strong>:{" "}
