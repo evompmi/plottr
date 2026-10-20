@@ -23,3 +23,24 @@ test("boxplot: load example → walk to plot → chart renders boxes", async ({ 
   const boxes = await groupsLayer.locator("> g").count();
   expect(boxes).toBeGreaterThanOrEqual(2);
 });
+
+test("boxplot: square corners + custom outline restyle box and median", async ({ page }) => {
+  await page.goto("/index.html#/boxplot");
+  await page.getByTestId("load-example").click();
+  await page.getByTestId("step-plot").click();
+
+  const firstBox = page.locator("svg g#groups > g").first();
+  const rect = firstBox.locator('rect[stroke-width="1.5"]');
+  const median = firstBox.locator('line[stroke-width="2.5"]');
+  await expect(rect).toHaveAttribute("rx", "2");
+  const groupColor = await rect.getAttribute("fill");
+  await expect(rect).toHaveAttribute("stroke", groupColor ?? "");
+
+  await page.getByRole("button", { name: "Square" }).click();
+  await page.getByRole("button", { name: "Custom" }).click();
+
+  await expect(rect).toHaveAttribute("rx", "0");
+  await expect(rect).toHaveAttribute("stroke", "#000000");
+  await expect(median).toHaveAttribute("stroke", "#000000");
+  await expect(rect).toHaveAttribute("fill", groupColor ?? "");
+});

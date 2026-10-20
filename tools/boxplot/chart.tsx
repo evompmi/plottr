@@ -122,6 +122,9 @@ export const BoxplotChart = memo(
       gridColor,
       boxWidth,
       boxFillOpacity,
+      boxCorners = "rounded",
+      boxOutline = "group",
+      boxOutlineColor = "#000000",
       pointSize,
       showPoints,
       jitterWidth,
@@ -290,6 +293,7 @@ export const BoxplotChart = memo(
         : `${prefix}-${svgSafeId(name)}`;
     };
     const halfBox = (boxWidth / 100) * bandW * 0.4;
+    const boxRx = boxCorners === "square" ? 0 : 2;
 
     const pointColor = (g: BoxplotGroup, src: BoxplotGroup["sources"][number], si: number) => {
       if (cbc >= 0 && catCols && src.category)
@@ -589,6 +593,9 @@ export const BoxplotChart = memo(
             const { q1, med, q3, wLo, wHi } = g.stats;
             const isRain = plotStyle === "raincloud";
             const isViolin = plotStyle === "violin" || isRain;
+            // Box border, median and violin edge share one colour: the group's
+            // own, or the user's custom outline colour.
+            const outline = boxOutline === "custom" ? boxOutlineColor : g.color;
 
             /* ── Violin / raincloud KDE shape ── */
             let violinPath = null;
@@ -609,7 +616,7 @@ export const BoxplotChart = memo(
                       d={d}
                       fill={g.color}
                       fillOpacity={boxFillOpacity}
-                      stroke={g.color}
+                      stroke={outline}
                       strokeWidth="1"
                     />
                   );
@@ -632,7 +639,7 @@ export const BoxplotChart = memo(
                       d={d}
                       fill={g.color}
                       fillOpacity={boxFillOpacity}
-                      stroke={g.color}
+                      stroke={outline}
                       strokeWidth="1"
                     />
                   );
@@ -684,16 +691,16 @@ export const BoxplotChart = memo(
                   height={boxHalf * 2}
                   fill={isViolin ? "#fff" : g.color}
                   fillOpacity={isViolin ? 0.7 : boxFillOpacity}
-                  stroke={g.color}
+                  stroke={outline}
                   strokeWidth="1.5"
-                  rx="2"
+                  rx={boxRx}
                 />
                 <line
                   y1={boxCx - boxHalf}
                   y2={boxCx + boxHalf}
                   x1={sy(med)}
                   x2={sy(med)}
-                  stroke={g.color}
+                  stroke={outline}
                   strokeWidth="2.5"
                 />
               </>
@@ -738,16 +745,16 @@ export const BoxplotChart = memo(
                   height={sy(q1) - sy(q3)}
                   fill={isViolin ? "#fff" : g.color}
                   fillOpacity={isViolin ? 0.7 : boxFillOpacity}
-                  stroke={g.color}
+                  stroke={outline}
                   strokeWidth="1.5"
-                  rx="2"
+                  rx={boxRx}
                 />
                 <line
                   x1={boxCx - boxHalf}
                   x2={boxCx + boxHalf}
                   y1={sy(med)}
                   y2={sy(med)}
-                  stroke={g.color}
+                  stroke={outline}
                   strokeWidth="2.5"
                 />
               </>

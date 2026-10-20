@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Proportions: compare with a control.** Pairwise comparisons can test each group against one
   control group only (k − 1 Fisher tests, adjusted over those) instead of every pair; the report,
   R script and Methods text follow. Matches R `fisher.test` + `p.adjust`.
+- **Group Plot: box styling.** Under Shape & fill, boxes can have square corners, and the box
+  outline can be drawn in a custom colour (e.g. black) instead of the group colour; the median
+  line and violin edge follow it.
 
 ### Fixed
 

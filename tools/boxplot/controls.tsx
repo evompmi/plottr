@@ -315,15 +315,51 @@ export function PlotControls({
             )}
           </>
         ) : (
-          <SliderControl
-            label={tr("boxplot.ctrl.fillOpacity")}
-            value={vis.boxFillOpacity}
-            displayValue={vis.boxFillOpacity.toFixed(2)}
-            min={0}
-            max={1}
-            step={0.05}
-            onChange={sv("boxFillOpacity")}
-          />
+          <>
+            <SliderControl
+              label={tr("boxplot.ctrl.fillOpacity")}
+              value={vis.boxFillOpacity}
+              displayValue={vis.boxFillOpacity.toFixed(2)}
+              min={0}
+              max={1}
+              step={0.05}
+              onChange={sv("boxFillOpacity")}
+            />
+            <div>
+              <div className="dv-label">{tr("boxplot.ctrl.boxCorners")}</div>
+              <SegToggle<string>
+                ariaLabel={tr("boxplot.ctrl.boxCorners")}
+                value={vis.boxCorners}
+                onChange={(v) => updVis({ boxCorners: v })}
+                options={[
+                  { value: "rounded", label: tr("boxplot.ctrl.cornersRounded") },
+                  { value: "square", label: tr("boxplot.ctrl.cornersSquare") },
+                ]}
+              />
+            </div>
+            <div>
+              <div className="dv-label">{tr("boxplot.ctrl.boxOutline")}</div>
+              <SegToggle<string>
+                ariaLabel={tr("boxplot.ctrl.boxOutline")}
+                value={vis.boxOutline}
+                onChange={(v) => updVis({ boxOutline: v })}
+                options={[
+                  { value: "group", label: tr("boxplot.ctrl.outlineGroup") },
+                  { value: "custom", label: tr("boxplot.ctrl.outlineCustom") },
+                ]}
+              />
+            </div>
+            {vis.boxOutline === "custom" && (
+              <div>
+                <div className="dv-label">{tr("boxplot.ctrl.outlineColor")}</div>
+                <ColorInput
+                  value={vis.boxOutlineColor}
+                  onChange={sv("boxOutlineColor")}
+                  size={24}
+                />
+              </div>
+            )}
+          </>
         )}
       </ControlSection>
 
