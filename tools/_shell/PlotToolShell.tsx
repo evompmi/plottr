@@ -1,13 +1,13 @@
-// Outer page frame shared by every plot tool. Renders PageHeader (with the
-// PrefsPanel in the top-right slot — plus, on the plot step, the export bar
-// the tool's ActionsPanel registers and a compact, sticky header), the StepNavBar, the comma-fix banner,
-// the parse-error banner, and delegates everything else to children — each
-// tool still owns the per-step content (UploadStep, ConfigureStep, plot
-// layout, etc.) since those differ per tool.
+// Outer page frame shared by every plot tool. Renders the AppBar (step nav,
+// file chip, and on the plot step the export bar the tool's ActionsPanel
+// registers plus PrefsPanel), the comma-fix / formula-injection / parse-error
+// banners, and delegates everything else to children — each tool still owns
+// the per-step content (UploadStep, ConfigureStep, the plot workspace, etc.)
+// since those differ per tool.
 //
 import type { PlotToolState } from "./usePlotToolState";
 import { PrefsPanel } from "./PrefsPanel";
-import { PageHeader } from "./PageHeader";
+import { AppBar, FileChip } from "./AppBar";
 import { StepNavBar } from "./StepNavBar";
 import { CommaFixBanner } from "./CommaFixBanner";
 import { FormulaInjectionBanner } from "./FormulaInjectionBanner";
@@ -89,37 +89,59 @@ export function PlotToolShell<TVis extends object>({
     []
   );
   const onPlot = state.step === "plot";
+  // The plot step is a `WorkspaceLayout` that fills the window edge to edge.
+  const fullBleed = onPlot;
   return (
-    <div style={{ padding: "24px 32px", maxWidth: 1400 }}>
-      <PageHeader
-        toolName={toolName}
-        title={title}
-        compact={onPlot}
-        middle={
+    <div className="dv-tool" data-tool-key={toolName}>
+      {/* The visible tool name lives in the app bar's switcher button; the
+          page heading stays for screen readers and the document outline. */}
+      <h1 className="dv-sr-only">{title}</h1>
+      <AppBar
+        steps={
           <StepNavBar
             steps={steps}
             currentStep={state.step}
             onStepChange={state.setStep}
             canNavigate={canNavigate}
             stepLabels={stepLabels}
-            compact={onPlot}
           />
         }
-        right={
-          onPlot ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <PlotActionsBar entryRef={actionsRef} />
-              <PrefsPanel tool={toolName} vis={state.vis} visInit={visInit} updVis={state.updVis} />
+        actions={
+          state.step !== "upload" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <FileChip name={state.fileName} />
+              {onPlot && <PlotActionsBar entryRef={actionsRef} />}
+              {onPlot && (
+                <PrefsPanel
+                  tool={toolName}
+                  vis={state.vis}
+                  visInit={visInit}
+                  updVis={state.updVis}
+                />
+              )}
             </div>
           ) : null
         }
       />
-      <CommaFixBanner commaFixed={state.commaFixed} commaFixCount={state.commaFixCount} />
-      <FormulaInjectionBanner warning={state.injectionWarning} />
-      <ParseErrorBanner error={state.parseError} />
-      <PlotActionsContext.Provider value={registry}>
-        <StepFade step={state.step}>{children}</StepFade>
-      </PlotActionsContext.Provider>
+      <main
+        className={fullBleed ? "dv-tool-body dv-tool-body-full" : "dv-tool-body"}
+        style={
+          fullBleed
+            ? undefined
+            : {
+                padding: onPlot ? "20px 24px 32px" : "28px 32px 48px",
+                maxWidth: 1400,
+                margin: "0 auto",
+              }
+        }
+      >
+        <CommaFixBanner commaFixed={state.commaFixed} commaFixCount={state.commaFixCount} />
+        <FormulaInjectionBanner warning={state.injectionWarning} />
+        <ParseErrorBanner error={state.parseError} />
+        <PlotActionsContext.Provider value={registry}>
+          <StepFade step={state.step}>{children}</StepFade>
+        </PlotActionsContext.Provider>
+      </main>
     </div>
   );
 }

@@ -8,13 +8,10 @@
 // and the co-located imports below.
 
 import { Chart, InsetBarplot, FacetChartItem } from "./chart";
-import { AequorinStatsPanel } from "./stats-panel";
-import { AQ_ERROR_BAR_LABELS } from "./reports";
 import { ColorInput, navigateToTool, setHandoff } from "../_shell";
 import {
   convertTime,
   smooth,
-  AnnotationSpec,
   CalibrationFormula,
   ColInfo,
   Condition,
@@ -28,7 +25,7 @@ import {
 
 import { downloadPngs, downloadSvgs, fileBaseName } from "../_core/download";
 import type { SvgDownloadItem } from "../_core/download";
-import { downloadCsv, flashSaved } from "../_core/download";
+import { downloadCsv } from "../_core/download";
 import { useT } from "./i18n";
 const { useState, useMemo, useRef, useEffect, useCallback } = React;
 
@@ -91,6 +88,10 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
     onXRangeChange,
     onResetXRange,
     xZoomed,
+    statsDataMode,
+    onStatsDataModeChange: setStatsDataMode,
+    statsAnnotations,
+    statsSummary,
   },
   ref
 ) {
@@ -98,9 +99,6 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
   const activeStats = stats.filter((s) => s.enabled);
   const combinedRef = useRef<SVGSVGElement | null>(null);
   const facetRefs = useRef<Record<string, SVGSVGElement | null>>({});
-  const [statsDataMode, setStatsDataMode] = useState<"raw" | "corrected">("corrected");
-  const [statsAnnotations, setStatsAnnotations] = useState<AnnotationSpec | null>(null);
-  const [statsSummary, setStatsSummary] = useState<string | null>(null);
   const [chartOpen, setChartOpen] = useState(true);
   const [replicateTableOpen, setReplicateTableOpen] = useState(false);
   const [insetOpen, setInsetOpen] = useState(true);
@@ -108,18 +106,6 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
     if (showInset) setInsetOpen(true);
   }, [showInset]);
   const barRef = useRef<SVGSVGElement | null>(null);
-
-  const statsGroups = useMemo(() => {
-    if (!showInset || !replicateSums || replicateSums.length < 2) return null;
-    // Only include conditions that are enabled (match activeStats)
-    const activeLabels = new Set(activeStats.map((s) => s.prefix));
-    const filtered = replicateSums.filter((rs) => activeLabels.has(rs.prefix));
-    if (filtered.length < 2) return null;
-    return filtered.map((rs) => ({
-      name: rs.label,
-      values: rs.repSums.map((rep) => (statsDataMode === "raw" ? rep.rawSum : rep.corrSum)),
-    }));
-  }, [showInset, replicateSums, activeStats, statsDataMode]);
 
   // Hash signature of activeStats keyed on prefix/label/color/enabled +
   // active column indices. Lifted out of the deps array so eslint can
@@ -224,8 +210,25 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
         }
         downloadPngs(items);
       },
+      downloadSums: () => {
+        if (!replicateSums) return;
+        const corrected = statsDataMode === "corrected";
+        const key = corrected ? "corrSum" : "rawSum";
+        const rows = replicateSums.flatMap((rs) =>
+          rs.repSums.map((rep, ri) => [
+            rs.prefix,
+            `Rep ${ri + 1}`,
+            rep[key] != null ? rep[key].toFixed(6) : "",
+          ])
+        );
+        downloadCsv(
+          ["Condition", "Replicate", corrected ? "Corrected Sum" : "Raw Sum"],
+          rows,
+          corrected ? `${baseName}_corrected_sums.csv` : `${baseName}_raw_sums.csv`
+        );
+      },
     }),
-    [faceted, displaySeries, showInset, statsDataMode, baseName]
+    [faceted, displaySeries, showInset, statsDataMode, baseName, replicateSums]
   );
 
   if (activeStats.length === 0)
@@ -238,7 +241,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
           fontSize: 14,
         }}
       >
-        No conditions or samples selected. Enable at least one to display the plot.
+        {tr("aequorin.pa.noneSelected")}
       </div>
     );
 
@@ -308,7 +311,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
             className={"dv-disclosure" + (insetOpen ? " dv-disclosure-open" : "")}
             aria-hidden="true"
           />
-          Barplot (Σ of plotted values)
+          {tr("aequorin.pa.barplotTitle")}
         </span>
       </button>
       {insetOpen && (
@@ -316,7 +319,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
           {/* Toggle */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-              Integral:
+              {tr("aequorin.pa.integral")}
             </span>
             <button
               onClick={() => setStatsDataMode("raw")}
@@ -325,14 +328,14 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                 borderRadius: 6,
                 fontSize: 12,
                 fontWeight: 600,
-                background: statsDataMode === "raw" ? "var(--cta-primary-bg)" : "var(--surface)",
-                color: statsDataMode === "raw" ? "var(--on-accent)" : "var(--text-faint)",
-                border: `1px solid ${statsDataMode === "raw" ? "var(--cta-primary-bg)" : "var(--border-strong)"}`,
+                background: statsDataMode === "raw" ? "var(--seg-selected-bg)" : "var(--surface)",
+                color: statsDataMode === "raw" ? "var(--seg-selected-text)" : "var(--text-faint)",
+                border: `1px solid ${statsDataMode === "raw" ? "var(--seg-selected-bg)" : "var(--border-strong)"}`,
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
             >
-              Σ Raw
+              {tr("aequorin.pa.raw")}
             </button>
             <button
               onClick={() => setStatsDataMode("corrected")}
@@ -342,14 +345,15 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                 fontSize: 12,
                 fontWeight: 600,
                 background:
-                  statsDataMode === "corrected" ? "var(--cta-primary-bg)" : "var(--surface)",
-                color: statsDataMode === "corrected" ? "var(--on-accent)" : "var(--text-faint)",
-                border: `1px solid ${statsDataMode === "corrected" ? "var(--cta-primary-bg)" : "var(--border-strong)"}`,
+                  statsDataMode === "corrected" ? "var(--seg-selected-bg)" : "var(--surface)",
+                color:
+                  statsDataMode === "corrected" ? "var(--seg-selected-text)" : "var(--text-faint)",
+                border: `1px solid ${statsDataMode === "corrected" ? "var(--seg-selected-bg)" : "var(--border-strong)"}`,
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
             >
-              Σ Baseline-corrected
+              {tr("aequorin.pa.corrected")}
             </button>
           </div>
 
@@ -492,32 +496,10 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                       navigateToTool("boxplot");
                     }}
                     className="dv-btn dv-btn-secondary"
-                    // Match the sibling ⬇ CSV chip's vertical padding
-                    // (`dv-btn-dl` is `8px 10px`); the default secondary
-                    // padding (`6px 14px`) makes this button visibly
-                    // shorter when they sit next to each other.
                     style={{ flexShrink: 0, padding: "8px 14px" }}
                     title={tr("aequorin.pa.openInBoxplotTitle")}
                   >
                     {tr("aequorin.pa.openInBoxplot")}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const rows = replicateSums.flatMap((rs) =>
-                        rs.repSums.map((rep, ri) => [
-                          rs.prefix,
-                          `Rep ${ri + 1}`,
-                          rep[sumKey] != null ? rep[sumKey].toFixed(6) : "",
-                        ])
-                      );
-                      downloadCsv(["Condition", "Replicate", sumLabel], rows, csvFileName);
-                      flashSaved(e.currentTarget);
-                    }}
-                    className="dv-btn dv-btn-dl"
-                    style={{ flexShrink: 0 }}
-                  >
-                    ⬇ CSV
                   </button>
                 </div>
               </div>
@@ -559,7 +541,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                             style={{
                               padding: "3px 8px",
                               color: "var(--text)",
-                              fontFamily: "monospace",
+                              fontFamily: "var(--font-mono)",
                             }}
                           >
                             {rep[sumKey] != null ? rep[sumKey].toFixed(4) : "—"}
@@ -570,25 +552,6 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                   </tbody>
                 </table>
               )}
-            </div>
-          )}
-
-          {/* Stats panel */}
-          {statsGroups && (
-            <div style={{ marginTop: 12 }}>
-              <AequorinStatsPanel
-                groups={statsGroups}
-                fileStem={`${baseName}_stats`}
-                onAnnotationChange={setStatsAnnotations}
-                onSummaryChange={setStatsSummary}
-                errorBarLabel={AQ_ERROR_BAR_LABELS[insetErrorType]}
-                displayKind={insetErrorType}
-                valueNote={tr(
-                  statsDataMode === "raw"
-                    ? "aequorin.methods.valueRaw"
-                    : "aequorin.methods.valueCorrected"
-                )}
-              />
             </div>
           )}
         </div>
@@ -637,7 +600,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
             className={"dv-disclosure" + (chartOpen ? " dv-disclosure-open" : "")}
             aria-hidden="true"
           />
-          Time-course plot
+          {tr("aequorin.pa.timecourse")}
         </span>
       </button>
       {chartOpen && (
@@ -753,7 +716,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                 margin: "6px 2px 0",
               }}
             >
-              <p style={{ margin: 0, fontSize: 11, color: "var(--text-faint)" }}>
+              <p style={{ margin: 0, fontSize: 11, color: "var(--plot-card-text-muted)" }}>
                 {tr("aequorin.pa.dragTip")}
                 {xZoomed ? tr("aequorin.pa.dragTipClear") : ""}
               </p>
@@ -782,6 +745,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
 // label/color. Rendered inside PlotControls' ControlSection.
 
 export function ConditionEditor({ conditions, onChange }: ConditionEditorProps) {
+  const tr = useT();
   const update = (i: number, key: keyof Condition, val: unknown) =>
     onChange(conditions.map((c, j) => (j === i ? { ...c, [key]: val } : c)));
   const toggle = (i: number) =>
@@ -807,6 +771,7 @@ export function ConditionEditor({ conditions, onChange }: ConditionEditorProps) 
             type="checkbox"
             checked={c.enabled}
             onChange={() => toggle(i)}
+            aria-label={tr("aequorin.cond.show", { name: c.label })}
             style={{ accentColor: c.color, flexShrink: 0 }}
           />
           <ColorInput
@@ -818,6 +783,7 @@ export function ConditionEditor({ conditions, onChange }: ConditionEditorProps) 
           <input
             value={c.label}
             onChange={(e) => update(i, "label", e.target.value)}
+            aria-label={tr("aequorin.cond.name", { name: c.label })}
             style={{
               flex: 1,
               minWidth: 0,

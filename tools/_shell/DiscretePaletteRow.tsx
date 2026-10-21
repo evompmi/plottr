@@ -158,6 +158,7 @@ export function DiscretePaletteSelect({ value, onChange }: DiscretePaletteSelect
         className="dv-select"
         style={{ width: "100%", fontSize: 11, margin: "2px 0 6px" }}
         title={tr("shell.palette.pickerTitle")}
+        aria-label={tr("shell.palette.label")}
       >
         {keys.map((k) => (
           <option key={k} value={k}>
@@ -195,6 +196,7 @@ export function DiscretePaletteRow({
   names,
   applyColors,
 }: DiscretePaletteRowProps) {
+  const tr = useShellT();
   const list = Array.isArray(names) ? names : [];
   const handle = (next: string) => {
     onChange(next);
@@ -206,7 +208,7 @@ export function DiscretePaletteRow({
   return (
     <div style={{ marginBottom: 6 }}>
       <div className="dv-label" style={{ fontSize: 11, marginBottom: 2 }}>
-        Palette
+        {tr("shell.palette.label")}
       </div>
       <DiscretePaletteSelect value={value} onChange={handle} />
     </div>

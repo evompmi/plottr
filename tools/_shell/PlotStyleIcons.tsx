@@ -1,7 +1,7 @@
 // Icon-button picker for a chart's plot style (Group Plot: box / violin /
 // raincloud / bar; qPCR: bar / dot / box), so every tool offers the same
 // look. Each option is a labelled 22 × 22 line icon drawn in `currentColor`;
-// the selected one is filled with the accent colour and exposed to assistive
+// the selected one is filled like a selected segmented pill (`--seg-selected-*`) and exposed to assistive
 // tech via `aria-pressed` inside a labelled `role="group"`.
 
 export interface PlotStyleOption<T extends string> {
@@ -30,8 +30,8 @@ export function PlotStyleIconPicker<T extends string>({
       aria-label={ariaLabel}
       style={{
         display: "grid",
-        gridTemplateColumns: `repeat(${options.length}, 1fr)`,
-        gap: 4,
+        gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
+        gap: 6,
       }}
     >
       {options.map(({ value: key, label, icon, title }) => {
@@ -47,18 +47,20 @@ export function PlotStyleIconPicker<T extends string>({
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 2,
-              padding: "6px 0 4px",
-              borderRadius: 6,
+              justifyContent: "center",
+              gap: 4,
+              minHeight: 56,
+              padding: "6px 0",
+              borderRadius: "var(--radius-lg)",
               cursor: "pointer",
               border: active
-                ? "1.5px solid var(--accent-primary)"
+                ? "1.5px solid var(--seg-selected-bg)"
                 : "1px solid var(--border-strong)",
-              background: active ? "var(--accent-primary)" : "var(--surface)",
-              color: active ? "var(--on-accent)" : "var(--text-muted)",
+              background: active ? "var(--seg-selected-bg)" : "var(--surface)",
+              color: active ? "var(--seg-selected-text)" : "var(--text-muted)",
               fontFamily: "inherit",
-              fontSize: 9,
-              fontWeight: active ? 700 : 400,
+              fontSize: 12,
+              fontWeight: active ? 600 : 400,
               transition: "background 120ms ease, color 120ms ease, border-color 120ms ease",
             }}
           >

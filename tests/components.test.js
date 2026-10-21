@@ -140,14 +140,37 @@ test("shows a truncation note when provided", function () {
 
 suite("StepNavBar");
 
-test("renders step buttons", function () {
+test("one button per step, in order, inside a labelled nav", function () {
   const html = renderHtml(sc.StepNavBar, {
-    steps: ["Upload", "Configure", "Plot"],
-    currentStep: "Upload",
+    steps: ["upload", "configure", "plot"],
+    currentStep: "upload",
     onStepChange: noop,
   });
-  // One per-step wrapper <div> per step at the root level.
-  assert(rootChildCount(html) === 3, "should have 3 per-step wrappers");
+  assert(html.startsWith("<nav"), "nav root");
+  eq(rootChildCount(html), 3);
+  const ids = [...html.matchAll(/data-testid="(step-[a-z]+)"/g)].map((m) => m[1]);
+  eq(ids.join(","), "step-upload,step-configure,step-plot");
+});
+
+test("past steps show a check and navigate; the current step is marked and inert", function () {
+  const React = require("react");
+  const calls = [];
+  const { container, root } = renderWithEffects(sc.StepNavBar, {
+    steps: ["upload", "configure", "plot"],
+    currentStep: "configure",
+    onStepChange: (s) => calls.push(s),
+    canNavigate: (s) => s !== "plot",
+  });
+  const [up, conf, plot] = container.querySelectorAll("button");
+  assert(up.querySelector("svg"), "past step carries the check icon");
+  eq(conf.getAttribute("aria-current"), "step");
+  eq(plot.disabled, true, "locked step is disabled");
+  eq(plot.textContent, "3Plot", "later steps show their number");
+  React.act(() => conf.click());
+  eq(calls.length, 0, "clicking the current step does nothing");
+  React.act(() => up.click());
+  eq(calls.join(","), "upload");
+  React.act(() => root.unmount());
 });
 
 suite("CommaFixBanner");
@@ -173,32 +196,6 @@ test("renders banner with error message", function () {
   const html = renderHtml(sc.ParseErrorBanner, { error: "Bad CSV" });
   assert(html.length > 0, "should render");
   assert(html.includes("Bad CSV"), "banner should include the error message");
-});
-
-suite("PageHeader");
-
-test("renders header with title", function () {
-  const html = renderHtml(sc.PageHeader, { toolName: "boxplot", title: "Boxplot Tool" });
-  assert(html.length > 0, "should render");
-  assert(html.includes("Boxplot Tool"), "should include the title text");
-});
-
-test("renders header with right-slot content", function () {
-  // PageHeader exposes `middle` and `right` slots for inline children
-  // (theme toggle, prefs button, …) — there is no `subtitle` prop. The
-  // pre-Vitest mock's element-tree happened to include the unused
-  // `subtitle` string in its serialized form, so the legacy assertion
-  // matched on a value the component never rendered. Assert on a real
-  // slot instead — the right slot is the canonical home for the
-  // ThemeToggle / PrefsPanel buttons every tool surfaces.
-  const html = renderHtml(sc.PageHeader, {
-    toolName: "scatter",
-    title: "Scatter",
-    right: React.createElement("button", null, "extras"),
-  });
-  assert(html.includes("Scatter"), "should render the title");
-  assert(html.includes("extras"), "right-slot content should render");
-  assert(tagCount(html) > 3, "right slot should add elements");
 });
 
 suite("UploadPanel");
@@ -462,7 +459,7 @@ test("inside a PlotToolShell it registers its buttons and draws nothing", functi
 
 suite("PlotActionsBar");
 
-test("renders one chip per download and asks twice before starting over", function () {
+test("Start over, a More menu for every non-SVG download, SVG last as primary", function () {
   const React = require("react");
   let resets = 0;
   let svgClicks = 0;
@@ -470,43 +467,44 @@ test("renders one chip per download and asks twice before starting over", functi
     current: {
       downloads: [
         { label: "SVG", onClick: () => svgClicks++ },
+        { label: "PNG", onClick: noop },
         { label: "CSV", title: "data", onClick: noop },
       ],
       onReset: () => resets++,
     },
   };
   const { container, root } = renderWithEffects(sc.PlotActionsBar, { entryRef });
-  const buttons = container.querySelectorAll("button");
-  eq(buttons.length, 3);
-  assert(buttons[0].textContent.includes("SVG"), "SVG chip");
-  React.act(() => buttons[0].click());
+  // Accessible names (what a screen reader announces).
+  const labels = () =>
+    [...container.querySelectorAll("button")].map(
+      (b) => b.getAttribute("aria-label") || b.textContent
+    );
+  eq(labels().join("|"), "Start over|More ▾|Download SVG");
+  // The SVG button carries both visible labels; components.css shows the
+  // short one in narrow windows, and the name stays "Download SVG".
+  const svgLabels = container.querySelectorAll("button")[2];
+  eq(svgLabels.querySelector(".dv-label-long").textContent, "Download SVG");
+  eq(svgLabels.querySelector(".dv-label-short").textContent, "SVG");
+  const more = container.querySelectorAll("button")[1];
+  eq(more.getAttribute("aria-haspopup"), "menu");
+  React.act(() => more.click());
+  const items = [...container.querySelectorAll('[role="menuitem"]')].map((b) => b.textContent);
+  eq(items.join("|"), "PNG|CSV", "PNG and further downloads live in the menu, PNG first");
+  React.act(() => more.click());
+  const svgBtn = container.querySelectorAll("button")[2];
+  assert(svgBtn.className.includes("dv-btn-primary"), "SVG is the primary export");
+  React.act(() => svgBtn.click());
   eq(svgClicks, 1);
-  React.act(() => buttons[2].click());
+  React.act(() => container.querySelectorAll("button")[0].click());
   eq(resets, 0, "first click only arms the reset");
-  assert(container.querySelectorAll("button")[2].textContent.includes("Really clear?"));
-  React.act(() => container.querySelectorAll("button")[2].click());
+  eq(labels()[0], "Really clear?");
+  React.act(() => container.querySelectorAll("button")[0].click());
   eq(resets, 1, "second click resets");
   React.act(() => root.unmount());
 });
 
 test("renders nothing when no tool registered actions", function () {
   eq(renderHtml(sc.PlotActionsBar, { entryRef: { current: null } }), "");
-});
-
-suite("StepNavBar compact");
-
-test("collapses to a breadcrumb that keeps the step test ids", function () {
-  const html = renderHtml(sc.StepNavBar, {
-    steps: ["upload", "configure", "plot"],
-    currentStep: "plot",
-    onStepChange: noop,
-    compact: true,
-  });
-  assert(html.includes("<nav"), "breadcrumb nav");
-  assert(html.includes('data-testid="step-upload"'), "upload test id");
-  assert(html.includes('data-testid="step-plot"'), "plot test id");
-  assert(html.includes('aria-current="step"'), "current step marked");
-  eq((html.match(/›/g) || []).length, 2);
 });
 
 suite("WhyThisTest");
@@ -561,86 +559,115 @@ test("renders column role dropdowns", function () {
   assert(html.length > 0, "should render");
 });
 
-suite("FilterCheckboxPanel");
+suite("ValueListPanel");
 
-test("renders filter checkboxes", function () {
-  const html = renderHtml(sc.FilterCheckboxPanel, {
-    headers: ["Grp", "Val"],
-    colNames: ["Grp", "Val"],
-    colRoles: ["group", "value"],
-    filters: {
-      0: { unique: ["A", "B"], included: new Set(["A", "B"]) },
-      1: { unique: ["1", "2"], included: new Set(["1", "2"]) },
-    },
-    filteredCount: 2,
-    totalCount: 2,
-    onToggle: noop,
-    onToggleAll: noop,
-  });
-  assert(html.length > 0, "should render");
-});
+const ReactVL = require("react");
 
-suite("RenameReorderPanel");
-
-test("renders rename inputs and drag handles", function () {
-  const html = renderHtml(sc.RenameReorderPanel, {
-    headers: ["Grp", "Facet"],
-    colNames: ["Group", "Facet"],
-    colRoles: ["group", "filter"],
-    filters: {
-      0: { unique: ["A", "B"], included: new Set(["A", "B"]) },
-      1: { unique: ["X", "Y"], included: new Set(["X", "Y"]) },
+// Group column "Grp" (A ×2, B, C) + filter column "Rep" (1, 2) + value column.
+function valueListProps(over) {
+  return Object.assign(
+    {
+      headers: ["Grp", "Rep", "Val"],
+      colNames: ["Genotype", "Replicate", "Biomass"],
+      colRoles: ["group", "filter", "value"],
+      filters: {
+        0: { unique: ["A", "B", "C"], included: new Set(["A", "B", "C"]) },
+        1: { unique: ["1", "2"], included: new Set(["1", "2"]) },
+        2: { unique: ["5", "6", "7", "8"], included: new Set(["5", "6", "7", "8"]) },
+      },
+      rows: [
+        ["A", "1", "5"],
+        ["A", "2", "6"],
+        ["B", "1", "7"],
+        ["C", "2", "8"],
+      ],
+      valueRenames: {},
+      orderableCols: {
+        0: { order: ["A", "B", "C"], onReorder: noop },
+        1: { order: ["1", "2"], onReorder: noop },
+      },
+      applyRename: (_i, v) => v,
+      filteredCount: 4,
+      totalCount: 4,
+      onToggle: noop,
+      onToggleAll: noop,
+      onRenameVal: noop,
     },
-    valueRenames: {},
-    orderableCols: {
-      0: { order: ["A", "B"], onReorder: noop },
-      1: { order: ["X", "Y"], onReorder: noop },
-    },
-    applyRename: function (i, v) {
-      return v;
-    },
-    onRenameVal: noop,
-    dragState: null,
-    onDragStart: noop,
-    onDragEnd: noop,
-  });
-  assert(html.length > 0, "should render");
-});
-
-function renderReorderCol(unique, order, applyRename) {
-  return renderHtml(sc.RenameReorderPanel, {
-    headers: ["Grp"],
-    colNames: ["Group"],
-    colRoles: ["group"],
-    filters: { 0: { unique, included: new Set(unique) } },
-    valueRenames: {},
-    orderableCols: { 0: { order, onReorder: noop } },
-    applyRename,
-    onRenameVal: noop,
-    dragState: null,
-    onDragStart: noop,
-    onDragEnd: noop,
-  });
+    over
+  );
 }
+const renameInputs = (el) =>
+  [...el.querySelectorAll("input.dv-input")].map((i) => i.getAttribute("aria-label"));
 
-test("lists values in the saved order, not upload order", function () {
-  const html = renderReorderCol(
-    ["alpha", "beta", "gamma"],
-    ["gamma", "alpha", "beta"],
-    (_i, v) => v
+test("one card per group / filter column, none for the value column", function () {
+  const { container, root } = renderWithEffects(sc.ValueListPanel, valueListProps());
+  const cards = [...container.querySelectorAll("section")].map((c) => c.getAttribute("aria-label"));
+  eq(cards.join("|"), "Genotype|Replicate");
+  const grp = container.querySelector('[data-testid="value-list-0"]');
+  // Row counts come from the unfiltered rows.
+  eq(
+    [...grp.querySelectorAll("li")].map((li) => li.textContent.match(/n=\d+/)[0]).join(","),
+    "n=2,n=1,n=1"
   );
-  const pos = ["gamma", "alpha", "beta"].map((v) => html.indexOf(">" + v + "<"));
-  assert(
-    pos.every((p) => p >= 0),
-    "every value should be listed: " + pos
-  );
-  assert(pos[0] < pos[1] && pos[1] < pos[2], "order should be gamma, alpha, beta: " + pos);
+  ReactVL.act(() => root.unmount());
 });
 
-test("two values renamed to the same label: the first one is listed", function () {
-  const html = renderReorderCol(["wt", "WT2"], ["WT"], () => "WT");
-  assert(html.includes(">wt<"), "first value with the shared label should be listed");
-  assert(!html.includes(">WT2<"), "second value with the shared label should not be listed");
+test("values follow the full stored order; an unticked one stays in its slot", function () {
+  const props = valueListProps();
+  props.orderableCols[0] = { order: ["C", "B"], fullOrder: ["C", "A", "B"], onReorder: noop };
+  props.filters[0] = { unique: ["A", "B", "C"], included: new Set(["B", "C"]) };
+  const { container, root } = renderWithEffects(sc.ValueListPanel, props);
+  const grp = container.querySelector('[data-testid="value-list-0"]');
+  eq(renameInputs(grp).join("|"), "Rename C|Rename A|Rename B");
+  const rows = grp.querySelectorAll("li");
+  const dropped = rows[1].querySelector("input.dv-input");
+  eq(dropped.style.textDecoration, "line-through", "unticked value is struck through in place");
+  eq(rows[1].querySelectorAll("button").length, 2, "and can still be moved, as in qPCR");
+  eq(rows[0].querySelector('button[aria-label="Move C up"]').disabled, true);
+  eq(rows[2].querySelector('button[aria-label="Move B down"]').disabled, true);
+  ReactVL.act(() => root.unmount());
+});
+
+test("arrows reorder the labels, checkboxes and All / None call back", function () {
+  const reorders = [];
+  const toggles = [];
+  const bulk = [];
+  const props = valueListProps({
+    onToggle: (i, v) => toggles.push(i + ":" + v),
+    onToggleAll: (i, on) => bulk.push(i + ":" + on),
+  });
+  props.orderableCols[0].onReorder = (o) => reorders.push(o.join(","));
+  const { container, root } = renderWithEffects(sc.ValueListPanel, props);
+  const grp = container.querySelector('[data-testid="value-list-0"]');
+  ReactVL.act(() => grp.querySelector('button[aria-label="Move B up"]').click());
+  ReactVL.act(() => grp.querySelector('button[aria-label="Move A down"]').click());
+  eq(reorders.join(" / "), "B,A,C / B,A,C");
+  ReactVL.act(() => grp.querySelector('input[aria-label="Keep C"]').click());
+  eq(toggles.join(","), "0:C");
+  const all = grp.querySelector('button[aria-label="Keep every value of Genotype"]');
+  eq(all.disabled, true, "All is disabled when nothing is dropped");
+  ReactVL.act(() => grp.querySelector('button[aria-label="Drop every value of Genotype"]').click());
+  eq(bulk.join(","), "0:false");
+  ReactVL.act(() => root.unmount());
+});
+
+test("renamed values show their old name; same-name values merge and move together", function () {
+  const reorders = [];
+  const renames = { 0: { A: "WT", B: "WT" } };
+  const props = valueListProps({
+    valueRenames: renames,
+    applyRename: (i, v) => (renames[i] && renames[i][v] != null ? renames[i][v] : v),
+  });
+  props.orderableCols[0] = { order: ["WT", "C"], onReorder: (o) => reorders.push(o.join(",")) };
+  const { container, root } = renderWithEffects(sc.ValueListPanel, props);
+  const grp = container.querySelector('[data-testid="value-list-0"]');
+  eq(renameInputs(grp).join("|"), "Rename A|Rename B|Rename C");
+  assert(grp.textContent.includes("merged · A") && grp.textContent.includes("merged · B"));
+  // Only the first row of a merged label carries the arrows.
+  eq(grp.querySelectorAll('button[aria-label="Move WT down"]').length, 1);
+  ReactVL.act(() => grp.querySelector('button[aria-label="Move C up"]').click());
+  eq(reorders.join(""), "C,WT");
+  ReactVL.act(() => root.unmount());
 });
 
 suite("StatsTable");
@@ -1392,171 +1419,6 @@ suite("LineChart");
     assert(html.startsWith("<svg"), "root should be an SVG");
   });
 })();
-
-// ════════════════════════════════════════════════════════════════════════════
-//  StatsTile
-// ════════════════════════════════════════════════════════════════════════════
-
-suite("StatsTile");
-
-test("renders null when fewer than 2 valid groups", function () {
-  const html = renderHtml(sc.StatsTile, {
-    groups: [{ name: "only", values: [1, 2, 3, 4, 5] }],
-    onAnnotationsChange: noop,
-  });
-  assert(html === "", "k<2 should return null");
-});
-
-test("collapsed header-only render when defaultOpen is false", function () {
-  const html = renderHtml(sc.StatsTile, {
-    groups: [
-      { name: "A", values: [1, 2, 3, 4, 5, 6, 7, 8] },
-      { name: "B", values: [2, 3, 4, 5, 6, 7, 8, 9] },
-    ],
-    onAnnotationsChange: noop,
-  });
-  // StatsTile returns a Fragment of two tiles (display + summary). With
-  // renderToStaticMarkup the Fragment lays its children out in sequence
-  // so the rendered HTML covers both tiles' content even when the inner
-  // disclosure is collapsed.
-  assert(html.length > 0, "should render");
-  assert(html.includes("Display"), "display tile present");
-});
-
-test("open render on k=2 shows assumption + test sections", function () {
-  const html = renderHtml(sc.StatsTile, {
-    groups: [
-      { name: "A", values: [4.9, 5.1, 5.0, 5.2, 4.8, 5.1, 4.9, 5.0, 5.2, 4.9] },
-      { name: "B", values: [5.9, 6.1, 6.0, 6.2, 5.8, 6.1, 5.9, 6.0, 6.2, 5.9] },
-    ],
-    onAnnotationsChange: noop,
-    defaultOpen: true,
-  });
-  assert(html.length > 0, "should render");
-  assert(tagCount(html) > 30, "open tile should produce many elements");
-  assert(html.includes("Assumptions"), "should include the Assumptions subhead");
-  assert(html.includes("Test"), "should include the Test subhead");
-});
-
-test("sub-options are disabled when 'Display on plot' is off (k=2)", function () {
-  const html = renderHtml(sc.StatsTile, {
-    groups: [
-      { name: "A", values: [1, 2, 3, 4, 5, 6, 7, 8] },
-      { name: "B", values: [2, 3, 4, 5, 6, 7, 8, 9] },
-    ],
-    onAnnotationsChange: noop,
-    onStatsSummaryChange: noop,
-  });
-  assert(
-    html.indexOf("Print summary below plot") >= 0,
-    "display-tile should expose 'Print summary below plot'"
-  );
-  assert(html.indexOf("Display on plot") >= 0, "display-tile should expose 'Display on plot'");
-  assert(html.indexOf("Show ns") >= 0, "display-tile should always render 'Show ns'");
-  // Default showOnPlot=false, so both "Print summary below plot" and "Show ns"
-  // must be disabled (no style radios for k=2).
-  const notAllowedCount = (html.match(/not-allowed/g) || []).length;
-  assert(notAllowedCount === 2, "expected 2 disabled controls for k=2, got " + notAllowedCount);
-});
-
-test("Show ns + Style radios + Print summary all disabled when display is off (k>2)", function () {
-  // k=3 → default annotKind is 'cld'. With showOnPlot=false by default,
-  // every sub-option of "Display on plot" should be disabled: Print summary,
-  // both Style radios, and Show ns (which is also independently disabled in CLD).
-  const pgCtrl = [4.17, 5.58, 5.18, 6.11, 4.5, 4.61, 5.17, 4.53, 5.33, 5.14];
-  const pgTrt1 = [4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69];
-  const pgTrt2 = [6.31, 5.12, 5.54, 5.5, 5.37, 5.29, 4.92, 6.15, 5.8, 5.26];
-  const html = renderHtml(sc.StatsTile, {
-    groups: [
-      { name: "ctrl", values: pgCtrl },
-      { name: "trt1", values: pgTrt1 },
-      { name: "trt2", values: pgTrt2 },
-    ],
-    onAnnotationsChange: noop,
-  });
-  assert(html.indexOf("Show ns") >= 0, "display-tile should always render 'Show ns'");
-  assert(html.indexOf("Letters") >= 0, "Style toggle should render 'Letters' for k>2");
-  assert(html.indexOf("Brackets") >= 0, "Style toggle should render 'Brackets' for k>2");
-  // 4 disabled controls: Print summary + Letters button + Brackets button + Show ns.
-  const notAllowedCount = (html.match(/not-allowed/g) || []).length;
-  assert(notAllowedCount === 4, "expected 4 disabled controls for k>2, got " + notAllowedCount);
-});
-
-test("open render on k=3 shows post-hoc table", function () {
-  const pgCtrl = [4.17, 5.58, 5.18, 6.11, 4.5, 4.61, 5.17, 4.53, 5.33, 5.14];
-  const pgTrt1 = [4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69];
-  const pgTrt2 = [6.31, 5.12, 5.54, 5.5, 5.37, 5.29, 4.92, 6.15, 5.8, 5.26];
-  const html = renderHtml(sc.StatsTile, {
-    groups: [
-      { name: "ctrl", values: pgCtrl },
-      { name: "trt1", values: pgTrt1 },
-      { name: "trt2", values: pgTrt2 },
-    ],
-    onAnnotationsChange: noop,
-    defaultOpen: true,
-  });
-  assert(html.length > 0, "should render");
-  // PlantGrowth → k=3, so rendered tree should contain 3 post-hoc rows.
-  assert(html.indexOf("Post-hoc") >= 0, "should include Post-hoc heading");
-  assert(html.indexOf("ctrl vs trt1") >= 0, "should list ctrl vs trt1 pair");
-  assert(html.indexOf("ctrl vs trt2") >= 0, "should list ctrl vs trt2 pair");
-  assert(html.indexOf("trt1 vs trt2") >= 0, "should list trt1 vs trt2 pair");
-});
-
-test("non-normal data — suggestion pill + Use suggestion button render (k=2)", function () {
-  // Heavy-skewed data → selectTest (Welch by default) attaches a
-  // `suggestion` field naming Mann-Whitney. The tile must surface it.
-  const skewedA = [0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 1.5, 3.0, 6.0, 12.0, 25.0];
-  const skewedB = [0.2, 0.3, 0.4, 0.6, 0.9, 1.2, 2.0, 4.0, 8.0, 15.0, 30.0];
-  const html = renderHtml(sc.StatsTile, {
-    groups: [
-      { name: "A", values: skewedA },
-      { name: "B", values: skewedB },
-    ],
-    onAnnotationsChange: noop,
-    defaultOpen: true,
-  });
-  assert(html.indexOf("Suggested alternative") >= 0, "should render the Suggestion banner");
-  assert(html.indexOf("Use suggestion") >= 0, "should render the Use-suggestion button");
-  assert(html.indexOf("Mann-Whitney U") >= 0, "should name Mann-Whitney as the suggested test");
-});
-
-test("non-normal data — suggestion pill names Kruskal-Wallis (k=3)", function () {
-  // Three groups with one extreme outlier each → SW flags non-normal in
-  // every group; selectTest still recommends Welch ANOVA but adds a
-  // Kruskal-Wallis suggestion.
-  const skA = [1, 1, 1, 1, 1, 1, 1, 1, 1, 20];
-  const skB = [2, 2, 2, 2, 2, 2, 2, 2, 2, 25];
-  const skC = [3, 3, 3, 3, 3, 3, 3, 3, 3, 30];
-  const html = renderHtml(sc.StatsTile, {
-    groups: [
-      { name: "A", values: skA },
-      { name: "B", values: skB },
-      { name: "C", values: skC },
-    ],
-    onAnnotationsChange: noop,
-    defaultOpen: true,
-  });
-  assert(html.indexOf("Suggested alternative") >= 0, "should render the Suggestion banner");
-  assert(html.indexOf("Kruskal-Wallis") >= 0, "should name Kruskal-Wallis as the suggested test");
-});
-
-test("normal data — no suggestion banner (k=2)", function () {
-  const normA = [4.9, 5.1, 5.0, 5.2, 4.8, 5.1, 4.9, 5.0, 5.2, 4.9];
-  const normB = [5.9, 6.1, 6.0, 6.2, 5.8, 6.1, 5.9, 6.0, 6.2, 5.9];
-  const html = renderHtml(sc.StatsTile, {
-    groups: [
-      { name: "A", values: normA },
-      { name: "B", values: normB },
-    ],
-    onAnnotationsChange: noop,
-    defaultOpen: true,
-  });
-  assert(
-    html.indexOf("Suggested alternative") === -1,
-    "should not render the Suggestion banner on normal data"
-  );
-});
 
 // ════════════════════════════════════════════════════════════════════════════
 //  assignBracketLevels — stacking layout for overlapping significance pairs
@@ -2485,7 +2347,7 @@ suite("ProportionsChart + stats panels");
 
 (function () {
   const tool = loadTool("proportions");
-  const { ProportionsChart, StatsPanel, GofPanel } = tool.exports;
+  const { ProportionsChart, StatsPanel, GofPanel, ProportionsStatsDisplayBar } = tool.exports;
   const P = require("./helpers/proportions-loader");
   const table = {
     groups: ["WT", "mut-1", "mut-2", "comp"],
@@ -2665,15 +2527,9 @@ suite("ProportionsChart + stats panels");
     });
     assert(html.includes("41 · 85.4 % [72.8 %, 92.8 %]"), "Wilson summary cell");
     assert(/<h3[^>]*>Statistics<\/h3>/.test(html), "Statistics title");
-    const header = html.slice(0, html.indexOf("Display on plot"));
-    assert(
-      header.includes('data-testid="proportions-dl-txt"') && header.includes(">⬇ TXT<"),
-      "TXT in header"
-    );
-    assert(
-      header.includes('data-testid="proportions-dl-r"') && header.includes(">⬇ R<"),
-      "R in header"
-    );
+    assert(/data-testid="proportions-dl-r"[^>]*>R script</.test(html), "R script export");
+    assert(/data-testid="proportions-dl-txt"[^>]*>Report \.txt</.test(html), "report export");
+    assert(!html.includes("Display on plot"), "display controls live in the toolbar");
     assert(html.includes("Cochran"), "selection reason");
     assert(html.includes("Pearson χ²(3) = 94.537, p = 2.3e-20"));
     assert(html.includes("Cramér&#x27;s V = 0.704 · N = 191"));
@@ -2682,15 +2538,8 @@ suite("ProportionsChart + stats panels");
     assert(html.includes("+6.14"), "standardised residual");
   });
 
-  test("StatsPanel: Display on plot offers Off / Letters / Brackets (letters only for ≥ 3 groups)", () => {
-    const html = renderHtml(StatsPanel, {
-      analysis,
-      categories: table.categories,
-      summaries,
-      focusLabel: null,
-      vis,
-      updVis: noop,
-    });
+  test("display bar: Display on plot offers Off / Letters / Brackets (letters only for ≥ 3 groups)", () => {
+    const html = renderHtml(ProportionsStatsDisplayBar, { analysis, vis, updVis: noop });
     assert(html.includes("Display on plot"));
     const seg = html.match(/aria-label="Display on plot"[^>]*>(.*?)<\/div>/s)[1];
     eq(
@@ -2699,11 +2548,8 @@ suite("ProportionsChart + stats panels");
     );
     assert(/aria-pressed="true"[^>]*>Brackets</.test(seg), "brackets active");
     assert(!/disabled=""[^>]*data-testid="proportions-show-ns"/.test(html), "show ns enabled");
-    const cldHtml = renderHtml(StatsPanel, {
+    const cldHtml = renderHtml(ProportionsStatsDisplayBar, {
       analysis,
-      categories: table.categories,
-      summaries,
-      focusLabel: null,
       vis: { ...vis, annotation: "cld" },
       updVis: noop,
     });
@@ -2720,11 +2566,8 @@ suite("ProportionsChart + stats panels");
         [2, 15],
       ],
     };
-    const two = renderHtml(StatsPanel, {
+    const two = renderHtml(ProportionsStatsDisplayBar, {
       analysis: P.analyseTable(t2, "auto", "holm"),
-      categories: t2.categories,
-      summaries: P.groupSummaries(t2),
-      focusLabel: null,
       vis: { ...vis, annotation: "cld" },
       updVis: noop,
     });
@@ -3210,7 +3053,7 @@ suite("QpcrChart + QpcrStatsPanel");
     React.act(() => off.r.root.unmount());
   });
 
-  test("stats panel: Statistics header with TXT/R, ΔCt explainer, decision trace, send button", () => {
+  test("stats panel: Statistics heading, ΔCt explainer, decision trace, R / report exports", () => {
     const html = renderHtml(QpcrStatsPanel, {
       genes,
       stats,
@@ -3219,13 +3062,13 @@ suite("QpcrChart + QpcrStatsPanel");
       overrides: {},
       onOverride: noop,
       vis,
-      updVis: noop,
       onDownloadReport: noop,
       onDownloadR: noop,
     });
     assert(/<h3[^>]*>Statistics<\/h3>/.test(html));
-    const header = html.slice(0, html.indexOf("Display on plot"));
-    assert(header.includes(">⬇ TXT<") && header.includes(">⬇ R<"));
+    assert(/data-testid="qpcr-dl-r"[^>]*>R script</.test(html), "R script export");
+    assert(/data-testid="qpcr-dl-txt"[^>]*>Report \.txt</.test(html), "report export");
+    assert(html.indexOf("Why the tests use ΔCt") < html.indexOf("R script"), "exports last");
     assert(html.includes("Why the tests use ΔCt"));
     assert(html.includes("Do not run t-tests or ANOVA on 2^−ΔΔCt values."));
     assert(html.includes("Auto — Welch&#x27;s ANOVA"));
@@ -3355,3 +3198,422 @@ test("useHandoff stops listening after unmount", () => {
 });
 
 summary();
+
+// ── 2.0 workspace chrome ────────────────────────────────────────────────────
+
+// Same Node 25 caveat as sessionStorage above: give ControlTabs a working
+// in-memory localStorage so the remembered-tab path is exercised.
+Object.defineProperty(globalThis, "localStorage", {
+  value: require("./helpers/_shell-test-utils").makeLocalStorage().localStorage,
+  configurable: true,
+  writable: true,
+});
+
+suite("ControlTabs");
+
+const TABS = (React) => [
+  {
+    id: "groups",
+    label: "Groups",
+    content: React.createElement(sc.ControlSection, { title: "Palette" }, "palette body"),
+  },
+  { id: "style", label: "Style", content: "style body" },
+  { id: "axes", label: "Axes", content: "axes body" },
+];
+
+test("first tab is selected by default; panels are linked and the rest hidden", function () {
+  const React = require("react");
+  localStorage.clear();
+  const { container, root } = renderWithEffects(sc.ControlTabs, { tool: "t1", tabs: TABS(React) });
+  const tabs = container.querySelectorAll('[role="tab"]');
+  eq(tabs.length, 3);
+  eq(tabs[0].getAttribute("aria-selected"), "true");
+  eq(tabs[1].getAttribute("tabindex"), "-1", "roving tabindex");
+  const panels = container.querySelectorAll('[role="tabpanel"]');
+  eq(panels[0].id, tabs[0].getAttribute("aria-controls"));
+  eq(panels[0].hidden, false);
+  eq(panels[1].hidden, true);
+  React.act(() => root.unmount());
+});
+
+test("a ControlSection inside a tab is an open titled group, not a fold-out", function () {
+  const React = require("react");
+  const { container, root } = renderWithEffects(sc.ControlTabs, { tool: "t2", tabs: TABS(React) });
+  const group = container.querySelector("section.dv-ctrl-group");
+  assert(group, "rendered as a group");
+  assert(group.textContent.includes("palette body"), "body shown without opening");
+  eq(group.querySelector(".dv-disclosure"), null, "no chevron");
+  React.act(() => root.unmount());
+  // Outside tabs the same section still folds.
+  const html = renderHtml(sc.ControlSection, { title: "Palette", children: "palette body" });
+  assert(html.includes("dv-disclosure") && !html.includes("palette body"));
+});
+
+test("click and arrow keys switch tabs; the choice is remembered per tool", function () {
+  const React = require("react");
+  localStorage.clear();
+  const first = renderWithEffects(sc.ControlTabs, { tool: "boxplot", tabs: TABS(React) });
+  const tabs = () => first.container.querySelectorAll('[role="tab"]');
+  React.act(() => tabs()[1].click());
+  eq(tabs()[1].getAttribute("aria-selected"), "true");
+  eq(localStorage.getItem("plottr-tab-boxplot"), "style");
+  const list = first.container.querySelector('[role="tablist"]');
+  const key = (k) =>
+    React.act(() => {
+      list.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
+    });
+  key("ArrowRight");
+  eq(localStorage.getItem("plottr-tab-boxplot"), "axes");
+  key("ArrowRight");
+  eq(localStorage.getItem("plottr-tab-boxplot"), "groups", "wraps around");
+  key("End");
+  eq(localStorage.getItem("plottr-tab-boxplot"), "axes");
+  assert(document.activeElement === tabs()[2], "keyboard moves focus with selection");
+  React.act(() => first.root.unmount());
+  // A fresh mount reopens the remembered tab; another tool is unaffected.
+  const again = renderWithEffects(sc.ControlTabs, { tool: "boxplot", tabs: TABS(React) });
+  eq(again.container.querySelectorAll('[role="tab"]')[2].getAttribute("aria-selected"), "true");
+  React.act(() => again.root.unmount());
+  const other = renderWithEffects(sc.ControlTabs, { tool: "scatter", tabs: TABS(React) });
+  eq(other.container.querySelectorAll('[role="tab"]')[0].getAttribute("aria-selected"), "true");
+  React.act(() => other.root.unmount());
+});
+
+test("a remembered tab the tool no longer has falls back to the first", function () {
+  const React = require("react");
+  localStorage.setItem("plottr-tab-t3", "gone");
+  const { container, root } = renderWithEffects(sc.ControlTabs, { tool: "t3", tabs: TABS(React) });
+  eq(container.querySelectorAll('[role="tab"]')[0].getAttribute("aria-selected"), "true");
+  React.act(() => root.unmount());
+});
+
+suite("WorkspaceLayout");
+
+test("three labelled columns with an inspector, two without", function () {
+  const three = renderHtml(sc.WorkspaceLayout, {
+    controls: "C",
+    figure: "F",
+    inspector: "I",
+    controlsLabel: "Plot controls",
+    inspectorLabel: "Statistics",
+  });
+  assert(three.includes('data-columns="3"'));
+  assert(three.includes('aria-label="Plot controls"') && three.includes('aria-label="Statistics"'));
+  const two = renderHtml(sc.WorkspaceLayout, {
+    controls: "C",
+    figure: "F",
+    controlsLabel: "Plot controls",
+  });
+  assert(two.includes('data-columns="2"'));
+  assert(!two.includes("dv-workspace-inspector"), "no inspector column");
+  assert(!two.includes("dv-workspace-toolbar"), "no toolbar row without a toolbar");
+  const withBar = renderHtml(sc.WorkspaceLayout, {
+    controls: "C",
+    figure: "F",
+    toolbar: "T",
+    controlsLabel: "Plot controls",
+  });
+  assert(withBar.includes("dv-workspace-toolbar"));
+});
+
+test("each side column opens with a level-2 heading, and the layout adds no <main>", function () {
+  // The h3 section titles inside need an h2 above them (h1 is the tool
+  // name); PlotToolShell's body is the page's single <main>.
+  const three = renderHtml(sc.WorkspaceLayout, {
+    controls: "C",
+    figure: "F",
+    inspector: "I",
+    controlsLabel: "Plot controls",
+    inspectorLabel: "Statistics",
+  });
+  const h2s = [...three.matchAll(/<h2[^>]*>([^<]*)<\/h2>/g)].map((m) => m[1]);
+  eq(JSON.stringify(h2s), JSON.stringify(["Plot controls", "Statistics"]));
+  assert(!three.includes("<main"), "no nested main inside the tool body");
+  const two = renderHtml(sc.WorkspaceLayout, {
+    controls: "C",
+    figure: "F",
+    controlsLabel: "Plot controls",
+  });
+  eq([...two.matchAll(/<h2/g)].length, 1);
+});
+
+test("inspectorToggle: a rail opens the statistics column, which stays mounted while hidden", function () {
+  const React = require("react");
+  localStorage.removeItem("plottr-inspector-demo");
+  const props = {
+    controls: "C",
+    figure: "F",
+    inspector: React.createElement("p", { className: "stats" }, "I"),
+    controlsLabel: "Plot controls",
+    inspectorLabel: "Statistics",
+    inspectorToggle: "demo",
+  };
+  const { container, root } = renderWithEffects(sc.WorkspaceLayout, props);
+  const aside = container.querySelector(".dv-workspace-inspector");
+  eq(aside.hidden, true, "closed by default");
+  assert(container.querySelector(".stats"), "panel mounted while hidden (it feeds the plot)");
+  eq(container.querySelector(".dv-workspace").getAttribute("data-columns"), "2");
+  const rail = container.querySelector(".dv-inspector-rail");
+  eq(rail.getAttribute("aria-label"), "Show Statistics");
+  eq(rail.getAttribute("aria-controls"), aside.id);
+  React.act(() => rail.click());
+  eq(aside.hidden, false);
+  eq(container.querySelector(".dv-inspector-rail"), null, "rail gone while open");
+  eq(localStorage.getItem("plottr-inspector-demo"), "open", "choice remembered");
+  React.act(() => root.unmount());
+  // Reopened from storage; Hide closes it again.
+  const again = renderWithEffects(sc.WorkspaceLayout, props);
+  const aside2 = again.container.querySelector(".dv-workspace-inspector");
+  eq(aside2.hidden, false);
+  const hide = again.container.querySelector(".dv-inspector-head button");
+  eq(hide.textContent, "Hide");
+  React.act(() => hide.click());
+  eq(aside2.hidden, true);
+  eq(localStorage.getItem("plottr-inspector-demo"), "closed");
+  React.act(() => again.root.unmount());
+});
+
+test("PlotToolShell puts the step content in the page's <main>, after the app bar", function () {
+  const html = renderHtml(sc.PlotToolShell, {
+    state: {
+      step: "upload",
+      setStep: noop,
+      fileName: "",
+      commaFixed: false,
+      commaFixCount: 0,
+      injectionWarning: null,
+      parseError: null,
+      vis: {},
+      updVis: noop,
+    },
+    toolName: "t",
+    title: "Tool",
+    visInit: {},
+    steps: ["upload", "plot"],
+    canNavigate: () => true,
+    children: "STEP-BODY",
+  });
+  eq([...html.matchAll(/<main/g)].length, 1);
+  const main = html.slice(html.indexOf("<main"));
+  assert(main.includes("STEP-BODY"), "step content inside <main>");
+  assert(html.indexOf("<header") < html.indexOf("<main"), "app bar before <main>");
+});
+
+test("InspectorSection renders its label as a heading", function () {
+  const html = renderHtml(sc.InspectorSection, { label: "Omnibus test", children: "body" });
+  assert(/<h3[^>]*>Omnibus test<\/h3>/.test(html));
+  assert(html.includes("body"));
+});
+
+test("collapsible InspectorSection: a heading button toggles the body, badge stays", function () {
+  const React = require("react");
+  const { container, root } = renderWithEffects(sc.InspectorSection, {
+    label: "WRKY33",
+    right: React.createElement("span", { className: "badge" }, "****"),
+    collapsible: true,
+    defaultOpen: false,
+    children: React.createElement("p", { className: "body" }, "stats"),
+  });
+  const btn = container.querySelector("h3 > button");
+  assert(btn, "the title is a button inside the heading");
+  eq(btn.getAttribute("aria-expanded"), "false");
+  eq(container.querySelector(".body"), null, "collapsed: body not rendered");
+  assert(container.querySelector(".badge"), "collapsed: the badge still shows");
+  React.act(() => btn.click());
+  eq(btn.getAttribute("aria-expanded"), "true");
+  const body = container.querySelector(".body");
+  assert(body, "expanded: body rendered");
+  eq(body.parentElement.id, btn.getAttribute("aria-controls"));
+  React.act(() => btn.click());
+  eq(container.querySelector(".body"), null);
+  React.act(() => root.unmount());
+});
+
+test("InspectorSection is not collapsible by default", function () {
+  const html = renderHtml(sc.InspectorSection, { label: "Post-hoc", children: "rows" });
+  assert(!html.includes("<button"), "no toggle");
+  assert(html.includes("rows"));
+});
+
+suite("AppBar");
+
+test("without app chrome it shows only the tool's steps and actions", function () {
+  const html = renderHtml(sc.AppBar, { steps: "STEPS", actions: "ACTIONS" });
+  assert(html.startsWith("<header"), "banner landmark");
+  assert(html.includes("STEPS") && html.includes("ACTIONS"));
+});
+
+test("with app chrome it adds brand, switcher and utilities around the tool's content", function () {
+  const React = require("react");
+  const chrome = { brand: "BRAND", switcher: "SWITCH", utilities: "UTILS" };
+  const Wrapped = () =>
+    React.createElement(
+      sc.AppChromeContext.Provider,
+      { value: chrome },
+      React.createElement(sc.AppBar, { steps: "STEPS", actions: "ACTIONS" })
+    );
+  const text = renderHtml(Wrapped, {}).replace(/<[^>]+>/g, "");
+  eq(text, "BRANDSWITCHSTEPSACTIONSUTILS");
+});
+
+test("FileChip names the file and renders nothing without one", function () {
+  assert(renderHtml(sc.FileChip, { name: "plants.csv" }).includes("plants.csv"));
+  eq(renderHtml(sc.FileChip, { name: "" }), "");
+});
+
+suite("Group Plot statistics inspector");
+
+(function () {
+  const bp = loadTool("boxplot").exports;
+  const range = (a, n, step = 1) => Array.from({ length: n }, (_, i) => a + i * step);
+  const three = [
+    { name: "WT", values: range(10, 8, 1.3) },
+    { name: "abi4", values: range(11, 8, 1.1) },
+    { name: "ox", values: range(20, 8, 1.2) },
+  ];
+  const panelProps = (sets, extra) => ({
+    sets,
+    setLabel: "Facet",
+    fileStem: "plants",
+    onAnnotationForKey: noop,
+    onSummaryForKey: noop,
+    displayMode: "none",
+    showNs: false,
+    showSummary: false,
+    errorBarLabel: null,
+    displayKind: "box",
+    ...extra,
+  });
+  const headings = (container) =>
+    [...container.querySelectorAll("h3.dv-tile-title")].map((h) => h.textContent);
+
+  test("one set: its sections in order, the result line intact, then the exports", function () {
+    const React = require("react");
+    const { container, root } = renderWithEffects(
+      bp.BoxplotStatsPanel,
+      panelProps([{ key: "flat", name: "", groups: three }])
+    );
+    const hs = headings(container);
+    eq(hs[0], "Omnibus test");
+    eq(hs[1], "Assumptions checked");
+    assert(hs[2].startsWith("Post-hoc · "), "post-hoc section for k = 3");
+    eq(hs.slice(3).join("|"), "Groups|Replication planning");
+    const line = container.querySelector('[data-testid="inspector-result-line"]');
+    assert(
+      /^F\(2, [\d.]+\) = [\d.]+$/.test(line.children[0].textContent),
+      "F(df1, df2) kept whole"
+    );
+    assert(line.children[1].textContent.startsWith("p = "));
+    const footer = container.querySelector(".dv-inspector-exports");
+    const labels = [...footer.querySelectorAll("button")].map((b) => b.textContent);
+    eq(labels[0], "R script");
+    assert(labels.some((l) => l.includes("Methods")) && labels.includes("Report .txt"));
+    eq(container.querySelectorAll(".dv-set-row").length, 0, "no set list for one set");
+    React.act(() => root.unmount());
+  });
+
+  test("two groups: a two-group test and no post-hoc section", function () {
+    const React = require("react");
+    const { container, root } = renderWithEffects(
+      bp.BoxplotStatsPanel,
+      panelProps([{ key: "flat", name: "", groups: three.slice(0, 2) }])
+    );
+    const hs = headings(container);
+    eq(hs[0], "Two-group test");
+    assert(!hs.some((h) => h.startsWith("Post-hoc")));
+    React.act(() => root.unmount());
+  });
+
+  test("several sets: a row per set, details open on demand, one-group sets explained", function () {
+    const React = require("react");
+    const sets = [
+      { key: "a", name: "control", groups: three },
+      { key: "b", name: "drought", groups: three.slice(0, 2) },
+      { key: "c", name: "salt", groups: three.slice(0, 1) },
+    ];
+    const { container, root } = renderWithEffects(bp.BoxplotStatsPanel, panelProps(sets));
+    const rows = container.querySelectorAll("button.dv-set-row");
+    eq(rows.length, 2, "testable sets are buttons");
+    assert(container.textContent.includes("Needs ≥ 2 groups"), "untestable set explained");
+    eq(headings(container).filter((h) => h === "Omnibus test").length, 0, "collapsed at first");
+    React.act(() => rows[0].click());
+    eq(rows[0].getAttribute("aria-expanded"), "true");
+    eq(headings(container).filter((h) => h === "Omnibus test").length, 1);
+    React.act(() => root.unmount());
+  });
+
+  test("the panel reports chart annotations for the display mode it is given", function () {
+    const React = require("react");
+    const seen = [];
+    const { root } = renderWithEffects(
+      bp.BoxplotStatsPanel,
+      panelProps([{ key: "flat", name: "", groups: three }], {
+        displayMode: "brackets",
+        onAnnotationForKey: (k, spec) => seen.push([k, spec && spec.kind]),
+      })
+    );
+    eq(JSON.stringify(seen[seen.length - 1]), JSON.stringify(["flat", "brackets"]));
+    React.act(() => root.unmount());
+  });
+
+  test("display bar: Letters need ≥ 3 groups; Show ns follows the mode", function () {
+    const React = require("react");
+    const calls = [];
+    const props = (sets, mode) => ({
+      sets,
+      displayMode: mode,
+      onDisplayModeChange: (m) => calls.push(m),
+      showNs: true,
+      onShowNsChange: noop,
+      showSummary: false,
+      onShowSummaryChange: noop,
+    });
+    const flat3 = [{ key: "flat", name: "", groups: three }];
+    const flat2 = [{ key: "flat", name: "", groups: three.slice(0, 2) }];
+    const seg = (c) => [...c.querySelectorAll(".dv-seg-btn")].map((b) => b.textContent).join("|");
+    const ns = (c) => c.querySelectorAll('input[type="checkbox"]')[0];
+    let r = renderWithEffects(bp.BoxplotStatsDisplayBar, props(flat3, "brackets"));
+    eq(seg(r.container), "Off|Letters|Brackets");
+    eq(ns(r.container).disabled, false);
+    React.act(() => r.container.querySelectorAll(".dv-seg-btn")[1].click());
+    eq(calls.join(","), "cld");
+    React.act(() => r.root.unmount());
+    r = renderWithEffects(bp.BoxplotStatsDisplayBar, props(flat3, "cld"));
+    eq(ns(r.container).disabled, true, "letters already show every difference");
+    React.act(() => r.root.unmount());
+    r = renderWithEffects(bp.BoxplotStatsDisplayBar, props(flat2, "none"));
+    eq(seg(r.container), "Off|Brackets");
+    eq(ns(r.container).disabled, true, "nothing to mark when off");
+    React.act(() => r.root.unmount());
+  });
+})();
+
+suite("useExampleLink");
+
+test("loads once for #/<tool>?example, cleans the hash, ignores other routes", function () {
+  const React = require("react");
+  let loads = 0;
+  const Probe = () => {
+    sc.useExampleLink("boxplot", () => loads++);
+    return null;
+  };
+  window.history.replaceState(null, "", "#/boxplot?example");
+  const { root } = renderWithEffects(Probe, {});
+  eq(loads, 1, "loads at mount");
+  eq(window.location.hash, "#/boxplot", "hash rewritten so a reload doesn't reload the example");
+  React.act(() => {
+    window.history.replaceState(null, "", "#/scatter?example");
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  });
+  eq(loads, 1, "another tool's link is ignored");
+  React.act(() => {
+    window.history.replaceState(null, "", "#/boxplot?example");
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  });
+  eq(loads, 2, "a later link to the mounted tool loads again");
+  React.act(() => root.unmount());
+  window.history.replaceState(null, "", "#/boxplot?example");
+  window.dispatchEvent(new HashChangeEvent("hashchange"));
+  eq(loads, 2, "no listener after unmount");
+  window.history.replaceState(null, "", "#");
+});

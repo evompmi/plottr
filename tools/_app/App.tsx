@@ -2,25 +2,29 @@
 //
 // Reads the current hash route via `useRoute()`, looks up the tool
 // component in `TOOL_REGISTRY`, and renders one of:
-//   - The landing tile grid (route is null / unknown).
-//   - A topbar + the tool's `App` component (route is a known tool).
+//   - The landing fallback (route is null / unknown).
+//   - The tool's `App` component (route is a known tool).
 //
-// The topbar carries the back-to-home button, sibling-tool quick-jump
-// icons, and the theme toggle. The landing tile grid here is a minimal
-// fallback — the real landing markup lives in `index.html` and is
-// hidden via CSS whenever the SPA hash route resolves to a tool.
+// Every tool page is topped by the shared `AppBar` (`_shell/AppBar.tsx`).
+// Its brand link, tool switcher and utility buttons (theme, language,
+// feedback) need the registry and the router, so they are built here and
+// handed down through `AppChromeContext`; plot tools render the bar inside
+// `PlotToolShell`, and this file renders it directly for the calculators.
+// The real landing markup lives in `index.html` and is hidden via CSS
+// whenever the SPA hash route resolves to a tool.
 
 import { useRoute, navigate } from "./Router";
 import { TOOL_REGISTRY, findToolEntry } from "./tool-registry";
+import type { ToolCategory, ToolEntry } from "./tool-registry";
 import { ErrorBoundary } from "../_shell";
+import { AppBar, AppChromeContext } from "../_shell/AppBar";
+import type { AppChrome } from "../_shell/AppBar";
 import { toggleTheme, useThemeMode } from "../_core/theme";
 import { useLang, setLang } from "../_core/i18n";
 import { useShellT } from "../_shell/i18n";
+import type { ShellKey } from "../_shell/i18n";
 import { TOOL_ACCENT, tintIcon } from "../_core/icons";
-// Inline SVG icons reused across the SPA shell. Visual identity mirrors
-// the landing markup in `index.html`.
-const HOME_SVG =
-  '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 L10 3 L17 10"/><path d="M5 9 V17 H15 V9"/></svg>';
+// Inline SVG icons for the app-bar utility buttons.
 const SUN_SVG =
   '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="3.2"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg>';
 const MOON_SVG =
@@ -38,37 +42,6 @@ const FEEDBACK_SVG =
 // "create a free account" is enough friction to lose them. Living at
 // module scope so a fork can swap it without touching the callsite.
 const FEEDBACK_EMAIL = "plottrproject@gmail.com";
-
-// Tiny helper for inline-SVG icon buttons. The `tb-icon-btn` class is
-// declared in `index.html`'s top-level style block.
-function IconButton({
-  title,
-  svg,
-  onClick,
-  extraAttrs,
-  color,
-}: {
-  title: string;
-  svg: string;
-  onClick?: () => void;
-  extraAttrs?: Record<string, string>;
-  // When set, tints the (currentColor) glyph to this tool's accent so the
-  // topbar quick-jumps carry the same per-tool colour as the landing tiles.
-  // Inline style outranks `.tb-icon-btn:hover`, so the colour also holds on
-  // hover (only the border/background change).
-  color?: string;
-}) {
-  return React.createElement("button", {
-    type: "button",
-    className: "tb-icon-btn",
-    title,
-    "aria-label": title,
-    onClick,
-    ...(color ? { style: { color } } : {}),
-    dangerouslySetInnerHTML: { __html: svg },
-    ...(extraAttrs || {}),
-  });
-}
 
 // Builds the subject + prefilled body shared by the mailto: draft and the
 // in-app feedback dialog. The body carries (a) two empty prompt sections
@@ -361,7 +334,7 @@ function FeedbackButton({ currentKey }: { currentKey: string | null }) {
     null,
     React.createElement("button", {
       type: "button",
-      className: "tb-icon-btn",
+      className: "dv-icon-btn",
       title: tr("shell.feedback.title"),
       "aria-label": tr("shell.feedback.aria"),
       onClick: () => setOpen(true),
@@ -381,7 +354,7 @@ function FeedbackButton({ currentKey }: { currentKey: string | null }) {
 // buttons created later are never wired by that path. We render our
 // own button against `useThemeMode()` / `toggleTheme()` from
 // `_core/theme`, kept visually consistent with the rest of the
-// topbar's `tb-icon-btn` siblings.
+// app bar's `dv-icon-btn` siblings.
 function ThemeButton() {
   const tr = useShellT();
   const mode = useThemeMode();
@@ -389,7 +362,7 @@ function ThemeButton() {
   const title = isDark ? tr("shell.chrome.themeToLight") : tr("shell.chrome.themeToDark");
   return React.createElement("button", {
     type: "button",
-    className: "tb-icon-btn",
+    className: "dv-icon-btn",
     title,
     "aria-label": title,
     onClick: () => toggleTheme(),
@@ -400,7 +373,7 @@ function ThemeButton() {
 // Language toggle for the SPA topbar. Mirrors ThemeButton — the inline
 // IIFE in index.html only wires static-page buttons at load time, so the
 // React-rendered topbar carries its own button against useLang() / setLang()
-// from _core/i18n, styled to match the tb-icon-btn siblings (text label
+// from _core/i18n, styled to match the dv-icon-btn siblings (text label
 // instead of a glyph). Two-state EN | FR for now.
 function LangButton() {
   const lang = useLang();
@@ -410,7 +383,7 @@ function LangButton() {
     "button",
     {
       type: "button",
-      className: "tb-icon-btn",
+      className: "dv-icon-btn",
       title,
       "aria-label": title,
       onClick: () => setLang(next),
@@ -420,61 +393,203 @@ function LangButton() {
   );
 }
 
-// Topbar rendered above an active tool. Theme toggle + language toggle +
-// home button + sibling-tool quick-jump icons.
-function ToolTopbar({ currentKey }: { currentKey: string }) {
+// Rune + wordmark, linking home.
+function BrandLink() {
   const tr = useShellT();
-  const others = TOOL_REGISTRY.filter((t) => t.key !== currentKey);
-  return React.createElement(
-    "div",
-    {
-      className: "tool-topbar",
-      style: {
-        display: "flex",
+  return (
+    <a
+      href="#/"
+      className="dv-brand"
+      aria-label={tr("shell.chrome.homeAria")}
+      onClick={(e) => {
+        e.preventDefault();
+        navigate(null);
+      }}
+      style={{
+        display: "inline-flex",
         alignItems: "center",
-        gap: 6,
-        padding: "8px 12px",
-        borderBottom: "1px solid var(--border)",
-        background: "var(--surface)",
-      },
-    },
-    React.createElement(ThemeButton),
-    React.createElement(LangButton),
-    React.createElement("div", { className: "tb-sep" }),
-    IconButton({
-      title: tr("shell.chrome.home"),
-      svg: HOME_SVG,
-      onClick: () => navigate(null),
-      // `data-back` + `data-tool` are read by the @media (max-width: 900px)
-      // rule in index.html that strips the topbar to "just the two
-      // calculators + theme toggle" on phones (plot tools want a wider
-      // canvas than mobile gives them, so a user mid-calculator
-      // shouldn't be invited into one). Don't drop these attributes —
-      // the CSS selector silently matches nothing without them.
-      extraAttrs: { "data-back": "true" },
-    }),
-    React.createElement("div", { className: "tb-sep" }),
-    ...others.map((t) =>
-      React.createElement(IconButton, {
-        key: t.key,
-        title: t.label,
-        svg: tintIcon(t.iconSvg, t.key),
-        color: TOOL_ACCENT[t.key],
-        onClick: () => navigate(t.key),
-        extraAttrs: { "data-tool": t.key },
-      })
-    ),
-    // "Send feedback" sits on the right edge of the topbar, separated
-    // from the tool quick-jumps by a `tb-sep` so it reads as chrome
-    // (like the Home / theme buttons on the left) rather than another
-    // tool affordance. `margin-left: auto` on the separator pushes the
-    // whole right-cluster to the trailing edge of the flex row.
-    React.createElement("div", {
-      key: "feedback-sep",
-      className: "tb-sep",
-      style: { marginLeft: "auto" },
-    }),
-    React.createElement(FeedbackButton, { key: "feedback", currentKey })
+        gap: 8,
+        textDecoration: "none",
+        color: "var(--text)",
+      }}
+    >
+      <span style={{ color: "var(--brand-rune)", display: "inline-flex", flex: "0 0 auto" }}>
+        <svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true">
+          <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" strokeWidth="2" />
+          <g
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M 13 6.5 L 13 25.5" />
+            <path d="M 13 6.5 L 22 11.5" />
+            <path d="M 13 13 L 22 18" />
+          </g>
+        </svg>
+      </span>
+      <span
+        className="dv-brand-word"
+        style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18 }}
+      >
+        Plöttr
+      </span>
+    </a>
+  );
+}
+
+const CATEGORY_ORDER: ToolCategory[] = ["compare", "trends", "sets", "bench"];
+const CATEGORY_LABEL: Record<ToolCategory, ShellKey> = {
+  compare: "shell.chrome.cat.compare",
+  trends: "shell.chrome.cat.trends",
+  sets: "shell.chrome.cat.sets",
+  bench: "shell.chrome.cat.bench",
+};
+
+function ToolGlyph({ entry, size }: { entry: ToolEntry; size: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="dv-tool-glyph"
+      style={{ width: size, height: size, flex: "0 0 auto", color: TOOL_ACCENT[entry.key] }}
+      dangerouslySetInnerHTML={{ __html: tintIcon(entry.iconSvg, entry.key) }}
+    />
+  );
+}
+
+// Menu button naming the current tool; opens every tool grouped by the
+// question it answers. Escape or an outside click closes it, and focus
+// returns to the button; Up / Down move between items.
+export function ToolSwitcher({ current }: { current: ToolEntry }) {
+  const tr = useShellT();
+  const [open, setOpen] = React.useState(false);
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+  const close = (refocus: boolean) => {
+    setOpen(false);
+    if (refocus) buttonRef.current?.focus();
+  };
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (ev: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(ev.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    const items = menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+    const active = menuRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    (active || (items && items[0]))?.focus();
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+  const onMenuKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Escape" || e.key === "Tab") {
+      if (e.key === "Escape") e.preventDefault();
+      close(e.key === "Escape");
+      return;
+    }
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') || []
+    );
+    const at = items.indexOf(document.activeElement as HTMLElement);
+    const next =
+      e.key === "ArrowDown" ? (at + 1) % items.length : (at - 1 + items.length) % items.length;
+    items[next]?.focus();
+  };
+  return (
+    <div ref={wrapRef} style={{ position: "relative" }}>
+      <button
+        ref={buttonRef}
+        type="button"
+        className="dv-icon-btn dv-switcher-btn"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={tr("shell.chrome.switchTool")}
+        onClick={() => setOpen((x) => !x)}
+        style={{ padding: "0 10px 0 8px", fontWeight: 600, fontSize: 14, color: "var(--text)" }}
+      >
+        <ToolGlyph entry={current} size={20} />
+        {current.label}
+        <span style={{ color: "var(--text-faint)", display: "inline-flex" }}>
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </span>
+      </button>
+      {open && (
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label={tr("shell.chrome.switchTool")}
+          className="dv-switcher-menu"
+          onKeyDown={onMenuKey}
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            left: 0,
+            zIndex: 40,
+            minWidth: 260,
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-lg)",
+            boxShadow: "var(--shadow-lg)",
+            padding: 6,
+          }}
+        >
+          {CATEGORY_ORDER.map((cat) => (
+            <div key={cat} data-category={cat} role="group" aria-label={tr(CATEGORY_LABEL[cat])}>
+              <div
+                className="dv-tile-title"
+                aria-hidden="true"
+                style={{ padding: "10px 10px 4px" }}
+              >
+                {tr(CATEGORY_LABEL[cat])}
+              </div>
+              {TOOL_REGISTRY.filter((t) => t.category === cat).map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-tool={t.key}
+                  aria-current={t.key === current.key ? "page" : undefined}
+                  className="dv-switcher-item"
+                  onClick={() => {
+                    close(false);
+                    navigate(t.key);
+                  }}
+                >
+                  <ToolGlyph entry={t} size={18} />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AppUtilities({ currentKey }: { currentKey: string }) {
+  return (
+    <div className="dv-appbar-utils" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <ThemeButton />
+      <LangButton />
+      <FeedbackButton currentKey={currentKey} />
+    </div>
   );
 }
 
@@ -522,7 +637,7 @@ function ChunkLoadingFallback({ label }: { label: string }) {
           justifyContent: "center",
           gap: 16,
           color: "var(--text)",
-          fontFamily: "monospace",
+          fontFamily: "var(--font-mono)",
           fontSize: 13,
           padding: 24,
           textAlign: "center",
@@ -563,7 +678,7 @@ function ChunkLoadingFallback({ label }: { label: string }) {
         justifyContent: "center",
         gap: 12,
         color: "var(--text-muted)",
-        fontFamily: "monospace",
+        fontFamily: "var(--font-mono)",
         fontSize: 13,
       },
     },
@@ -629,6 +744,28 @@ function LandingPlaceholder() {
   );
 }
 
+// One chrome value per tool, so each kept-alive tool's switcher names
+// itself. Memoised by key: the nodes are stable across App re-renders.
+const chromeCache = new Map<string, AppChrome>();
+function chromeFor(t: ToolEntry): AppChrome {
+  let c = chromeCache.get(t.key);
+  if (!c) {
+    c = {
+      brand: <BrandLink />,
+      switcher: <ToolSwitcher current={t} />,
+      utilities: <AppUtilities currentKey={t.key} />,
+    };
+    chromeCache.set(t.key, c);
+  }
+  return c;
+}
+
+// The page's `<main>` landmark. Plot tools carry their own (the body under
+// their app bar, in PlotToolShell); the calculators get it here.
+function ToolMain({ bench, children }: { bench: boolean; children: React.ReactNode }) {
+  return bench ? <main>{children}</main> : <>{children}</>;
+}
+
 export function App() {
   const route = useRoute();
   const entry = findToolEntry(route);
@@ -665,26 +802,22 @@ export function App() {
   // that tool's slot — already-resolved tools alongside it stay
   // visible. The active route renders normally; everything else hides
   // under display:none.
-  const mountedTools = TOOL_REGISTRY.filter((t) => visitedKeys.has(t.key)).map((t) =>
-    React.createElement(
-      "div",
-      {
-        key: t.key,
-        style: {
-          display: entry && entry.key === t.key ? "block" : "none",
-        },
-      },
-      React.createElement(
-        ErrorBoundary,
-        { toolName: t.label },
-        React.createElement(
-          React.Suspense,
-          { fallback: React.createElement(ChunkLoadingFallback, { label: t.label }) },
-          React.createElement(t.Component)
-        )
-      )
-    )
-  );
+  const mountedTools = TOOL_REGISTRY.filter((t) => visitedKeys.has(t.key)).map((t) => (
+    <div key={t.key} style={{ display: entry && entry.key === t.key ? "block" : "none" }}>
+      <AppChromeContext.Provider value={chromeFor(t)}>
+        {/* Plot tools draw the bar in PlotToolShell (with their steps and
+            exports); the calculators have no steps, so the bar goes here. */}
+        {t.category === "bench" && <AppBar />}
+        <ToolMain bench={t.category === "bench"}>
+          <ErrorBoundary toolName={t.label}>
+            <React.Suspense fallback={<ChunkLoadingFallback label={t.label} />}>
+              <t.Component />
+            </React.Suspense>
+          </ErrorBoundary>
+        </ToolMain>
+      </AppChromeContext.Provider>
+    </div>
+  ));
 
   if (!entry) {
     // Home view. The static landing markup in index.html owns the user-
@@ -699,10 +832,5 @@ export function App() {
     );
   }
 
-  return React.createElement(
-    "div",
-    null,
-    React.createElement(ToolTopbar, { currentKey: entry.key }),
-    ...mountedTools
-  );
+  return React.createElement("div", null, ...mountedTools);
 }

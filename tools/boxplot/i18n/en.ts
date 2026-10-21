@@ -131,6 +131,10 @@ const en = {
   "boxplot.steps.preview8": "Preview (first 8 rows):",
 
   // Steps — filter
+  "boxplot.steps.colName": "Name of column {n}",
+  "boxplot.pa.noGroups": "No groups selected. Enable at least one to display the plot.",
+  "boxplot.app.cantPlot":
+    "⚠ Assign <strong>group</strong> + <strong>value</strong> columns and ensure filters keep data.",
   "boxplot.steps.preview": "Preview",
   "boxplot.steps.previewOf": "of {total} rows",
   "boxplot.steps.filteredOut": "filtered out",
@@ -163,8 +167,15 @@ const en = {
   // Stats panel — header
   "boxplot.sp.statsAtEach": "Statistics at each {label}",
   "boxplot.sp.statistics": "Statistics",
-  "boxplot.sp.desc": "Click a row to inspect decision trace, assumptions, post-hoc and power.",
-  "boxplot.sp.descMulti": " Tests are independent per {label}.",
+  "boxplot.ctrl.controlsLabel": "Plot controls",
+  "boxplot.tab.groups": "Groups",
+  "boxplot.tab.style": "Style",
+  "boxplot.tab.facets": "Facets",
+  "boxplot.tab.axes": "Axes",
+  "boxplot.sp.analysisExports": "Analysis exports",
+  "boxplot.sp.rScript": "R script",
+  "boxplot.sp.reportTxt": "Report .txt",
+  "boxplot.sp.pickSet": "Each {label} is tested on its own. Select one to see its details.",
   "boxplot.sp.txtTitleSingle": "Download a plain-text stats report",
   "boxplot.sp.txtTitleMulti": "Download a plain-text report covering every {label}",
   "boxplot.sp.rTitleSingle": "Download a runnable R script reproducing these tests",
@@ -178,45 +189,9 @@ const en = {
 
   // Stats panel — table
   "boxplot.sp.set": "Set",
-  "boxplot.sp.groups": "Groups",
-  "boxplot.sp.test": "Test",
-  "boxplot.sp.statistic": "Statistic",
-  "boxplot.sp.colP": "p",
   "boxplot.sp.needsGroups": "Needs ≥ 2 groups with n ≥ 2 to run a test.",
 
   // Stats panel — detail
-  "boxplot.sp.group": "Group",
-  "boxplot.sp.n": "n",
-  "boxplot.sp.mean": "Mean",
-  "boxplot.sp.sd": "SD",
-  "boxplot.sp.sem": "SEM",
-  "boxplot.sp.ci95": "95% CI",
-  "boxplot.sp.assumptions": "Assumptions",
-  "boxplot.sp.shapiro": "Shapiro-Wilk (normality)",
-  "boxplot.sp.normal": "normal",
-  "boxplot.sp.notNormal": "not normal",
-  "boxplot.sp.levene": "Levene",
-  "boxplot.sp.equalVar": "equal variance",
-  "boxplot.sp.unequalVar": "unequal variance",
-  "boxplot.sp.recommendedSuffix": "  (recommended)",
-  "boxplot.sp.useRecommendation": "Use recommendation",
-  "boxplot.sp.suggestedAlt": "Suggested alternative:",
-  "boxplot.sp.suggestConsider": "Shapiro-Wilk flagged non-normal data — consider ",
-  "boxplot.sp.useSuggestion": "Use suggestion",
-  "boxplot.sp.posthocPrefix": "Post-hoc — ",
-  "boxplot.sp.pair": "Pair",
-  "boxplot.sp.meanDiff": "Mean diff",
-  "boxplot.sp.rankDiff": "Rank diff",
-  "boxplot.sp.signif": "Signif.",
-  "boxplot.sp.vs": "vs",
-  "boxplot.sp.replication": "Replication planning (n for 80% power)",
-  "boxplot.sp.replicationDesc":
-    "Given the observed effect size, sample size a future study would need to detect this effect at 80% power.",
-  "boxplot.sp.effectSize": "Effect size",
-  "boxplot.sp.nFor80": "n for 80% power",
-  "boxplot.sp.gt5000": "> 5000",
-  "boxplot.sp.approxNote":
-    "Approximation — rank-based test power estimated from its parametric analog.",
 
   // How-to card
   "boxplot.howto.title": "Group Plot — How to use",

@@ -168,7 +168,7 @@ test("partitions are disjoint and cover every test id", () => {
 //
 // Comparing entire result objects via JSON would over-assert (some
 // fields are conditional). We pick the load-bearing numeric fields per
-// test — the ones the StatsTile actually displays — and assert
+// test — the ones the stats panels actually display — and assert
 // approximate equality.
 
 suite("stats-registry :: routing parity vs direct stats.js calls");

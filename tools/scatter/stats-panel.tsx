@@ -22,9 +22,7 @@ import {
   EnrichedOrSkip,
   EnrichedScatterStatsRow,
   ScatterStatsSet,
-  correlationCoef,
   formatCorrResultLine,
-  formatCorrStatShort,
   runCorrelation,
 } from "./helpers";
 import { buildScatterAggregateReport, buildScatterAggregateRScript } from "./reports";
@@ -37,12 +35,22 @@ import {
   listSep,
   nRange,
   softwareSentence,
+  AssumptionRow,
+  InspectorExports,
+  InspectorSection,
+  ResultHeadline,
+  SetDetail,
+  SetRow,
+  inspectorFirstCol,
+  inspectorTable,
+  inspectorTd,
+  inspectorTh,
 } from "../_shell";
 
 import { svgSafeId } from "../_core/svg-export";
 import { downloadText, downloadTexts, flashSaved } from "../_core/download";
 import { sampleMean, sampleSD, selectCorrelation } from "../_core/stats/tests";
-import { formatP, pStars } from "../_core/stats/format";
+import { formatP } from "../_core/stats/format";
 import type { CorrTest } from "../_core/stats/types";
 import { tt, useT, type ScatterKey } from "./i18n";
 const { useState, useMemo } = React;
@@ -67,6 +75,13 @@ interface ScatterStatsDetailProps {
   yLabel: string;
 }
 
+// Parts of a correlation result line, split on the commas between them
+// (not the one inside "95% CI [lo, hi]").
+function resultParts(res: CorrResult | null | undefined): string[] {
+  return formatCorrResultLine(res).split(/,\s+(?![^[]*\])/);
+}
+
+// One set's correlation as inspector sections.
 function ScatterStatsDetail({
   row,
   onOverrideTest,
@@ -77,217 +92,137 @@ function ScatterStatsDetail({
   const tr = useT();
   const res = row.testResult;
   const rec = row.rec;
-  const recReason = buildCorrelationReason(rec);
   const recTest = rec?.recommendation?.test ?? null;
   const suggestion = rec?.suggestion ?? null;
-
-  const subhead: React.CSSProperties = {
-    margin: "10px 0 6px",
-    padding: "4px 10px",
-    fontSize: 10,
-    fontWeight: 800,
-    textTransform: "uppercase",
-    letterSpacing: "0.8px",
-    color: "var(--subhead-text)",
-    background: "var(--subhead-bg)",
-    borderRadius: 4,
-    display: "block",
-  };
-  const thS: React.CSSProperties = {
-    textAlign: "left",
-    padding: "3px 6px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--text-muted)",
-    fontWeight: 600,
-    fontSize: 11,
-  };
-  const tdS: React.CSSProperties = {
-    padding: "3px 6px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--text)",
-    fontSize: 11,
-  };
-  const pillOk: React.CSSProperties = {
-    display: "inline-block",
-    padding: "1px 6px",
-    borderRadius: 8,
-    fontSize: 9,
-    fontWeight: 700,
-    background: "var(--step-ready-bg)",
-    color: "var(--step-ready)",
-  };
-  const pillBad: React.CSSProperties = {
-    ...pillOk,
-    background: "var(--danger-bg)",
-    color: "var(--danger-text)",
-  };
-  const pillNeutral: React.CSSProperties = {
-    ...pillOk,
-    background: "var(--neutral-bg)",
-    color: "var(--neutral-text)",
-  };
   const normality = rec?.normality ?? [];
   const axisName = (axis: "x" | "y") => (axis === "x" ? xLabel : yLabel) || axis.toUpperCase();
+  const p = res && !res.error ? res.p : null;
 
   return (
-    <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>
-      <div style={subhead}>{tr("scatter.sp.variables")}</div>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={thS}>{tr("scatter.sp.axis")}</th>
-            <th style={thS}>{tr("scatter.sp.n")}</th>
-            <th style={thS}>{tr("scatter.sp.mean")}</th>
-            <th style={thS}>{tr("scatter.sp.sd")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(["x", "y"] as const).map((axis) => {
-            const vs = axis === "x" ? row.xs : row.ys;
-            const n = vs.length;
-            const m = n > 0 ? sampleMean(vs) : NaN;
-            const sd = n > 1 ? sampleSD(vs) : 0;
-            return (
-              <tr key={axis}>
-                <td style={tdS}>{axisName(axis)}</td>
-                <td style={tdS}>{n}</td>
-                <td style={tdS}>{Number.isFinite(m) ? m.toFixed(3) : "—"}</td>
-                <td style={tdS}>{n > 1 ? sd.toFixed(3) : "—"}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      {normality.length > 0 && (
-        <>
-          <div style={subhead}>{tr("scatter.sp.assumptions")}</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {normality.map((r, i) => {
-              const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
-              const verdict =
-                r.normal === true
-                  ? tr("scatter.sp.normal")
-                  : r.normal === false
-                    ? tr("scatter.sp.notNormal")
-                    : "—";
-              const wpStr =
-                r.W != null && r.p != null ? ` (W=${r.W.toFixed(3)}, p=${formatP(r.p)})` : "";
-              return (
-                <span key={i} style={{ fontSize: 11, color: "var(--text)" }}>
-                  {axisName(r.axis)}: <span style={pill}>{verdict}</span>
-                  <span style={{ color: "var(--text-faint)" }}>{wpStr}</span>
-                </span>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      <div style={subhead}>{tr("scatter.sp.test")}</div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          flexWrap: "wrap",
-          marginBottom: 6,
-        }}
-      >
-        <select
-          value={row.chosenTest}
-          onChange={(e) => {
-            const next = e.target.value as CorrTest;
-            onOverrideTest(next === recTest ? null : next);
+    <>
+      <InspectorSection label={tr("scatter.sp.correlation")}>
+        <ResultHeadline
+          name={corrLabel(row.chosenTest)}
+          p={p}
+          parts={resultParts(res)}
+          error={!!(res && res.error)}
+        />
+        <label
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            fontSize: 12,
+            color: "var(--text-muted)",
           }}
-          className="dv-select"
-          style={{ fontSize: 11, padding: "2px 6px", minWidth: 180 }}
-          onClick={(e) => e.stopPropagation()}
         >
-          {CORR_TEST_OPTIONS.map((t) => (
-            <option key={t} value={t}>
-              {corrLabel(t)}
-              {t === recTest ? tr("scatter.sp.recommendedSuffix") : ""}
-            </option>
-          ))}
-        </select>
+          {tr("scatter.sp.test")}
+          <select
+            value={row.chosenTest}
+            onChange={(e) => {
+              const next = e.target.value as CorrTest;
+              onOverrideTest(next === recTest ? null : next);
+            }}
+            className="dv-select"
+            style={{ width: "100%", minHeight: 34 }}
+          >
+            {CORR_TEST_OPTIONS.map((t) => (
+              <option key={t} value={t}>
+                {corrLabel(t)}
+                {t === recTest ? tr("scatter.sp.recommendedSuffix") : ""}
+              </option>
+            ))}
+          </select>
+        </label>
         {isOverridden && (
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOverrideTest(null);
-            }}
+            onClick={() => onOverrideTest(null)}
             className="dv-btn dv-btn-secondary"
-            style={{ padding: "2px 8px", fontSize: 10 }}
+            style={{ alignSelf: "flex-start" }}
           >
             {tr("scatter.sp.useRecommendation")}
           </button>
         )}
-      </div>
-      <div
-        style={{
-          padding: "6px 10px",
-          marginBottom: 6,
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          fontFamily: "ui-monospace, Menlo, monospace",
-          fontSize: 12,
-          fontWeight: 700,
-          color: "var(--text)",
-        }}
-      >
-        {formatCorrResultLine(res)}
-      </div>
-      {suggestion && row.chosenTest !== suggestion.test && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-            padding: "6px 10px",
-            marginBottom: 6,
-            background: "var(--info-bg)",
-            border: "1px solid var(--info-border)",
-            borderRadius: 6,
-            fontSize: 11,
-            color: "var(--info-text)",
-          }}
-        >
-          <span style={{ fontWeight: 700 }}>{tr("scatter.sp.suggestedAlt")}</span>
-          <span>
-            {tr("scatter.sp.suggestConsider")}
-            <strong>{corrLabel(suggestion.test)}</strong>.
-          </span>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOverrideTest(suggestion.test);
+        {suggestion && row.chosenTest !== suggestion.test && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              padding: "8px 10px",
+              background: "var(--info-bg)",
+              border: "1px solid var(--info-border)",
+              borderRadius: "var(--radius-md)",
+              fontSize: 12,
+              color: "var(--info-text)",
             }}
-            className="dv-btn dv-btn-secondary"
-            style={{ padding: "2px 8px", fontSize: 10, marginLeft: "auto" }}
           >
-            {tr("scatter.sp.useSuggestion")}
-          </button>
-        </div>
-      )}
-      <WhyThisTest text={recReason} />
-      {res && !res.error && res.kind === "kendall" && (
-        <div
-          style={{
-            fontSize: 10,
-            color: "var(--text-faint)",
-            fontStyle: "italic",
-            marginTop: 4,
-          }}
-        >
-          {tr("scatter.sp.kendallNote")}
-        </div>
-      )}
-    </div>
+            <span>
+              <strong>{tr("scatter.sp.suggestedAlt")}</strong> {tr("scatter.sp.suggestConsider")}
+              <strong>{corrLabel(suggestion.test)}</strong>.
+            </span>
+            <button
+              type="button"
+              onClick={() => onOverrideTest(suggestion.test)}
+              className="dv-btn dv-btn-secondary"
+              style={{ alignSelf: "flex-start" }}
+            >
+              {tr("scatter.sp.useSuggestion")}
+            </button>
+          </div>
+        )}
+        {res && !res.error && res.kind === "kendall" && (
+          <div style={{ fontSize: 11, color: "var(--text-faint)", fontStyle: "italic" }}>
+            {tr("scatter.sp.kendallNote")}
+          </div>
+        )}
+      </InspectorSection>
+
+      <InspectorSection label={tr("scatter.sp.assumptionsChecked")}>
+        {normality.map((r, i) => (
+          <AssumptionRow
+            key={i}
+            ok={r.normal}
+            label={tr("scatter.sp.normalityOf", { axis: axisName(r.axis) })}
+            value={r.p != null ? `p = ${formatP(r.p)}` : "—"}
+            title={r.W != null ? `W = ${r.W.toFixed(3)}` : undefined}
+          />
+        ))}
+        <WhyThisTest text={buildCorrelationReason(rec)} />
+      </InspectorSection>
+
+      <InspectorSection label={tr("scatter.sp.variables")}>
+        <table style={inspectorTable}>
+          <thead>
+            <tr>
+              <th style={{ ...inspectorTh, ...inspectorFirstCol }}>
+                <span className="dv-sr-only">{tr("scatter.sp.axis")}</span>
+              </th>
+              <th style={inspectorTh}>{tr("scatter.sp.n")}</th>
+              <th style={inspectorTh}>{tr("scatter.sp.mean")}</th>
+              <th style={inspectorTh}>{tr("scatter.sp.sd")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(["x", "y"] as const).map((axis) => {
+              const vs = axis === "x" ? row.xs : row.ys;
+              const n = vs.length;
+              const m = n > 0 ? sampleMean(vs) : NaN;
+              const sd = n > 1 ? sampleSD(vs) : 0;
+              return (
+                <tr key={axis}>
+                  <td style={{ ...inspectorTd, ...inspectorFirstCol }}>{axisName(axis)}</td>
+                  <td style={inspectorTd}>{n}</td>
+                  <td style={inspectorTd}>{Number.isFinite(m) ? m.toFixed(3) : "—"}</td>
+                  <td style={inspectorTd}>{n > 1 ? sd.toFixed(3) : "—"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </InspectorSection>
+    </>
   );
 }
 
@@ -311,7 +246,6 @@ export function ScatterStatsPanel({
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     sets.length === 1 ? { [sets[0].key]: true } : {}
   );
-  const [hovered, setHovered] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Record<string, CorrTest>>({});
 
   const enriched = useMemo<EnrichedOrSkip[]>(
@@ -454,201 +388,108 @@ export function ScatterStatsPanel({
   };
 
   const singleSet = sets.length === 1;
-  const headingLabel = singleSet ? tr("scatter.sp.headingSingle") : tr("scatter.sp.headingGroup");
+  const swatch = (color: string | undefined) =>
+    color ? (
+      <span
+        aria-hidden="true"
+        style={{
+          width: 9,
+          height: 9,
+          borderRadius: "50%",
+          background: color,
+          display: "inline-block",
+          marginRight: 6,
+        }}
+      />
+    ) : null;
+  const detailFor = (r: EnrichedScatterStatsRow) => (
+    <ScatterStatsDetail
+      row={r}
+      isOverridden={!!overrides[r.key]}
+      onOverrideTest={(t) => setOverride(r.key, t)}
+      xLabel={xLabel}
+      yLabel={yLabel}
+    />
+  );
+  const exportsFooter =
+    eligible.length > 0 ? (
+      <InspectorExports label={tr("scatter.sp.analysisExports")}>
+        <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
+          onClick={downloadR}
+          title={singleSet ? tr("scatter.sp.rTitleSingle") : tr("scatter.sp.rTitleMulti")}
+        >
+          {tr("scatter.sp.rScript")}
+        </button>
+        <MethodsButton getText={methodsText} />
+        <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
+          onClick={downloadReport}
+          title={singleSet ? tr("scatter.sp.txtTitleSingle") : tr("scatter.sp.txtTitleMulti")}
+        >
+          {tr("scatter.sp.reportTxt")}
+        </button>
+      </InspectorExports>
+    ) : null;
 
-  const thS: React.CSSProperties = {
-    textAlign: "left",
-    padding: "6px 8px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--subhead-text)",
-    fontWeight: 600,
-    fontSize: 12,
-    background: "var(--subhead-bg)",
-  };
-  const tdS: React.CSSProperties = {
-    padding: "6px 8px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--text)",
-    fontSize: 12,
-  };
-  const mono: React.CSSProperties = { fontFamily: "ui-monospace, Menlo, monospace" };
+  if (singleSet && eligible.length === 1) {
+    return (
+      <div data-testid="scatter-stats" className="dv-inspector">
+        {detailFor(eligible[0])}
+        {exportsFooter}
+      </div>
+    );
+  }
 
   return (
-    <div className="dv-panel" style={{ padding: 0, overflow: "hidden" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "12px 14px",
-          borderBottom: "1px solid var(--border)",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
+    <div data-testid="scatter-stats" className="dv-inspector">
+      <InspectorSection
+        label={singleSet ? tr("scatter.sp.headingSingle") : tr("scatter.sp.headingGroup")}
       >
-        <div>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: 14,
-              fontWeight: 700,
-              color: "var(--text)",
-              letterSpacing: "0.2px",
-            }}
-          >
-            {headingLabel}
-          </h3>
-          <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
-            {tr("scatter.sp.desc")}
-            {singleSet ? "" : tr("scatter.sp.descMulti")}
-          </p>
-        </div>
-        {eligible.length > 0 && (
-          <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
-            <MethodsButton getText={methodsText} />
-            <button
-              type="button"
-              className="dv-btn dv-btn-dl"
-              onClick={downloadReport}
-              title={singleSet ? tr("scatter.sp.txtTitleSingle") : tr("scatter.sp.txtTitleMulti")}
-            >
-              ⬇ TXT
-            </button>
-            <button
-              type="button"
-              className="dv-btn dv-btn-dl"
-              onClick={downloadR}
-              title={singleSet ? tr("scatter.sp.rTitleSingle") : tr("scatter.sp.rTitleMulti")}
-            >
-              ⬇ R
-            </button>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--text-faint)" }}>
+          {tr("scatter.sp.pickGroup")}
+        </p>
+      </InspectorSection>
+      {enriched.map((r) => {
+        const key = r.key;
+        if (r.skip) {
+          return (
+            <div key={key} className="dv-set-row" style={{ cursor: "default" }}>
+              <span style={{ fontWeight: 600 }}>
+                {swatch(r.color)}
+                {r.name || "—"}
+              </span>
+              <span style={{ gridColumn: "2 / -1", fontSize: 12, color: "var(--text-faint)" }}>
+                {tr("scatter.sp.needsPairs", { n: r.n })}
+              </span>
+            </div>
+          );
+        }
+        const isOpen = !!expanded[key];
+        const res = r.testResult;
+        const p = res && !res.error ? res.p : null;
+        return (
+          <div key={key}>
+            <SetRow
+              name={
+                <>
+                  {swatch(r.color)}
+                  {r.name || "—"}
+                </>
+              }
+              detail={`${corrLabel(r.chosenTest)} · n = ${r.n}`}
+              p={p}
+              pText={p != null ? formatP(p) : "—"}
+              open={isOpen}
+              onToggle={() => setExpanded((prev) => ({ ...prev, [key]: !isOpen }))}
+            />
+            {isOpen && <SetDetail>{detailFor(r)}</SetDetail>}
           </div>
-        )}
-      </div>
-
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={thS}>{tr("scatter.sp.colGroup")}</th>
-            <th style={thS}>{tr("scatter.sp.n")}</th>
-            <th style={thS}>{tr("scatter.sp.colTest")}</th>
-            <th style={thS}>{tr("scatter.sp.colStatistic")}</th>
-            <th style={thS}>{tr("scatter.sp.colP")}</th>
-            <th style={{ ...thS, width: 60 }}></th>
-          </tr>
-        </thead>
-        <tbody>
-          {enriched.map((r) => {
-            const key = r.key;
-            const isOpen = !!expanded[key];
-            if (r.skip) {
-              return (
-                <tr key={key}>
-                  <td style={tdS}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      {r.color && (
-                        <span
-                          style={{
-                            width: 9,
-                            height: 9,
-                            borderRadius: "50%",
-                            background: r.color,
-                            display: "inline-block",
-                          }}
-                        />
-                      )}
-                      {r.name || "—"}
-                    </span>
-                  </td>
-                  <td style={tdS} colSpan={5}>
-                    <span style={{ color: "var(--text-faint)", fontStyle: "italic" }}>
-                      Needs ≥ 3 complete pairs (have {r.n}).
-                    </span>
-                  </td>
-                </tr>
-              );
-            }
-            const res = r.testResult;
-            const p = res && !res.error ? res.p : null;
-            const sig = p != null && p < 0.05;
-            const stars = p != null ? pStars(p) : "";
-            const coef = res && !res.error ? correlationCoef(res) : null;
-            return (
-              <React.Fragment key={key}>
-                <tr
-                  onClick={() => setExpanded((prev) => ({ ...prev, [key]: !isOpen }))}
-                  onMouseEnter={() => setHovered(key)}
-                  onMouseLeave={() => setHovered((h) => (h === key ? null : h))}
-                  style={{
-                    cursor: "pointer",
-                    background: isOpen
-                      ? "var(--surface-subtle)"
-                      : hovered === key
-                        ? "var(--row-hover-bg)"
-                        : undefined,
-                    transition: "background 120ms ease",
-                  }}
-                >
-                  <td style={tdS}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      {r.color && (
-                        <span
-                          style={{
-                            width: 9,
-                            height: 9,
-                            borderRadius: "50%",
-                            background: r.color,
-                            display: "inline-block",
-                          }}
-                        />
-                      )}
-                      {r.name || "—"}
-                    </span>
-                  </td>
-                  <td style={tdS}>{r.n}</td>
-                  <td style={tdS}>{corrLabel(r.chosenTest)}</td>
-                  <td style={{ ...tdS, ...mono }}>
-                    {coef != null ? formatCorrStatShort(res) : "—"}
-                  </td>
-                  <td
-                    style={{
-                      ...tdS,
-                      ...mono,
-                      fontWeight: sig ? 700 : 400,
-                      color: sig ? "var(--step-ready)" : "var(--text)",
-                    }}
-                  >
-                    {p != null ? formatP(p) : "—"}
-                  </td>
-                  <td
-                    style={{
-                      ...tdS,
-                      textAlign: "right",
-                      color: sig ? "var(--step-ready)" : "var(--text-faint)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {stars && stars !== "ns" ? stars : ""}
-                  </td>
-                </tr>
-                {isOpen && (
-                  <tr>
-                    <td colSpan={6} style={{ padding: 0, borderBottom: "1px solid var(--border)" }}>
-                      <ScatterStatsDetail
-                        row={r}
-                        isOverridden={!!overrides[key]}
-                        onOverrideTest={(t) => setOverride(key, t)}
-                        xLabel={xLabel}
-                        yLabel={yLabel}
-                      />
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </tbody>
-      </table>
+        );
+      })}
+      {exportsFooter}
     </div>
   );
 }

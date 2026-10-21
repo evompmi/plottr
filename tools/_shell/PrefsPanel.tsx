@@ -1,5 +1,5 @@
 // Save / Load / Reset controls for plot render settings — rendered as a
-// single gear icon in PageHeader that toggles a small popover with the three
+// single gear icon in the app bar that toggles a small popover with the three
 // actions + any error message. The click-to-reveal design keeps power-user
 // chrome out of the header until asked for. Style tweaks still auto-persist
 // to localStorage in the background (see `usePlotToolState.ts` →
@@ -87,25 +87,14 @@ export function PrefsPanel<T extends object>({ tool, vis, visInit, updVis }: Pre
         aria-expanded={open}
         aria-haspopup="menu"
         title={tr("shell.prefs.title")}
-        style={{
-          width: 40,
-          height: 40,
-          padding: 0,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: open ? "var(--surface-sunken)" : "transparent",
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          cursor: "pointer",
-          color: "var(--text-muted)",
-        }}
+        className="dv-icon-btn"
+        style={open ? { background: "var(--surface-sunken)" } : undefined}
       >
         {/* Gear glyph — feather-style, painted through currentColor so it
             inherits the button's themed text color. */}
         <svg
-          width={20}
-          height={20}
+          width={16}
+          height={16}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -130,7 +119,7 @@ export function PrefsPanel<T extends object>({ tool, vis, visInit, updVis }: Pre
             borderRadius: 8,
             boxShadow: "var(--shadow-lg)",
             padding: 8,
-            zIndex: 30,
+            zIndex: 40,
             minWidth: 200,
             display: "flex",
             flexDirection: "column",

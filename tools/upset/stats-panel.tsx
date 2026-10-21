@@ -6,7 +6,7 @@
 import { intersectionShortLabel } from "./helpers";
 import type { IntersectionStatsPanelProps } from "./helpers";
 import { useT } from "./i18n";
-import { MethodsButton, alphaSentence, softwareSentence } from "../_shell";
+import { InspectorSection, MethodsButton, alphaSentence, softwareSentence } from "../_shell";
 
 import { multisetExclusiveExpected } from "../_core/stats/msi";
 /* ── Intersection significance panel ────────────────────────────────────────
@@ -84,7 +84,7 @@ export function IntersectionStatsPanel({
         "span",
         {
           style: {
-            fontFamily: "monospace",
+            fontFamily: "var(--font-mono)",
             color: "var(--text)",
             cursor: tooltip ? "help" : undefined,
           },
@@ -95,29 +95,23 @@ export function IntersectionStatsPanel({
     );
 
   return (
-    <div
-      className="dv-panel"
-      style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}
+    <InspectorSection
+      label={tr("upset.sp.title")}
+      right={
+        cachedResult ? (
+          <MethodsButton
+            getText={() =>
+              [
+                tr("upset.methods.text", { universe: universeN, n: intersectionTests.size }),
+                alphaSentence(),
+                softwareSentence([]),
+              ].join(" ")
+            }
+          />
+        ) : null
+      }
     >
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-        <p className="dv-tile-title" style={{ margin: 0 }}>
-          {tr("upset.sp.title")}
-        </p>
-        <span style={{ fontSize: 11, color: "var(--text-faint)" }}>{tr("upset.sp.subtitle")}</span>
-        {cachedResult && (
-          <div style={{ marginLeft: "auto" }}>
-            <MethodsButton
-              getText={() =>
-                [
-                  tr("upset.methods.text", { universe: universeN, n: intersectionTests.size }),
-                  alphaSentence(),
-                  softwareSentence([]),
-                ].join(" ")
-              }
-            />
-          </div>
-        )}
-      </div>
+      <span style={{ fontSize: 12, color: "var(--text-faint)" }}>{tr("upset.sp.subtitle")}</span>
 
       {(() => {
         // Expected value + direction track the EXCLUSIVE bar height — the
@@ -157,7 +151,7 @@ export function IntersectionStatsPanel({
                 : "";
         const directionColor =
           direction === "enriched"
-            ? "var(--accent-plot, #1f6feb)"
+            ? "var(--link)"
             : direction === "depleted"
               ? "var(--warning-text, #b45309)"
               : "var(--text-muted)";
@@ -245,11 +239,13 @@ export function IntersectionStatsPanel({
                 </span>
                 <span>
                   <span style={{ color: "var(--text-muted)" }}>p = </span>
-                  <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{fmtP(p)}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>{fmtP(p)}</span>
                 </span>
                 <span>
                   <span style={{ color: "var(--text-muted)" }}>p_adj = </span>
-                  <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{fmtP(pAdj)}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>
+                    {fmtP(pAdj)}
+                  </span>
                 </span>
                 <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{hint}</span>
               </div>
@@ -276,6 +272,6 @@ export function IntersectionStatsPanel({
           dangerouslySetInnerHTML={{ __html: tr("upset.sp.noPvalue") }}
         />
       )}
-    </div>
+    </InspectorSection>
   );
 }

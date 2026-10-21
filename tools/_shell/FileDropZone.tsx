@@ -113,7 +113,7 @@ export function FileDropZone({
               ? "var(--danger-bg)"
               : "transparent",
           transition: "all .2s",
-          outline: focus ? "2px solid var(--accent-primary)" : "none",
+          outline: focus ? "2px solid var(--focus-outline)" : "none",
           outlineOffset: 2,
         }}
       >

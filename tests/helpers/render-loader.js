@@ -142,12 +142,16 @@ function ensureSharedBundleLoaded() {
       src: path.join(toolsDir, "_shell/index.ts"),
       names: [
         "ActionsPanel",
+        "AppBar",
+        "AppChromeContext",
         "BaseStyleControls",
         "ChartDataTable",
         "CldLabels",
         "ColorInput",
         "ColumnRoleEditor",
         "CommaFixBanner",
+        "ControlSection",
+        "ControlTabs",
         "DataPreview",
         "DatasheetIcon",
         "DetectedSeparatorBadge",
@@ -156,29 +160,28 @@ function ensureSharedBundleLoaded() {
         "ErrorBoundary",
         "FILE_LIMIT_BYTES",
         "FILE_WARN_BYTES",
+        "FileChip",
         "FileDropZone",
-        "FilterCheckboxPanel",
         "FormulaInjectionBanner",
         "GroupColorEditor",
         "HowTo",
         "HowToCard",
         "HowToExampleTable",
+        "InspectorSection",
         "NumberInput",
-        "PageHeader",
         "ParseErrorBanner",
         "MethodsButton",
         "PlotActionsBar",
         "PlotActionsContext",
-        "PlotSidebar",
         "PlotStyleIconPicker",
         "PlotToolShell",
         "setHandoff",
         "useHandoff",
+        "useExampleLink",
         "BarStyleIcon",
         "BoxStyleIcon",
         "DotStyleIcon",
         "PrefsPanel",
-        "RenameReorderPanel",
         "STATS_POSTHOC_REGISTRY",
         "STATS_TESTS_FOR_K",
         "STATS_TESTS_FOR_K2",
@@ -187,10 +190,11 @@ function ensureSharedBundleLoaded() {
         "SignificanceBrackets",
         "SliderControl",
         "StatsTable",
-        "StatsTile",
         "StepNavBar",
         "UploadPanel",
         "WhyThisTest",
+        "ValueListPanel",
+        "WorkspaceLayout",
         "applyDiscretePalette",
         "assignBracketLevels",
         "buildRScript",
@@ -322,10 +326,14 @@ function loadTool(toolName) {
     "buildHeatmapRScript: typeof buildHeatmapRScript !== 'undefined' ? buildHeatmapRScript : undefined," +
     "ProportionsChart: typeof ProportionsChart !== 'undefined' ? ProportionsChart : undefined," +
     "StatsPanel: typeof StatsPanel !== 'undefined' ? StatsPanel : undefined," +
+    "ProportionsStatsDisplayBar: typeof ProportionsStatsDisplayBar !== 'undefined' ? ProportionsStatsDisplayBar : undefined," +
     "GofPanel: typeof GofPanel !== 'undefined' ? GofPanel : undefined," +
     "QpcrChart: typeof QpcrChart !== 'undefined' ? QpcrChart : undefined," +
     "QpcrStatsPanel: typeof QpcrStatsPanel !== 'undefined' ? QpcrStatsPanel : undefined," +
+    "BoxplotStatsPanel: typeof BoxplotStatsPanel !== 'undefined' ? BoxplotStatsPanel : undefined," +
+    "BoxplotStatsDisplayBar: typeof BoxplotStatsDisplayBar !== 'undefined' ? BoxplotStatsDisplayBar : undefined," +
     "ShapeFillTile: typeof ShapeFillTile !== 'undefined' ? ShapeFillTile : undefined," +
+    "EXAMPLE_CSV: typeof EXAMPLE_CSV !== 'undefined' ? EXAMPLE_CSV : undefined," +
     "App: typeof App !== 'undefined' ? App : undefined," +
     "};";
   const withReturn = compiled.slice(0, closingIdx) + returnObj + compiled.slice(closingIdx);

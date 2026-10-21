@@ -1,72 +1,43 @@
 # `tools/_shell/` — typed shared scaffold
 
-Plöttr has two parallel "shared" worlds. They share the goal (don't
-duplicate code) but differ on transform pipeline, scope, and consumer
-contract. Picking the right one for a new shared helper is what this
-README is for.
+`_shell/` is the component tier of Plöttr's four-tier layout
+(`docs/architecture.md` §3): typed React UI and helpers that two or more
+tools share. It sits between the pure kernel and the tools:
 
-## TL;DR — which one do I use?
+| Tier            | Holds                                                                   | May import                    |
+| --------------- | ----------------------------------------------------------------------- | ----------------------------- |
+| `tools/_core/`  | Pure kernel: numerics, stats, CSV parsing, colour, export, theme, i18n  | `_core/` only                 |
+| `tools/_shell/` | Shared React UI + typed helpers (this folder)                           | `_core/`, `_shell/`           |
+| `tools/<tool>/` | One tool: `app.tsx`, `chart.tsx`, `steps.tsx`, `controls.tsx`, helpers… | `_core/`, `_shell/`, own tool |
+| `tools/_app/`   | SPA shell: router, tool registry, app chrome                            | everything above              |
 
-| If your helper…                                                     | Goes in                       | Examples                                                                 |
-| ------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------ |
-| is plain JS, no JSX, consumed by every plot tool's HTML             | **`tools/shared*.js`**        | `parseRaw`, `computeStats`, `ColorInput`, `applyDiscretePalette`         |
-| is TypeScript, imports from sibling `_shell/` files, used in `.tsx` | **`tools/_shell/`**           | `usePlotToolState`, `PlotToolShell`, `chart-layout.ts`, `stats-dispatch` |
-| is purely a tool-internal helper, no other tool needs it            | **`tools/<tool>/helpers.ts`** | per-tool math (`classifyPoint`, `computeIntersections`, …)               |
+`npm run lint:boundaries` (dependency-cruiser) enforces the arrows: `_shell/`
+never imports a tool or `_app/`. App-level chrome a shell component needs
+(brand link, tool switcher, theme / language / feedback buttons) is handed
+down through `AppChromeContext` (`AppBar.tsx`) instead.
 
-If two tools start needing the same `helpers.ts` symbol, **lift it
-into `_shell/`** (precedent: `chart-layout.ts` was extracted from
-`lineplot/helpers.ts` once `aequorin/helpers.ts` started needing
-`buildLineD` and `MARGIN`).
+## Which home for a new helper?
 
-## Why two worlds at all?
+| If your helper…                                                       | Goes in                       |
+| --------------------------------------------------------------------- | ----------------------------- |
+| is pure (no React, no DOM chrome): maths, parsing, formatting, export | **`tools/_core/`**            |
+| is React UI or a typed UI helper that at least two tools need         | **`tools/_shell/`**           |
+| is used by one tool only                                              | **`tools/<tool>/helpers.ts`** |
 
-### `tools/shared*.js` — the plain-JS bundle
+If a second tool starts needing a `helpers.ts` symbol, **lift it into
+`_shell/`** (precedent: `chart-layout.ts` was extracted from
+`lineplot/helpers.ts` once `aequorin/helpers.ts` needed `buildLineD` and
+`MARGIN`).
 
-- **Transform**: none. `scripts/build-shared.js` concatenates the files
-  in a fixed order into `tools/shared.bundle.js`.
-- **Loaded by**: every `tools/<tool>.html` via a single `<script>` tag.
-  Top-level declarations (function / `const` / `let`) become script-scope
-  globals; tool `.tsx` files consume them ambient via
-  `types/globals.d.ts`.
-- **Constraint**: **no JSX, no TypeScript syntax** — `React.createElement`
-  only. There's no transform step, so anything beyond ES2022 + plain JS
-  would white-screen the browser.
-- **Why it exists**: every HTML file (and every render-smoke test) needs
-  a small, fast-to-load common surface (`parseData`, `ColorInput`,
-  `loadAutoPrefs`, the discrete-palette catalogue, …) without paying
-  the per-tool esbuild cost. The bundle is ~315 KB unminified, gzipped
-  ~85 KB — cheap enough to ship to every page.
-- **Add a file here when**: the helper is browser-runtime-only, you
-  want it available to every HTML without ceremony, and React-typed
-  imports aren't necessary.
-
-Files: `tools/shared.js`, `tools/stats.js`, `tools/theme.js`, plus the
-`tools/shared-*.js` family (color-input, discrete-palette, file-drop,
-svg-legend, core, ui, prefs, long-format, r-export, stats-tile,
-handoff). Order matters — see the `FILES` array in
-`scripts/build-shared.js`.
-
-### `tools/_shell/` — the typed scaffold
-
-- **Transform**: bundled by **esbuild** as part of each tool's
-  `tools/<tool>/index.tsx` build. Imports from sibling `_shell/`
-  files are inlined into the tool's `index.js` output.
-- **Loaded by**: only tool `.tsx` / `.ts` files via explicit
-  `import` statements. _Not_ exposed as globals.
-- **Constraint**: **TypeScript with full strict mode**. Pure helpers
-  (`chart-layout.ts`, `stats-dispatch.ts`) are fully annotated; React
-  components (`PlotToolShell.tsx`, `PlotSidebar.tsx`,
-  `DownloadTiles.tsx`, `ScrollablePlotCard.tsx`,
-  `chart-annotations.tsx`) ship typed props.
-- **Why it exists**: cross-tool React composition + cross-tool typed
-  helpers that benefit from import-graph clarity (esbuild knows
-  exactly what each tool consumes; the bundle stays tight). The
-  scaffold collapses what was previously 7+ near-identical orchestrator
-  blocks into one shape.
-- **Add a file here when**: the helper is consumed via `.tsx` `import`,
-  benefits from full typing, and at least two tools need it (or are
-  about to — `chart-layout.ts` was extracted exactly when `aequorin`
-  started duplicating `lineplot`'s `MARGIN` + `buildLineD`).
+- **Transform**: esbuild compiles `_shell/` together with the SPA
+  (`tools/_app/index.tsx`); code two or more lazy tool chunks share lands
+  in a split `tools/_app/chunks/chunk-*.js`.
+- **Loaded by**: `.tsx` / `.ts` files via `import` from `"../_shell"` —
+  never as globals. (The only script-tag globals left are vendored React
+  and `tools/shared.bundle.js`, the IIFE of `_core/theme.ts` + `_core/i18n.ts`
+  that the static pages need before the SPA parses.)
+- **Constraint**: TypeScript strict mode, `any`-free; every component ships
+  typed props.
 
 ## File-naming convention
 
@@ -93,59 +64,69 @@ per-file paths so the dependency graph stays visible.
 
 ### React components (`PascalCase.tsx`)
 
-| File                         | Role                                                                                    |
-| ---------------------------- | --------------------------------------------------------------------------------------- |
-| `ActionsPanel.tsx`           | Plot-step downloads + Start over; hands them to the shell's header export bar.          |
-| `BaseStyleControls.tsx`      | Background / grid on-off / grid colour controls.                                        |
-| `CldLabels.tsx`              | Compact-letter-display annotation renderer.                                             |
-| `ColorInput.tsx`             | Swatch + hex-text widget (`normalizeHexColor` lives alongside).                         |
-| `ColumnRoleEditor.tsx`       | Column-role assignment for the long-format pipeline.                                    |
-| `CommaFixBanner.tsx`         | Yellow status banner for decimal-comma auto-conversion.                                 |
-| `DataPreview.tsx`            | Compact table preview for parsed CSV/TSV.                                               |
-| `DiscretePaletteRow.tsx`     | Dropdown + swatch strip for picking a discrete palette.                                 |
-| `DownloadTiles.tsx`          | `ActionsPanel` wrapper auto-building SVG / PNG callbacks.                               |
-| `ErrorBoundary.tsx`          | Class-component error boundary used by the SPA shell.                                   |
-| `FileDropZone.tsx`           | Drag/drop / click-to-browse upload widget; ingest-size constants alongside.             |
-| `FilterCheckboxPanel.tsx`    | Per-column filter checkbox grid for the filter step.                                    |
-| `FormulaInjectionBanner.tsx` | Yellow alert for cells that would trigger Excel formula evaluation.                     |
-| `GroupColorEditor.tsx`       | Per-group colour editor list.                                                           |
-| `HowTo.tsx`                  | Tool-specific "How to use" content renderer.                                            |
-| `HowToCard.tsx`              | Collapsible header + body wrapper for `HowTo`.                                          |
-| `MethodsButton.tsx`          | "Methods" button + read-only popover with the methods-section paragraph and Copy.       |
-| `NumberInput.tsx`            | Numeric input with hold-to-repeat ± buttons.                                            |
-| `PageHeader.tsx`             | Top-of-tool header with icon + title + nav slots; compact + sticky on the plot step.    |
-| `ParseErrorBanner.tsx`       | Red alert banner for parse-error strings.                                               |
-| `PlotActionsBar.tsx`         | Header export bar (download chips + two-click Start over) on the plot step.             |
-| `PlotSidebar.tsx`            | Sticky right-rail wrapper for every plot tool's controls panel.                         |
-| `PlotToolShell.tsx`          | Outer page frame — PageHeader + StepNavBar + banners, delegates to children.            |
-| `PrefsPanel.tsx`             | Gear-menu UI on top of `prefs-store`.                                                   |
-| `RenameReorderPanel.tsx`     | Per-column rename + drag-to-reorder list.                                               |
-| `ScrollablePlotCard.tsx`     | Horizontal-scroll affordance (edge fades + "Scroll for more →" pill).                   |
-| `SignificanceBrackets.tsx`   | Pair-wise significance-bracket renderer (vertical / horizontal).                        |
-| `SliderControl.tsx`          | Labelled range slider (memo-wrapped).                                                   |
-| `StatsTable.tsx`             | Summary stats table used in group-plot output steps.                                    |
-| `StatsTile.tsx`              | Collapsible stats tile — assumption checks, test selection, post-hocs, annotation emit. |
-| `StepNavBar.tsx`             | Horizontal stepper (circles + connector); one-line breadcrumb with `compact`.           |
-| `UploadPanel.tsx`            | Separator selector + `FileDropZone` composition for the upload step.                    |
-| `WhyThisTest.tsx`            | Collapsed "Why this test?" disclosure under a stats panel's result line.                |
+| File                         | Role                                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| `ActionsPanel.tsx`           | Plot-step downloads + Start over; hands them to the shell's header export bar.           |
+| `AppBar.tsx`                 | Sticky top bar; `AppChromeContext` (brand, switcher, utilities from `_app`), `FileChip`. |
+| `BaseStyleControls.tsx`      | Background / grid on-off / grid colour controls.                                         |
+| `CldLabels.tsx`              | Compact-letter-display annotation renderer.                                              |
+| `ColorInput.tsx`             | Swatch + hex-text widget (`normalizeHexColor` lives alongside).                          |
+| `ColumnRoleEditor.tsx`       | Column-role assignment for the long-format pipeline.                                     |
+| `CommaFixBanner.tsx`         | Yellow status banner for decimal-comma auto-conversion.                                  |
+| `ControlTabs.tsx`            | Plot controls as remembered ARIA tabs; `ControlSection` flattens inside them.            |
+| `ChartDataTable.tsx`         | Collapsible semantic data table under a chart, for keyboard and screen-reader users.     |
+| `ControlSection.tsx`         | Titled group inside a `ControlTabs` tab (a folding card outside tabs).                   |
+| `DatasheetIcon.tsx`          | Notepad icon on every upload step's sample-dataset banner.                               |
+| `DetectedSeparatorBadge.tsx` | Inline reminder of the delimiter the auto-detector picked.                               |
+| `PlotStyleIcons.tsx`         | Icon buttons for a chart's plot style (box / violin / bar …), selected = ink pill.       |
+| `SegToggle.tsx`              | Accessible segmented toggle (`.dv-seg`); `OnOffToggle` alongside.                        |
+| `DataPreview.tsx`            | Compact table preview for parsed CSV/TSV.                                                |
+| `DiscretePaletteRow.tsx`     | Dropdown + swatch strip for picking a discrete palette.                                  |
+| `DownloadTiles.tsx`          | `ActionsPanel` wrapper auto-building SVG / PNG callbacks.                                |
+| `ErrorBoundary.tsx`          | Class-component error boundary used by the SPA shell.                                    |
+| `FileDropZone.tsx`           | Drag/drop / click-to-browse upload widget; ingest-size constants alongside.              |
+| `FormulaInjectionBanner.tsx` | Yellow alert for cells that would trigger Excel formula evaluation.                      |
+| `GroupColorEditor.tsx`       | Per-group colour editor list.                                                            |
+| `HowTo.tsx`                  | Tool-specific "How to use" content renderer.                                             |
+| `HowToCard.tsx`              | Collapsible header + body wrapper for `HowTo`.                                           |
+| `MethodsButton.tsx`          | "Methods" button + read-only popover with the methods-section paragraph and Copy.        |
+| `NumberInput.tsx`            | Numeric input with hold-to-repeat ± buttons.                                             |
+| `ParseErrorBanner.tsx`       | Red alert banner for parse-error strings.                                                |
+| `PlotActionsBar.tsx`         | App-bar export bar: two-click Start over, a More menu (PNG, CSV, …), Download SVG.       |
+| `PlotToolShell.tsx`          | Outer page frame — AppBar (steps, file chip, exports, prefs) + banners + children.       |
+| `PrefsPanel.tsx`             | Gear-menu UI on top of `prefs-store`.                                                    |
+| `ScrollablePlotCard.tsx`     | Horizontal-scroll affordance (edge fades + "Scroll for more →" pill).                    |
+| `SignificanceBrackets.tsx`   | Pair-wise significance-bracket renderer (vertical / horizontal).                         |
+| `SliderControl.tsx`          | Labelled range slider (memo-wrapped).                                                    |
+| `StatsTable.tsx`             | Summary stats table used in group-plot output steps.                                     |
+| `StepNavBar.tsx`             | Inline step navigation for the app bar (check / current pill / number).                  |
+| `UploadPanel.tsx`            | Separator selector + `FileDropZone` composition for the upload step.                     |
+| `GroupTestSections.tsx`      | Inspector sections for a `selectTest` result (shared by Group Plot / Line Plot / RLU).   |
+| `Inspector.tsx`              | Inspector vocabulary: compact tables, stars badge, assumption rows, set rows, exports.   |
+| `WhyThisTest.tsx`            | Collapsed "Why this test?" disclosure under a stats panel's result line.                 |
+| `ValueListPanel.tsx`         | Filter step: per-column keep / rename / ↑↓ order list (qPCR-style rows).                 |
+| `WorkspaceLayout.tsx`        | Plot-step workspace: controls \| figure \| inspector (foldable); `InspectorSection`.     |
 
 ### Pure helpers / data / dispatchers (`kebab-case.ts`)
 
-| File                  | Role                                                                                                                                                                                                                         |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bracket-levels.ts`   | `assignBracketLevels` — greedy interval-packing for stacked significance brackets.                                                                                                                                           |
-| `chart-layout.ts`     | `CHART_MARGIN` + `buildLineD` for line-plot / aequorin charts.                                                                                                                                                               |
-| `discrete-palette.ts` | Discrete palette catalogue + `resolveDiscretePalette` / `applyDiscretePalette` / hue+viridis.                                                                                                                                |
-| `handoff.ts`          | One-shot per-tab (sessionStorage) inter-tool hand-off (`setHandoff` / `consumeHandoff` / `navigateToTool`; destinations receive via `useHandoff`); only the target consumes a payload, which expires after `HANDOFF_TTL_MS`. |
-| `methods-text.ts`     | Methods-section paragraph builder (`buildGroupMethodsText`, `softwareSentence`, …).                                                                                                                                          |
-| `plot-actions.ts`     | `PlotActionsContext` registry linking a tool's `ActionsPanel` to the header export bar.                                                                                                                                      |
-| `power-from-data.ts`  | `computePowerFromData` — achieved power + n-needed dispatched per test family.                                                                                                                                               |
-| `prefs-store.ts`      | Per-tool plot-render-settings persistence (load/save/import/export/migrate/merge).                                                                                                                                           |
-| `r-export.ts`         | `buildRScript` + `buildRScriptForPower` + R-string formatters.                                                                                                                                                               |
-| `scroll-helpers.ts`   | `scrollIntoViewWithinAncestor` + `scrollDisclosureIntoView`.                                                                                                                                                                 |
-| `stats-dispatch.ts`   | `runTest` / `runPostHoc` / `postHocForTest` over the stats registry.                                                                                                                                                         |
-| `stats-registry.ts`   | `STATS_TEST_REGISTRY` + `STATS_POSTHOC_REGISTRY` + arity arrays.                                                                                                                                                             |
-| `svg-legend.ts`       | `computeLegendHeight` + `renderSvgLegend` for chart legend layout.                                                                                                                                                           |
+| File                       | Role                                                                                                                                                                                                                         |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bracket-levels.ts`        | `assignBracketLevels` — greedy interval-packing for stacked significance brackets.                                                                                                                                           |
+| `chart-layout.ts`          | `CHART_MARGIN` + `buildLineD` for line-plot / aequorin charts.                                                                                                                                                               |
+| `discrete-palette.ts`      | Discrete palette catalogue + `resolveDiscretePalette` / `applyDiscretePalette` / hue+viridis.                                                                                                                                |
+| `handoff.ts`               | One-shot per-tab (sessionStorage) inter-tool hand-off (`setHandoff` / `consumeHandoff` / `navigateToTool`; destinations receive via `useHandoff`); only the target consumes a payload, which expires after `HANDOFF_TTL_MS`. |
+| `long-format-detect.ts`    | Wide 2-set vs long (item, set) detection for set-membership inputs (Venn / UpSet).                                                                                                                                           |
+| `round.ts`                 | Rounding helpers that keep auto-axis bounds and per-x readouts at a stable precision.                                                                                                                                        |
+| `select-test-narrative.ts` | Localised rebuild of the `selectTest` / `selectCorrelation` recommendation narrative.                                                                                                                                        |
+| `methods-text.ts`          | Methods-section paragraph builder (`buildGroupMethodsText`, `softwareSentence`, …).                                                                                                                                          |
+| `plot-actions.ts`          | `PlotActionsContext` registry linking a tool's `ActionsPanel` to the header export bar.                                                                                                                                      |
+| `power-from-data.ts`       | `computePowerFromData` — achieved power + n-needed dispatched per test family.                                                                                                                                               |
+| `prefs-store.ts`           | Per-tool plot-render-settings persistence (load/save/import/export/migrate/merge).                                                                                                                                           |
+| `r-export.ts`              | `buildRScript` + `buildRScriptForPower` + R-string formatters.                                                                                                                                                               |
+| `scroll-helpers.ts`        | `scrollIntoViewWithinAncestor` + `scrollDisclosureIntoView`.                                                                                                                                                                 |
+| `stats-dispatch.ts`        | `runTest` / `runPostHoc` / `postHocForTest` over the stats registry.                                                                                                                                                         |
+| `stats-registry.ts`        | `STATS_TEST_REGISTRY` + `STATS_POSTHOC_REGISTRY` + arity arrays.                                                                                                                                                             |
+| `svg-legend.ts`            | `computeLegendHeight` + `renderSvgLegend` for chart legend layout.                                                                                                                                                           |
 
 ### React hooks (`camelCase.ts`)
 
@@ -153,31 +134,25 @@ per-file paths so the dependency graph stays visible.
 | --------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `usePlotToolState.ts` | Shared hook — step state, upload fields, vis reducer with auto-prefs persist.                                      |
 | `useHandoff.ts`       | Hand-off receiver: `useHandoff(tool, apply)` delivers payloads for `tool` at mount and when written while mounted. |
+| `useExampleLink.ts`   | `useExampleLink(tool, load)` — opens a tool on its example from `#/<tool>?example` (the landing's link).           |
+| `use-is-mobile.ts`    | Narrow-viewport detection for the calculators' phone layouts.                                                      |
 
 ## Decision tree for adding a new shared helper
 
 ```
-Is it consumed via `import` from a .tsx file?
-├── No → it's a global, use `tools/shared-*.js`
-│         (then add the global declaration to `types/globals.d.ts`
-│          AND the filename to `scripts/build-shared.js` FILES list)
-└── Yes
+Is it pure (no React, no chrome)?
+├── Yes → `tools/_core/`
+└── No (React / UI)
     │
-    ├── Is it React/JSX/typed?
-    │   └── Yes → `tools/_shell/`
-    │
-    └── Pure helper used by exactly one tool today?
-        ├── Yes → `tools/<tool>/helpers.ts`
-        │         (lift to `_shell/` later if a second tool needs it)
-        └── No (≥ 2 tools) → `tools/_shell/`
+    ├── Used by exactly one tool today?
+    │   └── Yes → that tool's folder (`helpers.ts` or a component file);
+    │             lift to `_shell/` when a second tool needs it
+    └── No (≥ 2 tools) → `tools/_shell/` + export it from `index.ts`
 ```
 
 ## See also
 
-- `CLAUDE.md` § "Shared code" — the canonical description of which
-  helpers live in which file, and the load-order rationale for the
-  `tools/shared*.js` bundle.
-- `scripts/build-shared.js` — the `FILES` array is the single source
-  of truth for plain-JS bundle ordering.
-- `types/globals.d.ts` — the ambient declarations every plain-JS
-  global needs to be visible to `.tsx` consumers.
+- `docs/architecture.md` — module layering (§3), per-tool layout (§4) and
+  the parse → render → export pipeline (§5).
+- `tools/CLAUDE.md` — the conventions every `_shell/` component follows
+  (theming tokens, the workspace layout, stats panels, export naming).

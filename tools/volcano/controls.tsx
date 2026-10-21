@@ -201,6 +201,7 @@ export function ThresholdsTile({ vis, updVis }: ThresholdsTileProps) {
       <label style={{ display: "block" }}>
         <span className="dv-label">{tr("volcano.thresh.fcCutoff")}</span>
         <NumberInput
+          aria-label={tr("volcano.thresh.fcCutoff")}
           value={vis.fcCutoff}
           min={0}
           max={10}
@@ -363,6 +364,7 @@ function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchR
           disabled={disabled}
           style={{ flex: 1, fontSize: 11, padding: "3px 6px" }}
           title={tr("volcano.search.inputTitle")}
+          aria-label={tr("volcano.search.label")}
         />
         <button
           type="button"
@@ -431,7 +433,7 @@ function LabelSearchRow({ points, labelCol, addToManualSelection }: LabelSearchR
                 margin: "2px 0 0",
                 padding: "4px 8px 4px 18px",
                 fontSize: 10,
-                fontFamily: "monospace",
+                fontFamily: "var(--font-mono)",
                 color: "var(--warning-text)",
                 background: "var(--warning-bg)",
                 border: "1px solid var(--warning-border)",
@@ -722,6 +724,7 @@ export function ColorMapTile({
   return (
     <VolcanoAesBox theme="colorMap">
       <select
+        aria-label={tr("volcano.aes.colorMap")}
         className="dv-select"
         value={col === -1 ? "" : col}
         onChange={(e) => setCol(e.target.value === "" ? -1 : parseInt(e.target.value))}
@@ -740,7 +743,7 @@ export function ColorMapTile({
             {tr("volcano.map.detected")}
             <strong
               style={{
-                color: colorMap.type === "continuous" ? "var(--accent-dna)" : "var(--accent-blue)",
+                color: colorMap.type === "continuous" ? "var(--dna-text)" : "var(--link)",
               }}
             >
               {colorMap.type === "continuous"
@@ -868,6 +871,7 @@ export function SizeMapTile({
   return (
     <VolcanoAesBox theme="sizeMap">
       <select
+        aria-label={tr("volcano.aes.sizeMap")}
         className="dv-select"
         value={col === -1 ? "" : col}
         onChange={(e) => setCol(e.target.value === "" ? -1 : parseInt(e.target.value))}
@@ -913,8 +917,8 @@ export function SummaryTile({ summary, fcCutoff, pCutoff }: SummaryTileProps) {
   const tr = useT();
   return (
     <div
-      className="dv-panel"
-      style={{ padding: "10px 14px", display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12 }}
+      data-testid="volcano-summary"
+      style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "baseline", fontSize: 13 }}
     >
       <span>
         <strong style={{ color: VOLCANO_DEFAULT_COLORS.up }}>{tr("volcano.summary.up")}</strong>:{" "}

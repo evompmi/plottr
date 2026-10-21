@@ -1,4 +1,5 @@
-// Statistics panel for the qPCR tool — one block per target gene. Tests run
+// Statistics for the qPCR tool, shown in the workspace's inspector column —
+// one section per target gene. Tests run
 // on ΔCt through the shared Group Plot engine (selectTest → Welch t / Welch
 // ANOVA + Games-Howell by default, override, decision trace); fold changes
 // are only reported as back-transformed estimates with CIs.
@@ -12,55 +13,28 @@ import {
   buildSelectTestReason,
   STATS_TESTS_FOR_K,
   STATS_TESTS_FOR_K2,
+  InspectorExports,
+  InspectorSection,
+  StarsBadge,
+  inspectorFirstCol,
+  inspectorTable,
+  inspectorTd,
+  inspectorTh,
 } from "../_shell";
 import { formatP, pStars } from "../_core/stats";
 import type { SelectTestKind, SelectTestPostHoc } from "../_core/stats/types";
 import { formatResultLine } from "./helpers";
-import type { AnnotationMode, QpcrStatsPanelProps } from "./helpers";
+import type { AnnotationMode, QpcrStatsDisplayBarProps, QpcrStatsPanelProps } from "./helpers";
 import { useT, type QpcrKey } from "./i18n";
 
-const subhead: React.CSSProperties = {
-  margin: "10px 0 6px",
-  padding: "4px 10px",
-  fontSize: 10,
-  fontWeight: 800,
-  textTransform: "uppercase",
-  letterSpacing: "0.8px",
-  color: "var(--subhead-text)",
-  background: "var(--subhead-bg)",
-  borderRadius: 4,
-};
-const thS: React.CSSProperties = {
-  textAlign: "left",
-  padding: "3px 6px",
-  borderBottom: "1px solid var(--border)",
-  color: "var(--text-muted)",
-  fontWeight: 600,
-  fontSize: 11,
-};
-const tdS: React.CSSProperties = {
-  padding: "3px 6px",
-  borderBottom: "1px solid var(--border)",
-  color: "var(--text)",
-  fontSize: 11,
-};
-const explainer: React.CSSProperties = {
-  padding: "7px 10px",
-  margin: "6px 0 8px",
-  background: "var(--info-bg)",
-  border: "1px solid var(--info-border)",
-  borderRadius: 6,
-  fontSize: 11,
-  lineHeight: 1.5,
-  color: "var(--info-text)",
-};
+// Long headers ("Fold change vs control [95 % CI]") wrap in the narrow column.
+const thS: React.CSSProperties = { ...inspectorTh, whiteSpace: "normal", verticalAlign: "bottom" };
+const tdS = inspectorTd;
+const firstCol = inspectorFirstCol;
 const resultBox: React.CSSProperties = {
-  padding: "8px 10px",
-  background: "var(--surface-sunken)",
-  borderRadius: 6,
-  fontFamily: "ui-monospace, Menlo, monospace",
-  fontSize: 12,
-  fontWeight: 700,
+  fontFamily: "var(--font-mono)",
+  fontSize: 13,
+  lineHeight: 1.5,
   color: "var(--text)",
 };
 
@@ -89,7 +63,6 @@ export function QpcrStatsPanel({
   overrides,
   onOverride,
   vis,
-  updVis,
   onDownloadReport,
   onDownloadR,
   refs,
@@ -150,159 +123,56 @@ export function QpcrStatsPanel({
   };
   const relToControl = normalize === "control";
   const testLabel = (t: string | null): string => (t && TEST_KEYS[t] ? tr(TEST_KEYS[t]) : t || "—");
-  // Letters need k > 2 groups and every group drawn: with the calibrator
-  // hidden its comparisons move to "vs control" stars (geneAnnotation).
-  const anyMulti =
-    genes.some((g) => g.groups.length > 2) && (normalize !== "control" || vis.showCalibrator);
-  const display: AnnotationMode =
-    vis.annotation === "cld" && !anyMulti ? "brackets" : vis.annotation;
-  const nsDisabled = display !== "brackets";
 
   return (
-    <div className="dv-panel" style={{ padding: 0, overflow: "hidden" }} data-testid="qpcr-stats">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "12px 14px",
-          borderBottom: "1px solid var(--border)",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: 14,
-              fontWeight: 700,
-              color: "var(--text)",
-              letterSpacing: "0.2px",
-            }}
-          >
-            {tr("qpcr.stats.title")}
-          </h3>
-          <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
-            {tr("qpcr.stats.desc")}
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
-          <MethodsButton getText={methodsText} />
-          <button
-            type="button"
-            className="dv-btn dv-btn-dl"
-            onClick={onDownloadReport}
-            title={tr("qpcr.dl.reportTitle")}
-            data-testid="qpcr-dl-txt"
-          >
-            ⬇ TXT
-          </button>
-          <button
-            type="button"
-            className="dv-btn dv-btn-dl"
-            onClick={onDownloadR}
-            title={tr("qpcr.dl.rTitle")}
-            data-testid="qpcr-dl-r"
-          >
-            ⬇ R
-          </button>
-        </div>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          flexWrap: "wrap",
-          padding: "10px 14px",
-          borderBottom: "1px solid var(--border)",
-          background: "var(--surface-subtle)",
-        }}
-      >
-        <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>
-          {tr("qpcr.stats.displayOnPlot")}
-        </span>
-        <SegToggle<AnnotationMode>
-          value={display}
-          onChange={(v) => updVis({ annotation: v })}
-          ariaLabel={tr("qpcr.stats.displayOnPlot")}
-          style={{ width: anyMulti ? 220 : 150 }}
-          options={[
-            { value: "none", label: tr("qpcr.stats.off") },
-            ...(anyMulti
-              ? [
-                  {
-                    value: "cld" as const,
-                    label: tr("qpcr.stats.letters"),
-                    title: tr("qpcr.stats.lettersTitle"),
-                  },
-                ]
-              : []),
-            { value: "brackets", label: tr("qpcr.stats.brackets") },
-          ]}
-        />
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            color: nsDisabled ? "var(--text-faint)" : "var(--text)",
-            cursor: nsDisabled ? "not-allowed" : "pointer",
-            opacity: nsDisabled ? 0.55 : 1,
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={!nsDisabled && vis.showNs}
-            disabled={nsDisabled}
-            onChange={(e) => updVis({ showNs: e.target.checked })}
-            style={{ accentColor: "var(--cta-primary-bg)" }}
-            data-testid="qpcr-show-ns"
-          />
-          {tr("qpcr.stats.showNs")}
-        </label>
-      </div>
+    <div className="dv-inspector" data-testid="qpcr-stats">
+      <InspectorSection label={tr("qpcr.stats.title")}>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--text-faint)" }}>
+          {tr("qpcr.stats.desc")}
+        </p>
+        {/* Collapsed like "Why this test?": the rationale is one click away
+            for whoever wants it. */}
+        <details className="dv-why" style={{ fontSize: 11 }} data-testid="qpcr-why-dct">
+          <summary style={{ cursor: "pointer", color: "var(--text-muted)", fontWeight: 600 }}>
+            {tr("qpcr.stats.whyDctTitle")}
+          </summary>
+          <div style={{ marginTop: 4, color: "var(--text-muted)", lineHeight: 1.45 }}>
+            <div>{tr("qpcr.stats.whyDct")}</div>
+            <div style={{ marginTop: 4, fontWeight: 600 }}>{tr("qpcr.stats.dontTestFc")}</div>
+          </div>
+        </details>
+      </InspectorSection>
 
-      <div style={{ padding: "4px 16px 14px" }}>
-        <div style={explainer} data-testid="qpcr-why-dct">
-          <div style={{ fontWeight: 700, marginBottom: 2 }}>{tr("qpcr.stats.whyDctTitle")}</div>
-          <div>{tr("qpcr.stats.whyDct")}</div>
-          <div style={{ marginTop: 4, fontWeight: 600 }}>{tr("qpcr.stats.dontTestFc")}</div>
-        </div>
-
-        {genes.map((g, gi) => {
-          const st = stats[gi];
-          const k = st.tested.length;
-          const reason = st.rec ? buildSelectTestReason(st.rec) : null;
-          const recTest = st.rec?.recommendation?.test ?? null;
-          const options = k === 2 ? STATS_TESTS_FOR_K2 : STATS_TESTS_FOR_K;
-          const override = overrides[g.gene] ?? null;
-          return (
-            <div key={g.gene} data-testid={`qpcr-gene-${g.gene}`}>
-              <div
-                style={{
-                  ...subhead,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  textTransform: "none",
-                  fontSize: 12,
-                  letterSpacing: 0,
-                }}
-              >
-                <span style={{ fontStyle: "italic" }}>{g.gene}</span>
-              </div>
+      {genes.map((g, gi) => {
+        const st = stats[gi];
+        const k = st.tested.length;
+        const reason = st.rec ? buildSelectTestReason(st.rec) : null;
+        const recTest = st.rec?.recommendation?.test ?? null;
+        const options = k === 2 ? STATS_TESTS_FOR_K2 : STATS_TESTS_FOR_K;
+        const override = overrides[g.gene] ?? null;
+        const p =
+          st.testResult && !st.testResult.error && typeof st.testResult.p === "number"
+            ? st.testResult.p
+            : null;
+        return (
+          <div key={g.gene} data-testid={`qpcr-gene-${g.gene}`}>
+            {/* One collapsible block per gene so a 6-gene run stays scannable:
+                the first starts open, the rest show just name + stars. */}
+            <InspectorSection
+              label={<span style={{ fontStyle: "italic", textTransform: "none" }}>{g.gene}</span>}
+              right={<StarsBadge p={p} />}
+              collapsible
+              defaultOpen={gi === 0}
+            >
               {g.controlMissing && (
-                <p style={{ fontSize: 11, color: "var(--warning-text)", margin: "4px 0" }}>
+                <p style={{ fontSize: 12, color: "var(--warning-text)", margin: 0 }}>
                   {tr("qpcr.stats.noControl", { control })}
                 </p>
               )}
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <table style={inspectorTable}>
                 <thead>
                   <tr>
-                    <th style={thS}>{tr("qpcr.stats.group")}</th>
+                    <th style={{ ...thS, ...firstCol }}>{tr("qpcr.stats.group")}</th>
                     <th style={thS}>n</th>
                     <th style={thS}>{tr("qpcr.stats.meanDct")}</th>
                     <th style={thS}>
@@ -315,7 +185,13 @@ export function QpcrStatsPanel({
                     const vs = g.vsControl.find((v) => v.group === s.group);
                     return (
                       <tr key={s.group}>
-                        <td style={{ ...tdS, fontWeight: s.group === control ? 700 : 400 }}>
+                        <td
+                          style={{
+                            ...tdS,
+                            ...firstCol,
+                            fontWeight: s.group === control ? 600 : 400,
+                          }}
+                        >
                           {s.group}
                         </td>
                         <td style={tdS}>{s.n}</td>
@@ -323,7 +199,7 @@ export function QpcrStatsPanel({
                           {s.meanDCt.toFixed(2)}
                           {Number.isFinite(s.sdDCt) ? ` ± ${s.sdDCt.toFixed(2)}` : ""}
                         </td>
-                        <td style={tdS}>
+                        <td style={{ ...tdS, whiteSpace: "normal" }}>
                           {!relToControl
                             ? `${fc(s.meanL)} [${fc(s.lo)}, ${fc(s.hi)}]`
                             : s.group === control
@@ -337,34 +213,32 @@ export function QpcrStatsPanel({
                   })}
                 </tbody>
               </table>
-              <p style={{ fontSize: 10, color: "var(--text-faint)", margin: "4px 0 6px" }}>
+              <p style={{ fontSize: 11, color: "var(--text-faint)", margin: 0 }}>
                 {tr(relToControl ? "qpcr.stats.tableNote" : "qpcr.stats.tableNoteRel")}
               </p>
 
               {k < 2 ? (
-                <p style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
                   {tr("qpcr.stats.needTwo")}
                 </p>
               ) : (
                 <>
-                  <div
+                  <label
                     style={{
                       display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      margin: "4px 0 6px",
-                      flexWrap: "wrap",
+                      flexDirection: "column",
+                      gap: 4,
+                      fontSize: 12,
+                      color: "var(--text-muted)",
                     }}
                   >
-                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                      {tr("qpcr.stats.test")}
-                    </span>
+                    {tr("qpcr.stats.test")}
                     <select
                       className="dv-select"
                       value={override ?? ""}
                       onChange={(e) => onOverride(g.gene, e.target.value || null)}
-                      aria-label={tr("qpcr.stats.test")}
                       data-testid={`qpcr-test-${g.gene}`}
+                      style={{ width: "100%", minHeight: 34 }}
                     >
                       <option value="">
                         {tr("qpcr.stats.auto", { test: testLabel(recTest) })}
@@ -375,7 +249,7 @@ export function QpcrStatsPanel({
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </label>
                   <div style={resultBox} data-testid={`qpcr-result-${g.gene}`}>
                     {testLabel(st.chosenTest)} {tr("qpcr.stats.onDct")}:{" "}
                     {formatResultLine(st.chosenTest, st.testResult)}
@@ -383,27 +257,22 @@ export function QpcrStatsPanel({
                   <WhyThisTest text={reason} />
                   {st.postHocResult && !st.postHocResult.error && st.postHocName && (
                     <>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: "var(--text-muted)",
-                          margin: "8px 0 4px",
-                          fontWeight: 600,
-                        }}
-                      >
+                      <div className="dv-tile-title" style={{ marginTop: 4 }}>
                         {tr("qpcr.stats.posthoc", {
                           name: POSTHOC_KEYS[st.postHocName]
                             ? tr(POSTHOC_KEYS[st.postHocName])
                             : st.postHocName,
                         })}
                       </div>
-                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <table style={inspectorTable}>
                         <thead>
                           <tr>
-                            <th style={thS}>{tr("qpcr.stats.pair")}</th>
+                            <th style={{ ...thS, ...firstCol }}>{tr("qpcr.stats.pair")}</th>
                             <th style={thS}>{tr("qpcr.stats.fc")}</th>
                             <th style={thS}>{tr("qpcr.stats.pAdj")}</th>
-                            <th style={thS}></th>
+                            <th style={thS}>
+                              <span className="dv-sr-only">{tr("qpcr.stats.signif")}</span>
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -412,13 +281,21 @@ export function QpcrStatsPanel({
                             const b = g.groups[st.tested[pr.j]];
                             const ga = g.summaries.find((s) => s.group === a);
                             const gb = g.summaries.find((s) => s.group === b);
-                            const p = pr.pAdj != null ? pr.pAdj : pr.p;
+                            const pp = pr.pAdj != null ? pr.pAdj : pr.p;
                             return (
                               <tr key={`${pr.i}-${pr.j}`}>
-                                <td style={tdS}>{`${b} vs ${a}`}</td>
+                                <td style={{ ...tdS, ...firstCol }}>{`${b} vs ${a}`}</td>
                                 <td style={tdS}>{ga && gb ? fc(gb.meanL - ga.meanL) : "—"}</td>
-                                <td style={tdS}>{formatP(p)}</td>
-                                <td style={{ ...tdS, fontWeight: 700 }}>{pStars(p)}</td>
+                                <td style={tdS}>{formatP(pp)}</td>
+                                <td
+                                  style={{
+                                    ...tdS,
+                                    fontWeight: 600,
+                                    color: pp < 0.05 ? "var(--step-ready)" : "var(--text-faint)",
+                                  }}
+                                >
+                                  {pStars(pp)}
+                                </td>
                               </tr>
                             );
                           })}
@@ -428,10 +305,92 @@ export function QpcrStatsPanel({
                   )}
                 </>
               )}
-            </div>
-          );
-        })}
-      </div>
+            </InspectorSection>
+          </div>
+        );
+      })}
+
+      <InspectorExports label={tr("qpcr.stats.analysisExports")}>
+        <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
+          onClick={onDownloadR}
+          title={tr("qpcr.dl.rTitle")}
+          data-testid="qpcr-dl-r"
+        >
+          {tr("qpcr.stats.rScript")}
+        </button>
+        <MethodsButton getText={methodsText} />
+        <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
+          onClick={onDownloadReport}
+          title={tr("qpcr.dl.reportTitle")}
+          data-testid="qpcr-dl-txt"
+        >
+          {tr("qpcr.stats.reportTxt")}
+        </button>
+      </InspectorExports>
+    </div>
+  );
+}
+
+// Marks on the plot (Off / Letters / Brackets, Show ns), shown in the
+// workspace toolbar above the gene panels. Letters need k > 2 groups and
+// every group drawn: with the calibrator hidden its comparisons move to
+// "vs control" stars.
+export function QpcrStatsDisplayBar({ genes, normalize, vis, updVis }: QpcrStatsDisplayBarProps) {
+  const tr = useT();
+  const anyMulti =
+    genes.some((g) => g.groups.length > 2) && (normalize !== "control" || vis.showCalibrator);
+  const display: AnnotationMode =
+    vis.annotation === "cld" && !anyMulti ? "brackets" : vis.annotation;
+  const nsDisabled = display !== "brackets";
+  return (
+    <div
+      data-testid="qpcr-display"
+      style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
+    >
+      <span className="dv-toolbar-label">{tr("qpcr.stats.displayOnPlot")}</span>
+      <SegToggle<AnnotationMode>
+        value={display}
+        onChange={(v) => updVis({ annotation: v })}
+        ariaLabel={tr("qpcr.stats.displayOnPlot")}
+        style={{ flex: "0 0 auto" }}
+        options={[
+          { value: "none", label: tr("qpcr.stats.off") },
+          ...(anyMulti
+            ? [
+                {
+                  value: "cld" as const,
+                  label: tr("qpcr.stats.letters"),
+                  title: tr("qpcr.stats.lettersTitle"),
+                },
+              ]
+            : []),
+          { value: "brackets", label: tr("qpcr.stats.brackets") },
+        ]}
+      />
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 13,
+          color: nsDisabled ? "var(--text-faint)" : "var(--text-muted)",
+          cursor: nsDisabled ? "not-allowed" : "pointer",
+          opacity: nsDisabled ? 0.6 : 1,
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={!nsDisabled && vis.showNs}
+          disabled={nsDisabled}
+          onChange={(e) => updVis({ showNs: e.target.checked })}
+          data-testid="qpcr-show-ns"
+        />
+        {tr("qpcr.stats.showNs")}
+      </label>
     </div>
   );
 }

@@ -109,6 +109,18 @@ const en = {
   "upset.cfg.preview": "Preview (first 8 rows):",
 
   // Stats panel
+  "upset.pa.clearSelection": "Clear selection",
+  "upset.pa.tooMany":
+    "{n} columns — dots may overlap. Raise Minimum intersection size, raise Minimum degree, or lower Maximum degree to reduce.",
+  "upset.pa.none":
+    "No intersections to show. Lower Minimum intersection size, lower Minimum degree, or raise Maximum degree.",
+  "upset.tab.sets": "Sets",
+  "upset.tab.display": "Display",
+  "upset.tab.statistics": "Statistics",
+  "upset.app.controlsLabel": "Plot controls",
+  "upset.app.items": "Items",
+  "upset.app.pickBar":
+    "Click an intersection bar to see its overlap test and the items it contains.",
   "upset.sp.title": "Intersection significance",
   "upset.sp.subtitle": "SuperExactTest-style exact test against the fixed-margin null",
   "upset.sp.setsTested": "Sets tested",

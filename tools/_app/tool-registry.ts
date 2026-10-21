@@ -50,10 +50,14 @@ const importWithRetry = <T>(
 const lazyApp = (loader: () => Promise<{ App: React.ComponentType }>): React.ComponentType =>
   React.lazy(() => importWithRetry(loader).then((m) => ({ default: m.App })));
 
+// The question a tool answers — groups the tool switcher and the landing.
+export type ToolCategory = "compare" | "trends" | "sets" | "bench";
+
 export interface ToolEntry {
   key: string;
   label: string;
-  // Inline SVG markup for the topbar / landing tile icon. Rendered by
+  category: ToolCategory;
+  // Inline SVG markup for the tool switcher / landing tile icon. Rendered by
   // `App.tsx` via `dangerouslySetInnerHTML` (hand-authored static SVG
   // strings — same approach as the landing tiles in `index.html`).
   iconSvg: string;
@@ -64,6 +68,7 @@ export const TOOL_REGISTRY: ToolEntry[] = [
   {
     key: "boxplot",
     label: "Group Plot",
+    category: "compare",
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="4" x2="22" y2="12"/><rect x="14" y="12" width="16" height="18" rx="2"/><line x1="14" y1="22" x2="30" y2="22"/><line x1="22" y1="30" x2="22" y2="40"/></svg>',
     Component: lazyApp(() => import("../boxplot/app")),
@@ -71,6 +76,7 @@ export const TOOL_REGISTRY: ToolEntry[] = [
   {
     key: "scatter",
     label: "Scatter Plot",
+    category: "trends",
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="10" cy="30" r="3"/><circle cx="16" cy="22" r="2.5"/><circle cx="24" cy="26" r="3.5"/><circle cx="20" cy="14" r="2"/><circle cx="32" cy="18" r="3"/><circle cx="36" cy="10" r="2.5"/><circle cx="28" cy="32" r="2"/></svg>',
     Component: lazyApp(() => import("../scatter/app")),
@@ -78,6 +84,7 @@ export const TOOL_REGISTRY: ToolEntry[] = [
   {
     key: "venn",
     label: "Venn Diagram",
+    category: "sets",
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="16" cy="20" r="12"/><circle cx="28" cy="20" r="12"/></svg>',
     Component: lazyApp(() => import("../venn/app")),
@@ -85,6 +92,7 @@ export const TOOL_REGISTRY: ToolEntry[] = [
   {
     key: "upset",
     label: "UpSet Plot",
+    category: "sets",
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="none" stroke="none" aria-hidden="true"><rect x="10" y="4" width="4" height="10" fill="currentColor"/><rect x="18" y="7" width="4" height="7" fill="currentColor"/><rect x="26" y="10" width="4" height="4" fill="currentColor"/><rect x="34" y="11" width="4" height="3" fill="currentColor"/><circle cx="12" cy="22" r="2.5" fill="currentColor"/><circle cx="20" cy="22" r="2.5" fill="currentColor"/><circle cx="28" cy="22" r="2.5" fill="currentColor" fill-opacity="0.25"/><circle cx="36" cy="22" r="2.5" fill="currentColor" fill-opacity="0.25"/><circle cx="12" cy="29" r="2.5" fill="currentColor"/><circle cx="20" cy="29" r="2.5" fill="currentColor" fill-opacity="0.25"/><circle cx="28" cy="29" r="2.5" fill="currentColor"/><circle cx="36" cy="29" r="2.5" fill="currentColor" fill-opacity="0.25"/></svg>',
     Component: lazyApp(() => import("../upset/app")),
@@ -92,6 +100,7 @@ export const TOOL_REGISTRY: ToolEntry[] = [
   {
     key: "lineplot",
     label: "Line Plot",
+    category: "trends",
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6,34 16,24 26,28 36,12"/><circle cx="6" cy="34" r="2.5" fill="currentColor"/><circle cx="16" cy="24" r="2.5" fill="currentColor"/><circle cx="26" cy="28" r="2.5" fill="currentColor"/><circle cx="36" cy="12" r="2.5" fill="currentColor"/></svg>',
     Component: lazyApp(() => import("../lineplot/app")),
@@ -99,6 +108,7 @@ export const TOOL_REGISTRY: ToolEntry[] = [
   {
     key: "aequorin",
     label: "RLU Timecourse",
+    category: "trends",
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 36 C8 36, 10 36, 12 34 C14 30, 15 8, 17 6 C19 4, 20 14, 22 22 C24 28, 25 32, 27 34 C29 36, 32 36, 40 36"/></svg>',
     Component: lazyApp(() => import("../aequorin/app")),
@@ -106,6 +116,7 @@ export const TOOL_REGISTRY: ToolEntry[] = [
   {
     key: "heatmap",
     label: "Heatmap",
+    category: "sets",
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="none" stroke="none" aria-hidden="true"><rect x="6" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.2"/><rect x="17" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.5"/><rect x="28" y="6" width="10" height="10" fill="#648FFF" fill-opacity="0.8"/><rect x="6" y="17" width="10" height="10" fill="#648FFF" fill-opacity="0.5"/><rect x="17" y="17" width="10" height="10" fill="#648FFF" fill-opacity="0.8"/><rect x="28" y="17" width="10" height="10" fill="#785EF0" fill-opacity="0.6"/><rect x="6" y="28" width="10" height="10" fill="#648FFF" fill-opacity="0.8"/><rect x="17" y="28" width="10" height="10" fill="#785EF0" fill-opacity="0.6"/><rect x="28" y="28" width="10" height="10" fill="#785EF0"/></svg>',
     Component: lazyApp(() => import("../heatmap/app")),
@@ -113,6 +124,7 @@ export const TOOL_REGISTRY: ToolEntry[] = [
   {
     key: "volcano",
     label: "Volcano Plot",
+    category: "sets",
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="22" cy="38" r="1.4" fill-opacity="0.4"/><circle cx="20" cy="36" r="1.2" fill-opacity="0.4"/><circle cx="24" cy="36" r="1.2" fill-opacity="0.4"/><circle cx="18" cy="38" r="1" fill-opacity="0.4"/><circle cx="26" cy="38" r="1" fill-opacity="0.4"/><circle cx="22" cy="34" r="1" fill-opacity="0.4"/><circle cx="17" cy="28" r="1.6"/><circle cx="13" cy="22" r="2"/><circle cx="9" cy="16" r="2.4"/><circle cx="5" cy="10" r="2.6"/><circle cx="27" cy="28" r="1.6"/><circle cx="31" cy="22" r="2"/><circle cx="35" cy="16" r="2.4"/><circle cx="39" cy="10" r="2.6"/></svg>',
     Component: lazyApp(() => import("../volcano/app")),
@@ -120,6 +132,7 @@ export const TOOL_REGISTRY: ToolEntry[] = [
   {
     key: "proportions",
     label: "Proportions",
+    category: "compare",
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="currentColor" stroke="none" aria-hidden="true"><rect x="8" y="6" width="10" height="32" fill-opacity="0.25"/><rect x="8" y="20" width="10" height="18"/><rect x="26" y="6" width="10" height="32" fill-opacity="0.25"/><rect x="26" y="11" width="10" height="27"/><rect x="4" y="38" width="36" height="2"/></svg>',
     Component: lazyApp(() => import("../proportions/app")),
@@ -127,6 +140,7 @@ export const TOOL_REGISTRY: ToolEntry[] = [
   {
     key: "qpcr",
     label: "qPCR",
+    category: "compare",
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 38 C14 38, 16 37, 19 30 C21 24, 23 12, 27 9 C30 7, 34 7, 40 7"/><path d="M4 38 C20 38, 22 37, 25 31 C27 26, 29 17, 32 14 C34 12, 37 12, 40 12" opacity="0.55"/><line x1="4" y1="24" x2="40" y2="24" stroke-dasharray="3,3" stroke-width="1.2" opacity="0.7"/></svg>',
     Component: lazyApp(() => import("../qpcr/app")),
@@ -134,6 +148,7 @@ export const TOOL_REGISTRY: ToolEntry[] = [
   {
     key: "power",
     label: "Power Analysis",
+    category: "bench",
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="38" x2="6" y2="6"/><line x1="6" y1="38" x2="38" y2="38"/><path d="M8 34 C12 33, 16 28, 20 20 C24 12, 28 8, 36 7" stroke-width="2.5"/><line x1="6" y1="14" x2="38" y2="14" stroke-dasharray="3,3" stroke-width="1" opacity="0.6"/></svg>',
     Component: lazyApp(() => import("../power-app")),
@@ -141,6 +156,7 @@ export const TOOL_REGISTRY: ToolEntry[] = [
   {
     key: "molarity",
     label: "Calculator",
+    category: "bench",
     iconSvg:
       '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="8" y1="10" x2="18" y2="10"/><line x1="13" y1="5" x2="13" y2="15"/><line x1="26" y1="10" x2="36" y2="10"/><line x1="8" y1="30" x2="18" y2="30"/><circle cx="13" cy="25" r="1.5" fill="currentColor" stroke="none"/><circle cx="13" cy="35" r="1.5" fill="currentColor" stroke="none"/><line x1="28" y1="27" x2="34" y2="33"/><line x1="34" y1="27" x2="28" y2="33"/></svg>',
     Component: lazyApp(() => import("../molarity-app")),

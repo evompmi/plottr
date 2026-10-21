@@ -214,18 +214,26 @@ export interface BoxplotStatsPanelProps {
   fileStem: string;
   onAnnotationForKey: (key: string, spec: AnnotationSpec | null) => void;
   onSummaryForKey: (key: string, text: string | null) => void;
-  singletonAutoExpand?: boolean;
+  // Display settings (set in `BoxplotStatsDisplayBar`); the panel uses them
+  // to build each set's chart annotation and summary line.
+  displayMode: "none" | "cld" | "brackets";
+  showNs: boolean;
+  showSummary: boolean;
+  // null in non-bar plot styles (no error bars to label).
+  errorBarLabel: string | null;
+  // What the chart summarises, for the methods text: an error-bar kind
+  // (sem / sd / ci95 / none) in bar mode, "box" for box plots, else null.
+  displayKind?: string | null;
+}
+
+export interface BoxplotStatsDisplayBarProps {
+  sets: BoxplotStatsSet[];
   displayMode: "none" | "cld" | "brackets";
   onDisplayModeChange: (mode: "none" | "cld" | "brackets") => void;
   showNs: boolean;
   onShowNsChange: (b: boolean) => void;
   showSummary: boolean;
   onShowSummaryChange: (b: boolean) => void;
-  // null in non-bar plot styles (no error bars to label).
-  errorBarLabel: string | null;
-  // What the chart summarises, for the methods text: an error-bar kind
-  // (sem / sd / ci95 / none) in bar mode, "box" for box plots, else null.
-  displayKind?: string | null;
 }
 
 // Row argument to the annotation / summary builders accepts a permissive
@@ -245,8 +253,8 @@ interface AnnotationSpecRow {
 }
 
 // Build the annotation spec the chart consumes, from a row's test / post-hoc
-// result. Mirrors StatsTile's logic but driven by panel-level display
-// controls rather than per-row toggles.
+// result, driven by the panel-level display controls (Off / Letters /
+// Brackets, Show ns) rather than per-row toggles.
 export function computeBpAnnotationSpec(
   row: AnnotationSpecRow,
   displayMode: "none" | "cld" | "brackets",
@@ -497,7 +505,13 @@ export interface WideExport {
   unlabelled?: number;
 }
 
-export type DragState = { col: number; idx: number } | null;
+// One reorderable group / filter column: `order` is the plot order (kept
+// values only), `fullOrder` every value's slot (the filter step's list).
+export interface OrderableCol {
+  order: string[];
+  fullOrder?: string[];
+  onReorder: (newOrder: string[]) => void;
+}
 
 interface FilterStateCommonProps {
   parsedHeaders: string[];
@@ -536,13 +550,11 @@ export interface FilterStepProps extends FilterStateCommonProps {
   renamedRows: string[][];
   activeColIdxs: number[];
   valueRenames: Record<number, Record<string, string>>;
-  orderableCols: Record<number, { order: string[]; onReorder: (newOrder: string[]) => void }>;
+  orderableCols: Record<number, OrderableCol>;
   applyRename: (i: number, value: string) => string;
   toggleFilter: (i: number, value: string) => void;
   toggleAllFilter: (i: number, allOn: boolean) => void;
   setRenameVal: (i: number, origValue: string, newValue: string) => void;
-  dragState: DragState;
-  setDragState: (s: DragState) => void;
 }
 
 export interface OutputStepProps {

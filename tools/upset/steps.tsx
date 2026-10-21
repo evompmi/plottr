@@ -177,7 +177,13 @@ export function ConfigureStep({
                 >
                   {name}
                 </span>
-                <span style={{ color: "var(--text-faint)", fontFamily: "monospace", fontSize: 11 }}>
+                <span
+                  style={{
+                    color: "var(--text-faint)",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                  }}
+                >
                   {size}
                 </span>
               </label>
@@ -295,7 +301,7 @@ export function ItemListPanel({ intersection, setNames, fileName, columnId }: It
           {columnId != null && (
             <span
               style={{
-                fontFamily: "monospace",
+                fontFamily: "var(--font-mono)",
                 color: "var(--text-muted)",
                 marginRight: 6,
               }}
@@ -349,7 +355,7 @@ export function ItemListPanel({ intersection, setNames, fileName, columnId }: It
               fontSize: 12,
               color: "var(--text)",
               borderBottom: "1px solid var(--border)",
-              fontFamily: "monospace",
+              fontFamily: "var(--font-mono)",
             }}
           >
             {item}

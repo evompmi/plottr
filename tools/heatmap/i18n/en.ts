@@ -144,6 +144,10 @@ const en = {
   "heatmap.table.caption": "Heatmap values — {rows} rows × {cols} columns, in display order",
   "heatmap.table.truncated": "Large matrix — showing the first {shown} of {total} rows.",
   "heatmap.table.rowHeader": "Row",
+  "heatmap.plot.controlsLabel": "Plot controls",
+  "heatmap.tab.data": "Data",
+  "heatmap.tab.colours": "Colours",
+  "heatmap.tab.labels": "Labels",
   "heatmap.plot.clear": "Clear",
   "heatmap.plot.dragHint":
     "↳ Drag on the heatmap or click a dendrogram / k-means band to open a zoomed view",

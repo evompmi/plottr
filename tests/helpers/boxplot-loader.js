@@ -5,11 +5,10 @@
 // summary-text builders, sub-group annotation merge) — into a Node vm
 // context for fuzzing / headless unit tests.
 //
-// Four `_shell/*` bundles are loaded sequentially: stats-registry →
-// bracket-levels → power-from-data → StatsTile → helpers. Each is
-// run via `runCjs` into the same context so cross-module name
-// resolution lands on the same vm ctx. React is the minimal stub —
-// StatsTile and BoxplotChart use React but we only pull pure helpers
+// The `_shell/*` bundles are loaded sequentially: stats-registry →
+// bracket-levels → power-from-data → helpers. Each is run via `runCjs`
+// into the same context so cross-module name resolution lands on the
+// same vm ctx. React is the minimal stub — only pure helpers are pulled
 // out, so the stub never gets invoked.
 
 const vm = require("vm");
@@ -27,7 +26,6 @@ const sharedSrc = readCoreSharedSource();
 const statsSrc = readStatsSource();
 
 const registryCjs = bundleShell("_shell/stats-registry.ts");
-const statsTileCjs = bundleShell("_shell/StatsTile.tsx");
 const bracketLevelsCjs = bundleShell("_shell/bracket-levels.ts");
 const powerFromDataCjs = bundleShell("_shell/power-from-data.ts");
 const helpersCjs = bundleShell("boxplot/helpers.ts");
@@ -57,11 +55,6 @@ ctx.assignBracketLevels = bracketLevels.assignBracketLevels;
 
 const powerFromData = runCjs(ctx, powerFromDataCjs);
 ctx.computePowerFromData = powerFromData.computePowerFromData;
-
-// StatsTile bundle still loaded so its top-level evaluation stays
-// representative of the production bundle (catches "module crashes at
-// import time" regressions).
-runCjs(ctx, statsTileCjs);
 
 const helpers = runCjs(ctx, helpersCjs);
 
@@ -113,6 +106,7 @@ module.exports = {
   // App data derivations (tools/boxplot/derive.ts).
   firstSeenOrder: derive.firstSeenOrder,
   mergeStoredOrder: derive.mergeStoredOrder,
+  renameInOrder: derive.renameInOrder,
   buildGroups: derive.buildGroups,
   splitBySubgroup: derive.splitBySubgroup,
   cellKey: derive.cellKey,

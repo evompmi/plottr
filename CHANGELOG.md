@@ -7,11 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-21
+
+> Long-form release notes live in
+> [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md). The
+> entries below are summary bullets that link there.
+>
+> The "Fresh Coat" release: a redesign of everything around the figures (landing page, one app
+> bar, a controls | figure | statistics workspace in every plot tool). Charts and statistics are
+> byte-identical to v1.12.0.
+
 ### Added
 
-- **Group Plot: optional outlier marks.** With points shown, a new "Mark outliers in black" switch
-  (on by default) can remove the black dot drawn over each outlier, leaving only its coloured
-  point. With points hidden, outliers are always marked.
+- **Statistics on demand.** In Group Plot, Line Plot, Scatter, qPCR, Proportions and RLU
+  Timecourse the statistics column starts folded into a "Statistics" strip and opens on click;
+  the choice is remembered per tool and marks on the plot keep working. See
+  [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#statistics-on-demand).
+- **Group Plot: optional outlier marks.** With points shown, "Mark outliers in black" (on by
+  default) can drop the black dot over each outlier.
+
+### Changed
+
+- **New look.** Space Grotesk headings, IBM Plex Sans text, Plex Mono numbers (all
+  self-hosted); a cool grey ground with one deeper blue for actions, links, the current step and
+  focus; chosen options are dark pills. See [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#new-look).
+- **One app bar for every tool.** Home, tool switcher, steps, file name, Start over, a "More"
+  menu (PNG, CSV, tables, Σ sums), "Download SVG", settings, theme, language, feedback; one row
+  down to 1100 px. See [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#one-app-bar-for-every-tool).
+- **Workspace in every plot tool.** Controls as remembered tabs, the figure on a canvas with
+  quick options above it, statistics in their own column. See
+  [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#workspace-in-every-plot-tool).
+- **Group Plot: one list to keep, rename and order values** in the filter step, in qPCR's style;
+  rows stay in place when unticked or renamed. See
+  [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#group-plot-one-list-to-keep-rename-and-order-values).
+- **qPCR: collapsible statistics** per gene, stars still visible; "Why the tests use ΔCt"
+  opens on click.
+- **New landing page** with Group Plot's real example output, the four steps, tools grouped by
+  question, the calculators, the benchmark count and a citation footer; on phones it opens on
+  the calculators. See [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#landing-page).
+- **Calculators, Benchmark and Privacy** on the new chrome; 44 px touch targets on phones.
+- **Dark mode, French and accessibility pass**: accessible names, landmarks and headings,
+  visible focus in dark mode, readable accent text in both themes, remaining English strings
+  translated. See [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#dark-mode-french-and-accessibility).
+
+### Fixed
+
+- **"per group" in French.** The replication-planning sample size is now translated.
 
 ## [1.12.0] - 2026-10-20
 

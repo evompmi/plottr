@@ -1,7 +1,7 @@
 // molarity.jsx — editable source. Run `npm run build` to compile to molarity.js
 // Do NOT edit the .js file directly.
 
-import { PageHeader, useIsMobile, FILE_LIMIT_BYTES } from "./_shell";
+import { useIsMobile, FILE_LIMIT_BYTES } from "./_shell";
 import { parseRaw } from "./_core/csv";
 import { downloadCsv } from "./_core/download";
 import "./molarity-app/i18n";
@@ -17,7 +17,7 @@ import {
   computeLigationInsertNg,
   computeBatchMass,
 } from "./molarity-app/helpers";
-const { useState, useMemo, useCallback } = React;
+const { useId, useState, useMemo, useCallback } = React;
 
 // ── Numeric input with unit selector ────────────────────────────────────────
 
@@ -42,6 +42,8 @@ function UnitInput({
   placeholder?: string;
   compact?: boolean;
 }) {
+  const tr = useT();
+  const id = useId();
   return (
     <div
       style={{
@@ -53,6 +55,8 @@ function UnitInput({
       }}
     >
       <label
+        htmlFor={id}
+        id={id + "-label"}
         className="dv-label"
         style={{
           width: compact ? "100%" : 150,
@@ -69,6 +73,7 @@ function UnitInput({
         inputMode="decimal"
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
+        id={id}
         disabled={disabled}
         placeholder={placeholder || ""}
         className="dv-input"
@@ -85,6 +90,7 @@ function UnitInput({
       <select
         value={unit}
         onChange={(e) => onUnitChange(e.target.value)}
+        aria-labelledby={id + "-label " + id + "-unit"}
         className="dv-select"
         style={{ minWidth: 60 }}
       >
@@ -94,6 +100,9 @@ function UnitInput({
           </option>
         ))}
       </select>
+      <span id={id + "-unit"} className="dv-sr-only">
+        {tr("molarity.unit")}
+      </span>
     </div>
   );
 }
@@ -102,6 +111,7 @@ function UnitInput({
 
 function MolarityMode({ compact }: { compact?: boolean }) {
   const tr = useT();
+  const mwId = useId();
   const [mw, setMw] = useState("");
   const [mass, setMass] = useState("");
   const [massUnit, setMassUnit] = useState("g");
@@ -172,11 +182,11 @@ function MolarityMode({ compact }: { compact?: boolean }) {
                   borderRadius: 6,
                   fontSize: compact ? 11 : 12,
                   fontWeight: 600,
-                  background: solveFor === f.key ? "var(--step-active-bg)" : "var(--surface)",
-                  color: solveFor === f.key ? "var(--on-accent)" : "var(--text-faint)",
+                  background: solveFor === f.key ? "var(--seg-selected-bg)" : "var(--surface)",
+                  color: solveFor === f.key ? "var(--seg-selected-text)" : "var(--text-faint)",
                   border:
                     "1px solid " +
-                    (solveFor === f.key ? "var(--step-active-border)" : "var(--border-strong)"),
+                    (solveFor === f.key ? "var(--seg-selected-bg)" : "var(--border-strong)"),
                   cursor: "pointer",
                   fontFamily: "inherit",
                   textAlign: "left",
@@ -209,6 +219,7 @@ function MolarityMode({ compact }: { compact?: boolean }) {
             }}
           >
             <label
+              htmlFor={mwId}
               className="dv-label"
               style={{
                 width: compact ? "100%" : 150,
@@ -221,6 +232,7 @@ function MolarityMode({ compact }: { compact?: boolean }) {
               {tr("molarity.mol.mwLabel")}
             </label>
             <input
+              id={mwId}
               type="text"
               inputMode="decimal"
               value={solveFor === "mw" ? "" : mw}
@@ -382,11 +394,11 @@ function DilutionMode({ compact }: { compact?: boolean }) {
                   borderRadius: 6,
                   fontSize: compact ? 11 : 12,
                   fontWeight: 600,
-                  background: solveFor === f.key ? "var(--step-active-bg)" : "var(--surface)",
-                  color: solveFor === f.key ? "var(--on-accent)" : "var(--text-faint)",
+                  background: solveFor === f.key ? "var(--seg-selected-bg)" : "var(--surface)",
+                  color: solveFor === f.key ? "var(--seg-selected-text)" : "var(--text-faint)",
                   border:
                     "1px solid " +
-                    (solveFor === f.key ? "var(--step-active-border)" : "var(--border-strong)"),
+                    (solveFor === f.key ? "var(--seg-selected-bg)" : "var(--border-strong)"),
                   cursor: "pointer",
                   fontFamily: "inherit",
                   textAlign: "left",
@@ -414,7 +426,7 @@ function DilutionMode({ compact }: { compact?: boolean }) {
               margin: "0 0 12px",
               fontSize: 12,
               fontWeight: 600,
-              color: "var(--accent-primary)",
+              color: "var(--link)",
             }}
           >
             {tr("molarity.dil.stock")}
@@ -446,7 +458,7 @@ function DilutionMode({ compact }: { compact?: boolean }) {
               margin: "12px 0 12px",
               fontSize: 12,
               fontWeight: 600,
-              color: "var(--accent-primary)",
+              color: "var(--link)",
             }}
           >
             {tr("molarity.dil.final")}
@@ -597,7 +609,7 @@ function BatchMode() {
           {tr("molarity.batch.unitsNote")}
         </p>
         <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-primary)" }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--link)" }}>
             {tr("molarity.batch.separator")}
           </span>
           <div className="dv-seg">
@@ -632,7 +644,7 @@ function BatchMode() {
           rows={8}
           style={{
             width: "100%",
-            fontFamily: "monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 12,
             padding: 10,
             border: "1px solid var(--border-strong)",
@@ -803,9 +815,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
         }}
       >
         <div className="dv-panel" style={{ flex: 1, marginBottom: 0, padding: 12 }}>
-          <p
-            style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--accent-dna)" }}
-          >
+          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--dna-text)" }}>
             {tr("molarity.lig.vector")}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -816,6 +826,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
               type="text"
               inputMode="decimal"
               value={vectorBp}
+              aria-label={`${tr("molarity.lig.vector")}: ${tr("molarity.lig.length")} (bp)`}
               onChange={(e) => setVectorBp(e.target.value)}
               className="dv-input"
               style={{ ...fieldStyle, width: 90, fontSize: 12 }}
@@ -830,6 +841,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
               type="text"
               inputMode="decimal"
               value={vectorNg}
+              aria-label={`${tr("molarity.lig.vector")}: ${tr("molarity.lig.amount")} (ng)`}
               onChange={(e) => setVectorNg(e.target.value)}
               className="dv-input"
               style={{ ...fieldStyle, width: 90, fontSize: 12 }}
@@ -839,9 +851,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
         </div>
 
         <div className="dv-panel" style={{ flex: 1, marginBottom: 0, padding: 12 }}>
-          <p
-            style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--accent-dna)" }}
-          >
+          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--dna-text)" }}>
             {tr("molarity.lig.insert")}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -852,6 +862,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
               type="text"
               inputMode="decimal"
               value={insertBp}
+              aria-label={`${tr("molarity.lig.insert")}: ${tr("molarity.lig.length")} (bp)`}
               onChange={(e) => setInsertBp(e.target.value)}
               className="dv-input"
               style={{ ...fieldStyle, width: 90, fontSize: 12 }}
@@ -861,9 +872,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
         </div>
 
         <div className="dv-panel" style={{ flex: 1, marginBottom: 0, padding: 12 }}>
-          <p
-            style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--accent-dna)" }}
-          >
+          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--dna-text)" }}>
             {tr("molarity.lig.molarRatio")}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -882,6 +891,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
               type="text"
               inputMode="decimal"
               value={ratioVector}
+              aria-label={`${tr("molarity.lig.molarRatio")}: ${tr("molarity.lig.vector")}`}
               onChange={(e) => setRatioVector(e.target.value)}
               className="dv-input"
               style={{ ...fieldStyle, width: 60, fontSize: 12 }}
@@ -903,6 +913,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
               type="text"
               inputMode="decimal"
               value={ratioInsert}
+              aria-label={`${tr("molarity.lig.molarRatio")}: ${tr("molarity.lig.insert")}`}
               onChange={(e) => setRatioInsert(e.target.value)}
               className="dv-input"
               style={{ ...fieldStyle, width: 60, fontSize: 12 }}
@@ -946,42 +957,40 @@ function LigationMode({ compact }: { compact?: boolean }) {
 
 // ── App ─────────────────────────────────────────────────────────────────────
 
+// A mode card is a pick-one option, so the selected card is the ink pill
+// (`--seg-selected-*`) like every other selected option; hover only lifts it.
 function ModeButton({
   label,
   desc,
   active,
-  accentColor,
-  activeBg,
   onClick,
   style: extraStyle,
 }: {
   label: React.ReactNode;
   desc: React.ReactNode;
   active: boolean;
-  accentColor: string;
-  activeBg: string;
   onClick: () => void;
   style?: React.CSSProperties;
 }) {
   const [hovered, setHovered] = useState(false);
-  const isActive = active;
-  const showAccent = isActive || hovered;
+  const lift = hovered && !active;
   return (
     <button
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      aria-pressed={active}
       style={{
         padding: "12px 8px",
         borderRadius: 10,
-        border: showAccent ? `2px solid ${accentColor}` : "1px solid var(--border)",
-        background: isActive ? activeBg : "var(--surface)",
+        border: `1px solid ${active ? "var(--seg-selected-bg)" : lift ? "var(--text-faint)" : "var(--border)"}`,
+        background: active ? "var(--seg-selected-bg)" : "var(--surface)",
         cursor: "pointer",
         fontFamily: "inherit",
         textAlign: "center",
         transition: "all 0.2s ease",
-        transform: hovered && !isActive ? "translateY(-4px)" : "none",
-        boxShadow: hovered && !isActive ? `0 6px 16px ${accentColor}26` : "none",
+        transform: lift ? "translateY(-4px)" : "none",
+        boxShadow: lift ? "0 6px 16px color-mix(in srgb, var(--text) 12%, transparent)" : "none",
         ...extraStyle,
       }}
     >
@@ -989,13 +998,22 @@ function ModeButton({
         style={{
           fontSize: 14,
           fontWeight: 700,
-          color: showAccent ? accentColor : "var(--text-muted)",
+          color: active ? "var(--seg-selected-text)" : "var(--text)",
           transition: "color 0.2s ease",
         }}
       >
         {label}
       </div>
-      <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>{desc}</div>
+      <div
+        style={{
+          fontSize: 11,
+          color: active ? "var(--seg-selected-text)" : "var(--text-faint)",
+          opacity: active ? 0.8 : 1,
+          marginTop: 2,
+        }}
+      >
+        {desc}
+      </div>
     </button>
   );
 }
@@ -1027,14 +1045,17 @@ export function App() {
     },
   ];
 
-  const chemColor = "var(--cta-primary-bg)";
-  const dnaColor = "var(--cta-dna-bg)";
+  const chemColor = "var(--link)";
+  const dnaColor = "var(--dna-text)";
 
   return (
     <div
-      style={{ maxWidth: 720, margin: "0 auto", padding: compact ? "16px 10px 80px" : "32px 20px" }}
+      className="dv-calc"
+      style={{ maxWidth: 720, margin: "0 auto", padding: compact ? "16px 16px 80px" : "28px 20px" }}
     >
-      <PageHeader toolName="molarity" title="Calculator" />
+      {/* The tool's name is in the app bar's switcher; the heading stays for
+          screen readers and the document outline. */}
+      <h1 className="dv-sr-only">Calculator</h1>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 6px" }}>
         <span
@@ -1057,8 +1078,6 @@ export function App() {
             label={m.label}
             desc={m.desc}
             active={mode === m.key}
-            accentColor={chemColor}
-            activeBg="var(--info-bg)"
             onClick={() => setMode(m.key)}
             style={{ flex: compact ? "1 1 calc(50% - 6px)" : 1, minWidth: compact ? 0 : undefined }}
           />
@@ -1086,8 +1105,6 @@ export function App() {
             label={m.label}
             desc={m.desc}
             active={mode === m.key}
-            accentColor={dnaColor}
-            activeBg="var(--surface-subtle)"
             onClick={() => setMode(m.key)}
             style={{
               flex: compact ? 1 : "0 1 auto",

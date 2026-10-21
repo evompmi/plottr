@@ -72,7 +72,7 @@ function SubCard({
         style={{
           fontSize: 10,
           fontWeight: 700,
-          color: "var(--accent-primary)",
+          color: "var(--link)",
           marginBottom: 8,
           textTransform: "uppercase",
           letterSpacing: "1px",
@@ -155,7 +155,7 @@ export function HowToExampleTable({
         <table
           style={{
             borderCollapse: "collapse",
-            fontFamily: "ui-monospace, Menlo, monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 11,
             color: "var(--text)",
             background: "var(--surface-subtle)",

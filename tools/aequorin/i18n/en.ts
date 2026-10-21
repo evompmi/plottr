@@ -19,6 +19,16 @@ const en = {
     "⚠️ Columns have different lengths ({min}–{max} numeric values). Some samples may have missing time-points, which can affect mean/SD calculations.",
 
   // App — series / layout toggles
+  "aequorin.app.controlsLabel": "Plot controls",
+  "aequorin.app.statisticsLabel": "Statistics",
+  "aequorin.tab.conditions": "Conditions",
+  "aequorin.tab.style": "Style",
+  "aequorin.tab.axes": "Axes",
+  "aequorin.tab.barplot": "Σ barplot",
+  "aequorin.pa.barplotTitle": "Barplot (Σ of plotted values)",
+  "aequorin.pa.integral": "Integral:",
+  "aequorin.pa.raw": "Σ Raw",
+  "aequorin.pa.corrected": "Σ Baseline-corrected",
   "aequorin.app.series": "Series",
   "aequorin.app.seriesDef": "Series definition",
   "aequorin.app.poolByName": "Pool by name",
@@ -43,6 +53,10 @@ const en = {
   // Controls — actions
   "aequorin.ctrl.csvTitle":
     "Download calibrated values over time — one row per time-point, one column per sample (calibration applied)",
+
+  "aequorin.ctrl.sumsCsv": "Σ sums CSV",
+  "aequorin.ctrl.sumsCsvTitle":
+    "Download the per-replicate Σ shown in the barplot (raw or baseline-corrected, as tested)",
 
   // Controls — sections
   "aequorin.ctrl.conditions": "Conditions",
@@ -128,6 +142,11 @@ const en = {
   "aequorin.pa.openInBoxplotTitle":
     "Open this per-replicate Σ data directly in the Group Plot tool (boxplot / violin / raincloud / bar)",
   "aequorin.pa.dragTip": "Tip: drag across the plot to set the time window. Adjust it in Axes.",
+  "aequorin.pa.noneSelected":
+    "No conditions or samples selected. Enable at least one to display the plot.",
+  "aequorin.pa.timecourse": "Time-course plot",
+  "aequorin.cond.show": "Show {name}",
+  "aequorin.cond.name": "Display name for {name}",
   "aequorin.pa.dragTipClear": " Click clear to reset.",
   "aequorin.pa.clear": "Clear",
   "aequorin.pa.resetTitle": "Reset the time window to the full data range",
@@ -147,8 +166,10 @@ const en = {
   "aequorin.posthoc.dunn": "Dunn (BH-adjusted)",
 
   // Stats panel — header + table
-  "aequorin.sp.statistics": "Statistics",
-  "aequorin.sp.desc": "Click the row to inspect decision trace, assumptions, post-hoc and power.",
+  "aequorin.sp.marksOnBarplot": "Marks on the Σ barplot",
+  "aequorin.sp.analysisExports": "Analysis exports",
+  "aequorin.sp.rScript": "R script",
+  "aequorin.sp.reportTxt": "Report .txt",
   "aequorin.sp.txtTitle": "Download a plain-text stats report",
   "aequorin.sp.rTitle": "Download a runnable R script reproducing this test",
   "aequorin.sp.displayOnPlot": "Display on plot",
@@ -157,44 +178,8 @@ const en = {
   "aequorin.sp.brackets": "Brackets",
   "aequorin.sp.showNs": "Show ns",
   "aequorin.sp.printSummary": "Print summary below plot",
-  "aequorin.sp.groups": "Groups",
-  "aequorin.sp.test": "Test",
-  "aequorin.sp.statistic": "Statistic",
-  "aequorin.sp.colP": "p",
 
   // Stats panel — detail
-  "aequorin.sp.group": "Group",
-  "aequorin.sp.n": "n",
-  "aequorin.sp.mean": "Mean",
-  "aequorin.sp.sd": "SD",
-  "aequorin.sp.sem": "SEM",
-  "aequorin.sp.ci95": "95% CI",
-  "aequorin.sp.assumptions": "Assumptions",
-  "aequorin.sp.shapiro": "Shapiro-Wilk (normality)",
-  "aequorin.sp.normal": "normal",
-  "aequorin.sp.notNormal": "not normal",
-  "aequorin.sp.levene": "Levene",
-  "aequorin.sp.equalVar": "equal variance",
-  "aequorin.sp.unequalVar": "unequal variance",
-  "aequorin.sp.recommendedSuffix": "  (recommended)",
-  "aequorin.sp.useRecommendation": "Use recommendation",
-  "aequorin.sp.suggestedAlt": "Suggested alternative:",
-  "aequorin.sp.suggestConsider": "Shapiro-Wilk flagged non-normal data — consider ",
-  "aequorin.sp.useSuggestion": "Use suggestion",
-  "aequorin.sp.posthocPrefix": "Post-hoc — ",
-  "aequorin.sp.pair": "Pair",
-  "aequorin.sp.meanDiff": "Mean diff",
-  "aequorin.sp.rankDiff": "Rank diff",
-  "aequorin.sp.signif": "Signif.",
-  "aequorin.sp.vs": "vs",
-  "aequorin.sp.replication": "Replication planning (n for 80% power)",
-  "aequorin.sp.replicationDesc":
-    "Given the observed effect size, sample size a future study would need to detect this effect at 80% power.",
-  "aequorin.sp.effectSize": "Effect size",
-  "aequorin.sp.nFor80": "n for 80% power",
-  "aequorin.sp.gt5000": "> 5000",
-  "aequorin.sp.approxNote":
-    "Approximation — rank-based test power estimated from its parametric analog.",
 
   // How-to card
   "aequorin.howto.title": "RLU Timecourse — How to use",

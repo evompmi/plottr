@@ -9,7 +9,7 @@
 // `roleColors` is read off the ambient browser globals (`tools/shared.js`
 // stays in the plain-JS bundle).
 
-import { roleColors } from "../_core/color";
+import { roleColors, roleTextColors } from "../_core/color";
 import { useShellT } from "./i18n";
 
 import type { ColumnRole } from "../_core/csv";
@@ -62,15 +62,15 @@ export function ColumnRoleEditor(props: ColumnRoleEditorProps) {
         },
       },
       tr("shell.cols.help.exactlyOne"),
-      h("span", { style: { color: roleColors.group, fontWeight: 600 } }, roleLabel("group")),
+      h("span", { style: { color: roleTextColors.group, fontWeight: 600 } }, roleLabel("group")),
       tr("shell.cols.help.xAxisAndOne"),
-      h("span", { style: { color: roleColors.value, fontWeight: 600 } }, roleLabel("value")),
+      h("span", { style: { color: roleTextColors.value, fontWeight: 600 } }, roleLabel("value")),
       tr("shell.cols.help.numericPicking"),
-      h("span", { style: { color: roleColors.group, fontWeight: 600 } }, roleLabel("group")),
+      h("span", { style: { color: roleTextColors.group, fontWeight: 600 } }, roleLabel("group")),
       tr("shell.cols.help.or"),
-      h("span", { style: { color: roleColors.value, fontWeight: 600 } }, roleLabel("value")),
+      h("span", { style: { color: roleTextColors.value, fontWeight: 600 } }, roleLabel("value")),
       tr("shell.cols.help.demotesTo"),
-      h("span", { style: { color: roleColors.filter, fontWeight: 600 } }, roleLabel("filter")),
+      h("span", { style: { color: roleTextColors.filter, fontWeight: 600 } }, roleLabel("filter")),
       tr("shell.cols.help.period")
     ),
     h(
@@ -87,8 +87,9 @@ export function ColumnRoleEditor(props: ColumnRoleEditorProps) {
               fontSize: 10,
               padding: "2px 8px",
               borderRadius: 4,
-              background: c,
-              color: r === "ignore" ? "var(--text-muted)" : "var(--on-accent)",
+              border: "1.5px solid " + c,
+              background: "var(--surface)",
+              color: roleTextColors[r],
               fontWeight: 600,
             },
           },
@@ -132,6 +133,7 @@ export function ColumnRoleEditor(props: ColumnRoleEditorProps) {
           h("input", {
             value: colNames[i],
             onChange: (e: React.ChangeEvent<HTMLInputElement>) => onNameChange(i, e.target.value),
+            "aria-label": tr("shell.cols.name", { n: i + 1 }),
             className: "dv-input",
             style: { width: 120, fontWeight: 600 },
           }),
@@ -141,11 +143,12 @@ export function ColumnRoleEditor(props: ColumnRoleEditorProps) {
               value: colRoles[i],
               onChange: (e: React.ChangeEvent<HTMLSelectElement>) =>
                 onRoleChange(i, e.target.value as ColumnRole),
+              "aria-label": tr("shell.cols.role", { name: colNames[i] || i + 1 }),
               className: "dv-input",
               style: {
                 cursor: "pointer",
                 fontWeight: 600,
-                color: roleColors[colRoles[i]],
+                color: roleTextColors[colRoles[i]],
               },
             },
             h("option", { value: "group" }, roleLabel("group")),

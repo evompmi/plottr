@@ -1,63 +1,74 @@
-// Landing-page smoke. Every plot-tool tile is a link the user clicks
-// to enter a tool. If any HTML / vendor / shared-bundle path goes
-// missing — say, a deploy strips a file — this test catches it before
-// the user does.
+// Landing page smoke: the page and bundles load, every tool is one click
+// away, the theme toggle works, and "Try it on example data" lands on
+// Group Plot's plot step with the example loaded.
 
 import { test, expect } from "@playwright/test";
 
-test("landing page renders all twelve tool tiles", async ({ page }) => {
+const TOOLS = [
+  "boxplot",
+  "proportions",
+  "qpcr",
+  "scatter",
+  "lineplot",
+  "aequorin",
+  "venn",
+  "upset",
+  "heatmap",
+  "volcano",
+  "power",
+  "molarity",
+];
+
+test("landing page links all twelve tools", async ({ page }) => {
   await page.goto("/index.html");
-
-  // The landing header must say "Plöttr" — flushing out the case where
-  // the page loaded but bundle loading failed.
   await expect(page).toHaveTitle(/Pl[oö]ttr/);
+  // Copy swapped in by applyStaticI18n → the shared bundle ran.
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Start from your question" })
+  ).toBeVisible();
+  for (const t of TOOLS) {
+    await expect(page.locator(`a[data-tool="${t}"]`)).toBeVisible();
+  }
+  await page.locator('a[data-tool="scatter"]').click();
+  await expect(page).toHaveURL(/#\/scatter$/);
+  await expect(page.getByTestId("load-example").first()).toBeVisible();
+});
 
-  // The "Validated against R + SciPy" trust badge — present if the page
-  // rendered + the bundle init ran. Asserts on the stable phrase prefix
-  // ("Validated against") rather than the trailing reference list, so a
-  // future version bump or reference addition doesn't churn this spec.
-  await expect(page.locator("text=/Validated against /i")).toBeVisible();
-
-  // Each tool tile is a <button class="tile" data-tool="<tool>"> with
-  // an icon + label inside; opening a tool swaps a hidden iframe in
-  // (see index.html). We assert all twelve tile buttons exist.
-  const tools = [
-    "boxplot",
-    "scatter",
-    "lineplot",
-    "venn",
-    "upset",
-    "heatmap",
-    "aequorin",
-    "volcano",
-    "proportions",
-    "qpcr",
-    "molarity",
-    "power",
-  ];
-  for (const t of tools) {
-    const tile = page.locator(`button.tile[data-tool="${t}"]`);
-    await expect(tile).toBeVisible();
+test("Tools and Choose a plot scroll to the tools section, not a tool route", async ({ page }) => {
+  for (const name of ["Tools", "Choose a plot"]) {
+    await page.goto("/index.html");
+    await page.getByRole("link", { name, exact: true }).first().click();
+    await expect(page).toHaveURL(/#tools$/);
+    await expect(page.locator("html")).not.toHaveAttribute("data-spa-route", "active");
+    await expect(page.locator("#tools")).toBeInViewport();
+    await expect(page.locator('a[data-tool="boxplot"]')).toBeVisible();
   }
 });
 
 test("theme toggle flips data-theme attribute", async ({ page }) => {
   await page.goto("/index.html");
-
   const html = page.locator("html");
-  // Start state: prefers-color-scheme: light is the Playwright default,
-  // so the page should NOT have data-theme="dark" until the user clicks.
-  // (The first-visit no-FOUC inline script sets it from localStorage or
-  // the media query — neither of which will produce dark in our config.)
   const before = await html.getAttribute("data-theme");
   expect(before === null || before === "light").toBeTruthy();
-
-  // The toggle button is rendered by the shared `ThemeToggle` component
-  // — every page exposes it via `data-theme-toggle`.
   await page.locator("[data-theme-toggle]").first().click();
   await expect(html).toHaveAttribute("data-theme", "dark");
-
-  // Click again — back to light.
   await page.locator("[data-theme-toggle]").first().click();
   await expect(html).toHaveAttribute("data-theme", "light");
+});
+
+test("Try it on example data opens Group Plot's plot with the example", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.getByRole("link", { name: "Try it on example data" }).click();
+  await expect(page).toHaveURL(/#\/boxplot$/);
+  await expect(page.locator("svg g#groups > g")).toHaveCount(3);
+  await expect(page.locator('[data-testid="step-plot"][aria-current="step"]')).toBeVisible();
+});
+
+test("French copy follows the language toggle", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("[data-lang-toggle]").first().click();
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Partez de votre question" })
+  ).toBeVisible();
+  await expect(page.locator(".lp-sheet img")).toHaveAttribute("alt", /Boîtes à moustaches/);
 });

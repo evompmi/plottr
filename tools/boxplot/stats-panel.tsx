@@ -1,15 +1,17 @@
-// Unified stats panel for the boxplot tool + its detail expander + the stats
-// state reducer used by App.
+// Statistics for the boxplot tool, shown in the workspace's inspector column,
+// plus the display bar shown above the figure and the stats state reducer.
 //
-// Replaces the per-facet / per-subgroup stack of StatsTiles with a single
-// scannable table: one row per "stat set" (facet, subgroup, or the whole
-// plot in flat mode), aggregate TXT / R downloads, and click-row-to-expand
-// detail with slate-banner sections (Groups / Assumptions / Test /
-// Post-hoc / Power). Matches the Line Plot per-x panel vocabulary.
+// One "stat set" per testable cell (facet, subgroup, or the whole plot in
+// flat mode). With a single set the inspector shows its sections directly —
+// test result + picker, assumptions, post-hoc, group summaries, replication
+// planning — followed by the analysis exports (R script, Methods, report).
+// With several sets it lists one row per set and opens a set's sections
+// under its row on demand. The per-set test override lives in the test
+// picker.
 //
-// Per-set test override lives in the expanded detail. Global display
-// controls (show on plot, Letters vs Brackets, show ns, print summary
-// below plot) live in the panel header and apply to every set in lockstep.
+// Display settings (marks on plot: Off / Letters / Brackets, show ns, print
+// summary below plot) live in `BoxplotStatsDisplayBar`, in the toolbar above
+// the figure, and apply to every set in lockstep.
 //
 // The panel emits per-row annotation + summary via `onAnnotationForKey(key, …)`
 // and `onSummaryForKey(key, …)`. App routes these into mode-specific stores:
@@ -27,13 +29,17 @@
 import {
   TestResult,
   buildRScript,
-  buildSelectTestReason,
   computePowerFromData,
   postHocForTest,
   runPostHoc,
   runTest,
-  WhyThisTest,
   MethodsButton,
+  GroupTestSections,
+  InspectorExports,
+  InspectorSection,
+  SegToggle,
+  SetDetail,
+  SetRow,
   buildGroupMethodsText,
   methodsDisplay,
 } from "../_shell";
@@ -42,16 +48,15 @@ import {
   POSTHOC_LABELS_BP,
   TEST_OPTIONS_BP_2,
   TEST_OPTIONS_BP_K,
-  formatBpStatShort,
   formatBpResultLine,
   computeBpAnnotationSpec,
   computeBpSummaryText,
   AnnotationSpec,
   BoxplotStatsDetailProps,
+  BoxplotStatsDisplayBarProps,
   BoxplotStatsPanelProps,
   BoxplotStatsSet,
   EnrichedBoxplotStatsRow,
-  PostHocPair,
   PostHocResult,
   SelectTestResult,
 } from "./helpers";
@@ -59,10 +64,8 @@ import { buildBpAggregateReport, buildBpAggregateRScript } from "./reports";
 
 import { svgSafeId } from "../_core/svg-export";
 import { downloadText, downloadTexts, flashSaved } from "../_core/download";
-import { tinv } from "../_core/stats/dist";
-import { sampleMean, sampleSD } from "../_core/stats/tests";
 import { selectTest } from "../_core/stats/posthoc";
-import { formatP, pStars } from "../_core/stats/format";
+import { formatP } from "../_core/stats/format";
 import { tt, useT, type BoxplotKey } from "./i18n";
 const { useState, useMemo, useRef, useEffect } = React;
 
@@ -92,346 +95,34 @@ function bpPosthocLabel(key: string): string {
     : POSTHOC_LABELS_BP[key] || key;
 }
 
+// One stat set's results as inspector sections (shared with Line Plot and
+// RLU Timecourse through `GroupTestSections`).
 function BoxplotStatsDetail({ row, onOverrideTest, isOverridden }: BoxplotStatsDetailProps) {
-  const tr = useT();
-  const names = row.names;
-  const values = row.values;
-  const k = names.length;
   const res = row.testResult ?? ({} as TestResult);
-  const rec = (row.rec ?? {}) as SelectTestResult;
-  const recReason = buildSelectTestReason(rec);
-  const recTest = rec.recommendation?.test ?? null;
-  const suggestion = rec.suggestion ?? null;
-  const testOptions = k === 2 ? TEST_OPTIONS_BP_2 : TEST_OPTIONS_BP_K;
-  const postHoc = row.postHocResult;
-  const power = row.powerResult;
-
-  const subhead: React.CSSProperties = {
-    margin: "10px 0 6px",
-    padding: "4px 10px",
-    fontSize: 10,
-    fontWeight: 800,
-    textTransform: "uppercase",
-    letterSpacing: "0.8px",
-    color: "var(--subhead-text)",
-    background: "var(--subhead-bg)",
-    borderRadius: 4,
-    display: "block",
-  };
-  const thS: React.CSSProperties = {
-    textAlign: "left",
-    padding: "3px 6px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--text-muted)",
-    fontWeight: 600,
-    fontSize: 11,
-  };
-  const tdS: React.CSSProperties = {
-    padding: "3px 6px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--text)",
-    fontSize: 11,
-  };
-  const pillOk: React.CSSProperties = {
-    display: "inline-block",
-    padding: "1px 6px",
-    borderRadius: 8,
-    fontSize: 9,
-    fontWeight: 700,
-    background: "var(--step-ready-bg)",
-    color: "var(--step-ready)",
-  };
-  const pillBad: React.CSSProperties = {
-    ...pillOk,
-    background: "var(--danger-bg)",
-    color: "var(--danger-text)",
-  };
-  const pillNeutral: React.CSSProperties = {
-    ...pillOk,
-    background: "var(--neutral-bg)",
-    color: "var(--neutral-text)",
-  };
-  const norm = rec.normality ?? [];
-  const lev = (rec.levene ?? {}) as {
-    F?: number;
-    df1?: number;
-    df2?: number;
-    p?: number;
-    equalVar?: boolean | null;
-    error?: string;
-  };
-
+  const p = res.error ? null : typeof res.p === "number" ? res.p : null;
+  // formatBpResultLine separates its parts with a comma + two spaces, which
+  // never occurs inside a part ("F(2, 45.51) = 37.326").
+  const resultParts = row.chosenTest
+    ? formatBpResultLine(row.chosenTest, res).split(/,\s{2,}/)
+    : ["—"];
   return (
-    <div style={{ padding: "6px 16px 12px 16px", background: "var(--surface-subtle)" }}>
-      <div style={subhead}>{tr("boxplot.sp.groups")}</div>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={thS}>{tr("boxplot.sp.group")}</th>
-            <th style={thS}>{tr("boxplot.sp.n")}</th>
-            <th style={thS}>{tr("boxplot.sp.mean")}</th>
-            <th style={thS}>{tr("boxplot.sp.sd")}</th>
-            <th style={thS}>{tr("boxplot.sp.sem")}</th>
-            <th style={thS}>{tr("boxplot.sp.ci95")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {names.map((name, i) => {
-            const vs = values[i];
-            const n = vs.length;
-            const m = sampleMean(vs);
-            const sd = n > 1 ? sampleSD(vs) : 0;
-            const sem = n > 1 ? sd / Math.sqrt(n) : 0;
-            const ci95 = n > 1 ? tinv(0.975, n - 1) * sem : 0;
-            return (
-              <tr key={i}>
-                <td style={tdS}>{name}</td>
-                <td style={tdS}>{n}</td>
-                <td style={tdS}>{m.toFixed(3)}</td>
-                <td style={tdS}>{sd.toFixed(3)}</td>
-                <td style={tdS}>{n > 1 ? sem.toFixed(3) : "—"}</td>
-                <td style={tdS}>{n > 1 ? `±${ci95.toFixed(3)}` : "—"}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      <div style={subhead}>{tr("boxplot.sp.assumptions")}</div>
-      {norm.length > 0 && (
-        <div style={{ marginBottom: 6 }}>
-          <div
-            style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 2 }}
-          >
-            {tr("boxplot.sp.shapiro")}
-          </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {norm.map((r, i) => {
-              const label = names[r.group] || `g${r.group}`;
-              const pill = r.normal === true ? pillOk : r.normal === false ? pillBad : pillNeutral;
-              const verdict =
-                r.normal === true
-                  ? tr("boxplot.sp.normal")
-                  : r.normal === false
-                    ? tr("boxplot.sp.notNormal")
-                    : "—";
-              return (
-                <span key={i} style={{ fontSize: 11, color: "var(--text)" }}>
-                  {label}: <span style={pill}>{verdict}</span>
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      {lev.F != null && (
-        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-          <span style={{ fontWeight: 600 }}>{tr("boxplot.sp.levene")}</span> — F({lev.df1},{" "}
-          {lev.df2}) = {lev.F.toFixed(3)}, p = {formatP(lev.p)}{" "}
-          <span style={lev.equalVar ? pillOk : pillBad}>
-            {lev.equalVar ? tr("boxplot.sp.equalVar") : tr("boxplot.sp.unequalVar")}
-          </span>
-        </div>
-      )}
-
-      <div style={subhead}>{tr("boxplot.sp.test")}</div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          flexWrap: "wrap",
-          marginBottom: 6,
-        }}
-      >
-        <select
-          value={row.chosenTest || ""}
-          onChange={(e) => {
-            const next = e.target.value === "" ? null : (e.target.value as RecommendedTest);
-            if (onOverrideTest) onOverrideTest(next === recTest ? null : next);
-          }}
-          className="dv-select"
-          style={{ fontSize: 11, padding: "2px 6px", minWidth: 180 }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {testOptions.map((t) => (
-            <option key={t} value={t}>
-              {bpTestLabel(t)}
-              {t === recTest ? tr("boxplot.sp.recommendedSuffix") : ""}
-            </option>
-          ))}
-        </select>
-        {isOverridden && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOverrideTest && onOverrideTest(null);
-            }}
-            className="dv-btn dv-btn-secondary"
-            style={{ padding: "2px 8px", fontSize: 10 }}
-          >
-            {tr("boxplot.sp.useRecommendation")}
-          </button>
-        )}
-      </div>
-      <div
-        style={{
-          padding: "6px 10px",
-          marginBottom: 6,
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          fontFamily: "ui-monospace, Menlo, monospace",
-          fontSize: 12,
-          fontWeight: 700,
-          color: "var(--text)",
-        }}
-      >
-        {res.error
-          ? `⚠ ${res.error}`
-          : row.chosenTest
-            ? formatBpResultLine(row.chosenTest, res)
-            : "—"}
-      </div>
-      {suggestion && row.chosenTest !== suggestion.test && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-            padding: "6px 10px",
-            marginBottom: 6,
-            background: "var(--info-bg)",
-            border: "1px solid var(--info-border)",
-            borderRadius: 6,
-            fontSize: 11,
-            color: "var(--info-text)",
-          }}
-        >
-          <span style={{ fontWeight: 700 }}>{tr("boxplot.sp.suggestedAlt")}</span>
-          <span>
-            {tr("boxplot.sp.suggestConsider")}
-            <strong>{bpTestLabel(suggestion.test)}</strong>.
-          </span>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOverrideTest && onOverrideTest(suggestion.test);
-            }}
-            className="dv-btn dv-btn-secondary"
-            style={{ padding: "2px 8px", fontSize: 10, marginLeft: "auto" }}
-          >
-            {tr("boxplot.sp.useSuggestion")}
-          </button>
-        </div>
-      )}
-      <WhyThisTest text={recReason} />
-
-      {k >= 3 && postHoc && !postHoc.error && row.postHocName && (
-        <>
-          <div style={subhead}>
-            {tr("boxplot.sp.posthocPrefix")}
-            {bpPosthocLabel(row.postHocName)}
-          </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={thS}>{tr("boxplot.sp.pair")}</th>
-                <th style={thS}>
-                  {row.postHocName === "dunn"
-                    ? tr("boxplot.sp.rankDiff")
-                    : tr("boxplot.sp.meanDiff")}
-                </th>
-                <th style={thS}>{tr("boxplot.sp.colP")}</th>
-                <th style={thS}>{tr("boxplot.sp.signif")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {postHoc.pairs.map((pr: PostHocPair, i: number) => {
-                const p = pr.pAdj != null ? pr.pAdj : pr.p;
-                const diff =
-                  pr.diff != null
-                    ? pr.diff.toFixed(3)
-                    : pr.z != null
-                      ? `z = ${pr.z.toFixed(3)}`
-                      : "—";
-                return (
-                  <tr key={i}>
-                    <td style={tdS}>
-                      {names[pr.i]} {tr("boxplot.sp.vs")} {names[pr.j]}
-                    </td>
-                    <td style={tdS}>{diff}</td>
-                    <td style={tdS}>{formatP(p)}</td>
-                    <td
-                      style={{
-                        ...tdS,
-                        fontWeight: 700,
-                        color: p < 0.05 ? "var(--step-ready)" : "var(--text-faint)",
-                      }}
-                    >
-                      {pStars(p)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </>
-      )}
-
-      {power && (
-        <>
-          <div style={subhead}>{tr("boxplot.sp.replication")}</div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>
-            {tr("boxplot.sp.replicationDesc")}
-          </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={thS}>{tr("boxplot.sp.effectSize")}</th>
-                <th style={thS}>α</th>
-                <th style={thS}>{tr("boxplot.sp.nFor80")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {power.rows.map((pr, i) => (
-                <tr key={i}>
-                  {i === 0 ? (
-                    <td style={tdS} rowSpan={power.rows.length}>
-                      {power.effectLabel} = {power.effect.toFixed(3)}
-                      {power.effectCI
-                        ? `, 95% CI [${power.effectCI.lo.toFixed(3)}, ${power.effectCI.hi.toFixed(3)}]`
-                        : ""}
-                    </td>
-                  ) : null}
-                  <td style={tdS}>{String(pr.alpha)}</td>
-                  <td style={tdS}>
-                    {pr.nForTarget != null
-                      ? `${pr.nForTarget} ${power.nLabel}`
-                      : tr("boxplot.sp.gt5000")}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {power.approximate && (
-            <div
-              style={{
-                fontSize: 10,
-                color: "var(--text-faint)",
-                fontStyle: "italic",
-                marginTop: 4,
-              }}
-            >
-              {tr("boxplot.sp.approxNote")}
-            </div>
-          )}
-        </>
-      )}
-    </div>
+    <GroupTestSections
+      names={row.names}
+      values={row.values}
+      rec={row.rec as SelectTestResult | null | undefined}
+      chosenTest={row.chosenTest ?? null}
+      testOptions={row.names.length === 2 ? TEST_OPTIONS_BP_2 : TEST_OPTIONS_BP_K}
+      testLabel={bpTestLabel}
+      posthocLabel={bpPosthocLabel}
+      resultParts={resultParts}
+      p={p}
+      error={!!res.error}
+      postHocName={row.postHocName}
+      postHocResult={row.postHocResult}
+      powerResult={row.powerResult}
+      isOverridden={!!isOverridden}
+      onOverrideTest={(t) => onOverrideTest && onOverrideTest(t)}
+    />
   );
 }
 
@@ -441,25 +132,15 @@ export function BoxplotStatsPanel({
   fileStem,
   onAnnotationForKey,
   onSummaryForKey,
-  singletonAutoExpand = false,
   displayMode,
-  onDisplayModeChange,
   showNs,
-  onShowNsChange,
   showSummary,
-  onShowSummaryChange,
   errorBarLabel,
   displayKind,
 }: BoxplotStatsPanelProps) {
   const tr = useT();
-  const [expanded, setExpanded] = useState<Record<string, boolean>>(
-    singletonAutoExpand && sets.length === 1 ? { [sets[0].key]: true } : {}
-  );
-  const [hovered, setHovered] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [overrides, setOverrides] = useState<Record<string, RecommendedTest>>({});
-  const setDisplayMode = onDisplayModeChange;
-  const setShowNs = onShowNsChange;
-  const setShowSummary = onShowSummaryChange;
 
   // EnrichedOrSkip variant — the `skip` branch carries enough fields for the
   // skip handling at the top of the render path; the populated branch is the
@@ -634,281 +315,160 @@ export function BoxplotStatsPanel({
       display: methodsDisplay(displayKind),
     });
 
-  const anyMulti = eligible.some((r) => r.k > 2);
-  const singleSet = sets.length === 1;
-  const headingLabel =
-    setLabel && !singleSet
-      ? tr("boxplot.sp.statsAtEach", { label: setLabel.toLowerCase() })
-      : tr("boxplot.sp.statistics");
+  const multiSet = sets.length > 1;
+  const setNoun = (setLabel || tr("boxplot.sp.set")).toLowerCase();
+  const reportTitle = multiSet
+    ? tr("boxplot.sp.txtTitleMulti", { label: setNoun })
+    : tr("boxplot.sp.txtTitleSingle");
+  const rTitle = multiSet
+    ? tr("boxplot.sp.rTitleMulti", { label: setNoun })
+    : tr("boxplot.sp.rTitleSingle");
 
-  const thS: React.CSSProperties = {
-    textAlign: "left",
-    padding: "6px 8px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--subhead-text)",
-    fontWeight: 600,
-    fontSize: 12,
-    background: "var(--subhead-bg)",
-  };
-  const tdS: React.CSSProperties = {
-    padding: "6px 8px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--text)",
-    fontSize: 12,
-  };
-  const mono: React.CSSProperties = { fontFamily: "ui-monospace, Menlo, monospace" };
-
-  const segBtn = (value: "none" | "cld" | "brackets", label: string) => {
-    const active = displayMode === value;
-    return (
+  const exportsFooter = (
+    <InspectorExports label={tr("boxplot.sp.analysisExports")}>
+      {hasR && (
+        <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
+          onClick={downloadR}
+          title={rTitle}
+        >
+          {tr("boxplot.sp.rScript")}
+        </button>
+      )}
+      <MethodsButton getText={methodsText} />
       <button
-        key={value}
         type="button"
-        onClick={() => setDisplayMode(value)}
-        style={{
-          flex: "0 0 auto",
-          padding: "4px 10px",
-          fontSize: 11,
-          fontWeight: active ? 700 : 400,
-          fontFamily: "inherit",
-          cursor: "pointer",
-          border: "none",
-          background: active ? "var(--accent-primary)" : "var(--surface)",
-          color: active ? "var(--on-accent)" : "var(--text-muted)",
-          transition: "background 120ms ease, color 120ms ease",
-        }}
+        className="dv-btn dv-btn-secondary"
+        onClick={downloadReport}
+        title={reportTitle}
       >
-        {label}
+        {tr("boxplot.sp.reportTxt")}
       </button>
+    </InspectorExports>
+  );
+
+  const detailFor = (r: EnrichedBoxplotStatsRow) => (
+    <BoxplotStatsDetail
+      row={r}
+      isOverridden={!!overrides[r.key]}
+      onOverrideTest={(t) => setOverride(r.key, t)}
+    />
+  );
+
+  if (!multiSet) {
+    return (
+      <div data-testid="bp-stats" className="dv-inspector">
+        {detailFor(eligible[0])}
+        {exportsFooter}
+      </div>
     );
-  };
-  const nsDisabled = displayMode === "none" || (anyMulti && displayMode === "cld");
+  }
 
+  // Several sets (facets / subgroups): a list of result rows; selecting one
+  // opens its detail sections underneath it.
   return (
-    <div className="dv-panel" style={{ padding: 0, overflow: "hidden" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "12px 14px",
-          borderBottom: "1px solid var(--border)",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: 14,
-              fontWeight: 700,
-              color: "var(--text)",
-              letterSpacing: "0.2px",
-            }}
-          >
-            {headingLabel}
-          </h3>
-          <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
-            {tr("boxplot.sp.desc")}
-            {singleSet
-              ? ""
-              : tr("boxplot.sp.descMulti", {
-                  label: (setLabel || tr("boxplot.sp.set")).toLowerCase(),
-                })}
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
-          <MethodsButton getText={methodsText} />
-          <button
-            type="button"
-            className="dv-btn dv-btn-dl"
-            onClick={downloadReport}
-            title={
-              singleSet
-                ? tr("boxplot.sp.txtTitleSingle")
-                : tr("boxplot.sp.txtTitleMulti", {
-                    label: (setLabel || tr("boxplot.sp.set")).toLowerCase(),
-                  })
-            }
-          >
-            ⬇ TXT
-          </button>
-          {hasR && (
-            <button
-              type="button"
-              className="dv-btn dv-btn-dl"
-              onClick={downloadR}
-              title={
-                singleSet
-                  ? tr("boxplot.sp.rTitleSingle")
-                  : tr("boxplot.sp.rTitleMulti", {
-                      label: (setLabel || tr("boxplot.sp.set")).toLowerCase(),
-                    })
-              }
-            >
-              ⬇ R
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          flexWrap: "wrap",
-          padding: "10px 14px",
-          borderBottom: "1px solid var(--border)",
-          background: "var(--surface-subtle)",
-        }}
-      >
-        <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>
-          {tr("boxplot.sp.displayOnPlot")}
-        </span>
-        <div
-          style={{
-            display: "flex",
-            borderRadius: 6,
-            overflow: "hidden",
-            border: "1px solid var(--border-strong)",
-          }}
-        >
-          {segBtn("none", tr("boxplot.sp.off"))}
-          {anyMulti && segBtn("cld", tr("boxplot.sp.letters"))}
-          {segBtn("brackets", tr("boxplot.sp.brackets"))}
-        </div>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            color: nsDisabled ? "var(--text-faint)" : "var(--text)",
-            cursor: nsDisabled ? "not-allowed" : "pointer",
-            opacity: nsDisabled ? 0.55 : 1,
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={!nsDisabled && showNs}
-            disabled={nsDisabled}
-            onChange={(e) => setShowNs(e.target.checked)}
-            style={{ accentColor: "var(--cta-primary-bg)" }}
-          />
-          {tr("boxplot.sp.showNs")}
-        </label>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            color: "var(--text)",
-            cursor: "pointer",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={showSummary}
-            onChange={(e) => setShowSummary(e.target.checked)}
-            style={{ accentColor: "var(--cta-primary-bg)" }}
-          />
-          {tr("boxplot.sp.printSummary")}
-        </label>
-      </div>
-
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={thS}>{setLabel || tr("boxplot.sp.set")}</th>
-            <th style={thS}>{tr("boxplot.sp.groups")}</th>
-            <th style={thS}>{tr("boxplot.sp.test")}</th>
-            <th style={thS}>{tr("boxplot.sp.statistic")}</th>
-            <th style={thS}>{tr("boxplot.sp.colP")}</th>
-            <th style={{ ...thS, width: 60 }}></th>
-          </tr>
-        </thead>
-        <tbody>
-          {enriched.map((r) => {
-            const key = r.key;
-            const isOpen = !!expanded[key];
-            if (r.skip) {
-              return (
-                <tr key={key}>
-                  <td style={tdS}>{r.name || "—"}</td>
-                  <td style={tdS} colSpan={5}>
-                    <span style={{ color: "var(--text-faint)", fontStyle: "italic" }}>
-                      {tr("boxplot.sp.needsGroups")}
-                    </span>
-                  </td>
-                </tr>
-              );
-            }
-            const p = r.testResult && !r.testResult.error ? r.testResult.p : null;
-            const sig = p != null && p < 0.05;
-            const stars = p != null ? pStars(p) : "";
-            return (
-              <React.Fragment key={key}>
-                <tr
-                  onClick={() => setExpanded((prev) => ({ ...prev, [key]: !isOpen }))}
-                  onMouseEnter={() => setHovered(key)}
-                  onMouseLeave={() => setHovered((h) => (h === key ? null : h))}
-                  style={{
-                    cursor: "pointer",
-                    background: isOpen
-                      ? "var(--surface-subtle)"
-                      : hovered === key
-                        ? "var(--row-hover-bg)"
-                        : undefined,
-                    transition: "background 120ms ease",
-                  }}
-                >
-                  <td style={tdS}>{r.name || "—"}</td>
-                  <td style={tdS}>{r.k}</td>
-                  <td style={tdS}>{bpTestLabel(r.chosenTest)}</td>
-                  <td style={{ ...tdS, ...mono }}>
-                    {formatBpStatShort(r.chosenTest, r.testResult)}
-                  </td>
-                  <td
-                    style={{
-                      ...tdS,
-                      ...mono,
-                      fontWeight: sig ? 700 : 400,
-                      color: sig ? "var(--step-ready)" : "var(--text)",
-                    }}
-                  >
-                    {p != null ? formatP(p) : "—"}
-                  </td>
-                  <td
-                    style={{
-                      ...tdS,
-                      textAlign: "right",
-                      color: sig ? "var(--step-ready)" : "var(--text-faint)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {stars && stars !== "ns" ? stars : ""}
-                  </td>
-                </tr>
-                {isOpen && (
-                  <tr>
-                    <td colSpan={6} style={{ padding: 0, borderBottom: "1px solid var(--border)" }}>
-                      <BoxplotStatsDetail
-                        row={r}
-                        isOverridden={!!overrides[key]}
-                        onOverrideTest={(t) => setOverride(key, t)}
-                      />
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </tbody>
-      </table>
+    <div data-testid="bp-stats" className="dv-inspector">
+      <InspectorSection label={tr("boxplot.sp.statsAtEach", { label: setNoun })}>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--text-faint)" }}>
+          {tr("boxplot.sp.pickSet", { label: setNoun })}
+        </p>
+      </InspectorSection>
+      {enriched.map((r) => {
+        const key = r.key;
+        if (r.skip) {
+          return (
+            <div key={key} className="dv-set-row" style={{ cursor: "default" }}>
+              <span style={{ fontWeight: 600 }}>{r.name || "—"}</span>
+              <span style={{ gridColumn: "2 / -1", fontSize: 12, color: "var(--text-faint)" }}>
+                {tr("boxplot.sp.needsGroups")}
+              </span>
+            </div>
+          );
+        }
+        const isOpen = !!expanded[key];
+        const p = r.testResult && !r.testResult.error ? (r.testResult.p ?? null) : null;
+        return (
+          <div key={key}>
+            <SetRow
+              name={r.name || "—"}
+              detail={bpTestLabel(r.chosenTest)}
+              p={p}
+              pText={p != null ? formatP(p) : "—"}
+              open={isOpen}
+              onToggle={() => setExpanded((prev) => ({ ...prev, [key]: !isOpen }))}
+            />
+            {isOpen && <SetDetail>{detailFor(r)}</SetDetail>}
+          </div>
+        );
+      })}
+      {exportsFooter}
     </div>
+  );
+}
+
+// Display controls for the statistics on the figure (marks, ns, summary
+// line), shown in the workspace toolbar above the plot. They apply to every
+// stat set in lockstep. Letters (compact letter display) need ≥ 3 groups in
+// at least one set.
+export function BoxplotStatsDisplayBar({
+  sets,
+  displayMode,
+  onDisplayModeChange,
+  showNs,
+  onShowNsChange,
+  showSummary,
+  onShowSummaryChange,
+}: BoxplotStatsDisplayBarProps) {
+  const tr = useT();
+  const anyMulti = sets.some(
+    (s) => (s.groups || []).filter((g) => g && g.values && g.values.length >= 2).length > 2
+  );
+  const nsDisabled = displayMode === "none" || (anyMulti && displayMode === "cld");
+  const options: Array<{ value: "none" | "cld" | "brackets"; label: string }> = [
+    { value: "none", label: tr("boxplot.sp.off") },
+    ...(anyMulti ? [{ value: "cld" as const, label: tr("boxplot.sp.letters") }] : []),
+    { value: "brackets", label: tr("boxplot.sp.brackets") },
+  ];
+  const check = (disabled: boolean): React.CSSProperties => ({
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 13,
+    color: disabled ? "var(--text-faint)" : "var(--text-muted)",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.6 : 1,
+  });
+  return (
+    <>
+      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>
+        {tr("boxplot.sp.displayOnPlot")}
+      </span>
+      <SegToggle<"none" | "cld" | "brackets">
+        ariaLabel={tr("boxplot.sp.displayOnPlot")}
+        value={displayMode}
+        onChange={onDisplayModeChange}
+        options={options}
+        style={{ flex: "0 0 auto" }}
+      />
+      <label style={check(nsDisabled)}>
+        <input
+          type="checkbox"
+          checked={!nsDisabled && showNs}
+          disabled={nsDisabled}
+          onChange={(e) => onShowNsChange(e.target.checked)}
+        />
+        {tr("boxplot.sp.showNs")}
+      </label>
+      <label style={check(false)}>
+        <input
+          type="checkbox"
+          checked={showSummary}
+          onChange={(e) => onShowSummaryChange(e.target.checked)}
+        />
+        {tr("boxplot.sp.printSummary")}
+      </label>
+    </>
   );
 }
 

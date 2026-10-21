@@ -57,6 +57,7 @@ const en = {
 
   // ColumnRoleEditor — column-role names (display labels; the <option>
   // value attrs stay the English ColumnRole enum).
+  "shell.preview.unnamedCol": "Column {n}",
   "shell.roles.group": "group",
   "shell.roles.value": "value",
   "shell.roles.filter": "filter",
@@ -64,6 +65,8 @@ const en = {
   "shell.cols.heading": "Column roles",
   // The help line is rendered with the role words as inline coloured spans
   // between these fragments (order: group, value, group, value, filter).
+  "shell.cols.name": "Name of column {n}",
+  "shell.cols.role": "Role of column {name}",
   "shell.cols.help.exactlyOne": "Exactly one ",
   "shell.cols.help.xAxisAndOne": " (x-axis) and one ",
   "shell.cols.help.numericPicking": " (numeric) column. Picking ",
@@ -138,19 +141,30 @@ const en = {
   "shell.toggle.on": "On",
   "shell.toggle.off": "Off",
 
-  // FilterCheckboxPanel
-  "shell.filter.heading": "Filter rows ({shown}/{total})",
+  "shell.inspector.show": "Show {name}",
+  "shell.inspector.hide": "Hide",
+
+  // ValueListPanel (filter step: keep / rename / order values)
+  "shell.values.heading": "Groups & filters",
+  "shell.values.kept": "{shown} of {total} rows kept",
+  "shell.values.hint":
+    "Untick a value to drop its rows, type to rename it (two values with the same name merge), and use ↑ ↓ to set the order on the plot.",
+  "shell.values.colKept": "{kept} of {total} kept",
+  "shell.values.allFor": "Keep every value of {name}",
+  "shell.values.noneFor": "Drop every value of {name}",
+  "shell.values.keep": "Keep {name}",
+  "shell.values.up": "Move {name} up",
+  "shell.values.down": "Move {name} down",
+  "shell.values.was": "was {name}",
+  "shell.values.merged": "merged · {name}",
   "shell.filter.all": "All",
   "shell.filter.none": "None",
-  "shell.filter.numericHint": "numeric — use axis range in plot",
-
-  // RenameReorderPanel
-  "shell.rename.heading": "Rename values & reorder groups ",
-  "shell.rename.hint": "(drag ☰ to reorder groups on plot)",
   "shell.rename.empty": "(empty)",
 
   // DiscretePaletteRow
+  "shell.rename.to": "Rename {name}",
   "shell.palette.copied": "✓ Copied {hex}",
+  "shell.palette.label": "Palette",
   "shell.palette.clickToCopy": "Click a swatch to copy its hex",
   "shell.palette.swatchTitle": "{hex} — click to copy",
   "shell.palette.swatchAria": "Copy {hex} to clipboard",
@@ -179,94 +193,6 @@ const en = {
   "shell.stats.min": "Min",
   "shell.stats.max": "Max",
 
-  // StatsTile — test + post-hoc display names (the registry stays English so
-  // the R-script export remains portable; these localize the on-screen +
-  // text-report copies). Proper names (Mann-Whitney, Kruskal-Wallis, Tukey,
-  // Games-Howell) are kept identical across languages.
-  "shell.test.studentT": "Student's t-test",
-  "shell.test.welchT": "Welch's t-test",
-  "shell.test.mannWhitney": "Mann-Whitney U",
-  "shell.test.oneWayANOVA": "One-way ANOVA",
-  "shell.test.welchANOVA": "Welch's ANOVA",
-  "shell.test.kruskalWallis": "Kruskal-Wallis",
-  "shell.posthoc.tukeyHSD": "Tukey HSD",
-  "shell.posthoc.gamesHowell": "Games-Howell",
-  "shell.posthoc.dunn": "Dunn (BH-adjusted)",
-
-  // StatsTile — shared assessment labels + captions + column headers
-  "shell.assess.normal": "normal",
-  "shell.assess.notNormal": "not normal",
-  "shell.assess.unknown": "unknown",
-  "shell.assess.equalVar": "equal variance",
-  "shell.assess.unequalVar": "unequal variance",
-  "shell.stats.shapiro": "Shapiro-Wilk test for normality",
-  "shell.stats.levene": "Levene (Brown-Forsythe) test for equal variance",
-  "shell.stats.w": "W",
-  "shell.stats.p": "p",
-  "shell.stats.assessment": "Assessment",
-  "shell.stats.pair": "Pair",
-  "shell.stats.signif": "Signif.",
-  "shell.stats.meanDiff": "Mean diff",
-  "shell.stats.rankDiff": "Rank diff",
-  "shell.stats.effectSize": "Effect size",
-  "shell.stats.nFor80": "n for 80% power",
-  "shell.stats.vs": "vs",
-
-  // StatsTile — on-screen controls + panel
-  "shell.statsui.displayTitle": "Statistics display",
-  "shell.statsui.summaryTitle": "Statistics summary",
-  "shell.statsui.txtTitle": "Download a plain-text stats report",
-  "shell.statsui.rTitle": "Download a runnable R script reproducing these tests",
-  "shell.statsui.letters": "Letters",
-  "shell.statsui.brackets": "Brackets",
-  "shell.statsui.displayOnPlot": "Display on plot",
-  "shell.statsui.printSummary": "Print summary below plot",
-  "shell.statsui.style": "Style:",
-  "shell.statsui.showNs": "Show ns",
-  "shell.statsui.assumptions": "Assumptions",
-  "shell.statsui.test": "Test",
-  "shell.statsui.recommendedSuffix": "  (recommended)",
-  "shell.statsui.useRecommendation": "Use recommendation",
-  "shell.statsui.suggestedAlt": "Suggested alternative:",
-  "shell.statsui.suggestConsider": "Shapiro-Wilk flagged non-normal data — consider ",
-  "shell.statsui.useSuggestion": "Use suggestion",
-  "shell.statsui.posthocPrefix": "Post-hoc — ",
-  "shell.statsui.replication": "Replication planning (n for 80% power)",
-  "shell.statsui.replicationDesc":
-    "Given the observed effect size, sample size a future study would need to detect this effect at 80% power.",
-  "shell.statsui.approxNote":
-    "Approximation — rank-based test power estimated from its parametric analog.",
-  "shell.statsui.gt5000": "> 5000",
-
-  // StatsTile — below-plot text summary
-  "shell.summary.posthoc": "Post-hoc: ",
-  "shell.summary.effectSize": "Effect size: ",
-  "shell.summary.nPerGroup": "n per group: ",
-
-  // StatsTile — downloadable plain-text report (fixed-width columns: keep
-  // translations short enough to fit the existing pads)
-  "shell.report.title": "Statistical analysis report",
-  "shell.report.generated": "Generated: ",
-  "shell.report.groups": "GROUPS",
-  "shell.report.meanEq": "mean = ",
-  "shell.report.assumptions": "ASSUMPTIONS",
-  "shell.report.test": "TEST",
-  "shell.report.recommended": "Recommended: ",
-  "shell.report.reason": "Reason:      ",
-  "shell.report.chosen": "Chosen:      ",
-  "shell.report.result": "Result: ",
-  "shell.report.errorPrefix": "error: ",
-  "shell.report.replication": "REPLICATION PLANNING (target 80% power)",
-  "shell.report.effectSize": "Effect size:       ",
-  "shell.report.futureStudy": "For a future study at the observed effect size:",
-  "shell.report.alpha": "alpha",
-  "shell.report.rankNote": "Note: rank-based test — power estimated from its parametric analog.",
-  "shell.report.whyNot1": "Why not 'achieved power'? Post-hoc / observed power is a",
-  "shell.report.whyNot2": "deterministic transformation of p (Hoenig & Heisey 2001),",
-  "shell.report.whyNot3": "so it adds no information beyond p itself. The forward-",
-  "shell.report.whyNot4": "looking n-needed estimates above are the actionable signal.",
-  "shell.report.posthoc": "POST-HOC — ",
-
   // BaseStyleControls
   "shell.style.background": "Background",
   "shell.style.grid": "Grid",
@@ -279,6 +205,8 @@ const en = {
   "shell.color.hexGeneric": "Color hex value",
 
   // NumberInput stepper
+  "shell.group.show": "Show {name}",
+  "shell.group.name": "Display name for {name}",
   "shell.num.increment": "Increment",
   "shell.num.decrement": "Decrement",
 
@@ -287,6 +215,48 @@ const en = {
 
   // SPA topbar chrome + shell-level fallbacks (tools/_app/App.tsx)
   "shell.chrome.home": "Home",
+  "shell.chrome.homeAria": "Plöttr home",
+  "shell.chrome.switchTool": "Switch tool",
+  "shell.chrome.cat.compare": "Compare groups",
+  "shell.chrome.cat.trends": "Trends & relationships",
+  "shell.chrome.cat.sets": "Sets & omics",
+  "shell.chrome.cat.bench": "At the bench",
+  "shell.actions.more": "More ▾",
+  "shell.actions.downloadSvg": "Download SVG",
+  "shell.tabs.label": "Plot controls",
+  // GroupTestSections — inspector sections for a selectTest result
+  "shell.gt.omnibus": "Omnibus test",
+  "shell.gt.twoGroupTest": "Two-group test",
+  "shell.gt.test": "Test",
+  "shell.gt.recommendedSuffix": "  (recommended)",
+  "shell.gt.useRecommendation": "Use recommendation",
+  "shell.gt.suggestConsider": "Shapiro-Wilk flagged non-normal data — consider",
+  "shell.gt.useSuggestion": "Use suggestion",
+  "shell.gt.assumptions": "Assumptions checked",
+  "shell.gt.normality": "Normality · Shapiro-Wilk",
+  "shell.gt.nNormal": "{k} / {n} normal",
+  "shell.gt.notNormalList": "Not normal: {list}",
+  "shell.gt.equalVariance": "Equal variance · Levene",
+  "shell.gt.posthoc": "Post-hoc · {name}",
+  "shell.gt.pair": "Pair",
+  "shell.gt.meanDiff": "Mean diff",
+  "shell.gt.rankDiff": "Rank diff",
+  "shell.gt.signif": "Significance",
+  "shell.gt.groups": "Groups",
+  "shell.gt.group": "Group",
+  "shell.gt.mean": "Mean",
+  "shell.gt.sd": "SD",
+  "shell.gt.sem": "SEM",
+  "shell.gt.ci95": "95% CI",
+  "shell.gt.replication": "Replication planning",
+  "shell.gt.replicationLine": "{effect} → {n} for 80% power at α = {alpha}",
+  "shell.gt.atAlpha": "At α = {alpha}: {n}",
+  "shell.gt.perGroup": "{n} per group",
+  "shell.gt.approxNote":
+    "Approximation — rank-based test power estimated from its parametric analog.",
+  "shell.gt.analysisExports": "Analysis exports",
+  "shell.gt.rScript": "R script",
+  "shell.gt.reportTxt": "Report .txt",
   "shell.chrome.themeToLight": "Switch to light mode",
   "shell.chrome.themeToDark": "Switch to dark mode",
 

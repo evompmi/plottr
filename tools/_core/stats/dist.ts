@@ -1035,7 +1035,7 @@ export function bisect(
 
 // ── 2b. Power functions ─────────────────────────────────────────────────────
 // Keyed by test shape, same formulas used by tools/power.tsx. Kept here so
-// the StatsTile (group plot) can report achieved power and the
+// the stats panels' replication planning can report achieved power and the
 // n-per-group needed for 80 % power directly from the observed data.
 
 export function powerTwoSample(d: number, n: number, alpha: number, tails: number): number {

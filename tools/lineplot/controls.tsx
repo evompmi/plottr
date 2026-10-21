@@ -9,10 +9,10 @@ import {
   DiscretePaletteRow,
   DownloadTiles,
   NumberInput,
-  PlotSidebar,
   SliderControl,
   applyDiscretePalette,
   testStatistic,
+  ControlTabs,
 } from "../_shell";
 import { ERROR_KINDS, LINE_STYLES, POINT_SHAPES, formatX, round2 } from "./helpers";
 import type { PerXRow, PlotControlsProps, Series } from "./helpers";
@@ -90,313 +90,360 @@ export function PlotControls({
   };
 
   return (
-    <PlotSidebar>
-      <DownloadTiles
-        chartRef={svgRef}
-        fileStem={`${fileBaseName(fileName, "lineplot")}_lineplot`}
-        onReset={resetAll}
-        extraDownloads={
-          statsRows.length > 0
-            ? [
-                {
-                  label: tr("lineplot.dl.statsCsv"),
-                  title: tr("lineplot.dl.statsCsvTitle"),
-                  onClick: downloadStatsCsv,
-                },
-              ]
-            : []
-        }
-      />
+    <ControlTabs
+      tool="lineplot"
+      tabs={[
+        {
+          id: "data",
+          label: tr("lineplot.tab.data"),
+          content: (
+            <>
+              <DownloadTiles
+                chartRef={svgRef}
+                fileStem={`${fileBaseName(fileName, "lineplot")}_lineplot`}
+                onReset={resetAll}
+                extraDownloads={
+                  statsRows.length > 0
+                    ? [
+                        {
+                          label: tr("lineplot.dl.statsCsv"),
+                          title: tr("lineplot.dl.statsCsvTitle"),
+                          onClick: downloadStatsCsv,
+                        },
+                      ]
+                    : []
+                }
+              />
 
-      {/* Permanent "Variables" panel — matches scatter's column-role picker
+              {/* Permanent "Variables" panel — matches scatter's column-role picker
           pattern: always visible at the top of the sidebar, never collapsed.
           These selects define what the plot IS; hiding them behind a
           disclosure widget would be a UX downgrade. */}
-      <div className="dv-panel">
-        <p className="dv-tile-title" style={{ margin: "0 0 8px" }}>
-          {tr("lineplot.tile.variables")}
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <label style={{ display: "block" }}>
-            <span className="dv-label">{tr("lineplot.var.xAxis")}</span>
-            <select
-              value={xCol}
-              onChange={(e) => setXCol(parseInt(e.target.value))}
-              className="dv-select"
-              style={{ width: "100%" }}
-            >
-              {numericCols.map((i: number) => (
-                <option key={i} value={i}>
-                  {parsed.headers[i]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label style={{ display: "block" }}>
-            <span className="dv-label">{tr("lineplot.var.yAxis")}</span>
-            <select
-              value={yCol}
-              onChange={(e) => setYCol(parseInt(e.target.value))}
-              className="dv-select"
-              style={{ width: "100%" }}
-            >
-              {numericCols.map((i: number) => (
-                <option key={i} value={i}>
-                  {parsed.headers[i]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label style={{ display: "block" }}>
-            <span className="dv-label">{tr("lineplot.var.groupBy")}</span>
-            <select
-              value={groupCol == null ? "" : groupCol}
-              onChange={(e) => setGroupCol(e.target.value === "" ? null : parseInt(e.target.value))}
-              className="dv-select"
-              style={{ width: "100%" }}
-            >
-              <option value="">{tr("lineplot.var.singleLine")}</option>
-              {categoricalCols.map((i: number) => (
-                <option key={i} value={i}>
-                  {parsed.headers[i]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <ControlSection title={tr("lineplot.sec.groups")}>
-        {series.length === 0 ? (
-          <p style={{ margin: 0, fontSize: 11, color: "var(--text-faint)" }}>
-            {tr("lineplot.groups.empty")}
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <DiscretePaletteRow
-              value={vis.discretePalette || "okabe-ito"}
-              onChange={(next: string) => {
-                updVis({ discretePalette: next });
-                const names = series.map((s: Series) => s.name);
-                updVis({ groupColors: applyDiscretePalette(next, names) });
-              }}
-              names={series.map((s: Series) => s.name)}
-            />
-            {series.map((s: Series) => (
-              <div
-                key={s.name}
-                style={{ display: "flex", flexDirection: "column", gap: 4, paddingBottom: 2 }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <ColorInput
-                    value={s.color}
-                    onChange={(c) => setGroupColor(s.name, c)}
-                    label={s.name}
-                  />
-                  <span style={{ fontSize: 12, color: "var(--text)" }}>{s.name}</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 26 }}>
-                  <select
-                    className="dv-select"
-                    value={s.lineStyle}
-                    onChange={(e) =>
-                      setGroupLineStyle(s.name, e.target.value as Series["lineStyle"])
-                    }
-                    style={{ fontSize: 11, padding: "1px 3px" }}
-                    aria-label={tr("lineplot.groups.lineStyleAria", { name: s.name })}
-                  >
-                    {LINE_STYLES.map((ls) => (
-                      <option key={ls.value} value={ls.value}>
-                        {tr(LINE_STYLE_KEYS[ls.value])}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    className="dv-select"
-                    value={s.pointShape}
-                    onChange={(e) =>
-                      setGroupPointShape(s.name, e.target.value as Series["pointShape"])
-                    }
-                    style={{ fontSize: 11, padding: "1px 3px" }}
-                    aria-label={tr("lineplot.groups.pointShapeAria", { name: s.name })}
-                  >
-                    {POINT_SHAPES.map((ps) => (
-                      <option key={ps.value} value={ps.value}>
-                        {tr(POINT_SHAPE_KEYS[ps.value])}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setGroupPointFilled(s.name, !s.pointFilled)}
-                    title={tr(s.pointFilled ? "lineplot.groups.filled" : "lineplot.groups.open")}
-                    aria-pressed={s.pointFilled}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 3,
-                      background: "var(--surface)",
-                      border: "1px solid var(--border-strong)",
-                      borderRadius: 4,
-                      padding: "1px 5px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <LinePointPreview
-                      shape={s.pointShape}
-                      filled={s.pointFilled}
-                      color={s.color}
-                      size={12}
-                    />
-                  </button>
+              <div className="dv-panel">
+                <p className="dv-tile-title" style={{ margin: "0 0 8px" }}>
+                  {tr("lineplot.tile.variables")}
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <label style={{ display: "block" }}>
+                    <span className="dv-label">{tr("lineplot.var.xAxis")}</span>
+                    <select
+                      aria-label={tr("lineplot.var.xAxis")}
+                      value={xCol}
+                      onChange={(e) => setXCol(parseInt(e.target.value))}
+                      className="dv-select"
+                      style={{ width: "100%" }}
+                    >
+                      {numericCols.map((i: number) => (
+                        <option key={i} value={i}>
+                          {parsed.headers[i]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label style={{ display: "block" }}>
+                    <span className="dv-label">{tr("lineplot.var.yAxis")}</span>
+                    <select
+                      aria-label={tr("lineplot.var.yAxis")}
+                      value={yCol}
+                      onChange={(e) => setYCol(parseInt(e.target.value))}
+                      className="dv-select"
+                      style={{ width: "100%" }}
+                    >
+                      {numericCols.map((i: number) => (
+                        <option key={i} value={i}>
+                          {parsed.headers[i]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label style={{ display: "block" }}>
+                    <span className="dv-label">{tr("lineplot.var.groupBy")}</span>
+                    <select
+                      aria-label={tr("lineplot.var.groupBy")}
+                      value={groupCol == null ? "" : groupCol}
+                      onChange={(e) =>
+                        setGroupCol(e.target.value === "" ? null : parseInt(e.target.value))
+                      }
+                      className="dv-select"
+                      style={{ width: "100%" }}
+                    >
+                      <option value="">{tr("lineplot.var.singleLine")}</option>
+                      {categoricalCols.map((i: number) => (
+                        <option key={i} value={i}>
+                          {parsed.headers[i]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </ControlSection>
 
-      <ControlSection title={tr("lineplot.sec.errorBars")}>
-        <div className="dv-seg" role="group" aria-label={tr("lineplot.errorBars.aria")}>
-          {ERROR_KINDS.map((k) => (
-            <button
-              key={k.value}
-              type="button"
-              aria-pressed={errorType === k.value}
-              className={"dv-seg-btn" + (errorType === k.value ? " dv-seg-btn-active" : "")}
-              onClick={() => setErrorType(k.value)}
-            >
-              {ERROR_KIND_KEYS[k.value] ? tr(ERROR_KIND_KEYS[k.value]) : k.label}
-            </button>
-          ))}
-        </div>
-      </ControlSection>
+              <ControlSection title={tr("lineplot.sec.groups")}>
+                {series.length === 0 ? (
+                  <p style={{ margin: 0, fontSize: 11, color: "var(--text-faint)" }}>
+                    {tr("lineplot.groups.empty")}
+                  </p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <DiscretePaletteRow
+                      value={vis.discretePalette || "okabe-ito"}
+                      onChange={(next: string) => {
+                        updVis({ discretePalette: next });
+                        const names = series.map((s: Series) => s.name);
+                        updVis({ groupColors: applyDiscretePalette(next, names) });
+                      }}
+                      names={series.map((s: Series) => s.name)}
+                    />
+                    {series.map((s: Series) => (
+                      <div
+                        key={s.name}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                          paddingBottom: 2,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <ColorInput
+                            value={s.color}
+                            onChange={(c) => setGroupColor(s.name, c)}
+                            label={s.name}
+                          />
+                          <span style={{ fontSize: 12, color: "var(--text)" }}>{s.name}</span>
+                        </div>
+                        <div
+                          style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 26 }}
+                        >
+                          <select
+                            className="dv-select"
+                            value={s.lineStyle}
+                            onChange={(e) =>
+                              setGroupLineStyle(s.name, e.target.value as Series["lineStyle"])
+                            }
+                            style={{ fontSize: 11, padding: "1px 3px" }}
+                            aria-label={tr("lineplot.groups.lineStyleAria", { name: s.name })}
+                          >
+                            {LINE_STYLES.map((ls) => (
+                              <option key={ls.value} value={ls.value}>
+                                {tr(LINE_STYLE_KEYS[ls.value])}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            className="dv-select"
+                            value={s.pointShape}
+                            onChange={(e) =>
+                              setGroupPointShape(s.name, e.target.value as Series["pointShape"])
+                            }
+                            style={{ fontSize: 11, padding: "1px 3px" }}
+                            aria-label={tr("lineplot.groups.pointShapeAria", { name: s.name })}
+                          >
+                            {POINT_SHAPES.map((ps) => (
+                              <option key={ps.value} value={ps.value}>
+                                {tr(POINT_SHAPE_KEYS[ps.value])}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => setGroupPointFilled(s.name, !s.pointFilled)}
+                            title={tr(
+                              s.pointFilled ? "lineplot.groups.filled" : "lineplot.groups.open"
+                            )}
+                            aria-pressed={s.pointFilled}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                              background: "var(--surface)",
+                              border: "1px solid var(--border-strong)",
+                              borderRadius: 4,
+                              padding: "1px 5px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <LinePointPreview
+                              shape={s.pointShape}
+                              filled={s.pointFilled}
+                              color={s.color}
+                              size={12}
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ControlSection>
+            </>
+          ),
+        },
+        {
+          id: "style",
+          label: tr("lineplot.tab.style"),
+          content: (
+            <>
+              <ControlSection title={tr("lineplot.sec.errorBars")}>
+                <div className="dv-seg" role="group" aria-label={tr("lineplot.errorBars.aria")}>
+                  {ERROR_KINDS.map((k) => (
+                    <button
+                      key={k.value}
+                      type="button"
+                      aria-pressed={errorType === k.value}
+                      className={"dv-seg-btn" + (errorType === k.value ? " dv-seg-btn-active" : "")}
+                      onClick={() => setErrorType(k.value)}
+                    >
+                      {ERROR_KIND_KEYS[k.value] ? tr(ERROR_KIND_KEYS[k.value]) : k.label}
+                    </button>
+                  ))}
+                </div>
+              </ControlSection>
 
-      <ControlSection title={tr("lineplot.sec.axes")}>
-        <div style={{ display: "flex", gap: 6 }}>
-          <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">{tr("lineplot.axes.xMin")}</span>
-            <NumberInput
-              value={vis.xMin != null ? vis.xMin : autoAxis.xMin}
-              onChange={(e) => updVis({ xMin: round2(Number(e.target.value)) })}
-              step="0.1"
-              style={{ width: "100%" }}
-            />
-          </label>
-          <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">{tr("lineplot.axes.xMax")}</span>
-            <NumberInput
-              value={vis.xMax != null ? vis.xMax : autoAxis.xMax}
-              onChange={(e) => updVis({ xMax: round2(Number(e.target.value)) })}
-              step="0.1"
-              style={{ width: "100%" }}
-            />
-          </label>
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">{tr("lineplot.axes.yMin")}</span>
-            <NumberInput
-              value={vis.yMin != null ? vis.yMin : autoAxis.yMin}
-              onChange={(e) => updVis({ yMin: round2(Number(e.target.value)) })}
-              step="0.1"
-              style={{ width: "100%" }}
-            />
-          </label>
-          <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">{tr("lineplot.axes.yMax")}</span>
-            <NumberInput
-              value={vis.yMax != null ? vis.yMax : autoAxis.yMax}
-              onChange={(e) => updVis({ yMax: round2(Number(e.target.value)) })}
-              step="0.1"
-              style={{ width: "100%" }}
-            />
-          </label>
-        </div>
-        <SliderControl
-          label={tr("lineplot.axes.tickFontSize")}
-          value={vis.tickFontSize}
-          displayValue={vis.tickFontSize + " px"}
-          min={11}
-          max={22}
-          step={1}
-          onChange={sv("tickFontSize")}
-        />
-      </ControlSection>
+              <ControlSection title={tr("lineplot.sec.style")}>
+                <BaseStyleControls
+                  plotBg={vis.plotBg}
+                  onPlotBgChange={(v) => updVis({ plotBg: v })}
+                  showGrid={vis.showGrid}
+                  onShowGridChange={(v) => updVis({ showGrid: v })}
+                  gridColor={vis.gridColor}
+                  onGridColorChange={(v) => updVis({ gridColor: v })}
+                />
+                <SliderControl
+                  label={tr("lineplot.style.lineWidth")}
+                  value={vis.lineWidth}
+                  min={0.5}
+                  max={5}
+                  step={0.5}
+                  onChange={sv("lineWidth")}
+                />
+                <SliderControl
+                  label={tr("lineplot.style.pointRadius")}
+                  value={vis.pointRadius}
+                  min={0}
+                  max={10}
+                  step={0.5}
+                  onChange={sv("pointRadius")}
+                />
+                <SliderControl
+                  label={tr("lineplot.style.errorCapWidth")}
+                  value={vis.errorCapWidth}
+                  min={0}
+                  max={20}
+                  step={1}
+                  onChange={sv("errorCapWidth")}
+                />
+              </ControlSection>
+            </>
+          ),
+        },
+        {
+          id: "axes",
+          label: tr("lineplot.tab.axes"),
+          content: (
+            <>
+              <ControlSection title={tr("lineplot.sec.axes")}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <label style={{ flex: 1, display: "block" }}>
+                    <span className="dv-label">{tr("lineplot.axes.xMin")}</span>
+                    <NumberInput
+                      aria-label={tr("lineplot.axes.xMin")}
+                      value={vis.xMin != null ? vis.xMin : autoAxis.xMin}
+                      onChange={(e) => updVis({ xMin: round2(Number(e.target.value)) })}
+                      step="0.1"
+                      style={{ width: "100%" }}
+                    />
+                  </label>
+                  <label style={{ flex: 1, display: "block" }}>
+                    <span className="dv-label">{tr("lineplot.axes.xMax")}</span>
+                    <NumberInput
+                      aria-label={tr("lineplot.axes.xMax")}
+                      value={vis.xMax != null ? vis.xMax : autoAxis.xMax}
+                      onChange={(e) => updVis({ xMax: round2(Number(e.target.value)) })}
+                      step="0.1"
+                      style={{ width: "100%" }}
+                    />
+                  </label>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <label style={{ flex: 1, display: "block" }}>
+                    <span className="dv-label">{tr("lineplot.axes.yMin")}</span>
+                    <NumberInput
+                      aria-label={tr("lineplot.axes.yMin")}
+                      value={vis.yMin != null ? vis.yMin : autoAxis.yMin}
+                      onChange={(e) => updVis({ yMin: round2(Number(e.target.value)) })}
+                      step="0.1"
+                      style={{ width: "100%" }}
+                    />
+                  </label>
+                  <label style={{ flex: 1, display: "block" }}>
+                    <span className="dv-label">{tr("lineplot.axes.yMax")}</span>
+                    <NumberInput
+                      aria-label={tr("lineplot.axes.yMax")}
+                      value={vis.yMax != null ? vis.yMax : autoAxis.yMax}
+                      onChange={(e) => updVis({ yMax: round2(Number(e.target.value)) })}
+                      step="0.1"
+                      style={{ width: "100%" }}
+                    />
+                  </label>
+                </div>
+                <SliderControl
+                  label={tr("lineplot.axes.tickFontSize")}
+                  value={vis.tickFontSize}
+                  displayValue={vis.tickFontSize + " px"}
+                  min={11}
+                  max={22}
+                  step={1}
+                  onChange={sv("tickFontSize")}
+                />
+              </ControlSection>
 
-      <ControlSection title={tr("lineplot.sec.labels")}>
-        <label style={{ display: "block" }}>
-          <span className="dv-label">{tr("lineplot.labels.title")}</span>
-          <input
-            value={vis.plotTitle}
-            onChange={(e) => updVis({ plotTitle: e.target.value })}
-            className="dv-input"
-            style={{ width: "100%" }}
-          />
-        </label>
-        <label style={{ display: "block" }}>
-          <span className="dv-label">{tr("lineplot.labels.subtitle")}</span>
-          <input
-            value={vis.plotSubtitle}
-            onChange={(e) => updVis({ plotSubtitle: e.target.value })}
-            className="dv-input"
-            style={{ width: "100%" }}
-          />
-        </label>
-        <label style={{ display: "block" }}>
-          <span className="dv-label">{tr("lineplot.labels.xLabel")}</span>
-          <input
-            value={vis.xLabel}
-            onChange={(e) => updVis({ xLabel: e.target.value })}
-            className="dv-input"
-            style={{ width: "100%" }}
-          />
-        </label>
-        <label style={{ display: "block" }}>
-          <span className="dv-label">{tr("lineplot.labels.yLabel")}</span>
-          <input
-            value={vis.yLabel}
-            onChange={(e) => updVis({ yLabel: e.target.value })}
-            className="dv-input"
-            style={{ width: "100%" }}
-          />
-        </label>
-      </ControlSection>
-
-      <ControlSection title={tr("lineplot.sec.style")}>
-        <BaseStyleControls
-          plotBg={vis.plotBg}
-          onPlotBgChange={(v) => updVis({ plotBg: v })}
-          showGrid={vis.showGrid}
-          onShowGridChange={(v) => updVis({ showGrid: v })}
-          gridColor={vis.gridColor}
-          onGridColorChange={(v) => updVis({ gridColor: v })}
-        />
-        <SliderControl
-          label={tr("lineplot.style.lineWidth")}
-          value={vis.lineWidth}
-          min={0.5}
-          max={5}
-          step={0.5}
-          onChange={sv("lineWidth")}
-        />
-        <SliderControl
-          label={tr("lineplot.style.pointRadius")}
-          value={vis.pointRadius}
-          min={0}
-          max={10}
-          step={0.5}
-          onChange={sv("pointRadius")}
-        />
-        <SliderControl
-          label={tr("lineplot.style.errorCapWidth")}
-          value={vis.errorCapWidth}
-          min={0}
-          max={20}
-          step={1}
-          onChange={sv("errorCapWidth")}
-        />
-      </ControlSection>
-    </PlotSidebar>
+              <ControlSection title={tr("lineplot.sec.labels")}>
+                <label style={{ display: "block" }}>
+                  <span className="dv-label">{tr("lineplot.labels.title")}</span>
+                  <input
+                    aria-label={tr("lineplot.labels.title")}
+                    value={vis.plotTitle}
+                    onChange={(e) => updVis({ plotTitle: e.target.value })}
+                    className="dv-input"
+                    style={{ width: "100%" }}
+                  />
+                </label>
+                <label style={{ display: "block" }}>
+                  <span className="dv-label">{tr("lineplot.labels.subtitle")}</span>
+                  <input
+                    aria-label={tr("lineplot.labels.subtitle")}
+                    value={vis.plotSubtitle}
+                    onChange={(e) => updVis({ plotSubtitle: e.target.value })}
+                    className="dv-input"
+                    style={{ width: "100%" }}
+                  />
+                </label>
+                <label style={{ display: "block" }}>
+                  <span className="dv-label">{tr("lineplot.labels.xLabel")}</span>
+                  <input
+                    aria-label={tr("lineplot.labels.xLabel")}
+                    value={vis.xLabel}
+                    onChange={(e) => updVis({ xLabel: e.target.value })}
+                    className="dv-input"
+                    style={{ width: "100%" }}
+                  />
+                </label>
+                <label style={{ display: "block" }}>
+                  <span className="dv-label">{tr("lineplot.labels.yLabel")}</span>
+                  <input
+                    aria-label={tr("lineplot.labels.yLabel")}
+                    value={vis.yLabel}
+                    onChange={(e) => updVis({ yLabel: e.target.value })}
+                    className="dv-input"
+                    style={{ width: "100%" }}
+                  />
+                </label>
+              </ControlSection>
+            </>
+          ),
+        },
+      ]}
+    />
   );
 }

@@ -25,17 +25,28 @@ test("configure: references, calibrator and QC are detected", async ({ page }) =
 test("plot: one facet per target, tests on ΔCt, y-scale and letters", async ({ page }) => {
   await loadExample(page);
   await page.getByTestId("step-plot").click();
+  // The statistics column starts folded into a rail.
+  await page.getByRole("button", { name: "Show Statistics" }).click();
   await expect(page.locator("g#facet-RD29A")).toBeVisible();
   await expect(page.locator("g#facet-WRKY33")).toBeVisible();
-  await expect(page.getByTestId("qpcr-why-dct")).toContainText(
-    "Do not run t-tests or ANOVA on 2^−ΔΔCt values."
-  );
+  // The ΔCt rationale is collapsed until asked for.
+  const whyDct = page.getByTestId("qpcr-why-dct");
+  const dontTest = whyDct.getByText("Do not run t-tests or ANOVA on 2^−ΔΔCt values.");
+  await expect(dontTest).toBeHidden();
+  await whyDct.getByText("Why the tests use ΔCt").click();
+  await expect(dontTest).toBeVisible();
   await expect(page.getByTestId("qpcr-result-RD29A")).toContainText("Welch's ANOVA on ΔCt");
+  // One collapsible block per gene: the first is open, the others start closed.
+  const wrky = page.getByTestId("qpcr-gene-WRKY33").getByRole("button", { name: "WRKY33" });
+  await expect(wrky).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByTestId("qpcr-result-WRKY33")).toHaveCount(0);
+  await wrky.click();
+  await expect(page.getByTestId("qpcr-result-WRKY33")).toBeVisible();
   await expect(page.locator("g#facet-RD29A g#significance-brackets > g")).not.toHaveCount(0);
   await page.getByRole("button", { name: "−ΔΔCt", exact: true }).click();
   await expect(page.locator("g#facet-RD29A")).toContainText("−ΔΔCt");
   await page
-    .getByTestId("qpcr-stats")
+    .getByTestId("qpcr-display")
     .getByRole("button", { name: "Letters", exact: true })
     .click();
   await expect(page.locator("g#facet-RD29A g#cld-annotations text")).toHaveCount(3);
@@ -72,7 +83,7 @@ test("calibrator column hidden: vs-control stars, letters unavailable", async ({
   await expect(page.locator("#reference-line-RD29A")).toHaveCount(1);
   await expect(page.locator("g#footnote")).toContainText("vs Control (not shown)");
   await expect(
-    page.getByTestId("qpcr-stats").getByRole("button", { name: "Letters", exact: true })
+    page.getByTestId("qpcr-display").getByRole("button", { name: "Letters", exact: true })
   ).toHaveCount(0);
 });
 
@@ -95,7 +106,7 @@ test("display options: boxes, horizontal, fixed axis range and title", async ({ 
   await expect(page.locator("g#error-bars-RD29A")).toHaveCount(0);
   await page.getByRole("button", { name: "Horizontal", exact: true }).click();
   await expect(page.locator("g#axis-x-RD29A text[text-anchor=end]")).toHaveCount(3);
-  await page.getByRole("button", { name: "Axes & labels" }).click();
+  await page.getByRole("tab", { name: "Axes" }).click();
   await page.getByTestId("qpcr-ymin").fill("0.5");
   await page.getByTestId("qpcr-ymax").fill("64");
   await page.getByTestId("qpcr-ylabel").fill("Relative level");

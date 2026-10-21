@@ -14,10 +14,10 @@ import {
   DiscretePaletteRow,
   NumberInput,
   OnOffToggle,
-  PlotSidebar,
   SegToggle,
   SliderControl,
   resolveDiscretePalette,
+  ControlTabs,
 } from "../_shell";
 import { TIME_UNITS, convertTime } from "./helpers";
 import type { Condition, PlotControlsProps } from "./helpers";
@@ -69,413 +69,469 @@ export function PlotControls({
   const unitLabel = (TIME_UNITS.find((u) => u.key === dUnit) || { key: dUnit }).key;
 
   return (
-    <PlotSidebar>
-      {/* Actions tile */}
-      <ActionsPanel
-        onDownloadSvg={() => {
-          plotPanelRef.current?.downloadMain();
-        }}
-        onDownloadPng={() => {
-          plotPanelRef.current?.downloadMainPng();
-        }}
-        onReset={resetAll}
-        extraDownloads={[
-          {
-            label: "CSV",
-            title: tr("aequorin.ctrl.csvTitle"),
-            onClick: () => downloadCalibrated(),
-          },
-        ]}
-      />
+    <ControlTabs
+      tool="aequorin"
+      tabs={[
+        {
+          id: "conditions",
+          label: tr("aequorin.tab.conditions"),
+          content: (
+            <>
+              {/* Actions tile */}
+              <ActionsPanel
+                onDownloadSvg={() => {
+                  plotPanelRef.current?.downloadMain();
+                }}
+                onDownloadPng={() => {
+                  plotPanelRef.current?.downloadMainPng();
+                }}
+                onReset={resetAll}
+                extraDownloads={[
+                  {
+                    label: "CSV",
+                    title: tr("aequorin.ctrl.csvTitle"),
+                    onClick: () => downloadCalibrated(),
+                  },
+                  ...(vis.showInset
+                    ? [
+                        {
+                          label: tr("aequorin.ctrl.sumsCsv"),
+                          title: tr("aequorin.ctrl.sumsCsvTitle"),
+                          onClick: () => plotPanelRef.current?.downloadSums(),
+                        },
+                      ]
+                    : []),
+                ]}
+              />
 
-      {/* Conditions */}
-      <ControlSection title={tr("aequorin.ctrl.conditions")} defaultOpen>
-        <DiscretePaletteRow
-          value={vis.discretePalette || "okabe-ito"}
-          onChange={(next: string) => {
-            updVis({ discretePalette: next });
-            // Clobber every condition's colour with the resolved palette.
-            // Hand-edits via the per-condition ColorInput are intentionally
-            // overwritten — predictable + undoable by re-picking.
-            const seed = resolveDiscretePalette(next, conditions.length);
-            setConditions(
-              conditions.map((c: Condition, i: number) => ({
-                ...c,
-                color: seed[i % Math.max(1, seed.length)] || c.color,
-              }))
-            );
-          }}
-          names={conditions.map((c: Condition) => c.prefix)}
-        />
-        <ConditionEditor conditions={conditions} onChange={setConditions} />
-      </ControlSection>
-
-      {/* Axes */}
-      <ControlSection title={tr("aequorin.ctrl.axes")}>
-        <div style={{ display: "flex", gap: 6 }}>
-          <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">{tr("aequorin.ctrl.xStart", { unit: unitLabel })}</span>
-            <NumberInput
-              value={displayXStart}
-              onChange={(e) => updVis({ xStart: Number(e.target.value) / tsConvSafe })}
-              style={{ width: "100%" }}
-              step="any"
-            />
-          </label>
-          <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">{tr("aequorin.ctrl.xEnd", { unit: unitLabel })}</span>
-            <NumberInput
-              value={displayXEnd}
-              onChange={(e) => updVis({ xEnd: Number(e.target.value) / tsConvSafe })}
-              style={{ width: "100%" }}
-              step="any"
-            />
-          </label>
-        </div>
-        <div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
-          <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">{tr("aequorin.ctrl.yMin")}</span>
-            <NumberInput
-              value={vis.yMin}
-              onChange={(e) => updVis({ yMin: Number(e.target.value), autoYRange: false })}
-              style={{ width: "100%" }}
-              step="0.1"
-            />
-          </label>
-          <label style={{ flex: 1, display: "block" }}>
-            <span className="dv-label">{tr("aequorin.ctrl.yMax")}</span>
-            <NumberInput
-              value={vis.yMax}
-              onChange={(e) => updVis({ yMax: Number(e.target.value), autoYRange: false })}
-              style={{ width: "100%" }}
-              step="0.1"
-            />
-          </label>
-          <button
-            type="button"
-            className="dv-btn dv-btn-secondary"
-            onClick={() => updVis({ autoYRange: true })}
-            disabled={vis.autoYRange !== false}
-            title={
-              vis.autoYRange === false
-                ? tr("aequorin.ctrl.autoOnTitle")
-                : tr("aequorin.ctrl.autoOffTitle")
-            }
-            style={{ height: 28, padding: "0 10px", whiteSpace: "nowrap" }}
-          >
-            {vis.autoYRange === false ? tr("aequorin.ctrl.auto") : tr("aequorin.ctrl.autoOn")}
-          </button>
-        </div>
-        <SliderControl
-          label={tr("aequorin.ctrl.smooth")}
-          value={vis.smoothWidth}
-          displayValue={tr("aequorin.ctrl.smoothValue", { n: vis.smoothWidth })}
-          min={0}
-          max={20}
-          step={1}
-          onChange={(v) => updVis({ smoothWidth: v })}
-        />
-        <SliderControl
-          label={tr("aequorin.ctrl.tickFontSize")}
-          value={vis.tickFontSize}
-          displayValue={vis.tickFontSize + " px"}
-          min={11}
-          max={22}
-          step={1}
-          onChange={(v) => updVis({ tickFontSize: v })}
-        />
-        <label style={{ display: "block" }}>
-          <span className="dv-label">{tr("aequorin.ctrl.displayUnit")}</span>
-          <select
-            value={vis.displayUnit}
-            onChange={(e) => updVis({ displayUnit: e.target.value })}
-            className="dv-select"
-            style={{ width: "100%" }}
-          >
-            {TIME_UNITS.map((u) => (
-              <option key={u.key} value={u.key}>
-                {u.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </ControlSection>
-
-      {/* Labels */}
-      <ControlSection title={tr("aequorin.ctrl.labels")}>
-        <label style={{ display: "block" }}>
-          <span className="dv-label">{tr("aequorin.ctrl.title")}</span>
-          <input
-            value={vis.plotTitle}
-            onChange={(e) => updVis({ plotTitle: e.target.value })}
-            className="dv-input-num"
-            style={{ width: "100%", textAlign: "left" }}
-          />
-        </label>
-        <label style={{ display: "block" }}>
-          <span className="dv-label">{tr("aequorin.ctrl.subtitle")}</span>
-          <input
-            value={vis.plotSubtitle}
-            onChange={(e) => updVis({ plotSubtitle: e.target.value })}
-            className="dv-input-num"
-            style={{ width: "100%", textAlign: "left" }}
-          />
-        </label>
-      </ControlSection>
-
-      {/* Style controls */}
-      <ControlSection title={tr("aequorin.ctrl.style")}>
-        <BaseStyleControls
-          plotBg={vis.plotBg}
-          onPlotBgChange={(v) => updVis({ plotBg: v })}
-          showGrid={vis.showGrid}
-          onShowGridChange={(v) => updVis({ showGrid: v })}
-          gridColor={vis.gridColor}
-          onGridColorChange={(v) => updVis({ gridColor: v })}
-        />
-        <SliderControl
-          label={tr("aequorin.ctrl.lineWidth")}
-          value={vis.lineWidth}
-          min={0.5}
-          max={5}
-          step={0.5}
-          onChange={(v) => updVis({ lineWidth: v })}
-        />
-        <SliderControl
-          label={tr("aequorin.ctrl.sdOpacity")}
-          value={vis.ribbonOpacity}
-          displayValue={vis.ribbonOpacity.toFixed(2)}
-          min={0}
-          max={1}
-          step={0.05}
-          onChange={(v) => updVis({ ribbonOpacity: v })}
-        />
-        <SliderControl
-          label={tr("aequorin.ctrl.plotHeight")}
-          value={vis.plotHeight}
-          displayValue={`${(vis.plotHeight / 800).toFixed(2)} : 1`}
-          min={250}
-          max={800}
-          step={10}
-          onChange={(v) => updVis({ plotHeight: v })}
-        />
-      </ControlSection>
-
-      {/* Barplot controls */}
-      <ControlSection
-        title={tr("aequorin.ctrl.summaryBarplot")}
-        headerRight={
-          <div
-            style={{
-              display: "flex",
-              borderRadius: 4,
-              overflow: "hidden",
-              border: "1px solid var(--border-strong)",
-            }}
-            title={tr("aequorin.ctrl.summaryBarplotTitle")}
-          >
-            {(["off", "on"] as const).map((mode) => {
-              const active = mode === "on" ? vis.showInset : !vis.showInset;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => updVis({ showInset: mode === "on" })}
-                  style={{
-                    padding: "2px 8px",
-                    fontSize: 10,
-                    fontWeight: active ? 700 : 400,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    border: "none",
-                    background: active ? "var(--accent-primary)" : "var(--surface)",
-                    color: active ? "var(--on-accent)" : "var(--text-muted)",
-                    transition: "background 120ms ease, color 120ms ease",
+              {/* Conditions */}
+              <ControlSection title={tr("aequorin.ctrl.conditions")} defaultOpen>
+                <DiscretePaletteRow
+                  value={vis.discretePalette || "okabe-ito"}
+                  onChange={(next: string) => {
+                    updVis({ discretePalette: next });
+                    // Clobber every condition's colour with the resolved palette.
+                    // Hand-edits via the per-condition ColorInput are intentionally
+                    // overwritten — predictable + undoable by re-picking.
+                    const seed = resolveDiscretePalette(next, conditions.length);
+                    setConditions(
+                      conditions.map((c: Condition, i: number) => ({
+                        ...c,
+                        color: seed[i % Math.max(1, seed.length)] || c.color,
+                      }))
+                    );
                   }}
-                >
-                  {mode === "off" ? tr("aequorin.ctrl.off") : tr("aequorin.ctrl.on")}
-                </button>
-              );
-            })}
-          </div>
-        }
-      >
-        {vis.showInset && (
-          <>
-            <SubHeading>{tr("aequorin.ctrl.layout")}</SubHeading>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={{ display: "block" }}>
-                <span className="dv-label">{tr("aequorin.ctrl.yMin")}</span>
-                <input
-                  value={vis.insetYMinCustom}
-                  onChange={(e) => updVis({ insetYMinCustom: e.target.value })}
-                  className="dv-input-num"
-                  style={{ width: "100%", textAlign: "left" }}
-                  placeholder={tr("aequorin.ctrl.autoPlaceholder")}
+                  names={conditions.map((c: Condition) => c.prefix)}
                 />
-              </label>
-              <label style={{ display: "block" }}>
-                <span className="dv-label">{tr("aequorin.ctrl.yMax")}</span>
-                <input
-                  value={vis.insetYMaxCustom}
-                  onChange={(e) => updVis({ insetYMaxCustom: e.target.value })}
-                  className="dv-input-num"
-                  style={{ width: "100%", textAlign: "left" }}
-                  placeholder={tr("aequorin.ctrl.autoPlaceholder")}
+                <ConditionEditor conditions={conditions} onChange={setConditions} />
+              </ControlSection>
+            </>
+          ),
+        },
+        {
+          id: "style",
+          label: tr("aequorin.tab.style"),
+          content: (
+            <>
+              {/* Style controls */}
+              <ControlSection title={tr("aequorin.ctrl.style")}>
+                <BaseStyleControls
+                  plotBg={vis.plotBg}
+                  onPlotBgChange={(v) => updVis({ plotBg: v })}
+                  showGrid={vis.showGrid}
+                  onShowGridChange={(v) => updVis({ showGrid: v })}
+                  gridColor={vis.gridColor}
+                  onGridColorChange={(v) => updVis({ gridColor: v })}
                 />
-              </label>
-              <div>
-                <span className="dv-label">{tr("aequorin.ctrl.grid")}</span>
-                <OnOffToggle
-                  value={vis.insetShowGrid}
-                  onChange={(v) => updVis({ insetShowGrid: v })}
-                  ariaLabel={tr("aequorin.ctrl.grid")}
-                />
-              </div>
-              {vis.insetShowGrid && (
-                <label style={{ display: "block" }}>
-                  <span className="dv-label">{tr("aequorin.ctrl.gridColor")}</span>
-                  <ColorInput
-                    value={vis.insetGridColor}
-                    onChange={(v) => updVis({ insetGridColor: v })}
-                    size={24}
-                    label={tr("aequorin.ctrl.gridColor")}
-                  />
-                </label>
-              )}
-              <SliderControl
-                label={tr("aequorin.ctrl.xLabelAngle")}
-                value={vis.insetXLabelAngle}
-                displayValue={`${vis.insetXLabelAngle}°`}
-                min={-90}
-                max={0}
-                step={5}
-                onChange={(v) => updVis({ insetXLabelAngle: v })}
-              />
-            </div>
-
-            <SliderControl
-              label={tr("aequorin.ctrl.barWidth")}
-              value={vis.insetBarWidth}
-              displayValue={`${vis.insetBarWidth}%`}
-              min={20}
-              max={100}
-              step={5}
-              onChange={(v) => updVis({ insetBarWidth: v })}
-            />
-            <SliderControl
-              label={tr("aequorin.ctrl.barGap")}
-              value={vis.insetBarGap}
-              displayValue={`${vis.insetBarGap}%`}
-              min={0}
-              max={80}
-              step={5}
-              onChange={(v) => updVis({ insetBarGap: v })}
-            />
-            <SliderControl
-              label={tr("aequorin.ctrl.barFillOpacity")}
-              value={vis.insetFillOpacity}
-              displayValue={vis.insetFillOpacity.toFixed(2)}
-              min={0}
-              max={1}
-              step={0.05}
-              onChange={(v) => updVis({ insetFillOpacity: v })}
-            />
-            <div>
-              <span className="dv-label">{tr("aequorin.ctrl.barOutline")}</span>
-              <OnOffToggle
-                value={vis.insetShowBarOutline}
-                onChange={(v) => updVis({ insetShowBarOutline: v })}
-                ariaLabel={tr("aequorin.ctrl.barOutline")}
-              />
-            </div>
-            {vis.insetShowBarOutline && (
-              <>
                 <SliderControl
-                  label={tr("aequorin.ctrl.outlineWidth")}
-                  value={vis.insetBarStrokeWidth}
-                  displayValue={vis.insetBarStrokeWidth.toFixed(1)}
-                  min={0.2}
-                  max={4}
-                  step={0.1}
-                  onChange={(v) => updVis({ insetBarStrokeWidth: v })}
+                  label={tr("aequorin.ctrl.lineWidth")}
+                  value={vis.lineWidth}
+                  min={0.5}
+                  max={5}
+                  step={0.5}
+                  onChange={(v) => updVis({ lineWidth: v })}
                 />
-                <label style={{ display: "block" }}>
-                  <span className="dv-label">{tr("aequorin.ctrl.outlineColor")}</span>
-                  <ColorInput
-                    value={vis.insetBarOutlineColor}
-                    onChange={(v) => updVis({ insetBarOutlineColor: v })}
-                    size={24}
-                    label={tr("aequorin.ctrl.outlineColor")}
-                  />
-                </label>
-              </>
-            )}
-
-            <SubHeading>{tr("aequorin.ctrl.errorBarsHead")}</SubHeading>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div>
-                <span className="dv-label">{tr("aequorin.ctrl.type")}</span>
-                <SegToggle<string>
-                  ariaLabel={tr("aequorin.ctrl.errorBars")}
-                  value={vis.insetErrorType}
-                  onChange={(v) => updVis({ insetErrorType: v })}
-                  options={[
-                    { value: "none", label: tr("aequorin.ctrl.none") },
-                    { value: "sem", label: "SEM" },
-                    { value: "sd", label: "SD" },
-                    { value: "ci95", label: "95% CI" },
-                  ]}
-                />
-              </div>
-              {vis.insetErrorType !== "none" && (
                 <SliderControl
-                  label={tr("aequorin.ctrl.errorStrokeWidth")}
-                  value={vis.insetErrorStrokeWidth}
-                  min={0.2}
-                  max={3}
-                  step={0.1}
-                  onChange={(v) => updVis({ insetErrorStrokeWidth: v })}
+                  label={tr("aequorin.ctrl.sdOpacity")}
+                  value={vis.ribbonOpacity}
+                  displayValue={vis.ribbonOpacity.toFixed(2)}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  onChange={(v) => updVis({ ribbonOpacity: v })}
                 />
-              )}
-            </div>
-
-            <SubHeading>{tr("aequorin.ctrl.points")}</SubHeading>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div>
-                <span className="dv-label">{tr("aequorin.ctrl.show")}</span>
-                <OnOffToggle
-                  value={vis.insetShowPoints}
-                  onChange={(v) => updVis({ insetShowPoints: v })}
-                  ariaLabel={tr("aequorin.ctrl.showPoints")}
+                <SliderControl
+                  label={tr("aequorin.ctrl.plotHeight")}
+                  value={vis.plotHeight}
+                  displayValue={`${(vis.plotHeight / 800).toFixed(2)} : 1`}
+                  min={250}
+                  max={800}
+                  step={10}
+                  onChange={(v) => updVis({ plotHeight: v })}
                 />
-              </div>
-              {vis.insetShowPoints && (
-                <>
-                  <label style={{ display: "block" }}>
-                    <span className="dv-label">{tr("aequorin.ctrl.color")}</span>
-                    <ColorInput
-                      value={vis.insetPointColor}
-                      onChange={(v) => updVis({ insetPointColor: v })}
-                      size={24}
-                      label={tr("aequorin.ctrl.color")}
+              </ControlSection>
+            </>
+          ),
+        },
+        {
+          id: "axes",
+          label: tr("aequorin.tab.axes"),
+          content: (
+            <>
+              {/* Axes */}
+              <ControlSection title={tr("aequorin.ctrl.axes")}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <label style={{ flex: 1, display: "block" }}>
+                    <span className="dv-label">
+                      {tr("aequorin.ctrl.xStart", { unit: unitLabel })}
+                    </span>
+                    <NumberInput
+                      aria-label={tr("aequorin.ctrl.xStart", { unit: unitLabel })}
+                      value={displayXStart}
+                      onChange={(e) => updVis({ xStart: Number(e.target.value) / tsConvSafe })}
+                      style={{ width: "100%" }}
+                      step="any"
                     />
                   </label>
-                  <SliderControl
-                    label={tr("aequorin.ctrl.size")}
-                    value={vis.insetPointSize}
-                    displayValue={vis.insetPointSize}
-                    min={1}
-                    max={6}
-                    step={0.5}
-                    onChange={(v) => updVis({ insetPointSize: v })}
+                  <label style={{ flex: 1, display: "block" }}>
+                    <span className="dv-label">
+                      {tr("aequorin.ctrl.xEnd", { unit: unitLabel })}
+                    </span>
+                    <NumberInput
+                      aria-label={tr("aequorin.ctrl.xEnd", { unit: unitLabel })}
+                      value={displayXEnd}
+                      onChange={(e) => updVis({ xEnd: Number(e.target.value) / tsConvSafe })}
+                      style={{ width: "100%" }}
+                      step="any"
+                    />
+                  </label>
+                </div>
+                <div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
+                  <label style={{ flex: 1, display: "block" }}>
+                    <span className="dv-label">{tr("aequorin.ctrl.yMin")}</span>
+                    <NumberInput
+                      aria-label={tr("aequorin.ctrl.yMin")}
+                      value={vis.yMin}
+                      onChange={(e) => updVis({ yMin: Number(e.target.value), autoYRange: false })}
+                      style={{ width: "100%" }}
+                      step="0.1"
+                    />
+                  </label>
+                  <label style={{ flex: 1, display: "block" }}>
+                    <span className="dv-label">{tr("aequorin.ctrl.yMax")}</span>
+                    <NumberInput
+                      aria-label={tr("aequorin.ctrl.yMax")}
+                      value={vis.yMax}
+                      onChange={(e) => updVis({ yMax: Number(e.target.value), autoYRange: false })}
+                      style={{ width: "100%" }}
+                      step="0.1"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="dv-btn dv-btn-secondary"
+                    onClick={() => updVis({ autoYRange: true })}
+                    disabled={vis.autoYRange !== false}
+                    title={
+                      vis.autoYRange === false
+                        ? tr("aequorin.ctrl.autoOnTitle")
+                        : tr("aequorin.ctrl.autoOffTitle")
+                    }
+                    style={{ height: 28, padding: "0 10px", whiteSpace: "nowrap" }}
+                  >
+                    {vis.autoYRange === false
+                      ? tr("aequorin.ctrl.auto")
+                      : tr("aequorin.ctrl.autoOn")}
+                  </button>
+                </div>
+                <SliderControl
+                  label={tr("aequorin.ctrl.smooth")}
+                  value={vis.smoothWidth}
+                  displayValue={tr("aequorin.ctrl.smoothValue", { n: vis.smoothWidth })}
+                  min={0}
+                  max={20}
+                  step={1}
+                  onChange={(v) => updVis({ smoothWidth: v })}
+                />
+                <SliderControl
+                  label={tr("aequorin.ctrl.tickFontSize")}
+                  value={vis.tickFontSize}
+                  displayValue={vis.tickFontSize + " px"}
+                  min={11}
+                  max={22}
+                  step={1}
+                  onChange={(v) => updVis({ tickFontSize: v })}
+                />
+                <label style={{ display: "block" }}>
+                  <span className="dv-label">{tr("aequorin.ctrl.displayUnit")}</span>
+                  <select
+                    aria-label={tr("aequorin.ctrl.displayUnit")}
+                    value={vis.displayUnit}
+                    onChange={(e) => updVis({ displayUnit: e.target.value })}
+                    className="dv-select"
+                    style={{ width: "100%" }}
+                  >
+                    {TIME_UNITS.map((u) => (
+                      <option key={u.key} value={u.key}>
+                        {u.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </ControlSection>
+
+              {/* Labels */}
+              <ControlSection title={tr("aequorin.ctrl.labels")}>
+                <label style={{ display: "block" }}>
+                  <span className="dv-label">{tr("aequorin.ctrl.title")}</span>
+                  <input
+                    aria-label={tr("aequorin.ctrl.title")}
+                    value={vis.plotTitle}
+                    onChange={(e) => updVis({ plotTitle: e.target.value })}
+                    className="dv-input-num"
+                    style={{ width: "100%", textAlign: "left" }}
                   />
-                </>
-              )}
-            </div>
-          </>
-        )}
-      </ControlSection>
-    </PlotSidebar>
+                </label>
+                <label style={{ display: "block" }}>
+                  <span className="dv-label">{tr("aequorin.ctrl.subtitle")}</span>
+                  <input
+                    aria-label={tr("aequorin.ctrl.subtitle")}
+                    value={vis.plotSubtitle}
+                    onChange={(e) => updVis({ plotSubtitle: e.target.value })}
+                    className="dv-input-num"
+                    style={{ width: "100%", textAlign: "left" }}
+                  />
+                </label>
+              </ControlSection>
+            </>
+          ),
+        },
+        {
+          id: "barplot",
+          label: tr("aequorin.tab.barplot"),
+          content: (
+            <>
+              {/* Barplot controls */}
+              <ControlSection
+                title={tr("aequorin.ctrl.summaryBarplot")}
+                headerRight={
+                  <div
+                    style={{
+                      display: "flex",
+                      borderRadius: 4,
+                      overflow: "hidden",
+                      border: "1px solid var(--border-strong)",
+                    }}
+                    title={tr("aequorin.ctrl.summaryBarplotTitle")}
+                  >
+                    {(["off", "on"] as const).map((mode) => {
+                      const active = mode === "on" ? vis.showInset : !vis.showInset;
+                      return (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => updVis({ showInset: mode === "on" })}
+                          style={{
+                            padding: "2px 8px",
+                            fontSize: 10,
+                            fontWeight: active ? 700 : 400,
+                            fontFamily: "inherit",
+                            cursor: "pointer",
+                            border: "none",
+                            background: active ? "var(--seg-selected-bg)" : "var(--surface)",
+                            color: active ? "var(--seg-selected-text)" : "var(--text-muted)",
+                            transition: "background 120ms ease, color 120ms ease",
+                          }}
+                        >
+                          {mode === "off" ? tr("aequorin.ctrl.off") : tr("aequorin.ctrl.on")}
+                        </button>
+                      );
+                    })}
+                  </div>
+                }
+              >
+                {vis.showInset && (
+                  <>
+                    <SubHeading>{tr("aequorin.ctrl.layout")}</SubHeading>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <label style={{ display: "block" }}>
+                        <span className="dv-label">{tr("aequorin.ctrl.yMin")}</span>
+                        <input
+                          aria-label={tr("aequorin.ctrl.yMin")}
+                          value={vis.insetYMinCustom}
+                          onChange={(e) => updVis({ insetYMinCustom: e.target.value })}
+                          className="dv-input-num"
+                          style={{ width: "100%", textAlign: "left" }}
+                          placeholder={tr("aequorin.ctrl.autoPlaceholder")}
+                        />
+                      </label>
+                      <label style={{ display: "block" }}>
+                        <span className="dv-label">{tr("aequorin.ctrl.yMax")}</span>
+                        <input
+                          aria-label={tr("aequorin.ctrl.yMax")}
+                          value={vis.insetYMaxCustom}
+                          onChange={(e) => updVis({ insetYMaxCustom: e.target.value })}
+                          className="dv-input-num"
+                          style={{ width: "100%", textAlign: "left" }}
+                          placeholder={tr("aequorin.ctrl.autoPlaceholder")}
+                        />
+                      </label>
+                      <div>
+                        <span className="dv-label">{tr("aequorin.ctrl.grid")}</span>
+                        <OnOffToggle
+                          value={vis.insetShowGrid}
+                          onChange={(v) => updVis({ insetShowGrid: v })}
+                          ariaLabel={tr("aequorin.ctrl.grid")}
+                        />
+                      </div>
+                      {vis.insetShowGrid && (
+                        <label style={{ display: "block" }}>
+                          <span className="dv-label">{tr("aequorin.ctrl.gridColor")}</span>
+                          <ColorInput
+                            value={vis.insetGridColor}
+                            onChange={(v) => updVis({ insetGridColor: v })}
+                            size={24}
+                            label={tr("aequorin.ctrl.gridColor")}
+                          />
+                        </label>
+                      )}
+                      <SliderControl
+                        label={tr("aequorin.ctrl.xLabelAngle")}
+                        value={vis.insetXLabelAngle}
+                        displayValue={`${vis.insetXLabelAngle}°`}
+                        min={-90}
+                        max={0}
+                        step={5}
+                        onChange={(v) => updVis({ insetXLabelAngle: v })}
+                      />
+                    </div>
+
+                    <SliderControl
+                      label={tr("aequorin.ctrl.barWidth")}
+                      value={vis.insetBarWidth}
+                      displayValue={`${vis.insetBarWidth}%`}
+                      min={20}
+                      max={100}
+                      step={5}
+                      onChange={(v) => updVis({ insetBarWidth: v })}
+                    />
+                    <SliderControl
+                      label={tr("aequorin.ctrl.barGap")}
+                      value={vis.insetBarGap}
+                      displayValue={`${vis.insetBarGap}%`}
+                      min={0}
+                      max={80}
+                      step={5}
+                      onChange={(v) => updVis({ insetBarGap: v })}
+                    />
+                    <SliderControl
+                      label={tr("aequorin.ctrl.barFillOpacity")}
+                      value={vis.insetFillOpacity}
+                      displayValue={vis.insetFillOpacity.toFixed(2)}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onChange={(v) => updVis({ insetFillOpacity: v })}
+                    />
+                    <div>
+                      <span className="dv-label">{tr("aequorin.ctrl.barOutline")}</span>
+                      <OnOffToggle
+                        value={vis.insetShowBarOutline}
+                        onChange={(v) => updVis({ insetShowBarOutline: v })}
+                        ariaLabel={tr("aequorin.ctrl.barOutline")}
+                      />
+                    </div>
+                    {vis.insetShowBarOutline && (
+                      <>
+                        <SliderControl
+                          label={tr("aequorin.ctrl.outlineWidth")}
+                          value={vis.insetBarStrokeWidth}
+                          displayValue={vis.insetBarStrokeWidth.toFixed(1)}
+                          min={0.2}
+                          max={4}
+                          step={0.1}
+                          onChange={(v) => updVis({ insetBarStrokeWidth: v })}
+                        />
+                        <label style={{ display: "block" }}>
+                          <span className="dv-label">{tr("aequorin.ctrl.outlineColor")}</span>
+                          <ColorInput
+                            value={vis.insetBarOutlineColor}
+                            onChange={(v) => updVis({ insetBarOutlineColor: v })}
+                            size={24}
+                            label={tr("aequorin.ctrl.outlineColor")}
+                          />
+                        </label>
+                      </>
+                    )}
+
+                    <SubHeading>{tr("aequorin.ctrl.errorBarsHead")}</SubHeading>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div>
+                        <span className="dv-label">{tr("aequorin.ctrl.type")}</span>
+                        <SegToggle<string>
+                          ariaLabel={tr("aequorin.ctrl.errorBars")}
+                          value={vis.insetErrorType}
+                          onChange={(v) => updVis({ insetErrorType: v })}
+                          options={[
+                            { value: "none", label: tr("aequorin.ctrl.none") },
+                            { value: "sem", label: "SEM" },
+                            { value: "sd", label: "SD" },
+                            { value: "ci95", label: "95% CI" },
+                          ]}
+                        />
+                      </div>
+                      {vis.insetErrorType !== "none" && (
+                        <SliderControl
+                          label={tr("aequorin.ctrl.errorStrokeWidth")}
+                          value={vis.insetErrorStrokeWidth}
+                          min={0.2}
+                          max={3}
+                          step={0.1}
+                          onChange={(v) => updVis({ insetErrorStrokeWidth: v })}
+                        />
+                      )}
+                    </div>
+
+                    <SubHeading>{tr("aequorin.ctrl.points")}</SubHeading>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div>
+                        <span className="dv-label">{tr("aequorin.ctrl.show")}</span>
+                        <OnOffToggle
+                          value={vis.insetShowPoints}
+                          onChange={(v) => updVis({ insetShowPoints: v })}
+                          ariaLabel={tr("aequorin.ctrl.showPoints")}
+                        />
+                      </div>
+                      {vis.insetShowPoints && (
+                        <>
+                          <label style={{ display: "block" }}>
+                            <span className="dv-label">{tr("aequorin.ctrl.color")}</span>
+                            <ColorInput
+                              value={vis.insetPointColor}
+                              onChange={(v) => updVis({ insetPointColor: v })}
+                              size={24}
+                              label={tr("aequorin.ctrl.color")}
+                            />
+                          </label>
+                          <SliderControl
+                            label={tr("aequorin.ctrl.size")}
+                            value={vis.insetPointSize}
+                            displayValue={vis.insetPointSize}
+                            min={1}
+                            max={6}
+                            step={0.5}
+                            onChange={(v) => updVis({ insetPointSize: v })}
+                          />
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+              </ControlSection>
+            </>
+          ),
+        },
+      ]}
+    />
   );
 }

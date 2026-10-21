@@ -10,7 +10,8 @@ import {
   DataPreview,
   DetectedSeparatorBadge,
   DownloadTiles,
-  PlotSidebar,
+  ControlTabs,
+  WorkspaceLayout,
 } from "../_shell";
 import type { ChartDataTableRow } from "../_shell";
 import { classifyPoint } from "./helpers";
@@ -74,6 +75,7 @@ export function ConfigureStep({
       >
         <VolcanoAesBox theme="x">
           <select
+            aria-label={tr("volcano.aes.x")}
             className="dv-select"
             style={{ width: "100%" }}
             value={xValid ? xCol : ""}
@@ -83,20 +85,21 @@ export function ConfigureStep({
               setXCol(Number(raw));
             }}
           >
-            {!xValid && <option value="">— choose a log₂FC column —</option>}
+            {!xValid && <option value="">{tr("volcano.cfg.chooseX")}</option>}
             {parsed.headers.map((h, i) => (
               <option key={i} value={i}>
                 {h}
               </option>
             ))}
           </select>
-          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
-            Numeric column with the log₂ fold change for each feature. DESeq2:{" "}
-            <code>log2FoldChange</code>; limma / edgeR: <code>logFC</code>.
-          </div>
+          <div
+            style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}
+            dangerouslySetInnerHTML={{ __html: tr("volcano.cfg.xNote") }}
+          />
         </VolcanoAesBox>
         <VolcanoAesBox theme="y">
           <select
+            aria-label={tr("volcano.aes.y")}
             className="dv-select"
             style={{ width: "100%" }}
             value={yValid ? yCol : ""}
@@ -106,7 +109,7 @@ export function ConfigureStep({
               setYCol(Number(raw));
             }}
           >
-            {!yValid && <option value="">— choose a p-value column —</option>}
+            {!yValid && <option value="">{tr("volcano.cfg.chooseY")}</option>}
             {parsed.headers.map((h, i) => (
               <option key={i} value={i}>
                 {h}
@@ -137,6 +140,7 @@ export function ConfigureStep({
         </VolcanoAesBox>
         <VolcanoAesBox theme="label">
           <select
+            aria-label={tr("volcano.aes.label")}
             className="dv-select"
             style={{ width: "100%" }}
             value={labelCol}
@@ -197,11 +201,10 @@ export function ConfigureStep({
 
 // ── Plot step ──────────────────────────────────────────────────────────
 //
-// Canonical plot-step layout (matches scatter / lineplot):
-//   1. Outer flex row, sidebar on the LEFT, chart pane on the right.
-//   2. PlotSidebar contains DownloadTiles ON TOP, then the control tiles.
-//   3. DownloadTiles auto-emits ⬇ SVG and ⬇ PNG buttons; CSV and R go in
-//      `extraDownloads` so they sit alongside SVG / PNG in the same row.
+// The shared workspace: tabbed controls on the left (DownloadTiles first —
+// it registers SVG / PNG plus the CSV and R exports with the app bar), the
+// up / down / ns summary in the toolbar, the chart and its data table on the
+// canvas.
 export function PlotStep({
   chartRef,
   parsed,
@@ -266,140 +269,170 @@ export function PlotStep({
   const tableTruncated = points.length > TABLE_MAX_ROWS;
 
   return (
-    <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-      <PlotSidebar>
-        <DownloadTiles
-          chartRef={chartRef}
-          fileStem={fileBaseName(fileName, "volcano")}
-          onReset={onReset}
-          extraDownloads={[
+    <WorkspaceLayout
+      controlsLabel={tr("volcano.controlsLabel")}
+      controls={
+        <ControlTabs
+          tool="volcano"
+          tabs={[
             {
-              label: tr("volcano.dl.csv"),
-              title: tr("volcano.dl.csvTitle"),
-              onClick: onDownloadCsv,
+              id: "thresholds",
+              label: tr("volcano.tab.thresholds"),
+              content: (
+                <>
+                  <DownloadTiles
+                    chartRef={chartRef}
+                    fileStem={fileBaseName(fileName, "volcano")}
+                    onReset={onReset}
+                    extraDownloads={[
+                      {
+                        label: tr("volcano.dl.csv"),
+                        title: tr("volcano.dl.csvTitle"),
+                        onClick: onDownloadCsv,
+                      },
+                      {
+                        label: tr("volcano.dl.r"),
+                        title: tr("volcano.dl.rTitle"),
+                        onClick: onDownloadR,
+                      },
+                    ]}
+                  />
+                  <ThresholdsTile vis={vis} updVis={updVis} />
+                  <ColorsTile vis={vis} updVis={updVis} />
+                </>
+              ),
             },
             {
-              label: tr("volcano.dl.r"),
-              title: tr("volcano.dl.rTitle"),
-              onClick: onDownloadR,
+              id: "mapping",
+              label: tr("volcano.tab.mapping"),
+              content: (
+                <>
+                  <ColorMapTile
+                    parsed={parsed}
+                    xCol={xCol}
+                    yCol={yCol}
+                    labelCol={labelCol}
+                    col={colorMapCol}
+                    setCol={setColorMapCol}
+                    colorMap={colorMap}
+                    vis={vis}
+                    updVis={updVis}
+                  />
+                  <SizeMapTile
+                    parsed={parsed}
+                    xCol={xCol}
+                    yCol={yCol}
+                    labelCol={labelCol}
+                    col={sizeMapCol}
+                    setCol={setSizeMapCol}
+                    vis={vis}
+                    updVis={updVis}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "labels",
+              label: tr("volcano.tab.labels"),
+              content: (
+                <>
+                  <LabelsTile
+                    vis={vis}
+                    updVis={updVis}
+                    manualSelection={manualSelection}
+                    clearManualSelection={clearManualSelection}
+                    points={points}
+                    labelCol={labelCol}
+                    addToManualSelection={addToManualSelection}
+                    labelDensity={labelDensity}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "style",
+              label: tr("volcano.tab.style"),
+              content: (
+                <>
+                  <StyleTile vis={vis} updVis={updVis} />
+                </>
+              ),
             },
           ]}
         />
-        <ThresholdsTile vis={vis} updVis={updVis} />
-        <ColorsTile vis={vis} updVis={updVis} />
-        <ColorMapTile
-          parsed={parsed}
-          xCol={xCol}
-          yCol={yCol}
-          labelCol={labelCol}
-          col={colorMapCol}
-          setCol={setColorMapCol}
-          colorMap={colorMap}
-          vis={vis}
-          updVis={updVis}
-        />
-        <SizeMapTile
-          parsed={parsed}
-          xCol={xCol}
-          yCol={yCol}
-          labelCol={labelCol}
-          col={sizeMapCol}
-          setCol={setSizeMapCol}
-          vis={vis}
-          updVis={updVis}
-        />
-        <LabelsTile
-          vis={vis}
-          updVis={updVis}
-          manualSelection={manualSelection}
-          clearManualSelection={clearManualSelection}
-          points={points}
-          labelCol={labelCol}
-          addToManualSelection={addToManualSelection}
-          labelDensity={labelDensity}
-        />
-        <StyleTile vis={vis} updVis={updVis} />
-      </PlotSidebar>
-
-      <div
-        style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}
-      >
-        {clampedCount > 0 && (
-          <div
-            role="status"
-            style={{
-              padding: "8px 12px",
-              borderRadius: 8,
-              background: "var(--warning-bg)",
-              border: "1px solid var(--warning-border)",
-              fontSize: 11,
-              color: "var(--warning-text)",
-            }}
-          >
-            ⚠️ {tr("volcano.steps.clamped", { count: clampedCount })}
+      }
+      toolbar={<SummaryTile summary={summary} fcCutoff={vis.fcCutoff} pCutoff={vis.pCutoff} />}
+      figure={
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {clampedCount > 0 && (
+            <div
+              role="status"
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                background: "var(--warning-bg)",
+                border: "1px solid var(--warning-border)",
+                fontSize: 11,
+                color: "var(--warning-text)",
+              }}
+            >
+              ⚠️ {tr("volcano.steps.clamped", { count: clampedCount })}
+            </div>
+          )}
+          <div className="dv-plot-card" style={{ background: "var(--plot-card-bg)", padding: 16 }}>
+            <VolcanoChart
+              ref={chartRef}
+              points={points}
+              pFloor={pFloor}
+              fcCutoff={vis.fcCutoff}
+              pCutoff={vis.pCutoff}
+              xMin={vis.xMin}
+              xMax={vis.xMax}
+              yMin={vis.yMin}
+              yMax={vis.yMax}
+              xLabel={xLabel}
+              yLabel={yLabel}
+              title={vis.plotTitle}
+              subtitle=""
+              colors={{ up: vis.colorUp, down: vis.colorDown, ns: vis.colorNs }}
+              pointRadius={vis.pointRadius}
+              pointAlpha={vis.pointAlpha}
+              showRefLines={vis.showRefLines}
+              showLabels={vis.showLabels}
+              topNUp={vis.topNUp}
+              topNDown={vis.topNDown}
+              labelFontSize={vis.labelFontSize}
+              showAxes={vis.showAxes}
+              tickFontSize={vis.tickFontSize}
+              manualSelection={manualSelection}
+              onPointClick={togglePointSelection}
+              colorMap={colorMap}
+              colorMapLabel={colorMapLabel}
+              sizeMap={sizeMap}
+              sizeMapLabel={sizeMapLabel}
+              plotWidth={vis.plotWidth}
+              plotBg="#ffffff"
+              onLabelLayoutInfo={onLabelLayoutInfo}
+            />
           </div>
-        )}
-        <div
-          style={{
-            background: "var(--plot-card-bg)",
-            border: "1.5px solid var(--plot-card-border)",
-            borderRadius: 10,
-            padding: 16,
-          }}
-        >
-          <VolcanoChart
-            ref={chartRef}
-            points={points}
-            pFloor={pFloor}
-            fcCutoff={vis.fcCutoff}
-            pCutoff={vis.pCutoff}
-            xMin={vis.xMin}
-            xMax={vis.xMax}
-            yMin={vis.yMin}
-            yMax={vis.yMax}
-            xLabel={xLabel}
-            yLabel={yLabel}
-            title={vis.plotTitle}
-            subtitle=""
-            colors={{ up: vis.colorUp, down: vis.colorDown, ns: vis.colorNs }}
-            pointRadius={vis.pointRadius}
-            pointAlpha={vis.pointAlpha}
-            showRefLines={vis.showRefLines}
-            showLabels={vis.showLabels}
-            topNUp={vis.topNUp}
-            topNDown={vis.topNDown}
-            labelFontSize={vis.labelFontSize}
-            showAxes={vis.showAxes}
-            tickFontSize={vis.tickFontSize}
-            manualSelection={manualSelection}
-            onPointClick={togglePointSelection}
-            colorMap={colorMap}
-            colorMapLabel={colorMapLabel}
-            sizeMap={sizeMap}
-            sizeMapLabel={sizeMapLabel}
-            plotWidth={vis.plotWidth}
-            plotBg="#ffffff"
-            onLabelLayoutInfo={onLabelLayoutInfo}
+          <ChartDataTable
+            summaryLabel={tr("volcano.table.summary")}
+            caption={tr("volcano.table.caption", { n: points.length })}
+            columnHeaders={[
+              tr("volcano.table.colLabel"),
+              tr("volcano.table.colFc"),
+              tr("volcano.table.colP"),
+              tr("volcano.table.colClass"),
+            ]}
+            rows={tableRows}
+            note={
+              tableTruncated
+                ? tr("volcano.table.truncated", { shown: TABLE_MAX_ROWS, total: points.length })
+                : null
+            }
           />
         </div>
-        <SummaryTile summary={summary} fcCutoff={vis.fcCutoff} pCutoff={vis.pCutoff} />
-        <ChartDataTable
-          summaryLabel={tr("volcano.table.summary")}
-          caption={tr("volcano.table.caption", { n: points.length })}
-          columnHeaders={[
-            tr("volcano.table.colLabel"),
-            tr("volcano.table.colFc"),
-            tr("volcano.table.colP"),
-            tr("volcano.table.colClass"),
-          ]}
-          rows={tableRows}
-          note={
-            tableTruncated
-              ? tr("volcano.table.truncated", { shown: TABLE_MAX_ROWS, total: points.length })
-              : null
-          }
-        />
-      </div>
-    </div>
+      }
+    />
   );
 }

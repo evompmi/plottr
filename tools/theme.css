@@ -3,14 +3,12 @@
    Plot cards (--plot-card-*) are intentionally white in both themes so that
    exported SVG/PNG charts always sit on a white background.
 
-   Primary chrome accent is Plöttr blue (#648fff in light) — the same hue
-   the brand rune is stroked in. It frames the chrome: borders, hover,
-   focus rings, active outlines, icon tints. Filled buttons and active
-   pills use a deeper, contrast-safe blue (#4a72e8 in light, ~4.3:1 white
-   text; a dimmed #2f3e63 in dark) so the press targets read as confident
-   without glowing. The data-chart palette (teal / violet / blue / …) is
-   left untouched — it carries the per-series expression; the accent only
-   frames it.
+   Chrome palette: a cool grey ground (#f3f4f7), white surfaces, near-black
+   ink (#15171c) and one accent, Plöttr blue #3558d4 (~6:1 white text), used
+   for links, the primary button, the current step and focus rings. The
+   brand rune keeps its lighter #648fff stroke. The data-chart palettes
+   (Okabe-Ito, IBM, …) are untouched — they carry the per-series
+   expression; the chrome stays neutral around them.
 
    Dark-mode rule: every accent in dark mode is EQUAL or DIMMER than its
    light-mode counterpart — never brighter. Dark mode is supposed to be
@@ -20,42 +18,43 @@
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Typography — two voices, both self-hosted (see tools/fonts.css, vendored
+  /* Typography — three voices, all self-hosted (see tools/fonts.css, vendored
      by scripts/vendor-fonts.mjs; no third-party font request at runtime).
-     --font-display (Fraunces, a "wonky" optical serif) is reserved for the
-     landing "Plöttr" wordmark and nothing else — it's too editorial for
-     functional UI. --font-mono (IBM Plex Mono) is the default for everything
-     else: body, UI, tool titles, tabular chrome; it rhymes with the IBM
-     colourblind-safe chart palette. Both fall back gracefully so the page is
+     --font-ui (IBM Plex Sans) is the default for all chrome: body, controls,
+     labels, buttons. --font-mono (IBM Plex Mono) is for numbers, statistics,
+     file names, hex codes and the small uppercase section labels.
+     --font-display (Space Grotesk, a grotesk with no italic: emphasis in it
+     is the browser's synthesized oblique) is for the "Plöttr" wordmark, the
+     landing / Privacy / Benchmark headings and the inspector result titles. All fall back gracefully so the page is
      legible before the woff2 swaps in. Chart-internal SVG text keeps its own
      hardcoded font-family (sans-serif / monospace) for export fidelity —
      these tokens are chrome-only. */
-  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", "IBM Plex Sans", system-ui, -apple-system, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   /* Page */
-  --page-bg: #f0f0f4;
-  --page-bg-dot: #d0d0d8;
+  --page-bg: #f3f4f7;
 
   /* Surfaces */
   --surface: #ffffff;
-  --surface-subtle: #f8f8fa;
-  --surface-sunken: #f0f0f5;
-  --row-hover-bg: #e2e8f0;
+  --surface-subtle: #f8f9fb;
+  --surface-sunken: #f3f4f7;
+  --row-hover-bg: #eef2ff;
 
   /* Text */
-  --text: #222222;
-  --text-muted: #555555;
-  --text-faint: #888888;
+  --text: #15171c;
+  --text-muted: #474c57;
+  --text-faint: #5f6573;
 
   /* Borders */
-  --border: #dddddd;
-  --border-strong: #cccccc;
-  --slider-track: #d1d5db;
+  --border: #dde0e7;
+  --border-strong: #d3d7e0;
+  --slider-track: #d3d7e0;
 
   /* Accents */
-  --accent-primary: #648fff;
-  --accent-primary-weak: rgba(100, 143, 255, 0.12);
+  --accent-primary: #3558d4;
+  --accent-primary-weak: #e6ecff;
   --accent-plot: #2ec4b6;
   --accent-dna: #785ef0;
   /* Deep ocean blue, paired with --accent-dna as the second member of a
@@ -67,28 +66,31 @@
 
   /* State — danger / warning / info */
   --danger-bg: #fef2f2;
-  --danger-text: #dc2626;
+  --danger-text: #b91c1c;
   --danger-border: #fca5a5;
   --warning-bg: #fffbeb;
   --warning-text: #92400e;
   --warning-border: #fbbf24;
-  --info-bg: #f1f5f9;
-  --info-text: #475569;
-  --info-border: #cbd5e1;
-  --success-bg: #dcfce7;
-  --success-text: #166534;
-  --success-border: #86efac;
-  --step-ready: #3f6b2a;
-  --step-ready-bg: #eaf2df;
-  --step-ready-border: #b5cf9e;
-  --neutral-bg: #e5e7eb;
-  --neutral-text: #374151;
-  --subhead-bg: #475569;
+  --info-bg: #f3f4f7;
+  --info-text: #474c57;
+  --info-border: #d3d7e0;
+  --success-bg: #e5f3ea;
+  --success-text: #1f5f37;
+  --success-border: #a9d4b8;
+  --step-ready: #2f7a4b;
+  --step-ready-bg: #e5f3ea;
+  --step-ready-border: #a9d4b8;
+  --neutral-bg: #eceef3;
+  --neutral-text: #474c57;
+  --subhead-bg: #3a3f4b;
   --subhead-text: #ffffff;
 
   /* Plot card — ALWAYS white so exports stay on a white canvas */
   --plot-card-bg: #ffffff;
-  --plot-card-border: #dddddd;
+  --plot-card-border: #dde0e7;
+  /* Chrome text drawn ON a plot card (a hint under the chart). The card is
+     white in both themes, so this grey is not overridden in dark. */
+  --plot-card-text-muted: #5f6573;
 
   /* Inverse-contrast text (e.g. text on an accent-filled button) */
   --on-accent: #ffffff;
@@ -116,10 +118,10 @@
   /* "How to use" tiles — outer border, gradient header, soft slate shadow.
      Gradient keeps the darker end (slate-700) so white header text stays
      readable; the lighter end softens to slate-600. */
-  --howto-border: #475569;
-  --howto-header-from: #334155;
-  --howto-header-to: #475569;
-  --howto-shadow: 0 4px 20px rgba(71, 85, 105, 0.12);
+  --howto-border: #3a3f4b;
+  --howto-header-from: #15171c;
+  --howto-header-to: #3a3f4b;
+  --howto-shadow: 0 4px 20px rgba(21, 23, 28, 0.1);
 
   /* Generic drop-shadow tiers for floating chrome that doesn't fit the
      howto / cta / accent-warning slots. `sm` is for inline pills (the
@@ -132,35 +134,22 @@
   --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.12);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.18);
 
-  /* Per-button hover-lift shadows. Each light-mode value tints the drop
-     shadow with the button's accent hue (teal for plot CTA, neutral
-     black for secondary, success-green for download, danger-red for
-     destructive); dark mode flips to black-tinted with deeper alpha,
-     matching the --cta-primary-shadow / --accent-warning-shadow
-     pattern (accent-tinted in light → neutral-deep in dark, since
-     bright accents glow on dark surfaces). */
+  /* Hover-lift shadow of the teal plot CTA (`.dv-btn-plot`), tinted with
+     its hue; dark mode flips to black-tinted with deeper alpha, matching
+     the --cta-primary-shadow / --accent-warning-shadow pattern. */
   --btn-plot-hover-shadow: 0 4px 12px -2px rgba(46, 196, 182, 0.5);
-  --btn-secondary-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.18);
-  --btn-dl-hover-shadow: 0 3px 10px -3px rgba(63, 107, 42, 0.4);
-  --btn-danger-hover-shadow: 0 3px 10px -3px rgba(220, 38, 38, 0.4);
 
   /* Focused-input glow — used by hand-built inputs that don't get
      `dv-input`'s default `:focus-visible` outline (e.g. venn's per-set
      rename field uses an inline boxShadow on focus). Mirrors the
      accent-primary tint at low alpha. */
-  --focus-ring: 0 0 0 2px rgba(100, 143, 255, 0.2);
-
-  /* Active step-nav pill (Upload / Configure / Filter / Output / Plot).
-     Plöttr blue, deep enough for ~4.3:1 white text — a real, confident
-     active state rather than the old near-greyscale pill. */
-  --step-active-bg: #4a72e8;
-  --step-active-border: #4a72e8;
+  --focus-ring: 0 0 0 2px rgba(53, 88, 212, 0.25);
 
   /* Primary CTA button (`.dv-btn-primary` — Compute effect size, Continue to
      plot, …). The deep brand blue (#4a72e8), giving ~4.3:1 white-text
      contrast. Dark mode dims it toward the dark surface (never brighter). */
-  --cta-primary-bg: #4a72e8;
-  --cta-primary-shadow: 0 4px 12px -2px rgba(74, 114, 232, 0.28);
+  --cta-primary-bg: #3558d4;
+  --cta-primary-shadow: 0 4px 12px -2px rgba(53, 88, 212, 0.28);
 
   /* Toggle-pill teal (aequorin Σ Baseline-corrected). Mirrors the
      --cta-primary-bg pattern: same as --accent-plot in light mode, dimmed in
@@ -171,6 +160,48 @@
      teal CTA tokens: identical to --accent-dna in light, dimmed in
      dark so the ModeButton border/text doesn't glow. */
   --cta-dna-bg: #785ef0;
+  /* ── 2.0 design tokens ──────────────────────────────────────────────────
+     Hover / pressed shade of the accent (links, primary-button hover). */
+  --accent-primary-hover: #23409f;
+  /* Stroke of the Plöttr rune (brand mark) in the app bar and landing. */
+  --brand-rune: #648fff;
+  /* Link / accent-coloured TEXT. Same blue as the accent in light; in dark it
+     is a soft periwinkle, because a text colour has to be lighter than the
+     surface to stay legible (4.5:1) — the dimmer-accent rule governs fills,
+     borders and rings, not text (like --text itself). */
+  --link: #3558d4;
+  /* Violet TEXT (DNA modes, continuous-colour labels) — the text twin of
+     --accent-dna / --cta-dna-bg, lighter in dark for the same reason. */
+  --dna-text: #6447dc;
+  /* Keyboard focus ring. An indicator, not a fill: it must reach 3:1 against
+     the surface, so in dark it is a soft periwinkle rather than the dimmed
+     --accent-primary (which would sit near 2:1). */
+  --focus-outline: #3558d4;
+  /* Column-role TEXT (group / value / filter). The role hues themselves
+     (`roleColors` in _core/color.ts) stay for borders and checkboxes; these
+     are their legible text twins. */
+  --role-group-text: #0072b2;
+  --role-value-text: #00785a;
+  --role-filter-text: #8f5a00;
+  /* Quiet dividers between rows inside a card (lighter than --border). */
+  --border-subtle: #eceef3;
+  /* Workspace figure canvas: a dotted bench the white figure sheet sits on. */
+  --canvas-bg: #edeef2;
+  --canvas-dot: #d3d6de;
+  --shadow-sheet: 0 0 0 1px #dde0e7, 0 20px 40px -24px rgba(21, 23, 28, 0.35);
+  /* Inverse band (landing "At the bench", selected segmented-control pill). */
+  --inverse-bg: #15171c;
+  --inverse-text: #f3f4f7;
+  --seg-selected-bg: #15171c;
+  --seg-selected-text: #ffffff;
+  /* Radii and control heights. */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --control-h: 36px;
+  --seg-h: 30px;
+  --tab-h: 44px;
 }
 
 /* Dark overrides — shared by the OS-follow media query and the explicit
@@ -178,21 +209,20 @@
 
    Every accent below is EQUAL or DIMMER than its light-mode counterpart. */
 :root[data-theme="dark"] {
-  --page-bg: #12131a;
-  --page-bg-dot: #1e1f28;
+  --page-bg: #111318;
 
-  --surface: #1a1b23;
-  --surface-subtle: #23242e;
-  --surface-sunken: #16171f;
-  --row-hover-bg: #334155;
+  --surface: #181a20;
+  --surface-subtle: #1f2128;
+  --surface-sunken: #14161b;
+  --row-hover-bg: #262b3a;
 
-  --text: #e8e8ef;
-  --text-muted: #a8a8b5;
-  --text-faint: #777785;
+  --text: #e6e8ee;
+  --text-muted: #b4b8c4;
+  --text-faint: #959aa7;
 
-  --border: #2e2f3a;
-  --border-strong: #3e3f4c;
-  --slider-track: #2e2f3a;
+  --border: #2a2d36;
+  --border-strong: #363a45;
+  --slider-track: #363a45;
 
   --danger-bg: #2a1517;
   --danger-text: #f87171;
@@ -200,24 +230,24 @@
   --warning-bg: #2a1f0a;
   --warning-text: #fbbf24;
   --warning-border: #78350f;
-  --info-bg: #1e293b;
-  --info-text: #94a3b8;
-  --info-border: #334155;
+  --info-bg: #1f2128;
+  --info-text: #b4b8c4;
+  --info-border: #363a45;
   --success-bg: #0f2a1a;
   --success-text: #86efac;
   --success-border: #166534;
   --step-ready: #7ba668;
   --step-ready-bg: #1c2916;
   --step-ready-border: #3f6b2a;
-  --neutral-bg: #2e2f3a;
-  --neutral-text: #d1d5db;
-  --subhead-bg: #334155;
-  --subhead-text: #e8e8ef;
+  --neutral-bg: #2a2d36;
+  --neutral-text: #d3d6de;
+  --subhead-bg: #2a2d36;
+  --subhead-text: #e6e8ee;
 
   --aes-color-bg: #1e293b;
   --aes-color-border: #334155;
   --aes-color-header: #334155;
-  --aes-color-header-text: #94a3b8;
+  --aes-color-header-text: #cbd5e1;
   --aes-size-bg: #15241b;
   --aes-size-border: #254a33;
   --aes-size-header: #1e3a2a;
@@ -227,9 +257,9 @@
   --aes-shape-header: #2d2240;
   --aes-shape-header-text: #c4b5fd;
 
-  --howto-border: #334155;
-  --howto-header-from: #0f172a;
-  --howto-header-to: #1e293b;
+  --howto-border: #2a2d36;
+  --howto-header-from: #0c0d11;
+  --howto-header-to: #22252d;
   --howto-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 
   /* Dark-mode shadow tiers — softer than light because dark surfaces
@@ -238,27 +268,20 @@
   --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
 
-  /* Hover-lift shadows flip to black-tinted in dark mode so the accent
+  /* The plot-CTA hover shadow flips to black-tinted in dark mode so the accent
      glow doesn't punch against the dark surface (mirrors how
      --cta-primary-shadow drops its slate tint for black). Alpha sits
      at 0.45–0.5 to match the dark --shadow-* tier. */
   --btn-plot-hover-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
-  --btn-secondary-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.45);
-  --btn-dl-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.45);
-  --btn-danger-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.45);
 
   /* Focus-ring glow — same accent tint, slightly higher alpha so it
      reads against the dark surface. */
-  --focus-ring: 0 0 0 2px rgba(100, 143, 255, 0.35);
-
-  --step-active-bg: #28304d;
-  --step-active-border: #3a4a72;
+  --focus-ring: 0 0 0 2px rgba(53, 88, 212, 0.4);
 
   /* Primary CTA in dark is softened another ~30% toward the dark surface,
-     mirroring the light-mode softening. Still visibly brighter than the
-     step-nav pill above so it reads as "press me", and never brighter
-     than the light-mode primary. */
-  --cta-primary-bg: #2f3e63;
+     mirroring the light-mode softening, and never brighter than the
+     light-mode primary. */
+  --cta-primary-bg: #2c3f86;
   --cta-primary-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.35);
 
   /* Dimmed teal for toggle pills in dark mode (same role as --cta-primary-bg
@@ -272,8 +295,8 @@
      glow from the light-mode rgba() reads too loud against the dark UI.
      The accent color itself (--accent-warning) stays identical across
      themes like all other --accent-* vars. */
-  --accent-primary: #3f5280;
-  --accent-primary-weak: rgba(63, 82, 128, 0.28);
+  --accent-primary: #34488f;
+  --accent-primary-weak: rgba(53, 88, 212, 0.22);
   --accent-warning-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 
   /* Less-saturated ocean blue for dark mode (deep #0369a1 reads as a
@@ -284,28 +307,46 @@
      contrast to ~2.9:1 and fail WCAG AA. This value (L0.35) keeps ~6.3:1.
      The rule still holds for every other --accent-* pair. */
   --accent-blue: #7da3c4;
+  --accent-primary-hover: #2c3f86;
+  --link: #9db0ea;
+  --dna-text: #b3a7f5;
+  --focus-outline: #7f96e0;
+  --role-group-text: #6cb8ec;
+  --role-value-text: #4cc9a0;
+  --role-filter-text: #f0b440;
+  --border-subtle: #22252d;
+  --canvas-bg: #14161b;
+  --canvas-dot: #262932;
+  --shadow-sheet: 0 0 0 1px #2a2d36, 0 20px 40px -24px rgba(0, 0, 0, 0.6);
+  --inverse-bg: #0c0d11;
+  --inverse-text: #e6e8ee;
+  --seg-selected-bg: #3a3f4b;
+  --seg-selected-text: #ffffff;
 }
-
 /* OS-preference fallback applies only if the user hasn't made an explicit
    choice (no data-theme attribute written). Once they toggle, the explicit
    attribute wins regardless of OS. */
+
+/* OS-preference fallback applies only if the user hasn't made an explicit
+   choice (no data-theme attribute written). Once they toggle, the explicit
+   attribute wins regardless of OS. The declarations are a verbatim copy of
+   the [data-theme="dark"] block above — keep them identical. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) {
-    --page-bg: #12131a;
-    --page-bg-dot: #1e1f28;
+    --page-bg: #111318;
 
-    --surface: #1a1b23;
-    --surface-subtle: #23242e;
-    --surface-sunken: #16171f;
-    --row-hover-bg: #334155;
+    --surface: #181a20;
+    --surface-subtle: #1f2128;
+    --surface-sunken: #14161b;
+    --row-hover-bg: #262b3a;
 
-    --text: #e8e8ef;
-    --text-muted: #a8a8b5;
-    --text-faint: #777785;
+    --text: #e6e8ee;
+    --text-muted: #b4b8c4;
+    --text-faint: #959aa7;
 
-    --border: #2e2f3a;
-    --border-strong: #3e3f4c;
-    --slider-track: #2e2f3a;
+    --border: #2a2d36;
+    --border-strong: #363a45;
+    --slider-track: #363a45;
 
     --danger-bg: #2a1517;
     --danger-text: #f87171;
@@ -313,24 +354,24 @@
     --warning-bg: #2a1f0a;
     --warning-text: #fbbf24;
     --warning-border: #78350f;
-    --info-bg: #1e293b;
-    --info-text: #94a3b8;
-    --info-border: #334155;
+    --info-bg: #1f2128;
+    --info-text: #b4b8c4;
+    --info-border: #363a45;
     --success-bg: #0f2a1a;
     --success-text: #86efac;
     --success-border: #166534;
     --step-ready: #7ba668;
     --step-ready-bg: #1c2916;
     --step-ready-border: #3f6b2a;
-    --neutral-bg: #2e2f3a;
-    --neutral-text: #d1d5db;
-    --subhead-bg: #334155;
-    --subhead-text: #e8e8ef;
+    --neutral-bg: #2a2d36;
+    --neutral-text: #d3d6de;
+    --subhead-bg: #2a2d36;
+    --subhead-text: #e6e8ee;
 
     --aes-color-bg: #1e293b;
     --aes-color-border: #334155;
     --aes-color-header: #334155;
-    --aes-color-header-text: #94a3b8;
+    --aes-color-header-text: #cbd5e1;
     --aes-size-bg: #15241b;
     --aes-size-border: #254a33;
     --aes-size-header: #1e3a2a;
@@ -340,38 +381,71 @@
     --aes-shape-header: #2d2240;
     --aes-shape-header-text: #c4b5fd;
 
-    --howto-border: #334155;
-    --howto-header-from: #0f172a;
-    --howto-header-to: #1e293b;
+    --howto-border: #2a2d36;
+    --howto-header-from: #0c0d11;
+    --howto-header-to: #22252d;
     --howto-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 
+    /* Dark-mode shadow tiers — softer than light because dark surfaces
+       swallow saturation, but still visible at the canonical alpha. */
     --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+    /* The plot-CTA hover shadow flips to black-tinted in dark mode so the accent
+       glow doesn't punch against the dark surface (mirrors how
+       --cta-primary-shadow drops its slate tint for black). Alpha sits
+       at 0.45–0.5 to match the dark --shadow-* tier. */
     --btn-plot-hover-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
-    --btn-secondary-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.45);
-    --btn-dl-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.45);
-    --btn-danger-hover-shadow: 0 3px 10px -3px rgba(0, 0, 0, 0.45);
-    --focus-ring: 0 0 0 2px rgba(100, 143, 255, 0.35);
 
-    --step-active-bg: #1e293b;
-    --step-active-border: #334155;
+    /* Focus-ring glow — same accent tint, slightly higher alpha so it
+       reads against the dark surface. */
+    --focus-ring: 0 0 0 2px rgba(53, 88, 212, 0.4);
 
-    --cta-primary-bg: #2f3e63;
+    /* Primary CTA in dark is softened another ~30% toward the dark surface,
+       mirroring the light-mode softening, and never brighter than the
+       light-mode primary. */
+    --cta-primary-bg: #2c3f86;
     --cta-primary-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.35);
 
+    /* Dimmed teal for toggle pills in dark mode (same role as --cta-primary-bg
+       for the primary CTA). Roughly matches the ~0.75× brightness drop applied
+       to the primary CTA so the two pills read as a matched pair. */
     --cta-plot-bg: #1d7a6d;
 
     --cta-dna-bg: #5a45b8;
 
-    --accent-primary: #3a4454;
-    --accent-primary-weak: rgba(58, 68, 84, 0.28);
+    /* Dim the sample-selection accent shadow in dark mode — the bright amber
+       glow from the light-mode rgba() reads too loud against the dark UI.
+       The accent color itself (--accent-warning) stays identical across
+       themes like all other --accent-* vars. */
+    --accent-primary: #34488f;
+    --accent-primary-weak: rgba(53, 88, 212, 0.22);
     --accent-warning-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 
-    /* Deliberate exception to dark-accents-softer — see the [data-theme=dark]
-       block above. Light #0369a1 is too dark (L0.13) to match without failing
-       WCAG AA contrast on the dark surface; this L0.35 value keeps ~6.3:1. */
+    /* Less-saturated ocean blue for dark mode (deep #0369a1 reads as a
+       near-black against the dark surface). DELIBERATE EXCEPTION to the
+       dark-accents-softer rule (dark must be <= light brightness): the
+       light value #0369a1 is unusually dark (L0.13), and used as label /
+       border text on --surface #1a1b23, matching that brightness would drop
+       contrast to ~2.9:1 and fail WCAG AA. This value (L0.35) keeps ~6.3:1.
+       The rule still holds for every other --accent-* pair. */
     --accent-blue: #7da3c4;
+    --accent-primary-hover: #2c3f86;
+    --link: #9db0ea;
+    --dna-text: #b3a7f5;
+    --focus-outline: #7f96e0;
+    --role-group-text: #6cb8ec;
+    --role-value-text: #4cc9a0;
+    --role-filter-text: #f0b440;
+    --border-subtle: #22252d;
+    --canvas-bg: #14161b;
+    --canvas-dot: #262932;
+    --shadow-sheet: 0 0 0 1px #2a2d36, 0 20px 40px -24px rgba(0, 0, 0, 0.6);
+    --inverse-bg: #0c0d11;
+    --inverse-text: #e6e8ee;
+    --seg-selected-bg: #3a3f4b;
+    --seg-selected-text: #ffffff;
   }
 }
 

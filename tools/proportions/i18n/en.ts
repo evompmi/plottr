@@ -86,6 +86,13 @@ const en = {
   // Statistics panel
   "proportions.stats.focusNote":
     "Analysing “{cat}” vs. all other outcomes pooled (as on the chart). Switch to Stacked or Mosaic to test every outcome.",
+  "proportions.stats.analysisExports": "Analysis exports",
+  "proportions.stats.rScript": "R script",
+  "proportions.stats.reportTxt": "Report .txt",
+  "proportions.tab.chart": "Chart",
+  "proportions.tab.colors": "Colours",
+  "proportions.tab.style": "Style",
+  "proportions.controlsLabel": "Plot controls",
   "proportions.stats.title": "Statistics",
   "proportions.stats.desc": "Counts with Wilson CIs and tests on the table shown in the chart.",
   "proportions.stats.displayOnPlot": "Display on plot",
@@ -140,6 +147,7 @@ const en = {
   "proportions.stats.holmTitle": "Holm: controls the chance of any false positive (family-wise)",
   "proportions.stats.bhTitle": "Benjamini–Hochberg: controls the false discovery rate",
   "proportions.stats.pair": "Pair",
+  "proportions.stats.signif": "Significance",
   "proportions.stats.pAdj": "p ({method})",
   "proportions.stats.pairwiseNote":
     "Each pair is tested on its own 2-row table; adjusted p-values account for the number of pairs.",

@@ -81,6 +81,13 @@ const fr: Record<ProportionsKey, string> = {
 
   "proportions.stats.focusNote":
     "Analyse de « {cat} » contre toutes les autres modalités regroupées (comme sur le graphique). Passez en Empilé ou Mosaïque pour tester toutes les modalités.",
+  "proportions.stats.analysisExports": "Exports de l’analyse",
+  "proportions.stats.rScript": "Script R",
+  "proportions.stats.reportTxt": "Rapport .txt",
+  "proportions.tab.chart": "Graphique",
+  "proportions.tab.colors": "Couleurs",
+  "proportions.tab.style": "Style",
+  "proportions.controlsLabel": "Réglages du graphique",
   "proportions.stats.title": "Statistiques",
   "proportions.stats.desc":
     "Effectifs avec IC de Wilson et tests sur le tableau affiché dans le graphique.",
@@ -137,6 +144,7 @@ const fr: Record<ProportionsKey, string> = {
     "Holm : contrôle le risque d’au moins un faux positif (familywise)",
   "proportions.stats.bhTitle": "Benjamini–Hochberg : contrôle le taux de fausses découvertes",
   "proportions.stats.pair": "Paire",
+  "proportions.stats.signif": "Significativité",
   "proportions.stats.pAdj": "p ({method})",
   "proportions.stats.pairwiseNote":
     "Chaque paire est testée sur son propre tableau à 2 lignes ; les p ajustées tiennent compte du nombre de paires.",

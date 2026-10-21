@@ -49,7 +49,9 @@ export function DataPreview({ headers, rows, maxRows }: DataPreviewProps) {
                   fontWeight: 600,
                 }}
               >
-                {h}
+                {h || (
+                  <span className="dv-sr-only">{tr("shell.preview.unnamedCol", { n: i + 1 })}</span>
+                )}
               </th>
             ))}
           </tr>

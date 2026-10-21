@@ -165,6 +165,13 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.dl.rTitle":
     "Script R recalculant les ΔCt à partir des Ct bruts et réalisant les mêmes tests",
 
+  "qpcr.stats.analysisExports": "Exports de l’analyse",
+  "qpcr.stats.rScript": "Script R",
+  "qpcr.stats.reportTxt": "Rapport .txt",
+  "qpcr.tab.chart": "Graphique",
+  "qpcr.tab.style": "Style",
+  "qpcr.tab.axes": "Axes",
+  "qpcr.plot.controlsLabel": "Réglages du graphique",
   "qpcr.stats.title": "Statistiques",
   "qpcr.stats.desc":
     "Tests sur les ΔCt pour chaque gène cible ; les ratios d’expression sont des estimations retransformées.",
@@ -197,6 +204,7 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.stats.onDct": "sur les ΔCt",
   "qpcr.stats.posthoc": "Post-hoc : {name}",
   "qpcr.stats.pair": "Paire",
+  "qpcr.stats.signif": "Significativité",
   "qpcr.stats.fc": "Ratio",
   "qpcr.stats.pAdj": "p (ajustée)",
   "qpcr.test.studentT": "Test t de Student",

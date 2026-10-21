@@ -5,14 +5,16 @@
 
 import {
   FILE_LIMIT_BYTES,
+  InspectorSection,
   PlotToolShell,
+  WorkspaceLayout,
   ScrollablePlotCard,
   detectLongFormat,
   useHandoff,
   usePlotToolState,
 } from "../_shell";
 import "./i18n";
-import { tt } from "./i18n";
+import { tt, useT } from "./i18n";
 import {
   computeMemberships,
   enumerateIntersections,
@@ -99,6 +101,7 @@ DREB2A,,HSF3,,
 WRKY40,,WRKY40,,`;
 
 export function App() {
+  const trApp = useT();
   const shell = usePlotToolState("upset", VIS_INIT_UPSET);
   const {
     step,
@@ -589,8 +592,10 @@ export function App() {
       )}
 
       {step === "plot" && displaySetNames.length >= 2 && (
-        <div>
-          <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+        <WorkspaceLayout
+          controlsLabel={trApp("upset.app.controlsLabel")}
+          inspectorLabel={trApp("upset.sp.title")}
+          controls={
             <PlotControls
               activeSetNames={displaySetNames}
               allSets={sets}
@@ -613,25 +618,20 @@ export function App() {
               maxAllIntersectionSize={maxAllIntersectionSize}
               allIntersectionsCount={allIntersections.length}
             />
-
-            <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-              {selectedMask != null && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedMask(null)}
-                  className="dv-btn dv-btn-secondary"
-                  style={{
-                    position: "absolute",
-                    top: 10,
-                    right: 14,
-                    zIndex: 2,
-                    padding: "4px 10px",
-                    fontSize: 11,
-                  }}
-                >
-                  Clear selection
-                </button>
-              )}
+          }
+          toolbar={
+            selectedMask != null ? (
+              <button
+                type="button"
+                onClick={() => setSelectedMask(null)}
+                className="dv-btn dv-btn-secondary"
+              >
+                {trApp("upset.pa.clearSelection")}
+              </button>
+            ) : null
+          }
+          figure={
+            <>
               <ScrollablePlotCard>
                 <UpsetChart
                   ref={chartRef}
@@ -653,7 +653,6 @@ export function App() {
                   colorBarsBySignificance={vis.colorBarsBySignificance}
                 />
               </ScrollablePlotCard>
-
               {showColumnWarning && (
                 <div
                   style={{
@@ -666,11 +665,9 @@ export function App() {
                     color: "var(--warning-text)",
                   }}
                 >
-                  {truncatedIntersections.length} columns — dots may overlap. Raise Minimum
-                  intersection size, raise Minimum degree, or lower Maximum degree to reduce.
+                  {trApp("upset.pa.tooMany", { n: truncatedIntersections.length })}
                 </div>
               )}
-
               {truncatedIntersections.length === 0 && (
                 <div
                   style={{
@@ -683,11 +680,13 @@ export function App() {
                     color: "var(--info-text)",
                   }}
                 >
-                  No intersections to show. Lower Minimum intersection size, lower Minimum degree,
-                  or raise Maximum degree.
+                  {trApp("upset.pa.none")}
                 </div>
               )}
-
+            </>
+          }
+          inspector={
+            <>
               {selectedIntersection && (
                 <IntersectionStatsPanel
                   intersection={selectedIntersection}
@@ -698,28 +697,25 @@ export function App() {
                   intersectionTests={intersectionTests}
                 />
               )}
-
-              <div className="dv-panel" style={{ marginTop: 16 }}>
-                <p
-                  style={{
-                    margin: "0 0 10px",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "var(--text-muted)",
-                  }}
-                >
-                  Items
-                </p>
-                <ItemListPanel
-                  intersection={selectedIntersection}
-                  setNames={displaySetNames}
-                  fileName={fileName}
-                  columnId={selectedColumnId}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+              {selectedIntersection ? (
+                <InspectorSection label={trApp("upset.app.items")}>
+                  <ItemListPanel
+                    intersection={selectedIntersection}
+                    setNames={displaySetNames}
+                    fileName={fileName}
+                    columnId={selectedColumnId}
+                  />
+                </InspectorSection>
+              ) : (
+                <InspectorSection label={trApp("upset.sp.title")}>
+                  <p style={{ margin: 0, fontSize: 12, color: "var(--text-faint)" }}>
+                    {trApp("upset.app.pickBar")}
+                  </p>
+                </InspectorSection>
+              )}
+            </>
+          }
+        />
       )}
     </PlotToolShell>
   );

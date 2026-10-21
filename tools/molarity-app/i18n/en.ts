@@ -21,6 +21,7 @@ const en = {
   "molarity.calculated": "calculated",
 
   // Molarity mode
+  "molarity.unit": "unit",
   "molarity.mol.field.mw": "Mol. weight (g/mol)",
   "molarity.mol.field.mass": "Mass",
   "molarity.mol.field.volume": "Volume",

@@ -6,7 +6,8 @@ import {
   DataPreview,
   DetectedSeparatorBadge,
   DownloadTiles,
-  PlotSidebar,
+  ControlTabs,
+  WorkspaceLayout,
   SegToggle,
 } from "../_shell";
 import { fileBaseName } from "../_core/download";
@@ -28,7 +29,7 @@ import {
   ShapeFillTile,
 } from "./controls";
 import { QpcrChart } from "./chart";
-import { QpcrStatsPanel } from "./stats-panel";
+import { QpcrStatsDisplayBar, QpcrStatsPanel } from "./stats-panel";
 import { useT } from "./i18n";
 
 const thS: React.CSSProperties = {
@@ -115,7 +116,7 @@ export function StdCurvePanel({ text, setText, curves, onApply }: StdCurvePanelP
         style={{
           width: "100%",
           minHeight: 90,
-          fontFamily: "ui-monospace, Menlo, monospace",
+          fontFamily: "var(--font-mono)",
           fontSize: 11,
         }}
         value={text}
@@ -549,89 +550,125 @@ export function ConfigureStep(p: ConfigureStepProps) {
 export function PlotStep(p: PlotStepProps) {
   const tr = useT();
   return (
-    <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-      <PlotSidebar>
-        <DownloadTiles
-          chartRef={p.chartRef}
-          fileStem={fileBaseName(p.fileName, "qpcr")}
-          onReset={p.onReset}
-          extraDownloads={[
-            { label: "CSV", title: tr("qpcr.dl.csvTitle"), onClick: p.onDownloadCsv },
+    <WorkspaceLayout
+      controlsLabel={tr("qpcr.plot.controlsLabel")}
+      inspectorLabel={tr("qpcr.stats.title")}
+      inspectorToggle="qpcr"
+      controls={
+        <ControlTabs
+          tool="qpcr"
+          tabs={[
+            {
+              id: "chart",
+              label: tr("qpcr.tab.chart"),
+              content: (
+                <>
+                  <DownloadTiles
+                    chartRef={p.chartRef}
+                    fileStem={fileBaseName(p.fileName, "qpcr")}
+                    onReset={p.onReset}
+                    extraDownloads={[
+                      { label: "CSV", title: tr("qpcr.dl.csvTitle"), onClick: p.onDownloadCsv },
+                    ]}
+                  />
+                  <ChartTile vis={p.vis} updVis={p.updVis} normalize={p.normalize} />
+                  <ColorsTile
+                    vis={p.vis}
+                    updVis={p.updVis}
+                    items={p.groupOrder.map((g, i) => ({ name: g, color: p.colors[i] }))}
+                    onColorChange={p.onGroupColor}
+                    onPaletteChange={p.onPaletteChange}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "style",
+              label: tr("qpcr.tab.style"),
+              content: (
+                <>
+                  <ShapeFillTile vis={p.vis} updVis={p.updVis} />
+                  <DataPointsTile vis={p.vis} updVis={p.updVis} />
+                </>
+              ),
+            },
+            {
+              id: "axes",
+              label: tr("qpcr.tab.axes"),
+              content: (
+                <>
+                  <AxesLabelsTile vis={p.vis} updVis={p.updVis} normalize={p.normalize} />
+                  <LayoutTile vis={p.vis} updVis={p.updVis} />
+                </>
+              ),
+            },
           ]}
         />
-        <ChartTile vis={p.vis} updVis={p.updVis} normalize={p.normalize} />
-        <ColorsTile
+      }
+      toolbar={
+        <QpcrStatsDisplayBar
+          genes={p.genes}
+          normalize={p.normalize}
           vis={p.vis}
           updVis={p.updVis}
-          items={p.groupOrder.map((g, i) => ({ name: g, color: p.colors[i] }))}
-          onColorChange={p.onGroupColor}
-          onPaletteChange={p.onPaletteChange}
         />
-        <ShapeFillTile vis={p.vis} updVis={p.updVis} />
-        <DataPointsTile vis={p.vis} updVis={p.updVis} />
-        <AxesLabelsTile vis={p.vis} updVis={p.updVis} normalize={p.normalize} />
-        <LayoutTile vis={p.vis} updVis={p.updVis} />
-      </PlotSidebar>
-      <div
-        style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}
-      >
-        {p.dropped > 0 && (
-          <div
-            role="status"
-            style={{
-              padding: "8px 12px",
-              borderRadius: 8,
-              background: "var(--warning-bg)",
-              border: "1px solid var(--warning-border)",
-              fontSize: 11,
-              color: "var(--warning-text)",
-            }}
-          >
-            {tr("qpcr.plot.dropped", { count: p.dropped })}
+      }
+      figure={
+        <>
+          {p.dropped > 0 && (
+            <div
+              role="status"
+              style={{
+                padding: "8px 12px",
+                marginBottom: 12,
+                borderRadius: "var(--radius-lg)",
+                background: "var(--warning-bg)",
+                border: "1px solid var(--warning-border)",
+                fontSize: 12,
+                color: "var(--warning-text)",
+              }}
+            >
+              {tr("qpcr.plot.dropped", { count: p.dropped })}
+            </div>
+          )}
+          <div className="dv-plot-card" style={{ background: "var(--plot-card-bg)", padding: 16 }}>
+            <QpcrChart
+              ref={p.chartRef}
+              genes={p.genes}
+              annotations={p.annotations}
+              colors={p.colors}
+              groupOrder={p.groupOrder}
+              normalize={p.normalize}
+              control={p.control}
+              yScale={p.vis.yScale}
+              chartStyle={p.vis.chartStyle}
+              showPoints={p.vis.showPoints}
+              errorBar={p.vis.errorBar}
+              showCalibrator={p.vis.showCalibrator}
+              horizontal={p.vis.horizontal}
+              pointSize={p.vis.pointSize}
+              jitterWidth={p.vis.jitterWidth}
+              fillOpacity={p.vis.fillOpacity}
+              yMin={p.vis.yMin}
+              yMax={p.vis.yMax}
+              yLabel={p.vis.yLabel}
+              barOutline={p.vis.barOutline}
+              barOutlineWidth={p.vis.barOutlineWidth}
+              barWidthFrac={p.vis.barWidthFrac}
+              facetWidth={p.vis.facetWidth}
+              facetHeight={p.vis.facetHeight}
+              facetCols={p.vis.facetCols}
+              xLabelAngle={p.vis.xLabelAngle}
+              tickFontSize={p.vis.tickFontSize}
+              title={p.vis.plotTitle}
+              plotBg={p.vis.plotBg}
+              showGrid={p.vis.showGrid}
+              gridColor={p.vis.gridColor}
+            />
           </div>
-        )}
-        <div
-          style={{
-            background: "var(--plot-card-bg)",
-            border: "1.5px solid var(--plot-card-border)",
-            borderRadius: 10,
-            padding: 16,
-          }}
-        >
-          <QpcrChart
-            ref={p.chartRef}
-            genes={p.genes}
-            annotations={p.annotations}
-            colors={p.colors}
-            groupOrder={p.groupOrder}
-            normalize={p.normalize}
-            control={p.control}
-            yScale={p.vis.yScale}
-            chartStyle={p.vis.chartStyle}
-            showPoints={p.vis.showPoints}
-            errorBar={p.vis.errorBar}
-            showCalibrator={p.vis.showCalibrator}
-            horizontal={p.vis.horizontal}
-            pointSize={p.vis.pointSize}
-            jitterWidth={p.vis.jitterWidth}
-            fillOpacity={p.vis.fillOpacity}
-            yMin={p.vis.yMin}
-            yMax={p.vis.yMax}
-            yLabel={p.vis.yLabel}
-            barOutline={p.vis.barOutline}
-            barOutlineWidth={p.vis.barOutlineWidth}
-            barWidthFrac={p.vis.barWidthFrac}
-            facetWidth={p.vis.facetWidth}
-            facetHeight={p.vis.facetHeight}
-            facetCols={p.vis.facetCols}
-            xLabelAngle={p.vis.xLabelAngle}
-            tickFontSize={p.vis.tickFontSize}
-            title={p.vis.plotTitle}
-            plotBg={p.vis.plotBg}
-            showGrid={p.vis.showGrid}
-            gridColor={p.vis.gridColor}
-          />
-        </div>
+        </>
+      }
+      inspector={
         <QpcrStatsPanel
           genes={p.genes}
           stats={p.stats}
@@ -640,13 +677,12 @@ export function PlotStep(p: PlotStepProps) {
           overrides={p.overrides}
           onOverride={p.onOverride}
           vis={p.vis}
-          updVis={p.updVis}
           onDownloadReport={p.onDownloadReport}
           onDownloadR={p.onDownloadR}
           refs={p.refs}
           eff={p.eff}
         />
-      </div>
-    </div>
+      }
+    />
   );
 }

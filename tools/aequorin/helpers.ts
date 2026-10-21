@@ -568,6 +568,9 @@ export interface ConfigureStepProps {
 export interface PlotPanelHandle {
   downloadMain: () => void;
   downloadMainPng: () => void;
+  // Per-replicate Σ of the barplot (raw or corrected, as tested); offered in
+  // the app bar's More menu while the barplot is on.
+  downloadSums: () => void;
 }
 
 export interface PlotControlsProps {
@@ -874,4 +877,11 @@ export interface PlotPanelProps {
   // true when zoomed via either the brush or the Axes number inputs. Gates the
   // visibility of the "Clear" button (and its mention in the tip).
   xZoomed?: boolean;
+  // Σ-barplot statistics, owned by App so the inspector column can show the
+  // stats panel: which sums are tested (raw / baseline-corrected) and the
+  // marks + summary the panel emits for the barplot.
+  statsDataMode: "raw" | "corrected";
+  onStatsDataModeChange: (mode: "raw" | "corrected") => void;
+  statsAnnotations: AnnotationSpec | null;
+  statsSummary: string | null;
 }

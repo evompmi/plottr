@@ -1,67 +1,57 @@
-// Statistics panels for the Proportions tool: summary table with Wilson
+// Statistics for the Proportions tool, shown in the workspace's inspector
+// column: summary table with Wilson
 // CIs, omnibus test (auto-selected, overridable) with effect sizes,
 // standardised residuals, pairwise Fisher tests, and goodness-of-fit
 // against an expected ratio.
 
-import { MethodsButton, SegToggle, alphaSentence, nRange, softwareSentence } from "../_shell";
+import {
+  InspectorExports,
+  InspectorSection,
+  MethodsButton,
+  SegToggle,
+  alphaSentence,
+  inspectorFirstCol,
+  inspectorTable,
+  inspectorTd,
+  inspectorTh,
+  nRange,
+  softwareSentence,
+} from "../_shell";
 import { formatP, pStars } from "../_core/stats";
 import type { PAdjustMethod } from "../_core/stats";
 import { RATIO_PRESETS, formatPct, gofPerGroup, parseRatio } from "./helpers";
-import type { AnnotationMode, GofPanelProps, StatsPanelProps, TestChoice } from "./helpers";
+import type {
+  AnnotationMode,
+  GofPanelProps,
+  ProportionsStatsDisplayBarProps,
+  StatsPanelProps,
+  TestChoice,
+} from "./helpers";
 import { useT } from "./i18n";
 
 const { useMemo } = React;
 
-const subhead: React.CSSProperties = {
-  margin: "12px 0 6px",
-  padding: "4px 10px",
-  fontSize: 10,
-  fontWeight: 800,
-  textTransform: "uppercase",
-  letterSpacing: "0.8px",
-  color: "var(--subhead-text)",
-  background: "var(--subhead-bg)",
-  borderRadius: 4,
-};
-const thS: React.CSSProperties = {
-  textAlign: "left",
-  padding: "3px 6px",
-  borderBottom: "1px solid var(--border)",
-  color: "var(--text-muted)",
-  fontWeight: 600,
-  fontSize: 11,
-};
-const tdS: React.CSSProperties = {
-  padding: "3px 6px",
-  borderBottom: "1px solid var(--border)",
-  color: "var(--text)",
-  fontSize: 11,
-};
-const note: React.CSSProperties = { fontSize: 11, color: "var(--text-muted)", margin: "4px 0" };
+// Inspector-column tables: numbers right-aligned in mono; cells wrap because
+// the column is narrow and count cells read "12 · 40 % [25 %, 57 %]".
+const thS: React.CSSProperties = { ...inspectorTh, whiteSpace: "normal", verticalAlign: "bottom" };
+const tdS: React.CSSProperties = { ...inspectorTd, whiteSpace: "normal" };
+const firstCol = inspectorFirstCol;
+const note: React.CSSProperties = { fontSize: 11, color: "var(--text-faint)", margin: 0 };
 const resultBox: React.CSSProperties = {
-  padding: "8px 10px",
-  background: "var(--surface-sunken)",
-  borderRadius: 6,
-  fontFamily: "ui-monospace, Menlo, monospace",
-  fontSize: 11,
+  fontFamily: "var(--font-mono)",
+  fontSize: 13,
+  lineHeight: 1.6,
   color: "var(--text)",
 };
 // Light info box, same tokens as boxplot's "suggested alternative" notice.
 const explainer: React.CSSProperties = {
-  padding: "7px 10px",
-  margin: "6px 0 8px",
+  padding: "8px 10px",
   background: "var(--info-bg)",
   border: "1px solid var(--info-border)",
-  borderRadius: 6,
-  fontSize: 11,
+  borderRadius: "var(--radius-md)",
+  fontSize: 12,
   lineHeight: 1.5,
   color: "var(--info-text)",
-};
-const panel: React.CSSProperties = {
-  padding: "10px 16px 14px",
-  background: "var(--surface-subtle)",
-  border: "1px solid var(--border)",
-  borderRadius: 10,
 };
 
 export function formatOR(v: number | undefined): string {
@@ -81,6 +71,7 @@ export function StatsPanel({
   updVis,
   onDownloadReport,
   onDownloadR,
+  extra,
 }: StatsPanelProps) {
   const tr = useT();
   const { table, selection, test, fisher, chi2 } = analysis;
@@ -166,128 +157,21 @@ export function StatsPanel({
     return out.join(" ");
   };
   // Letters need every pair: not with two groups, nor against a control.
-  const lettersOk = multi && !hasControl;
-  const display: AnnotationMode =
-    vis.annotation === "cld" && !lettersOk ? "brackets" : vis.annotation;
-  const nsDisabled = display !== "brackets";
 
   return (
-    <div
-      className="dv-panel"
-      style={{ padding: 0, overflow: "hidden" }}
-      data-testid="proportions-stats"
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "12px 14px",
-          borderBottom: "1px solid var(--border)",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: 14,
-              fontWeight: 700,
-              color: "var(--text)",
-              letterSpacing: "0.2px",
-            }}
-          >
-            {tr("proportions.stats.title")}
-          </h3>
-          <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--text-faint)" }}>
-            {tr("proportions.stats.desc")}
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: "auto" }}>
-          <MethodsButton getText={methodsText} />
-          <button
-            type="button"
-            className="dv-btn dv-btn-dl"
-            onClick={onDownloadReport}
-            title={tr("proportions.dl.reportTitle")}
-            data-testid="proportions-dl-txt"
-          >
-            ⬇ TXT
-          </button>
-          <button
-            type="button"
-            className="dv-btn dv-btn-dl"
-            onClick={onDownloadR}
-            title={tr("proportions.dl.rTitle")}
-            data-testid="proportions-dl-r"
-          >
-            ⬇ R
-          </button>
-        </div>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          flexWrap: "wrap",
-          padding: "10px 14px",
-          borderBottom: "1px solid var(--border)",
-          background: "var(--surface-subtle)",
-        }}
-      >
-        <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>
-          {tr("proportions.stats.displayOnPlot")}
-        </span>
-        <SegToggle<AnnotationMode>
-          value={display}
-          onChange={(v) => updVis({ annotation: v })}
-          ariaLabel={tr("proportions.stats.displayOnPlot")}
-          style={{ width: lettersOk ? 220 : 150 }}
-          options={[
-            { value: "none", label: tr("proportions.stats.off") },
-            ...(lettersOk
-              ? [
-                  {
-                    value: "cld" as const,
-                    label: tr("proportions.stats.letters"),
-                    title: tr("proportions.stats.lettersTitle"),
-                  },
-                ]
-              : []),
-            { value: "brackets", label: tr("proportions.stats.brackets") },
-          ]}
-        />
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            color: nsDisabled ? "var(--text-faint)" : "var(--text)",
-            cursor: nsDisabled ? "not-allowed" : "pointer",
-            opacity: nsDisabled ? 0.55 : 1,
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={!nsDisabled && vis.showNsBrackets}
-            disabled={nsDisabled}
-            onChange={(e) => updVis({ showNsBrackets: e.target.checked })}
-            style={{ accentColor: "var(--cta-primary-bg)" }}
-            data-testid="proportions-show-ns"
-          />
-          {tr("proportions.stats.showNs")}
-        </label>
-      </div>
-      <div style={{ padding: "4px 16px 14px" }}>
+    <div className="dv-inspector" data-testid="proportions-stats">
+      <InspectorSection label={tr("proportions.stats.title")}>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--text-faint)" }}>
+          {tr("proportions.stats.desc")}
+        </p>
         {focusLabel && <p style={note}>{tr("proportions.stats.focusNote", { cat: focusLabel })}</p>}
-        <div style={subhead}>{tr("proportions.stats.summary")}</div>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      </InspectorSection>
+      <div className="dv-inspector-body">
+        <h3 className="dv-tile-title dv-inspector-split">{tr("proportions.stats.summary")}</h3>
+        <table style={inspectorTable}>
           <thead>
             <tr>
-              <th style={thS}>{tr("proportions.stats.group")}</th>
+              <th style={{ ...thS, ...firstCol }}>{tr("proportions.stats.group")}</th>
               <th style={thS}>n</th>
               {categories.map((c) => (
                 <th key={c} style={thS}>
@@ -299,7 +183,7 @@ export function StatsPanel({
           <tbody>
             {summaries.map((s) => (
               <tr key={s.group}>
-                <td style={tdS}>{s.group}</td>
+                <td style={{ ...tdS, ...firstCol }}>{s.group}</td>
                 <td style={tdS}>{s.n}</td>
                 {s.counts.map((x, c) => (
                   <td key={c} style={tdS}>
@@ -314,7 +198,7 @@ export function StatsPanel({
         </table>
         <p style={note}>{tr("proportions.stats.wilsonNote")}</p>
 
-        <div style={subhead}>{tr("proportions.stats.test")}</div>
+        <h3 className="dv-tile-title dv-inspector-split">{tr("proportions.stats.test")}</h3>
         {analysis.error ? (
           <p style={note}>{tr("proportions.stats.tooSmall")}</p>
         ) : (
@@ -324,7 +208,7 @@ export function StatsPanel({
                 value={vis.testChoice}
                 onChange={(v) => updVis({ testChoice: v })}
                 ariaLabel={tr("proportions.stats.testChoice")}
-                style={{ width: 240 }}
+                style={{ flex: 1 }}
                 options={[
                   { value: "auto", label: tr("proportions.stats.auto") },
                   { value: "fisher", label: "Fisher" },
@@ -397,11 +281,13 @@ export function StatsPanel({
 
             {!chi2.error && (table.groups.length > 2 || table.categories.length > 2) && (
               <>
-                <div style={subhead}>{tr("proportions.stats.residuals")}</div>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <h3 className="dv-tile-title dv-inspector-split">
+                  {tr("proportions.stats.residuals")}
+                </h3>
+                <table style={inspectorTable}>
                   <thead>
                     <tr>
-                      <th style={thS}>{tr("proportions.stats.group")}</th>
+                      <th style={{ ...thS, ...firstCol }}>{tr("proportions.stats.group")}</th>
                       {table.categories.map((c) => (
                         <th key={c} style={thS}>
                           {c}
@@ -412,7 +298,7 @@ export function StatsPanel({
                   <tbody>
                     {table.groups.map((g, i) => (
                       <tr key={g}>
-                        <td style={tdS}>{g}</td>
+                        <td style={{ ...tdS, ...firstCol }}>{g}</td>
                         {chi2.stdres[i].map((r, c) => (
                           <td
                             key={c}
@@ -431,7 +317,9 @@ export function StatsPanel({
 
             {analysis.pairs.length > 0 && (
               <>
-                <div style={subhead}>{tr("proportions.stats.pairwise")}</div>
+                <h3 className="dv-tile-title dv-inspector-split">
+                  {tr("proportions.stats.pairwise")}
+                </h3>
                 <div
                   style={{
                     display: "flex",
@@ -480,7 +368,7 @@ export function StatsPanel({
                 >
                   <thead>
                     <tr>
-                      <th style={thS}>{tr("proportions.stats.pair")}</th>
+                      <th style={{ ...thS, ...firstCol }}>{tr("proportions.stats.pair")}</th>
                       {table.categories.length === 2 && <th style={thS}>OR</th>}
                       <th style={thS}>p</th>
                       <th style={thS}>
@@ -488,13 +376,15 @@ export function StatsPanel({
                           method: vis.adjustMethod === "holm" ? "Holm" : "BH",
                         })}
                       </th>
-                      <th style={thS}></th>
+                      <th style={thS}>
+                        <span className="dv-sr-only">{tr("proportions.stats.signif")}</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {analysis.pairs.map((pr) => (
                       <tr key={`${pr.i}-${pr.j}`}>
-                        <td style={tdS}>{pairLabel(pr.i, pr.j)}</td>
+                        <td style={{ ...tdS, ...firstCol }}>{pairLabel(pr.i, pr.j)}</td>
                         {table.categories.length === 2 && (
                           <td style={tdS}>{formatOR(pr.oddsRatio)}</td>
                         )}
@@ -534,6 +424,90 @@ export function StatsPanel({
           </>
         )}
       </div>
+      {extra}
+      <InspectorExports label={tr("proportions.stats.analysisExports")}>
+        <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
+          onClick={onDownloadR}
+          title={tr("proportions.dl.rTitle")}
+          data-testid="proportions-dl-r"
+        >
+          {tr("proportions.stats.rScript")}
+        </button>
+        <MethodsButton getText={methodsText} />
+        <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
+          onClick={onDownloadReport}
+          title={tr("proportions.dl.reportTitle")}
+          data-testid="proportions-dl-txt"
+        >
+          {tr("proportions.stats.reportTxt")}
+        </button>
+      </InspectorExports>
+    </div>
+  );
+}
+
+// Marks on the plot (Off / Letters / Brackets, Show ns), shown in the
+// workspace toolbar. Letters need > 2 groups and every pair tested (no
+// control group).
+export function ProportionsStatsDisplayBar({
+  analysis,
+  vis,
+  updVis,
+}: ProportionsStatsDisplayBarProps) {
+  const tr = useT();
+  const lettersOk = analysis.table.groups.length > 2 && analysis.control === null;
+  const display: AnnotationMode =
+    vis.annotation === "cld" && !lettersOk ? "brackets" : vis.annotation;
+  const nsDisabled = display !== "brackets";
+  return (
+    <div
+      data-testid="proportions-display"
+      style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
+    >
+      <span className="dv-toolbar-label">{tr("proportions.stats.displayOnPlot")}</span>
+      <SegToggle<AnnotationMode>
+        value={display}
+        onChange={(v) => updVis({ annotation: v })}
+        ariaLabel={tr("proportions.stats.displayOnPlot")}
+        style={{ flex: "0 0 auto" }}
+        options={[
+          { value: "none", label: tr("proportions.stats.off") },
+          ...(lettersOk
+            ? [
+                {
+                  value: "cld" as const,
+                  label: tr("proportions.stats.letters"),
+                  title: tr("proportions.stats.lettersTitle"),
+                },
+              ]
+            : []),
+          { value: "brackets", label: tr("proportions.stats.brackets") },
+        ]}
+      />
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 13,
+          color: nsDisabled ? "var(--text-faint)" : "var(--text-muted)",
+          cursor: nsDisabled ? "not-allowed" : "pointer",
+          opacity: nsDisabled ? 0.6 : 1,
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={!nsDisabled && vis.showNsBrackets}
+          disabled={nsDisabled}
+          onChange={(e) => updVis({ showNsBrackets: e.target.checked })}
+          data-testid="proportions-show-ns"
+        />
+        {tr("proportions.stats.showNs")}
+      </label>
     </div>
   );
 }
@@ -545,79 +519,84 @@ export function GofPanel({ table, ratioText, setRatioText }: GofPanelProps) {
   const rows = useMemo(() => (ratio ? gofPerGroup(table, ratio) : []), [table, ratio?.join(":")]); // eslint-disable-line react-hooks/exhaustive-deps
   const presets = RATIO_PRESETS.filter((p) => p.k === k);
   return (
-    <div style={panel} data-testid="proportions-gof">
-      <div style={{ ...subhead, marginTop: 0 }}>{tr("proportions.gof.title")}</div>
-      <p style={note}>{tr("proportions.gof.intro", { cats: table.categories.join(" : ") })}</p>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <input
-          type="text"
-          className="dv-input"
-          style={{ width: 140 }}
-          value={ratioText}
-          placeholder={Array.from({ length: k }, () => "1").join(":")}
-          onChange={(e) => setRatioText(e.target.value)}
-          aria-label={tr("proportions.gof.ratio")}
-          data-testid="proportions-gof-ratio"
-        />
-        {presets.map((p) => (
-          <button
-            key={p.ratio}
-            type="button"
-            className="dv-btn dv-btn-secondary"
-            style={{ padding: "3px 8px", fontSize: 11 }}
-            onClick={() => setRatioText(p.ratio)}
-          >
-            {p.ratio}
-          </button>
-        ))}
+    <InspectorSection label={tr("proportions.gof.title")}>
+      <div data-testid="proportions-gof" style={{ display: "contents" }}>
+        <p style={note}>{tr("proportions.gof.intro", { cats: table.categories.join(" : ") })}</p>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <input
+            type="text"
+            className="dv-input"
+            style={{ width: 140 }}
+            value={ratioText}
+            placeholder={Array.from({ length: k }, () => "1").join(":")}
+            onChange={(e) => setRatioText(e.target.value)}
+            aria-label={tr("proportions.gof.ratio")}
+            data-testid="proportions-gof-ratio"
+          />
+          {presets.map((p) => (
+            <button
+              key={p.ratio}
+              type="button"
+              className="dv-btn dv-btn-secondary"
+              style={{ padding: "3px 8px", fontSize: 11 }}
+              onClick={() => setRatioText(p.ratio)}
+            >
+              {p.ratio}
+            </button>
+          ))}
+        </div>
+        {ratioText.trim() !== "" && !ratio && (
+          <p style={{ ...note, color: "var(--warning-text)" }}>
+            {tr("proportions.gof.invalid", { k })}
+          </p>
+        )}
+        {ratio && rows.length > 0 && (
+          <>
+            <div style={{ overflowX: "auto" }}>
+              <table style={inspectorTable}>
+                <thead>
+                  <tr>
+                    <th style={{ ...thS, ...firstCol }}>{tr("proportions.stats.group")}</th>
+                    <th style={thS}>n</th>
+                    <th style={thS}>{tr("proportions.gof.observed")}</th>
+                    <th style={thS}>{tr("proportions.gof.expected")}</th>
+                    <th style={thS}>{tr("proportions.gof.method")}</th>
+                    <th style={thS}>p</th>
+                    <th style={thS}>{tr("proportions.gof.pHolm")}</th>
+                    <th style={thS}>
+                      <span className="dv-sr-only">{tr("proportions.stats.signif")}</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, g) => (
+                    <tr key={r.group}>
+                      <td style={{ ...tdS, ...firstCol }}>{r.group}</td>
+                      <td style={tdS}>{r.n}</td>
+                      <td style={tdS}>{table.counts[g].join(" : ")}</td>
+                      <td style={tdS}>{r.result.expected.map((e) => e.toFixed(1)).join(" : ")}</td>
+                      <td style={tdS}>
+                        {r.result.method === "exact"
+                          ? tr("proportions.gof.exact")
+                          : `χ²(${r.result.df}) = ${r.result.X2.toFixed(2)}`}
+                      </td>
+                      <td style={tdS}>{formatP(r.result.p)}</td>
+                      <td style={tdS}>{formatP(r.pAdj)}</td>
+                      <td style={{ ...tdS, fontWeight: 700 }}>{pStars(r.pAdj)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p style={note}>{tr("proportions.gof.note")}</p>
+            {rows.some((r) => r.result.fallback) && (
+              <p style={{ ...note, color: "var(--warning-text)" }}>
+                {tr("proportions.gof.fallback")}
+              </p>
+            )}
+          </>
+        )}
       </div>
-      {ratioText.trim() !== "" && !ratio && (
-        <p style={{ ...note, color: "var(--warning-text)" }}>
-          {tr("proportions.gof.invalid", { k })}
-        </p>
-      )}
-      {ratio && rows.length > 0 && (
-        <>
-          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
-            <thead>
-              <tr>
-                <th style={thS}>{tr("proportions.stats.group")}</th>
-                <th style={thS}>n</th>
-                <th style={thS}>{tr("proportions.gof.observed")}</th>
-                <th style={thS}>{tr("proportions.gof.expected")}</th>
-                <th style={thS}>{tr("proportions.gof.method")}</th>
-                <th style={thS}>p</th>
-                <th style={thS}>{tr("proportions.gof.pHolm")}</th>
-                <th style={thS}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, g) => (
-                <tr key={r.group}>
-                  <td style={tdS}>{r.group}</td>
-                  <td style={tdS}>{r.n}</td>
-                  <td style={tdS}>{table.counts[g].join(" : ")}</td>
-                  <td style={tdS}>{r.result.expected.map((e) => e.toFixed(1)).join(" : ")}</td>
-                  <td style={tdS}>
-                    {r.result.method === "exact"
-                      ? tr("proportions.gof.exact")
-                      : `χ²(${r.result.df}) = ${r.result.X2.toFixed(2)}`}
-                  </td>
-                  <td style={tdS}>{formatP(r.result.p)}</td>
-                  <td style={tdS}>{formatP(r.pAdj)}</td>
-                  <td style={{ ...tdS, fontWeight: 700 }}>{pStars(r.pAdj)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p style={note}>{tr("proportions.gof.note")}</p>
-          {rows.some((r) => r.result.fallback) && (
-            <p style={{ ...note, color: "var(--warning-text)" }}>
-              {tr("proportions.gof.fallback")}
-            </p>
-          )}
-        </>
-      )}
-    </div>
+    </InspectorSection>
   );
 }

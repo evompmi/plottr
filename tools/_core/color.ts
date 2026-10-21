@@ -116,3 +116,12 @@ export const roleColors: Record<string, string> = {
   filter: "#E69F00",
   ignore: "var(--border-strong)",
 };
+
+// Text colours for the roles: theme tokens that keep 4.5:1 on the chrome
+// (the role hues above are too light for text on white, too dark on dark).
+export const roleTextColors: Record<string, string> = {
+  group: "var(--role-group-text)",
+  value: "var(--role-value-text)",
+  filter: "var(--role-filter-text)",
+  ignore: "var(--text-muted)",
+};

@@ -44,7 +44,7 @@ by the part of the address after `#`:
   correlations Pearson / Spearman / Kendall; effect sizes Cohen's d / d_av,
   Hedges' g, η² / ε², rank-biserial — with confidence intervals.
 - **Validation:** every statistical routine is checked numerically against
-  **R 4.5** (the standard statistics language; 524 comparisons on real datasets)
+  **R 4.5** (the standard statistics language; 618 comparisons on real datasets)
   and **SciPy** (Python's scientific library; 1083 comparisons on targeted
   grids), with results published to a public `benchmark.html` page.
 - **Agreement tolerances are calibrated to the measured agreement, not round
@@ -61,6 +61,12 @@ by the part of the address after `#`:
   format that stays sharp at any size). Colours and text _inside_ a figure are
   written as fixed values (e.g. colour codes like `#1a2b3c`) so an exported file
   looks identical when opened outside a browser.
+- **Plot step layout:** controls in tabs on the left, the figure in the middle
+  with quick display options above it, and statistics in a right-hand column
+  that stays folded until the user opens it. Figure and data downloads sit in
+  the top bar ("Download SVG", plus a "More" menu for PNG, CSV and tables); the
+  analysis exports (R script, Methods, report) sit at the foot of the
+  statistics column.
 - **Theming:** light / dark mode, remembered between visits, applied before the
   first paint to avoid a wrong-theme flash, and kept in sync across open tabs.
 - **Export** groups figure elements under readable names so figures re-open

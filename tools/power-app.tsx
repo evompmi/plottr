@@ -1,7 +1,7 @@
 // power.jsx — editable source. Run `npm run build` to compile to power.js
 // Do NOT edit the .js file directly.
 
-import { NumberInput, PageHeader, buildRScriptForPower, useIsMobile } from "./_shell";
+import { NumberInput, buildRScriptForPower, useIsMobile } from "./_shell";
 import { makeTicks } from "./_core/scale";
 import { parseDecimal } from "./_core/numeric";
 import { downloadText, flashSaved } from "./_core/download";
@@ -309,6 +309,7 @@ function EffectSizePanel({
       <div style={{ opacity: disabled ? 0.4 : 1 }}>
         <div style={smallLabel}>{tr("power.es.expectedR")}</div>
         <NumberInput
+          aria-label={tr("power.es.expectedR")}
           min="0.01"
           max="0.99"
           step="0.05"
@@ -352,6 +353,7 @@ function EffectSizePanel({
           <div>
             <div style={smallLabel}>{tr("power.es.mean1")}</div>
             <NumberInput
+              aria-label={tr("power.es.mean1")}
               step="any"
               value={mean1}
               onChange={(e) => setMean1(e.target.value)}
@@ -363,6 +365,7 @@ function EffectSizePanel({
           <div>
             <div style={smallLabel}>{tr("power.es.mean2")}</div>
             <NumberInput
+              aria-label={tr("power.es.mean2")}
               step="any"
               value={mean2}
               onChange={(e) => setMean2(e.target.value)}
@@ -374,6 +377,7 @@ function EffectSizePanel({
           <div>
             <div style={smallLabel}>{tr("power.es.commonSd")}</div>
             <NumberInput
+              aria-label={tr("power.es.commonSd")}
               step="any"
               min="0"
               value={sd}
@@ -402,6 +406,9 @@ function EffectSizePanel({
               {testKey === "t-paired" ? tr("power.es.meanDiff") : tr("power.es.deviationRef")}
             </div>
             <NumberInput
+              aria-label={
+                testKey === "t-paired" ? tr("power.es.meanDiff") : tr("power.es.deviationRef")
+              }
               step="any"
               value={diffMean}
               onChange={(e) => setDiffMean(e.target.value)}
@@ -415,6 +422,7 @@ function EffectSizePanel({
               {testKey === "t-paired" ? tr("power.es.sdPairedDiff") : tr("power.es.sd")}
             </div>
             <NumberInput
+              aria-label={testKey === "t-paired" ? tr("power.es.sdPairedDiff") : tr("power.es.sd")}
               step="any"
               min="0"
               value={diffSd}
@@ -440,6 +448,7 @@ function EffectSizePanel({
           <div>
             <div style={smallLabel}>{tr("power.es.groupMeans")}</div>
             <input
+              aria-label={tr("power.es.groupMeans")}
               type="text"
               value={groupMeansStr}
               onChange={(e) => setGroupMeansStr(e.target.value)}
@@ -452,6 +461,7 @@ function EffectSizePanel({
           <div>
             <div style={smallLabel}>{tr("power.es.withinSd")}</div>
             <NumberInput
+              aria-label={tr("power.es.withinSd")}
               step="any"
               min="0"
               value={withinSd}
@@ -478,6 +488,7 @@ function EffectSizePanel({
           <div>
             <div style={smallLabel}>{tr("power.es.baselineProps")}</div>
             <input
+              aria-label={tr("power.es.baselineProps")}
               type="text"
               value={expectedStr}
               onChange={(e) => setExpectedStr(e.target.value)}
@@ -490,6 +501,7 @@ function EffectSizePanel({
           <div>
             <div style={smallLabel}>{tr("power.es.actualProps")}</div>
             <input
+              aria-label={tr("power.es.actualProps")}
               type="text"
               value={observedStr}
               onChange={(e) => setObservedStr(e.target.value)}
@@ -521,6 +533,13 @@ function EffectSizePanel({
                 : tr("power.es.directD")}
           </div>
           <NumberInput
+            aria-label={
+              testKey === "anova"
+                ? tr("power.es.directF")
+                : testKey === "chi2"
+                  ? tr("power.es.directW")
+                  : tr("power.es.directD")
+            }
             min="0.01"
             step="0.1"
             value={effectSize}
@@ -867,8 +886,17 @@ export function App() {
     tr(EXPLAIN_TEST_KEYS[testKey]);
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 32px" }}>
-      <PageHeader toolName="power" title="Power Analysis" />
+    <div
+      className="dv-calc"
+      style={{
+        maxWidth: 960,
+        margin: "0 auto",
+        padding: isMobile ? "16px 16px 80px" : "28px 32px",
+      }}
+    >
+      {/* The tool's name is in the app bar's switcher; the heading stays for
+          screen readers and the document outline. */}
+      <h1 className="dv-sr-only">Power Analysis</h1>
 
       {/* ── Top group: test picker + solve-for picker share the first row;
           question banner takes its own full-width row beneath them. The
@@ -879,6 +907,7 @@ export function App() {
         <div className="dv-panel" style={{ padding: 12, flex: 1, minWidth: 200 }}>
           <div className="dv-label">{tr("power.ctrl.statisticalTest")}</div>
           <select
+            aria-label={tr("power.ctrl.statisticalTest")}
             value={testKey}
             onChange={handleTestChange}
             className="dv-select"
@@ -985,6 +1014,7 @@ export function App() {
             <div style={{ opacity: solveFor === "n" ? 0.4 : 1 }}>
               <div className="dv-label">{tr(TEST_I18N[testKey].nLabel)}</div>
               <NumberInput
+                aria-label={tr(TEST_I18N[testKey].nLabel)}
                 min="2"
                 step="1"
                 value={nInput}
@@ -1074,6 +1104,7 @@ export function App() {
               <div>
                 <div className="dv-label">{tr("power.ctrl.numGroups")}</div>
                 <NumberInput
+                  aria-label={tr("power.ctrl.numGroups")}
                   min="2"
                   max="20"
                   step="1"
@@ -1089,6 +1120,7 @@ export function App() {
               <div>
                 <div className="dv-label">{tr("power.ctrl.df")}</div>
                 <NumberInput
+                  aria-label={tr("power.ctrl.df")}
                   min="1"
                   max="100"
                   step="1"
@@ -1163,22 +1195,20 @@ export function App() {
                 fontWeight: 700,
                 // When solving for power, traffic-light the readout so the
                 // user sees at a glance whether the design is adequately
-                // powered (≥ 80%, default green), marginal (60–80%, amber
-                // `--accent-warning`) or under-powered (< 60%, red
-                // `--danger-text`). Both semantic vars are theme-aware:
-                // `--accent-warning` is stable across light/dark by
-                // design, and `--danger-text` dims from #dc2626 → #f87171
-                // in dark mode so the alert doesn't shout. All other
-                // solveFor targets (sample size) stay on the default.
+                // powered (≥ 80%, the default link blue), marginal (60–80%,
+                // amber `--warning-text`) or under-powered (< 60%, red
+                // `--danger-text`). All three are text tokens, legible in
+                // both themes. All other solveFor targets (sample size) stay
+                // on the default.
                 color:
                   result == null
                     ? "var(--border-strong)"
                     : solveFor === "power" && result < 0.6
                       ? "var(--danger-text)"
                       : solveFor === "power" && result < 0.8
-                        ? "var(--accent-warning)"
-                        : "var(--accent-blue)",
-                fontFamily: "monospace",
+                        ? "var(--warning-text)"
+                        : "var(--link)",
+                fontFamily: "var(--font-mono)",
               }}
             >
               {resultText}

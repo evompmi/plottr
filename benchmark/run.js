@@ -901,7 +901,7 @@ const tableHtml = cats
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>${trs}</tbody>
@@ -966,26 +966,42 @@ const html = `<!doctype html>
   rel="icon"
   href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='none' stroke='%23648FFF' stroke-width='2'/><g fill='none' stroke='%23648FFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M 13 6.5 L 13 25.5'/><path d='M 13 6.5 L 22 11.5'/><path d='M 13 13 L 22 18'/></g></svg>"
 />
+<link rel="stylesheet" href="tools/fonts.css" />
 <link rel="stylesheet" href="tools/theme.css" />
 <link rel="stylesheet" href="tools/components.css" />
+<link rel="stylesheet" href="tools/site.css" />
 <script src="tools/shared.bundle.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: monospace;
+    font-family: var(--font-ui);
     background: var(--page-bg);
-    background-image: radial-gradient(circle, var(--page-bg-dot) 0.8px, transparent 0.8px);
-    background-size: 20px 20px;
     color: var(--text);
-    padding: 2rem 1rem 4rem;
     line-height: 1.45;
   }
-  .container { max-width: 1100px; margin: 0 auto; }
-  header { margin-bottom: 1.5rem; }
-  h1 { font-size: 1.4rem; margin-bottom: 0.5rem; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 16px 64px; }
+  .container > header { margin-bottom: 1.5rem; }
+  h1 {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.75rem;
+  }
+  /* Data tables and figures stay monospaced. */
+  table, code, .summary .v { font-family: var(--font-mono); }
+  /* Phones: the reference tables keep their columns and scroll inside their
+     own box; the summary figures stack two per row. */
+  @media (max-width: 700px) {
+    details.category, .scipy-breakdown { overflow-x: auto; }
+    details.category table, .scipy-breakdown table { min-width: 640px; }
+    .summary { grid-template-columns: repeat(2, 1fr) !important; }
+    .lede code { word-break: break-all; }
+  }
   .lede { color: var(--text-muted); margin-bottom: 1rem; padding-left: 1.4rem; line-height: 1.7; }
   .lede li { margin-bottom: 0.2rem; }
-  .lede a { color: var(--accent-primary); }
+  .lede a { color: var(--link); }
   .summary {
     padding: 1rem 1.25rem;
     border: 2px solid var(--text);
@@ -1089,9 +1105,9 @@ const html = `<!doctype html>
     font-size: 0.78rem;
     cursor: pointer;
   }
-  .toggle-all:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+  .toggle-all:hover { border-color: var(--accent-primary); color: var(--link); }
   .toggle-all:focus-visible {
-    outline: 2px solid var(--accent-primary);
+    outline: 2px solid var(--focus-outline);
     outline-offset: 1px;
   }
   .category[open] > summary {
@@ -1099,6 +1115,10 @@ const html = `<!doctype html>
   }
   .category:not([open]) > summary {
     margin-bottom: 0;
+  }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
   }
   .badge {
     font-size: 0.7rem;
@@ -1147,31 +1167,28 @@ const html = `<!doctype html>
     font-size: 0.75rem;
     text-align: center;
   }
-  .theme-toggle {
-    position: fixed;
-    top: 12px;
-    right: 12px;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    color: var(--text);
-    cursor: pointer;
-    line-height: 0;
-    font-family: inherit;
-    z-index: 10;
-  }
-  .theme-toggle:hover { border-color: var(--accent-primary); }
 </style>
 </head>
 <body>
-<button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle theme"></button>
-<div class="container">
+<header class="lp-top">
+  <div class="lp-wrap">
+    <a class="lp-brand" href="index.html" data-benchmark-link aria-label="Plöttr home">
+      <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2" /><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M 13 6.5 L 13 25.5" /><path d="M 13 6.5 L 22 11.5" /><path d="M 13 13 L 22 18" /></g></svg>
+      <span class="lp-word">Plöttr</span>
+    </a>
+    <nav class="lp-nav" aria-label="Main">
+        <a href="index.html#tools" data-benchmark-link>Tools</a>
+        <a href="benchmark.html" data-benchmark-link aria-current="page">Benchmark</a>
+        <a href="privacy.html" data-benchmark-link>Privacy</a>
+        <a href="index.html#cite" data-benchmark-link>Cite</a>
+        <a href="https://github.com/evompmi/plottr" target="_blank" rel="noopener">GitHub</a>
+      <span class="lp-toggles">
+        <button type="button" class="lp-toggle" data-theme-toggle></button>
+      </span>
+    </nav>
+  </div>
+</header>
+<main class="container">
   <header>
     <h1>statistical cross-validation${scipy ? " vs R + SciPy" : ` vs R ${escapeHtml(data.meta.r_version.replace(/^R version /, ""))}`}</h1>
     <ul class="lede">
@@ -1247,11 +1264,11 @@ const html = `<!doctype html>
 
   ${tableHtml}
 
-  <footer>
+  <footer class="lp-foot" style="margin-top: 2rem">
     R reference generated ${escapeHtml(data.meta.generated)}.
     Tolerance ${TOL_STAT.toExponential()}–${TOL_QTUKEY_CI.toExponential()} by metric tier (see above). Tool source: <code>tools/_core/stats/*.ts</code>.
   </footer>
-</div>
+</main>
 <script>
   // Theme toggle — uses setTheme / getTheme from tools/theme.js (loaded above).
   // The same-origin storage event in theme.js keeps benchmark in lockstep with

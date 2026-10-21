@@ -9,6 +9,9 @@ async function openPlot(page: Page, tool: string) {
   await page.getByTestId("load-example").click();
   const plotStep = page.getByTestId("step-plot");
   if (await plotStep.isVisible()) await plotStep.click();
+  // Tools whose statistics column starts folded into a rail: open it.
+  const show = page.getByRole("button", { name: "Show Statistics" });
+  if (await show.isVisible()) await show.click();
 }
 
 async function methodsText(page: Page): Promise<string> {
@@ -37,10 +40,13 @@ const CASES: Array<{ tool: string; expects: RegExp[]; prepare?: (page: Page) => 
   {
     tool: "aequorin",
     prepare: async (page) => {
+      await page.getByRole("tab", { name: "Σ barplot" }).click();
       await page
         .getByTitle("Barplot of the sum (Σ) of plotted values per condition")
         .getByRole("button", { name: "On", exact: true })
         .click();
+      // The barplot brings a statistics column, folded into a rail.
+      await page.getByRole("button", { name: "Show Statistics" }).click();
     },
     expects: [/per-replicate sums of the signal/],
   },
@@ -50,7 +56,7 @@ const CASES: Array<{ tool: string; expects: RegExp[]; prepare?: (page: Page) => 
       // Wait for the plot step to settle, or the section click is lost to a remount.
       const bar = page.locator('svg g[id^="intersection-bar-"][role="button"]').first();
       await expect(bar).toBeVisible();
-      await page.getByRole("button", { name: "Statistics", exact: true }).click();
+      await page.getByRole("tab", { name: "Statistics", exact: true }).click();
       await page.getByRole("button", { name: /Compute stats/ }).click();
       await bar.click();
     },

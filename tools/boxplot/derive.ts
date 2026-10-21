@@ -45,6 +45,30 @@ export function mergeStoredOrder(natural: string[], stored: string[] | undefined
   return [...valid, ...missing];
 }
 
+// A value was renamed from `oldLabel` to `newLabel`: keep its slot in the
+// stored order instead of letting the new label fall to the end. When
+// another value still carries the old label the new one is inserted right
+// after it; when the new label already exists the two merge (the old slot
+// goes if nothing else uses it). No stored order → nothing to keep.
+export function renameInOrder(
+  stored: string[] | undefined,
+  oldLabel: string,
+  newLabel: string,
+  oldStillUsed: boolean
+): string[] | undefined {
+  if (!stored || oldLabel === newLabel) return stored;
+  const idx = stored.indexOf(oldLabel);
+  if (idx < 0) return stored;
+  const next = stored.slice();
+  if (next.includes(newLabel)) {
+    if (!oldStillUsed) next.splice(idx, 1);
+    return next;
+  }
+  if (oldStillUsed) next.splice(idx + 1, 0, newLabel);
+  else next[idx] = newLabel;
+  return next;
+}
+
 // ── Boxplot groups ──────────────────────────────────────────────────────────
 
 export interface GroupBuildSpec {

@@ -55,8 +55,7 @@ test.describe("volcano — colorNs stays neutral grey across palette picks", () 
     await loadVolcanoExample(page);
 
     // The Colors tile lives in the right sidebar. Open it.
-    const colorsHeader = page.getByRole("button", { name: /^Colors$/ });
-    if (await colorsHeader.isVisible()) await colorsHeader.click();
+    // The palette picker sits on the Thresholds tab (open by default).
 
     // Pick "set1" via the discrete-palette dropdown. There are two
     // <select> tags rendered by DiscretePaletteSelect (one per
@@ -84,8 +83,7 @@ test.describe("volcano — colorNs stays neutral grey across palette picks", () 
     // the chart. If this passes, the self-healing useEffect is
     // doing its job.
     await loadVolcanoExample(page);
-    const colorsHeader = page.getByRole("button", { name: /^Colors$/ });
-    if (await colorsHeader.isVisible()) await colorsHeader.click();
+    // The palette picker sits on the Thresholds tab (open by default).
     const paletteSelect = page.locator('select:has(option[value="okabe-ito"])').first();
     await paletteSelect.selectOption("set3");
     const nsCircle = page.locator("g#points-ns circle").first();
@@ -98,9 +96,8 @@ test.describe("volcano — search-by-name highlights matched points", () => {
   test("typing a label prefix + Enter labels matching points", async ({ page }) => {
     await loadVolcanoExample(page);
 
-    // The Labels tile sidebar — open it if collapsed.
-    const labelsHeader = page.getByRole("button", { name: /^Labels$/ });
-    if (await labelsHeader.isVisible()) await labelsHeader.click();
+    // The search box lives on the Labels tab.
+    await page.getByRole("tab", { name: "Labels" }).click();
 
     const searchBox = page.getByPlaceholder(/gene name|paste a list/i);
     await expect(searchBox).toBeVisible();
