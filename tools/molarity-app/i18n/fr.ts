@@ -18,6 +18,7 @@ const fr: Record<MolarityKey, string> = {
   "molarity.inputs": "Entrées :",
   "molarity.calculated": "calculé",
 
+  "molarity.unit": "unité",
   "molarity.mol.field.mw": "Masse molaire (g/mol)",
   "molarity.mol.field.mass": "Masse",
   "molarity.mol.field.volume": "Volume",

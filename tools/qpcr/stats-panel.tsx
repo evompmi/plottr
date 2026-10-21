@@ -269,7 +269,9 @@ export function QpcrStatsPanel({
                             <th style={{ ...thS, ...firstCol }}>{tr("qpcr.stats.pair")}</th>
                             <th style={thS}>{tr("qpcr.stats.fc")}</th>
                             <th style={thS}>{tr("qpcr.stats.pAdj")}</th>
-                            <th style={thS}></th>
+                            <th style={thS}>
+                              <span className="dv-sr-only">{tr("qpcr.stats.signif")}</span>
+                            </th>
                           </tr>
                         </thead>
                         <tbody>

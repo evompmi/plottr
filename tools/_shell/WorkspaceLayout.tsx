@@ -48,9 +48,11 @@ export function WorkspaceLayout({
           borderRight: "1px solid var(--border)",
         }}
       >
+        {/* Column headings for the outline (the section titles inside are h3). */}
+        <h2 className="dv-sr-only">{controlsLabel}</h2>
         {controls}
       </aside>
-      <main
+      <div
         className="dv-workspace-canvas"
         style={{
           flex: "1 1 auto",
@@ -89,7 +91,7 @@ export function WorkspaceLayout({
         >
           {figure}
         </div>
-      </main>
+      </div>
       {hasInspector && (
         <aside
           aria-label={inspectorLabel}
@@ -102,6 +104,7 @@ export function WorkspaceLayout({
             borderLeft: "1px solid var(--border)",
           }}
         >
+          {inspectorLabel && <h2 className="dv-sr-only">{inspectorLabel}</h2>}
           {inspector}
         </aside>
       )}

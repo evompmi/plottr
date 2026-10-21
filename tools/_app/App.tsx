@@ -760,6 +760,12 @@ function chromeFor(t: ToolEntry): AppChrome {
   return c;
 }
 
+// The page's `<main>` landmark. Plot tools carry their own (the body under
+// their app bar, in PlotToolShell); the calculators get it here.
+function ToolMain({ bench, children }: { bench: boolean; children: React.ReactNode }) {
+  return bench ? <main>{children}</main> : <>{children}</>;
+}
+
 export function App() {
   const route = useRoute();
   const entry = findToolEntry(route);
@@ -802,11 +808,13 @@ export function App() {
         {/* Plot tools draw the bar in PlotToolShell (with their steps and
             exports); the calculators have no steps, so the bar goes here. */}
         {t.category === "bench" && <AppBar />}
-        <ErrorBoundary toolName={t.label}>
-          <React.Suspense fallback={<ChunkLoadingFallback label={t.label} />}>
-            <t.Component />
-          </React.Suspense>
-        </ErrorBoundary>
+        <ToolMain bench={t.category === "bench"}>
+          <ErrorBoundary toolName={t.label}>
+            <React.Suspense fallback={<ChunkLoadingFallback label={t.label} />}>
+              <t.Component />
+            </React.Suspense>
+          </ErrorBoundary>
+        </ToolMain>
       </AppChromeContext.Provider>
     </div>
   ));

@@ -4,6 +4,7 @@
 // per-group colour overrides.
 
 import { ColorInput } from "./ColorInput";
+import { useShellT } from "./i18n";
 
 const h = React.createElement;
 
@@ -27,6 +28,7 @@ export function GroupColorEditor(props: GroupColorEditorProps) {
   const onColorChange = props.onColorChange;
   const onNameChange = props.onNameChange;
   const onToggle = props.onToggle;
+  const tr = useShellT();
   return h(
     "div",
     { style: { display: "flex", flexDirection: "column", gap: 4 } },
@@ -40,6 +42,7 @@ export function GroupColorEditor(props: GroupColorEditorProps) {
             type: "checkbox",
             checked: enabled,
             onChange: () => onToggle(i),
+            "aria-label": tr("shell.group.show", { name: g.displayName || g.name }),
             style: { accentColor: g.color, flexShrink: 0, cursor: "pointer" },
           })
         );
@@ -57,6 +60,7 @@ export function GroupColorEditor(props: GroupColorEditorProps) {
         h("input", {
           key: "nm",
           value: g.displayName || g.name,
+          "aria-label": tr("shell.group.name", { name: g.name }),
           onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
             if (onNameChange) onNameChange(i, e.target.value);
           },

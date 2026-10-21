@@ -25,6 +25,15 @@ const en = {
   "lineplot.var.singleLine": "(single line)",
 
   // Groups section
+  "lineplot.cfg.xNote": "Numeric column plotted along the X axis.",
+  "lineplot.cfg.yNote": "Numeric column plotted along the Y axis.",
+  "lineplot.cfg.groupNote": "Categorical column used to split the data into coloured lines.",
+  "lineplot.cfg.noneSingle": "— None (single line) —",
+  "lineplot.cfg.needTwo": "Need at least two numeric columns to plot.",
+  "lineplot.cfg.loaded": "Loaded ",
+  "lineplot.cfg.pasted": "pasted data",
+  "lineplot.cfg.rowsCols": " — {rows} rows × {cols} columns",
+  "lineplot.pa.noData": "No data to plot. Check your column picks — X and Y must be numeric.",
   "lineplot.sec.groups": "Groups",
   "lineplot.groups.empty": "No groups yet — pick a grouping column.",
   "lineplot.groups.lineStyleAria": "Line style for {name}",

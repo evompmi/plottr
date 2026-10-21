@@ -61,7 +61,7 @@ export function PlotStep(props: PlotStepProps) {
                 fontSize: 13,
               }}
             >
-              No data to plot. Check your column picks — X and Y must be numeric.
+              {tr("lineplot.pa.noData")}
             </p>
           ) : (
             <Chart

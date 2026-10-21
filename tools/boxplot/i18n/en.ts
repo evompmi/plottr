@@ -131,6 +131,10 @@ const en = {
   "boxplot.steps.preview8": "Preview (first 8 rows):",
 
   // Steps — filter
+  "boxplot.steps.colName": "Name of column {n}",
+  "boxplot.pa.noGroups": "No groups selected. Enable at least one to display the plot.",
+  "boxplot.app.cantPlot":
+    "⚠ Assign <strong>group</strong> + <strong>value</strong> columns and ensure filters keep data.",
   "boxplot.steps.preview": "Preview",
   "boxplot.steps.previewOf": "of {total} rows",
   "boxplot.steps.filteredOut": "filtered out",

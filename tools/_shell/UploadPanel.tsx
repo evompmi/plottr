@@ -90,7 +90,7 @@ export function UploadPanel(props: UploadPanelProps) {
         "label",
         {
           htmlFor: "dv-separator-select",
-          style: { fontSize: 13, fontWeight: 600, color: "var(--accent-primary)" },
+          style: { fontSize: 13, fontWeight: 600, color: "var(--link)" },
         },
         tr("shell.sep.label")
       ),
@@ -241,7 +241,6 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
               textTransform: "uppercase",
               letterSpacing: "0.8px",
               color: "var(--success-text)",
-              opacity: 0.75,
               marginBottom: 2,
             }}
           >
@@ -379,7 +378,7 @@ function AutoDetectUploadPanel(props: UploadPanelProps) {
           >
             <label
               htmlFor="dv-separator-select"
-              style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-primary)" }}
+              style={{ fontSize: 12, fontWeight: 600, color: "var(--link)" }}
             >
               {tr("shell.sep.force")}
             </label>

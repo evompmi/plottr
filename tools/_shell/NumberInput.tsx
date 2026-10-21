@@ -27,6 +27,9 @@ interface NumberInputProps {
   className?: string;
   style?: React.CSSProperties;
   inputStyle?: React.CSSProperties;
+  // Accessible name for the number field (the visible label is usually a
+  // separate `dv-label` above it).
+  "aria-label"?: string;
 }
 
 interface HoldState {
@@ -165,6 +168,7 @@ export function NumberInput(props: NumberInputProps) {
       placeholder,
       onChange: (e: React.ChangeEvent<HTMLInputElement>) => fireChange(e.target.value),
       style: props.inputStyle,
+      "aria-label": props["aria-label"],
     }),
     h(
       "button",

@@ -506,6 +506,7 @@ export function PlotControls({
                   <label style={{ fontSize: 11, flex: 1, display: "block" }}>
                     <span className="dv-label">{tr("heatmap.colour.min")}</span>
                     <NumberInput
+                      aria-label={tr("heatmap.colour.min")}
                       value={vis.vmin}
                       step="0.1"
                       onChange={(e) => updVis({ vmin: parseFloat(e.target.value) })}
@@ -515,6 +516,7 @@ export function PlotControls({
                   <label style={{ fontSize: 11, flex: 1, display: "block" }}>
                     <span className="dv-label">{tr("heatmap.colour.max")}</span>
                     <NumberInput
+                      aria-label={tr("heatmap.colour.max")}
                       value={vis.vmax}
                       step="0.1"
                       onChange={(e) => updVis({ vmax: parseFloat(e.target.value) })}
@@ -590,6 +592,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("heatmap.labels.title")}</span>
                   <input
+                    aria-label={tr("heatmap.labels.title")}
                     type="text"
                     value={vis.plotTitle}
                     onChange={(e) => updVis({ plotTitle: e.target.value })}
@@ -600,6 +603,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("heatmap.labels.subtitle")}</span>
                   <input
+                    aria-label={tr("heatmap.labels.subtitle")}
                     type="text"
                     value={vis.plotSubtitle}
                     onChange={(e) => updVis({ plotSubtitle: e.target.value })}
@@ -610,6 +614,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("heatmap.labels.xAxis")}</span>
                   <input
+                    aria-label={tr("heatmap.labels.xAxis")}
                     type="text"
                     value={vis.colAxisLabel}
                     onChange={(e) => updVis({ colAxisLabel: e.target.value })}
@@ -620,6 +625,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("heatmap.labels.yAxis")}</span>
                   <input
+                    aria-label={tr("heatmap.labels.yAxis")}
                     type="text"
                     value={vis.rowAxisLabel}
                     onChange={(e) => updVis({ rowAxisLabel: e.target.value })}

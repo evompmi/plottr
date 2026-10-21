@@ -376,7 +376,9 @@ export function StatsPanel({
                           method: vis.adjustMethod === "holm" ? "Holm" : "BH",
                         })}
                       </th>
-                      <th style={thS}></th>
+                      <th style={thS}>
+                        <span className="dv-sr-only">{tr("proportions.stats.signif")}</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -561,7 +563,9 @@ export function GofPanel({ table, ratioText, setRatioText }: GofPanelProps) {
                     <th style={thS}>{tr("proportions.gof.method")}</th>
                     <th style={thS}>p</th>
                     <th style={thS}>{tr("proportions.gof.pHolm")}</th>
-                    <th style={thS}></th>
+                    <th style={thS}>
+                      <span className="dv-sr-only">{tr("proportions.stats.signif")}</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

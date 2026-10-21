@@ -86,6 +86,10 @@ const fr: Record<VolcanoKey, string> = {
   "volcano.cfg.pastedData": "(données collées)",
   "volcano.cfg.colsRows": " — {cols} colonnes × {rows} lignes",
   "volcano.cfg.preview": "Aperçu (8 premières lignes) :",
+  "volcano.cfg.chooseX": "— choisir une colonne log₂FC —",
+  "volcano.cfg.chooseY": "— choisir une colonne p-value —",
+  "volcano.cfg.xNote":
+    "Colonne numérique contenant le log₂ fold change de chaque caractéristique. DESeq2 : <code>log2FoldChange</code> ; limma / edgeR : <code>logFC</code>.",
   "volcano.dl.csv": "CSV",
   "volcano.dl.csvTitle":
     "Télécharger la table de classification par caractéristique — caractéristique, log2FC, p, −log10(p), classe",

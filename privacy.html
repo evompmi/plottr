@@ -121,7 +121,7 @@
         border-radius: 8px;
         padding: 0.95rem 1.1rem;
       }
-      .trust-card h3 {
+      .trust-card h2 {
         font-size: 0.84rem;
         font-weight: 700;
         text-transform: uppercase;
@@ -132,7 +132,7 @@
         align-items: center;
         gap: 0.5rem;
       }
-      .trust-card h3 svg {
+      .trust-card h2 svg {
         width: 14px;
         height: 14px;
         flex-shrink: 0;
@@ -150,12 +150,14 @@
         font-size: 0.8rem;
         color: var(--text);
       }
+      /* Links inside running text are underlined, not told apart by colour alone. */
       .trust-card a {
         color: var(--link);
-        text-decoration: none;
+        text-decoration: underline;
+        text-underline-offset: 2px;
       }
       .trust-card a:hover {
-        text-decoration: underline;
+        text-decoration-thickness: 2px;
       }
 
       /* ── Inspect-it-yourself footer ───────────────────────────────────── */
@@ -181,10 +183,11 @@
       }
       .inspect-block a {
         color: var(--link);
-        text-decoration: none;
+        text-decoration: underline;
+        text-underline-offset: 2px;
       }
       .inspect-block a:hover {
-        text-decoration: underline;
+        text-decoration-thickness: 2px;
       }
 
       footer {
@@ -256,7 +259,7 @@
       </div>
     </header>
 
-    <div class="container">
+    <main class="container">
       <header>
         <h1 data-i18n="privacy.h1">How Plöttr handles your data, in one diagram</h1>
       </header>
@@ -690,7 +693,7 @@
       <!-- ── Trust statements ──────────────────────────────────────────── -->
       <div class="trust-grid">
         <div class="trust-card">
-          <h3>
+          <h2>
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
                 d="M2 8.5 L6 12.5 L14 4.5"
@@ -701,7 +704,7 @@
               />
             </svg>
             <span data-i18n="privacy.trust.safe.h">Your data is safe</span>
-          </h3>
+          </h2>
           <p data-i18n="privacy.trust.safe.p">
             When you drop a file in or paste table cells, the chart and the statistics are built
             right there, inside your browser tab. Plöttr has no servers.
@@ -709,7 +712,7 @@
         </div>
 
         <div class="trust-card">
-          <h3>
+          <h2>
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
                 d="M2 8.5 L6 12.5 L14 4.5"
@@ -720,7 +723,7 @@
               />
             </svg>
             <span data-i18n="privacy.trust.noMonitoring.h">No monitoring</span>
-          </h3>
+          </h2>
           <p data-i18n="privacy.trust.noMonitoring.p">
             No analytics, no cookies, no trackers. The page doesn't record what you click, what you
             upload, or how long you stayed.
@@ -728,7 +731,7 @@
         </div>
 
         <div class="trust-card">
-          <h3>
+          <h2>
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
                 d="M2 8.5 L6 12.5 L14 4.5"
@@ -739,7 +742,7 @@
               />
             </svg>
             <span data-i18n="privacy.trust.openScrutiny.h">Open to scrutiny</span>
-          </h3>
+          </h2>
           <p data-i18n-html="privacy.trust.openScrutiny.p">
             Plöttr is open source. The whole codebase — including this page — is on
             <a href="https://github.com/evompmi/plottr">GitHub</a>. Read it, fork it, or run a local
@@ -777,7 +780,7 @@
           >source on GitHub</a
         >
       </footer>
-    </div>
+    </main>
 
     <script>
       // Theme toggle — same icon-swap pattern as benchmark.html.

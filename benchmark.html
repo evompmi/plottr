@@ -173,7 +173,7 @@
   }
   .toggle-all:hover { border-color: var(--accent-primary); color: var(--link); }
   .toggle-all:focus-visible {
-    outline: 2px solid var(--accent-primary);
+    outline: 2px solid var(--focus-outline);
     outline-offset: 1px;
   }
   .category[open] > summary {
@@ -181,6 +181,10 @@
   }
   .category:not([open]) > summary {
     margin-bottom: 0;
+  }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
   }
   .badge {
     font-size: 0.7rem;
@@ -250,7 +254,7 @@
     </nav>
   </div>
 </header>
-<div class="container">
+<main class="container">
   <header>
     <h1>statistical cross-validation vs R + SciPy</h1>
     <ul class="lede">
@@ -322,7 +326,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -851,7 +855,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -1120,7 +1124,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -1269,7 +1273,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -1418,7 +1422,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -1607,7 +1611,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -1796,7 +1800,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -1945,7 +1949,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -2094,7 +2098,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -3723,7 +3727,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -4092,7 +4096,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -4791,7 +4795,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -5000,7 +5004,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -5089,7 +5093,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -5178,7 +5182,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -5267,7 +5271,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -5326,7 +5330,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -5405,7 +5409,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -5834,7 +5838,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -6063,7 +6067,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -6292,7 +6296,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -6421,7 +6425,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -6520,7 +6524,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -6709,7 +6713,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -6978,7 +6982,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -7127,7 +7131,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -7216,7 +7220,7 @@
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>
@@ -7267,7 +7271,7 @@
     R reference generated 2026-10-18 09:04:56 UTC.
     Tolerance 1e-7–1e-3 by metric tier (see above). Tool source: <code>tools/_core/stats/*.ts</code>.
   </footer>
-</div>
+</main>
 <script>
   // Theme toggle — uses setTheme / getTheme from tools/theme.js (loaded above).
   // The same-origin storage event in theme.js keeps benchmark in lockstep with

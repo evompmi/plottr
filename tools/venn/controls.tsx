@@ -139,6 +139,7 @@ export function PlotControls({
                           checked={active}
                           disabled={active && !canUncheck}
                           onChange={() => onToggleSet(name)}
+                          aria-label={tr("venn.set.show", { name })}
                           style={{
                             accentColor: setColors[name] || PALETTE[i % PALETTE.length],
                             flexShrink: 0,
@@ -153,6 +154,7 @@ export function PlotControls({
                         <input
                           key={name}
                           defaultValue={name}
+                          aria-label={tr("venn.set.name", { name })}
                           style={{
                             flex: 1,
                             minWidth: 0,
@@ -232,6 +234,7 @@ export function PlotControls({
                   <div>
                     <div className="dv-label">{tr("venn.ctrl.title")}</div>
                     <input
+                      aria-label={tr("venn.ctrl.title")}
                       value={vis.plotTitle}
                       onChange={(e) => updVis({ plotTitle: e.target.value })}
                       className="dv-input"

@@ -72,7 +72,7 @@ function SubCard({
         style={{
           fontSize: 10,
           fontWeight: 700,
-          color: "var(--accent-primary)",
+          color: "var(--link)",
           marginBottom: 8,
           textTransform: "uppercase",
           letterSpacing: "1px",

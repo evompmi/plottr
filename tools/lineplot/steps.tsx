@@ -116,6 +116,7 @@ export function ConfigureStep({
   numericCols,
   categoricalCols,
 }: ConfigureStepProps) {
+  const tr = useT();
   const canPlot = xCol != null && yCol != null && numericCols.length >= 2;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -128,6 +129,7 @@ export function ConfigureStep({
       >
         <LpAesBox theme="x">
           <select
+            aria-label={tr("lineplot.var.xAxis")}
             value={xCol ?? ""}
             onChange={(e) => setXCol(parseInt(e.target.value))}
             className="dv-select"
@@ -140,11 +142,12 @@ export function ConfigureStep({
             ))}
           </select>
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
-            Numeric column plotted along the X axis.
+            {tr("lineplot.cfg.xNote")}
           </div>
         </LpAesBox>
         <LpAesBox theme="y">
           <select
+            aria-label={tr("lineplot.var.yAxis")}
             value={yCol ?? ""}
             onChange={(e) => setYCol(parseInt(e.target.value))}
             className="dv-select"
@@ -157,17 +160,18 @@ export function ConfigureStep({
             ))}
           </select>
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
-            Numeric column plotted along the Y axis.
+            {tr("lineplot.cfg.yNote")}
           </div>
         </LpAesBox>
         <LpAesBox theme="group">
           <select
+            aria-label={tr("lineplot.var.groupBy")}
             value={groupCol == null ? "" : groupCol}
             onChange={(e) => setGroupCol(e.target.value === "" ? null : parseInt(e.target.value))}
             className="dv-select"
             style={{ width: "100%" }}
           >
-            <option value="">— None (single line) —</option>
+            <option value="">{tr("lineplot.cfg.noneSingle")}</option>
             {categoricalCols.map((i: number) => (
               <option key={i} value={i}>
                 {parsed.headers[i]}
@@ -175,20 +179,24 @@ export function ConfigureStep({
             ))}
           </select>
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
-            Categorical column used to split the data into coloured lines.
+            {tr("lineplot.cfg.groupNote")}
           </div>
         </LpAesBox>
       </div>
       {!canPlot && (
         <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--warning-text)" }}>
-          Need at least two numeric columns to plot.
+          {tr("lineplot.cfg.needTwo")}
         </p>
       )}
 
       <div className="dv-panel" style={{ marginBottom: 0 }}>
         <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--text-muted)" }}>
-          Loaded <strong style={{ color: "var(--text)" }}>{fileName || "pasted data"}</strong> —{" "}
-          {parsed.rawData.length} rows × {parsed.headers.length} columns
+          {tr("lineplot.cfg.loaded")}
+          <strong style={{ color: "var(--text)" }}>{fileName || tr("lineplot.cfg.pasted")}</strong>
+          {tr("lineplot.cfg.rowsCols", {
+            rows: parsed.rawData.length,
+            cols: parsed.headers.length,
+          })}
           <DetectedSeparatorBadge sep={detectedSep} />
         </p>
         <DataPreview headers={parsed.headers} rows={parsed.rawData} maxRows={10} />

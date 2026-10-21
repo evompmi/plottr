@@ -901,7 +901,7 @@ const tableHtml = cats
             <th class="num">Plöttr</th>
             <th class="num" title="Normal-space absolute difference |R − Plöttr|">|Δ|</th>
             <th class="num" title="Log-space difference |ln(R) − ln(Plöttr)| — p-values only; '—' where not applicable">|Δ ln p|</th>
-            <th></th>
+            <th><span class="sr-only">result</span></th>
           </tr>
         </thead>
         <tbody>${trs}</tbody>
@@ -1107,7 +1107,7 @@ const html = `<!doctype html>
   }
   .toggle-all:hover { border-color: var(--accent-primary); color: var(--link); }
   .toggle-all:focus-visible {
-    outline: 2px solid var(--accent-primary);
+    outline: 2px solid var(--focus-outline);
     outline-offset: 1px;
   }
   .category[open] > summary {
@@ -1115,6 +1115,10 @@ const html = `<!doctype html>
   }
   .category:not([open]) > summary {
     margin-bottom: 0;
+  }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
   }
   .badge {
     font-size: 0.7rem;
@@ -1184,7 +1188,7 @@ const html = `<!doctype html>
     </nav>
   </div>
 </header>
-<div class="container">
+<main class="container">
   <header>
     <h1>statistical cross-validation${scipy ? " vs R + SciPy" : ` vs R ${escapeHtml(data.meta.r_version.replace(/^R version /, ""))}`}</h1>
     <ul class="lede">
@@ -1264,7 +1268,7 @@ const html = `<!doctype html>
     R reference generated ${escapeHtml(data.meta.generated)}.
     Tolerance ${TOL_STAT.toExponential()}–${TOL_QTUKEY_CI.toExponential()} by metric tier (see above). Tool source: <code>tools/_core/stats/*.ts</code>.
   </footer>
-</div>
+</main>
 <script>
   // Theme toggle — uses setTheme / getTheme from tools/theme.js (loaded above).
   // The same-origin storage event in theme.js keeps benchmark in lockstep with

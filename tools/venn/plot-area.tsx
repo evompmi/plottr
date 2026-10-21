@@ -96,7 +96,7 @@ export function IntersectionTable({
                 style={{
                   padding: "6px 10px",
                   textAlign: "right",
-                  color: "var(--accent-primary)",
+                  color: "var(--link)",
                   fontWeight: 700,
                   fontFamily: "var(--font-mono)",
                 }}

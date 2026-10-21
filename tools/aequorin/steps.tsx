@@ -352,6 +352,7 @@ export function ConfigureStep({
             <div>
               <div className="dv-label">{tr("aequorin.steps.formula")}</div>
               <select
+                aria-label={tr("aequorin.steps.formula")}
                 value={formula}
                 onChange={(e) => setFormula(e.target.value as typeof formula)}
                 className="dv-select"
@@ -367,6 +368,7 @@ export function ConfigureStep({
               <div>
                 <div className="dv-label">Kr</div>
                 <NumberInput
+                  aria-label="Kr"
                   value={Kr}
                   onChange={(e) => setKr(Number(e.target.value))}
                   step="0.1"
@@ -377,6 +379,7 @@ export function ConfigureStep({
               <div>
                 <div className="dv-label">Ktr</div>
                 <NumberInput
+                  aria-label="Ktr"
                   value={Ktr}
                   onChange={(e) => setKtr(Number(e.target.value))}
                   step="1"
@@ -387,6 +390,7 @@ export function ConfigureStep({
               <div>
                 <div className="dv-label">{tr("aequorin.steps.kdLabel")}</div>
                 <NumberInput
+                  aria-label={tr("aequorin.steps.kdLabel")}
                   value={Kd}
                   onChange={(e) => setKd(Number(e.target.value))}
                   step="0.5"
@@ -398,6 +402,7 @@ export function ConfigureStep({
               <div>
                 <div className="dv-label">{tr("aequorin.steps.hillExp")}</div>
                 <NumberInput
+                  aria-label={tr("aequorin.steps.hillExp")}
                   value={hillN}
                   onChange={(e) => setHillN(Number(e.target.value))}
                   step="0.5"
@@ -413,6 +418,7 @@ export function ConfigureStep({
             <div>
               <div className="dv-label">{tr("aequorin.steps.timeStep")}</div>
               <NumberInput
+                aria-label={tr("aequorin.steps.timeStep")}
                 value={vis.timeStep}
                 onChange={(e) => updVis({ timeStep: Number(e.target.value) || 1 })}
                 style={{ width: 132 }}
@@ -423,6 +429,7 @@ export function ConfigureStep({
             <div>
               <div className="dv-label">{tr("aequorin.steps.baseUnit")}</div>
               <select
+                aria-label={tr("aequorin.steps.baseUnit")}
                 value={vis.baseUnit}
                 onChange={(e) => updVis({ baseUnit: e.target.value })}
                 className="dv-select"

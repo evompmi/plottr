@@ -87,6 +87,9 @@
   /* Plot card — ALWAYS white so exports stay on a white canvas */
   --plot-card-bg: #ffffff;
   --plot-card-border: #dde0e7;
+  /* Chrome text drawn ON a plot card (a hint under the chart). The card is
+     white in both themes, so this grey is not overridden in dark. */
+  --plot-card-text-muted: #5f6573;
 
   /* Inverse-contrast text (e.g. text on an accent-filled button) */
   --on-accent: #ffffff;
@@ -172,6 +175,19 @@
      surface to stay legible (4.5:1) — the dimmer-accent rule governs fills,
      borders and rings, not text (like --text itself). */
   --link: #3558d4;
+  /* Violet TEXT (DNA modes, continuous-colour labels) — the text twin of
+     --accent-dna / --cta-dna-bg, lighter in dark for the same reason. */
+  --dna-text: #6447dc;
+  /* Keyboard focus ring. An indicator, not a fill: it must reach 3:1 against
+     the surface, so in dark it is a soft periwinkle rather than the dimmed
+     --accent-primary (which would sit near 2:1). */
+  --focus-outline: #3558d4;
+  /* Column-role TEXT (group / value / filter). The role hues themselves
+     (`roleColors` in _core/color.ts) stay for borders and checkboxes; these
+     are their legible text twins. */
+  --role-group-text: #0072b2;
+  --role-value-text: #00785a;
+  --role-filter-text: #8f5a00;
   /* Quiet dividers between rows inside a card (lighter than --border). */
   --border-subtle: #eceef3;
   /* Workspace figure canvas: a dotted bench the white figure sheet sits on. */
@@ -236,7 +252,7 @@
   --aes-color-bg: #1e293b;
   --aes-color-border: #334155;
   --aes-color-header: #334155;
-  --aes-color-header-text: #94a3b8;
+  --aes-color-header-text: #cbd5e1;
   --aes-size-bg: #15241b;
   --aes-size-border: #254a33;
   --aes-size-header: #1e3a2a;
@@ -302,6 +318,11 @@
   --accent-blue: #7da3c4;
   --accent-primary-hover: #2c3f86;
   --link: #9db0ea;
+  --dna-text: #b3a7f5;
+  --focus-outline: #7f96e0;
+  --role-group-text: #6cb8ec;
+  --role-value-text: #4cc9a0;
+  --role-filter-text: #f0b440;
   --border-subtle: #22252d;
   --canvas-bg: #14161b;
   --canvas-dot: #262932;
@@ -359,7 +380,7 @@
     --aes-color-bg: #1e293b;
     --aes-color-border: #334155;
     --aes-color-header: #334155;
-    --aes-color-header-text: #94a3b8;
+    --aes-color-header-text: #cbd5e1;
     --aes-size-bg: #15241b;
     --aes-size-border: #254a33;
     --aes-size-header: #1e3a2a;
@@ -425,6 +446,11 @@
     --accent-blue: #7da3c4;
     --accent-primary-hover: #2c3f86;
     --link: #9db0ea;
+    --dna-text: #b3a7f5;
+    --focus-outline: #7f96e0;
+    --role-group-text: #6cb8ec;
+    --role-value-text: #4cc9a0;
+    --role-filter-text: #f0b440;
     --border-subtle: #22252d;
     --canvas-bg: #14161b;
     --canvas-dot: #262932;

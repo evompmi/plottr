@@ -16,6 +16,10 @@ const en = {
 
   // Sidebar tiles + controls
   "venn.tab.sets": "Sets",
+  "venn.cfg.colsRows": " — {cols} cols × {rows} rows",
+  "venn.cfg.preview": "Preview (first 8 rows):",
+  "venn.set.show": "Show {name}",
+  "venn.set.name": "Name of set {name}",
   "venn.tab.display": "Display",
   "venn.controlsLabel": "Plot controls",
   "venn.inspectorLabel": "Intersections and items",

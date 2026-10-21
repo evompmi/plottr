@@ -165,6 +165,7 @@ export function RenameReorderPanel(props: RenameReorderPanelProps) {
                 value: valueRenames[i] && valueRenames[i][v] != null ? valueRenames[i][v] : v,
                 onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
                   onRenameVal(i, v, e.target.value),
+                "aria-label": tr("shell.rename.to", { name: v || tr("shell.rename.empty") }),
                 className: "dv-input",
                 style: { width: 100, fontSize: 11 },
               })

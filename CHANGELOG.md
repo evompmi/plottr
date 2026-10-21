@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   summaries, replication planning and the R / Methods / report exports. UpSet and Venn list
   their intersections and items there. Extra downloads sit in a "More" menu in the app bar.
 - **"per group" in French.** The replication-planning sample size is now translated.
+- **Dark mode, French and accessibility pass (2.0).** The app bar stays on one row down to
+  1100 px in both languages. Every form field has an accessible name, every page has a main
+  landmark and a valid heading outline, keyboard focus rings are visible in dark mode, and text
+  that used accent or data colours is now readable in both themes. Remaining English strings in
+  Line Plot, Volcano, Venn, UpSet, Group Plot and RLU Timecourse are translated.
 - **Benchmark and Privacy pages (2.0).** Same top bar and footer as the landing page, the new
   type and colours, and the benchmark tables scroll inside their box on phones instead of
   widening the page.

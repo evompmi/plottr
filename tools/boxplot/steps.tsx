@@ -23,7 +23,7 @@ import {
 import { useBoxplotHowTo } from "./howto";
 import { useT, ttHtml, type BoxplotKey } from "./i18n";
 
-import { roleColors } from "../_core/color";
+import { roleColors, roleTextColors } from "../_core/color";
 import { downloadCsv, fileBaseName, flashSaved } from "../_core/download";
 import type { ColumnRole } from "../_core/csv";
 // Role-colour themes for the Configure-step AesBox cards. Reuses scatter's
@@ -115,7 +115,7 @@ function OtherColumnsPanel({
       <p
         style={{ margin: "0 0 10px", fontSize: 11, color: "var(--text-faint)", lineHeight: 1.4 }}
         dangerouslySetInnerHTML={{
-          __html: ttHtml("boxplot.steps.otherColsDesc", { c: roleColors.filter }),
+          __html: ttHtml("boxplot.steps.otherColsDesc", { c: roleTextColors.filter }),
         }}
       />
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -152,6 +152,7 @@ function OtherColumnsPanel({
               <input
                 value={colNames[i]}
                 onChange={(e) => onNameChange(i, e.target.value)}
+                aria-label={tr("boxplot.steps.colName", { n: i + 1 })}
                 className="dv-input"
                 style={{ width: 140, fontWeight: 600, fontSize: 12 }}
               />
@@ -161,7 +162,7 @@ function OtherColumnsPanel({
                   alignItems: "center",
                   gap: 6,
                   fontSize: 11,
-                  color: isFilter ? roleColors.filter : "var(--text-muted)",
+                  color: isFilter ? roleTextColors.filter : "var(--text-muted)",
                   fontWeight: 600,
                   cursor: "pointer",
                 }}
@@ -268,6 +269,7 @@ export function ConfigureStep({
       >
         <BpAesBox theme="group">
           <select
+            aria-label={tr("boxplot.steps.aes.group")}
             value={groupColIdx >= 0 ? groupColIdx : ""}
             onChange={(e) => {
               const raw = e.target.value;
@@ -306,6 +308,7 @@ export function ConfigureStep({
         </BpAesBox>
         <BpAesBox theme="value">
           <select
+            aria-label={tr("boxplot.steps.aes.value")}
             value={valueColIdx >= 0 ? valueColIdx : ""}
             onChange={(e) => {
               const raw = e.target.value;
@@ -381,8 +384,8 @@ export function ConfigureStep({
             style={{ fontSize: 12, color: "var(--warning-text)" }}
             dangerouslySetInnerHTML={{
               __html: ttHtml("boxplot.steps.assignGroupValue", {
-                gc: roleColors.group,
-                vc: roleColors.value,
+                gc: roleTextColors.group,
+                vc: roleTextColors.value,
               }),
             }}
           />

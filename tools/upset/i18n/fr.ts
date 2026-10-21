@@ -93,6 +93,11 @@ const fr: Record<UpsetKey, string> = {
     "Le degré 1 conserve les singletons (éléments propres à un seul ensemble) ; le degré = {sets} conserve l’intersection de tous les ensembles. Vous pouvez modifier cela plus tard dans les contrôles du tracé.",
   "upset.cfg.colsRows": " — {cols} colonnes × {rows} lignes",
   "upset.cfg.preview": "Aperçu (8 premières lignes) :",
+  "upset.pa.clearSelection": "Effacer la sélection",
+  "upset.pa.tooMany":
+    "{n} colonnes — les points peuvent se chevaucher. Augmentez la Taille d’intersection minimale ou le Degré minimal, ou réduisez le Degré maximal.",
+  "upset.pa.none":
+    "Aucune intersection à afficher. Réduisez la Taille d’intersection minimale ou le Degré minimal, ou augmentez le Degré maximal.",
   "upset.tab.sets": "Ensembles",
   "upset.tab.display": "Affichage",
   "upset.tab.statistics": "Statistiques",

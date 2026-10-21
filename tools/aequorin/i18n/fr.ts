@@ -120,6 +120,11 @@ const fr: Record<AequorinKey, string> = {
     "Ouvrir ces données Σ par réplicat directement dans l’outil Group Plot (boîte / violon / raincloud / barres)",
   "aequorin.pa.dragTip":
     "Astuce : glissez sur le tracé pour définir la fenêtre temporelle. Ajustez-la dans Axes.",
+  "aequorin.pa.noneSelected":
+    "Aucune condition ni aucun échantillon sélectionné. Activez-en au moins un pour afficher le graphique.",
+  "aequorin.pa.timecourse": "Graphique chronologique",
+  "aequorin.cond.show": "Afficher {name}",
+  "aequorin.cond.name": "Nom affiché pour {name}",
   "aequorin.pa.dragTipClear": " Cliquez sur effacer pour réinitialiser.",
   "aequorin.pa.clear": "Effacer",
   "aequorin.pa.resetTitle": "Réinitialiser la fenêtre temporelle à la plage complète des données",

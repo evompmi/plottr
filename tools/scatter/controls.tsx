@@ -149,6 +149,7 @@ export function PlotControls({
                   <label style={{ display: "block" }}>
                     <span className="dv-label">{tr("scatter.var.xAxis")}</span>
                     <select
+                      aria-label={tr("scatter.var.xAxis")}
                       value={xCol}
                       onChange={(e) => setXCol(parseInt(e.target.value))}
                       className="dv-select"
@@ -164,6 +165,7 @@ export function PlotControls({
                   <label style={{ display: "block" }}>
                     <span className="dv-label">{tr("scatter.var.yAxis")}</span>
                     <select
+                      aria-label={tr("scatter.var.yAxis")}
                       value={yCol}
                       onChange={(e) => setYCol(parseInt(e.target.value))}
                       className="dv-select"
@@ -358,6 +360,7 @@ export function PlotControls({
               {/* ── Color aesthetic ── */}
               <AesBox theme="color">
                 <select
+                  aria-label={tr("scatter.aes.color")}
                   value={colorMapCol == null ? "" : colorMapCol}
                   onChange={(e) =>
                     setColorMapCol(e.target.value === "" ? null : parseInt(e.target.value))
@@ -469,6 +472,7 @@ export function PlotControls({
               {/* ── Size aesthetic ── */}
               <AesBox theme="size">
                 <select
+                  aria-label={tr("scatter.aes.size")}
                   value={sizeMapCol == null ? "" : sizeMapCol}
                   onChange={(e) =>
                     setSizeMapCol(e.target.value === "" ? null : parseInt(e.target.value))
@@ -569,6 +573,7 @@ export function PlotControls({
               {/* ── Shape aesthetic ── */}
               <AesBox theme="shape">
                 <select
+                  aria-label={tr("scatter.aes.shape")}
                   value={shapeMapCol == null ? "" : shapeMapCol}
                   onChange={(e) =>
                     setShapeMapCol(e.target.value === "" ? null : parseInt(e.target.value))
@@ -995,6 +1000,7 @@ export function PlotControls({
                     <div style={{ flex: 1 }}>
                       <div className="dv-label">{tr("scatter.axes.xMin")}</div>
                       <input
+                        aria-label={tr("scatter.axes.xMin")}
                         type="text"
                         inputMode="decimal"
                         value={vis.xMin != null ? vis.xMin : ""}
@@ -1010,6 +1016,7 @@ export function PlotControls({
                     <div style={{ flex: 1 }}>
                       <div className="dv-label">{tr("scatter.axes.xMax")}</div>
                       <input
+                        aria-label={tr("scatter.axes.xMax")}
                         type="text"
                         inputMode="decimal"
                         value={vis.xMax != null ? vis.xMax : ""}
@@ -1027,6 +1034,7 @@ export function PlotControls({
                     <div style={{ flex: 1 }}>
                       <div className="dv-label">{tr("scatter.axes.yMin")}</div>
                       <input
+                        aria-label={tr("scatter.axes.yMin")}
                         type="text"
                         inputMode="decimal"
                         value={vis.yMin != null ? vis.yMin : ""}
@@ -1042,6 +1050,7 @@ export function PlotControls({
                     <div style={{ flex: 1 }}>
                       <div className="dv-label">{tr("scatter.axes.yMax")}</div>
                       <input
+                        aria-label={tr("scatter.axes.yMax")}
                         type="text"
                         inputMode="decimal"
                         value={vis.yMax != null ? vis.yMax : ""}
@@ -1058,6 +1067,7 @@ export function PlotControls({
                   <div>
                     <div className="dv-label">{tr("scatter.axes.xLabel")}</div>
                     <input
+                      aria-label={tr("scatter.axes.xLabel")}
                       value={vis.xLabel}
                       onChange={(e) => updVis({ xLabel: e.target.value })}
                       className="dv-input-num"
@@ -1067,6 +1077,7 @@ export function PlotControls({
                   <div>
                     <div className="dv-label">{tr("scatter.axes.yLabel")}</div>
                     <input
+                      aria-label={tr("scatter.axes.yLabel")}
                       value={vis.yLabel}
                       onChange={(e) => updVis({ yLabel: e.target.value })}
                       className="dv-input-num"
@@ -1076,6 +1087,7 @@ export function PlotControls({
                   <div>
                     <div className="dv-label">{tr("scatter.axes.title")}</div>
                     <input
+                      aria-label={tr("scatter.axes.title")}
                       value={vis.plotTitle}
                       onChange={(e) => updVis({ plotTitle: e.target.value })}
                       className="dv-input-num"

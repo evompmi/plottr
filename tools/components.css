@@ -36,7 +36,7 @@
   font-family: inherit;
 }
 .dv-input:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--focus-outline);
   outline-offset: 1px;
   border-color: var(--accent-primary);
 }
@@ -57,7 +57,7 @@
   font-family: var(--font-mono);
 }
 .dv-input-num:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--focus-outline);
   outline-offset: 1px;
   border-color: var(--accent-primary);
 }
@@ -78,7 +78,7 @@
   box-sizing: border-box;
 }
 .dv-num:focus-within {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--focus-outline);
   outline-offset: 1px;
   border-color: var(--accent-primary);
 }
@@ -210,7 +210,7 @@
   border-color: var(--text-faint);
 }
 .dv-select:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--focus-outline);
   outline-offset: 1px;
   border-color: var(--accent-primary);
 }
@@ -228,7 +228,7 @@
   cursor: pointer;
 }
 .dv-select-sep:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--focus-outline);
   outline-offset: 2px;
 }
 
@@ -249,6 +249,14 @@ input[type="range"]::-webkit-slider-thumb {
   background: var(--accent-primary);
   cursor: pointer;
   border: none;
+}
+/* Keyboard focus on native controls: the slider drops the browser outline
+   above, and checkboxes / radios get the same accent ring as the dv-* controls. */
+input[type="range"]:focus-visible,
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
+  outline: 2px solid var(--focus-outline);
+  outline-offset: 2px;
 }
 input[type="range"]::-moz-range-track {
   height: 6px;
@@ -279,7 +287,7 @@ input[type="range"]::-moz-range-thumb {
     color 140ms ease;
 }
 .dv-btn:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--focus-outline);
   outline-offset: 2px;
 }
 .dv-btn:disabled {
@@ -427,7 +435,7 @@ input[type="range"]::-moz-range-thumb {
   color: var(--text);
 }
 .dv-seg-btn:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--focus-outline);
   outline-offset: -2px;
 }
 .dv-seg-btn:disabled {
@@ -488,7 +496,7 @@ input[type="range"]::-moz-range-thumb {
 }
 .dv-step:focus-visible,
 .dv-ctrl-tab:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--focus-outline);
   outline-offset: -2px;
 }
 .dv-ctrl-tab:hover {
@@ -532,7 +540,7 @@ input[type="range"]::-moz-range-thumb {
   border-color: var(--text-faint);
 }
 .dv-icon-btn:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--focus-outline);
   outline-offset: 2px;
 }
 .dv-icon-btn svg {
@@ -570,13 +578,16 @@ input[type="range"]::-moz-range-thumb {
   background: var(--surface-sunken);
   outline: none;
 }
+.dv-switcher-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--focus-outline);
+}
 .dv-switcher-item[aria-current="page"] {
   background: var(--accent-primary-weak);
   color: var(--link);
   font-weight: 600;
 }
 .dv-brand:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--focus-outline);
   outline-offset: 4px;
   border-radius: var(--radius-sm);
 }
@@ -648,7 +659,7 @@ input[type="range"]::-moz-range-thumb {
   background: var(--accent-primary-weak);
 }
 .dv-set-row:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--focus-outline);
   outline-offset: -2px;
 }
 .dv-inspector input[type="checkbox"],
@@ -677,10 +688,35 @@ input[type="range"]::-moz-range-thumb {
   margin-top: -18px;
   border-top: none;
 }
-/* Narrower windows: drop the file chip so the app bar stays on one line. */
-@media (max-width: 1320px) {
+/* Narrower windows keep the app bar on one line down to the 1100 px desktop
+   floor, in both languages: first the file chip goes (the widest bar with it
+   needs ~1490 px), then the wordmark (the rune still links home), "Download
+   SVG" shortens to "SVG" and the gaps tighten (widest without the chip
+   ~1280 px). */
+.dv-label-short {
+  display: none;
+}
+@media (max-width: 1560px) {
   .dv-file-chip {
     display: none;
+  }
+}
+@media (max-width: 1300px) {
+  .dv-brand-word,
+  .dv-label-long {
+    display: none;
+  }
+  .dv-label-short {
+    display: inline;
+  }
+  .dv-appbar > div {
+    gap: 10px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .dv-appbar .dv-step {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
   }
 }
 .dv-toolbar-label {

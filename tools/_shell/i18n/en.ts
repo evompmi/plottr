@@ -57,6 +57,7 @@ const en = {
 
   // ColumnRoleEditor — column-role names (display labels; the <option>
   // value attrs stay the English ColumnRole enum).
+  "shell.preview.unnamedCol": "Column {n}",
   "shell.roles.group": "group",
   "shell.roles.value": "value",
   "shell.roles.filter": "filter",
@@ -64,6 +65,8 @@ const en = {
   "shell.cols.heading": "Column roles",
   // The help line is rendered with the role words as inline coloured spans
   // between these fragments (order: group, value, group, value, filter).
+  "shell.cols.name": "Name of column {n}",
+  "shell.cols.role": "Role of column {name}",
   "shell.cols.help.exactlyOne": "Exactly one ",
   "shell.cols.help.xAxisAndOne": " (x-axis) and one ",
   "shell.cols.help.numericPicking": " (numeric) column. Picking ",
@@ -150,7 +153,9 @@ const en = {
   "shell.rename.empty": "(empty)",
 
   // DiscretePaletteRow
+  "shell.rename.to": "Rename {name}",
   "shell.palette.copied": "✓ Copied {hex}",
+  "shell.palette.label": "Palette",
   "shell.palette.clickToCopy": "Click a swatch to copy its hex",
   "shell.palette.swatchTitle": "{hex} — click to copy",
   "shell.palette.swatchAria": "Copy {hex} to clipboard",
@@ -279,6 +284,8 @@ const en = {
   "shell.color.hexGeneric": "Color hex value",
 
   // NumberInput stepper
+  "shell.group.show": "Show {name}",
+  "shell.group.name": "Display name for {name}",
   "shell.num.increment": "Increment",
   "shell.num.decrement": "Decrement",
 

@@ -102,6 +102,11 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.steps.assignGroupValue":
     'Assignez au moins une colonne <strong style="color:{gc}">groupe</strong> et une colonne <strong style="color:{vc}">valeur</strong> pour continuer.',
   "boxplot.steps.colsRows": "{cols} cols × {rows} lignes",
+  "boxplot.steps.colName": "Nom de la colonne {n}",
+  "boxplot.pa.noGroups":
+    "Aucun groupe sélectionné. Activez-en au moins un pour afficher le graphique.",
+  "boxplot.app.cantPlot":
+    "⚠ Assignez des colonnes <strong>groupe</strong> + <strong>valeur</strong> et vérifiez que les filtres conservent des données.",
   "boxplot.steps.noHeader": " (pas d’en-tête)",
   "boxplot.steps.preview8": "Aperçu (8 premières lignes) :",
   "boxplot.steps.preview": "Aperçu",

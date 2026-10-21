@@ -204,6 +204,7 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.stats.onDct": "sur les ΔCt",
   "qpcr.stats.posthoc": "Post-hoc : {name}",
   "qpcr.stats.pair": "Paire",
+  "qpcr.stats.signif": "Significativité",
   "qpcr.stats.fc": "Ratio",
   "qpcr.stats.pAdj": "p (ajustée)",
   "qpcr.test.studentT": "Test t de Student",

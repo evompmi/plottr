@@ -19,6 +19,28 @@ import { useT } from "./i18n";
 
 import { downloadCsv, downloadCsvs, fileBaseName } from "../_core/download";
 
+// A colour name in running text: a swatch carries the hue, the word stays in
+// the text colour (the bar fills are too light to read as text).
+function LegendWord({ color, label }: { color: string; label: string }) {
+  return (
+    <span style={{ fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+      <span
+        aria-hidden="true"
+        style={{
+          display: "inline-block",
+          width: 8,
+          height: 8,
+          borderRadius: 2,
+          background: color,
+          marginRight: 4,
+          verticalAlign: "baseline",
+        }}
+      />
+      {label}
+    </span>
+  );
+}
+
 // ── PlotControls ────────────────────────────────────────────────────────────
 
 export function PlotControls({
@@ -135,6 +157,7 @@ export function PlotControls({
                 <div>
                   <span className="dv-label">{tr("upset.sort.label")}</span>
                   <select
+                    aria-label={tr("upset.sort.label")}
                     value={vis.sortMode}
                     onChange={(e) => updVis({ sortMode: e.target.value })}
                     className="dv-input"
@@ -180,6 +203,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("upset.minDegree")}</span>
                   <NumberInput
+                    aria-label={tr("upset.minDegree")}
                     value={vis.minDegree}
                     min={1}
                     max={Math.max(1, activeSetNames.length)}
@@ -247,6 +271,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("upset.label.title")}</span>
                   <input
+                    aria-label={tr("upset.label.title")}
                     value={vis.plotTitle}
                     onChange={(e) => updVis({ plotTitle: e.target.value })}
                     className="dv-input"
@@ -256,6 +281,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("upset.label.subtitle")}</span>
                   <input
+                    aria-label={tr("upset.label.subtitle")}
                     value={vis.plotSubtitle}
                     onChange={(e) => updVis({ plotSubtitle: e.target.value })}
                     className="dv-input"
@@ -360,6 +386,7 @@ export function PlotControls({
                     )}
                   </div>
                   <NumberInput
+                    aria-label={tr("upset.stat.universe")}
                     value={universeSize}
                     min={1}
                     step={1}
@@ -578,13 +605,9 @@ export function PlotControls({
                       lineHeight: 1.4,
                     }}
                   >
-                    <span style={{ color: BAR_FILL_ENRICHED, fontWeight: 700 }}>
-                      {tr("upset.stat.green")}
-                    </span>
+                    <LegendWord color={BAR_FILL_ENRICHED} label={tr("upset.stat.green")} />
                     {tr("upset.stat.colorBarsNote1")}
-                    <span style={{ color: BAR_FILL_DEPLETED, fontWeight: 700 }}>
-                      {tr("upset.stat.darkRed")}
-                    </span>
+                    <LegendWord color={BAR_FILL_DEPLETED} label={tr("upset.stat.darkRed")} />
                     {tr("upset.stat.colorBarsNote2")}
                   </p>
                 </div>

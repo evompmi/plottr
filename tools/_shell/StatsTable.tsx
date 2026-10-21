@@ -77,9 +77,23 @@ export function StatsTable({ stats, groupLabel }: StatsTableProps) {
                   style: {
                     padding: "4px 10px",
                     fontWeight: 600,
-                    color: PALETTE[i % PALETTE.length],
+                    color: "var(--text)",
+                    whiteSpace: "nowrap",
                   },
                 },
+                // The group's palette colour as a swatch: the hues are too
+                // light to read as text on white.
+                h("span", {
+                  "aria-hidden": "true",
+                  style: {
+                    display: "inline-block",
+                    width: 8,
+                    height: 8,
+                    borderRadius: 2,
+                    marginRight: 6,
+                    background: PALETTE[i % PALETTE.length],
+                  },
+                }),
                 s.name
               ),
               h("td", { style: { padding: "4px 10px" } }, s.n),

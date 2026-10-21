@@ -99,6 +99,10 @@ const en = {
   "volcano.cfg.preview": "Preview (first 8 rows):",
 
   // Downloads (plot step)
+  "volcano.cfg.chooseX": "— choose a log₂FC column —",
+  "volcano.cfg.chooseY": "— choose a p-value column —",
+  "volcano.cfg.xNote":
+    "Numeric column with the log₂ fold change for each feature. DESeq2: <code>log2FoldChange</code>; limma / edgeR: <code>logFC</code>.",
   "volcano.dl.csv": "CSV",
   "volcano.dl.csvTitle":
     "Download the per-feature classification table — feature, log2FC, p, −log10(p), class",

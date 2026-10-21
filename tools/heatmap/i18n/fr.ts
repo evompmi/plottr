@@ -108,7 +108,7 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.chart.colLabelsAria.other": "{n} étiquettes de colonne",
   "heatmap.err.matrix":
     "Le fichier doit comporter au moins une colonne d’étiquettes de ligne et une colonne de données avec un en-tête.",
-  "heatmap.step.importCheck": "Vérification d’import",
+  "heatmap.step.importCheck": "Vérifier l’import",
   "heatmap.cfg.pastedData": "Données collées",
   "heatmap.cfg.parsed": " — {rows} lignes × {cols} colonnes analysées",
   "heatmap.cfg.nonNumeric.one": "{n} cellule non numérique rendue en NaN",

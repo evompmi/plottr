@@ -224,7 +224,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
           fontSize: 14,
         }}
       >
-        No conditions or samples selected. Enable at least one to display the plot.
+        {tr("aequorin.pa.noneSelected")}
       </div>
     );
 
@@ -604,7 +604,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
             className={"dv-disclosure" + (chartOpen ? " dv-disclosure-open" : "")}
             aria-hidden="true"
           />
-          Time-course plot
+          {tr("aequorin.pa.timecourse")}
         </span>
       </button>
       {chartOpen && (
@@ -720,7 +720,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                 margin: "6px 2px 0",
               }}
             >
-              <p style={{ margin: 0, fontSize: 11, color: "var(--text-faint)" }}>
+              <p style={{ margin: 0, fontSize: 11, color: "var(--plot-card-text-muted)" }}>
                 {tr("aequorin.pa.dragTip")}
                 {xZoomed ? tr("aequorin.pa.dragTipClear") : ""}
               </p>
@@ -749,6 +749,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
 // label/color. Rendered inside PlotControls' ControlSection.
 
 export function ConditionEditor({ conditions, onChange }: ConditionEditorProps) {
+  const tr = useT();
   const update = (i: number, key: keyof Condition, val: unknown) =>
     onChange(conditions.map((c, j) => (j === i ? { ...c, [key]: val } : c)));
   const toggle = (i: number) =>
@@ -774,6 +775,7 @@ export function ConditionEditor({ conditions, onChange }: ConditionEditorProps) 
             type="checkbox"
             checked={c.enabled}
             onChange={() => toggle(i)}
+            aria-label={tr("aequorin.cond.show", { name: c.label })}
             style={{ accentColor: c.color, flexShrink: 0 }}
           />
           <ColorInput
@@ -785,6 +787,7 @@ export function ConditionEditor({ conditions, onChange }: ConditionEditorProps) 
           <input
             value={c.label}
             onChange={(e) => update(i, "label", e.target.value)}
+            aria-label={tr("aequorin.cond.name", { name: c.label })}
             style={{
               flex: 1,
               minWidth: 0,

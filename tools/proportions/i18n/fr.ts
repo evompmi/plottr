@@ -144,6 +144,7 @@ const fr: Record<ProportionsKey, string> = {
     "Holm : contrôle le risque d’au moins un faux positif (familywise)",
   "proportions.stats.bhTitle": "Benjamini–Hochberg : contrôle le taux de fausses découvertes",
   "proportions.stats.pair": "Paire",
+  "proportions.stats.signif": "Significativité",
   "proportions.stats.pAdj": "p ({method})",
   "proportions.stats.pairwiseNote":
     "Chaque paire est testée sur son propre tableau à 2 lignes ; les p ajustées tiennent compte du nombre de paires.",

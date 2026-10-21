@@ -474,8 +474,17 @@ test("Start over, the first download, a More menu for the rest, SVG last as prim
     },
   };
   const { container, root } = renderWithEffects(sc.PlotActionsBar, { entryRef });
-  const labels = () => [...container.querySelectorAll("button")].map((b) => b.textContent);
+  // Accessible names (what a screen reader announces).
+  const labels = () =>
+    [...container.querySelectorAll("button")].map(
+      (b) => b.getAttribute("aria-label") || b.textContent
+    );
   eq(labels().join("|"), "Start over|PNG|More ▾|Download SVG");
+  // The SVG button carries both visible labels; components.css shows the
+  // short one in narrow windows, and the name stays "Download SVG".
+  const svgLabels = container.querySelectorAll("button")[3];
+  eq(svgLabels.querySelector(".dv-label-long").textContent, "Download SVG");
+  eq(svgLabels.querySelector(".dv-label-short").textContent, "SVG");
   const more = container.querySelectorAll("button")[2];
   eq(more.getAttribute("aria-haspopup"), "menu");
   React.act(() => more.click());
@@ -3441,6 +3450,53 @@ test("three labelled columns with an inspector, two without", function () {
     controlsLabel: "Plot controls",
   });
   assert(withBar.includes("dv-workspace-toolbar"));
+});
+
+test("each side column opens with a level-2 heading, and the layout adds no <main>", function () {
+  // The h3 section titles inside need an h2 above them (h1 is the tool
+  // name); PlotToolShell's body is the page's single <main>.
+  const three = renderHtml(sc.WorkspaceLayout, {
+    controls: "C",
+    figure: "F",
+    inspector: "I",
+    controlsLabel: "Plot controls",
+    inspectorLabel: "Statistics",
+  });
+  const h2s = [...three.matchAll(/<h2[^>]*>([^<]*)<\/h2>/g)].map((m) => m[1]);
+  eq(JSON.stringify(h2s), JSON.stringify(["Plot controls", "Statistics"]));
+  assert(!three.includes("<main"), "no nested main inside the tool body");
+  const two = renderHtml(sc.WorkspaceLayout, {
+    controls: "C",
+    figure: "F",
+    controlsLabel: "Plot controls",
+  });
+  eq([...two.matchAll(/<h2/g)].length, 1);
+});
+
+test("PlotToolShell puts the step content in the page's <main>, after the app bar", function () {
+  const html = renderHtml(sc.PlotToolShell, {
+    state: {
+      step: "upload",
+      setStep: noop,
+      fileName: "",
+      commaFixed: false,
+      commaFixCount: 0,
+      injectionWarning: null,
+      parseError: null,
+      vis: {},
+      updVis: noop,
+    },
+    toolName: "t",
+    title: "Tool",
+    visInit: {},
+    steps: ["upload", "plot"],
+    canNavigate: () => true,
+    children: "STEP-BODY",
+  });
+  eq([...html.matchAll(/<main/g)].length, 1);
+  const main = html.slice(html.indexOf("<main"));
+  assert(main.includes("STEP-BODY"), "step content inside <main>");
+  assert(html.indexOf("<header") < html.indexOf("<main"), "app bar before <main>");
 });
 
 test("InspectorSection renders its label as a heading", function () {

@@ -3,6 +3,7 @@
 // component and a couple of React hooks — no tool-specific state lives here.
 
 import { BoxplotChart } from "./chart";
+import { useT } from "./i18n";
 import {
   ChartProps,
   FacetCell,
@@ -93,6 +94,7 @@ export function PlotArea({
   subgroups,
   subgroupSummaries,
 }: PlotAreaProps) {
+  const tr = useT();
   if (displayBoxplotGroups.length === 0 && (facetByCol < 0 || facetedData.length === 0)) {
     return (
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -112,7 +114,7 @@ export function PlotArea({
               fontSize: 14,
             }}
           >
-            No groups selected. Enable at least one to display the plot.
+            {tr("boxplot.pa.noGroups")}
           </div>
         </div>
       </div>

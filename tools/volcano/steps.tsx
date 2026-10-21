@@ -75,6 +75,7 @@ export function ConfigureStep({
       >
         <VolcanoAesBox theme="x">
           <select
+            aria-label={tr("volcano.aes.x")}
             className="dv-select"
             style={{ width: "100%" }}
             value={xValid ? xCol : ""}
@@ -84,20 +85,21 @@ export function ConfigureStep({
               setXCol(Number(raw));
             }}
           >
-            {!xValid && <option value="">— choose a log₂FC column —</option>}
+            {!xValid && <option value="">{tr("volcano.cfg.chooseX")}</option>}
             {parsed.headers.map((h, i) => (
               <option key={i} value={i}>
                 {h}
               </option>
             ))}
           </select>
-          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
-            Numeric column with the log₂ fold change for each feature. DESeq2:{" "}
-            <code>log2FoldChange</code>; limma / edgeR: <code>logFC</code>.
-          </div>
+          <div
+            style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}
+            dangerouslySetInnerHTML={{ __html: tr("volcano.cfg.xNote") }}
+          />
         </VolcanoAesBox>
         <VolcanoAesBox theme="y">
           <select
+            aria-label={tr("volcano.aes.y")}
             className="dv-select"
             style={{ width: "100%" }}
             value={yValid ? yCol : ""}
@@ -107,7 +109,7 @@ export function ConfigureStep({
               setYCol(Number(raw));
             }}
           >
-            {!yValid && <option value="">— choose a p-value column —</option>}
+            {!yValid && <option value="">{tr("volcano.cfg.chooseY")}</option>}
             {parsed.headers.map((h, i) => (
               <option key={i} value={i}>
                 {h}
@@ -138,6 +140,7 @@ export function ConfigureStep({
         </VolcanoAesBox>
         <VolcanoAesBox theme="label">
           <select
+            aria-label={tr("volcano.aes.label")}
             className="dv-select"
             style={{ width: "100%" }}
             value={labelCol}

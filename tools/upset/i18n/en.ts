@@ -109,6 +109,11 @@ const en = {
   "upset.cfg.preview": "Preview (first 8 rows):",
 
   // Stats panel
+  "upset.pa.clearSelection": "Clear selection",
+  "upset.pa.tooMany":
+    "{n} columns — dots may overlap. Raise Minimum intersection size, raise Minimum degree, or lower Maximum degree to reduce.",
+  "upset.pa.none":
+    "No intersections to show. Lower Minimum intersection size, lower Minimum degree, or raise Maximum degree.",
   "upset.tab.sets": "Sets",
   "upset.tab.display": "Display",
   "upset.tab.statistics": "Statistics",

@@ -134,6 +134,11 @@ const en = {
   "aequorin.pa.openInBoxplotTitle":
     "Open this per-replicate Σ data directly in the Group Plot tool (boxplot / violin / raincloud / bar)",
   "aequorin.pa.dragTip": "Tip: drag across the plot to set the time window. Adjust it in Axes.",
+  "aequorin.pa.noneSelected":
+    "No conditions or samples selected. Enable at least one to display the plot.",
+  "aequorin.pa.timecourse": "Time-course plot",
+  "aequorin.cond.show": "Show {name}",
+  "aequorin.cond.name": "Display name for {name}",
   "aequorin.pa.dragTipClear": " Click clear to reset.",
   "aequorin.pa.clear": "Clear",
   "aequorin.pa.resetTitle": "Reset the time window to the full data range",

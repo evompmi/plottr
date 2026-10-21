@@ -409,6 +409,7 @@ export function PlotControls({
                     <div>
                       <div className="dv-label">{tr("boxplot.ctrl.colorBy")}</div>
                       <select
+                        aria-label={tr("boxplot.ctrl.colorBy")}
                         value={colorByCol}
                         onChange={handleColorByChange}
                         className="dv-input"
@@ -533,6 +534,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("boxplot.ctrl.facetBy")}</span>
                   <select
+                    aria-label={tr("boxplot.ctrl.facetBy")}
                     value={facetByCol >= 0 ? facetByCol : ""}
                     onChange={(e) => {
                       const raw = e.target.value;
@@ -554,6 +556,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("boxplot.ctrl.subgroupBy")}</span>
                   <select
+                    aria-label={tr("boxplot.ctrl.subgroupBy")}
                     value={subgroupByCol >= 0 ? subgroupByCol : ""}
                     onChange={(e) => {
                       const raw = e.target.value;
@@ -586,6 +589,7 @@ export function PlotControls({
                 <div>
                   <div className="dv-label">{tr("boxplot.ctrl.title")}</div>
                   <input
+                    aria-label={tr("boxplot.ctrl.title")}
                     value={vis.plotTitle}
                     onChange={(e) => updVis({ plotTitle: e.target.value })}
                     className="dv-input"
@@ -595,6 +599,7 @@ export function PlotControls({
                 <div>
                   <div className="dv-label">{tr("boxplot.ctrl.yLabel")}</div>
                   <input
+                    aria-label={tr("boxplot.ctrl.yLabel")}
                     value={vis.yLabel}
                     onChange={(e) => updVis({ yLabel: e.target.value })}
                     className="dv-input"
@@ -605,6 +610,7 @@ export function PlotControls({
                   <div style={{ flex: 1 }}>
                     <div className="dv-label">{tr("boxplot.ctrl.yMin")}</div>
                     <input
+                      aria-label={tr("boxplot.ctrl.yMin")}
                       value={vis.yMinCustom}
                       onChange={(e) => updVis({ yMinCustom: e.target.value })}
                       className="dv-input"
@@ -615,6 +621,7 @@ export function PlotControls({
                   <div style={{ flex: 1 }}>
                     <div className="dv-label">{tr("boxplot.ctrl.yMax")}</div>
                     <input
+                      aria-label={tr("boxplot.ctrl.yMax")}
                       value={vis.yMaxCustom}
                       onChange={(e) => updVis({ yMaxCustom: e.target.value })}
                       className="dv-input"

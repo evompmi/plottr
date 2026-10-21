@@ -147,6 +147,7 @@ const en = {
   "proportions.stats.holmTitle": "Holm: controls the chance of any false positive (family-wise)",
   "proportions.stats.bhTitle": "Benjamini–Hochberg: controls the false discovery rate",
   "proportions.stats.pair": "Pair",
+  "proportions.stats.signif": "Significance",
   "proportions.stats.pAdj": "p ({method})",
   "proportions.stats.pairwiseNote":
     "Each pair is tested on its own 2-row table; adjusted p-values account for the number of pairs.",

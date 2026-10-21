@@ -1180,10 +1180,10 @@ export function App() {
           className="dv-panel"
           style={{ background: "var(--warning-bg)", borderColor: "var(--warning-border)" }}
         >
-          <p style={{ fontSize: 12, color: "var(--warning-text)" }}>
-            ⚠ Assign <strong>group</strong> + <strong>value</strong> columns and ensure filters keep
-            data.
-          </p>
+          <p
+            style={{ fontSize: 12, color: "var(--warning-text)" }}
+            dangerouslySetInnerHTML={{ __html: trApp("boxplot.app.cantPlot") }}
+          />
           <button
             onClick={() => setStep("configure")}
             className="dv-btn dv-btn-secondary"

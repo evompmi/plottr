@@ -219,12 +219,12 @@ export function ConfigureStep({
       )}
       <div className="dv-panel" style={{ marginTop: needsPicker || showNudge ? 16 : 0 }}>
         <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-muted)" }}>
-          <strong style={{ color: "var(--text)" }}>{fileName}</strong> — {parsedHeaders.length} cols
-          × {parsedRows.length} rows
+          <strong style={{ color: "var(--text)" }}>{fileName}</strong>
+          {tr("venn.cfg.colsRows", { cols: parsedHeaders.length, rows: parsedRows.length })}
           <DetectedSeparatorBadge sep={detectedSep} />
         </p>
         <p style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>
-          Preview (first 8 rows):
+          {tr("venn.cfg.preview")}
         </p>
         <DataPreview headers={parsedHeaders} rows={parsedRows} maxRows={8} />
       </div>

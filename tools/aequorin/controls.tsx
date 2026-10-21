@@ -177,6 +177,7 @@ export function PlotControls({
                       {tr("aequorin.ctrl.xStart", { unit: unitLabel })}
                     </span>
                     <NumberInput
+                      aria-label={tr("aequorin.ctrl.xStart", { unit: unitLabel })}
                       value={displayXStart}
                       onChange={(e) => updVis({ xStart: Number(e.target.value) / tsConvSafe })}
                       style={{ width: "100%" }}
@@ -188,6 +189,7 @@ export function PlotControls({
                       {tr("aequorin.ctrl.xEnd", { unit: unitLabel })}
                     </span>
                     <NumberInput
+                      aria-label={tr("aequorin.ctrl.xEnd", { unit: unitLabel })}
                       value={displayXEnd}
                       onChange={(e) => updVis({ xEnd: Number(e.target.value) / tsConvSafe })}
                       style={{ width: "100%" }}
@@ -199,6 +201,7 @@ export function PlotControls({
                   <label style={{ flex: 1, display: "block" }}>
                     <span className="dv-label">{tr("aequorin.ctrl.yMin")}</span>
                     <NumberInput
+                      aria-label={tr("aequorin.ctrl.yMin")}
                       value={vis.yMin}
                       onChange={(e) => updVis({ yMin: Number(e.target.value), autoYRange: false })}
                       style={{ width: "100%" }}
@@ -208,6 +211,7 @@ export function PlotControls({
                   <label style={{ flex: 1, display: "block" }}>
                     <span className="dv-label">{tr("aequorin.ctrl.yMax")}</span>
                     <NumberInput
+                      aria-label={tr("aequorin.ctrl.yMax")}
                       value={vis.yMax}
                       onChange={(e) => updVis({ yMax: Number(e.target.value), autoYRange: false })}
                       style={{ width: "100%" }}
@@ -252,6 +256,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("aequorin.ctrl.displayUnit")}</span>
                   <select
+                    aria-label={tr("aequorin.ctrl.displayUnit")}
                     value={vis.displayUnit}
                     onChange={(e) => updVis({ displayUnit: e.target.value })}
                     className="dv-select"
@@ -271,6 +276,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("aequorin.ctrl.title")}</span>
                   <input
+                    aria-label={tr("aequorin.ctrl.title")}
                     value={vis.plotTitle}
                     onChange={(e) => updVis({ plotTitle: e.target.value })}
                     className="dv-input-num"
@@ -280,6 +286,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("aequorin.ctrl.subtitle")}</span>
                   <input
+                    aria-label={tr("aequorin.ctrl.subtitle")}
                     value={vis.plotSubtitle}
                     onChange={(e) => updVis({ plotSubtitle: e.target.value })}
                     className="dv-input-num"
@@ -341,6 +348,7 @@ export function PlotControls({
                       <label style={{ display: "block" }}>
                         <span className="dv-label">{tr("aequorin.ctrl.yMin")}</span>
                         <input
+                          aria-label={tr("aequorin.ctrl.yMin")}
                           value={vis.insetYMinCustom}
                           onChange={(e) => updVis({ insetYMinCustom: e.target.value })}
                           className="dv-input-num"
@@ -351,6 +359,7 @@ export function PlotControls({
                       <label style={{ display: "block" }}>
                         <span className="dv-label">{tr("aequorin.ctrl.yMax")}</span>
                         <input
+                          aria-label={tr("aequorin.ctrl.yMax")}
                           value={vis.insetYMaxCustom}
                           onChange={(e) => updVis({ insetYMaxCustom: e.target.value })}
                           className="dv-input-num"

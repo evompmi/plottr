@@ -172,10 +172,13 @@ export function PlotActionsBar({ entryRef }: PlotActionsBarProps) {
           title={svg.d.title || undefined}
           className="dv-btn dv-btn-primary"
           style={btnStyle}
+          aria-label={tr("shell.actions.downloadSvg")}
           onClick={(e) => runDownload(svg.i, e)}
         >
           <DownloadIcon />
-          {tr("shell.actions.downloadSvg")}
+          {/* Narrow windows show just "SVG" (components.css); the name stays. */}
+          <span className="dv-label-long">{tr("shell.actions.downloadSvg")}</span>
+          <span className="dv-label-short">SVG</span>
         </button>
       )}
     </div>

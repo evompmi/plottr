@@ -17,7 +17,7 @@ import {
   computeLigationInsertNg,
   computeBatchMass,
 } from "./molarity-app/helpers";
-const { useState, useMemo, useCallback } = React;
+const { useId, useState, useMemo, useCallback } = React;
 
 // ── Numeric input with unit selector ────────────────────────────────────────
 
@@ -42,6 +42,8 @@ function UnitInput({
   placeholder?: string;
   compact?: boolean;
 }) {
+  const tr = useT();
+  const id = useId();
   return (
     <div
       style={{
@@ -53,6 +55,8 @@ function UnitInput({
       }}
     >
       <label
+        htmlFor={id}
+        id={id + "-label"}
         className="dv-label"
         style={{
           width: compact ? "100%" : 150,
@@ -69,6 +73,7 @@ function UnitInput({
         inputMode="decimal"
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
+        id={id}
         disabled={disabled}
         placeholder={placeholder || ""}
         className="dv-input"
@@ -85,6 +90,7 @@ function UnitInput({
       <select
         value={unit}
         onChange={(e) => onUnitChange(e.target.value)}
+        aria-labelledby={id + "-label " + id + "-unit"}
         className="dv-select"
         style={{ minWidth: 60 }}
       >
@@ -94,6 +100,9 @@ function UnitInput({
           </option>
         ))}
       </select>
+      <span id={id + "-unit"} className="dv-sr-only">
+        {tr("molarity.unit")}
+      </span>
     </div>
   );
 }
@@ -102,6 +111,7 @@ function UnitInput({
 
 function MolarityMode({ compact }: { compact?: boolean }) {
   const tr = useT();
+  const mwId = useId();
   const [mw, setMw] = useState("");
   const [mass, setMass] = useState("");
   const [massUnit, setMassUnit] = useState("g");
@@ -209,6 +219,7 @@ function MolarityMode({ compact }: { compact?: boolean }) {
             }}
           >
             <label
+              htmlFor={mwId}
               className="dv-label"
               style={{
                 width: compact ? "100%" : 150,
@@ -221,6 +232,7 @@ function MolarityMode({ compact }: { compact?: boolean }) {
               {tr("molarity.mol.mwLabel")}
             </label>
             <input
+              id={mwId}
               type="text"
               inputMode="decimal"
               value={solveFor === "mw" ? "" : mw}
@@ -414,7 +426,7 @@ function DilutionMode({ compact }: { compact?: boolean }) {
               margin: "0 0 12px",
               fontSize: 12,
               fontWeight: 600,
-              color: "var(--accent-primary)",
+              color: "var(--link)",
             }}
           >
             {tr("molarity.dil.stock")}
@@ -446,7 +458,7 @@ function DilutionMode({ compact }: { compact?: boolean }) {
               margin: "12px 0 12px",
               fontSize: 12,
               fontWeight: 600,
-              color: "var(--accent-primary)",
+              color: "var(--link)",
             }}
           >
             {tr("molarity.dil.final")}
@@ -597,7 +609,7 @@ function BatchMode() {
           {tr("molarity.batch.unitsNote")}
         </p>
         <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-primary)" }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--link)" }}>
             {tr("molarity.batch.separator")}
           </span>
           <div className="dv-seg">
@@ -803,9 +815,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
         }}
       >
         <div className="dv-panel" style={{ flex: 1, marginBottom: 0, padding: 12 }}>
-          <p
-            style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--accent-dna)" }}
-          >
+          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--dna-text)" }}>
             {tr("molarity.lig.vector")}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -816,6 +826,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
               type="text"
               inputMode="decimal"
               value={vectorBp}
+              aria-label={`${tr("molarity.lig.vector")}: ${tr("molarity.lig.length")} (bp)`}
               onChange={(e) => setVectorBp(e.target.value)}
               className="dv-input"
               style={{ ...fieldStyle, width: 90, fontSize: 12 }}
@@ -830,6 +841,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
               type="text"
               inputMode="decimal"
               value={vectorNg}
+              aria-label={`${tr("molarity.lig.vector")}: ${tr("molarity.lig.amount")} (ng)`}
               onChange={(e) => setVectorNg(e.target.value)}
               className="dv-input"
               style={{ ...fieldStyle, width: 90, fontSize: 12 }}
@@ -839,9 +851,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
         </div>
 
         <div className="dv-panel" style={{ flex: 1, marginBottom: 0, padding: 12 }}>
-          <p
-            style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--accent-dna)" }}
-          >
+          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--dna-text)" }}>
             {tr("molarity.lig.insert")}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -852,6 +862,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
               type="text"
               inputMode="decimal"
               value={insertBp}
+              aria-label={`${tr("molarity.lig.insert")}: ${tr("molarity.lig.length")} (bp)`}
               onChange={(e) => setInsertBp(e.target.value)}
               className="dv-input"
               style={{ ...fieldStyle, width: 90, fontSize: 12 }}
@@ -861,9 +872,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
         </div>
 
         <div className="dv-panel" style={{ flex: 1, marginBottom: 0, padding: 12 }}>
-          <p
-            style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--accent-dna)" }}
-          >
+          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--dna-text)" }}>
             {tr("molarity.lig.molarRatio")}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -882,6 +891,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
               type="text"
               inputMode="decimal"
               value={ratioVector}
+              aria-label={`${tr("molarity.lig.molarRatio")}: ${tr("molarity.lig.vector")}`}
               onChange={(e) => setRatioVector(e.target.value)}
               className="dv-input"
               style={{ ...fieldStyle, width: 60, fontSize: 12 }}
@@ -903,6 +913,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
               type="text"
               inputMode="decimal"
               value={ratioInsert}
+              aria-label={`${tr("molarity.lig.molarRatio")}: ${tr("molarity.lig.insert")}`}
               onChange={(e) => setRatioInsert(e.target.value)}
               className="dv-input"
               style={{ ...fieldStyle, width: 60, fontSize: 12 }}
@@ -981,7 +992,10 @@ function ModeButton({
         textAlign: "center",
         transition: "all 0.2s ease",
         transform: hovered && !isActive ? "translateY(-4px)" : "none",
-        boxShadow: hovered && !isActive ? `0 6px 16px ${accentColor}26` : "none",
+        boxShadow:
+          hovered && !isActive
+            ? `0 6px 16px color-mix(in srgb, ${accentColor} 15%, transparent)`
+            : "none",
         ...extraStyle,
       }}
     >
@@ -1027,8 +1041,8 @@ export function App() {
     },
   ];
 
-  const chemColor = "var(--cta-primary-bg)";
-  const dnaColor = "var(--cta-dna-bg)";
+  const chemColor = "var(--link)";
+  const dnaColor = "var(--dna-text)";
 
   return (
     <div

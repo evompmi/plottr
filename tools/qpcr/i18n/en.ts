@@ -205,6 +205,7 @@ const en = {
   "qpcr.stats.onDct": "on ΔCt",
   "qpcr.stats.posthoc": "Post-hoc: {name}",
   "qpcr.stats.pair": "Pair",
+  "qpcr.stats.signif": "Significance",
   "qpcr.stats.fc": "Fold change",
   "qpcr.stats.pAdj": "p (adjusted)",
   "qpcr.test.studentT": "Student's t-test",

@@ -123,7 +123,7 @@ export function PlotToolShell<TVis extends object>({
           ) : null
         }
       />
-      <div
+      <main
         className={fullBleed ? "dv-tool-body dv-tool-body-full" : "dv-tool-body"}
         style={
           fullBleed
@@ -141,7 +141,7 @@ export function PlotToolShell<TVis extends object>({
         <PlotActionsContext.Provider value={registry}>
           <StepFade step={state.step}>{children}</StepFade>
         </PlotActionsContext.Provider>
-      </div>
+      </main>
     </div>
   );
 }

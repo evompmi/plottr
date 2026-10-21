@@ -127,6 +127,7 @@ export function PlotControls({
                   <label style={{ display: "block" }}>
                     <span className="dv-label">{tr("lineplot.var.xAxis")}</span>
                     <select
+                      aria-label={tr("lineplot.var.xAxis")}
                       value={xCol}
                       onChange={(e) => setXCol(parseInt(e.target.value))}
                       className="dv-select"
@@ -142,6 +143,7 @@ export function PlotControls({
                   <label style={{ display: "block" }}>
                     <span className="dv-label">{tr("lineplot.var.yAxis")}</span>
                     <select
+                      aria-label={tr("lineplot.var.yAxis")}
                       value={yCol}
                       onChange={(e) => setYCol(parseInt(e.target.value))}
                       className="dv-select"
@@ -157,6 +159,7 @@ export function PlotControls({
                   <label style={{ display: "block" }}>
                     <span className="dv-label">{tr("lineplot.var.groupBy")}</span>
                     <select
+                      aria-label={tr("lineplot.var.groupBy")}
                       value={groupCol == null ? "" : groupCol}
                       onChange={(e) =>
                         setGroupCol(e.target.value === "" ? null : parseInt(e.target.value))
@@ -344,6 +347,7 @@ export function PlotControls({
                   <label style={{ flex: 1, display: "block" }}>
                     <span className="dv-label">{tr("lineplot.axes.xMin")}</span>
                     <NumberInput
+                      aria-label={tr("lineplot.axes.xMin")}
                       value={vis.xMin != null ? vis.xMin : autoAxis.xMin}
                       onChange={(e) => updVis({ xMin: round2(Number(e.target.value)) })}
                       step="0.1"
@@ -353,6 +357,7 @@ export function PlotControls({
                   <label style={{ flex: 1, display: "block" }}>
                     <span className="dv-label">{tr("lineplot.axes.xMax")}</span>
                     <NumberInput
+                      aria-label={tr("lineplot.axes.xMax")}
                       value={vis.xMax != null ? vis.xMax : autoAxis.xMax}
                       onChange={(e) => updVis({ xMax: round2(Number(e.target.value)) })}
                       step="0.1"
@@ -364,6 +369,7 @@ export function PlotControls({
                   <label style={{ flex: 1, display: "block" }}>
                     <span className="dv-label">{tr("lineplot.axes.yMin")}</span>
                     <NumberInput
+                      aria-label={tr("lineplot.axes.yMin")}
                       value={vis.yMin != null ? vis.yMin : autoAxis.yMin}
                       onChange={(e) => updVis({ yMin: round2(Number(e.target.value)) })}
                       step="0.1"
@@ -373,6 +379,7 @@ export function PlotControls({
                   <label style={{ flex: 1, display: "block" }}>
                     <span className="dv-label">{tr("lineplot.axes.yMax")}</span>
                     <NumberInput
+                      aria-label={tr("lineplot.axes.yMax")}
                       value={vis.yMax != null ? vis.yMax : autoAxis.yMax}
                       onChange={(e) => updVis({ yMax: round2(Number(e.target.value)) })}
                       step="0.1"
@@ -395,6 +402,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("lineplot.labels.title")}</span>
                   <input
+                    aria-label={tr("lineplot.labels.title")}
                     value={vis.plotTitle}
                     onChange={(e) => updVis({ plotTitle: e.target.value })}
                     className="dv-input"
@@ -404,6 +412,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("lineplot.labels.subtitle")}</span>
                   <input
+                    aria-label={tr("lineplot.labels.subtitle")}
                     value={vis.plotSubtitle}
                     onChange={(e) => updVis({ plotSubtitle: e.target.value })}
                     className="dv-input"
@@ -413,6 +422,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("lineplot.labels.xLabel")}</span>
                   <input
+                    aria-label={tr("lineplot.labels.xLabel")}
                     value={vis.xLabel}
                     onChange={(e) => updVis({ xLabel: e.target.value })}
                     className="dv-input"
@@ -422,6 +432,7 @@ export function PlotControls({
                 <label style={{ display: "block" }}>
                   <span className="dv-label">{tr("lineplot.labels.yLabel")}</span>
                   <input
+                    aria-label={tr("lineplot.labels.yLabel")}
                     value={vis.yLabel}
                     onChange={(e) => updVis({ yLabel: e.target.value })}
                     className="dv-input"

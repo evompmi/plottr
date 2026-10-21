@@ -626,7 +626,7 @@ export function App() {
                 onClick={() => setSelectedMask(null)}
                 className="dv-btn dv-btn-secondary"
               >
-                Clear selection
+                {trApp("upset.pa.clearSelection")}
               </button>
             ) : null
           }
@@ -665,8 +665,7 @@ export function App() {
                     color: "var(--warning-text)",
                   }}
                 >
-                  {truncatedIntersections.length} columns — dots may overlap. Raise Minimum
-                  intersection size, raise Minimum degree, or lower Maximum degree to reduce.
+                  {trApp("upset.pa.tooMany", { n: truncatedIntersections.length })}
                 </div>
               )}
               {truncatedIntersections.length === 0 && (
@@ -681,8 +680,7 @@ export function App() {
                     color: "var(--info-text)",
                   }}
                 >
-                  No intersections to show. Lower Minimum intersection size, lower Minimum degree,
-                  or raise Maximum degree.
+                  {trApp("upset.pa.none")}
                 </div>
               )}
             </>
