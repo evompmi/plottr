@@ -7,61 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-21
+
+> Long-form release notes live in
+> [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md). The
+> entries below are summary bullets that link there.
+>
+> The "Fresh Coat" release: a redesign of everything around the figures (landing page, one app
+> bar, a controls | figure | statistics workspace in every plot tool). Charts and statistics are
+> byte-identical to v1.12.0.
+
+### Added
+
+- **Statistics on demand.** In Group Plot, Line Plot, Scatter, qPCR, Proportions and RLU
+  Timecourse the statistics column starts folded into a "Statistics" strip and opens on click;
+  the choice is remembered per tool and marks on the plot keep working. See
+  [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#statistics-on-demand).
+- **Group Plot: optional outlier marks.** With points shown, "Mark outliers in black" (on by
+  default) can drop the black dot over each outlier.
+
 ### Changed
 
-- **Statistics column on demand (2.0).** In Group Plot, Line Plot, Scatter, qPCR, Proportions
-  and RLU Timecourse the statistics column starts folded into a "Statistics" strip on the right
-  edge, giving the figure more room; click it to open the column and "Hide" to fold it again.
-  The choice is remembered per tool, and significance marks on the plot keep working while it
-  is closed. UpSet and Venn keep their intersections column open.
-- **RLU Timecourse: Σ sums CSV in the More menu (2.0).** The barplot's per-replicate sums CSV
-  moved from a button inside the figure area to the app bar's More menu ("Σ sums CSV"), shown
-  while the barplot is on. Same file as before.
-- **Group Plot: one list to keep, rename and order values (2.0).** The filter step's separate
-  checkbox and rename/drag panels are merged into qPCR-style rows per column: tick to keep,
-  type to rename (with the old name shown), the row count, and ↑ / ↓ for the plot order.
-  Rows stay in place when unticked, and a renamed value keeps its position.
-- **qPCR: collapsible statistics (2.0).** Each gene's statistics fold under its name, with its
-  significance stars still showing; the first gene starts open, so runs with many genes stay
-  readable. "Why the tests use ΔCt" now opens on click, like "Why this test?".
-- **One colour for "selected" (2.0).** The chosen option in every pick-one control (Calculator's
-  mode cards and "solve for" list, the plot-style icons, Letters / Brackets, the RLU, Scatter
-  and UpSet On/Off toggles) is now the dark pill used everywhere else; blue is kept for
-  actions, links, the current step and focus. The RLU barplot toggle is now translated.
-- **New look (2.0).** A calmer interface: Space Grotesk for headings, IBM Plex Sans for text
-  and Plex Mono for numbers, a cool grey background, one deeper blue accent, dark selected
-  pills on switches, and quieter buttons. Fonts stay self-hosted. Light-mode error text is
-  darker so it is easier to read.
-- **New app bar (2.0).** One bar across every tool: the Plöttr mark (home), a menu to switch tool
-  (grouped by the question each tool answers), the steps, the file name, Start over, a "More"
-  menu (PNG and other downloads), a primary "Download SVG" button, settings, theme, language
-  and feedback.
-- **Workspace layout in every plot tool (2.0).** Controls in tabs on the left, the figure on a
-  canvas in the middle with quick options above it (marks on plot, series / layout, summaries),
-  and statistics in their own column on the right: test result, assumptions, post-hoc, group
-  summaries, replication planning and the R / Methods / report exports as three equal buttons.
-  UpSet and Venn list their intersections and items there.
+- **New look.** Space Grotesk headings, IBM Plex Sans text, Plex Mono numbers (all
+  self-hosted); a cool grey ground with one deeper blue for actions, links, the current step and
+  focus; chosen options are dark pills. See [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#new-look).
+- **One app bar for every tool.** Home, tool switcher, steps, file name, Start over, a "More"
+  menu (PNG, CSV, tables, Σ sums), "Download SVG", settings, theme, language, feedback; one row
+  down to 1100 px. See [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#one-app-bar-for-every-tool).
+- **Workspace in every plot tool.** Controls as remembered tabs, the figure on a canvas with
+  quick options above it, statistics in their own column. See
+  [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#workspace-in-every-plot-tool).
+- **Group Plot: one list to keep, rename and order values** in the filter step, in qPCR's style;
+  rows stay in place when unticked or renamed. See
+  [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#group-plot-one-list-to-keep-rename-and-order-values).
+- **qPCR: collapsible statistics** per gene, stars still visible; "Why the tests use ΔCt"
+  opens on click.
+- **New landing page** with Group Plot's real example output, the four steps, tools grouped by
+  question, the calculators, the benchmark count and a citation footer; on phones it opens on
+  the calculators. See [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#landing-page).
+- **Calculators, Benchmark and Privacy** on the new chrome; 44 px touch targets on phones.
+- **Dark mode, French and accessibility pass**: accessible names, landmarks and headings,
+  visible focus in dark mode, readable accent text in both themes, remaining English strings
+  translated. See [`docs/release-notes/v2.0.0.md`](docs/release-notes/v2.0.0.md#dark-mode-french-and-accessibility).
+
+### Fixed
+
 - **"per group" in French.** The replication-planning sample size is now translated.
-- **Dark mode, French and accessibility pass (2.0).** The app bar stays on one row down to
-  1100 px in both languages. Every form field has an accessible name, every page has a main
-  landmark and a valid heading outline, keyboard focus rings are visible in dark mode, and text
-  that used accent or data colours is now readable in both themes. Remaining English strings in
-  Line Plot, Volcano, Venn, UpSet, Group Plot and RLU Timecourse are translated.
-- **Benchmark and Privacy pages (2.0).** Same top bar and footer as the landing page, the new
-  type and colours, and the benchmark tables scroll inside their box on phones instead of
-  widening the page.
-- **Calculators on phones (2.0).** Power Analysis and the Calculator use the new app bar (one row
-  on a phone) without a second title, and every button, switch and field is at least 44 px tall
-  for fingers.
-- **New landing page (2.0).** A hero with Group Plot's real output on its example data (figure,
-  test and post-hoc results) and the four steps of every plot tool, tools grouped by the
-  question they answer, a calculator band, a proof strip (1,701 comparisons against R and
-  SciPy, privacy, citation) and a citation footer with a copy button. On phones the page opens
-  straight on the calculators. "Try it on example data" opens Group Plot's plot with the
-  example loaded.
-- **Group Plot: optional outlier marks.** With points shown, a new "Mark outliers in black" switch
-  (on by default) can remove the black dot drawn over each outlier, leaving only its coloured
-  point. With points hidden, outliers are always marked.
 
 ## [1.12.0] - 2026-10-20
 
