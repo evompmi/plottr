@@ -401,9 +401,11 @@
         color: var(--text-faint);
       }
 
-      /* Proof strip */
+      /* Proof strip (bottom of the page, above the cite footer) */
       .lp-proof {
+        margin-top: 48px;
         background: var(--surface);
+        border-top: 1px solid var(--border);
         border-bottom: 1px solid var(--border);
       }
       .lp-proof .lp-wrap {
@@ -915,61 +917,6 @@
           </div>
         </section>
 
-        <section class="lp-proof" data-i18n-aria="landing.proof.aria" aria-label="Why trust it">
-          <div class="lp-wrap">
-            <a href="benchmark.html" data-benchmark-link>
-              <span class="lp-big" data-benchmark-count>1,701</span>
-              <span class="lp-proof-text"
-                ><strong data-i18n="landing.proof.benchmark"
-                  >comparisons against R 4.5 and SciPy 1.17</strong
-                ><span data-i18n="landing.proof.benchmarkLink">See the benchmark →</span></span
-              >
-            </a>
-            <a href="privacy.html" data-benchmark-link>
-              <svg
-                viewBox="0 0 24 24"
-                width="26"
-                height="26"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <rect x="4" y="10" width="16" height="11" rx="2" />
-                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-              </svg>
-              <span class="lp-proof-text"
-                ><strong data-i18n="landing.proof.privacy">No server, no tracking</strong
-                ><span data-i18n="landing.proof.privacyLink"
-                  >Your data never leaves the browser tab →</span
-                ></span
-              >
-            </a>
-            <a href="#cite">
-              <svg
-                viewBox="0 0 24 24"
-                width="26"
-                height="26"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z" />
-                <path d="M5 18a2 2 0 0 1 2-2h11" />
-              </svg>
-              <span class="lp-proof-text"
-                ><strong data-i18n="landing.proof.cite">MIT licensed, citable on Zenodo</strong
-                ><span data-i18n="landing.proof.citeLink">Get the citation →</span></span
-              >
-            </a>
-          </div>
-        </section>
-
         <section
           class="lp-hiw lp-wrap"
           data-i18n-aria="landing.hiw.aria"
@@ -1405,6 +1352,61 @@
                 ><strong>Calculator</strong
                 ><span class="lp-desc" data-i18n="landing.tool.molarity.desc"></span
               ></span>
+            </a>
+          </div>
+        </section>
+
+        <section class="lp-proof" data-i18n-aria="landing.proof.aria" aria-label="Why trust it">
+          <div class="lp-wrap">
+            <a href="benchmark.html" data-benchmark-link>
+              <span class="lp-big" data-benchmark-count>1,701</span>
+              <span class="lp-proof-text"
+                ><strong data-i18n="landing.proof.benchmark"
+                  >comparisons against R 4.5 and SciPy 1.17</strong
+                ><span data-i18n="landing.proof.benchmarkLink">See the benchmark →</span></span
+              >
+            </a>
+            <a href="privacy.html" data-benchmark-link>
+              <svg
+                viewBox="0 0 24 24"
+                width="26"
+                height="26"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="4" y="10" width="16" height="11" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+              </svg>
+              <span class="lp-proof-text"
+                ><strong data-i18n="landing.proof.privacy">No server, no tracking</strong
+                ><span data-i18n="landing.proof.privacyLink"
+                  >Your data never leaves the browser tab →</span
+                ></span
+              >
+            </a>
+            <a href="#cite">
+              <svg
+                viewBox="0 0 24 24"
+                width="26"
+                height="26"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z" />
+                <path d="M5 18a2 2 0 0 1 2-2h11" />
+              </svg>
+              <span class="lp-proof-text"
+                ><strong data-i18n="landing.proof.cite">MIT licensed, citable on Zenodo</strong
+                ><span data-i18n="landing.proof.citeLink">Get the citation →</span></span
+              >
             </a>
           </div>
         </section>
