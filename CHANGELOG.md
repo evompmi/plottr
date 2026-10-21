@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   summaries, replication planning and the R / Methods / report exports. UpSet and Venn list
   their intersections and items there. Extra downloads sit in a "More" menu in the app bar.
 - **"per group" in French.** The replication-planning sample size is now translated.
+- **Benchmark and Privacy pages (2.0).** Same top bar and footer as the landing page, the new
+  type and colours, and the benchmark tables scroll inside their box on phones instead of
+  widening the page.
 - **Calculators on phones (2.0).** Power Analysis and the Calculator use the new app bar (one row
   on a phone) without a second title, and every button, switch and field is at least 44 px tall
   for fingers.

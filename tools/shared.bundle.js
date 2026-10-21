@@ -589,7 +589,6 @@ var __plottrShared = (() => {
   var privacyEn = {
     // Document <title> + page chrome
     "privacy.docTitle": "Pl\xF6ttr \xB7 how your data is handled",
-    "privacy.breadcrumb": "\u2190 Pl\xF6ttr",
     "privacy.h1": "How Pl\xF6ttr handles your data, in one diagram",
     // Theme toggle (title) — set dynamically by privacy.html's inline IIFE via
     // t(); changes with the current mode. Mirrors landing.theme.*.
@@ -633,7 +632,6 @@ var __plottrShared = (() => {
   // tools/_core/i18n/privacy.fr.ts
   var privacyFr = {
     "privacy.docTitle": "Pl\xF6ttr \xB7 comment vos donn\xE9es sont trait\xE9es",
-    "privacy.breadcrumb": "\u2190 Pl\xF6ttr",
     "privacy.h1": "Comment Pl\xF6ttr traite vos donn\xE9es, en un sch\xE9ma",
     "privacy.theme.toLight": "Passer en mode clair",
     "privacy.theme.toDark": "Passer en mode sombre",

@@ -1,0 +1,132 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Site chrome shared by the static pages (index.html landing, privacy.html,
+   benchmark.html): the top bar and the footer row. Tool pages use the React
+   AppBar instead. Colours come from theme.css tokens.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.lp-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: 32px;
+  padding-right: 32px;
+}
+/* Top bar */
+.lp-top {
+  border-bottom: 1px solid var(--border);
+  background: var(--page-bg);
+}
+.lp-top .lp-wrap {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.lp-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text) !important;
+}
+.lp-brand svg {
+  color: var(--brand-rune);
+}
+.lp-brand .lp-word {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+.lp-version {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--link);
+  background: var(--accent-primary-weak);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+.lp-nav {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-left: auto;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+.lp-top .lp-nav a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.lp-top .lp-nav a:hover {
+  color: var(--text);
+}
+.lp-toggles {
+  display: flex;
+  gap: 6px;
+}
+.lp-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+.lp-toggle:hover {
+  color: var(--text);
+  border-color: var(--text-faint);
+}
+
+.lp-foot {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-faint);
+}
+footer.lp-foot a,
+.lp-cite .lp-foot a {
+  color: var(--text-faint);
+}
+.lp-foot .lp-end {
+  margin-left: auto;
+}
+
+/* Current page in the top bar. (Selectors are scoped to .lp-top / the
+   footer so a page's own `a { color }` rule doesn't override them.) */
+.lp-top .lp-nav a[aria-current="page"] {
+  color: var(--text);
+  font-weight: 600;
+}
+.lp-top a:focus-visible,
+.lp-top button:focus-visible,
+.lp-foot a:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 900px) {
+  .lp-wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .lp-nav {
+    margin-left: 0;
+    gap: 16px;
+  }
+  .lp-foot .lp-end {
+    margin-left: 0;
+  }
+}

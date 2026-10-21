@@ -6,7 +6,6 @@ import type { PrivacyKey } from "./privacy.en";
 
 const privacyFr: Record<PrivacyKey, string> = {
   "privacy.docTitle": "Plöttr · comment vos données sont traitées",
-  "privacy.breadcrumb": "← Plöttr",
   "privacy.h1": "Comment Plöttr traite vos données, en un schéma",
 
   "privacy.theme.toLight": "Passer en mode clair",

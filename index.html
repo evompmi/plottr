@@ -96,6 +96,7 @@
     <link rel="stylesheet" href="tools/fonts.css" />
     <link rel="stylesheet" href="tools/theme.css" />
     <link rel="stylesheet" href="tools/components.css" />
+    <link rel="stylesheet" href="tools/site.css" />
     <style>
       * {
         box-sizing: border-box;
@@ -149,24 +150,29 @@
         max-width: 720px;
         margin: 4rem auto;
         padding: 2rem 2.5rem;
-        background: var(--warning-bg);
-        border: 1px solid var(--warning-border);
-        border-radius: 12px;
-        color: var(--warning-text);
-        font-family: ui-monospace, Menlo, monospace;
-        line-height: 1.55;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-top: 4px solid var(--warning-border);
+        border-radius: var(--radius-xl);
+        color: var(--text);
+        font-family: var(--font-ui);
+        font-size: 15px;
+        line-height: 1.6;
       }
       #file-protocol-warning h1 {
-        font-size: 1.35rem;
-        font-weight: 700;
+        font-family: var(--font-display);
+        font-size: 1.8rem;
+        font-weight: 600;
+        line-height: 1.2;
         margin: 0 0 0.7rem;
       }
       #file-protocol-warning h2 {
-        font-size: 0.82rem;
-        font-weight: 700;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 500;
         text-transform: uppercase;
-        letter-spacing: 0.7px;
-        color: var(--text);
+        letter-spacing: 0.1em;
+        color: var(--text-faint);
         margin: 1.6rem 0 0.6rem;
       }
       #file-protocol-warning p {
@@ -177,7 +183,8 @@
         border: 1px solid var(--border);
         border-radius: 4px;
         padding: 1px 6px;
-        font-size: 0.9em;
+        font-family: var(--font-mono);
+        font-size: 0.88em;
         color: var(--text);
       }
       #file-protocol-warning kbd {
@@ -189,7 +196,7 @@
         font-family: inherit;
       }
       #file-protocol-warning a {
-        color: var(--accent-primary);
+        color: var(--link);
         text-decoration: none;
         font-weight: 600;
       }
@@ -216,12 +223,6 @@
         width: 100%;
         color: var(--text);
       }
-      .lp-wrap {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding-left: 32px;
-        padding-right: 32px;
-      }
       .lp-mono {
         font-family: var(--font-mono);
       }
@@ -244,83 +245,6 @@
         outline: 2px solid var(--accent-primary);
         outline-offset: 3px;
         border-radius: var(--radius-sm);
-      }
-
-      /* Top bar */
-      .lp-top {
-        border-bottom: 1px solid var(--border);
-        background: var(--page-bg);
-      }
-      .lp-top .lp-wrap {
-        display: flex;
-        align-items: center;
-        gap: 24px;
-        flex-wrap: wrap;
-        padding-top: 14px;
-        padding-bottom: 14px;
-      }
-      .lp-brand {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-        color: var(--text) !important;
-      }
-      .lp-brand svg {
-        color: var(--brand-rune);
-      }
-      .lp-brand .lp-word {
-        font-family: var(--font-display);
-        font-weight: 800;
-        font-size: 22px;
-        letter-spacing: -0.01em;
-      }
-      .lp-version {
-        font-family: var(--font-mono);
-        font-size: 11px;
-        color: var(--link);
-        background: var(--accent-primary-weak);
-        padding: 2px 6px;
-        border-radius: var(--radius-sm);
-      }
-      .lp-nav {
-        display: flex;
-        align-items: center;
-        gap: 22px;
-        margin-left: auto;
-        flex-wrap: wrap;
-        font-size: 14px;
-      }
-      .lp-nav a {
-        color: var(--text-muted);
-        text-decoration: none;
-      }
-      .lp-nav a:hover {
-        color: var(--text);
-      }
-      .lp-toggles {
-        display: flex;
-        gap: 6px;
-      }
-      .lp-toggle {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 36px;
-        height: 36px;
-        border: 1px solid var(--border-strong);
-        border-radius: var(--radius-lg);
-        background: var(--surface);
-        color: var(--text-muted);
-        font-family: inherit;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        cursor: pointer;
-      }
-      .lp-toggle:hover {
-        color: var(--text);
-        border-color: var(--text-faint);
       }
 
       /* Hero */
@@ -761,21 +685,6 @@
       .lp-cite-box button:hover {
         border-color: var(--text-faint);
       }
-      .lp-foot {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-        font-family: var(--font-mono);
-        font-size: 12px;
-        color: var(--text-faint);
-      }
-      .lp-foot a {
-        color: var(--text-faint);
-      }
-      .lp-foot .lp-end {
-        margin-left: auto;
-      }
-
       @media (prefers-reduced-motion: no-preference) {
         .lp-hero-copy,
         .lp-figure {
@@ -800,14 +709,6 @@
          by design), so the landing hides the plot groups and the "how it
          works" strip, and explains why above the calculators. */
       @media (max-width: 900px) {
-        .lp-wrap {
-          padding-left: 16px;
-          padding-right: 16px;
-        }
-        .lp-nav {
-          margin-left: 0;
-          gap: 16px;
-        }
         .lp-hero .lp-wrap {
           padding-top: 40px;
           padding-bottom: 48px;
@@ -848,9 +749,6 @@
         .mobile-hint strong {
           display: block;
           margin-bottom: 4px;
-        }
-        .lp-foot .lp-end {
-          margin-left: 0;
         }
       }
     </style>

@@ -13,7 +13,6 @@ import type { Catalog } from "../i18n";
 const privacyEn = {
   // Document <title> + page chrome
   "privacy.docTitle": "Plöttr · how your data is handled",
-  "privacy.breadcrumb": "← Plöttr",
   "privacy.h1": "How Plöttr handles your data, in one diagram",
 
   // Theme toggle (title) — set dynamically by privacy.html's inline IIFE via
