@@ -327,7 +327,12 @@ export function BoxplotStatsPanel({
   const exportsFooter = (
     <InspectorExports label={tr("boxplot.sp.analysisExports")}>
       {hasR && (
-        <button type="button" className="dv-btn dv-btn-ink" onClick={downloadR} title={rTitle}>
+        <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
+          onClick={downloadR}
+          title={rTitle}
+        >
           {tr("boxplot.sp.rScript")}
         </button>
       )}

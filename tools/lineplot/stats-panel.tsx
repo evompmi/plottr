@@ -245,7 +245,7 @@ export function PerXStatsPanel({ rows, xLabel, fileName, displayKind }: PerXStat
         {hasR && (
           <button
             type="button"
-            className="dv-btn dv-btn-ink"
+            className="dv-btn dv-btn-secondary"
             onClick={(e) => {
               downloadR();
               flashSaved(e.currentTarget);

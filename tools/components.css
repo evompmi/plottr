@@ -630,20 +630,6 @@ input[type="range"]::-moz-range-thumb {
   margin-right: auto;
 }
 
-/* Dark "ink" button — the inspector's main analysis export (R script). */
-.dv-btn-ink {
-  min-height: 38px;
-  padding: 0 14px;
-  border-radius: var(--radius-lg);
-  font-size: 13px;
-  font-weight: 600;
-  background: var(--seg-selected-bg);
-  color: var(--seg-selected-text);
-  border: 1px solid var(--seg-selected-bg);
-}
-.dv-btn-ink:hover:not(:disabled) {
-  filter: brightness(1.25);
-}
 .dv-inspector-exports .dv-btn {
   flex: 1 1 auto;
   min-height: 38px;

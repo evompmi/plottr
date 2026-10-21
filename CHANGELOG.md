@@ -26,8 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Workspace layout in every plot tool (2.0).** Controls in tabs on the left, the figure on a
   canvas in the middle with quick options above it (marks on plot, series / layout, summaries),
   and statistics in their own column on the right: test result, assumptions, post-hoc, group
-  summaries, replication planning and the R / Methods / report exports. UpSet and Venn list
-  their intersections and items there.
+  summaries, replication planning and the R / Methods / report exports as three equal buttons.
+  UpSet and Venn list their intersections and items there.
 - **"per group" in French.** The replication-planning sample size is now translated.
 - **Dark mode, French and accessibility pass (2.0).** The app bar stays on one row down to
   1100 px in both languages. Every form field has an accessible name, every page has a main

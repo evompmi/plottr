@@ -281,7 +281,7 @@ export function AequorinStatsPanel({
         {hasR && (
           <button
             type="button"
-            className="dv-btn dv-btn-ink"
+            className="dv-btn dv-btn-secondary"
             onClick={downloadR}
             title={tr("aequorin.sp.rTitle")}
           >

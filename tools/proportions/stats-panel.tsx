@@ -428,7 +428,7 @@ export function StatsPanel({
       <InspectorExports label={tr("proportions.stats.analysisExports")}>
         <button
           type="button"
-          className="dv-btn dv-btn-ink"
+          className="dv-btn dv-btn-secondary"
           onClick={onDownloadR}
           title={tr("proportions.dl.rTitle")}
           data-testid="proportions-dl-r"

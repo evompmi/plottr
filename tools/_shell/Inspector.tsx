@@ -189,8 +189,8 @@ export function SetDetail({ children }: { children: React.ReactNode }) {
   return <div style={{ borderLeft: "3px solid var(--accent-primary)" }}>{children}</div>;
 }
 
-// Footer of the inspector: "Analysis exports" + its buttons (the main one —
-// usually the R script — styled `dv-btn-ink`).
+// Footer of the inspector: "Analysis exports" + its buttons (R script,
+// Methods, report), all secondary buttons of equal weight.
 export function InspectorExports({
   label,
   children,

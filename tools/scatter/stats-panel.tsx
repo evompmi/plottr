@@ -416,7 +416,7 @@ export function ScatterStatsPanel({
       <InspectorExports label={tr("scatter.sp.analysisExports")}>
         <button
           type="button"
-          className="dv-btn dv-btn-ink"
+          className="dv-btn dv-btn-secondary"
           onClick={downloadR}
           title={singleSet ? tr("scatter.sp.rTitleSingle") : tr("scatter.sp.rTitleMulti")}
         >

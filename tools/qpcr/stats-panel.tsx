@@ -313,7 +313,7 @@ export function QpcrStatsPanel({
       <InspectorExports label={tr("qpcr.stats.analysisExports")}>
         <button
           type="button"
-          className="dv-btn dv-btn-ink"
+          className="dv-btn dv-btn-secondary"
           onClick={onDownloadR}
           title={tr("qpcr.dl.rTitle")}
           data-testid="qpcr-dl-r"
