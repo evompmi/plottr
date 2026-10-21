@@ -34,6 +34,17 @@ test("landing page links all twelve tools", async ({ page }) => {
   await expect(page.getByTestId("load-example").first()).toBeVisible();
 });
 
+test("Tools and Choose a plot scroll to the tools section, not a tool route", async ({ page }) => {
+  for (const name of ["Tools", "Choose a plot"]) {
+    await page.goto("/index.html");
+    await page.getByRole("link", { name, exact: true }).first().click();
+    await expect(page).toHaveURL(/#tools$/);
+    await expect(page.locator("html")).not.toHaveAttribute("data-spa-route", "active");
+    await expect(page.locator("#tools")).toBeInViewport();
+    await expect(page.locator('a[data-tool="boxplot"]')).toBeVisible();
+  }
+});
+
 test("theme toggle flips data-theme attribute", async ({ page }) => {
   await page.goto("/index.html");
   const html = page.locator("html");

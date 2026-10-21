@@ -103,7 +103,6 @@ const landingEn = {
   "landing.cite.copy": "Copy citation",
   "landing.cite.copied": "Copied",
   "landing.footer.mit": "MIT licensed",
-  "landing.footer.crosschecked": "Cross-checked vs R 4.5 + SciPy 1.17",
 } as const satisfies Catalog;
 
 export default landingEn;

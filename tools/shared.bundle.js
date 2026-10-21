@@ -504,8 +504,7 @@ var __plottrShared = (() => {
     "landing.cite.text": "Cite the archived release so readers can find the exact version you ran.",
     "landing.cite.copy": "Copy citation",
     "landing.cite.copied": "Copied",
-    "landing.footer.mit": "MIT licensed",
-    "landing.footer.crosschecked": "Cross-checked vs R 4.5 + SciPy 1.17"
+    "landing.footer.mit": "MIT licensed"
   };
   var landing_en_default = landingEn;
 
@@ -580,8 +579,7 @@ var __plottrShared = (() => {
     "landing.cite.text": "Citez la version archiv\xE9e pour que vos lecteurs retrouvent exactement celle que vous avez utilis\xE9e.",
     "landing.cite.copy": "Copier la citation",
     "landing.cite.copied": "Copi\xE9e",
-    "landing.footer.mit": "Licence MIT",
-    "landing.footer.crosschecked": "V\xE9rifi\xE9 avec R 4.5 + SciPy 1.17"
+    "landing.footer.mit": "Licence MIT"
   };
   var landing_fr_default = landingFr;
 

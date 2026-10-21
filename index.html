@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'sha256-252wD4T/6roUdu4abRwhbwTxtXRsngzmzyyUFVwlTn0=' 'sha256-308DlEcoiJ3pjDzzqgeGNsdA41lX+FxX3IP7MAzSfMA=' 'sha256-rTpKQwjVhWC/FlI2aeTABKI90tBPk1Cs4X4BXh4XcHI=' 'sha256-Q4l5tEJBjGlf1rK/9uF78rjodpQS8SLBOrmxuOyjjng=' 'sha256-E5zU2AOGMSNoOQpO0GWrxRI7aTIED3k31BWPMWCGeH8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'"
+      content="default-src 'self'; script-src 'self' 'sha256-252wD4T/6roUdu4abRwhbwTxtXRsngzmzyyUFVwlTn0=' 'sha256-308DlEcoiJ3pjDzzqgeGNsdA41lX+FxX3IP7MAzSfMA=' 'sha256-rTpKQwjVhWC/FlI2aeTABKI90tBPk1Cs4X4BXh4XcHI=' 'sha256-Q4l5tEJBjGlf1rK/9uF78rjodpQS8SLBOrmxuOyjjng=' 'sha256-+bOvGlvAXNwoG18mHRL/7+KSmjFvQk63NDWUNXZUX4A='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'"
     />
     <!-- BEGIN dv-anti-clickjack -->
     <!--
@@ -262,7 +262,7 @@
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(min(480px, 100%), 1fr));
         gap: 56px;
-        align-items: center;
+        align-items: start;
       }
       .lp-hero-copy {
         display: flex;
@@ -447,12 +447,9 @@
         color: var(--text-faint);
       }
 
-      /* How it works */
+      /* How it works: the four steps, a full-width band at the foot of the hero */
       .lp-hiw {
-        padding-top: 64px;
-        padding-bottom: 8px;
-      }
-      .lp-hiw ol {
+        grid-column: 1 / -1;
         list-style: none;
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
@@ -914,32 +911,29 @@
                 <span class="lp-note" data-i18n="landing.spec.caption"></span>
               </figcaption>
             </figure>
+            <ol
+              class="lp-hiw"
+              data-i18n-aria="landing.hiw.aria"
+              aria-label="How every plot tool works"
+            >
+              <li>
+                <span class="lp-num">01</span><strong data-i18n="landing.hiw.step1"></strong
+                ><span data-i18n="landing.hiw.step1Desc"></span>
+              </li>
+              <li>
+                <span class="lp-num">02</span><strong data-i18n="landing.hiw.step2"></strong
+                ><span data-i18n="landing.hiw.step2Desc"></span>
+              </li>
+              <li>
+                <span class="lp-num">03</span><strong data-i18n="landing.hiw.step3"></strong
+                ><span data-i18n="landing.hiw.step3Desc"></span>
+              </li>
+              <li>
+                <span class="lp-num">04</span><strong data-i18n="landing.hiw.step4"></strong
+                ><span data-i18n="landing.hiw.step4Desc"></span>
+              </li>
+            </ol>
           </div>
-        </section>
-
-        <section
-          class="lp-hiw lp-wrap"
-          data-i18n-aria="landing.hiw.aria"
-          aria-label="How every plot tool works"
-        >
-          <ol>
-            <li>
-              <span class="lp-num">01</span><strong data-i18n="landing.hiw.step1"></strong
-              ><span data-i18n="landing.hiw.step1Desc"></span>
-            </li>
-            <li>
-              <span class="lp-num">02</span><strong data-i18n="landing.hiw.step2"></strong
-              ><span data-i18n="landing.hiw.step2Desc"></span>
-            </li>
-            <li>
-              <span class="lp-num">03</span><strong data-i18n="landing.hiw.step3"></strong
-              ><span data-i18n="landing.hiw.step3Desc"></span>
-            </li>
-            <li>
-              <span class="lp-num">04</span><strong data-i18n="landing.hiw.step4"></strong
-              ><span data-i18n="landing.hiw.step4Desc"></span>
-            </li>
-          </ol>
         </section>
 
         <section class="lp-tools lp-wrap" id="tools">
@@ -1431,10 +1425,6 @@
           <a href="https://doi.org/10.5281/zenodo.20245057" target="_blank" rel="noopener"
             >Zenodo</a
           >
-          <span data-i18n="landing.footer.crosschecked">Cross-checked vs R 4.5 + SciPy 1.17</span>
-          <span class="lp-end" data-i18n="landing.eyebrow"
-            >Browser-only · no install · your data stays put</span
-          >
         </div>
       </footer>
     </div>
@@ -1488,8 +1478,9 @@
       // the CSS rule near the top of this file consumes.
       (function () {
         function reflect() {
+          // Only "#/<tool>" is a route; "#tools" / "#cite" are anchors.
           var h = window.location.hash;
-          var hasRoute = h && h !== "#" && h !== "#/";
+          var hasRoute = h.indexOf("#/") === 0 && h !== "#/";
           if (hasRoute) {
             document.documentElement.setAttribute("data-spa-route", "active");
           } else {

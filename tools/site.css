@@ -99,9 +99,6 @@ footer.lp-foot a,
 .lp-cite .lp-foot a {
   color: var(--text-faint);
 }
-.lp-foot .lp-end {
-  margin-left: auto;
-}
 
 /* Current page in the top bar. (Selectors are scoped to .lp-top / the
    footer so a page's own `a { color }` rule doesn't override them.) */
@@ -125,8 +122,5 @@ footer.lp-foot a,
   .lp-nav {
     margin-left: 0;
     gap: 16px;
-  }
-  .lp-foot .lp-end {
-    margin-left: 0;
   }
 }

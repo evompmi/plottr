@@ -92,7 +92,6 @@ const landingFr: Record<LandingKey, string> = {
   "landing.cite.copy": "Copier la citation",
   "landing.cite.copied": "Copiée",
   "landing.footer.mit": "Licence MIT",
-  "landing.footer.crosschecked": "Vérifié avec R 4.5 + SciPy 1.17",
 };
 
 export default landingFr;

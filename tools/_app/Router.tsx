@@ -22,12 +22,13 @@ const { useSyncExternalStore } = React;
 // Strip the "#/" prefix and any query / sub-path. `#/` and `#` and
 // "" all map to null (landing). `#/boxplot?file=demo` maps to
 // "boxplot" (the query is ignored at this layer; deep-linking with
-// query params is a future-work knob).
+// query params is a future-work knob). Only `#/…` is a route: a bare
+// `#tools` / `#cite` is an in-page anchor on the landing and maps to
+// null, so the browser just scrolls to it.
 export function getInitialRouteFromHash(): string | null {
   const hash = typeof window === "undefined" ? "" : window.location.hash;
-  if (!hash || hash === "#" || hash === "#/") return null;
-  // Permit `#boxplot` and `#/boxplot` interchangeably.
-  const stripped = hash.replace(/^#\/?/, "");
+  if (!hash.startsWith("#/") || hash === "#/") return null;
+  const stripped = hash.slice(2);
   // Cut off a `?query` or `/sub` component so the route key is clean.
   const key = stripped.split(/[/?]/)[0];
   return key || null;
