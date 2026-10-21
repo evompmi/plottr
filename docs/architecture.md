@@ -39,7 +39,9 @@ everything else falls out of the four-tier rule it states.
 
 Three independent HTML pages, all served as static files. Only
 `index.html` boots the React SPA — the other two are isolated documents
-that share `theme.css` and the bundled theme controls but nothing else.
+that share `theme.css`, `site.css` (the landing's top bar and footer),
+self-hosted fonts (`fonts.css`) and the bundled theme / language controls,
+but nothing else.
 
 ---
 
@@ -56,6 +58,8 @@ that share `theme.css` and the bundled theme controls but nothing else.
    ├── Router.tsx  ─────────►  useSyncExternalStore(location.hash)
    │                              "#/boxplot" → "boxplot"
    │                              "" / "#" / "#/" → null (landing)
+   │                              "#tools" / "#cite" → null: plain
+   │                                anchors that scroll the landing
    │
    ├── tool-registry.ts ────►  TOOL_REGISTRY[]: each entry =
    │                              { key, label, category, iconSvg,
@@ -106,7 +110,7 @@ download volcano, heatmap, or the stats kernel.
 
 ```
    ┌──────────────────────────────────────────────────────────────┐
-   │  tools/_app/        SPA shell (Router, App, tool-registry)   │
+   │  tools/_app/        SPA shell (Router, App, tool-registry)    │
    │       ▲                                                       │
    │       │ imports                                               │
    │       │                                                       │
@@ -116,9 +120,9 @@ download volcano, heatmap, or the stats kernel.
    │       │ imports                                               │
    │       │                                                       │
    │  tools/_shell/      Component-tier scaffold (typed React UI): │
-   │       ▲              PlotToolShell, usePlotToolState,         │
-   │       │ imports      FileDropZone, ColumnRoleEditor,          │
-   │       │              StatsTile, SignificanceBrackets,         │
+   │       ▲              PlotToolShell, WorkspaceLayout, AppBar,  │
+   │       │ imports      ControlTabs, ValueListPanel,             │
+   │       │              GroupTestSections, SignificanceBrackets, │
    │       │              stats-dispatch, stats-registry,          │
    │       │              r-export, prefs-store, …                 │
    │       │                                                       │
@@ -156,7 +160,7 @@ tests deliberately reach across layers and are excluded.
         │     │                                                 │
         │     ├─► steps.tsx          UploadStep / ConfigureStep │
         │     │       │                FilterStep / OutputStep  │
-        │     │       │                                          │
+        │     │       │                                         │
         │     │       └─► PlotToolShell (_shell)                │
         │     │             • AppBar: StepNavBar, file chip,    │
         │     │               exports, PrefsPanel               │
@@ -164,12 +168,14 @@ tests deliberately reach across layers and are excluded.
         │     │                                                 │
         │     ├─► plot-area.tsx      WorkspaceLayout: controls  │
         │     │       │                | figure | inspector     │
-        │     │       │                                          │
+        │     │       │                (inspector folds to a    │
+        │     │       │                 rail: inspectorToggle)  │
+        │     │       │                                         │
         │     │       ├─► chart.tsx       SVG renderer          │
         │     │       │                    (forwardRef ref↦SVG) │
-        │     │       │                                          │
+        │     │       │                                         │
         │     │       ├─► controls.tsx    ControlTabs + tiles   │
-        │     │       │                                          │
+        │     │       │                                         │
         │     │       └─► stats-panel.tsx inspector sections    │
         │     │                                                 │
         │     ├─► helpers.ts         pure data + layout helpers │
@@ -182,19 +188,17 @@ tests deliberately reach across layers and are excluded.
         │                             at module scope           │
         └──────────────────────────────────────────────────────┘
 
-   Layout exceptions (stable, intentional):
-     • tools/scatter/   — no controls.tsx; tiles live inside
-                          plot-area.tsx
-     • tools/upset/     — no plot-area.tsx; plot step lives in
-                          steps.tsx (chart hosts intersection edits)
-     • tools/volcano/   — no plot-area.tsx; plot step short enough
-                          to live in steps.tsx
-     • tools/proportions/ — no plot-area.tsx (PlotStep in steps.tsx);
-                          own stats-panel.tsx — tests a contingency
-                          table, so it does not use StatsTile
-     • tools/qpcr/      — no plot-area.tsx (PlotStep in steps.tsx);
-                          own stats-panel.tsx running the shared
-                          stats engine on ΔCt per target gene
+   Where each tool renders its WorkspaceLayout (stable, intentional):
+     • plot-area.tsx    — Line Plot, Scatter, Venn
+     • app.tsx          — Group Plot, RLU Timecourse, Heatmap (their
+                          plot-area.tsx holds the figure only), UpSet
+                          (no plot-area.tsx: the chart hosts
+                          intersection edits)
+     • steps.tsx        — Volcano, Proportions, qPCR (no plot-area.tsx)
+
+   Stats panels: Proportions tests a contingency table and qPCR runs
+   the shared stats engine on ΔCt per target gene, so both own a
+   stats-panel.tsx rather than reusing GroupTestSections.
 ```
 
 Calculators (`tools/molarity-app.tsx`, `tools/power-app.tsx`) are flat
@@ -238,6 +242,10 @@ picks them up through identical wiring.
         group / value / filter / ignore  (typed as ColumnRole)
                                 │
                                 ▼
+   FilterStep (Group Plot) — ValueListPanel (_shell): per column, keep
+        (filter rows), rename, and ↑ / ↓ the plot order of each value
+                                │
+                                ▼
    Tool-specific computation:
         • computeStats / quartiles / kde      from _core/descriptive
         • selectTest / tTest / oneWayANOVA    from _core/stats/{tests,posthoc}
@@ -247,12 +255,18 @@ picks them up through identical wiring.
                                 ▼
    chart.tsx renders SVG via React (forwardRef → useRef from app.tsx)
         │
-        ├─► StatsTile (_shell)
+        ├─► stats-panel.tsx in the inspector (GroupTestSections /
+        │   Inspector pieces from _shell)
         │       runTest / runPostHoc through _shell/stats-dispatch,
         │       emits an annotation spec (brackets / CLD labels) the
-        │       chart consumes for the significance overlay
+        │       chart consumes for the significance overlay — even
+        │       while the inspector is folded (hidden, not unmounted)
         │
-        └─► DownloadTiles (_shell)
+        └─► ActionsPanel / DownloadTiles (_shell) — register the
+            tool's exports through PlotActionsContext; the app bar's
+            PlotActionsBar shows them: Download SVG, a More menu (PNG,
+            CSV, …), Start over. Stats exports (R / Methods / report)
+            sit in the inspector's InspectorExports footer.
                 ├─► downloadSvg(svgRef.current, "<stem>.svg")
                 │       _core/download.ts → buildExportSvg (clone,
                 │       strip styles, append "Plöttr v…" attribution

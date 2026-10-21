@@ -44,6 +44,21 @@ Each tool has an in-app **How to** panel.
 <table>
   <tr>
     <td width="50%" align="center">
+      <img src="docs/screenshots/landing.png" alt="Plöttr landing page: a Group Plot figure from the example data with its Welch's ANOVA and Games-Howell results">
+      <br><sub><b>Landing page</b></sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/workspace.png" alt="Group Plot workspace: control tabs on the left, the figure with significance letters in the middle, the statistics column on the right">
+      <br><sub><b>Plot workspace</b> — controls, figure, statistics on demand</sub>
+    </td>
+  </tr>
+</table>
+
+Figures as exported (PNG):
+
+<table>
+  <tr>
+    <td width="50%" align="center">
       <img src="docs/screenshots/aequorin.png?v=2" alt="RLU timecourse with aequorin Ca²⁺ calibration">
       <br><sub><b>RLU timecourse</b></sub>
     </td>
@@ -94,10 +109,10 @@ Each tool has an in-app **How to** panel.
 
 All numerics (`tools/_core/stats/*.ts`) are cross-validated against **two independent references**:
 
-- **R 4.5** on real built-in datasets (`iris`, `PlantGrowth`, `ToothGrowth`, `mtcars`, …). Current run: **598 comparisons, 0 failures**, plus 5 boundary-regime rows where R and Plöttr both saturate at different ends of the precision floor — 4 cases where R's `ptukey` cancels to ~2.2 × 10⁻¹⁵ while Plöttr's `ptukey_upper` continues the true tail past it (cross-checked against SciPy and Monte Carlo), plus 1 Spearman case on exactly-monotonic ranks where Plöttr returns the honest `p = 0` and R's S-statistic path emits a fake-tail artefact via log-scale `pt()`. Reproducible via `npm run benchmark`. Results render as a public page at `benchmark.html` — failing rows would be shown in red, not hidden.
+- **R 4.5** on real built-in datasets (`iris`, `PlantGrowth`, `ToothGrowth`, `mtcars`, …). Current run: **618 comparisons, 0 failures**, including 4 rows past R's precision floor, where R's `ptukey` cancels to ~2.2 × 10⁻¹⁵ while Plöttr's `ptukey_upper` continues the true tail (cross-checked against SciPy and Monte Carlo). Reproducible via `npm run benchmark`. Results render as a public page at `benchmark.html` — failing rows would be shown in red, not hidden.
 - **SciPy 1.17** on synthetic targeted grids over the (df, λ) regimes the R bank only touches indirectly: `nctcdf` at deep δ, `ncf_sf` / `ncchi2cdf` at large λ across the noncentral normal-approx threshold, `qtukey` at extreme corners. **1,083 comparisons, 0 failures**, with 92 deep-tail / underflow rows (both values < 10⁻¹³, informational) and 1 pathological annotation (`qtukey` at df = 1, documented as outside the design envelope in `tools/_core/stats/posthoc.ts`). Reproducible via `npm run benchmark:scipy`.
 
-On top of that, a deterministic test suite of **1,800+ tests** (Vitest 4, CI-gated on every commit alongside ESLint, Prettier, `tsc --noEmit`, and `npm run build`) spanning unit, integration, render-smoke (real React 18 + happy-dom), and per-tool property suites (fast-check, with automatic shrinking on failure). A Playwright e2e suite (`npm run e2e`) covers paste → configure → plot golden paths per tool. Mutation testing is wired up via Stryker (`npm run mutation`) for on-demand meta-tests of whether the suite _catches_ bugs, not just whether tests pass.
+On top of that, a deterministic test suite of **2,100+ tests** (Vitest 4, CI-gated on every commit alongside ESLint, Prettier, `tsc --noEmit`, and `npm run build`) spanning unit, integration, render-smoke (real React 18 + happy-dom), and per-tool property suites (fast-check, with automatic shrinking on failure). A Playwright e2e suite (`npm run e2e`) covers paste → configure → plot golden paths per tool. Mutation testing is wired up via Stryker (`npm run mutation`) for on-demand meta-tests of whether the suite _catches_ bugs, not just whether tests pass.
 
 Covers: Shapiro–Wilk, Brown–Forsythe Levene, Student / Welch t, Mann–Whitney U, one-way ANOVA, Welch ANOVA, Kruskal–Wallis, Pearson r / Spearman ρ / Kendall τ-b correlations, Tukey HSD (studentised range), Games–Howell, Dunn + Benjamini–Hochberg, Cohen's _d_ (with 95 % CI), Hedges' _g_, η², ε², compact letter display.
 
@@ -105,7 +120,7 @@ Covers: Shapiro–Wilk, Brown–Forsythe Levene, Student / Welch t, Mann–Whitn
 
 Numerics are trustworthy, but the design covers a slice of real workflows.
 
-**Fits best:** one-way group comparisons with a defensible test pick; quick exploratory plotting from pasted CSV/TSV; privacy-sensitive data; publication-ready SVG; a-priori power analysis; reproducibility via the one-click **⬇ R** script export (Group Plot / RLU timecourse / Power Analysis emit a runnable R script that embeds the data inline and reproduces the exact tests); niche aequorin Ca²⁺ calibration not first-class anywhere else.
+**Fits best:** one-way group comparisons with a defensible test pick; quick exploratory plotting from pasted CSV/TSV; privacy-sensitive data; publication-ready SVG; a-priori power analysis; reproducibility via the one-click **R script** export (every statistics tool, plus Heatmap, Volcano and Power Analysis, emits a runnable R script that embeds the data inline and reproduces the exact analysis); niche aequorin Ca²⁺ calibration not first-class anywhere else.
 
 **You will outgrow it for:** repeated-measures / mixed models, factorial designs (no two-way ANOVA, no interactions, no ANCOVA), Dunnett's test, multiple / logistic / non-linear regression, survival / ROC / time-to-event, large datasets (browser-only, millions of rows won't work), headless batch processing. The auto-pick defaults to Welch's t / Welch ANOVA so it doesn't gate on Shapiro-Wilk; per-group SW at α = 0.05 still inflates the family-wise diagnostic flag rate at large _k_ (~23 % at k = 5 even with everything genuinely normal), but that flag is now a non-parametric _suggestion_ in the trace, not a routing decision. Tunable via `alphaNormality`.
 

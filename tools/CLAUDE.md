@@ -110,7 +110,7 @@ exposes every theme + i18n named export to the pages' inline scripts.
 
 **Add new shared helpers under `tools/_core/`** as TypeScript modules — strict types, real `export` declarations, no script-scope globals. Every caller imports the symbol directly; don't reach for `globalThis` writes. (If a helper genuinely needs to be a singleton across separately-bundled copies of the module — like `_core/svg-export.ts`'s `_svgExportMutators` WeakMap — store it on `globalThis` under a `__plottr…` namespace key. That pattern is for cross-bundle state correctness only.)
 
-**`tools/shared.bundle.js` is auto-generated** by `scripts/build-shared.js` from `_core/theme.ts`. The script runs in `prebuild` / `prewatch` / `pretest`, so any local `npm run build` / `npm test` invocation regenerates the bundle. Don't edit `shared.bundle.js` by hand and don't add files to it — point new theme-adjacent code at `tools/_core/theme.ts` and let esbuild handle the bundling.
+**`tools/shared.bundle.js` is auto-generated** by `scripts/build-shared.js` from `_core/shared-bundle-entry.ts` (theme + i18n). The script runs in `prebuild` / `prewatch` / `pretest`, so any local `npm run build` / `npm test` invocation regenerates the bundle. Don't edit `shared.bundle.js` by hand and don't add files to it — point new theme-adjacent code at `tools/_core/theme.ts` and let esbuild handle the bundling.
 
 The bundle is checked into git (same convention as the compiled tool `.js` files) so the static GitHub Pages deploy keeps working without a server-side build.
 

@@ -106,7 +106,10 @@ the contents) and is linked from each CHANGELOG bullet via `[`docs/release-notes
 ### Release steps
 
 1. Write `docs/release-notes/vX.Y.Z.md`, add `## [X.Y.Z] - DATE` under `## [Unreleased]`.
-2. `npm run build` — regenerates `tools/version.js` from that top version heading.
+2. `npm run build` — regenerates `tools/version.js` from that top version heading. Then
+   `node scripts/gen-ui-screenshots.mjs` refreshes the README's interface screenshots
+   (`docs/screenshots/landing.png` shows the version badge); the other images there are
+   exported figures and only change when a chart does.
 3. Commit `release: vX.Y.Z "Codename"`, then an annotated tag whose subject is
    `vX.Y.Z "Codename"` (`git tag -a vX.Y.Z -m 'vX.Y.Z "Codename"' -m "<summary>"`).
 4. Push master, then the tag. `.github/workflows/release.yml` creates the GitHub Release from
