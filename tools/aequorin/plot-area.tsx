@@ -25,7 +25,7 @@ import {
 
 import { downloadPngs, downloadSvgs, fileBaseName } from "../_core/download";
 import type { SvgDownloadItem } from "../_core/download";
-import { downloadCsv, flashSaved } from "../_core/download";
+import { downloadCsv } from "../_core/download";
 import { useT } from "./i18n";
 const { useState, useMemo, useRef, useEffect, useCallback } = React;
 
@@ -210,8 +210,25 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
         }
         downloadPngs(items);
       },
+      downloadSums: () => {
+        if (!replicateSums) return;
+        const corrected = statsDataMode === "corrected";
+        const key = corrected ? "corrSum" : "rawSum";
+        const rows = replicateSums.flatMap((rs) =>
+          rs.repSums.map((rep, ri) => [
+            rs.prefix,
+            `Rep ${ri + 1}`,
+            rep[key] != null ? rep[key].toFixed(6) : "",
+          ])
+        );
+        downloadCsv(
+          ["Condition", "Replicate", corrected ? "Corrected Sum" : "Raw Sum"],
+          rows,
+          corrected ? `${baseName}_corrected_sums.csv` : `${baseName}_raw_sums.csv`
+        );
+      },
     }),
-    [faceted, displaySeries, showInset, statsDataMode, baseName]
+    [faceted, displaySeries, showInset, statsDataMode, baseName, replicateSums]
   );
 
   if (activeStats.length === 0)
@@ -479,32 +496,10 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                       navigateToTool("boxplot");
                     }}
                     className="dv-btn dv-btn-secondary"
-                    // Match the sibling ⬇ CSV chip's vertical padding
-                    // (`dv-btn-dl` is `8px 10px`); the default secondary
-                    // padding (`6px 14px`) makes this button visibly
-                    // shorter when they sit next to each other.
                     style={{ flexShrink: 0, padding: "8px 14px" }}
                     title={tr("aequorin.pa.openInBoxplotTitle")}
                   >
                     {tr("aequorin.pa.openInBoxplot")}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const rows = replicateSums.flatMap((rs) =>
-                        rs.repSums.map((rep, ri) => [
-                          rs.prefix,
-                          `Rep ${ri + 1}`,
-                          rep[sumKey] != null ? rep[sumKey].toFixed(6) : "",
-                        ])
-                      );
-                      downloadCsv(["Condition", "Replicate", sumLabel], rows, csvFileName);
-                      flashSaved(e.currentTarget);
-                    }}
-                    className="dv-btn dv-btn-dl"
-                    style={{ flexShrink: 0 }}
-                  >
-                    ⬇ CSV
                   </button>
                 </div>
               </div>

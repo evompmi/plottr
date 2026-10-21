@@ -92,6 +92,15 @@ export function PlotControls({
                     title: tr("aequorin.ctrl.csvTitle"),
                     onClick: () => downloadCalibrated(),
                   },
+                  ...(vis.showInset
+                    ? [
+                        {
+                          label: tr("aequorin.ctrl.sumsCsv"),
+                          title: tr("aequorin.ctrl.sumsCsvTitle"),
+                          onClick: () => plotPanelRef.current?.downloadSums(),
+                        },
+                      ]
+                    : []),
                 ]}
               />
 

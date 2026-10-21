@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **RLU Timecourse: Σ sums CSV in the More menu (2.0).** The barplot's per-replicate sums CSV
+  moved from a button inside the figure area to the app bar's More menu ("Σ sums CSV"), shown
+  while the barplot is on. Same file as before.
 - **Group Plot: one list to keep, rename and order values (2.0).** The filter step's separate
   checkbox and rename/drag panels are merged into qPCR-style rows per column: tick to keep,
   type to rename (with the old name shown), the row count, and ↑ / ↓ for the plot order.

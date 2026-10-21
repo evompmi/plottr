@@ -54,6 +54,10 @@ const en = {
   "aequorin.ctrl.csvTitle":
     "Download calibrated values over time — one row per time-point, one column per sample (calibration applied)",
 
+  "aequorin.ctrl.sumsCsv": "Σ sums CSV",
+  "aequorin.ctrl.sumsCsvTitle":
+    "Download the per-replicate Σ shown in the barplot (raw or baseline-corrected, as tested)",
+
   // Controls — sections
   "aequorin.ctrl.conditions": "Conditions",
   "aequorin.ctrl.axes": "Axes",

@@ -568,6 +568,9 @@ export interface ConfigureStepProps {
 export interface PlotPanelHandle {
   downloadMain: () => void;
   downloadMainPng: () => void;
+  // Per-replicate Σ of the barplot (raw or corrected, as tested); offered in
+  // the app bar's More menu while the barplot is on.
+  downloadSums: () => void;
 }
 
 export interface PlotControlsProps {

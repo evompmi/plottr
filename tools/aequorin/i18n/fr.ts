@@ -45,6 +45,9 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.chart.barDesc.other": "Diagramme en barres en médaillon de {count} conditions",
   "aequorin.ctrl.csvTitle":
     "Télécharger les valeurs calibrées au cours du temps — une ligne par point temporel, une colonne par échantillon (calibration appliquée)",
+  "aequorin.ctrl.sumsCsv": "CSV des Σ",
+  "aequorin.ctrl.sumsCsvTitle":
+    "Télécharger les Σ par réplicat du barplot (brutes ou corrigées de la ligne de base, comme testées)",
   "aequorin.ctrl.conditions": "Conditions",
   "aequorin.ctrl.axes": "Axes",
   "aequorin.ctrl.xStart": "Début X ({unit})",

@@ -39,3 +39,33 @@ test("aequorin example loads + paints with non-default Y range", async ({ page }
   const hasAboveDefault = numericTicks.some((n) => n > 1.4);
   expect(hasAboveDefault).toBe(true);
 });
+
+test("Σ sums CSV sits in the More menu while the barplot is on", async ({ page }) => {
+  // Fall back to a plain download instead of Chromium's save-file picker.
+  await page.addInitScript(() => {
+    (globalThis as { showSaveFilePicker?: unknown }).showSaveFilePicker = undefined;
+  });
+  await page.goto("/index.html#/aequorin");
+  await page.getByTestId("load-example").click();
+  await page.getByTestId("step-plot").click();
+
+  const more = page.getByRole("toolbar").getByRole("button", { name: "More ▾" });
+  await more.click();
+  await expect(page.getByRole("menuitem", { name: "Σ sums CSV" })).toHaveCount(0);
+  await more.click();
+
+  await page.getByRole("tab", { name: "Σ barplot" }).click();
+  await page
+    .locator(".dv-workspace-controls")
+    .getByRole("button", { name: "On", exact: true })
+    .click();
+  await more.click();
+  const [dl] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("menuitem", { name: "Σ sums CSV" }).click(),
+  ]);
+  expect(dl.suggestedFilename()).toBe("rlu_timecourse_example_corrected_sums.csv");
+  const fs = await import("node:fs");
+  const text = fs.readFileSync((await dl.path()) as string, "utf8");
+  expect(text.split(/\r?\n/)[0]).toBe('"Condition","Replicate","Corrected Sum"');
+});
