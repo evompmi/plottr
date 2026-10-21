@@ -3502,6 +3502,42 @@ test("each side column opens with a level-2 heading, and the layout adds no <mai
   eq([...two.matchAll(/<h2/g)].length, 1);
 });
 
+test("inspectorToggle: a rail opens the statistics column, which stays mounted while hidden", function () {
+  const React = require("react");
+  localStorage.removeItem("plottr-inspector-demo");
+  const props = {
+    controls: "C",
+    figure: "F",
+    inspector: React.createElement("p", { className: "stats" }, "I"),
+    controlsLabel: "Plot controls",
+    inspectorLabel: "Statistics",
+    inspectorToggle: "demo",
+  };
+  const { container, root } = renderWithEffects(sc.WorkspaceLayout, props);
+  const aside = container.querySelector(".dv-workspace-inspector");
+  eq(aside.hidden, true, "closed by default");
+  assert(container.querySelector(".stats"), "panel mounted while hidden (it feeds the plot)");
+  eq(container.querySelector(".dv-workspace").getAttribute("data-columns"), "2");
+  const rail = container.querySelector(".dv-inspector-rail");
+  eq(rail.getAttribute("aria-label"), "Show Statistics");
+  eq(rail.getAttribute("aria-controls"), aside.id);
+  React.act(() => rail.click());
+  eq(aside.hidden, false);
+  eq(container.querySelector(".dv-inspector-rail"), null, "rail gone while open");
+  eq(localStorage.getItem("plottr-inspector-demo"), "open", "choice remembered");
+  React.act(() => root.unmount());
+  // Reopened from storage; Hide closes it again.
+  const again = renderWithEffects(sc.WorkspaceLayout, props);
+  const aside2 = again.container.querySelector(".dv-workspace-inspector");
+  eq(aside2.hidden, false);
+  const hide = again.container.querySelector(".dv-inspector-head button");
+  eq(hide.textContent, "Hide");
+  React.act(() => hide.click());
+  eq(aside2.hidden, true);
+  eq(localStorage.getItem("plottr-inspector-demo"), "closed");
+  React.act(() => again.root.unmount());
+});
+
 test("PlotToolShell puts the step content in the page's <main>, after the app bar", function () {
   const html = renderHtml(sc.PlotToolShell, {
     state: {

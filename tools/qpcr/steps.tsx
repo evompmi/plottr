@@ -553,6 +553,7 @@ export function PlotStep(p: PlotStepProps) {
     <WorkspaceLayout
       controlsLabel={tr("qpcr.plot.controlsLabel")}
       inspectorLabel={tr("qpcr.stats.title")}
+      inspectorToggle="qpcr"
       controls={
         <ControlTabs
           tool="qpcr"

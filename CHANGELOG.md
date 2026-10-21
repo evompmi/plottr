@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Statistics column on demand (2.0).** In Group Plot, Line Plot, Scatter, qPCR, Proportions
+  and RLU Timecourse the statistics column starts folded into a "Statistics" strip on the right
+  edge, giving the figure more room; click it to open the column and "Hide" to fold it again.
+  The choice is remembered per tool, and significance marks on the plot keep working while it
+  is closed. UpSet and Venn keep their intersections column open.
 - **RLU Timecourse: Σ sums CSV in the More menu (2.0).** The barplot's per-replicate sums CSV
   moved from a button inside the figure area to the app bar's More menu ("Σ sums CSV"), shown
   while the barplot is on. Same file as before.

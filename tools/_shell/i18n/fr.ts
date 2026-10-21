@@ -115,6 +115,9 @@ const fr: Record<ShellKey, string> = {
   "shell.howto.tips": "Astuces",
   "shell.toggle.on": "Activé",
   "shell.toggle.off": "Désactivé",
+  "shell.inspector.show": "Afficher : {name}",
+  "shell.inspector.hide": "Masquer",
+
   // ValueListPanel (étape filtre : garder / renommer / ordonner les valeurs)
   "shell.values.heading": "Groupes & filtres",
   "shell.values.kept": "{shown} lignes gardées sur {total}",

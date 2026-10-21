@@ -195,6 +195,51 @@
   transform: rotate(90deg);
 }
 
+/* Collapsed statistics column (`WorkspaceLayout inspectorToggle`): a
+   full-height rail on the right edge, as wide as its horizontal label. */
+.dv-inspector-rail {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 14px;
+  border: none;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.dv-inspector-rail:hover {
+  background: var(--surface-subtle);
+  color: var(--text);
+}
+.dv-inspector-rail:focus-visible {
+  outline: 2px solid var(--focus-outline);
+  outline-offset: -3px;
+}
+.dv-inspector-rail-label {
+  line-height: 14px;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.dv-inspector-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
 /* Title of a collapsible inspector section (`InspectorSection collapsible`):
    the whole label row is the disclosure button, styled as the title. */
 .dv-inspector-toggle {

@@ -242,6 +242,7 @@ export function PlotStep({
     <WorkspaceLayout
       controlsLabel={tr("proportions.controlsLabel")}
       inspectorLabel={tr("proportions.stats.title")}
+      inspectorToggle="proportions"
       controls={
         <ControlTabs
           tool="proportions"

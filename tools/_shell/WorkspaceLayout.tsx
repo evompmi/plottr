@@ -7,6 +7,16 @@
 // are scrolled. The figure sits as a white "sheet" on a dotted canvas,
 // with an optional toolbar row above it for quick display toggles. Tools
 // without statistics leave `inspector` out and get two columns.
+//
+// `inspectorToggle` (the tool id) makes the statistics column opt-in: it
+// starts as a slim labelled rail on the right edge and opens on click; the
+// choice is remembered per tool. The column stays mounted while hidden —
+// stats panels emit the plot's significance marks from their effects, so
+// letters / brackets keep working with the column closed.
+
+import { useShellT } from "./i18n";
+
+const { useState, useRef, useEffect, useId } = React;
 
 export interface WorkspaceLayoutProps {
   controls: React.ReactNode;
@@ -18,6 +28,42 @@ export interface WorkspaceLayoutProps {
   // Accessible names for the side columns.
   controlsLabel: string;
   inspectorLabel?: string;
+  // Tool id: collapse the inspector to a rail until the user opens it.
+  inspectorToggle?: string;
+}
+
+const inspectorKey = (tool: string): string => "plottr-inspector-" + tool;
+function readInspectorOpen(tool: string): boolean {
+  try {
+    return localStorage.getItem(inspectorKey(tool)) === "open";
+  } catch {
+    return false;
+  }
+}
+function writeInspectorOpen(tool: string, open: boolean): void {
+  try {
+    localStorage.setItem(inspectorKey(tool), open ? "open" : "closed");
+  } catch {
+    // Private mode / blocked storage: the choice just isn't remembered.
+  }
+}
+
+function ChevronIcon({ dir }: { dir: "left" | "right" }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={dir === "left" ? "M15 6l-6 6 6 6" : "M9 6l6 6-6 6"} />
+    </svg>
+  );
 }
 
 const COLUMN_HEIGHT = "calc(100vh - var(--dv-sticky-top, 56px))";
@@ -29,12 +75,34 @@ export function WorkspaceLayout({
   inspector,
   controlsLabel,
   inspectorLabel,
+  inspectorToggle,
 }: WorkspaceLayoutProps) {
+  const tr = useShellT();
   const hasInspector = inspector != null && inspector !== false;
+  const collapsible = hasInspector && !!inspectorToggle;
+  const [open, setOpen] = useState(() =>
+    inspectorToggle ? readInspectorOpen(inspectorToggle) : true
+  );
+  const inspectorId = useId();
+  const railRef = useRef<HTMLButtonElement>(null);
+  const hideRef = useRef<HTMLButtonElement>(null);
+  // Move focus with the toggle, but only after a click — not on first paint.
+  const focusAfter = useRef(false);
+  useEffect(() => {
+    if (!focusAfter.current) return;
+    focusAfter.current = false;
+    (open ? hideRef : railRef).current?.focus();
+  }, [open]);
+  const toggle = (next: boolean) => {
+    focusAfter.current = true;
+    setOpen(next);
+    if (inspectorToggle) writeInspectorOpen(inspectorToggle, next);
+  };
+  const shown = !collapsible || open;
   return (
     <div
       className="dv-workspace"
-      data-columns={hasInspector ? 3 : 2}
+      data-columns={hasInspector && shown ? 3 : 2}
       style={{ display: "flex", alignItems: "stretch", height: COLUMN_HEIGHT, minHeight: 480 }}
     >
       <aside
@@ -92,10 +160,27 @@ export function WorkspaceLayout({
           {figure}
         </div>
       </div>
+      {collapsible && !open && (
+        <button
+          ref={railRef}
+          type="button"
+          className="dv-inspector-rail"
+          aria-expanded={false}
+          aria-controls={inspectorId}
+          onClick={() => toggle(true)}
+          aria-label={tr("shell.inspector.show", { name: inspectorLabel || "" })}
+        >
+          <ChevronIcon dir="left" />
+          <span className="dv-inspector-rail-label">{inspectorLabel}</span>
+        </button>
+      )}
       {hasInspector && (
         <aside
+          id={inspectorId}
           aria-label={inspectorLabel}
           className="dv-workspace-inspector"
+          // Hidden, not unmounted: the panel keeps feeding the plot's marks.
+          hidden={!shown}
           style={{
             flex: "0 0 380px",
             minWidth: 0,
@@ -104,7 +189,34 @@ export function WorkspaceLayout({
             borderLeft: "1px solid var(--border)",
           }}
         >
-          {inspectorLabel && <h2 className="dv-sr-only">{inspectorLabel}</h2>}
+          {collapsible ? (
+            <div className="dv-inspector-head">
+              <h2 className="dv-tile-title" style={{ margin: 0 }}>
+                {inspectorLabel}
+              </h2>
+              <button
+                ref={hideRef}
+                type="button"
+                className="dv-btn dv-btn-secondary"
+                aria-expanded={true}
+                aria-controls={inspectorId}
+                onClick={() => toggle(false)}
+                style={{
+                  padding: "2px 10px",
+                  fontSize: 12,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                }}
+              >
+                {tr("shell.inspector.hide")}
+                <ChevronIcon dir="right" />
+              </button>
+            </div>
+          ) : (
+            inspectorLabel && <h2 className="dv-sr-only">{inspectorLabel}</h2>
+          )}
           {inspector}
         </aside>
       )}

@@ -1026,6 +1026,7 @@ export function App() {
         <WorkspaceLayout
           controlsLabel={trApp("boxplot.ctrl.controlsLabel")}
           inspectorLabel={trApp("boxplot.sp.statistics")}
+          inspectorToggle="boxplot"
           controls={
             <PlotControls
               dataFormat={dataFormat}

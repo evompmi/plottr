@@ -9,6 +9,12 @@ async function loadColonisation(page: Page) {
   await page.getByTestId("load-example").click();
   await page.getByTestId("step-plot").click();
   await expect(page.locator("g#bars rect").first()).toBeVisible();
+  await openStatistics(page);
+}
+
+// The statistics column starts folded into a rail.
+async function openStatistics(page: Page) {
+  await page.getByRole("button", { name: "Show Statistics" }).click();
 }
 
 test("colonisation example: bars, CI whiskers, brackets, χ² chosen", async ({ page }) => {
@@ -79,6 +85,7 @@ test("F2 example: stacked by default, 9:3:3:1 goodness of fit per family", async
   await page.getByTestId("load-example-f2").click();
   await page.getByTestId("step-plot").click();
   await expect(page.locator("g#segments > g")).toHaveCount(3);
+  await openStatistics(page);
   const gof = page.getByTestId("proportions-gof");
   await expect(page.getByTestId("proportions-gof-ratio")).toHaveValue("9:3:3:1");
   await expect(gof.locator("tbody tr")).toHaveCount(3);

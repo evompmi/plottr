@@ -141,6 +141,9 @@ const en = {
   "shell.toggle.on": "On",
   "shell.toggle.off": "Off",
 
+  "shell.inspector.show": "Show {name}",
+  "shell.inspector.hide": "Hide",
+
   // ValueListPanel (filter step: keep / rename / order values)
   "shell.values.heading": "Groups & filters",
   "shell.values.kept": "{shown} of {total} rows kept",

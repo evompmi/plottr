@@ -25,6 +25,8 @@ test("configure: references, calibrator and QC are detected", async ({ page }) =
 test("plot: one facet per target, tests on ΔCt, y-scale and letters", async ({ page }) => {
   await loadExample(page);
   await page.getByTestId("step-plot").click();
+  // The statistics column starts folded into a rail.
+  await page.getByRole("button", { name: "Show Statistics" }).click();
   await expect(page.locator("g#facet-RD29A")).toBeVisible();
   await expect(page.locator("g#facet-WRKY33")).toBeVisible();
   // The ΔCt rationale is collapsed until asked for.

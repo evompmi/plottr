@@ -52,6 +52,7 @@ export function PlotStep(props: PlotStepProps) {
     <WorkspaceLayout
       controlsLabel={tr("scatter.controlsLabel")}
       inspectorLabel={tr("scatter.statsLabel")}
+      inspectorToggle="scatter"
       controls={<PlotControls {...props} />}
       toolbar={
         // Scatter skips the configure step, so the file summary (rows, columns,

@@ -94,3 +94,36 @@ test("boxplot: filter step keeps, renames and orders groups in one list", async 
     .evaluateAll((gs) => gs.map((g) => g.getAttribute("id")));
   expect(ids).toEqual(["group-oxSOS1", "group-Col0"]);
 });
+
+test("boxplot: statistics column opens on demand; marks work while it is closed", async ({
+  page,
+}) => {
+  await page.goto("/index.html#/boxplot");
+  await page.evaluate(() => localStorage.removeItem("plottr-inspector-boxplot"));
+  await page.getByTestId("load-example").click();
+  await page.getByTestId("step-plot").click();
+
+  const inspector = page.getByRole("complementary", { name: "Statistics" });
+  const show = page.getByRole("button", { name: "Show Statistics" });
+  await expect(inspector).toBeHidden();
+  await expect(show).toHaveAttribute("aria-expanded", "false");
+
+  // Letters come from the (hidden) stats panel.
+  await page.getByRole("button", { name: "Letters", exact: true }).click();
+  await expect(page.locator("svg g#cld-annotations text")).toHaveCount(3);
+
+  await show.click();
+  await expect(inspector).toBeVisible();
+  await expect(inspector).toContainText("Welch's ANOVA");
+  const hide = inspector.getByRole("button", { name: "Hide" });
+  await expect(hide).toBeFocused();
+
+  // Remembered across a reload.
+  await page.reload();
+  await page.getByTestId("load-example").click();
+  await page.getByTestId("step-plot").click();
+  await expect(inspector).toBeVisible();
+  await inspector.getByRole("button", { name: "Hide" }).click();
+  await expect(inspector).toBeHidden();
+  await expect(show).toBeFocused();
+});

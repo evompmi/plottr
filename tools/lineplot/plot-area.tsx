@@ -36,6 +36,7 @@ export function PlotStep(props: PlotStepProps) {
     <WorkspaceLayout
       controlsLabel={tr("lineplot.controlsLabel")}
       inspectorLabel={tr("lineplot.sp.inspectorLabel")}
+      inspectorToggle="lineplot"
       controls={<PlotControls {...props} />}
       toolbar={
         statsRows.length > 0 ? (

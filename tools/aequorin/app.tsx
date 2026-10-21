@@ -1778,6 +1778,7 @@ export function App() {
         <WorkspaceLayout
           controlsLabel={trApp("aequorin.app.controlsLabel")}
           inspectorLabel={trApp("aequorin.app.statisticsLabel")}
+          inspectorToggle="aequorin"
           controls={
             <PlotControls
               conditions={conditions}
