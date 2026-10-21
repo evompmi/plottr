@@ -559,86 +559,115 @@ test("renders column role dropdowns", function () {
   assert(html.length > 0, "should render");
 });
 
-suite("FilterCheckboxPanel");
+suite("ValueListPanel");
 
-test("renders filter checkboxes", function () {
-  const html = renderHtml(sc.FilterCheckboxPanel, {
-    headers: ["Grp", "Val"],
-    colNames: ["Grp", "Val"],
-    colRoles: ["group", "value"],
-    filters: {
-      0: { unique: ["A", "B"], included: new Set(["A", "B"]) },
-      1: { unique: ["1", "2"], included: new Set(["1", "2"]) },
-    },
-    filteredCount: 2,
-    totalCount: 2,
-    onToggle: noop,
-    onToggleAll: noop,
-  });
-  assert(html.length > 0, "should render");
-});
+const ReactVL = require("react");
 
-suite("RenameReorderPanel");
-
-test("renders rename inputs and drag handles", function () {
-  const html = renderHtml(sc.RenameReorderPanel, {
-    headers: ["Grp", "Facet"],
-    colNames: ["Group", "Facet"],
-    colRoles: ["group", "filter"],
-    filters: {
-      0: { unique: ["A", "B"], included: new Set(["A", "B"]) },
-      1: { unique: ["X", "Y"], included: new Set(["X", "Y"]) },
+// Group column "Grp" (A ×2, B, C) + filter column "Rep" (1, 2) + value column.
+function valueListProps(over) {
+  return Object.assign(
+    {
+      headers: ["Grp", "Rep", "Val"],
+      colNames: ["Genotype", "Replicate", "Biomass"],
+      colRoles: ["group", "filter", "value"],
+      filters: {
+        0: { unique: ["A", "B", "C"], included: new Set(["A", "B", "C"]) },
+        1: { unique: ["1", "2"], included: new Set(["1", "2"]) },
+        2: { unique: ["5", "6", "7", "8"], included: new Set(["5", "6", "7", "8"]) },
+      },
+      rows: [
+        ["A", "1", "5"],
+        ["A", "2", "6"],
+        ["B", "1", "7"],
+        ["C", "2", "8"],
+      ],
+      valueRenames: {},
+      orderableCols: {
+        0: { order: ["A", "B", "C"], onReorder: noop },
+        1: { order: ["1", "2"], onReorder: noop },
+      },
+      applyRename: (_i, v) => v,
+      filteredCount: 4,
+      totalCount: 4,
+      onToggle: noop,
+      onToggleAll: noop,
+      onRenameVal: noop,
     },
-    valueRenames: {},
-    orderableCols: {
-      0: { order: ["A", "B"], onReorder: noop },
-      1: { order: ["X", "Y"], onReorder: noop },
-    },
-    applyRename: function (i, v) {
-      return v;
-    },
-    onRenameVal: noop,
-    dragState: null,
-    onDragStart: noop,
-    onDragEnd: noop,
-  });
-  assert(html.length > 0, "should render");
-});
-
-function renderReorderCol(unique, order, applyRename) {
-  return renderHtml(sc.RenameReorderPanel, {
-    headers: ["Grp"],
-    colNames: ["Group"],
-    colRoles: ["group"],
-    filters: { 0: { unique, included: new Set(unique) } },
-    valueRenames: {},
-    orderableCols: { 0: { order, onReorder: noop } },
-    applyRename,
-    onRenameVal: noop,
-    dragState: null,
-    onDragStart: noop,
-    onDragEnd: noop,
-  });
+    over
+  );
 }
+const renameInputs = (el) =>
+  [...el.querySelectorAll("input.dv-input")].map((i) => i.getAttribute("aria-label"));
 
-test("lists values in the saved order, not upload order", function () {
-  const html = renderReorderCol(
-    ["alpha", "beta", "gamma"],
-    ["gamma", "alpha", "beta"],
-    (_i, v) => v
+test("one card per group / filter column, none for the value column", function () {
+  const { container, root } = renderWithEffects(sc.ValueListPanel, valueListProps());
+  const cards = [...container.querySelectorAll("section")].map((c) => c.getAttribute("aria-label"));
+  eq(cards.join("|"), "Genotype|Replicate");
+  const grp = container.querySelector('[data-testid="value-list-0"]');
+  // Row counts come from the unfiltered rows.
+  eq(
+    [...grp.querySelectorAll("li")].map((li) => li.textContent.match(/n=\d+/)[0]).join(","),
+    "n=2,n=1,n=1"
   );
-  const pos = ["gamma", "alpha", "beta"].map((v) => html.indexOf(">" + v + "<"));
-  assert(
-    pos.every((p) => p >= 0),
-    "every value should be listed: " + pos
-  );
-  assert(pos[0] < pos[1] && pos[1] < pos[2], "order should be gamma, alpha, beta: " + pos);
+  ReactVL.act(() => root.unmount());
 });
 
-test("two values renamed to the same label: the first one is listed", function () {
-  const html = renderReorderCol(["wt", "WT2"], ["WT"], () => "WT");
-  assert(html.includes(">wt<"), "first value with the shared label should be listed");
-  assert(!html.includes(">WT2<"), "second value with the shared label should not be listed");
+test("values follow the full stored order; an unticked one stays in its slot", function () {
+  const props = valueListProps();
+  props.orderableCols[0] = { order: ["C", "B"], fullOrder: ["C", "A", "B"], onReorder: noop };
+  props.filters[0] = { unique: ["A", "B", "C"], included: new Set(["B", "C"]) };
+  const { container, root } = renderWithEffects(sc.ValueListPanel, props);
+  const grp = container.querySelector('[data-testid="value-list-0"]');
+  eq(renameInputs(grp).join("|"), "Rename C|Rename A|Rename B");
+  const rows = grp.querySelectorAll("li");
+  const dropped = rows[1].querySelector("input.dv-input");
+  eq(dropped.style.textDecoration, "line-through", "unticked value is struck through in place");
+  eq(rows[1].querySelectorAll("button").length, 2, "and can still be moved, as in qPCR");
+  eq(rows[0].querySelector('button[aria-label="Move C up"]').disabled, true);
+  eq(rows[2].querySelector('button[aria-label="Move B down"]').disabled, true);
+  ReactVL.act(() => root.unmount());
+});
+
+test("arrows reorder the labels, checkboxes and All / None call back", function () {
+  const reorders = [];
+  const toggles = [];
+  const bulk = [];
+  const props = valueListProps({
+    onToggle: (i, v) => toggles.push(i + ":" + v),
+    onToggleAll: (i, on) => bulk.push(i + ":" + on),
+  });
+  props.orderableCols[0].onReorder = (o) => reorders.push(o.join(","));
+  const { container, root } = renderWithEffects(sc.ValueListPanel, props);
+  const grp = container.querySelector('[data-testid="value-list-0"]');
+  ReactVL.act(() => grp.querySelector('button[aria-label="Move B up"]').click());
+  ReactVL.act(() => grp.querySelector('button[aria-label="Move A down"]').click());
+  eq(reorders.join(" / "), "B,A,C / B,A,C");
+  ReactVL.act(() => grp.querySelector('input[aria-label="Keep C"]').click());
+  eq(toggles.join(","), "0:C");
+  const all = grp.querySelector('button[aria-label="Keep every value of Genotype"]');
+  eq(all.disabled, true, "All is disabled when nothing is dropped");
+  ReactVL.act(() => grp.querySelector('button[aria-label="Drop every value of Genotype"]').click());
+  eq(bulk.join(","), "0:false");
+  ReactVL.act(() => root.unmount());
+});
+
+test("renamed values show their old name; same-name values merge and move together", function () {
+  const reorders = [];
+  const renames = { 0: { A: "WT", B: "WT" } };
+  const props = valueListProps({
+    valueRenames: renames,
+    applyRename: (i, v) => (renames[i] && renames[i][v] != null ? renames[i][v] : v),
+  });
+  props.orderableCols[0] = { order: ["WT", "C"], onReorder: (o) => reorders.push(o.join(",")) };
+  const { container, root } = renderWithEffects(sc.ValueListPanel, props);
+  const grp = container.querySelector('[data-testid="value-list-0"]');
+  eq(renameInputs(grp).join("|"), "Rename A|Rename B|Rename C");
+  assert(grp.textContent.includes("merged · A") && grp.textContent.includes("merged · B"));
+  // Only the first row of a merged label carries the arrows.
+  eq(grp.querySelectorAll('button[aria-label="Move WT down"]').length, 1);
+  ReactVL.act(() => grp.querySelector('button[aria-label="Move C up"]').click());
+  eq(reorders.join(""), "C,WT");
+  ReactVL.act(() => root.unmount());
 });
 
 suite("StatsTable");

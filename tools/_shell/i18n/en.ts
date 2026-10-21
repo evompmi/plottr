@@ -141,15 +141,21 @@ const en = {
   "shell.toggle.on": "On",
   "shell.toggle.off": "Off",
 
-  // FilterCheckboxPanel
-  "shell.filter.heading": "Filter rows ({shown}/{total})",
+  // ValueListPanel (filter step: keep / rename / order values)
+  "shell.values.heading": "Groups & filters",
+  "shell.values.kept": "{shown} of {total} rows kept",
+  "shell.values.hint":
+    "Untick a value to drop its rows, type to rename it (two values with the same name merge), and use ↑ ↓ to set the order on the plot.",
+  "shell.values.colKept": "{kept} of {total} kept",
+  "shell.values.allFor": "Keep every value of {name}",
+  "shell.values.noneFor": "Drop every value of {name}",
+  "shell.values.keep": "Keep {name}",
+  "shell.values.up": "Move {name} up",
+  "shell.values.down": "Move {name} down",
+  "shell.values.was": "was {name}",
+  "shell.values.merged": "merged · {name}",
   "shell.filter.all": "All",
   "shell.filter.none": "None",
-  "shell.filter.numericHint": "numeric — use axis range in plot",
-
-  // RenameReorderPanel
-  "shell.rename.heading": "Rename values & reorder groups ",
-  "shell.rename.hint": "(drag ☰ to reorder groups on plot)",
   "shell.rename.empty": "(empty)",
 
   // DiscretePaletteRow

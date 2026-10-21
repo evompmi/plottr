@@ -505,7 +505,13 @@ export interface WideExport {
   unlabelled?: number;
 }
 
-export type DragState = { col: number; idx: number } | null;
+// One reorderable group / filter column: `order` is the plot order (kept
+// values only), `fullOrder` every value's slot (the filter step's list).
+export interface OrderableCol {
+  order: string[];
+  fullOrder?: string[];
+  onReorder: (newOrder: string[]) => void;
+}
 
 interface FilterStateCommonProps {
   parsedHeaders: string[];
@@ -544,13 +550,11 @@ export interface FilterStepProps extends FilterStateCommonProps {
   renamedRows: string[][];
   activeColIdxs: number[];
   valueRenames: Record<number, Record<string, string>>;
-  orderableCols: Record<number, { order: string[]; onReorder: (newOrder: string[]) => void }>;
+  orderableCols: Record<number, OrderableCol>;
   applyRename: (i: number, value: string) => string;
   toggleFilter: (i: number, value: string) => void;
   toggleAllFilter: (i: number, allOn: boolean) => void;
   setRenameVal: (i: number, origValue: string, newValue: string) => void;
-  dragState: DragState;
-  setDragState: (s: DragState) => void;
 }
 
 export interface OutputStepProps {

@@ -19,7 +19,7 @@ import {
   BoxplotGroup,
   CompositionTable,
   FacetCell,
-  DragState,
+  OrderableCol,
   Subgroup,
   SubgroupedData,
   compositionTableCsv,
@@ -32,6 +32,7 @@ import {
   cellKey,
   firstSeenOrder,
   mergeStoredOrder,
+  renameInOrder,
   splitBySubgroup,
   statsPanelModeOf,
 } from "./derive";
@@ -230,7 +231,6 @@ export function App() {
       })),
     [updVis]
   );
-  const [dragState, setDragState] = useState<DragState>(null);
   const [facetByCol, _setFacetByCol] = useState(-1);
   const [subgroupByCol, _setSubgroupByCol] = useState(-1);
   // Facet and subgroup are independent. The only cross-guard is that they
@@ -620,20 +620,27 @@ export function App() {
   const facetByCategories = effectiveFacetOrder;
 
   // Every group/filter column (except the numeric value column) is
-  // reorderable. Each column's natural order is first-seen in renamedRows,
-  // any user-drag override is merged on top. Computed here so that reordering
-  // works at the filter step — before the user has even chosen which column
-  // feeds "Facet by" or "Color by" in the plot step.
+  // reorderable. `order` is the plot order: first-seen in renamedRows (kept
+  // rows only) with the user's order merged on top. `fullOrder` covers every
+  // value, filtered out or not, so the filter step's list keeps each row in
+  // its slot when it is unticked; the stored order is that full list.
+  // Computed here so that reordering works at the filter step — before the
+  // user has even chosen which column feeds "Facet by" or "Color by".
   const orderableCols = useMemo(() => {
-    const m: Record<number, { order: string[]; onReorder: (newOrder: string[]) => void }> = {};
+    const m: Record<number, OrderableCol> = {};
     parsedHeaders.forEach((_, i) => {
       if (i === valueColIdx) return;
       if (colRoles[i] !== "group" && colRoles[i] !== "filter") return;
       const order = mergeStoredOrder(firstSeenOrder(renamedRows, i), columnOrders[i]);
-      m[i] = { order, onReorder: (newOrder: string[]) => setOrderForCol(i, newOrder) };
+      const renames = valueRenames[i] || {};
+      const allLabels = [
+        ...new Set(firstSeenOrder(parsedRows, i).map((v) => (renames[v] != null ? renames[v] : v))),
+      ];
+      const fullOrder = mergeStoredOrder(allLabels, columnOrders[i]);
+      m[i] = { order, fullOrder, onReorder: (newOrder: string[]) => setOrderForCol(i, newOrder) };
     });
     return m;
-  }, [parsedHeaders, colRoles, valueColIdx, renamedRows, columnOrders]);
+  }, [parsedHeaders, parsedRows, colRoles, valueColIdx, renamedRows, columnOrders, valueRenames]);
 
   // Groups for one facet / subgroup cell: disabled groups hidden, colours
   // taken from the flat plot so a group keeps one colour across cells.
@@ -807,6 +814,15 @@ export function App() {
     if (ci === facetByCol || ci === subgroupByCol) {
       dispatchStats({ type: "clearCells" });
     }
+    // Keep the value's slot in the stored order under its new label.
+    const oldLabel = applyRename(ci, ov);
+    const oldStillUsed = Array.from(filters[ci]?.unique || []).some(
+      (v) => v !== ov && applyRename(ci, v) === oldLabel
+    );
+    setColumnOrders((prev) => {
+      const next = renameInOrder(prev[ci], oldLabel, nv, oldStillUsed);
+      return next === prev[ci] ? prev : { ...prev, [ci]: next || [] };
+    });
     setValueRenames((p) => {
       const r = { ...p };
       if (!r[ci]) r[ci] = {};
@@ -989,8 +1005,6 @@ export function App() {
           toggleFilter={toggleFilter}
           toggleAllFilter={toggleAllFilter}
           setRenameVal={setRenameVal}
-          dragState={dragState}
-          setDragState={setDragState}
         />
       )}
 

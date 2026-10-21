@@ -108,7 +108,6 @@ per-file paths so the dependency graph stays visible.
 | `DownloadTiles.tsx`          | `ActionsPanel` wrapper auto-building SVG / PNG callbacks.                                |
 | `ErrorBoundary.tsx`          | Class-component error boundary used by the SPA shell.                                    |
 | `FileDropZone.tsx`           | Drag/drop / click-to-browse upload widget; ingest-size constants alongside.              |
-| `FilterCheckboxPanel.tsx`    | Per-column filter checkbox grid for the filter step.                                     |
 | `FormulaInjectionBanner.tsx` | Yellow alert for cells that would trigger Excel formula evaluation.                      |
 | `GroupColorEditor.tsx`       | Per-group colour editor list.                                                            |
 | `HowTo.tsx`                  | Tool-specific "How to use" content renderer.                                             |
@@ -119,7 +118,6 @@ per-file paths so the dependency graph stays visible.
 | `PlotActionsBar.tsx`         | App-bar export bar: two-click Start over, downloads, SVG last as primary.                |
 | `PlotToolShell.tsx`          | Outer page frame — AppBar (steps, file chip, exports, prefs) + banners + children.       |
 | `PrefsPanel.tsx`             | Gear-menu UI on top of `prefs-store`.                                                    |
-| `RenameReorderPanel.tsx`     | Per-column rename + drag-to-reorder list.                                                |
 | `ScrollablePlotCard.tsx`     | Horizontal-scroll affordance (edge fades + "Scroll for more →" pill).                    |
 | `SignificanceBrackets.tsx`   | Pair-wise significance-bracket renderer (vertical / horizontal).                         |
 | `SliderControl.tsx`          | Labelled range slider (memo-wrapped).                                                    |
@@ -130,6 +128,7 @@ per-file paths so the dependency graph stays visible.
 | `GroupTestSections.tsx`      | Inspector sections for a `selectTest` result (shared by Group Plot / Line Plot / RLU).   |
 | `Inspector.tsx`              | Inspector vocabulary: compact tables, stars badge, assumption rows, set rows, exports.   |
 | `WhyThisTest.tsx`            | Collapsed "Why this test?" disclosure under a stats panel's result line.                 |
+| `ValueListPanel.tsx`         | Filter step: per-column keep / rename / ↑↓ order list (qPCR-style rows).                 |
 | `WorkspaceLayout.tsx`        | Plot-step workspace: controls \| figure canvas \| inspector; `InspectorSection`.         |
 
 ### Pure helpers / data / dispatchers (`kebab-case.ts`)

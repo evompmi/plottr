@@ -1,7 +1,7 @@
 // Step components for the boxplot tool (Upload, Configure, Filter, Output).
 // Stateless presentational wrappers — all state lives in App via
 // usePlotToolState or local hooks there. Shared UI (UploadPanel,
-// DataPreview, ColumnRoleEditor, FilterCheckboxPanel, RenameReorderPanel,
+// DataPreview, ColumnRoleEditor, ValueListPanel,
 // StatsTable, …) resolves through shared.bundle.js. Prop types live in
 // ./helpers.ts (the type-canonical home).
 
@@ -14,9 +14,8 @@ import type {
 import {
   DataPreview,
   DetectedSeparatorBadge,
-  FilterCheckboxPanel,
   HowTo,
-  RenameReorderPanel,
+  ValueListPanel,
   StatsTable,
   UploadPanel,
 } from "../_shell";
@@ -422,8 +421,6 @@ export function FilterStep({
   toggleFilter,
   toggleAllFilter,
   setRenameVal,
-  dragState,
-  setDragState,
 }: FilterStepProps) {
   const tr = useT();
   // Feedback for filters whose effect falls past the first preview rows:
@@ -447,31 +444,21 @@ export function FilterStep({
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 16, alignItems: "stretch", marginBottom: 16 }}>
-        <FilterCheckboxPanel
-          headers={parsedHeaders}
-          colNames={colNames}
-          colRoles={colRoles}
-          filters={filters}
-          filteredCount={filteredRows.length}
-          totalCount={parsedRows.length}
-          onToggle={toggleFilter}
-          onToggleAll={toggleAllFilter}
-        />
-        <RenameReorderPanel
-          headers={parsedHeaders}
-          colNames={colNames}
-          colRoles={colRoles}
-          filters={filters}
-          valueRenames={valueRenames}
-          orderableCols={orderableCols}
-          applyRename={applyRename}
-          onRenameVal={setRenameVal}
-          dragState={dragState}
-          onDragStart={setDragState}
-          onDragEnd={() => setDragState(null)}
-        />
-      </div>
+      <ValueListPanel
+        headers={parsedHeaders}
+        colNames={colNames}
+        colRoles={colRoles}
+        filters={filters}
+        rows={parsedRows}
+        valueRenames={valueRenames}
+        orderableCols={orderableCols}
+        applyRename={applyRename}
+        filteredCount={filteredRows.length}
+        totalCount={parsedRows.length}
+        onToggle={toggleFilter}
+        onToggleAll={toggleAllFilter}
+        onRenameVal={setRenameVal}
+      />
       <div
         key={`preview-${flashKey}`}
         style={{

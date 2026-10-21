@@ -22,6 +22,7 @@ const {
   compositionTableCsv,
   firstSeenOrder,
   mergeStoredOrder,
+  renameInOrder,
   buildGroups,
   splitBySubgroup,
   cellKey,
@@ -487,6 +488,33 @@ test("mergeStoredOrder: no stored order keeps the natural order", () => {
 
 test("mergeStoredOrder drops vanished values and appends new ones", () => {
   eq(mergeStoredOrder(["a", "b", "c", "d"], ["c", "gone", "a"]), ["c", "a", "b", "d"]);
+});
+
+test("mergeStoredOrder keeps a dropped value's slot out of the plot order", () => {
+  // The stored order covers every value; the plot order is the kept subset.
+  eq(mergeStoredOrder(["a", "c"], ["c", "b", "a"]), ["c", "a"]);
+});
+
+suite("renameInOrder");
+
+test("no stored order or no change → unchanged", () => {
+  eq(renameInOrder(undefined, "WT", "Col-0", false), undefined);
+  const stored = ["b", "WT"];
+  eq(renameInOrder(stored, "WT", "WT", false) === stored, true);
+  eq(renameInOrder(stored, "gone", "x", false) === stored, true);
+});
+
+test("a renamed value keeps its slot", () => {
+  eq(renameInOrder(["b", "WT", "c"], "WT", "Col-0", false), ["b", "Col-0", "c"]);
+});
+
+test("old label still used by another value → new label goes right after it", () => {
+  eq(renameInOrder(["WT", "c"], "WT", "WT-2", true), ["WT", "WT-2", "c"]);
+});
+
+test("renaming onto an existing label merges into that slot", () => {
+  eq(renameInOrder(["c", "WT", "Col-0"], "WT", "Col-0", false), ["c", "Col-0"]);
+  eq(renameInOrder(["c", "WT", "Col-0"], "WT", "Col-0", true), ["c", "WT", "Col-0"]);
 });
 
 suite("buildGroups");

@@ -32,7 +32,6 @@ export { DiscretePaletteRow } from "./DiscretePaletteRow";
 export { DownloadTiles } from "./DownloadTiles";
 export { ErrorBoundary } from "./ErrorBoundary";
 export { FileDropZone, FILE_LIMIT_BYTES, FILE_WARN_BYTES } from "./FileDropZone";
-export { FilterCheckboxPanel } from "./FilterCheckboxPanel";
 export { FormulaInjectionBanner } from "./FormulaInjectionBanner";
 export { GroupColorEditor } from "./GroupColorEditor";
 export { GroupTestSections } from "./GroupTestSections";
@@ -46,7 +45,7 @@ export { MethodsButton } from "./MethodsButton";
 export { PlotActionsBar } from "./PlotActionsBar";
 export { PlotToolShell } from "./PlotToolShell";
 export { PrefsPanel } from "./PrefsPanel";
-export { RenameReorderPanel } from "./RenameReorderPanel";
+export { ValueListPanel } from "./ValueListPanel";
 export { ScrollablePlotCard } from "./ScrollablePlotCard";
 export { SegToggle, OnOffToggle } from "./SegToggle";
 export {

@@ -65,3 +65,32 @@ test("boxplot: outlier marks can be turned off while points are shown", async ({
   await expect(marks).toHaveCount(0);
   await expect(points).toHaveCount(pointCount);
 });
+
+test("boxplot: filter step keeps, renames and orders groups in one list", async ({ page }) => {
+  await page.goto("/index.html#/boxplot");
+  await page.getByTestId("load-example").click();
+  await page.getByTestId("step-filter").click();
+
+  const genotype = page.getByRole("region", { name: "Genotype" });
+  const rowOrder = () =>
+    genotype
+      .getByRole("textbox")
+      .evaluateAll((els) => els.map((e) => (e as { value: string }).value));
+
+  // Unticking keeps the row in its slot.
+  await genotype.getByRole("checkbox", { name: "Keep abi4" }).uncheck();
+  expect(await rowOrder()).toEqual(["WT", "abi4", "oxSOS1"]);
+  await genotype.getByRole("button", { name: "Move oxSOS1 up" }).click();
+  expect(await rowOrder()).toEqual(["WT", "oxSOS1", "abi4"]);
+  // Renaming after a reorder keeps the slot too.
+  await genotype.getByRole("textbox", { name: "Rename WT" }).fill("Col0");
+  await expect(genotype).toContainText("was WT");
+  expect(await rowOrder()).toEqual(["Col0", "oxSOS1", "abi4"]);
+  await genotype.getByRole("button", { name: "Move oxSOS1 up" }).click();
+
+  await page.getByTestId("step-plot").click();
+  const ids = await page
+    .locator("svg g#groups > g")
+    .evaluateAll((gs) => gs.map((g) => g.getAttribute("id")));
+  expect(ids).toEqual(["group-oxSOS1", "group-Col0"]);
+});

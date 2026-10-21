@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Group Plot: one list to keep, rename and order values (2.0).** The filter step's separate
+  checkbox and rename/drag panels are merged into qPCR-style rows per column: tick to keep,
+  type to rename (with the old name shown), the row count, and ↑ / ↓ for the plot order.
+  Rows stay in place when unticked, and a renamed value keeps its position.
 - **qPCR: collapsible statistics (2.0).** Each gene's statistics fold under its name, with its
   significance stars still showing; the first gene starts open, so runs with many genes stay
   readable. "Why the tests use ΔCt" now opens on click, like "Why this test?".

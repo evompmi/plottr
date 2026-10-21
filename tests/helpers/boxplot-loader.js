@@ -113,6 +113,7 @@ module.exports = {
   // App data derivations (tools/boxplot/derive.ts).
   firstSeenOrder: derive.firstSeenOrder,
   mergeStoredOrder: derive.mergeStoredOrder,
+  renameInOrder: derive.renameInOrder,
   buildGroups: derive.buildGroups,
   splitBySubgroup: derive.splitBySubgroup,
   cellKey: derive.cellKey,
