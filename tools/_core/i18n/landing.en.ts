@@ -70,7 +70,7 @@ const landingEn = {
   "landing.cat.bench": "At the bench · works on a phone",
   "landing.cat.benchQ": "Quick maths before the experiment",
   "landing.mobileHint":
-    "<strong>Plot tools need a larger screen.</strong> Open Plöttr on a computer to make figures; the calculators below work here.",
+    "<strong>Plot tools need a larger screen.</strong> Open Plöttr on a computer to make figures; the calculators above work here.",
 
   "landing.tool.boxplot.desc":
     "Box, violin, raincloud or bar, faceted, with the test picked from normality and variance checks.",

@@ -61,7 +61,7 @@ const landingFr: Record<LandingKey, string> = {
   "landing.cat.bench": "À la paillasse · fonctionne sur téléphone",
   "landing.cat.benchQ": "Les calculs avant l’expérience",
   "landing.mobileHint":
-    "<strong>Les graphiques demandent un plus grand écran.</strong> Ouvrez Plöttr sur un ordinateur pour faire des figures ; les calculatrices ci-dessous fonctionnent ici.",
+    "<strong>Les graphiques demandent un plus grand écran.</strong> Ouvrez Plöttr sur un ordinateur pour faire des figures ; les calculatrices ci-dessus fonctionnent ici.",
 
   "landing.tool.boxplot.desc":
     "Boîtes, violons, raincloud ou barres, en panneaux, avec le test choisi d’après la normalité et l’égalité des variances.",

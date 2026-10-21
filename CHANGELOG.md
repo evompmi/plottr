@@ -53,13 +53,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on a phone) without a second title, and every button, switch and field is at least 44 px tall
   for fingers.
 - **New landing page (2.0).** A hero with Group Plot's real output on its example data (figure,
-  test and post-hoc results) and the four steps of every plot tool, tools grouped by the question
-  they answer, a calculator band that works on phones, a proof strip (1,701 comparisons against
-  R and SciPy, privacy, citation) and a citation footer with a copy button. "Try it on example data" opens Group Plot's plot
-  with the example loaded.
-
-### Added
-
+  test and post-hoc results) and the four steps of every plot tool, tools grouped by the
+  question they answer, a calculator band, a proof strip (1,701 comparisons against R and
+  SciPy, privacy, citation) and a citation footer with a copy button. On phones the page opens
+  straight on the calculators. "Try it on example data" opens Group Plot's plot with the
+  example loaded.
 - **Group Plot: optional outlier marks.** With points shown, a new "Mark outliers in black" switch
   (on by default) can remove the black dot drawn over each outlier, leaving only its coloured
   point. With points hidden, outliers are always marked.

@@ -705,35 +705,35 @@
       }
 
       /* Phones: plot tools need a wider canvas (they have a 1100 px floor
-         by design), so the landing hides the plot groups and the "how it
-         works" strip, and explains why above the calculators. */
+         by design), so the landing shows the calculators first, with a
+         note below them explaining where the plot tools went. */
       @media (max-width: 900px) {
+        /* The page opens straight on the calculators: the hero (plot-tool
+           pitch) is dropped, keeping only its headline for screen readers. */
+        .lp-hero {
+          background: none;
+          border: 0;
+        }
         .lp-hero .lp-wrap {
-          padding-top: 40px;
-          padding-bottom: 48px;
-          gap: 32px;
+          padding: 0;
         }
-        .lp-hero h1 {
-          font-size: 38px;
-        }
-        .lp-lead {
-          font-size: 17px;
-        }
-        .lp-figure figcaption {
-          padding: 16px 0 0;
-          max-width: none;
-        }
+        .lp-hero-copy > :not(h1),
+        .lp-figure,
         .lp-hiw,
-        .lp-groups,
-        .lp-plot-cta,
-        .lp-tools-head p {
+        .lp-tools-head,
+        .lp-groups {
           display: none !important;
         }
-        .lp-tools {
-          padding-top: 40px;
+        .lp-hero h1 {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+          white-space: nowrap;
         }
-        .lp-tools-head h2 {
-          font-size: 30px;
+        .lp-tools {
+          padding-top: 24px;
         }
         .mobile-hint {
           display: block;
@@ -1290,7 +1290,6 @@
               </div>
             </div>
           </div>
-          <p class="mobile-hint" data-i18n-html="landing.mobileHint"></p>
           <div class="lp-bench" data-category="bench">
             <div>
               <span class="lp-kicker" data-i18n="landing.cat.bench"></span>
@@ -1348,6 +1347,7 @@
               ></span>
             </a>
           </div>
+          <p class="mobile-hint" data-i18n-html="landing.mobileHint"></p>
         </section>
 
         <section class="lp-proof" data-i18n-aria="landing.proof.aria" aria-label="Why trust it">
