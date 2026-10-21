@@ -61,7 +61,6 @@ export type { SegOption, SegToggleProps, OnOffToggleProps } from "./SegToggle";
 export { SignificanceBrackets } from "./SignificanceBrackets";
 export { SliderControl } from "./SliderControl";
 export { StatsTable } from "./StatsTable";
-export { StatsTile } from "./StatsTile";
 export { StepNavBar } from "./StepNavBar";
 export { UploadPanel } from "./UploadPanel";
 export { WhyThisTest } from "./WhyThisTest";

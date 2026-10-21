@@ -253,8 +253,8 @@ interface AnnotationSpecRow {
 }
 
 // Build the annotation spec the chart consumes, from a row's test / post-hoc
-// result. Mirrors StatsTile's logic but driven by panel-level display
-// controls rather than per-row toggles.
+// result, driven by the panel-level display controls (Off / Letters /
+// Brackets, Show ns) rather than per-row toggles.
 export function computeBpAnnotationSpec(
   row: AnnotationSpecRow,
   displayMode: "none" | "cld" | "brackets",

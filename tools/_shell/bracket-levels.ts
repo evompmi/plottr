@@ -1,12 +1,12 @@
 // `assignBracketLevels` — pure layout helper that assigns a vertical
 // stack level (0 = lowest) to each {i, j} pair so significance brackets
 // at overlapping spans don't collide. Greedy by ascending span width.
-// Used by chart renderers (boxplot/layout, aequorin/chart) and by
-// `StatsTile` when it builds its own annotation specs.
+// Used by chart renderers (boxplot/layout, aequorin/chart) and by the
+// stats panels when they build annotation specs.
 //
 // Generic over T to preserve any additional fields the caller threads
 // through (label, p, etc.). Lives in its own module so consumers that
-// only need the layout math don't pull in the full StatsTile bundle.
+// only need the layout math don't pull in a stats panel.
 
 export function assignBracketLevels<T extends { i: number; j: number }>(
   pairs: T[]

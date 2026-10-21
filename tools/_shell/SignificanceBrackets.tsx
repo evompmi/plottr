@@ -25,7 +25,7 @@ const BRACKET_DEFAULTS = {
 // Same shape as the ambient BracketPair declared in types/globals.d.ts —
 // label may be omitted (the renderer falls back to a default string), so
 // the local prop interface accepts `string | undefined` to be assignable
-// from the global type that StatsTile produces.
+// from the global type the stats panels produce.
 interface ChartAnnotationBracketPair {
   i: number;
   j: number;

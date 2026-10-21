@@ -1,4 +1,4 @@
-// Generates a runnable R script from the StatsTile decision trace so the
+// Generates a runnable R script from a stats panel's decision trace so the
 // user can paste it into RStudio and reproduce the exact same tests in a
 // "real" statistics environment. Closes the "no reproducibility trail"
 // gap called out in the README's Scope & limitations section.
@@ -16,14 +16,13 @@
 //                                   at R_MAX_LINE characters per line
 //   R_MAX_LINE                    — hard per-line char cap for emitted R
 //
-// The ctx shape matches the StatsTile's internal report-builder shape so
-// the R-script chip can reuse the exact same context object without
-// threading new props.
+// The ctx shape matches the stats panels' text-report context, so the
+// R-script button reuses the same object the report is built from.
 
 import { STATS_TEST_REGISTRY, STATS_POSTHOC_REGISTRY } from "./stats-registry";
 
 // Test / post-hoc display labels are sourced from the shared registry —
-// same labels the StatsTile uses on screen, so the R script's
+// same labels the stats panels show on screen, so the R script's
 // `# Welch's t-test` comment matches the test name shown to the user.
 // The R-code generation below still has per-test branches because each
 // test produces a different R function call (`t.test`, `wilcox.test`,

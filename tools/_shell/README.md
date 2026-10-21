@@ -99,7 +99,6 @@ per-file paths so the dependency graph stays visible.
 | `SignificanceBrackets.tsx`   | Pair-wise significance-bracket renderer (vertical / horizontal).                         |
 | `SliderControl.tsx`          | Labelled range slider (memo-wrapped).                                                    |
 | `StatsTable.tsx`             | Summary stats table used in group-plot output steps.                                     |
-| `StatsTile.tsx`              | Stats engine UI — assumption checks, test selection, post-hocs, annotation emit.         |
 | `StepNavBar.tsx`             | Inline step navigation for the app bar (check / current pill / number).                  |
 | `UploadPanel.tsx`            | Separator selector + `FileDropZone` composition for the upload step.                     |
 | `GroupTestSections.tsx`      | Inspector sections for a `selectTest` result (shared by Group Plot / Line Plot / RLU).   |

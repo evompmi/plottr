@@ -190,7 +190,6 @@ function ensureSharedBundleLoaded() {
         "SignificanceBrackets",
         "SliderControl",
         "StatsTable",
-        "StatsTile",
         "StepNavBar",
         "UploadPanel",
         "WhyThisTest",
