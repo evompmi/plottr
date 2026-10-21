@@ -195,6 +195,32 @@
   transform: rotate(90deg);
 }
 
+/* Title of a collapsible inspector section (`InspectorSection collapsible`):
+   the whole label row is the disclosure button, styled as the title. */
+.dv-inspector-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dv-inspector-toggle:focus-visible {
+  outline: 2px solid var(--focus-outline);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+.dv-inspector-toggle:hover .dv-disclosure {
+  background: var(--border);
+}
+
 /* Select dropdown — `selStyle` */
 .dv-select {
   background: var(--surface);

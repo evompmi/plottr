@@ -294,7 +294,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
             className={"dv-disclosure" + (insetOpen ? " dv-disclosure-open" : "")}
             aria-hidden="true"
           />
-          Barplot (Σ of plotted values)
+          {tr("aequorin.pa.barplotTitle")}
         </span>
       </button>
       {insetOpen && (
@@ -302,7 +302,7 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
           {/* Toggle */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-              Integral:
+              {tr("aequorin.pa.integral")}
             </span>
             <button
               onClick={() => setStatsDataMode("raw")}
@@ -311,14 +311,14 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                 borderRadius: 6,
                 fontSize: 12,
                 fontWeight: 600,
-                background: statsDataMode === "raw" ? "var(--cta-primary-bg)" : "var(--surface)",
-                color: statsDataMode === "raw" ? "var(--on-accent)" : "var(--text-faint)",
-                border: `1px solid ${statsDataMode === "raw" ? "var(--cta-primary-bg)" : "var(--border-strong)"}`,
+                background: statsDataMode === "raw" ? "var(--seg-selected-bg)" : "var(--surface)",
+                color: statsDataMode === "raw" ? "var(--seg-selected-text)" : "var(--text-faint)",
+                border: `1px solid ${statsDataMode === "raw" ? "var(--seg-selected-bg)" : "var(--border-strong)"}`,
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
             >
-              Σ Raw
+              {tr("aequorin.pa.raw")}
             </button>
             <button
               onClick={() => setStatsDataMode("corrected")}
@@ -328,14 +328,15 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
                 fontSize: 12,
                 fontWeight: 600,
                 background:
-                  statsDataMode === "corrected" ? "var(--cta-primary-bg)" : "var(--surface)",
-                color: statsDataMode === "corrected" ? "var(--on-accent)" : "var(--text-faint)",
-                border: `1px solid ${statsDataMode === "corrected" ? "var(--cta-primary-bg)" : "var(--border-strong)"}`,
+                  statsDataMode === "corrected" ? "var(--seg-selected-bg)" : "var(--surface)",
+                color:
+                  statsDataMode === "corrected" ? "var(--seg-selected-text)" : "var(--text-faint)",
+                border: `1px solid ${statsDataMode === "corrected" ? "var(--seg-selected-bg)" : "var(--border-strong)"}`,
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
             >
-              Σ Baseline-corrected
+              {tr("aequorin.pa.corrected")}
             </button>
           </div>
 

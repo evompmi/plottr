@@ -113,21 +113,30 @@ export function WorkspaceLayout({
 }
 
 // One titled block of the inspector column (Omnibus test, Post-hoc, …).
+// `collapsible` turns the title into a disclosure button (for repeated
+// blocks such as qPCR's one-per-gene statistics); `right` stays visible
+// either way, so a collapsed block still shows its summary badge.
 export function InspectorSection({
   label,
   right,
   children,
+  collapsible = false,
+  defaultOpen = true,
 }: {
   label: React.ReactNode;
   // Optional control on the label row (e.g. a test picker or a toggle).
   right?: React.ReactNode;
   children?: React.ReactNode;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  const bodyId = React.useId();
   return (
     <section
       className="dv-inspector-section"
       style={{
-        padding: "18px 20px",
+        padding: collapsible && !open ? "12px 20px" : "18px 20px",
         borderBottom: "1px solid var(--border-subtle)",
         display: "flex",
         flexDirection: "column",
@@ -142,12 +151,34 @@ export function InspectorSection({
           gap: 12,
         }}
       >
-        <h3 className="dv-tile-title" style={{ margin: 0 }}>
-          {label}
+        <h3 className="dv-tile-title" style={{ margin: 0, flex: collapsible ? 1 : undefined }}>
+          {collapsible ? (
+            <button
+              type="button"
+              className="dv-inspector-toggle"
+              aria-expanded={open}
+              aria-controls={bodyId}
+              onClick={() => setOpen((o) => !o)}
+            >
+              <span
+                className={"dv-disclosure" + (open ? " dv-disclosure-open" : "")}
+                aria-hidden="true"
+              />
+              {label}
+            </button>
+          ) : (
+            label
+          )}
         </h3>
         {right}
       </div>
-      {children}
+      {collapsible
+        ? open && (
+            <div id={bodyId} style={{ display: "contents" }}>
+              {children}
+            </div>
+          )
+        : children}
     </section>
   );
 }

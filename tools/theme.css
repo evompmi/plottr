@@ -144,12 +144,6 @@
      accent-primary tint at low alpha. */
   --focus-ring: 0 0 0 2px rgba(53, 88, 212, 0.25);
 
-  /* Active step-nav pill (Upload / Configure / Filter / Output / Plot).
-     Plöttr blue, deep enough for ~4.3:1 white text — a real, confident
-     active state rather than the old near-greyscale pill. */
-  --step-active-bg: #3558d4;
-  --step-active-border: #3558d4;
-
   /* Primary CTA button (`.dv-btn-primary` — Compute effect size, Continue to
      plot, …). The deep brand blue (#4a72e8), giving ~4.3:1 white-text
      contrast. Dark mode dims it toward the dark surface (never brighter). */
@@ -283,13 +277,9 @@
      reads against the dark surface. */
   --focus-ring: 0 0 0 2px rgba(53, 88, 212, 0.4);
 
-  --step-active-bg: #2c3f86;
-  --step-active-border: #2c3f86;
-
   /* Primary CTA in dark is softened another ~30% toward the dark surface,
-     mirroring the light-mode softening. Still visibly brighter than the
-     step-nav pill above so it reads as "press me", and never brighter
-     than the light-mode primary. */
+     mirroring the light-mode softening, and never brighter than the
+     light-mode primary. */
   --cta-primary-bg: #2c3f86;
   --cta-primary-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.35);
 
@@ -411,13 +401,9 @@
        reads against the dark surface. */
     --focus-ring: 0 0 0 2px rgba(53, 88, 212, 0.4);
 
-    --step-active-bg: #2c3f86;
-    --step-active-border: #2c3f86;
-
     /* Primary CTA in dark is softened another ~30% toward the dark surface,
-       mirroring the light-mode softening. Still visibly brighter than the
-       step-nav pill above so it reads as "press me", and never brighter
-       than the light-mode primary. */
+       mirroring the light-mode softening, and never brighter than the
+       light-mode primary. */
     --cta-primary-bg: #2c3f86;
     --cta-primary-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.35);
 

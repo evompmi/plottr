@@ -31,15 +31,6 @@ import { useT, type QpcrKey } from "./i18n";
 const thS: React.CSSProperties = { ...inspectorTh, whiteSpace: "normal", verticalAlign: "bottom" };
 const tdS = inspectorTd;
 const firstCol = inspectorFirstCol;
-const explainer: React.CSSProperties = {
-  padding: "8px 10px",
-  background: "var(--info-bg)",
-  border: "1px solid var(--info-border)",
-  borderRadius: "var(--radius-md)",
-  fontSize: 12,
-  lineHeight: 1.5,
-  color: "var(--info-text)",
-};
 const resultBox: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
   fontSize: 13,
@@ -139,11 +130,17 @@ export function QpcrStatsPanel({
         <p style={{ margin: 0, fontSize: 12, color: "var(--text-faint)" }}>
           {tr("qpcr.stats.desc")}
         </p>
-        <div style={explainer} data-testid="qpcr-why-dct">
-          <div style={{ fontWeight: 600, marginBottom: 2 }}>{tr("qpcr.stats.whyDctTitle")}</div>
-          <div>{tr("qpcr.stats.whyDct")}</div>
-          <div style={{ marginTop: 4, fontWeight: 600 }}>{tr("qpcr.stats.dontTestFc")}</div>
-        </div>
+        {/* Collapsed like "Why this test?": the rationale is one click away
+            for whoever wants it. */}
+        <details className="dv-why" style={{ fontSize: 11 }} data-testid="qpcr-why-dct">
+          <summary style={{ cursor: "pointer", color: "var(--text-muted)", fontWeight: 600 }}>
+            {tr("qpcr.stats.whyDctTitle")}
+          </summary>
+          <div style={{ marginTop: 4, color: "var(--text-muted)", lineHeight: 1.45 }}>
+            <div>{tr("qpcr.stats.whyDct")}</div>
+            <div style={{ marginTop: 4, fontWeight: 600 }}>{tr("qpcr.stats.dontTestFc")}</div>
+          </div>
+        </details>
       </InspectorSection>
 
       {genes.map((g, gi) => {
@@ -159,9 +156,13 @@ export function QpcrStatsPanel({
             : null;
         return (
           <div key={g.gene} data-testid={`qpcr-gene-${g.gene}`}>
+            {/* One collapsible block per gene so a 6-gene run stays scannable:
+                the first starts open, the rest show just name + stars. */}
             <InspectorSection
               label={<span style={{ fontStyle: "italic", textTransform: "none" }}>{g.gene}</span>}
               right={<StarsBadge p={p} />}
+              collapsible
+              defaultOpen={gi === 0}
             >
               {g.controlMissing && (
                 <p style={{ fontSize: 12, color: "var(--warning-text)", margin: 0 }}>

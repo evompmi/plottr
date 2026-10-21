@@ -78,7 +78,6 @@ const TEXT_PAIRS = [
     ["--surface", "--surface-subtle", "--warning-bg"].map((bg) => [t, bg])
   ),
   ["--on-accent", "--cta-primary-bg"],
-  ["--on-accent", "--step-active-bg"],
   ["--on-accent", "--accent-primary-hover"],
   ["--seg-selected-text", "--seg-selected-bg"],
   ["--inverse-text", "--inverse-bg"],
@@ -152,6 +151,33 @@ test("dark accents and CTA fills are never brighter than light", () => {
   assert(names.length >= 5, "expected several hex accent / cta tokens in dark mode");
   const brighter = names.filter((k) => luminance(darkOwn[k]) > luminance(light[k]));
   eq(brighter.join(", "), "", `dark tokens brighter than light: ${brighter.join(", ")}`);
+});
+
+test("pick-one controls show the selected option in ink, not the accent", () => {
+  // Blue marks actions, links, the current step and focus. A selected option
+  // in a segmented / pick-one control uses --seg-selected-* (the dark pill),
+  // so a hand-built toggle must not fill its active state with an accent.
+  const files = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (p.endsWith(".tsx")) files.push(p);
+    }
+  };
+  walk(path.join(__dirname, "../tools"));
+  assert(files.length > 50, "expected to scan the tools' .tsx sources");
+  const accentFill =
+    /background:\s*[^,\n]*\?\s*"var\(--(accent-primary|cta-primary-bg|step-active-bg)\)"\s*:\s*"var\(--surface\)"/;
+  const hits = files.flatMap((f) =>
+    fs
+      .readFileSync(f, "utf8")
+      .split("\n")
+      .map((line, i) => [path.relative(path.join(__dirname, ".."), f) + ":" + (i + 1), line])
+      .filter(([, line]) => accentFill.test(line))
+      .map(([loc]) => loc)
+  );
+  eq(hits.join(", "), "", `accent-filled selected states: ${hits.join(", ")}`);
 });
 
 test("sanity: the contrast maths matches known WCAG values", () => {

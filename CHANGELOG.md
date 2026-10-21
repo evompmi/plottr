@@ -9,17 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **qPCR: collapsible statistics (2.0).** Each gene's statistics fold under its name, with its
+  significance stars still showing; the first gene starts open, so runs with many genes stay
+  readable. "Why the tests use ΔCt" now opens on click, like "Why this test?".
+- **One colour for "selected" (2.0).** The chosen option in every pick-one control (Calculator's
+  mode cards and "solve for" list, the plot-style icons, Letters / Brackets, the RLU, Scatter
+  and UpSet On/Off toggles) is now the dark pill used everywhere else; blue is kept for
+  actions, links, the current step and focus. The RLU barplot toggle is now translated.
 - **New look (2.0).** A calmer interface: IBM Plex Sans for text with Plex Mono for numbers,
   a cool grey background, one deeper blue accent, dark selected pills on switches, and quieter
   buttons. Fonts stay self-hosted. Light-mode error text is darker so it is easier to read.
 - **New app bar (2.0).** One bar across every tool: the Plöttr mark (home), a menu to switch tool
-  (grouped by the question each tool answers), the steps, the file name, Start over, PNG and a
-  primary "Download SVG" button, settings, theme, language and feedback.
+  (grouped by the question each tool answers), the steps, the file name, Start over, a "More"
+  menu (PNG and other downloads), a primary "Download SVG" button, settings, theme, language
+  and feedback.
 - **Workspace layout in every plot tool (2.0).** Controls in tabs on the left, the figure on a
   canvas in the middle with quick options above it (marks on plot, series / layout, summaries),
   and statistics in their own column on the right: test result, assumptions, post-hoc, group
   summaries, replication planning and the R / Methods / report exports. UpSet and Venn list
-  their intersections and items there. Extra downloads sit in a "More" menu in the app bar.
+  their intersections and items there.
 - **"per group" in French.** The replication-planning sample size is now translated.
 - **Dark mode, French and accessibility pass (2.0).** The app bar stays on one row down to
   1100 px in both languages. Every form field has an accessible name, every page has a main

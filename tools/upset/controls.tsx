@@ -535,8 +535,8 @@ export function PlotControls({
                             fontFamily: "inherit",
                             cursor: "pointer",
                             border: "none",
-                            background: active ? "var(--accent-primary)" : "var(--surface)",
-                            color: active ? "var(--on-accent)" : "var(--text-muted)",
+                            background: active ? "var(--seg-selected-bg)" : "var(--surface)",
+                            color: active ? "var(--seg-selected-text)" : "var(--text-muted)",
                             transition: "background 120ms ease, color 120ms ease",
                           }}
                         >
@@ -587,8 +587,8 @@ export function PlotControls({
                             fontFamily: "inherit",
                             cursor: "pointer",
                             border: "none",
-                            background: active ? "var(--accent-primary)" : "var(--surface)",
-                            color: active ? "var(--on-accent)" : "var(--text-muted)",
+                            background: active ? "var(--seg-selected-bg)" : "var(--surface)",
+                            color: active ? "var(--seg-selected-text)" : "var(--text-muted)",
                             transition: "background 120ms ease, color 120ms ease",
                           }}
                         >

@@ -182,11 +182,11 @@ function MolarityMode({ compact }: { compact?: boolean }) {
                   borderRadius: 6,
                   fontSize: compact ? 11 : 12,
                   fontWeight: 600,
-                  background: solveFor === f.key ? "var(--step-active-bg)" : "var(--surface)",
-                  color: solveFor === f.key ? "var(--on-accent)" : "var(--text-faint)",
+                  background: solveFor === f.key ? "var(--seg-selected-bg)" : "var(--surface)",
+                  color: solveFor === f.key ? "var(--seg-selected-text)" : "var(--text-faint)",
                   border:
                     "1px solid " +
-                    (solveFor === f.key ? "var(--step-active-border)" : "var(--border-strong)"),
+                    (solveFor === f.key ? "var(--seg-selected-bg)" : "var(--border-strong)"),
                   cursor: "pointer",
                   fontFamily: "inherit",
                   textAlign: "left",
@@ -394,11 +394,11 @@ function DilutionMode({ compact }: { compact?: boolean }) {
                   borderRadius: 6,
                   fontSize: compact ? 11 : 12,
                   fontWeight: 600,
-                  background: solveFor === f.key ? "var(--step-active-bg)" : "var(--surface)",
-                  color: solveFor === f.key ? "var(--on-accent)" : "var(--text-faint)",
+                  background: solveFor === f.key ? "var(--seg-selected-bg)" : "var(--surface)",
+                  color: solveFor === f.key ? "var(--seg-selected-text)" : "var(--text-faint)",
                   border:
                     "1px solid " +
-                    (solveFor === f.key ? "var(--step-active-border)" : "var(--border-strong)"),
+                    (solveFor === f.key ? "var(--seg-selected-bg)" : "var(--border-strong)"),
                   cursor: "pointer",
                   fontFamily: "inherit",
                   textAlign: "left",
@@ -957,45 +957,40 @@ function LigationMode({ compact }: { compact?: boolean }) {
 
 // ── App ─────────────────────────────────────────────────────────────────────
 
+// A mode card is a pick-one option, so the selected card is the ink pill
+// (`--seg-selected-*`) like every other selected option; hover only lifts it.
 function ModeButton({
   label,
   desc,
   active,
-  accentColor,
-  activeBg,
   onClick,
   style: extraStyle,
 }: {
   label: React.ReactNode;
   desc: React.ReactNode;
   active: boolean;
-  accentColor: string;
-  activeBg: string;
   onClick: () => void;
   style?: React.CSSProperties;
 }) {
   const [hovered, setHovered] = useState(false);
-  const isActive = active;
-  const showAccent = isActive || hovered;
+  const lift = hovered && !active;
   return (
     <button
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      aria-pressed={active}
       style={{
         padding: "12px 8px",
         borderRadius: 10,
-        border: showAccent ? `2px solid ${accentColor}` : "1px solid var(--border)",
-        background: isActive ? activeBg : "var(--surface)",
+        border: `1px solid ${active ? "var(--seg-selected-bg)" : lift ? "var(--text-faint)" : "var(--border)"}`,
+        background: active ? "var(--seg-selected-bg)" : "var(--surface)",
         cursor: "pointer",
         fontFamily: "inherit",
         textAlign: "center",
         transition: "all 0.2s ease",
-        transform: hovered && !isActive ? "translateY(-4px)" : "none",
-        boxShadow:
-          hovered && !isActive
-            ? `0 6px 16px color-mix(in srgb, ${accentColor} 15%, transparent)`
-            : "none",
+        transform: lift ? "translateY(-4px)" : "none",
+        boxShadow: lift ? "0 6px 16px color-mix(in srgb, var(--text) 12%, transparent)" : "none",
         ...extraStyle,
       }}
     >
@@ -1003,13 +998,22 @@ function ModeButton({
         style={{
           fontSize: 14,
           fontWeight: 700,
-          color: showAccent ? accentColor : "var(--text-muted)",
+          color: active ? "var(--seg-selected-text)" : "var(--text)",
           transition: "color 0.2s ease",
         }}
       >
         {label}
       </div>
-      <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>{desc}</div>
+      <div
+        style={{
+          fontSize: 11,
+          color: active ? "var(--seg-selected-text)" : "var(--text-faint)",
+          opacity: active ? 0.8 : 1,
+          marginTop: 2,
+        }}
+      >
+        {desc}
+      </div>
     </button>
   );
 }
@@ -1074,8 +1078,6 @@ export function App() {
             label={m.label}
             desc={m.desc}
             active={mode === m.key}
-            accentColor={chemColor}
-            activeBg="var(--info-bg)"
             onClick={() => setMode(m.key)}
             style={{ flex: compact ? "1 1 calc(50% - 6px)" : 1, minWidth: compact ? 0 : undefined }}
           />
@@ -1103,8 +1105,6 @@ export function App() {
             label={m.label}
             desc={m.desc}
             active={mode === m.key}
-            accentColor={dnaColor}
-            activeBg="var(--surface-subtle)"
             onClick={() => setMode(m.key)}
             style={{
               flex: compact ? 1 : "0 1 auto",

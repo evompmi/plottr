@@ -689,8 +689,8 @@ export function PlotControls({
                             fontFamily: "inherit",
                             cursor: "pointer",
                             border: "none",
-                            background: active ? "var(--accent-primary)" : "var(--surface)",
-                            color: active ? "var(--on-accent)" : "var(--text-muted)",
+                            background: active ? "var(--seg-selected-bg)" : "var(--surface)",
+                            color: active ? "var(--seg-selected-text)" : "var(--text-muted)",
                             transition: "background 120ms ease, color 120ms ease",
                           }}
                         >
@@ -789,7 +789,7 @@ export function PlotControls({
                             const active = regression.position === pos;
                             const cx = pos === "tl" || pos === "bl" ? 6 : 18;
                             const cy = pos === "tl" || pos === "tr" ? 5 : 13;
-                            const fg = active ? "var(--on-accent)" : "var(--text-muted)";
+                            const fg = active ? "var(--seg-selected-text)" : "var(--text-muted)";
                             return (
                               <button
                                 key={pos}
@@ -812,7 +812,7 @@ export function PlotControls({
                                   justifyContent: "center",
                                   cursor: "pointer",
                                   border: "none",
-                                  background: active ? "var(--accent-primary)" : "var(--surface)",
+                                  background: active ? "var(--seg-selected-bg)" : "var(--surface)",
                                   transition: "background 120ms ease, color 120ms ease",
                                 }}
                               >

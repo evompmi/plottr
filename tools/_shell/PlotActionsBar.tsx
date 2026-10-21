@@ -1,7 +1,6 @@
-// Export bar shown in the app bar on the plot step: Start over, the first
-// secondary download (usually PNG), a "More" menu holding any further ones
-// (CSV, tables, …) so the bar stays on one line, and the SVG figure export
-// last as the primary button. Start over asks for a second click (within
+// Export bar shown in the app bar on the plot step: Start over, a "More"
+// menu holding every download other than the figure (PNG first, then CSV,
+// tables, …), and the SVG figure export last as the primary button. Start over asks for a second click (within
 // 4 s) before it clears the session, since it discards the loaded data.
 
 import { flashSaved } from "../_core/download";
@@ -56,10 +55,8 @@ export function PlotActionsBar({ entryRef }: PlotActionsBarProps) {
   if (!entry) return null;
   // Original indices are kept so a click re-reads the live entry.
   const indexed = entry.downloads.map((d, i) => ({ d, i }));
-  const others = indexed.filter(({ d }) => d.label !== "SVG");
+  const extra = indexed.filter(({ d }) => d.label !== "SVG");
   const svg = indexed.find(({ d }) => d.label === "SVG") || null;
-  const first = others[0] || null;
-  const extra = others.slice(1);
   const runDownload = (i: number, e: React.MouseEvent<HTMLButtonElement>) => {
     const cur = entryRef.current;
     const target = cur && cur.downloads[i];
@@ -104,17 +101,6 @@ export function PlotActionsBar({ entryRef }: PlotActionsBarProps) {
         aria-hidden="true"
         style={{ width: 1, height: 24, background: "var(--border)", margin: "0 2px" }}
       />
-      {first && (
-        <button
-          type="button"
-          title={first.d.title || undefined}
-          className="dv-btn dv-btn-dl"
-          style={btnStyle}
-          onClick={(e) => runDownload(first.i, e)}
-        >
-          {first.d.label}
-        </button>
-      )}
       {extra.length > 0 && (
         <div ref={menuRef} style={{ position: "relative" }}>
           <button

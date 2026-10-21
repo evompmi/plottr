@@ -27,10 +27,19 @@ test("plot: one facet per target, tests on ΔCt, y-scale and letters", async ({ 
   await page.getByTestId("step-plot").click();
   await expect(page.locator("g#facet-RD29A")).toBeVisible();
   await expect(page.locator("g#facet-WRKY33")).toBeVisible();
-  await expect(page.getByTestId("qpcr-why-dct")).toContainText(
-    "Do not run t-tests or ANOVA on 2^−ΔΔCt values."
-  );
+  // The ΔCt rationale is collapsed until asked for.
+  const whyDct = page.getByTestId("qpcr-why-dct");
+  const dontTest = whyDct.getByText("Do not run t-tests or ANOVA on 2^−ΔΔCt values.");
+  await expect(dontTest).toBeHidden();
+  await whyDct.getByText("Why the tests use ΔCt").click();
+  await expect(dontTest).toBeVisible();
   await expect(page.getByTestId("qpcr-result-RD29A")).toContainText("Welch's ANOVA on ΔCt");
+  // One collapsible block per gene: the first is open, the others start closed.
+  const wrky = page.getByTestId("qpcr-gene-WRKY33").getByRole("button", { name: "WRKY33" });
+  await expect(wrky).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByTestId("qpcr-result-WRKY33")).toHaveCount(0);
+  await wrky.click();
+  await expect(page.getByTestId("qpcr-result-WRKY33")).toBeVisible();
   await expect(page.locator("g#facet-RD29A g#significance-brackets > g")).not.toHaveCount(0);
   await page.getByRole("button", { name: "−ΔΔCt", exact: true }).click();
   await expect(page.locator("g#facet-RD29A")).toContainText("−ΔΔCt");

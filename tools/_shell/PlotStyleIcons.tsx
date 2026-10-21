@@ -1,7 +1,7 @@
 // Icon-button picker for a chart's plot style (Group Plot: box / violin /
 // raincloud / bar; qPCR: bar / dot / box), so every tool offers the same
 // look. Each option is a labelled 22 × 22 line icon drawn in `currentColor`;
-// the selected one is filled with the accent colour and exposed to assistive
+// the selected one is filled like a selected segmented pill (`--seg-selected-*`) and exposed to assistive
 // tech via `aria-pressed` inside a labelled `role="group"`.
 
 export interface PlotStyleOption<T extends string> {
@@ -54,10 +54,10 @@ export function PlotStyleIconPicker<T extends string>({
               borderRadius: "var(--radius-lg)",
               cursor: "pointer",
               border: active
-                ? "1.5px solid var(--accent-primary)"
+                ? "1.5px solid var(--seg-selected-bg)"
                 : "1px solid var(--border-strong)",
-              background: active ? "var(--accent-primary-weak)" : "var(--surface)",
-              color: active ? "var(--link)" : "var(--text-muted)",
+              background: active ? "var(--seg-selected-bg)" : "var(--surface)",
+              color: active ? "var(--seg-selected-text)" : "var(--text-muted)",
               fontFamily: "inherit",
               fontSize: 12,
               fontWeight: active ? 600 : 400,

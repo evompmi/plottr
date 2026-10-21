@@ -459,7 +459,7 @@ test("inside a PlotToolShell it registers its buttons and draws nothing", functi
 
 suite("PlotActionsBar");
 
-test("Start over, the first download, a More menu for the rest, SVG last as primary", function () {
+test("Start over, a More menu for every non-SVG download, SVG last as primary", function () {
   const React = require("react");
   let resets = 0;
   let svgClicks = 0;
@@ -479,19 +479,19 @@ test("Start over, the first download, a More menu for the rest, SVG last as prim
     [...container.querySelectorAll("button")].map(
       (b) => b.getAttribute("aria-label") || b.textContent
     );
-  eq(labels().join("|"), "Start over|PNG|More ▾|Download SVG");
+  eq(labels().join("|"), "Start over|More ▾|Download SVG");
   // The SVG button carries both visible labels; components.css shows the
   // short one in narrow windows, and the name stays "Download SVG".
-  const svgLabels = container.querySelectorAll("button")[3];
+  const svgLabels = container.querySelectorAll("button")[2];
   eq(svgLabels.querySelector(".dv-label-long").textContent, "Download SVG");
   eq(svgLabels.querySelector(".dv-label-short").textContent, "SVG");
-  const more = container.querySelectorAll("button")[2];
+  const more = container.querySelectorAll("button")[1];
   eq(more.getAttribute("aria-haspopup"), "menu");
   React.act(() => more.click());
   const items = [...container.querySelectorAll('[role="menuitem"]')].map((b) => b.textContent);
-  eq(items.join("|"), "CSV", "further downloads live in the menu");
+  eq(items.join("|"), "PNG|CSV", "PNG and further downloads live in the menu, PNG first");
   React.act(() => more.click());
-  const svgBtn = container.querySelectorAll("button")[3];
+  const svgBtn = container.querySelectorAll("button")[2];
   assert(svgBtn.className.includes("dv-btn-primary"), "SVG is the primary export");
   React.act(() => svgBtn.click());
   eq(svgClicks, 1);
@@ -3503,6 +3503,36 @@ test("InspectorSection renders its label as a heading", function () {
   const html = renderHtml(sc.InspectorSection, { label: "Omnibus test", children: "body" });
   assert(/<h3[^>]*>Omnibus test<\/h3>/.test(html));
   assert(html.includes("body"));
+});
+
+test("collapsible InspectorSection: a heading button toggles the body, badge stays", function () {
+  const React = require("react");
+  const { container, root } = renderWithEffects(sc.InspectorSection, {
+    label: "WRKY33",
+    right: React.createElement("span", { className: "badge" }, "****"),
+    collapsible: true,
+    defaultOpen: false,
+    children: React.createElement("p", { className: "body" }, "stats"),
+  });
+  const btn = container.querySelector("h3 > button");
+  assert(btn, "the title is a button inside the heading");
+  eq(btn.getAttribute("aria-expanded"), "false");
+  eq(container.querySelector(".body"), null, "collapsed: body not rendered");
+  assert(container.querySelector(".badge"), "collapsed: the badge still shows");
+  React.act(() => btn.click());
+  eq(btn.getAttribute("aria-expanded"), "true");
+  const body = container.querySelector(".body");
+  assert(body, "expanded: body rendered");
+  eq(body.parentElement.id, btn.getAttribute("aria-controls"));
+  React.act(() => btn.click());
+  eq(container.querySelector(".body"), null);
+  React.act(() => root.unmount());
+});
+
+test("InspectorSection is not collapsible by default", function () {
+  const html = renderHtml(sc.InspectorSection, { label: "Post-hoc", children: "rows" });
+  assert(!html.includes("<button"), "no toggle");
+  assert(html.includes("rows"));
 });
 
 suite("AppBar");
