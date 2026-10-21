@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Vendors the chrome fonts (Fraunces + IBM Plex Sans + IBM Plex Mono) into tools/fonts/ so
+// Vendors the chrome fonts (Space Grotesk + IBM Plex Sans + IBM Plex Mono) into tools/fonts/ so
 // the deployed app makes ZERO third-party requests — the same privacy stance
 // the SRI-pinned vendor/react bundle and the self-hosted Zenodo "Cite" pill
 // already enforce. A fonts.gstatic.com request at runtime would be the one
@@ -26,14 +26,15 @@ const repoRoot = path.join(__dirname, "..");
 const FONT_DIR = path.join(repoRoot, "tools", "fonts");
 const CSS_OUT = path.join(repoRoot, "tools", "fonts.css");
 
-// Variable Fraunces (normal only, full optical-size + weight range — the
-// wordmark and landing headings), three static IBM Plex Sans weights (the UI
+// Variable Space Grotesk (normal only — it has no italic; full 300–700 weight
+// range — the wordmark, landing headings and inspector result titles), three
+// static IBM Plex Sans weights (the UI
 // voice) and three static IBM Plex Mono weights (numbers, file names, section
 // labels). display=swap so text paints immediately in the fallback and swaps
 // when the woff2 lands.
 const CSS_URL =
   "https://fonts.googleapis.com/css2?" +
-  "family=Fraunces:opsz,wght@9..144,400..900&" +
+  "family=Space+Grotesk:wght@300..700&" +
   "family=IBM+Plex+Sans:wght@400;500;600&" +
   "family=IBM+Plex+Mono:wght@400;500;600&display=swap";
 

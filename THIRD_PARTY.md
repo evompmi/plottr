@@ -15,13 +15,13 @@ behind Plöttr's methods is the **References** section of the
 
 ## Vendored binaries
 
-| Component     | Path                                                                       | License                      | Notes                                                                                                                                           |
-| ------------- | -------------------------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| React 18      | [`vendor/react.production.min.js`](vendor/react.production.min.js)         | MIT (Meta)                   | Unmodified production bundle. `@license` header retained inline. Standalone MIT text in [`vendor/LICENSE-react.txt`](vendor/LICENSE-react.txt). |
-| ReactDOM 18   | [`vendor/react-dom.production.min.js`](vendor/react-dom.production.min.js) | MIT (Meta)                   | Same as above.                                                                                                                                  |
-| Fraunces      | [`tools/fonts/fraunces_*.woff2`](tools/fonts/)                             | SIL OFL 1.1 (Undercase Type) | Wordmark and landing headings. Latin + latin-ext woff2 subsets vendored by `scripts/vendor-fonts.mjs`.                                          |
-| IBM Plex Sans | [`tools/fonts/ibm-plex-sans_*.woff2`](tools/fonts/)                        | SIL OFL 1.1 (IBM)            | UI typeface. Same vendoring script.                                                                                                             |
-| IBM Plex Mono | [`tools/fonts/ibm-plex-mono_*.woff2`](tools/fonts/)                        | SIL OFL 1.1 (IBM)            | Numbers, statistics and labels. Same vendoring script.                                                                                          |
+| Component     | Path                                                                       | License                       | Notes                                                                                                                                           |
+| ------------- | -------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| React 18      | [`vendor/react.production.min.js`](vendor/react.production.min.js)         | MIT (Meta)                    | Unmodified production bundle. `@license` header retained inline. Standalone MIT text in [`vendor/LICENSE-react.txt`](vendor/LICENSE-react.txt). |
+| ReactDOM 18   | [`vendor/react-dom.production.min.js`](vendor/react-dom.production.min.js) | MIT (Meta)                    | Same as above.                                                                                                                                  |
+| Space Grotesk | [`tools/fonts/space-grotesk_*.woff2`](tools/fonts/)                        | SIL OFL 1.1 (Florian Karsten) | Wordmark, headings and inspector result titles. Latin + latin-ext woff2 subsets vendored by `scripts/vendor-fonts.mjs`.                         |
+| IBM Plex Sans | [`tools/fonts/ibm-plex-sans_*.woff2`](tools/fonts/)                        | SIL OFL 1.1 (IBM)             | UI typeface. Same vendoring script.                                                                                                             |
+| IBM Plex Mono | [`tools/fonts/ibm-plex-mono_*.woff2`](tools/fonts/)                        | SIL OFL 1.1 (IBM)             | Numbers, statistics and labels. Same vendoring script.                                                                                          |
 
 All are vendored so a cloned copy works without network access — Plöttr is
 designed to run from any static host (or directly off the filesystem) with no

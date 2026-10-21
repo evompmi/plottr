@@ -28,9 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   mode cards and "solve for" list, the plot-style icons, Letters / Brackets, the RLU, Scatter
   and UpSet On/Off toggles) is now the dark pill used everywhere else; blue is kept for
   actions, links, the current step and focus. The RLU barplot toggle is now translated.
-- **New look (2.0).** A calmer interface: IBM Plex Sans for text with Plex Mono for numbers,
-  a cool grey background, one deeper blue accent, dark selected pills on switches, and quieter
-  buttons. Fonts stay self-hosted. Light-mode error text is darker so it is easier to read.
+- **New look (2.0).** A calmer interface: Space Grotesk for headings, IBM Plex Sans for text
+  and Plex Mono for numbers, a cool grey background, one deeper blue accent, dark selected
+  pills on switches, and quieter buttons. Fonts stay self-hosted. Light-mode error text is
+  darker so it is easier to read.
 - **New app bar (2.0).** One bar across every tool: the Plöttr mark (home), a menu to switch tool
   (grouped by the question each tool answers), the steps, the file name, Start over, a "More"
   menu (PNG and other downloads), a primary "Download SVG" button, settings, theme, language

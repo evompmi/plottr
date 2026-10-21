@@ -23,13 +23,14 @@
      --font-ui (IBM Plex Sans) is the default for all chrome: body, controls,
      labels, buttons. --font-mono (IBM Plex Mono) is for numbers, statistics,
      file names, hex codes and the small uppercase section labels.
-     --font-display (Fraunces, an optical serif) is for the "Plöttr" wordmark
-     and landing headings only. All fall back gracefully so the page is
+     --font-display (Space Grotesk, a grotesk with no italic: emphasis in it
+     is the browser's synthesized oblique) is for the "Plöttr" wordmark, the
+     landing / Privacy / Benchmark headings and the inspector result titles. All fall back gracefully so the page is
      legible before the woff2 swaps in. Chart-internal SVG text keeps its own
      hardcoded font-family (sans-serif / monospace) for export fidelity —
      these tokens are chrome-only. */
   --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-display: "Space Grotesk", "IBM Plex Sans", system-ui, -apple-system, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   /* Page */
