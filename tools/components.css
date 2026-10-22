@@ -196,7 +196,9 @@
 }
 
 /* Collapsed statistics column (`WorkspaceLayout inspectorToggle`): a
-   full-height rail on the right edge, as wide as its horizontal label. */
+   full-height rail on the right edge, as wide as its horizontal label.
+   The label sits in a blue pill with the primary-button fill on purpose:
+   opening the statistics is an action, and a grey rail went unnoticed. */
 .dv-inspector-rail {
   flex: 0 0 auto;
   display: flex;
@@ -219,9 +221,26 @@
   outline: 2px solid var(--focus-outline);
   outline-offset: -3px;
 }
+.dv-inspector-rail-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-lg);
+  background: var(--cta-primary-bg);
+  color: var(--on-accent);
+  box-shadow: var(--cta-primary-shadow);
+}
+.dv-inspector-rail:hover .dv-inspector-rail-pill {
+  background: var(--accent-primary-hover);
+}
+.dv-inspector-rail:active .dv-inspector-rail-pill {
+  transform: translateY(1px);
+}
 .dv-inspector-rail-label {
   line-height: 14px;
   white-space: nowrap;
+  font-weight: 600;
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.12em;

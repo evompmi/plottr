@@ -3356,6 +3356,11 @@ test("inspectorToggle: a rail opens the statistics column, which stays mounted w
   const rail = container.querySelector(".dv-inspector-rail");
   eq(rail.getAttribute("aria-label"), "Show Statistics");
   eq(rail.getAttribute("aria-controls"), aside.id);
+  eq(
+    rail.querySelector(".dv-inspector-rail-pill .dv-inspector-rail-label").textContent,
+    "Statistics",
+    "label sits in the blue pill"
+  );
   React.act(() => rail.click());
   eq(aside.hidden, false);
   eq(container.querySelector(".dv-inspector-rail"), null, "rail gone while open");
