@@ -170,8 +170,10 @@ export function WorkspaceLayout({
           onClick={() => toggle(true)}
           aria-label={tr("shell.inspector.show", { name: inspectorLabel || "" })}
         >
-          <ChevronIcon dir="left" />
-          <span className="dv-inspector-rail-label">{inspectorLabel}</span>
+          <span className="dv-inspector-rail-pill">
+            <ChevronIcon dir="left" />
+            <span className="dv-inspector-rail-label">{inspectorLabel}</span>
+          </span>
         </button>
       )}
       {hasInspector && (

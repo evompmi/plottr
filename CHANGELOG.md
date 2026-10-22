@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The folded "Statistics" strip on the right of the plot now shows its label as a blue button,
+  so the hidden statistics column is easier to find.
+
 ## [2.0.0] - 2026-10-21
 
 > Long-form release notes live in
