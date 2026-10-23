@@ -151,14 +151,9 @@ export const Chart = memo(
           </g>
         )}
         <g id="chart" transform={`translate(0, ${topPad})`}>
-          <rect
-            id="plot-area-background"
-            x={MARGIN.left}
-            y={MARGIN.top}
-            width={w}
-            height={h}
-            fill={plotBg || "#fff"}
-          />
+          <g id="plot-area-background">
+            <rect x={MARGIN.left} y={MARGIN.top} width={w} height={h} fill={plotBg || "#fff"} />
+          </g>
           {showGrid && (
             <g id="grid">
               {yTicks.map((t) => (

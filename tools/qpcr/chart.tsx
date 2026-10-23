@@ -592,6 +592,7 @@ export const QpcrChart = memo(
                 })}
               </g>
               <SignificanceBrackets
+                id={`significance-brackets-${gid}`}
                 pairs={leveled}
                 axisCoord={cat}
                 baseline={horizontal ? annotEdge + vsBand + 4 : annotEdge - vsBand}
@@ -603,6 +604,7 @@ export const QpcrChart = memo(
               />
               {ann.cld.some((c) => c !== "") && (
                 <CldLabels
+                  id={`cld-annotations-${gid}`}
                   labels={ann.cld.map((c) => (c === "" ? null : c))}
                   axisCoord={cat}
                   crossCoord={horizontal ? annotEdge + cldW : annotEdge}
