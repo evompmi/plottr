@@ -2823,7 +2823,7 @@ suite("QpcrChart + QpcrStatsPanel");
     );
     eq((html.match(/<g id="points-PR1">.*?<\/g>/s)[0].match(/<circle/g) || []).length, 9);
     eq((html.match(/<g id="error-bars-PR1">.*?<\/g><\/g>/s)[0].match(/<g>/g) || []).length, 3);
-    assert(html.includes('id="significance-brackets"'));
+    assert(html.includes('id="significance-brackets-PR1"'), "brackets named per gene");
     assert(html.includes("Fold change (log₂ scale)"));
     // log2 axis: a fold-change tick at every doubling, aligned so FC = 1 is a tick
     const axis = html.slice(
@@ -2854,8 +2854,8 @@ suite("QpcrChart + QpcrStatsPanel");
     assert(dd.includes(">−ΔΔCt<"));
     assert(!/<g id="bars-PR1"><rect/.test(dd), "dots instead of bars");
     const cld = renderHtml(QpcrChart, chartProps({ annotation: "cld" }));
-    assert(cld.includes('id="cld-annotations"'));
-    assert(!cld.includes('id="significance-brackets"><g'), "no brackets with letters");
+    assert(cld.includes('id="cld-annotations-PR1"'), "letters named per gene");
+    assert(!cld.includes('id="significance-brackets-PR1"><g'), "no brackets with letters");
   });
 
   const R_MOCK_CI_HALF = 0.814479016535155; // R: qt(0.975, 2) * SEM, Mock ΔCt
@@ -3015,7 +3015,7 @@ suite("QpcrChart + QpcrStatsPanel");
     eq((vs.match(/<text/g) || []).length, 2);
     assert(html.includes("Stars above bars: vs Mock (not shown)"));
     // SA vs JA bracket stacks above the star row
-    const br = html.match(/<g id="significance-brackets">(.*?)<\/g><\/g>/s);
+    const br = html.match(/<g id="significance-brackets-PR1">(.*?)<\/g><\/g>/s);
     assert(br, "bracket between the visible groups");
     const shown = renderHtml(QpcrChart, chartProps());
     assert(!shown.includes("vs-control-PR1") && !shown.includes("Stars above bars"));

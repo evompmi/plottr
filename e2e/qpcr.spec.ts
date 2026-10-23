@@ -42,14 +42,14 @@ test("plot: one facet per target, tests on ΔCt, y-scale and letters", async ({ 
   await expect(page.getByTestId("qpcr-result-WRKY33")).toHaveCount(0);
   await wrky.click();
   await expect(page.getByTestId("qpcr-result-WRKY33")).toBeVisible();
-  await expect(page.locator("g#facet-RD29A g#significance-brackets > g")).not.toHaveCount(0);
+  await expect(page.locator("g#facet-RD29A g#significance-brackets-RD29A > g")).not.toHaveCount(0);
   await page.getByRole("button", { name: "−ΔΔCt", exact: true }).click();
   await expect(page.locator("g#facet-RD29A")).toContainText("−ΔΔCt");
   await page
     .getByTestId("qpcr-display")
     .getByRole("button", { name: "Letters", exact: true })
     .click();
-  await expect(page.locator("g#facet-RD29A g#cld-annotations text")).toHaveCount(3);
+  await expect(page.locator("g#facet-RD29A g#cld-annotations-RD29A text")).toHaveCount(3);
 });
 
 test("no calibrator: 2^−ΔCt relative to the reference genes; SEM error bars", async ({ page }) => {

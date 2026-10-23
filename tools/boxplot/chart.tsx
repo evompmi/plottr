@@ -357,7 +357,7 @@ export const BoxplotChart = memo(
       });
 
       return (
-        <g key={`cb-${gi}-${g.name}`}>
+        <g key={`cb-${gi}-${g.name}`} id={`composition-${svgSafeId(g.name)}`}>
           {slices}
           <circle cx={px} cy={py} r={r} fill="none" stroke="#000" strokeWidth="0.5" />
           {labels}
@@ -388,7 +388,9 @@ export const BoxplotChart = memo(
         <g id="background">
           <rect x={0} y={0} width={vbW} height={vbH} fill={plotBg} />
         </g>
-        <rect id="plot-area-background" x={M.left} y={M.top} width={w} height={h} fill={plotBg} />
+        <g id="plot-area-background">
+          <rect x={M.left} y={M.top} width={w} height={h} fill={plotBg} />
+        </g>
 
         {showGrid && (
           <g id="grid">

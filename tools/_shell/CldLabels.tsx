@@ -20,6 +20,8 @@ interface CldLabelsProps {
   fontWeight?: number | string;
   fontFamily?: string;
   textColor?: string;
+  // Group id; charts that draw several sets in one SVG pass a unique one.
+  id?: string;
 }
 
 export function CldLabels({
@@ -31,11 +33,12 @@ export function CldLabels({
   fontWeight = CLD_DEFAULTS.fontWeight,
   fontFamily = CLD_DEFAULTS.fontFamily,
   textColor = CLD_DEFAULTS.textColor,
+  id = "cld-annotations",
 }: CldLabelsProps) {
   if (!labels || labels.length === 0) return null;
   const horizontal = orientation === "horizontal-right";
   return (
-    <g id="cld-annotations">
+    <g id={id}>
       {labels.map((lbl, i) =>
         lbl != null ? (
           <text

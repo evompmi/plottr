@@ -1508,23 +1508,29 @@ export const HeatmapChart = memo(
 
           {/* Axis-hover highlight — lighter, ephemeral (kept as a subtle tint on
             the hovered cluster's rows/cols so users see what a click would select). */}
-          {hoverRowsDisplay && renderRowBands(hoverRowsDisplay, HIGHLIGHT_STROKE, 0.04)}
-          {hoverColsDisplay && renderColBands(hoverColsDisplay, HIGHLIGHT_STROKE, 0.04)}
+          {(hoverRowsDisplay || hoverColsDisplay) && (
+            <g id="hover-highlight">
+              {hoverRowsDisplay && renderRowBands(hoverRowsDisplay, HIGHLIGHT_STROKE, 0.04)}
+              {hoverColsDisplay && renderColBands(hoverColsDisplay, HIGHLIGHT_STROKE, 0.04)}
+            </g>
+          )}
 
           {/* Brush rect (active drag) */}
           {brushRect && (
-            <rect
-              x={brushRect.x}
-              y={brushRect.y}
-              width={brushRect.w}
-              height={brushRect.h}
-              fill={SELECTION_STROKE}
-              fillOpacity={0.12}
-              stroke={SELECTION_STROKE}
-              strokeWidth={1}
-              strokeDasharray="3 2"
-              pointerEvents="none"
-            />
+            <g id="brush">
+              <rect
+                x={brushRect.x}
+                y={brushRect.y}
+                width={brushRect.w}
+                height={brushRect.h}
+                fill={SELECTION_STROKE}
+                fillOpacity={0.12}
+                stroke={SELECTION_STROKE}
+                strokeWidth={1}
+                strokeDasharray="3 2"
+                pointerEvents="none"
+              />
+            </g>
           )}
 
           {/* Interaction overlay — sits above cells for pointer capture + tooltip tracking.
@@ -1532,23 +1538,25 @@ export const HeatmapChart = memo(
             Inkscape, which mis-parses the CSS keyword `transparent` in the SVG `fill`
             attribute and falls back to the default (black), doesn't paint a giant
             opaque black rect over the exported plot. */}
-          <rect
-            x={MARGIN.left}
-            y={MARGIN.top}
-            width={plotW}
-            height={plotH}
-            fill="none"
-            pointerEvents="all"
-            // Crosshair whether the overlay is interactive (drag-to-select on
-            // the main plot) or not (detail view still surfaces the per-cell
-            // tooltip) — the cursor signals that a cell is about to be
-            // highlighted, which is true in both cases.
-            style={{ cursor: "crosshair" }}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerLeave}
-          />
+          <g id="interaction-overlay">
+            <rect
+              x={MARGIN.left}
+              y={MARGIN.top}
+              width={plotW}
+              height={plotH}
+              fill="none"
+              pointerEvents="all"
+              // Crosshair whether the overlay is interactive (drag-to-select on
+              // the main plot) or not (detail view still surfaces the per-cell
+              // tooltip) — the cursor signals that a cell is about to be
+              // highlighted, which is true in both cases.
+              style={{ cursor: "crosshair" }}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerLeave}
+            />
+          </g>
         </svg>
 
         {hoverInfo && hover && (

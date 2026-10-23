@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The folded "Statistics" strip on the right of the plot now shows its label as a blue button,
   so the hidden statistics column is easier to find.
 
+### Fixed
+
+- Exported SVGs keep every element in a named group for Inkscape: qPCR's per-gene brackets and
+  letters no longer share one id, and stray background / overlay shapes in Group Plot, Line Plot,
+  RLU Timecourse, Heatmap and Venn are now named groups. Regression: 10 e2e tests.
+
 ## [2.0.0] - 2026-10-21
 
 > Long-form release notes live in

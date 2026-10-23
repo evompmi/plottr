@@ -50,6 +50,8 @@ interface SignificanceBracketsProps {
   fontWeight?: number | string;
   fontFamily?: string;
   textColor?: string;
+  // Group id; charts that draw several sets in one SVG pass a unique one.
+  id?: string;
 }
 
 export function SignificanceBrackets({
@@ -65,10 +67,11 @@ export function SignificanceBrackets({
   fontWeight = BRACKET_DEFAULTS.fontWeight,
   fontFamily = BRACKET_DEFAULTS.fontFamily,
   textColor = BRACKET_DEFAULTS.textColor,
+  id = "significance-brackets",
 }: SignificanceBracketsProps) {
   if (!pairs || pairs.length === 0) return null;
   return (
-    <g id="significance-brackets">
+    <g id={id}>
       {pairs.map((pr, idx) => {
         const lvl = pr._level || 0;
         const a = axisCoord(pr.i);

@@ -231,19 +231,19 @@ Key conventions:
 
 ## SVG export: named groups for Inkscape
 
-Exported SVGs are routinely re-opened in Inkscape for touch-ups, so **every chart must wrap its elements in `<g id="...">` groups with human-readable ids**. When adding a new chart (or a new element to an existing chart), give the wrapping group a descriptive id so Inkscape users can select it by name from the Objects panel / XML editor.
+Exported SVGs are routinely re-opened in Inkscape for touch-ups, so **every chart must wrap its elements in `<g id="...">` groups with human-readable ids**, and ids must be unique within one SVG (Inkscape silently renames duplicates). Put the id on the group, not on a bare element. `e2e/svg-export-groups.spec.ts` downloads every tool's example SVG and fails on a drawn element outside a named group, a duplicate id, or a top-level child that is not a named group. When adding a new chart (or a new element to an existing chart), give the wrapping group a descriptive id so Inkscape users can select it by name from the Objects panel / XML editor.
 
 Conventional ids already used across tools — reuse them for consistency:
 
-- **Structure** — `background` (full SVG canvas rect, wrapped in a group), `plot-area-background` (inner rect inside the chart margins), `plot-frame` (border around the data area), `chart` (transformed wrapper holding the data + axes)
+- **Structure** — `background` (full SVG canvas rect, wrapped in a group), `plot-area-background` (inner rect inside the chart margins, also wrapped in a group), `plot-frame` (border around the data area), `chart` (transformed wrapper holding the data + axes)
 - **Axes** — `grid`, `axis-x`, `axis-y`, `x-axis-label`, `y-axis-label`
 - **Data** — `data-points`, `groups`, `bars`, `traces`, `ribbons`, `set-circles`, `region-counts`, `power-curve`, `marker`, `error-bars`, `cells` (heatmap)
-- **Overlays** — `regression-line`, `regression-stats`, `reference-line`, `reference-lines`, `reference-line-labels`, `selected-region`, `selection-mask` (heatmap)
-- **Annotations** — `cld-annotations`, `significance-brackets`, `significance-stars`, `stats-summary`, `subgroup-separators`, `subgroup-labels`
+- **Overlays** — `regression-line`, `regression-stats`, `reference-line`, `reference-lines`, `reference-line-labels`, `selected-region`, `selection-mask`, `hover-highlight`, `brush`, `interaction-overlay` (heatmap; the last three are screen-only and empty or invisible in a static export)
+- **Annotations** — `cld-annotations`, `significance-brackets` (both take an `id` prop for charts that draw several sets in one SVG), `significance-stars`, `stats-summary`, `subgroup-separators`, `subgroup-labels`, `composition-<group>` (Group Plot's composition pies)
 - **Text** — `title`, `subtitle`, `legend`, `row-labels` (heatmap), `col-labels` (heatmap)
 - **Heatmap-specific** — `col-dendrogram`, `row-dendrogram`, `col-cluster-strip`, `row-cluster-strip`, `colorbar`, `colorbar-histogram` (nested in `colorbar`)
 - **Proportions-specific** — `segments` (stacked / mosaic; one `group-<name>` per bar), `ci-whiskers` (Wilson CIs), `n-labels`
-- **qPCR-specific** — one `facet-<gene>` per target gene holding `bars-<gene>`, `error-bars-<gene>` (SEM / SD / 95 % CI), `points-<gene>`, `reference-line-<gene>` (FC = 1; only with a calibrator group), `vs-control-<gene>` (stars vs a hidden calibrator column), `axis-x-<gene>` / `axis-y-<gene>` (the value axis is `axis-y-*` and the group axis `axis-x-*` in either orientation; data layers are clipped to `clip-<gene>`), plus a chart-level `footnote` explaining those stars
+- **qPCR-specific** — one `facet-<gene>` per target gene holding `bars-<gene>`, `error-bars-<gene>` (SEM / SD / 95 % CI), `points-<gene>`, `reference-line-<gene>` (FC = 1; only with a calibrator group), `vs-control-<gene>` (stars vs a hidden calibrator column), `significance-brackets-<gene>` / `cld-annotations-<gene>`, `axis-x-<gene>` / `axis-y-<gene>` (the value axis is `axis-y-*` and the group axis `axis-x-*` in either orientation; data layers are clipped to `clip-<gene>`), plus a chart-level `footnote` explaining those stars
 
 For per-series / per-group elements, build individual ids with `svgSafeId(name)` (defined in `shared.js` and available as a global to all compiled tools): e.g. `set-${svgSafeId(setName)}`, `group-${svgSafeId(g.name)}`, `bar-${svgSafeId(prefix)}`, `trace-${svgSafeId(prefix)}`, `ribbon-${svgSafeId(prefix)}`, `points-${svgSafeId(name)}`, `errbars-${svgSafeId(name)}`, `cell-${svgSafeId(rowLabel)}-${svgSafeId(colLabel)}`. `svgSafeId` sanitizes arbitrary strings into valid SVG NCNames (letters/digits/hyphens/underscores/periods, no leading digit), so it's safe to pass raw user-entered labels.
 

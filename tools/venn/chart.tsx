@@ -89,7 +89,9 @@ export const VennChart = memo(
       >
         <title>{plotTitle || tt("venn.chart.fallbackTitle")}</title>
         <desc>{tt("venn.chart.desc", { n, count: n, names: setNames.join(", ") })}</desc>
-        <rect id="background" width={VW} height={VH} fill={plotBg || "#fff"} rx="8" />
+        <g id="background">
+          <rect width={VW} height={VH} fill={plotBg || "#fff"} rx="8" />
+        </g>
         {plotTitle && (
           <g id="title">
             <text
