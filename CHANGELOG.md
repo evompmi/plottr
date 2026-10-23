@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Group Plot drops its Output step: the long and wide data CSVs are in the plot step's "More"
+  menu. Long is one file; wide is split into one file per facet / subgroup, since its one column
+  per group would otherwise mix them.
 - The folded "Statistics" strip on the right of the plot now shows its label as a blue button,
   so the hidden statistics column is easier to find.
 

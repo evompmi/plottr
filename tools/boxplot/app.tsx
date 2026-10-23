@@ -4,6 +4,7 @@
 // live in sibling modules under tools/boxplot/.
 
 import {
+  type ActionsPanelDownload,
   PlotToolShell,
   WorkspaceLayout,
   navigateToTool,
@@ -34,9 +35,11 @@ import {
   mergeStoredOrder,
   renameInOrder,
   splitBySubgroup,
+  splitRowsForExport,
+  type ExportSplit,
   statsPanelModeOf,
 } from "./derive";
-import { UploadStep, ConfigureStep, FilterStep, OutputStep } from "./steps";
+import { UploadStep, ConfigureStep, FilterStep } from "./steps";
 import { PlotControls } from "./controls";
 import { PlotArea, FacetPlotList } from "./plot-area";
 import { BoxplotStatsDisplayBar, BoxplotStatsPanel, statsInit, statsReducer } from "./stats-panel";
@@ -53,8 +56,14 @@ import {
   reshapeWide,
   wideToLong,
 } from "../_core/csv";
-import { computeGroupStats } from "../_core/descriptive";
-import { downloadPng, downloadPngs, downloadSvg, downloadSvgs } from "../_core/download";
+import {
+  downloadCsv,
+  downloadCsvs,
+  downloadPng,
+  downloadPngs,
+  downloadSvg,
+  downloadSvgs,
+} from "../_core/download";
 import { fileBaseName } from "../_core/download";
 import type { ColumnRole } from "../_core/csv";
 const { useState, useReducer, useMemo, useCallback, useRef } = React;
@@ -511,27 +520,6 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valueColName]);
 
-  const groupedData = useMemo(() => {
-    if (groupColIdx < 0 || valueColIdx < 0) return {};
-    const g: Record<string, string[]> = {};
-    renamedRows.forEach((r) => {
-      const k = r[groupColIdx];
-      if (!g[k]) g[k] = [];
-      g[k].push(r[valueColIdx]);
-    });
-    return g;
-  }, [renamedRows, groupColIdx, valueColIdx]);
-
-  const stats = useMemo(() => computeGroupStats(groupedData), [groupedData]);
-
-  const wideData = useMemo(
-    () =>
-      groupColIdx < 0 || valueColIdx < 0
-        ? null
-        : reshapeWide(renamedRows, groupColIdx, valueColIdx),
-    [renamedRows, groupColIdx, valueColIdx]
-  );
-
   const naturalGroupOrder = useMemo(
     () => (groupColIdx < 0 || valueColIdx < 0 ? [] : firstSeenOrder(renamedRows, groupColIdx)),
     [renamedRows, groupColIdx, valueColIdx]
@@ -899,6 +887,45 @@ export function App() {
     }
   }, [facetByCol, facetedData, fileStem]);
 
+  // The filtered, renamed table as CSV. Long is one file: every row keeps its
+  // facet / subgroup columns. Wide keeps only one column per group, so it is
+  // split into one file per facet × subgroup to keep those apart.
+  const wideParts = useMemo(() => {
+    const splits: ExportSplit[] = [];
+    if (facetByCol >= 0) splits.push({ col: facetByCol, order: facetByCategories });
+    if (subgroupByCol >= 0)
+      splits.push({ col: subgroupByCol, order: orderableCols[subgroupByCol]?.order || [] });
+    return splitRowsForExport(renamedRows, splits);
+  }, [renamedRows, facetByCol, facetByCategories, subgroupByCol, orderableCols]);
+  const dataStem = fileBaseName(fileName, "data");
+  const dataDownloads: ActionsPanelDownload[] = [
+    {
+      label: trApp("boxplot.dl.longCsv"),
+      title: trApp("boxplot.dl.longCsvTitle"),
+      onClick: () =>
+        downloadCsv(
+          activeColIdxs.map((i) => colNames[i]),
+          renamedRows.map((r) => activeColIdxs.map((i) => r[i])),
+          `${dataStem}_long.csv`
+        ),
+    },
+    {
+      label: trApp("boxplot.dl.wideCsv"),
+      title: trApp("boxplot.dl.wideCsvTitle"),
+      onClick: () =>
+        downloadCsvs(
+          wideParts.map((p) => {
+            const wide = reshapeWide(p.rows, groupColIdx, valueColIdx);
+            return {
+              headers: wide.headers,
+              rows: wide.rows,
+              filename: [dataStem, ...p.labels, "wide"].join("_") + ".csv",
+            };
+          })
+        ),
+    },
+  ];
+
   // Composition pies → Proportions: one counts table per facet.
   const compositionTables = useMemo(
     (): CompositionTable[] =>
@@ -957,7 +984,7 @@ export function App() {
       toolName="boxplot"
       title="Group Plot"
       visInit={VIS_INIT_BOXPLOT}
-      steps={["upload", "configure", "filter", "output", "plot"]}
+      steps={["upload", "configure", "filter", "plot"]}
       canNavigate={(s) => s === "upload" || parsedRows.length > 0}
     >
       {step === "upload" && (
@@ -1008,20 +1035,6 @@ export function App() {
         />
       )}
 
-      {step === "output" && parsedRows.length > 0 && (
-        <OutputStep
-          colNames={colNames}
-          groupColIdx={groupColIdx}
-          valueColIdx={valueColIdx}
-          valueColIsNumeric={valueColIsNumeric}
-          stats={stats}
-          renamedRows={renamedRows}
-          activeColIdxs={activeColIdxs}
-          wideData={wideData}
-          fileName={fileName}
-        />
-      )}
-
       {step === "plot" && canPlot && (
         <WorkspaceLayout
           controlsLabel={trApp("boxplot.ctrl.controlsLabel")}
@@ -1054,6 +1067,7 @@ export function App() {
               setSubgroupByCol={handleSetSubgroupByCol}
               onDownloadSvg={handleDownloadSvg}
               onDownloadPng={handleDownloadPng}
+              dataDownloads={dataDownloads}
               compositionTables={compositionTables}
               onSendComposition={handleSendComposition}
             />

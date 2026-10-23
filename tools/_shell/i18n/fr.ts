@@ -61,7 +61,6 @@ const fr: Record<ShellKey, string> = {
   "shell.step.upload": "Importer",
   "shell.step.configure": "Configurer",
   "shell.step.filter": "Filtrer",
-  "shell.step.output": "Sortie",
   "shell.step.plot": "Tracé",
   "shell.step.aria": "Étape {n} sur {total} : {label}",
   "shell.step.navLabel": "Étapes",

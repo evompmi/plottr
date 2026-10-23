@@ -78,7 +78,6 @@ const en = {
   "shell.step.upload": "Upload",
   "shell.step.configure": "Configure",
   "shell.step.filter": "Filter",
-  "shell.step.output": "Output",
   "shell.step.plot": "Plot",
   "shell.step.aria": "Step {n} of {total}: {label}",
   "shell.step.navLabel": "Steps",

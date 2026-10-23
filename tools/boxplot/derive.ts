@@ -155,6 +155,32 @@ export function splitBySubgroup(
   return { subgroups, flatGroups };
 }
 
+// The table's rows split for the wide CSV download, which keeps only the group
+// and value columns: one part per combination of the split columns' values
+// (facet, then subgroup), each in its `order`, skipping empty combinations.
+// `labels` holds the part's value per split; no splits → one part, every row.
+export interface ExportSplit {
+  col: number;
+  order: string[];
+}
+export interface ExportPart {
+  labels: string[];
+  rows: string[][];
+}
+export function splitRowsForExport(rows: string[][], splits: ExportSplit[]): ExportPart[] {
+  if (splits.length === 0) return [{ labels: [], rows }];
+  const [{ col, order }, ...rest] = splits;
+  const parts: ExportPart[] = [];
+  for (const value of order) {
+    const part = rows.filter((r) => r[col] === value);
+    if (part.length === 0) continue;
+    for (const sub of splitRowsForExport(part, rest)) {
+      parts.push({ labels: [value, ...sub.labels], rows: sub.rows });
+    }
+  }
+  return parts;
+}
+
 // ── Stats-panel cells ───────────────────────────────────────────────────────
 
 // Cell keys for the cellAnnotations / cellSummaries dicts. JSON-encoded so a

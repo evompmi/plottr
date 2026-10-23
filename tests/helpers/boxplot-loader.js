@@ -109,6 +109,7 @@ module.exports = {
   renameInOrder: derive.renameInOrder,
   buildGroups: derive.buildGroups,
   splitBySubgroup: derive.splitBySubgroup,
+  splitRowsForExport: derive.splitRowsForExport,
   cellKey: derive.cellKey,
   FLAT_KEY: derive.FLAT_KEY,
   statsPanelModeOf: derive.statsPanelModeOf,

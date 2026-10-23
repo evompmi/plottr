@@ -11,12 +11,11 @@ import {
   STATS_TESTS_FOR_K2,
   STATS_TEST_REGISTRY,
 } from "../_shell";
-import type { LegendBlock, PowerFromDataResult, TestResult } from "../_shell";
+import type { ActionsPanelDownload, LegendBlock, PowerFromDataResult, TestResult } from "../_shell";
 import { compactLetterDisplay, selectTest } from "../_core/stats/posthoc";
 import { pStars } from "../_core/stats/format";
 import { buildCsvString } from "../_core/csv";
 import type { ColumnRole } from "../_core/csv";
-import type { GroupStats } from "../_core/descriptive";
 import { formatP } from "../_core/stats/format";
 import type { NormalityResult } from "../_core/stats/types";
 // ── Stats summary SVG layout constants ──────────────────────────────────────
@@ -495,16 +494,6 @@ export interface BoxplotGroup {
   enabled?: boolean;
 }
 
-export interface WideExport {
-  headers: string[];
-  rows: Array<Array<string | number>>;
-  // Number of rows that had an empty group cell and got merged under the
-  // "?" column during reshape. Optional because `reshapeWide` (the
-  // current builder) doesn't populate it; the OutputStep banner
-  // gracefully handles `undefined`.
-  unlabelled?: number;
-}
-
 // One reorderable group / filter column: `order` is the plot order (kept
 // values only), `fullOrder` every value's slot (the filter step's list).
 export interface OrderableCol {
@@ -555,18 +544,6 @@ export interface FilterStepProps extends FilterStateCommonProps {
   toggleFilter: (i: number, value: string) => void;
   toggleAllFilter: (i: number, allOn: boolean) => void;
   setRenameVal: (i: number, origValue: string, newValue: string) => void;
-}
-
-export interface OutputStepProps {
-  colNames: string[];
-  groupColIdx: number;
-  valueColIdx: number;
-  valueColIsNumeric: boolean;
-  stats: GroupStats[];
-  renamedRows: string[][];
-  activeColIdxs: number[];
-  wideData: WideExport | null;
-  fileName: string;
 }
 
 // ── Chart + plot-area data shapes ──────────────────────────────────────────
@@ -720,6 +697,8 @@ export interface PlotControlsProps {
   setSubgroupByCol: (i: number) => void;
   onDownloadSvg: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onDownloadPng: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  // Data CSVs (long / wide), shown in the export bar's More menu.
+  dataDownloads: ActionsPanelDownload[];
   compositionTables: CompositionTable[];
   onSendComposition: (i: number) => void;
 }

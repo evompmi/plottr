@@ -25,6 +25,7 @@ const {
   renameInOrder,
   buildGroups,
   splitBySubgroup,
+  splitRowsForExport,
   cellKey,
   FLAT_KEY,
   statsPanelModeOf,
@@ -610,6 +611,60 @@ test("bands follow the subgroup order, skip empty subgroups, index contiguously"
       ["WT", [10, 5]],
       ["mut", [4]],
     ]
+  );
+});
+
+suite("splitRowsForExport");
+
+test("no split → one part with every row", () => {
+  const parts = splitRowsForExport(ROWS, []);
+  eq(parts.length, 1);
+  eq(parts[0].labels, []);
+  eq(parts[0].rows === ROWS, true);
+});
+
+test("one split → one part per value in the given order, empty values skipped", () => {
+  eq(splitRowsForExport(ROWS, [{ col: 2, order: ["Day2", "Day9", "Day1"] }]), [
+    {
+      labels: ["Day2"],
+      rows: [
+        ["mut", "tall", "Day2", "9"],
+        ["WT", "tall", "Day2", "12"],
+        ["mut", "short", "Day2", ""],
+        ["mut", "short", "Day2", "n/a"],
+      ],
+    },
+    {
+      labels: ["Day1"],
+      rows: [
+        ["WT", "tall", "Day1", "10"],
+        ["WT", "short", "Day1", "5"],
+        ["mut", "short", "Day1", "4"],
+      ],
+    },
+  ]);
+});
+
+test("two splits → facet × subgroup combinations, facet-major, empty ones skipped", () => {
+  const parts = splitRowsForExport(ROWS, [
+    { col: 2, order: ["Day1", "Day2"] },
+    { col: 1, order: ["tall", "short"] },
+  ]);
+  eq(
+    parts.map((p) => [p.labels, p.rows.length]),
+    [
+      [["Day1", "tall"], 1],
+      [["Day1", "short"], 2],
+      [["Day2", "tall"], 2],
+      [["Day2", "short"], 2],
+    ]
+  );
+});
+
+test("values missing from the order are left out", () => {
+  eq(
+    splitRowsForExport(ROWS, [{ col: 1, order: ["tall"] }]).map((p) => p.rows.length),
+    [3]
   );
 });
 

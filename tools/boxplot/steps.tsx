@@ -1,29 +1,15 @@
-// Step components for the boxplot tool (Upload, Configure, Filter, Output).
+// Step components for the boxplot tool (Upload, Configure, Filter).
 // Stateless presentational wrappers — all state lives in App via
 // usePlotToolState or local hooks there. Shared UI (UploadPanel,
-// DataPreview, ColumnRoleEditor, ValueListPanel,
-// StatsTable, …) resolves through shared.bundle.js. Prop types live in
-// ./helpers.ts (the type-canonical home).
+// DataPreview, ColumnRoleEditor, ValueListPanel, …) resolves through
+// shared.bundle.js. Prop types live in ./helpers.ts (the type-canonical home).
 
-import type {
-  ConfigureStepProps,
-  FilterStepProps,
-  OutputStepProps,
-  UploadStepProps,
-} from "./helpers";
-import {
-  DataPreview,
-  DetectedSeparatorBadge,
-  HowTo,
-  ValueListPanel,
-  StatsTable,
-  UploadPanel,
-} from "../_shell";
+import type { ConfigureStepProps, FilterStepProps, UploadStepProps } from "./helpers";
+import { DataPreview, DetectedSeparatorBadge, HowTo, ValueListPanel, UploadPanel } from "../_shell";
 import { useBoxplotHowTo } from "./howto";
 import { useT, ttHtml, type BoxplotKey } from "./i18n";
 
 import { roleColors, roleTextColors } from "../_core/color";
-import { downloadCsv, fileBaseName, flashSaved } from "../_core/download";
 import type { ColumnRole } from "../_core/csv";
 // Role-colour themes for the Configure-step AesBox cards. Reuses scatter's
 // `--aes-*` CSS vars so the visual language is consistent across tools
@@ -494,132 +480,6 @@ export function FilterStep({
           100% { background: var(--surface-subtle); }
         }
       `}</style>
-    </div>
-  );
-}
-
-export function OutputStep({
-  colNames,
-  groupColIdx,
-  valueColIdx,
-  valueColIsNumeric,
-  stats,
-  renamedRows,
-  activeColIdxs,
-  wideData,
-  fileName,
-}: OutputStepProps) {
-  const tr = useT();
-  return (
-    <div>
-      {groupColIdx >= 0 && valueColIdx >= 0 && stats.length > 0 && (
-        <StatsTable stats={stats} groupLabel={colNames[groupColIdx]} />
-      )}
-      <div className="dv-panel">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 8,
-          }}
-        >
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-            {tr("boxplot.steps.filteredLong")}
-          </p>
-          <button
-            className="dv-btn dv-btn-dl"
-            style={{ marginLeft: "auto", flexShrink: 0 }}
-            onClick={(e) => {
-              downloadCsv(
-                activeColIdxs.map((i: number) => colNames[i]),
-                renamedRows.map((r: string[]) => activeColIdxs.map((i: number) => r[i])),
-                `${fileBaseName(fileName, "data")}_sanitized_long.csv`
-              );
-              flashSaved(e.currentTarget);
-            }}
-          >
-            {tr("boxplot.steps.longCsv")}
-          </button>
-        </div>
-        <DataPreview
-          headers={activeColIdxs.map((i: number) => colNames[i])}
-          rows={renamedRows.map((r: string[]) => activeColIdxs.map((i: number) => r[i]))}
-          maxRows={6}
-        />
-      </div>
-      {wideData && (
-        <div className="dv-panel">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 8,
-            }}
-          >
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-              {tr("boxplot.steps.reshapedWide")}
-            </p>
-            <button
-              className="dv-btn dv-btn-dl"
-              style={{ marginLeft: "auto", flexShrink: 0 }}
-              onClick={(e) => {
-                downloadCsv(
-                  wideData.headers,
-                  wideData.rows,
-                  `${fileBaseName(fileName, "data")}_sanitized_wide.csv`
-                );
-                flashSaved(e.currentTarget);
-              }}
-            >
-              {tr("boxplot.steps.wideCsv")}
-            </button>
-          </div>
-          {(wideData.unlabelled ?? 0) > 0 && (
-            <p
-              style={{
-                margin: "0 0 8px",
-                fontSize: 11,
-                color: "var(--warning-text)",
-                fontStyle: "italic",
-              }}
-            >
-              {tr(
-                wideData.unlabelled === 1
-                  ? "boxplot.steps.unlabelled.one"
-                  : "boxplot.steps.unlabelled.other",
-                { count: wideData.unlabelled ?? 0 }
-              )}
-            </p>
-          )}
-          <DataPreview headers={wideData.headers} rows={wideData.rows} maxRows={8} />
-        </div>
-      )}
-      {(groupColIdx < 0 || valueColIdx < 0) && (
-        <div
-          className="dv-panel"
-          style={{ background: "var(--warning-bg)", borderColor: "var(--warning-border)" }}
-        >
-          <p
-            style={{ fontSize: 12, color: "var(--warning-text)" }}
-            dangerouslySetInnerHTML={{ __html: tr("boxplot.steps.assignReshape") }}
-          />
-        </div>
-      )}
-      {valueColIdx >= 0 && !valueColIsNumeric && (
-        <div
-          className="dv-panel"
-          style={{ background: "var(--danger-bg)", borderColor: "var(--danger-border)" }}
-        >
-          <p
-            style={{ fontSize: 12, color: "var(--danger-text)" }}
-            dangerouslySetInnerHTML={{
-              __html: ttHtml("boxplot.steps.nonNumericOutput", { name: colNames[valueColIdx] }),
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 }

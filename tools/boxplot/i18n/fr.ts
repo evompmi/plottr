@@ -112,18 +112,11 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.steps.preview": "Aperçu",
   "boxplot.steps.previewOf": "sur {total} lignes",
   "boxplot.steps.filteredOut": "filtrées",
-  "boxplot.steps.filteredLong": "Données filtrées (long)",
-  "boxplot.steps.longCsv": "⬇ CSV long",
-  "boxplot.steps.reshapedWide": "Remodelé (large)",
-  "boxplot.steps.wideCsv": "⬇ CSV large",
-  "boxplot.steps.unlabelled.one":
-    "⚠ {count} ligne avait une cellule de groupe vide — toutes fusionnées sous la colonne « ? ».",
-  "boxplot.steps.unlabelled.other":
-    "⚠ {count} lignes avaient une cellule de groupe vide — toutes fusionnées sous la colonne « ? ».",
-  "boxplot.steps.assignReshape":
-    "⚠ Assignez les colonnes <strong>groupe</strong> + <strong>valeur</strong> pour activer le remodelage & les stats.",
-  "boxplot.steps.nonNumericOutput":
-    '⚠ La colonne <strong>"{name}"</strong> est assignée comme <strong>valeur</strong> mais semble non numérique — le tracé sera vide. Retournez à Configurer et assignez une colonne numérique comme valeur.',
+  "boxplot.dl.longCsv": "CSV long",
+  "boxplot.dl.longCsvTitle": "Données filtrées et renommées, une ligne par observation",
+  "boxplot.dl.wideCsv": "CSV large",
+  "boxplot.dl.wideCsvTitle":
+    "Données filtrées et renommées, une colonne par groupe — un fichier par facette / sous-groupe",
   "boxplot.test.studentT": "Test t de Student",
   "boxplot.test.welchT": "Test t de Welch",
   "boxplot.test.mannWhitney": "Mann-Whitney U",

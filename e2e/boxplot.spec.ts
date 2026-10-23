@@ -1,6 +1,6 @@
 // Boxplot golden path. The example dataset auto-detects wide format
 // (3 genotypes × 3 treatments × 8 reps) and routes the user through
-// upload → configure → filter → output → plot. We walk all the way to
+// upload → configure → filter → plot. We walk all the way to
 // plot and assert the chart populates with at least one box per group.
 
 import { test, expect } from "@playwright/test";
@@ -126,4 +126,77 @@ test("boxplot: statistics column opens on demand; marks work while it is closed"
   await inspector.getByRole("button", { name: "Hide" }).click();
   await expect(inspector).toBeHidden();
   await expect(show).toBeFocused();
+});
+
+test("data CSVs sit in the More menu: long is one file, wide one per facet × subgroup", async ({
+  page,
+}) => {
+  // Plain downloads instead of Chromium's save-file / folder pickers.
+  await page.addInitScript(() => {
+    const g = globalThis as { showSaveFilePicker?: unknown; showDirectoryPicker?: unknown };
+    g.showSaveFilePicker = undefined;
+    g.showDirectoryPicker = undefined;
+  });
+  await page.goto("/index.html#/boxplot");
+  await page.getByTestId("load-example").click();
+  await expect(page.getByTestId("step-output")).toHaveCount(0);
+  await page.getByTestId("step-plot").click();
+
+  const more = page.getByRole("toolbar").getByRole("button", { name: "More ▾" });
+  const fs = await import("node:fs");
+  const read = async (dl: import("@playwright/test").Download) =>
+    fs
+      .readFileSync((await dl.path()) as string, "utf8")
+      .split(/\r?\n/)
+      .filter((r) => r !== "");
+  const collect = async (item: string, count: number) => {
+    const downloads: import("@playwright/test").Download[] = [];
+    const onDownload = (d: import("@playwright/test").Download) => downloads.push(d);
+    page.on("download", onDownload);
+    // The menu stays open after a download (it flashes "Saved").
+    if ((await more.getAttribute("aria-expanded")) !== "true") await more.click();
+    await page.getByRole("menuitem", { name: item, exact: true }).click();
+    await expect.poll(() => downloads.length).toBe(count);
+    page.off("download", onDownload);
+    return downloads;
+  };
+  const names = (dls: import("@playwright/test").Download[]) =>
+    dls.map((d) => d.suggestedFilename()).sort();
+
+  // No split: one long file with every observation, one wide file.
+  const [long] = await collect("Long CSV", 1);
+  expect(long.suggestedFilename()).toBe("example_plant_growth_long.csv");
+  const longRows = await read(long);
+  expect(longRows[0]).toBe('"Genotype","Treatment","Replicate","Biomass_mg"');
+  expect(longRows.length).toBe(1 + 72);
+  const [wide] = await collect("Wide CSV", 1);
+  expect(wide.suggestedFilename()).toBe("example_plant_growth_wide.csv");
+  expect((await read(wide))[0]).toBe('"WT","abi4","oxSOS1"');
+
+  // Facet by Treatment: long stays one file (the Treatment column is kept);
+  // wide splits into one file per facet.
+  await page.getByRole("tab", { name: "Facets" }).click();
+  await page.getByLabel("Facet by").selectOption({ label: "Treatment" });
+  const [facetLong] = await collect("Long CSV", 1);
+  expect((await read(facetLong)).length).toBe(1 + 72);
+  const facets = await collect("Wide CSV", 3);
+  expect(names(facets)).toEqual([
+    "example_plant_growth_control_wide.csv",
+    "example_plant_growth_drought_wide.csv",
+    "example_plant_growth_salt_wide.csv",
+  ]);
+  for (const d of facets) {
+    const rows = await read(d);
+    expect(rows[0]).toBe('"WT","abi4","oxSOS1"');
+    expect(rows.length).toBe(1 + 8);
+  }
+
+  // Facet by Treatment × subgroup by Replicate: one wide file per
+  // combination (3 × 8 = 24), which arrive as one zip.
+  await page.getByLabel("Subgroup by").selectOption({ label: "Replicate" });
+  const [zip] = await collect("Wide CSV", 1);
+  expect(zip.suggestedFilename()).toMatch(/\.zip$/);
+  const zipText = fs.readFileSync((await zip.path()) as string, "latin1");
+  expect(zipText).toContain("example_plant_growth_control_1_wide.csv");
+  expect(zipText).toContain("example_plant_growth_salt_8_wide.csv");
 });
