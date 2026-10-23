@@ -2,7 +2,19 @@
 // auto-picked, QC shown) → plot (log2 fold change, brackets from ΔCt tests)
 // → y-scale / letters → standard-curve efficiencies → display options.
 
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Locator, Page } from "@playwright/test";
+
+// Drag `handle` with the mouse so the pointer ends `dy` px below where it
+// started (several moves so the list sees the pointer travel).
+async function dragBy(page: Page, handle: Locator, dy: number) {
+  const box = (await handle.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + dy, { steps: 8 });
+  await page.mouse.up();
+}
 
 async function loadExample(page: Page) {
   await page.goto("/index.html#/qpcr");
@@ -118,4 +130,18 @@ test("display options: boxes, horizontal, fixed axis range and title", async ({ 
   await page.getByTestId("qpcr-ymin").fill("-1");
   await expect(page.getByText("Ignored: a log₂ axis needs numbers above 0.")).toBeVisible();
   await expect(page.getByTestId("qpcr-send")).toHaveCount(0);
+});
+
+test("configure: group order reorders by drag and drop", async ({ page }) => {
+  await loadExample(page);
+  const list = page
+    .locator("ul")
+    .filter({ has: page.getByRole("checkbox", { name: "Include Control" }) });
+  const order = () =>
+    list.locator("li").evaluateAll((lis) => lis.map((li) => li.textContent?.replace(/↑↓$/, "")));
+  const before = await order();
+  expect(before[0]).toBe("Control");
+  const rowH = (await list.locator("li").first().boundingBox())!.height;
+  await dragBy(page, list.getByTestId("drag-handle").first(), rowH * (before.length - 0.8));
+  expect(await order()).toEqual([...before.slice(1), "Control"]);
 });

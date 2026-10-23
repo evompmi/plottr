@@ -142,12 +142,13 @@ const en = {
 
   "shell.inspector.show": "Show {name}",
   "shell.inspector.hide": "Hide",
+  "shell.reorder.drag": "Drag to reorder",
 
   // ValueListPanel (filter step: keep / rename / order values)
   "shell.values.heading": "Groups & filters",
   "shell.values.kept": "{shown} of {total} rows kept",
   "shell.values.hint":
-    "Untick a value to drop its rows, type to rename it (two values with the same name merge), and use ↑ ↓ to set the order on the plot.",
+    "Untick a value to drop its rows, type to rename it (two values with the same name merge), and drag a row by its grip or use ↑ ↓ to set the order on the plot.",
   "shell.values.colKept": "{kept} of {total} kept",
   "shell.values.allFor": "Keep every value of {name}",
   "shell.values.noneFor": "Drop every value of {name}",

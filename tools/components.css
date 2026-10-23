@@ -259,6 +259,27 @@
   border-bottom: 1px solid var(--border);
 }
 
+/* Grip of a drag-to-reorder row (`_shell/DragReorder.tsx`). */
+.dv-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--text-faint);
+  cursor: grab;
+  touch-action: none;
+  border-radius: var(--radius-sm);
+}
+.dv-drag-handle:hover {
+  color: var(--text);
+  background: var(--surface-subtle);
+}
+.dv-drag-handle:active {
+  cursor: grabbing;
+}
+
 /* Title of a collapsible inspector section (`InspectorSection collapsible`):
    the whole label row is the disclosure button, styled as the title. */
 .dv-inspector-toggle {

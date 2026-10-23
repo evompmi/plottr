@@ -663,11 +663,46 @@ test("renamed values show their old name; same-name values merge and move togeth
   const grp = container.querySelector('[data-testid="value-list-0"]');
   eq(renameInputs(grp).join("|"), "Rename A|Rename B|Rename C");
   assert(grp.textContent.includes("merged · A") && grp.textContent.includes("merged · B"));
-  // Only the first row of a merged label carries the arrows.
+  // Only the first row of a merged label carries the arrows and the grip;
+  // both rows share the label's drag index so they move as one item.
   eq(grp.querySelectorAll('button[aria-label="Move WT down"]').length, 1);
+  eq(grp.querySelectorAll('[data-testid="drag-handle"]').length, 2);
+  eq(
+    [...grp.querySelectorAll("li")].map((li) => li.getAttribute("data-reorder-index")).join(","),
+    "0,0,1"
+  );
   ReactVL.act(() => grp.querySelector('button[aria-label="Move C up"]').click());
   eq(reorders.join(""), "C,WT");
   ReactVL.act(() => root.unmount());
+});
+
+suite("drag reorder geometry");
+
+const { dropSlot, slotToIndex } = require("./helpers/components-loader");
+
+test("dropSlot: the pointer passes an item at its midpoint", function () {
+  const spans = [
+    { top: 0, bottom: 20 },
+    { top: 20, bottom: 60 }, // two rows merged under one label
+    { top: 60, bottom: 80 },
+  ];
+  eq(dropSlot(-5, spans), 0);
+  eq(dropSlot(9.9, spans), 0);
+  eq(dropSlot(10, spans), 1);
+  eq(dropSlot(39.9, spans), 1);
+  eq(dropSlot(40, spans), 2);
+  eq(dropSlot(70, spans), 3);
+  eq(dropSlot(500, spans), 3);
+  eq(dropSlot(0, []), 0);
+});
+
+test("slotToIndex: slots either side of the item leave it in place", function () {
+  eq(slotToIndex(1, 1), 1);
+  eq(slotToIndex(1, 2), 1);
+  eq(slotToIndex(1, 0), 0);
+  eq(slotToIndex(1, 3), 2);
+  eq(slotToIndex(0, 3), 2);
+  eq(slotToIndex(2, 0), 0);
 });
 
 suite("StatsTable");

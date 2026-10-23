@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Lists that reorder with ↑ / ↓ (Group Plot's filter step, Proportions and qPCR group order) also
+  reorder by dragging a row by its grip.
+
 ### Changed
 
 - Group Plot drops its Output step: the long and wide data CSVs are in the plot step's "More"

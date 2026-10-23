@@ -12,6 +12,7 @@
 
 import type { ColumnRole } from "../_core/csv";
 import { roleTextColors } from "../_core/color";
+import { DragHandle, useDragReorder, type DragHandleProps } from "./DragReorder";
 import { useShellT } from "./i18n";
 
 const { useMemo } = React;
@@ -24,10 +25,7 @@ interface ValueListPanelProps {
   // Parsed rows, unfiltered — the source of each value's row count.
   rows: string[][];
   valueRenames: Record<number, Record<string, string>>;
-  orderableCols?: Record<
-    number,
-    { order: string[]; fullOrder?: string[]; onReorder: (newOrder: string[]) => void }
-  >;
+  orderableCols?: Record<number, OrderableCol>;
   applyRename: (i: number, value: string) => string;
   filteredCount: number;
   totalCount: number;
@@ -110,123 +108,182 @@ export function ValueListPanel(props: ValueListPanelProps) {
           alignItems: "start",
         }}
       >
-        {cols.map((i) => {
-          const f = filters[i];
-          const unique = Array.from(f.unique);
-          const kept = unique.filter((v) => f.included.has(v));
-          const dropped = unique.filter((v) => !f.included.has(v));
-          const col = orderableCols[i];
-          // Every raw value under its label, labels in list order.
-          const byLabel = new Map<string, string[]>();
-          for (const v of unique) {
-            const label = applyRename(i, v);
-            const list = byLabel.get(label);
-            if (list) list.push(v);
-            else byLabel.set(label, [v]);
-          }
-          const stored = col ? col.fullOrder || col.order : [];
-          const labels = [
-            ...stored.filter((l) => byLabel.has(l)),
-            ...[...byLabel.keys()].filter((l) => !stored.includes(l)),
-          ];
-          const moveLabel = (from: number, to: number) => {
-            if (!col || to < 0 || to >= labels.length) return;
-            const next = labels.slice();
-            const [m] = next.splice(from, 1);
-            next.splice(to, 0, m);
-            col.onReorder(next);
-          };
-          const role = colRoles[i] as keyof typeof ROLE_LABEL_KEYS;
-          const name = colNames[i] || headers[i];
-          return (
-            <section
-              key={i}
-              data-testid={`value-list-${i}`}
-              aria-label={name}
-              style={{
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius-lg)",
-                background: "var(--surface)",
-                padding: "10px 12px",
-                minWidth: 0,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: 6,
-                  flexWrap: "wrap",
-                }}
-              >
-                <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
-                  {name}
-                </h3>
-                <span style={{ fontSize: 11, fontWeight: 600, color: roleTextColors[role] }}>
-                  {tr(ROLE_LABEL_KEYS[role])}
-                </span>
-                <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
-                  {tr("shell.values.colKept", { kept: kept.length, total: unique.length })}
-                </span>
-                <span style={{ flex: 1 }} />
-                <button
-                  type="button"
-                  className="dv-btn dv-btn-secondary"
-                  style={bulkBtn}
-                  disabled={dropped.length === 0}
-                  onClick={() => onToggleAll(i, true)}
-                  aria-label={tr("shell.values.allFor", { name })}
-                >
-                  {tr("shell.filter.all")}
-                </button>
-                <button
-                  type="button"
-                  className="dv-btn dv-btn-secondary"
-                  style={bulkBtn}
-                  disabled={kept.length === 0}
-                  onClick={() => onToggleAll(i, false)}
-                  aria-label={tr("shell.values.noneFor", { name })}
-                >
-                  {tr("shell.filter.none")}
-                </button>
-              </div>
-              <ul
-                style={{
-                  listStyle: "none",
-                  margin: 0,
-                  padding: 0,
-                  maxHeight: 420,
-                  overflowY: "auto",
-                }}
-              >
-                {labels.flatMap((label, li) => {
-                  const raws = byLabel.get(label) || [];
-                  return raws.map((v, k) => (
-                    <ValueRow
-                      key={v}
-                      raw={v}
-                      shown={valueRenames[i] && valueRenames[i][v] != null ? valueRenames[i][v] : v}
-                      count={counts[i]?.get(v) || 0}
-                      merged={raws.length > 1}
-                      included={f.included.has(v)}
-                      empty={empty}
-                      onToggle={() => onToggle(i, v)}
-                      onRename={(nv) => onRenameVal(i, v, nv)}
-                      // Arrows on the first row of a label move the whole label.
-                      up={col && k === 0 ? () => moveLabel(li, li - 1) : undefined}
-                      down={col && k === 0 ? () => moveLabel(li, li + 1) : undefined}
-                      isFirst={li === 0}
-                      isLast={li === labels.length - 1}
-                    />
-                  ));
-                })}
-              </ul>
-            </section>
-          );
-        })}
+        {cols.map((i) => (
+          <ValueListCard
+            key={i}
+            i={i}
+            name={colNames[i] || headers[i]}
+            role={colRoles[i] as keyof typeof ROLE_LABEL_KEYS}
+            filter={filters[i]}
+            col={orderableCols[i]}
+            counts={counts[i]}
+            valueRenames={valueRenames[i]}
+            applyRename={applyRename}
+            empty={empty}
+            onToggle={onToggle}
+            onToggleAll={onToggleAll}
+            onRenameVal={onRenameVal}
+          />
+        ))}
       </div>
     </div>
+  );
+}
+
+interface OrderableCol {
+  order: string[];
+  fullOrder?: string[];
+  onReorder: (newOrder: string[]) => void;
+}
+
+// One column's card: header with All / None, then one row per value. Its own
+// component so each list gets its own drag state.
+function ValueListCard({
+  i,
+  name,
+  role,
+  filter: f,
+  col,
+  counts,
+  valueRenames,
+  applyRename,
+  empty,
+  onToggle,
+  onToggleAll,
+  onRenameVal,
+}: {
+  i: number;
+  name: string;
+  role: keyof typeof ROLE_LABEL_KEYS;
+  filter: FilterEntry;
+  col: OrderableCol | undefined;
+  counts: Map<string, number> | undefined;
+  valueRenames: Record<string, string> | undefined;
+  applyRename: (i: number, value: string) => string;
+  empty: string;
+  onToggle: (i: number, value: string) => void;
+  onToggleAll: (i: number, allOn: boolean) => void;
+  onRenameVal: (i: number, origValue: string, newValue: string) => void;
+}) {
+  const tr = useShellT();
+  const unique = Array.from(f.unique);
+  const kept = unique.filter((v) => f.included.has(v));
+  const dropped = unique.filter((v) => !f.included.has(v));
+  // Every raw value under its label, labels in list order.
+  const byLabel = new Map<string, string[]>();
+  for (const v of unique) {
+    const label = applyRename(i, v);
+    const list = byLabel.get(label);
+    if (list) list.push(v);
+    else byLabel.set(label, [v]);
+  }
+  const stored = col ? col.fullOrder || col.order : [];
+  const labels = [
+    ...stored.filter((l) => byLabel.has(l)),
+    ...[...byLabel.keys()].filter((l) => !stored.includes(l)),
+  ];
+  const moveLabel = (from: number, to: number) => {
+    if (!col || to < 0 || to >= labels.length) return;
+    const next = labels.slice();
+    const [m] = next.splice(from, 1);
+    next.splice(to, 0, m);
+    col.onReorder(next);
+  };
+  const drag = useDragReorder(moveLabel);
+  return (
+    <section
+      data-testid={`value-list-${i}`}
+      aria-label={name}
+      style={{
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-lg)",
+        background: "var(--surface)",
+        padding: "10px 12px",
+        minWidth: 0,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 6,
+          flexWrap: "wrap",
+        }}
+      >
+        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{name}</h3>
+        <span style={{ fontSize: 11, fontWeight: 600, color: roleTextColors[role] }}>
+          {tr(ROLE_LABEL_KEYS[role])}
+        </span>
+        <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
+          {tr("shell.values.colKept", { kept: kept.length, total: unique.length })}
+        </span>
+        <span style={{ flex: 1 }} />
+        <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
+          style={bulkBtn}
+          disabled={dropped.length === 0}
+          onClick={() => onToggleAll(i, true)}
+          aria-label={tr("shell.values.allFor", { name })}
+        >
+          {tr("shell.filter.all")}
+        </button>
+        <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
+          style={bulkBtn}
+          disabled={kept.length === 0}
+          onClick={() => onToggleAll(i, false)}
+          aria-label={tr("shell.values.noneFor", { name })}
+        >
+          {tr("shell.filter.none")}
+        </button>
+      </div>
+      <ul
+        ref={drag.listRef}
+        style={{
+          listStyle: "none",
+          margin: 0,
+          padding: 0,
+          maxHeight: 420,
+          overflowY: "auto",
+        }}
+      >
+        {labels.flatMap((label, li) => {
+          const raws = byLabel.get(label) || [];
+          return raws.map((v, k) => (
+            <ValueRow
+              key={v}
+              raw={v}
+              shown={valueRenames && valueRenames[v] != null ? valueRenames[v] : v}
+              count={counts?.get(v) || 0}
+              merged={raws.length > 1}
+              included={f.included.has(v)}
+              empty={empty}
+              onToggle={() => onToggle(i, v)}
+              onRename={(nv) => onRenameVal(i, v, nv)}
+              // The first row of a label carries the controls that move the
+              // whole label (arrows and drag grip).
+              up={col && k === 0 ? () => moveLabel(li, li - 1) : undefined}
+              down={col && k === 0 ? () => moveLabel(li, li + 1) : undefined}
+              handle={col && k === 0 ? drag.handleProps(li) : undefined}
+              reorderIndex={col ? li : undefined}
+              rowStyle={
+                col
+                  ? drag.rowStyle(li, labels.length, {
+                      first: k === 0,
+                      last: k === raws.length - 1,
+                    })
+                  : undefined
+              }
+              isFirst={li === 0}
+              isLast={li === labels.length - 1}
+            />
+          ));
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -241,6 +298,9 @@ function ValueRow({
   onRename,
   up,
   down,
+  handle,
+  reorderIndex,
+  rowStyle,
   isFirst,
   isLast,
 }: {
@@ -254,6 +314,9 @@ function ValueRow({
   onRename: (v: string) => void;
   up?: () => void;
   down?: () => void;
+  handle?: DragHandleProps;
+  reorderIndex?: number;
+  rowStyle?: React.CSSProperties;
   isFirst: boolean;
   isLast: boolean;
 }) {
@@ -262,14 +325,23 @@ function ValueRow({
   const renamed = shown !== raw;
   return (
     <li
+      data-reorder-index={reorderIndex}
       style={{
         display: "flex",
         alignItems: "center",
         gap: 6,
         padding: "4px 0",
         borderBottom: "1px solid var(--border-subtle)",
+        ...rowStyle,
       }}
     >
+      {reorderIndex != null &&
+        (handle ? (
+          <DragHandle {...handle} />
+        ) : (
+          // Later rows of a merged label: keep the grip column aligned.
+          <span aria-hidden="true" style={{ width: 14, flexShrink: 0 }} />
+        ))}
       <input
         type="checkbox"
         checked={included}

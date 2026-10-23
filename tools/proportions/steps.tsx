@@ -7,7 +7,9 @@ import {
   ControlTabs,
   DetectedSeparatorBadge,
   DownloadTiles,
+  DragHandle,
   WorkspaceLayout,
+  useDragReorder,
 } from "../_shell";
 import type { ChartDataTableRow } from "../_shell";
 import { fileBaseName } from "../_core/download";
@@ -37,15 +39,17 @@ function move(items: OrderItem[], from: number, to: number): OrderItem[] {
 export function OrderList({ title, items, onChange, testIdPrefix }: OrderListProps) {
   const tr = useT();
   const btn: React.CSSProperties = { padding: "1px 7px", fontSize: 12, lineHeight: "18px" };
+  const drag = useDragReorder((from, to) => onChange(move(items, from, to)));
   return (
     <div className="dv-panel" style={{ flex: "1 1 260px", minWidth: 0 }}>
       <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
         {title}
       </p>
-      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+      <ul ref={drag.listRef} style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {items.map((it, i) => (
           <li
             key={it.name}
+            data-reorder-index={i}
             style={{
               display: "flex",
               alignItems: "center",
@@ -53,8 +57,10 @@ export function OrderList({ title, items, onChange, testIdPrefix }: OrderListPro
               padding: "3px 0",
               borderBottom: "1px solid var(--border)",
               opacity: it.include ? 1 : 0.55,
+              ...drag.rowStyle(i, items.length),
             }}
           >
+            <DragHandle {...drag.handleProps(i)} />
             <input
               type="checkbox"
               checked={it.include}
