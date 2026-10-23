@@ -7,24 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-23
+
+> Long-form release notes live in
+> [`docs/release-notes/v2.1.0.md`](docs/release-notes/v2.1.0.md). The
+> entries below are summary bullets that link there.
+>
+> The "Tidy Up" release: drag-and-drop reordering, Group Plot without its Output step, an
+> easier-to-find statistics strip, and SVG exports with every element named for Inkscape.
+> Charts and statistics are unchanged.
+
 ### Added
 
-- Lists that reorder with ↑ / ↓ (Group Plot's filter step, Proportions and qPCR group order) also
-  reorder by dragging a row by its grip.
+- **Drag and drop to reorder.** Lists that reorder with ↑ / ↓ (Group Plot's filter step,
+  Proportions, qPCR group order) also reorder by dragging a row by its grip. See
+  [`docs/release-notes/v2.1.0.md`](docs/release-notes/v2.1.0.md#drag-and-drop-to-reorder).
 
 ### Changed
 
-- Group Plot drops its Output step: the long and wide data CSVs are in the plot step's "More"
-  menu. Long is one file; wide is split into one file per facet / subgroup, since its one column
-  per group would otherwise mix them.
-- The folded "Statistics" strip on the right of the plot now shows its label as a blue button,
-  so the hidden statistics column is easier to find.
+- **Group Plot: no Output step.** The long and wide data CSVs are in the plot step's "More" menu;
+  long is one file, wide is split per facet / subgroup. See
+  [`docs/release-notes/v2.1.0.md`](docs/release-notes/v2.1.0.md#group-plot-no-more-output-step).
+- **Statistics strip.** The folded "Statistics" strip shows its label as a blue button. See
+  [`docs/release-notes/v2.1.0.md`](docs/release-notes/v2.1.0.md#statistics-strip-is-easier-to-find).
 
 ### Fixed
 
-- Exported SVGs keep every element in a named group for Inkscape: qPCR's per-gene brackets and
-  letters no longer share one id, and stray background / overlay shapes in Group Plot, Line Plot,
-  RLU Timecourse, Heatmap and Venn are now named groups. Regression: 10 e2e tests.
+- **SVG exports.** Every exported element sits in a uniquely named group for Inkscape (qPCR's
+  per-gene brackets and letters, Heatmap overlays, Group Plot pies, chart backgrounds).
+  Regression: 10 e2e tests. See
+  [`docs/release-notes/v2.1.0.md`](docs/release-notes/v2.1.0.md#svg-exports-every-element-in-a-named-group).
 
 ## [2.0.0] - 2026-10-21
 
