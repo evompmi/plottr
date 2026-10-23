@@ -29,6 +29,8 @@ export { DataPreview } from "./DataPreview";
 export { DatasheetIcon } from "./DatasheetIcon";
 export { DetectedSeparatorBadge, describeSeparator } from "./DetectedSeparatorBadge";
 export { DiscretePaletteRow } from "./DiscretePaletteRow";
+export { DragHandle, useDragReorder } from "./DragReorder";
+export type { DragHandleProps, DragReorder } from "./DragReorder";
 export { DownloadTiles } from "./DownloadTiles";
 export { ErrorBoundary } from "./ErrorBoundary";
 export { FileDropZone, FILE_LIMIT_BYTES, FILE_WARN_BYTES } from "./FileDropZone";
@@ -83,6 +85,8 @@ export type { WorkspaceLayoutProps } from "./WorkspaceLayout";
 // ── Pure helpers / data / hooks ─────────────────────────────────────
 export { assignBracketLevels } from "./bracket-levels";
 export { PlotActionsContext } from "./plot-actions";
+export { dropSlot, slotToIndex } from "./drag-reorder";
+export type { RowSpan } from "./drag-reorder";
 export {
   alphaSentence,
   buildGroupMethodsText,

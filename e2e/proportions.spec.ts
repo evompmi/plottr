@@ -2,7 +2,19 @@
 // brackets → stacked / mosaic charts → test override → goodness of fit on
 // the F2 segregation example.
 
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Locator, Page } from "@playwright/test";
+
+// Drag `handle` with the mouse so the pointer ends `dy` px below where it
+// started (several moves so the list sees the pointer travel).
+async function dragBy(page: Page, handle: Locator, dy: number) {
+  const box = (await handle.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + dy, { steps: 8 });
+  await page.mouse.up();
+}
 
 async function loadColonisation(page: Page) {
   await page.goto("/index.html#/proportions");
@@ -110,4 +122,16 @@ test("control group: each group vs the control only, brackets, no letters", asyn
   await expect(page.locator("g#significance-brackets > g")).toHaveCount(2);
   await page.getByTestId("proportions-control").selectOption({ label: "All pairs" });
   await expect(rows).toHaveCount(6);
+});
+
+test("configure: groups reorder by drag and drop", async ({ page }) => {
+  await page.goto("/index.html#/proportions");
+  await page.getByTestId("load-example").click();
+  const list = page.locator("ul").filter({ has: page.getByTestId("proportions-group-include-0") });
+  const order = () =>
+    list.locator("li").evaluateAll((lis) => lis.map((li) => li.textContent?.replace(/↑↓$/, "")));
+  const before = await order();
+  const rowH = (await list.locator("li").first().boundingBox())!.height;
+  await dragBy(page, list.getByTestId("drag-handle").first(), rowH * 1.2);
+  expect(await order()).toEqual([before[1], before[0], ...before.slice(2)]);
 });

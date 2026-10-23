@@ -116,12 +116,13 @@ const fr: Record<ShellKey, string> = {
   "shell.toggle.off": "Désactivé",
   "shell.inspector.show": "Afficher : {name}",
   "shell.inspector.hide": "Masquer",
+  "shell.reorder.drag": "Glisser pour réordonner",
 
   // ValueListPanel (étape filtre : garder / renommer / ordonner les valeurs)
   "shell.values.heading": "Groupes & filtres",
   "shell.values.kept": "{shown} lignes gardées sur {total}",
   "shell.values.hint":
-    "Décochez une valeur pour retirer ses lignes, tapez pour la renommer (deux valeurs du même nom fusionnent), et utilisez ↑ ↓ pour fixer l’ordre sur le graphe.",
+    "Décochez une valeur pour retirer ses lignes, tapez pour la renommer (deux valeurs du même nom fusionnent), et faites glisser une ligne par sa poignée ou utilisez ↑ ↓ pour fixer l’ordre sur le graphe.",
   "shell.values.colKept": "{kept} gardées sur {total}",
   "shell.values.allFor": "Garder toutes les valeurs de {name}",
   "shell.values.noneFor": "Retirer toutes les valeurs de {name}",

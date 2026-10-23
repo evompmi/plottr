@@ -6,9 +6,11 @@ import {
   DataPreview,
   DetectedSeparatorBadge,
   DownloadTiles,
+  DragHandle,
   ControlTabs,
   WorkspaceLayout,
   SegToggle,
+  useDragReorder,
 } from "../_shell";
 import { fileBaseName } from "../_core/download";
 import type {
@@ -190,6 +192,7 @@ export function ConfigureStep(p: ConfigureStepProps) {
   ];
   const btn: React.CSSProperties = { padding: "1px 7px", fontSize: 12, lineHeight: "18px" };
   const genorm = Object.entries(p.genorm);
+  const groupDrag = useDragReorder((from, to) => p.setGroupOrder(move(groupOrder, from, to)));
 
   return (
     <div>
@@ -423,10 +426,11 @@ export function ConfigureStep(p: ConfigureStepProps) {
                   {tr("qpcr.cfg.normRefsNote")}
                 </p>
               )}
-              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              <ul ref={groupDrag.listRef} style={{ listStyle: "none", margin: 0, padding: 0 }}>
                 {groupOrder.map((it, i) => (
                   <li
                     key={it.name}
+                    data-reorder-index={i}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -434,8 +438,10 @@ export function ConfigureStep(p: ConfigureStepProps) {
                       padding: "3px 0",
                       borderBottom: "1px solid var(--border)",
                       opacity: it.include ? 1 : 0.55,
+                      ...groupDrag.rowStyle(i, groupOrder.length),
                     }}
                   >
+                    <DragHandle {...groupDrag.handleProps(i)} />
                     <input
                       type="checkbox"
                       checked={it.include}

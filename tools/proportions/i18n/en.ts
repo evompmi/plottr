@@ -26,7 +26,7 @@ const en = {
   "proportions.cfg.pasted": "Pasted data",
   "proportions.cfg.shape": " — {groups} groups × {cats} outcome categories",
   "proportions.cfg.help":
-    "Untick groups or outcomes to leave them out, and use the arrows to set their order on the chart.",
+    "Untick groups or outcomes to leave them out, and drag a row or use the arrows to set their order on the chart.",
   "proportions.cfg.blank.one": "{count} blank cell was read as 0.",
   "proportions.cfg.blank.other": "{count} blank cells were read as 0.",
   "proportions.cfg.needTwo": "Keep at least two groups and two outcome categories.",

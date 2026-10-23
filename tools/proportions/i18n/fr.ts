@@ -25,7 +25,7 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.cfg.pasted": "Données collées",
   "proportions.cfg.shape": " — {groups} groupes × {cats} modalités",
   "proportions.cfg.help":
-    "Décochez des groupes ou modalités pour les exclure ; utilisez les flèches pour régler leur ordre sur le graphique.",
+    "Décochez des groupes ou modalités pour les exclure ; faites glisser une ligne ou utilisez les flèches pour régler leur ordre sur le graphique.",
   "proportions.cfg.blank.one": "{count} cellule vide a été lue comme 0.",
   "proportions.cfg.blank.other": "{count} cellules vides ont été lues comme 0.",
   "proportions.cfg.needTwo": "Conservez au moins deux groupes et deux modalités.",

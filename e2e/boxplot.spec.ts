@@ -3,7 +3,19 @@
 // upload → configure → filter → plot. We walk all the way to
 // plot and assert the chart populates with at least one box per group.
 
-import { test, expect } from "@playwright/test";
+import { test, expect, Locator, Page } from "@playwright/test";
+
+// Drag `handle` with the mouse so the pointer ends `dy` px below where it
+// started (several moves so the list sees the pointer travel).
+async function dragBy(page: Page, handle: Locator, dy: number) {
+  const box = (await handle.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + dy, { steps: 8 });
+  await page.mouse.up();
+}
 
 test("boxplot: load example → walk to plot → chart renders boxes", async ({ page }) => {
   await page.goto("/index.html#/boxplot");
@@ -93,6 +105,37 @@ test("boxplot: filter step keeps, renames and orders groups in one list", async 
     .locator("svg g#groups > g")
     .evaluateAll((gs) => gs.map((g) => g.getAttribute("id")));
   expect(ids).toEqual(["group-oxSOS1", "group-Col0"]);
+});
+
+test("boxplot: filter step rows reorder by drag and drop", async ({ page }) => {
+  await page.goto("/index.html#/boxplot");
+  await page.getByTestId("load-example").click();
+  await page.getByTestId("step-filter").click();
+
+  const genotype = page.getByRole("region", { name: "Genotype" });
+  const rowOrder = () =>
+    genotype
+      .getByRole("textbox")
+      .evaluateAll((els) => els.map((e) => (e as { value: string }).value));
+  const handles = genotype.getByTestId("drag-handle");
+  const rowH = (await genotype.locator("li").first().boundingBox())!.height;
+
+  // WT dragged below oxSOS1 lands last.
+  await dragBy(page, handles.nth(0), rowH * 2.2);
+  expect(await rowOrder()).toEqual(["abi4", "oxSOS1", "WT"]);
+  // Dropped back on itself: nothing moves.
+  await dragBy(page, handles.nth(1), rowH * 0.2);
+  expect(await rowOrder()).toEqual(["abi4", "oxSOS1", "WT"]);
+  // WT dragged to the top.
+  await dragBy(page, handles.nth(2), -rowH * 2.2);
+  expect(await rowOrder()).toEqual(["WT", "abi4", "oxSOS1"]);
+
+  await dragBy(page, handles.nth(0), rowH * 1.2);
+  await page.getByTestId("step-plot").click();
+  const ids = await page
+    .locator("svg g#groups > g")
+    .evaluateAll((gs) => gs.map((g) => g.getAttribute("id")));
+  expect(ids).toEqual(["group-abi4", "group-WT", "group-oxSOS1"]);
 });
 
 test("boxplot: statistics column opens on demand; marks work while it is closed", async ({
