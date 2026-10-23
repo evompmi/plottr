@@ -52,6 +52,7 @@ export function PlotControls({
   setSubgroupByCol,
   onDownloadSvg,
   onDownloadPng,
+  dataDownloads,
   compositionTables,
   onSendComposition,
 }: PlotControlsProps) {
@@ -153,6 +154,7 @@ export function PlotControls({
                 onDownloadSvg={onDownloadSvg}
                 onDownloadPng={onDownloadPng}
                 onReset={resetAll}
+                extraDownloads={dataDownloads}
               />
 
               {/* Conditions / group color editor */}

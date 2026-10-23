@@ -159,7 +159,7 @@ tests deliberately reach across layers and are excluded.
         │ app.tsx          orchestrator: state, step routing    │
         │     │                                                 │
         │     ├─► steps.tsx          UploadStep / ConfigureStep │
-        │     │       │                FilterStep / OutputStep  │
+        │     │       │                FilterStep / PlotStep    │
         │     │       │                                         │
         │     │       └─► PlotToolShell (_shell)                │
         │     │             • AppBar: StepNavBar, file chip,    │

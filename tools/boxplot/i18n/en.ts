@@ -139,19 +139,12 @@ const en = {
   "boxplot.steps.previewOf": "of {total} rows",
   "boxplot.steps.filteredOut": "filtered out",
 
-  // Steps — output
-  "boxplot.steps.filteredLong": "Filtered data (long)",
-  "boxplot.steps.longCsv": "⬇ Long CSV",
-  "boxplot.steps.reshapedWide": "Reshaped (wide)",
-  "boxplot.steps.wideCsv": "⬇ Wide CSV",
-  "boxplot.steps.unlabelled.one":
-    '⚠ {count} row had an empty group cell — all merged under the "?" column.',
-  "boxplot.steps.unlabelled.other":
-    '⚠ {count} rows had an empty group cell — all merged under the "?" column.',
-  "boxplot.steps.assignReshape":
-    "⚠ Assign <strong>group</strong> + <strong>value</strong> columns to enable reshaping & stats.",
-  "boxplot.steps.nonNumericOutput":
-    '⚠ Column <strong>"{name}"</strong> is assigned as <strong>value</strong> but appears to be non-numeric — the plot will be empty. Go back to Configure and assign a numeric column as value.',
+  // Export bar — data CSVs (More menu)
+  "boxplot.dl.longCsv": "Long CSV",
+  "boxplot.dl.longCsvTitle": "Filtered and renamed data, one row per observation",
+  "boxplot.dl.wideCsv": "Wide CSV",
+  "boxplot.dl.wideCsvTitle":
+    "Filtered and renamed data, one column per group — one file per facet / subgroup",
 
   // Stats panel — test names
   "boxplot.test.studentT": "Student's t-test",

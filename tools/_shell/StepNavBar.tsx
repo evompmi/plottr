@@ -12,7 +12,6 @@ const STEP_LABEL_KEYS: Record<string, ShellKey> = {
   upload: "shell.step.upload",
   configure: "shell.step.configure",
   filter: "shell.step.filter",
-  output: "shell.step.output",
   plot: "shell.step.plot",
 };
 
