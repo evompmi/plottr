@@ -78,6 +78,7 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.range.noOutliers": "Aucune valeur aberrante détectée",
   "heatmap.range.pctTitle": "Couvrir du {lo}e au {hi}e centile des valeurs",
   "heatmap.range.legendHist": "Distribution dans la légende",
+  "heatmap.border.color": "Couleur",
   "heatmap.border.width": "Épaisseur",
   "heatmap.labels.title": "Titre",
   "heatmap.labels.subtitle": "Sous-titre",
