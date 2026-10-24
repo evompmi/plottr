@@ -49,7 +49,7 @@ const fr: Record<VennKey, string> = {
   "venn.table.degree": "Degré",
   "venn.table.count": "Nombre",
   "venn.items.empty":
-    "Cliquez sur une région du diagramme de Venn ou une ligne du tableau pour afficher les éléments.",
+    "Cliquez sur une région du diagramme de Venn ou une ligne du tableau pour afficher les éléments. Cliquez à nouveau pour annuler la sélection.",
   "venn.items.count.one": "{count} élément",
   "venn.items.count.other": "{count} éléments",
   "venn.chart.fallbackTitle": "Diagramme de Venn",

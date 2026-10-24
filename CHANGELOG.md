@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Landing: the rule above the four "how it works" steps is gone and the steps sit a little higher.
+- Venn: clicking the selected row of the Intersections list again clears the selection, as clicking a selected region on the chart does, and the Items hint now says so. Regression: 1 test.
 
 ## [2.1.0] - 2026-10-23
 
