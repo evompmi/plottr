@@ -59,7 +59,8 @@ const en = {
   "venn.table.region": "Region",
   "venn.table.degree": "Degree",
   "venn.table.count": "Count",
-  "venn.items.empty": "Click a region in the Venn diagram or a row in the table to view items.",
+  "venn.items.empty":
+    "Click a region in the Venn diagram or a row in the table to view items. Click again to reset it.",
   "venn.items.count.one": "{count} item",
   "venn.items.count.other": "{count} items",
 

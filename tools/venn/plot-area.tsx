@@ -58,53 +58,58 @@ export function IntersectionTable({
           </tr>
         </thead>
         <tbody>
-          {intersections.map((inter: Region) => (
-            <tr
-              key={inter.mask}
-              onClick={() => onSelect(inter.mask)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelect(inter.mask);
-                }
-              }}
-              onMouseEnter={() => setHoveredMask(inter.mask)}
-              onMouseLeave={() => setHoveredMask((m) => (m === inter.mask ? null : m))}
-              tabIndex={0}
-              role="button"
-              aria-pressed={selectedMask === inter.mask}
-              aria-label={`${regionLabel(inter.setNames, inter.mask, allSetNames)}, ${tr("venn.items.count", { count: inter.size })}`}
-              style={{
-                borderBottom: "1px solid var(--border)",
-                cursor: "pointer",
-                background:
-                  selectedMask === inter.mask
+          {intersections.map((inter: Region) => {
+            const isSelected = selectedMask === inter.mask;
+            return (
+              <tr
+                key={inter.mask}
+                // Clicking the selected row again clears the selection, as on the chart.
+                onClick={() => onSelect(isSelected ? null : inter.mask)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(isSelected ? null : inter.mask);
+                  }
+                }}
+                onMouseEnter={() => setHoveredMask(inter.mask)}
+                onMouseLeave={() => setHoveredMask((m) => (m === inter.mask ? null : m))}
+                tabIndex={0}
+                role="button"
+                aria-pressed={isSelected}
+                aria-label={`${regionLabel(inter.setNames, inter.mask, allSetNames)}, ${tr("venn.items.count", { count: inter.size })}`}
+                style={{
+                  borderBottom: "1px solid var(--border)",
+                  cursor: "pointer",
+                  background: isSelected
                     ? "var(--row-hover-bg)"
                     : hoveredMask === inter.mask
                       ? "var(--surface-subtle)"
                       : "transparent",
-                transition: "background 120ms ease",
-              }}
-            >
-              <td style={{ padding: "6px 10px", color: "var(--text)", fontWeight: 500 }}>
-                {regionLabel(inter.setNames, inter.mask, allSetNames)}
-              </td>
-              <td style={{ padding: "6px 10px", textAlign: "center", color: "var(--text-faint)" }}>
-                {inter.degree}
-              </td>
-              <td
-                style={{
-                  padding: "6px 10px",
-                  textAlign: "right",
-                  color: "var(--link)",
-                  fontWeight: 700,
-                  fontFamily: "var(--font-mono)",
+                  transition: "background 120ms ease",
                 }}
               >
-                {inter.size}
-              </td>
-            </tr>
-          ))}
+                <td style={{ padding: "6px 10px", color: "var(--text)", fontWeight: 500 }}>
+                  {regionLabel(inter.setNames, inter.mask, allSetNames)}
+                </td>
+                <td
+                  style={{ padding: "6px 10px", textAlign: "center", color: "var(--text-faint)" }}
+                >
+                  {inter.degree}
+                </td>
+                <td
+                  style={{
+                    padding: "6px 10px",
+                    textAlign: "right",
+                    color: "var(--link)",
+                    fontWeight: 700,
+                    fontFamily: "var(--font-mono)",
+                  }}
+                >
+                  {inter.size}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

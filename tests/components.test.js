@@ -3657,3 +3657,48 @@ test("loads once for #/<tool>?example, cleans the hash, ignores other routes", f
   eq(loads, 2, "no listener after unmount");
   window.history.replaceState(null, "", "#");
 });
+
+suite("Venn IntersectionTable");
+
+test("clicking the selected row again clears the selection, as on the chart", function () {
+  const React = require("react");
+  const { IntersectionTable } = loadTool("venn").exports;
+  const region = (mask, setNames, size) => ({
+    mask,
+    setNames,
+    degree: setNames.length,
+    items: [],
+    size,
+  });
+  const intersections = [region(1, ["A"], 4), region(2, ["B"], 3), region(3, ["A", "B"], 2)];
+  const picks = [];
+  const render = (selectedMask) =>
+    renderWithEffects(IntersectionTable, {
+      intersections,
+      allSetNames: ["A", "B"],
+      selectedMask,
+      onSelect: (m) => picks.push(m),
+    });
+  const rows = (container) => container.querySelectorAll('tbody tr[role="button"]');
+
+  let r = render(null);
+  React.act(() => rows(r.container)[2].click());
+  eq(picks.pop(), 3, "an unselected row selects its region");
+  React.act(() => r.root.unmount());
+
+  r = render(3);
+  eq(rows(r.container)[2].getAttribute("aria-pressed"), "true");
+  React.act(() => rows(r.container)[2].click());
+  eq(picks.pop(), null, "clicking the selected row clears the selection");
+  React.act(() => rows(r.container)[0].click());
+  eq(picks.pop(), 1, "another row still switches the selection");
+  for (const key of ["Enter", " "]) {
+    React.act(() =>
+      rows(r.container)[2].dispatchEvent(
+        new window.KeyboardEvent("keydown", { key, bubbles: true })
+      )
+    );
+    eq(picks.pop(), null, `${JSON.stringify(key)} on the selected row clears it too`);
+  }
+  React.act(() => r.root.unmount());
+});

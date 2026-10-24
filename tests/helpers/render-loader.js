@@ -319,6 +319,7 @@ function loadTool(toolName) {
     "PlotPanel: typeof PlotPanel !== 'undefined' ? PlotPanel : undefined," +
     "VolcanoChart: typeof VolcanoChart !== 'undefined' ? VolcanoChart : undefined," +
     "VennChart: typeof VennChart !== 'undefined' ? VennChart : undefined," +
+    "IntersectionTable: typeof IntersectionTable !== 'undefined' ? IntersectionTable : undefined," +
     "UpsetChart: typeof UpsetChart !== 'undefined' ? UpsetChart : undefined," +
     "HeatmapChart: typeof HeatmapChart !== 'undefined' ? HeatmapChart : undefined," +
     "SkewAlert: typeof SkewAlert !== 'undefined' ? SkewAlert : undefined," +

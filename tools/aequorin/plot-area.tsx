@@ -823,21 +823,20 @@ export function SampleSelectionOverlay({
   (conditions || []).forEach((c) => {
     if (c && c.prefix != null) labelByPrefix[c.prefix] = c.label ?? c.prefix;
   });
+  // A full-width toolbar row of its own, under Series / Layout. The panel
+  // opens in the page flow, pushing the plot down rather than covering it.
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-      <span
-        style={{
-          fontSize: 9,
-          fontWeight: 700,
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          color: "var(--text-faint)",
-          marginBottom: 2,
-        }}
-      >
-        {tr("aequorin.pa.samples")}
-      </span>
-      <div style={{ position: "relative", display: "inline-block" }}>
+    <div
+      style={{
+        flexBasis: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: 8,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span className="dv-toolbar-label">{tr("aequorin.pa.samples")}</span>
         <button
           onClick={() => setShowColumnOverlay(!showColumnOverlay)}
           aria-pressed={showColumnOverlay}
@@ -855,117 +854,110 @@ export function SampleSelectionOverlay({
         >
           {showColumnOverlay ? tr("aequorin.pa.close") : tr("aequorin.pa.sampleSelection")}
         </button>
-        {showColumnOverlay && (
+      </div>
+      {showColumnOverlay && (
+        <div
+          style={{
+            maxWidth: "100%",
+            background: "var(--surface)",
+            borderRadius: 10,
+            border: "1px solid var(--warning-border)",
+            padding: "12px 14px",
+          }}
+        >
           <div
             style={{
-              position: "absolute",
-              top: "100%",
-              left: 0,
-              marginTop: 6,
-              width: 420,
-              background: "var(--surface)",
-              borderRadius: 10,
-              border: "1px solid var(--warning-border)",
-              boxShadow: "var(--shadow-lg)",
-              padding: "12px 14px",
-              maxHeight: 360,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              maxHeight: 260,
               overflowY: "auto",
+              padding: 2,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 8,
-                maxHeight: 260,
-                overflowY: "auto",
-                padding: 2,
-              }}
-            >
-              {(() => {
-                interface SampleGroup {
-                  name: string;
-                  cols: ColInfo[];
+            {(() => {
+              interface SampleGroup {
+                name: string;
+                cols: ColInfo[];
+              }
+              const groups: SampleGroup[] = [];
+              const seen: Record<string, SampleGroup> = {};
+              colInfo.forEach((c) => {
+                if (!seen[c.h]) {
+                  seen[c.h] = { name: c.h, cols: [] };
+                  groups.push(seen[c.h]);
                 }
-                const groups: SampleGroup[] = [];
-                const seen: Record<string, SampleGroup> = {};
-                colInfo.forEach((c) => {
-                  if (!seen[c.h]) {
-                    seen[c.h] = { name: c.h, cols: [] };
-                    groups.push(seen[c.h]);
-                  }
-                  seen[c.h].cols.push(c);
-                });
-                return groups.map((g) => {
-                  const headerLabel = poolReplicates ? (labelByPrefix[g.name] ?? g.name) : g.name;
-                  return (
+                seen[c.h].cols.push(c);
+              });
+              return groups.map((g) => {
+                const headerLabel = poolReplicates ? (labelByPrefix[g.name] ?? g.name) : g.name;
+                return (
+                  <div
+                    key={g.name}
+                    style={{
+                      background: "var(--surface-subtle)",
+                      borderRadius: 6,
+                      border: "1px solid var(--border)",
+                      padding: "5px 7px",
+                      minWidth: 0,
+                    }}
+                  >
                     <div
-                      key={g.name}
                       style={{
-                        background: "var(--surface-subtle)",
-                        borderRadius: 6,
-                        border: "1px solid var(--border)",
-                        padding: "5px 7px",
-                        minWidth: 0,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: "var(--text-muted)",
+                        marginBottom: 3,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          color: "var(--text-muted)",
-                          marginBottom: 3,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {headerLabel}
-                      </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                        {g.cols.map(({ h, i, rep }) => {
-                          const enabled = columnEnabled[i] !== false;
-                          const showRep = g.cols.length > 1 || !poolReplicates;
-                          return (
-                            <label
-                              key={i}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 3,
-                                padding: "2px 6px",
-                                background: enabled ? "var(--surface)" : "var(--surface-subtle)",
-                                borderRadius: 4,
-                                border: `1px solid ${enabled ? "var(--border-strong)" : "var(--border)"}`,
-                                opacity: enabled ? 1 : 0.45,
-                                fontSize: 10,
-                                cursor: "pointer",
-                                userSelect: "none",
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={enabled}
-                                onChange={(e) => handleColumnToggle(i, e.target.checked)}
-                                style={{
-                                  accentColor: "var(--warning-text)",
-                                  width: 12,
-                                  height: 12,
-                                }}
-                              />
-                              {showRep ? `rep${rep}` : h}
-                            </label>
-                          );
-                        })}
-                      </div>
+                      {headerLabel}
                     </div>
-                  );
-                });
-              })()}
-            </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                      {g.cols.map(({ h, i, rep }) => {
+                        const enabled = columnEnabled[i] !== false;
+                        const showRep = g.cols.length > 1 || !poolReplicates;
+                        return (
+                          <label
+                            key={i}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                              padding: "2px 6px",
+                              background: enabled ? "var(--surface)" : "var(--surface-subtle)",
+                              borderRadius: 4,
+                              border: `1px solid ${enabled ? "var(--border-strong)" : "var(--border)"}`,
+                              opacity: enabled ? 1 : 0.45,
+                              fontSize: 10,
+                              cursor: "pointer",
+                              userSelect: "none",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={enabled}
+                              onChange={(e) => handleColumnToggle(i, e.target.checked)}
+                              style={{
+                                accentColor: "var(--warning-text)",
+                                width: 12,
+                                height: 12,
+                              }}
+                            />
+                            {showRep ? `rep${rep}` : h}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
