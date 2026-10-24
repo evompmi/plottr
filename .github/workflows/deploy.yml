@@ -13,10 +13,10 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+# Only the gh-pages push needs write access; peaceiris uses the token below,
+# not Pages' OIDC deploy, so `pages` / `id-token` are not granted.
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -24,20 +24,34 @@ env:
 jobs:
   build-and-deploy:
     # workflow_run fires on both success and failure — gate on success.
+    # Tests also runs on pull requests, and the `branches` filter above matches
+    # the triggering run's head branch *name*, which a fork chooses: a fork PR
+    # from its own `master` would pass it. So also require that Tests ran on a
+    # push to this repository — never deploy (or run the build with a write
+    # token on) a fork's commit.
     # A manual workflow_dispatch run has no workflow_run payload, so allow it
     # unconditionally (use it to force a redeploy).
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Actions are pinned to full commit SHAs (tag in the trailing comment):
+      # this job holds a write token, and a moved tag would run new code with it.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          # The deploy step takes its own token; don't leave one in .git/config
+          # for the npm scripts to read.
+          persist-credentials: false
           # Check out the exact commit Tests passed on (workflow_run), or the
           # dispatched ref — never a newer, untested tip of the branch.
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
 
@@ -48,7 +62,7 @@ jobs:
         run: npm run build
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847 # v3.9.3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .
