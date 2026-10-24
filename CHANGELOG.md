@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Landing: the rule above the four "how it works" steps is gone and the steps sit a little higher.
+
 ## [2.1.0] - 2026-10-23
 
 > Long-form release notes live in
