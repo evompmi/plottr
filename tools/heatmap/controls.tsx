@@ -556,17 +556,24 @@ export function PlotControls({
                   </button>
                 </div>
                 {cellBorder.on && (
-                  <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                    <ColorInput
-                      value={cellBorder.color}
-                      onChange={(c) => updCellBorder({ color: c })}
-                      size={18}
-                      label={tr("heatmap.sec.cellBorders")}
-                    />
-                    <label style={{ fontSize: 11, flex: 1 }}>
-                      {tr("heatmap.border.width")}
-                      <input
-                        type="number"
+                  <div style={{ marginTop: 8, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                    <div style={{ fontSize: 11 }}>
+                      <span className="dv-label">{tr("heatmap.border.color")}</span>
+                      <div
+                        style={{ height: "var(--seg-h)", display: "flex", alignItems: "center" }}
+                      >
+                        <ColorInput
+                          value={cellBorder.color}
+                          onChange={(c) => updCellBorder({ color: c })}
+                          size={22}
+                          label={tr("heatmap.sec.cellBorders")}
+                        />
+                      </div>
+                    </div>
+                    <label style={{ fontSize: 11, flex: 1, display: "block" }}>
+                      <span className="dv-label">{tr("heatmap.border.width")}</span>
+                      <NumberInput
+                        aria-label={tr("heatmap.border.width")}
                         value={cellBorder.width}
                         min="0.25"
                         step="0.25"
@@ -574,7 +581,7 @@ export function PlotControls({
                         onChange={(e) =>
                           updCellBorder({ width: parseFloat(e.target.value) || 0.5 })
                         }
-                        style={{ width: "100%", fontSize: 11, marginTop: 2 }}
+                        style={{ width: "100%" }}
                       />
                     </label>
                   </div>

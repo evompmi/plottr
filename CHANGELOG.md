@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Landing: the rule above the four "how it works" steps is gone and the steps sit a little higher.
 - RLU Timecourse: Sample selection sits on its own row under Series / Layout, and its panel opens there, pushing the plot down instead of floating over it.
 - Venn: clicking the selected row of the Intersections list again clears the selection, as clicking a selected region on the chart does, and the Items hint now says so. Regression: 1 test.
+- Heatmap: the cell-border width is a −/+ number box like the other numeric settings, instead of the browser's native spinner, and the border colour now has its own title, aligned with Width.
 
 ## [2.1.0] - 2026-10-23
 

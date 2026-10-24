@@ -95,6 +95,7 @@ const en = {
   "heatmap.range.legendHist": "Distribution in legend",
 
   // Cell borders
+  "heatmap.border.color": "Colour",
   "heatmap.border.width": "Width",
 
   // Labels section
