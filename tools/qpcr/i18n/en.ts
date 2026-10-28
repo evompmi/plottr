@@ -77,6 +77,14 @@ const en = {
     "{count} wells have no Ct (undetermined); they are left out of their sample's mean.",
   "qpcr.qc.noisy.one": "{count} technical-replicate set differs by more than 0.5 cycles (SD):",
   "qpcr.qc.noisy.other": "{count} technical-replicate sets differ by more than 0.5 cycles (SD):",
+  "qpcr.qc.noisyHelp":
+    "Choose what to do with each set. Dropping a whole set removes that sample from the gene (from every target if it is a reference gene).",
+  "qpcr.qc.keep": "Keep all wells",
+  "qpcr.qc.dropOutlier": "Drop outlier well ({ct})",
+  "qpcr.qc.dropSet": "Drop whole set",
+  "qpcr.qc.actionFor": "What to do with {name}",
+  "qpcr.qc.excluded.one": "{count} well excluded from the analysis.",
+  "qpcr.qc.excluded.other": "{count} wells excluded from the analysis.",
   "qpcr.qc.genorm": "Reference-gene stability, geNorm M:",
   "qpcr.qc.genormHelp":
     "M is the average variation of each reference gene's ratio to the others across samples (Vandesompele et al. 2002); lower M means more stable expression.",
@@ -284,6 +292,14 @@ const en = {
     "Target Ct values were normalised to the geometric mean of the reference genes {refs}.",
   "qpcr.methods.techReps":
     "Technical replicates were averaged per biological sample, and samples missing the target or a reference Ct were excluded.",
+  "qpcr.methods.excludedWells.one":
+    "In {count} technical-replicate set whose SD exceeded 0.5 cycles, the well farthest from the set's median was excluded before averaging.",
+  "qpcr.methods.excludedWells.other":
+    "In {count} technical-replicate sets whose SD exceeded 0.5 cycles, the well farthest from the set's median was excluded before averaging.",
+  "qpcr.methods.excludedSets.one":
+    "{count} technical-replicate set whose SD exceeded 0.5 cycles was excluded entirely.",
+  "qpcr.methods.excludedSets.other":
+    "{count} technical-replicate sets whose SD exceeded 0.5 cycles were excluded entirely.",
   "qpcr.methods.dispMean":
     "Bars and points show back-transformed mean log2 values (geometric means){err}.",
   "qpcr.methods.dispErr": " with {err} computed on the log2 scale",

@@ -74,6 +74,14 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.qc.noisy.one": "{count} série de réplicats techniques varie de plus de 0,5 cycle (ET) :",
   "qpcr.qc.noisy.other":
     "{count} séries de réplicats techniques varient de plus de 0,5 cycle (ET) :",
+  "qpcr.qc.noisyHelp":
+    "Choisissez quoi faire de chaque série. Retirer toute une série écarte cet échantillon pour ce gène (pour toutes les cibles s’il s’agit d’un gène de référence).",
+  "qpcr.qc.keep": "Garder tous les puits",
+  "qpcr.qc.dropOutlier": "Retirer le puits aberrant ({ct})",
+  "qpcr.qc.dropSet": "Retirer toute la série",
+  "qpcr.qc.actionFor": "Que faire de {name}",
+  "qpcr.qc.excluded.one": "{count} puits exclu de l’analyse.",
+  "qpcr.qc.excluded.other": "{count} puits exclus de l’analyse.",
   "qpcr.qc.genorm": "Stabilité des gènes de référence, M de geNorm :",
   "qpcr.qc.genormHelp":
     "M est la variation moyenne du rapport de chaque gène de référence aux autres d’un échantillon à l’autre (Vandesompele et al. 2002) ; un M plus faible indique une expression plus stable.",
@@ -282,6 +290,14 @@ const fr: Record<QpcrKey, string> = {
     "Les Ct des gènes cibles ont été normalisés sur la moyenne géométrique des gènes de référence {refs}.",
   "qpcr.methods.techReps":
     "Les réplicats techniques ont été moyennés par échantillon biologique, et les échantillons sans Ct pour la cible ou une référence ont été exclus.",
+  "qpcr.methods.excludedWells.one":
+    "Dans {count} série de réplicats techniques dont l’écart-type dépassait 0,5 cycle, le puits le plus éloigné de la médiane de la série a été exclu avant le calcul de la moyenne.",
+  "qpcr.methods.excludedWells.other":
+    "Dans {count} séries de réplicats techniques dont l’écart-type dépassait 0,5 cycle, le puits le plus éloigné de la médiane de la série a été exclu avant le calcul de la moyenne.",
+  "qpcr.methods.excludedSets.one":
+    "{count} série de réplicats techniques dont l’écart-type dépassait 0,5 cycle a été entièrement exclue.",
+  "qpcr.methods.excludedSets.other":
+    "{count} séries de réplicats techniques dont l’écart-type dépassait 0,5 cycle ont été entièrement exclues.",
   "qpcr.methods.dispMean":
     "Les barres et points représentent les moyennes log2 retransformées (moyennes géométriques){err}.",
   "qpcr.methods.dispErr": ", avec {err} calculés sur l’échelle log2",

@@ -15,6 +15,7 @@ import {
 } from "../_shell";
 import { fileBaseName, saveBlob } from "../_core/download";
 import { buildXlsx } from "../_core/xlsx";
+import { excludedWells, techRepKey } from "./helpers";
 import type {
   ConfigureStepProps,
   GeneRow,
@@ -23,6 +24,7 @@ import type {
   PlotStepProps,
   QpcrLayout,
   StdCurvePanelProps,
+  TechRepAction,
 } from "./helpers";
 import {
   AxesLabelsTile,
@@ -137,6 +139,87 @@ export function TemplateDownload() {
       >
         {tr("qpcr.tpl.button")}
       </button>
+    </div>
+  );
+}
+
+// Flagged technical-replicate sets, each with a keep / drop-outlier /
+// drop-set selector. Dropped wells are struck through.
+function NoisyRepList({
+  noisy,
+  repActions,
+  setRepAction,
+}: Pick<ConfigureStepProps, "noisy" | "repActions" | "setRepAction">) {
+  const tr = useT();
+  const excluded = excludedWells(noisy, repActions);
+  return (
+    <div style={{ margin: "0 0 6px", fontSize: 12 }} data-testid="qpcr-noisy">
+      <div style={{ color: "var(--warning-text)" }}>
+        {tr("qpcr.qc.noisy", { count: noisy.length })}
+      </div>
+      <div style={{ color: "var(--text-muted)", fontSize: 11, margin: "2px 0 6px" }}>
+        {tr("qpcr.qc.noisyHelp")}
+      </div>
+      <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+        {noisy.map((n) => {
+          const key = techRepKey(n);
+          const name = `${n.group} / ${n.sample} / ${n.gene}`;
+          const action = repActions[key] ?? "keep";
+          return (
+            <li
+              key={key}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                flexWrap: "wrap",
+                padding: "4px 0",
+                borderTop: "1px solid var(--border-subtle)",
+              }}
+            >
+              <span style={{ minWidth: 160, color: "var(--text)" }}>{name}</span>
+              <span style={{ color: "var(--warning-text)", fontFamily: "var(--font-mono)" }}>
+                SD {n.sd.toFixed(2)}
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>
+                {n.cts.map((ct, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      marginRight: 8,
+                      textDecoration: excluded.has(n.wellIdx[i]) ? "line-through" : undefined,
+                      color: excluded.has(n.wellIdx[i]) ? "var(--text-faint)" : undefined,
+                    }}
+                  >
+                    {ct.toFixed(2)}
+                  </span>
+                ))}
+              </span>
+              <select
+                className="dv-select"
+                style={{ marginLeft: "auto" }}
+                value={action}
+                onChange={(e) => setRepAction(key, e.target.value as TechRepAction)}
+                aria-label={tr("qpcr.qc.actionFor", { name })}
+                data-testid="qpcr-noisy-action"
+              >
+                <option value="keep">{tr("qpcr.qc.keep")}</option>
+                {n.outlier >= 0 && (
+                  <option value="dropOutlier">
+                    {tr("qpcr.qc.dropOutlier", { ct: n.cts[n.outlier].toFixed(2) })}
+                  </option>
+                )}
+                <option value="dropSet">{tr("qpcr.qc.dropSet")}</option>
+              </select>
+            </li>
+          );
+        })}
+      </ul>
+      {excluded.size > 0 && (
+        <div style={{ color: "var(--text-muted)", marginTop: 4 }}>
+          {tr("qpcr.qc.excluded", { count: excluded.size })}
+        </div>
+      )}
     </div>
   );
 }
@@ -548,16 +631,11 @@ export function ConfigureStep(p: ConfigureStepProps) {
                 </p>
               )}
               {p.noisy.length > 0 && (
-                <div style={{ margin: "0 0 6px", fontSize: 12, color: "var(--warning-text)" }}>
-                  {tr("qpcr.qc.noisy", { count: p.noisy.length })}
-                  <ul style={{ margin: "4px 0 0 18px", padding: 0 }}>
-                    {p.noisy.map((n) => (
-                      <li key={`${n.group}-${n.sample}-${n.gene}`}>
-                        {`${n.group} / ${n.sample} / ${n.gene}: SD ${n.sd.toFixed(2)}`}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <NoisyRepList
+                  noisy={p.noisy}
+                  repActions={p.repActions}
+                  setRepAction={p.setRepAction}
+                />
               )}
               {genorm.length > 0 && (
                 <div style={{ fontSize: 12, color: "var(--text)" }}>
@@ -725,6 +803,7 @@ export function PlotStep(p: PlotStepProps) {
           onDownloadR={p.onDownloadR}
           refs={p.refs}
           eff={p.eff}
+          excluded={p.excluded}
         />
       }
     />

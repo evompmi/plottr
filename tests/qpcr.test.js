@@ -146,9 +146,10 @@ test("mean / SD / n per sample × gene; missing wells excluded; noisy flag", () 
   assert(Number.isNaN(m3.ct.PR1.sd));
   rel(m3.ct.ACT2.mean, 17.95, 1e-14);
   rel(m3.ct.ACT2.sd, Math.sqrt(0.005), 1e-12);
-  eq(L.noisyTechReps(samples).length, 0);
+  const wells = load().parsed.data.wells;
+  eq(L.noisyTechReps(wells).length, 0);
   // R: sum(aggregate(Ct ~ Group + Sample + Gene, w, sd)$Ct > 0.1, na.rm = TRUE)
-  eq(L.noisyTechReps(samples, 0.1).length, 18);
+  eq(L.noisyTechReps(wells, 0.1).length, 18);
 });
 
 test("same sample id in different groups = different biological samples", () => {
@@ -499,6 +500,149 @@ test("no calibrator: CSV columns, report and R script describe 2^−ΔCt", () =>
   assert(!r.includes("control <-"));
   assert(!r.includes("calibrator <-"));
   assert(r.includes("df$rel_expr <- 2^-df$dct"));
+});
+
+suite("technical replicates — excluding flagged sets");
+
+test("outlierIndex: well farthest from the median, none when ambiguous or < 3", () => {
+  eq(L.outlierIndex([23.1, 23.2, 24.5]), 2);
+  eq(L.outlierIndex([24.5, 23.1, 23.2]), 0);
+  eq(L.outlierIndex([20.0, 21.0, 22.0]), -1); // symmetric: no single outlier
+  eq(L.outlierIndex([20.0, 20.9]), -1);
+  eq(L.outlierIndex([20.0, 20.1, 20.2, 25.0]), 3); // even n: median 20.15
+  eq(L.outlierIndex([20.0, 20.0, 20.0]), -1);
+});
+
+// Mock/1 ACT2 triplicate with one aberrant well; SA/2 PR1 duplicate far apart.
+function noisyFixture() {
+  const csv = FIXTURE.replace(
+    "1,Mock,ACT2,18.30\n",
+    "1,Mock,ACT2,18.30\n1,Mock,ACT2,19.97\n"
+  ).replace("2,SA,PR1,22.80", "2,SA,PR1,24.20");
+  return load(csv).parsed.data.wells;
+}
+
+test("noisyTechReps lists each flagged set with its Cts, well indices and outlier", () => {
+  const wells = noisyFixture();
+  const noisy = L.noisyTechReps(wells);
+  eq(
+    noisy.map((n) => L.techRepKey(n).split("\u0000").join("/")),
+    ["Mock/1/ACT2", "SA/2/PR1"]
+  );
+  const [act, pr] = noisy;
+  eq(act.cts, [18.1, 18.3, 19.97]);
+  eq(
+    act.wellIdx.map((i) => wells[i].ct),
+    [18.1, 18.3, 19.97]
+  );
+  eq(act.outlier, 2);
+  // R: sd(c(18.10, 18.30, 19.97))
+  rel(act.sd, Math.sqrt(1.0543), 1e-12);
+  eq(pr.cts, [23.0, 24.2]);
+  eq(pr.outlier, -1); // two wells: no way to tell which one is off
+});
+
+test("noisyTechReps ignores undetermined wells and single-value sets", () => {
+  const wells = [
+    { sample: "1", group: "A", gene: "G", ct: 20 },
+    { sample: "1", group: "A", gene: "G", ct: null },
+    { sample: "1", group: "A", gene: "H", ct: 20 },
+    { sample: "1", group: "A", gene: "H", ct: null },
+    { sample: "1", group: "A", gene: "H", ct: 23 },
+  ];
+  const noisy = L.noisyTechReps(wells);
+  eq(noisy.length, 1);
+  eq(noisy[0].gene, "H");
+  eq(noisy[0].wellIdx, [2, 4]);
+});
+
+test("excludedWells / exclusionCounts follow the per-set choice", () => {
+  const wells = noisyFixture();
+  const noisy = L.noisyTechReps(wells);
+  const [act, pr] = noisy;
+  const k = (n) => L.techRepKey(n);
+  eq([...L.excludedWells(noisy, {})], []);
+  eq([...L.excludedWells(noisy, { [k(act)]: "keep" })], []);
+  eq([...L.excludedWells(noisy, { [k(act)]: "dropOutlier" })], [act.wellIdx[2]]);
+  eq(
+    [...L.excludedWells(noisy, { [k(act)]: "dropSet" })].sort((a, b) => a - b),
+    act.wellIdx
+  );
+  // No clear outlier in a duplicate: "dropOutlier" keeps both wells.
+  eq([...L.excludedWells(noisy, { [k(pr)]: "dropOutlier" })], []);
+  eq(L.exclusionCounts(noisy, { [k(act)]: "dropOutlier", [k(pr)]: "dropSet" }), {
+    wells: 1,
+    sets: 1,
+  });
+  eq(L.exclusionCounts(noisy, { [k(pr)]: "dropOutlier" }), { wells: 0, sets: 0 });
+});
+
+test("dropping wells changes the analysis: outlier → new mean, set → sample dropped", () => {
+  const wells = noisyFixture();
+  const noisy = L.noisyTechReps(wells);
+  const [act, pr] = noisy;
+  const run = (actions) => {
+    const out = L.excludedWells(noisy, actions);
+    const kept = wells.filter((_, i) => !out.has(i));
+    const samples = L.aggregateTechReps(kept);
+    return { samples, gene: L.computeGene(samples, cfgFor({}), "PR1") };
+  };
+  const keep = run({});
+  const m1 = (r) => r.samples.find((x) => x.group === "Mock" && x.sample === "1");
+  rel(m1(keep).ct.ACT2.mean, (18.1 + 18.3 + 19.97) / 3, 1e-12);
+  const outl = run({ [L.techRepKey(act)]: "dropOutlier" });
+  rel(m1(outl).ct.ACT2.mean, 18.2, 1e-12);
+  eq(m1(outl).ct.ACT2.n, 2);
+  // A reference set dropped: the sample has no ACT2 and leaves every target.
+  const refSet = run({ [L.techRepKey(act)]: "dropSet" });
+  eq(refSet.gene.dropped, [{ sample: "1", group: "Mock" }]);
+  eq(refSet.gene.rows.length, 8);
+  // A target set dropped: only that target loses the sample.
+  const tSet = run({ [L.techRepKey(pr)]: "dropSet" });
+  eq(tSet.gene.dropped, [{ sample: "2", group: "SA" }]);
+});
+
+test("report names each flagged set's decision; R script notes excluded wells", () => {
+  const wells = noisyFixture();
+  const noisy = L.noisyTechReps(wells);
+  const [act, pr] = noisy;
+  const repActions = { [L.techRepKey(act)]: "dropOutlier", [L.techRepKey(pr)]: "keep" };
+  const out = L.excludedWells(noisy, repActions);
+  const kept = wells.filter((_, i) => !out.has(i));
+  const cfg = cfgFor({});
+  const genes = [L.computeGene(L.aggregateTechReps(kept), cfg, "PR1")];
+  const stats = genes.map((g) => L.runGeneStats(g, null));
+  const txt = L.buildQpcrReport({
+    fileName: "f.csv",
+    cfg,
+    genes,
+    stats,
+    missingCt: 1,
+    noisy,
+    repActions,
+    genorm: {},
+    generatedAt: "T",
+  });
+  assert(txt.includes("Technical replicates with SD > 0.5 cycles: 2"), txt);
+  assert(
+    txt.includes(
+      `  Mock / 1 / ACT2: SD = ${act.sd.toFixed(2)} (Ct 18.10, 18.30, 19.97) — outlier well excluded (Ct 19.97)`
+    ),
+    txt
+  );
+  assert(txt.includes(`  SA / 2 / PR1: SD = ${pr.sd.toFixed(2)} (Ct 23.00, 24.20) — kept`), txt);
+  const r = L.buildQpcrRScript({
+    wells: kept,
+    excludedWells: 1,
+    cfg,
+    genes,
+    stats,
+    generatedAt: "T",
+  });
+  assert(r.includes("# 1 well excluded in Plöttr's technical-replicate check is not listed."), r);
+  assert(!r.includes("19.97"), "excluded well not in the R data");
+  const r0 = L.buildQpcrRScript({ wells, cfg, genes, stats, generatedAt: "T" });
+  assert(!r0.includes("technical-replicate check"));
 });
 
 suite("qpcr — Excel template");

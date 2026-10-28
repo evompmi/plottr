@@ -34,6 +34,26 @@ test("configure: references, calibrator and QC are detected", async ({ page }) =
   await expect(qc).toContainText("geNorm M");
 });
 
+test("QC: drop a noisy triplicate's outlier well; the methods text says so", async ({ page }) => {
+  await loadExample(page);
+  const action = page.getByRole("combobox", { name: "What to do with Salt / 2 / WRKY33" });
+  await expect(action).toHaveValue("keep");
+  await action.selectOption("dropOutlier");
+  const qc = page.getByTestId("qpcr-qc");
+  await expect(qc).toContainText("1 well excluded from the analysis.");
+  await page.getByTestId("step-plot").click();
+  await page.getByRole("button", { name: "Show Statistics" }).click();
+  await page.getByTestId("methods-button").first().click();
+  await expect(page.getByTestId("methods-text")).toContainText(
+    "In 1 technical-replicate set whose SD exceeded 0.5 cycles, the well farthest from the set's median was excluded before averaging."
+  );
+  // Back on Configure the choice is kept, and the whole set can go instead.
+  await page.getByTestId("step-configure").click();
+  await expect(action).toHaveValue("dropOutlier");
+  await action.selectOption("dropSet");
+  await expect(qc).toContainText("3 wells excluded from the analysis.");
+});
+
 test("plot: one facet per target, tests on ΔCt, y-scale and letters", async ({ page }) => {
   await loadExample(page);
   await page.getByTestId("step-plot").click();

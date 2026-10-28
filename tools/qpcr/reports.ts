@@ -7,7 +7,8 @@
 import { formatP } from "../_core/stats";
 import { formatRNumber, sanitizeRComment, sanitizeRString, wrapRItems } from "../_shell/r-export";
 import { efficiencyPercent, formatResultLine } from "./helpers";
-import type { GeneAnalysis, GeneStats, NoisyRep, QpcrConfig, Well } from "./helpers";
+import type { GeneAnalysis, GeneStats, NoisyRep, QpcrConfig, TechRepAction, Well } from "./helpers";
+import { techRepKey } from "./helpers";
 
 const rStr = (s: string): string => '"' + sanitizeRString(s) + '"';
 const fc = (log2: number): string =>
@@ -34,6 +35,7 @@ export interface QpcrReportArgs {
   stats: GeneStats[];
   missingCt: number;
   noisy: NoisyRep[];
+  repActions?: Record<string, TechRepAction>;
   genorm: Record<string, number>;
   generatedAt?: string;
 }
@@ -84,8 +86,19 @@ export function buildQpcrReport(a: QpcrReportArgs): string {
   if (a.missingCt > 0) L.push(`Wells without a Ct (undetermined / missing): ${a.missingCt}`);
   if (a.noisy.length > 0) {
     L.push(`Technical replicates with SD > 0.5 cycles: ${a.noisy.length}`);
-    for (const n of a.noisy)
-      L.push(`  ${n.group} / ${n.sample} / ${n.gene}: SD = ${n.sd.toFixed(2)}`);
+    for (const n of a.noisy) {
+      const act = a.repActions?.[techRepKey(n)] ?? "keep";
+      const what =
+        act === "dropSet"
+          ? "set excluded"
+          : act === "dropOutlier" && n.outlier >= 0
+            ? `outlier well excluded (Ct ${n.cts[n.outlier].toFixed(2)})`
+            : "kept";
+      const cts = n.cts.map((v) => v.toFixed(2)).join(", ");
+      L.push(
+        `  ${n.group} / ${n.sample} / ${n.gene}: SD = ${n.sd.toFixed(2)} (Ct ${cts}) — ${what}`
+      );
+    }
   }
   const gm = Object.entries(a.genorm);
   if (gm.length) {
@@ -142,7 +155,10 @@ export function buildQpcrReport(a: QpcrReportArgs): string {
 // ── R script ────────────────────────────────────────────────────────────
 
 export interface QpcrRScriptArgs {
+  // Wells as analysed — technical replicates the user excluded already left out.
   wells: Well[];
+  // How many wells the quality check excluded (named in a comment).
+  excludedWells?: number;
   cfg: QpcrConfig;
   genes: GeneAnalysis[];
   stats: GeneStats[];
@@ -197,6 +213,12 @@ export function buildQpcrRScript(a: QpcrRScriptArgs): string {
   L.push("# -----------------------------------------------------------------------------");
   if (needsRstatix) L.push('# install.packages("rstatix")');
   L.push("");
+  const nx = a.excludedWells ?? 0;
+  if (nx > 0) {
+    L.push(
+      `# ${nx} well${nx === 1 ? "" : "s"} excluded in Plöttr's technical-replicate check ${nx === 1 ? "is" : "are"} not listed.`
+    );
+  }
   L.push("wells <- data.frame(");
   L.push(`  group  = ${wrapRItems(wells.map((w) => rStr(w.group)))},`);
   L.push(`  sample = ${wrapRItems(wells.map((w) => rStr(w.sample)))},`);
