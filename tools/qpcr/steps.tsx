@@ -1,6 +1,7 @@
-// Step components for the qPCR tool: ConfigureStep (layout & columns, gene
-// roles & efficiencies, standard curve, calibrator & group order, QC) and
-// PlotStep (sidebar + fold-change chart + statistics on ΔCt).
+// Step components for the qPCR tool: TemplateDownload (upload step's Excel
+// template), ConfigureStep (layout & columns, gene roles & efficiencies,
+// standard curve, calibrator & group order, QC) and PlotStep (sidebar +
+// fold-change chart + statistics on ΔCt).
 
 import {
   DataPreview,
@@ -12,7 +13,8 @@ import {
   SegToggle,
   useDragReorder,
 } from "../_shell";
-import { fileBaseName } from "../_core/download";
+import { fileBaseName, saveBlob } from "../_core/download";
+import { buildXlsx } from "../_core/xlsx";
 import type {
   ConfigureStepProps,
   GeneRow,
@@ -33,6 +35,7 @@ import {
 import { QpcrChart } from "./chart";
 import { QpcrStatsDisplayBar, QpcrStatsPanel } from "./stats-panel";
 import { useT } from "./i18n";
+import { buildQpcrTemplateSheets } from "./template";
 
 const thS: React.CSSProperties = {
   textAlign: "left",
@@ -100,6 +103,41 @@ function ColumnSelect({
         ))}
       </select>
     </label>
+  );
+}
+
+// Upload-step offer of a fill-in .xlsx (columns ready + a legend sheet),
+// built in the browser in the current language.
+export function TemplateDownload() {
+  const tr = useT();
+  const download = async (): Promise<void> => {
+    const blob = await buildXlsx(buildQpcrTemplateSheets(tr));
+    await saveBlob(blob, tr("qpcr.tpl.filename"));
+  };
+  return (
+    <div
+      style={{
+        margin: "-4px 0 14px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
+        flexWrap: "wrap",
+        fontSize: 12,
+        color: "var(--text-muted)",
+      }}
+    >
+      <span>{tr("qpcr.tpl.cta")}</span>
+      <button
+        type="button"
+        className="dv-btn dv-btn-secondary"
+        onClick={() => void download()}
+        data-testid="qpcr-template"
+        style={{ fontSize: 12 }}
+      >
+        {tr("qpcr.tpl.button")}
+      </button>
+    </div>
   );
 }
 

@@ -501,4 +501,94 @@ test("no calibrator: CSV columns, report and R script describe 2^−ΔCt", () =>
   assert(r.includes("df$rel_expr <- 2^-df$dct"));
 });
 
+suite("qpcr — Excel template");
+
+const en = require("esbuild").buildSync({
+  entryPoints: [require("path").join(__dirname, "../tools/qpcr/i18n/en.ts")],
+  bundle: true,
+  format: "cjs",
+  write: false,
+}).outputFiles[0].text;
+const EN = (() => {
+  const m = { exports: {} };
+  new Function("module", "exports", en)(m, m.exports);
+  return m.exports.default;
+})();
+const trEn = (k) => {
+  if (!(k in EN)) throw new Error(`missing key ${k}`);
+  return EN[k];
+};
+
+// What Excel puts on the clipboard: tab-separated, CRLF, numbers in the
+// user's locale (decimal comma in French Excel).
+function asClipboard(rows, decimalComma) {
+  return rows
+    .map((r) =>
+      r
+        .map((v) => (typeof v === "number" && decimalComma ? String(v).replace(".", ",") : v))
+        .join("\t")
+    )
+    .join("\r\n");
+}
+
+function runPipeline(text) {
+  const sep = L.autoDetectSep(text, "");
+  const dc = L.fixDecimalCommas(text, sep);
+  const raw = L.parseRaw(dc.text, sep);
+  const guess = L.detectLayout(raw.headers, raw.rows);
+  return { sep, raw, guess, parsed: L.parseLong(raw.rows, guess.long) };
+}
+
+for (const decimalComma of [false, true]) {
+  test(`example sheet pasted from Excel parses as long layout (decimal ${decimalComma ? "comma" : "point"})`, () => {
+    const rows = [L.TEMPLATE_HEADERS, ...L.templateExampleRows()];
+    const { sep, guess, parsed } = runPipeline(asClipboard(rows, decimalComma));
+    eq(sep, "\t");
+    eq(guess.layout, "long");
+    eq(guess.long, { sample: 0, group: 1, gene: 2, ct: 3 });
+    eq(parsed.error, null);
+    eq(parsed.data.wells.length, 36);
+    eq(parsed.data.genes, ["ACT2", "RD29A"]);
+    eq(parsed.data.groups, ["Control", "Drought"]);
+    eq(parsed.data.missingCt, 1);
+    // 2 groups × 3 biological samples, technical triplicates averaged.
+    const samples = L.aggregateTechReps(parsed.data.wells);
+    eq(samples.length, 6);
+    const c1 = samples.find((x) => x.group === "Control" && x.sample === "1");
+    near(c1.ct.ACT2.mean, 18.52, 1e-9, "Control/1 ACT2 mean");
+    near(c1.ct.RD29A.mean, 27.1, 1e-9, "Control/1 RD29A mean");
+    const c3 = samples.find((x) => x.group === "Control" && x.sample === "3");
+    eq(c3.ct.RD29A.n, 2);
+    eq(c3.ct.RD29A.nMissing, 1);
+    eq(L.noisyTechReps(samples).length, 0);
+  });
+}
+
+test("Data sheet holds only the headers the tool auto-detects", () => {
+  const [legend, data, example] = L.buildQpcrTemplateSheets(trEn);
+  eq(data.rows, [["Sample", "Group", "Gene", "Ct"]]);
+  eq(example.rows[0], data.rows[0]);
+  eq(L.detectLayout(data.rows[0], []).long, { sample: 0, group: 1, gene: 2, ct: 3 });
+  eq([legend.name, data.name, example.name], ["How to fill", "Data", "Example"]);
+  // Every column the Data sheet asks for is explained in the legend.
+  const legendCols = legend.rows.map((r) => r[0]);
+  for (const h of data.rows[0]) assert(legendCols.includes(h), `legend lacks ${h}`);
+});
+
+test("legend uses every template string and its styled rows are section headers", () => {
+  const used = new Set();
+  const [legend] = L.buildQpcrTemplateSheets((k) => {
+    used.add(k);
+    return trEn(k);
+  });
+  const tplKeys = Object.keys(EN).filter((k) => k.startsWith("qpcr.tpl."));
+  const unusedInSheets = tplKeys.filter((k) => !used.has(k));
+  // The upload-step strings live in the UI, not in the workbook.
+  eq(unusedInSheets.sort(), ["qpcr.tpl.button", "qpcr.tpl.cta", "qpcr.tpl.filename"]);
+  for (const [r, style] of Object.entries(legend.rowStyles)) {
+    if (style === "header") eq(legend.rows[r].length, 3, `header row ${r} spans 3 cells`);
+  }
+  eq(legend.rows[7], ["Column", "What to enter", "Example"]);
+});
+
 summary();

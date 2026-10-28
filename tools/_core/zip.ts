@@ -88,9 +88,32 @@ const SIG_EOCD = 0x06054b50;
 const UTF8_FLAG = 0x0800; // general-purpose bit 11: filename is UTF-8
 const VERSION = 20; // 2.0 — the minimum that supports our records
 
+export interface ZipOptions {
+  // Keep `/`-separated folders in entry names (e.g. the OOXML parts of an
+  // .xlsx, `xl/worksheets/sheet1.xml`). Control characters are still
+  // stripped and empty, `.` and `..` segments dropped, so no entry can
+  // escape the archive root; other dot-files (`_rels/.rels`) are kept. Off
+  // by default: download batches are flat lists of files.
+  allowSubdirs?: boolean;
+}
+
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARS = /[\x00-\x1f\x7f]/g;
+
+function cleanPath(name: string, allowSubdirs: boolean): string {
+  if (allowSubdirs) {
+    return name
+      .split(/[/\\]/)
+      .map((seg) => seg.replace(CONTROL_CHARS, ""))
+      .filter((seg) => seg !== "" && seg !== "." && seg !== "..")
+      .join("/");
+  }
+  return name.replace(/[/\\]/g, "_").replace(CONTROL_CHARS, "").replace(/^\.+/, "");
+}
+
 // Build a STORE-method ZIP archive from the given entries. Async because
 // reading each blob's bytes (`blob.arrayBuffer()`) is async.
-export async function buildZip(entries: ZipEntry[]): Promise<Blob> {
+export async function buildZip(entries: ZipEntry[], opts: ZipOptions = {}): Promise<Blob> {
   const enc = new TextEncoder();
   const local = new ByteWriter();
   const central = new ByteWriter();
@@ -99,15 +122,10 @@ export async function buildZip(entries: ZipEntry[]): Promise<Blob> {
     const data = new Uint8Array(await entry.blob.arrayBuffer());
     // Defence-in-depth against Zip Slip: callers in `download.ts` already
     // sanitise, but normalise here too so no future caller can write a
-    // central-directory entry with a traversal / absolute path. Strip path
-    // separators and leading dots; never trust the name to be a clean leaf.
-    const safeName =
-      entry.filename
-        .replace(/[/\\]/g, "_")
-        // eslint-disable-next-line no-control-regex
-        .replace(/[\x00-\x1f\x7f]/g, "")
-        .replace(/^\.+/, "")
-        .slice(0, 255) || "file";
+    // central-directory entry with a traversal / absolute path. Flat mode
+    // strips separators and leading dots; subdir mode drops `.` / `..`
+    // segments and leading slashes (see `cleanPath`).
+    const safeName = cleanPath(entry.filename, opts.allowSubdirs === true).slice(0, 255) || "file";
     const nameBytes = enc.encode(safeName);
     const crc = crc32(data);
     const localOffset = local.length;

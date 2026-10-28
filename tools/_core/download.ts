@@ -60,6 +60,10 @@ const _SAVE_PICKER_TYPES: Record<string, SavePickerType> = {
   ".txt": { mime: "text/plain", description: "Text file" },
   ".r": { mime: "text/plain", description: "R script" },
   ".json": { mime: "application/json", description: "JSON file" },
+  ".xlsx": {
+    mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    description: "Excel workbook",
+  },
 };
 
 interface FileSystemWritableLite {

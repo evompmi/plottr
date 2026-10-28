@@ -7,7 +7,8 @@
 //   chart.tsx       — QpcrChart (one facet per target gene)
 //   controls.tsx    — sidebar tiles (Chart / Colours / Style)
 //   stats-panel.tsx — QpcrStatsPanel (tests on ΔCt via the Group Plot engine)
-//   steps.tsx       — ConfigureStep + PlotStep (+ StdCurvePanel)
+//   steps.tsx       — TemplateDownload + ConfigureStep + PlotStep (+ StdCurvePanel)
+//   template.ts     — sheets of the fill-in Excel template
 //   reports.ts      — TXT report + R script
 //   howto.tsx       — in-tool help
 
@@ -50,7 +51,7 @@ import type {
   StdCurve,
   WideColumns,
 } from "./helpers";
-import { ConfigureStep, PlotStep } from "./steps";
+import { ConfigureStep, PlotStep, TemplateDownload } from "./steps";
 import { buildQpcrRScript, buildQpcrReport } from "./reports";
 import { autoDetectSep, fixDecimalCommas, parseRaw } from "../_core/csv";
 import { downloadCsv, downloadText, fileBaseName } from "../_core/download";
@@ -389,6 +390,7 @@ export function App() {
             }}
             hint={tr("qpcr.upload.hint")}
           />
+          <TemplateDownload />
           <HowTo {...howto} />
         </div>
       )}
