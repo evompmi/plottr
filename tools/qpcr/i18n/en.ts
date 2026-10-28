@@ -77,6 +77,14 @@ const en = {
     "{count} wells have no Ct (undetermined); they are left out of their sample's mean.",
   "qpcr.qc.noisy.one": "{count} technical-replicate set differs by more than 0.5 cycles (SD):",
   "qpcr.qc.noisy.other": "{count} technical-replicate sets differ by more than 0.5 cycles (SD):",
+  "qpcr.qc.noisyHelp":
+    "Choose what to do with each set. Dropping a whole set removes that sample from the gene (from every target if it is a reference gene).",
+  "qpcr.qc.keep": "Keep all wells",
+  "qpcr.qc.dropOutlier": "Drop outlier well ({ct})",
+  "qpcr.qc.dropSet": "Drop whole set",
+  "qpcr.qc.actionFor": "What to do with {name}",
+  "qpcr.qc.excluded.one": "{count} well excluded from the analysis.",
+  "qpcr.qc.excluded.other": "{count} wells excluded from the analysis.",
   "qpcr.qc.genorm": "Reference-gene stability, geNorm M:",
   "qpcr.qc.genormHelp":
     "M is the average variation of each reference gene's ratio to the others across samples (Vandesompele et al. 2002); lower M means more stable expression.",
@@ -218,6 +226,44 @@ const en = {
   "qpcr.posthoc.gamesHowell": "Games-Howell",
   "qpcr.posthoc.dunn": "Dunn (BH-adjusted)",
 
+  // Excel template (upload step)
+  "qpcr.tpl.cta":
+    "First time? Download an Excel template with the columns ready and a “How to fill” sheet explaining each one.",
+  "qpcr.tpl.button": "Download Excel template",
+  "qpcr.tpl.filename": "plottr-qpcr-template.xlsx",
+  "qpcr.tpl.sheetLegend": "How to fill",
+  "qpcr.tpl.sheetData": "Data",
+  "qpcr.tpl.sheetExample": "Example",
+  "qpcr.tpl.title": "Plöttr · qPCR data template (long layout: one row per well)",
+  "qpcr.tpl.stepsHead": "How to use",
+  "qpcr.tpl.step1":
+    "Go to the “Data” sheet. Keep its first row (Sample, Group, Gene, Ct) exactly as it is: Plöttr recognises these English headers automatically.",
+  "qpcr.tpl.step2":
+    "Enter one row per well. Technical replicates are separate rows that repeat the same Sample, Group and Gene. The “Example” sheet shows a small complete experiment.",
+  "qpcr.tpl.step3":
+    "Select the filled cells, header row included, copy them (Ctrl+C / ⌘C) and paste them into the “Paste data” box of Plöttr's qPCR tool. Or save the Data sheet as CSV (File › Save As › CSV) and drop the file in.",
+  "qpcr.tpl.colHead": "Column",
+  "qpcr.tpl.whatHead": "What to enter",
+  "qpcr.tpl.exampleHead": "Example",
+  "qpcr.tpl.colSample":
+    "The biological replicate: one plant, culture, animal or RNA extraction, as a number or a name. Ids only need to be unique within a group: “1” in Control and “1” in Drought are two different samples.",
+  "qpcr.tpl.colGroup":
+    "The condition, treatment or genotype. Spell it the same way on every row. You pick the control (calibrator) group later, in Plöttr.",
+  "qpcr.tpl.colGene":
+    "The gene or primer pair, reference and target genes alike, spelled the same way on every row. You mark which genes are references later, in Plöttr.",
+  "qpcr.tpl.colCt":
+    "The raw Ct (Cq) of that well, as your instrument exports it. A decimal point or a decimal comma both work. If the well did not amplify, leave the cell empty or write Undetermined.",
+  "qpcr.tpl.rulesHead": "Good to know",
+  "qpcr.tpl.rule1":
+    "Don't average anything yourself: Plöttr averages the technical replicates, flags those whose SD exceeds 0.5 cycles, and computes ΔCt, ΔΔCt and fold change.",
+  "qpcr.tpl.rule2":
+    "Every sample needs at least one reference gene and one target gene. A sample missing the target or a reference gene is left out, and Plöttr lists it.",
+  "qpcr.tpl.rule3": "Empty, NA and Undetermined Ct values count as missing, never as 40.",
+  "qpcr.tpl.rule4":
+    "Keep the table plain: no merged cells, totals or notes inside it. Extra columns (Well, Plate…) are fine: Plöttr only reads the four above.",
+  "qpcr.tpl.rule5":
+    "Amplification efficiencies and standard curves are entered in Plöttr's Configure step, not in this file.",
+
   // How-to
   "qpcr.howto.title": "qPCR Relative Expression — How to use",
   "qpcr.howto.subtitle": "Raw Ct → ΔCt → fold change · statistics on ΔCt",
@@ -246,6 +292,14 @@ const en = {
     "Target Ct values were normalised to the geometric mean of the reference genes {refs}.",
   "qpcr.methods.techReps":
     "Technical replicates were averaged per biological sample, and samples missing the target or a reference Ct were excluded.",
+  "qpcr.methods.excludedWells.one":
+    "In {count} technical-replicate set whose SD exceeded 0.5 cycles, the well farthest from the set's median was excluded before averaging.",
+  "qpcr.methods.excludedWells.other":
+    "In {count} technical-replicate sets whose SD exceeded 0.5 cycles, the well farthest from the set's median was excluded before averaging.",
+  "qpcr.methods.excludedSets.one":
+    "{count} technical-replicate set whose SD exceeded 0.5 cycles was excluded entirely.",
+  "qpcr.methods.excludedSets.other":
+    "{count} technical-replicate sets whose SD exceeded 0.5 cycles were excluded entirely.",
   "qpcr.methods.dispMean":
     "Bars and points show back-transformed mean log2 values (geometric means){err}.",
   "qpcr.methods.dispErr": " with {err} computed on the log2 scale",

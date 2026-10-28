@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- qPCR: the upload step offers an Excel template (.xlsx, built in the browser in English or French): a "How to fill" sheet explaining each column, an empty Data sheet with the headers ready, and a small Example that pastes straight in. Regression: 14 tests.
+- qPCR: each technical-replicate set flagged for SD > 0.5 cycles gets a selector — keep all wells, drop the outlier well (farthest from the set's median, offered for three or more wells) or drop the whole set. Exclusions flow into the statistics, report, R script and methods text. Regression: 7 tests.
+
 ### Changed
 
 - Landing: the rule above the four "how it works" steps is gone and the steps sit a little higher.

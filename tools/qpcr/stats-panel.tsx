@@ -67,6 +67,7 @@ export function QpcrStatsPanel({
   onDownloadR,
   refs,
   eff,
+  excluded,
 }: QpcrStatsPanelProps) {
   const tr = useT();
   const methodsText = (): string => {
@@ -90,6 +91,8 @@ export function QpcrStatsPanel({
       })
     );
     intro.push(tr("qpcr.methods.techReps"));
+    if (excluded.wells > 0) intro.push(tr("qpcr.methods.excludedWells", { count: excluded.wells }));
+    if (excluded.sets > 0) intro.push(tr("qpcr.methods.excludedSets", { count: excluded.sets }));
     if (vis.chartStyle === "box") extra.push(tr("qpcr.methods.dispBox"));
     else
       extra.push(

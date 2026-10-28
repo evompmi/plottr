@@ -74,6 +74,14 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.qc.noisy.one": "{count} série de réplicats techniques varie de plus de 0,5 cycle (ET) :",
   "qpcr.qc.noisy.other":
     "{count} séries de réplicats techniques varient de plus de 0,5 cycle (ET) :",
+  "qpcr.qc.noisyHelp":
+    "Choisissez quoi faire de chaque série. Retirer toute une série écarte cet échantillon pour ce gène (pour toutes les cibles s’il s’agit d’un gène de référence).",
+  "qpcr.qc.keep": "Garder tous les puits",
+  "qpcr.qc.dropOutlier": "Retirer le puits aberrant ({ct})",
+  "qpcr.qc.dropSet": "Retirer toute la série",
+  "qpcr.qc.actionFor": "Que faire de {name}",
+  "qpcr.qc.excluded.one": "{count} puits exclu de l’analyse.",
+  "qpcr.qc.excluded.other": "{count} puits exclus de l’analyse.",
   "qpcr.qc.genorm": "Stabilité des gènes de référence, M de geNorm :",
   "qpcr.qc.genormHelp":
     "M est la variation moyenne du rapport de chaque gène de référence aux autres d’un échantillon à l’autre (Vandesompele et al. 2002) ; un M plus faible indique une expression plus stable.",
@@ -217,6 +225,43 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.posthoc.gamesHowell": "Games-Howell",
   "qpcr.posthoc.dunn": "Dunn (ajusté BH)",
 
+  "qpcr.tpl.cta":
+    "Première fois ? Téléchargez un modèle Excel : les colonnes sont prêtes et une feuille « Mode d’emploi » explique chacune d’elles.",
+  "qpcr.tpl.button": "Télécharger le modèle Excel",
+  "qpcr.tpl.filename": "plottr-qpcr-modele.xlsx",
+  "qpcr.tpl.sheetLegend": "Mode d’emploi",
+  "qpcr.tpl.sheetData": "Données",
+  "qpcr.tpl.sheetExample": "Exemple",
+  "qpcr.tpl.title": "Plöttr · modèle de données qPCR (format long : une ligne par puits)",
+  "qpcr.tpl.stepsHead": "Utilisation",
+  "qpcr.tpl.step1":
+    "Allez dans la feuille « Données ». Gardez sa première ligne (Sample, Group, Gene, Ct) telle quelle : Plöttr reconnaît automatiquement ces en-têtes en anglais.",
+  "qpcr.tpl.step2":
+    "Saisissez une ligne par puits. Les réplicats techniques sont des lignes distinctes qui répètent les mêmes Sample, Group et Gene. La feuille « Exemple » montre une petite expérience complète.",
+  "qpcr.tpl.step3":
+    "Sélectionnez les cellules remplies, ligne d’en-tête comprise, copiez-les (Ctrl+C / ⌘C) et collez-les dans la zone « Coller des données » de l’outil qPCR de Plöttr. Ou enregistrez la feuille Données en CSV (Fichier › Enregistrer sous › CSV) et déposez le fichier.",
+  "qpcr.tpl.colHead": "Colonne",
+  "qpcr.tpl.whatHead": "Que saisir",
+  "qpcr.tpl.exampleHead": "Exemple",
+  "qpcr.tpl.colSample":
+    "Le réplicat biologique : une plante, une culture, un animal ou une extraction d’ARN, sous forme de numéro ou de nom. Un identifiant doit seulement être unique au sein d’un groupe : « 1 » dans Control et « 1 » dans Drought sont deux échantillons différents.",
+  "qpcr.tpl.colGroup":
+    "La condition, le traitement ou le génotype. Écrivez-le de la même façon sur chaque ligne. Le groupe contrôle (calibrateur) se choisit ensuite, dans Plöttr.",
+  "qpcr.tpl.colGene":
+    "Le gène ou le couple d’amorces, gènes de référence et cibles confondus, écrit de la même façon sur chaque ligne. Les gènes de référence se désignent ensuite, dans Plöttr.",
+  "qpcr.tpl.colCt":
+    "Le Ct (Cq) brut de ce puits, tel que l’exporte votre appareil. Le point comme la virgule décimale conviennent. Si le puits n’a pas amplifié, laissez la cellule vide ou écrivez Undetermined.",
+  "qpcr.tpl.rulesHead": "Bon à savoir",
+  "qpcr.tpl.rule1":
+    "Ne calculez aucune moyenne vous-même : Plöttr moyenne les réplicats techniques, signale ceux dont l’écart-type dépasse 0,5 cycle, et calcule ΔCt, ΔΔCt et ratio d’expression.",
+  "qpcr.tpl.rule2":
+    "Chaque échantillon doit avoir au moins un gène de référence et un gène cible. Un échantillon auquel il manque la cible ou un gène de référence est écarté, et Plöttr le signale.",
+  "qpcr.tpl.rule3": "Les Ct vides, NA ou Undetermined comptent comme manquants, jamais comme 40.",
+  "qpcr.tpl.rule4":
+    "Gardez un tableau simple : pas de cellules fusionnées, de totaux ni de notes à l’intérieur. Les colonnes en plus (Well, Plate…) sont acceptées : Plöttr ne lit que les quatre ci-dessus.",
+  "qpcr.tpl.rule5":
+    "Les efficacités d’amplification et les gammes étalons se saisissent à l’étape Configurer de Plöttr, pas dans ce fichier.",
+
   "qpcr.howto.title": "Expression relative qPCR — Mode d’emploi",
   "qpcr.howto.subtitle": "Ct bruts → ΔCt → ratio d’expression · statistiques sur les ΔCt",
   "qpcr.howto.purpose":
@@ -245,6 +290,14 @@ const fr: Record<QpcrKey, string> = {
     "Les Ct des gènes cibles ont été normalisés sur la moyenne géométrique des gènes de référence {refs}.",
   "qpcr.methods.techReps":
     "Les réplicats techniques ont été moyennés par échantillon biologique, et les échantillons sans Ct pour la cible ou une référence ont été exclus.",
+  "qpcr.methods.excludedWells.one":
+    "Dans {count} série de réplicats techniques dont l’écart-type dépassait 0,5 cycle, le puits le plus éloigné de la médiane de la série a été exclu avant le calcul de la moyenne.",
+  "qpcr.methods.excludedWells.other":
+    "Dans {count} séries de réplicats techniques dont l’écart-type dépassait 0,5 cycle, le puits le plus éloigné de la médiane de la série a été exclu avant le calcul de la moyenne.",
+  "qpcr.methods.excludedSets.one":
+    "{count} série de réplicats techniques dont l’écart-type dépassait 0,5 cycle a été entièrement exclue.",
+  "qpcr.methods.excludedSets.other":
+    "{count} séries de réplicats techniques dont l’écart-type dépassait 0,5 cycle ont été entièrement exclues.",
   "qpcr.methods.dispMean":
     "Les barres et points représentent les moyennes log2 retransformées (moyennes géométriques){err}.",
   "qpcr.methods.dispErr": ", avec {err} calculés sur l’échelle log2",

@@ -1,77 +1,15 @@
 // Unit tests for the dependency-free ZIP builder (tools/_core/zip.ts).
 // `buildZip` is what backs the "bundle a large multi-file export into one
 // download" path in _core/download.ts, so these tests parse the archive it
-// produces back out (a minimal STORE-method reader below) and assert the
+// produces back out (the minimal STORE-method reader in helpers/zip-reader.js) and assert the
 // round trip: entry order, names, byte-exact contents, sizes, and CRC-32.
 
 const { suite, test, assert, eq, summary } = require("./harness");
 const { buildZip } = require("./helpers/zip-loader");
+const { readZip, crc32, bytesEqual } = require("./helpers/zip-reader");
 
-// ── Minimal STORE-zip reader (test-only) ──────────────────────────────────
-
-const SIG_LOCAL = 0x04034b50;
-const SIG_CENTRAL = 0x02014b50;
-const SIG_EOCD = 0x06054b50;
-
-function crc32(bytes) {
-  let c = 0xffffffff;
-  for (let i = 0; i < bytes.length; i++) {
-    c ^= bytes[i];
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  }
-  return (c ^ 0xffffffff) >>> 0;
-}
-
-function bytesEqual(a, b) {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-  return true;
-}
-
-function readZip(bytes) {
-  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const dec = new TextDecoder();
-  let eocd = -1;
-  for (let i = bytes.length - 22; i >= 0; i--) {
-    if (dv.getUint32(i, true) === SIG_EOCD) {
-      eocd = i;
-      break;
-    }
-  }
-  if (eocd < 0) throw new Error("no EOCD record");
-  const total = dv.getUint16(eocd + 10, true);
-  const cdSize = dv.getUint32(eocd + 12, true);
-  const cdOffset = dv.getUint32(eocd + 16, true);
-
-  const entries = [];
-  let p = cdOffset;
-  for (let e = 0; e < total; e++) {
-    if (dv.getUint32(p, true) !== SIG_CENTRAL) throw new Error("bad central signature");
-    const flags = dv.getUint16(p + 8, true);
-    const method = dv.getUint16(p + 10, true);
-    const crc = dv.getUint32(p + 16, true);
-    const compSize = dv.getUint32(p + 20, true);
-    const uncompSize = dv.getUint32(p + 24, true);
-    const nameLen = dv.getUint16(p + 28, true);
-    const extraLen = dv.getUint16(p + 30, true);
-    const commentLen = dv.getUint16(p + 32, true);
-    const localOff = dv.getUint32(p + 42, true);
-    const name = dec.decode(bytes.subarray(p + 46, p + 46 + nameLen));
-
-    if (dv.getUint32(localOff, true) !== SIG_LOCAL) throw new Error("bad local signature");
-    const lNameLen = dv.getUint16(localOff + 26, true);
-    const lExtraLen = dv.getUint16(localOff + 28, true);
-    const dataStart = localOff + 30 + lNameLen + lExtraLen;
-    const data = bytes.subarray(dataStart, dataStart + compSize);
-
-    entries.push({ name, flags, method, crc, compSize, uncompSize, data });
-    p += 46 + nameLen + extraLen + commentLen;
-  }
-  return { total, cdSize, cdOffset, entries };
-}
-
-async function zipBytes(items) {
-  const blob = await buildZip(items);
+async function zipBytes(items, opts) {
+  const blob = await buildZip(items, opts);
   eq(blob.type, "application/zip");
   return new Uint8Array(await blob.arrayBuffer());
 }
@@ -161,6 +99,26 @@ test("neutralises path separators and traversal in entry names", async () => {
 test("falls back to a non-empty name when sanitising leaves nothing", async () => {
   const z = readZip(await zipBytes([{ filename: "..", blob: textBlob("x") }]));
   assert(z.entries[0].name.length > 0, "empty entry name after sanitisation");
+});
+
+test("allowSubdirs keeps folders and dot-files but drops traversal segments", async () => {
+  const z = readZip(
+    await zipBytes(
+      [
+        { filename: "xl/worksheets/sheet1.xml", blob: textBlob("a") },
+        { filename: "_rels/.rels", blob: textBlob("b") },
+        { filename: "../../evil.svg", blob: textBlob("c") },
+        { filename: "/abs/./x.txt", blob: textBlob("d") },
+        { filename: "a\\..\\b.txt", blob: textBlob("e") },
+        { filename: "../..", blob: textBlob("f") },
+      ],
+      { allowSubdirs: true }
+    )
+  );
+  eq(
+    z.entries.map((e) => e.name),
+    ["xl/worksheets/sheet1.xml", "_rels/.rels", "evil.svg", "abs/x.txt", "a/b.txt", "file"]
+  );
 });
 
 summary();

@@ -287,18 +287,90 @@ export interface NoisyRep {
   group: string;
   gene: string;
   sd: number;
+  // Ct of each well with a value, in input order, and that well's index in
+  // the `wells` array the set was flagged from.
+  cts: number[];
+  wellIdx: number[];
+  // Position in `cts` of the well farthest from the set's median; -1 when
+  // there are fewer than three values or no single well stands out.
+  outlier: number;
 }
 
-export function noisyTechReps(samples: Sample[], limit = TECH_SD_WARN): NoisyRep[] {
+// What to do with a flagged set: keep every well, drop its outlier well
+// (only when `outlier` ≥ 0) or drop the whole set — the sample then lacks
+// that gene and drops out of it (out of every target for a reference).
+export type TechRepAction = "keep" | "dropOutlier" | "dropSet";
+
+export function techRepKey(r: { group: string; sample: string; gene: string }): string {
+  return r.group + "\u0000" + r.sample + "\u0000" + r.gene;
+}
+
+export function outlierIndex(cts: number[]): number {
+  if (cts.length < 3) return -1;
+  const sorted = cts.slice().sort((a, b) => a - b);
+  const m = sorted.length;
+  const median = m % 2 ? sorted[(m - 1) / 2] : (sorted[m / 2 - 1] + sorted[m / 2]) / 2;
+  const dev = cts.map((v) => Math.abs(v - median));
+  const max = Math.max(...dev);
+  const at = dev.flatMap((d, i) => (max - d <= 1e-9 ? [i] : []));
+  return at.length === 1 ? at[0] : -1;
+}
+
+export function noisyTechReps(wells: Well[], limit = TECH_SD_WARN): NoisyRep[] {
+  const sets = new Map<string, { w: Well; idx: number[] }>();
+  wells.forEach((w, i) => {
+    if (w.ct === null) return;
+    const key = techRepKey(w);
+    const s = sets.get(key);
+    if (s) s.idx.push(i);
+    else sets.set(key, { w, idx: [i] });
+  });
   const out: NoisyRep[] = [];
-  for (const s of samples) {
-    for (const [gene, c] of Object.entries(s.ct)) {
-      if (Number.isFinite(c.sd) && c.sd > limit) {
-        out.push({ sample: s.sample, group: s.group, gene, sd: c.sd });
-      }
-    }
+  for (const { w, idx } of sets.values()) {
+    const cts = idx.map((i) => wells[i].ct as number);
+    if (cts.length < 2) continue;
+    const sd = sampleSD(cts);
+    if (!(sd > limit)) continue;
+    out.push({
+      sample: w.sample,
+      group: w.group,
+      gene: w.gene,
+      sd,
+      cts,
+      wellIdx: idx,
+      outlier: outlierIndex(cts),
+    });
   }
   return out;
+}
+
+// Indices of the wells the user's choices leave out. "dropOutlier" on a set
+// without a clear outlier keeps every well.
+export function excludedWells(
+  noisy: NoisyRep[],
+  actions: Record<string, TechRepAction>
+): Set<number> {
+  const out = new Set<number>();
+  for (const n of noisy) {
+    const a = actions[techRepKey(n)] ?? "keep";
+    if (a === "dropSet") n.wellIdx.forEach((i) => out.add(i));
+    else if (a === "dropOutlier" && n.outlier >= 0) out.add(n.wellIdx[n.outlier]);
+  }
+  return out;
+}
+
+export function exclusionCounts(
+  noisy: NoisyRep[],
+  actions: Record<string, TechRepAction>
+): { wells: number; sets: number } {
+  let wells = 0;
+  let sets = 0;
+  for (const n of noisy) {
+    const a = actions[techRepKey(n)] ?? "keep";
+    if (a === "dropSet") sets++;
+    else if (a === "dropOutlier" && n.outlier >= 0) wells++;
+  }
+  return { wells, sets };
 }
 
 // ── Efficiency ──────────────────────────────────────────────────────────
@@ -853,6 +925,13 @@ export interface QpcrStatsPanelProps {
   // For the methods text.
   refs: string[];
   eff: Record<string, number>;
+  excluded: TechRepExclusion;
+}
+
+// Counts of the user's technical-replicate exclusions, for the methods text.
+export interface TechRepExclusion {
+  wells: number; // outlier wells dropped from a kept set
+  sets: number; // whole sets dropped
 }
 
 export interface QpcrStatsDisplayBarProps {
@@ -916,6 +995,8 @@ export interface ConfigureStepProps {
   control: string;
   setControl: (g: string) => void;
   noisy: NoisyRep[];
+  repActions: Record<string, TechRepAction>;
+  setRepAction: (key: string, action: TechRepAction) => void;
   genorm: Record<string, number>;
   stdText: string;
   setStdText: (v: string) => void;
@@ -946,4 +1027,5 @@ export interface PlotStepProps {
   dropped: number;
   refs: string[];
   eff: Record<string, number>;
+  excluded: TechRepExclusion;
 }

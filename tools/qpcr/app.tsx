@@ -7,7 +7,8 @@
 //   chart.tsx       — QpcrChart (one facet per target gene)
 //   controls.tsx    — sidebar tiles (Chart / Colours / Style)
 //   stats-panel.tsx — QpcrStatsPanel (tests on ΔCt via the Group Plot engine)
-//   steps.tsx       — ConfigureStep + PlotStep (+ StdCurvePanel)
+//   steps.tsx       — TemplateDownload + ConfigureStep + PlotStep (+ StdCurvePanel)
+//   template.ts     — sheets of the fill-in Excel template
 //   reports.ts      — TXT report + R script
 //   howto.tsx       — in-tool help
 
@@ -25,6 +26,8 @@ import {
   aggregateTechReps,
   computeGene,
   detectLayout,
+  exclusionCounts,
+  excludedWells,
   geneAnnotation,
   genormM,
   guessControl,
@@ -48,9 +51,10 @@ import type {
   QpcrParseResult,
   QpcrVis,
   StdCurve,
+  TechRepAction,
   WideColumns,
 } from "./helpers";
-import { ConfigureStep, PlotStep } from "./steps";
+import { ConfigureStep, PlotStep, TemplateDownload } from "./steps";
 import { buildQpcrRScript, buildQpcrReport } from "./reports";
 import { autoDetectSep, fixDecimalCommas, parseRaw } from "../_core/csv";
 import { downloadCsv, downloadText, fileBaseName } from "../_core/download";
@@ -165,6 +169,8 @@ export function App() {
   const [control, setControl] = useState("");
   const [normalize, setNormalize] = useState<Normalization>("control");
   const [overrides, setOverrides] = useState<Record<string, string | null>>({});
+  // Per flagged technical-replicate set (techRepKey): keep, drop outlier, drop set.
+  const [repActions, setRepActions] = useState<Record<string, TechRepAction>>({});
   const [colorOv, setColorOv] = useState<Record<string, string>>({});
   const [stdText, setStdText] = useState("");
 
@@ -192,6 +198,7 @@ export function App() {
       setRoles({});
       setEffText({});
       setOverrides({});
+      setRepActions({});
       setColorOv({});
       setGroupOrder([]);
       setControl("");
@@ -287,8 +294,16 @@ export function App() {
       : cfg.groupOrder.length >= 2 && cfg.groupOrder.includes(control)) &&
     effValid;
 
-  const samples = useMemo(() => (data ? aggregateTechReps(data.wells) : []), [data]);
-  const noisy = useMemo(() => noisyTechReps(samples), [samples]);
+  // Flagged on every well, so a set stays listed (and can be restored)
+  // after the user drops some of its wells.
+  const noisy = useMemo(() => (data ? noisyTechReps(data.wells) : []), [data]);
+  const keptWells = useMemo(() => {
+    if (!data) return [];
+    const out = excludedWells(noisy, repActions);
+    return out.size ? data.wells.filter((_, i) => !out.has(i)) : data.wells;
+  }, [data, noisy, repActions]);
+  const excluded = useMemo(() => exclusionCounts(noisy, repActions), [noisy, repActions]);
+  const samples = useMemo(() => aggregateTechReps(keptWells), [keptWells]);
   const genorm = useMemo(
     () => (effValid ? genormM(samples, cfg.refs, cfg.eff) : {}),
     [samples, cfg.refs, cfg.eff, effValid]
@@ -345,6 +360,7 @@ export function App() {
         stats,
         missingCt: data?.missingCt ?? 0,
         noisy,
+        repActions,
         genorm,
       }),
       `${stem}_stats.txt`
@@ -352,7 +368,16 @@ export function App() {
   };
   const onDownloadR = () => {
     if (!data) return;
-    downloadText(buildQpcrRScript({ wells: data.wells, cfg, genes, stats }), `${stem}.R`);
+    downloadText(
+      buildQpcrRScript({
+        wells: keptWells,
+        excludedWells: data.wells.length - keptWells.length,
+        cfg,
+        genes,
+        stats,
+      }),
+      `${stem}.R`
+    );
   };
 
   const canNavigate = (target: string) => {
@@ -389,6 +414,7 @@ export function App() {
             }}
             hint={tr("qpcr.upload.hint")}
           />
+          <TemplateDownload />
           <HowTo {...howto} />
         </div>
       )}
@@ -419,6 +445,8 @@ export function App() {
             setGroupOrder((prev) => prev.map((x) => (x.name === g ? { ...x, include: true } : x)));
           }}
           noisy={noisy}
+          repActions={repActions}
+          setRepAction={(key, action) => setRepActions((prev) => ({ ...prev, [key]: action }))}
           genorm={genorm}
           stdText={stdText}
           setStdText={setStdText}
@@ -451,6 +479,7 @@ export function App() {
           dropped={dropped}
           refs={cfg.refs}
           eff={cfg.eff}
+          excluded={excluded}
         />
       )}
     </PlotToolShell>
