@@ -74,10 +74,9 @@ const en = {
 
   // Aesthetic mapping detection
   "scatter.aes.none": "— None —",
-  "scatter.aes.detected": "Detected: ",
-  "scatter.aes.continuous": "numeric (continuous)",
-  "scatter.aes.categorical.one": "categorical ({n} group)",
-  "scatter.aes.categorical.other": "categorical ({n} groups)",
+  "scatter.aes.continuous": "continuous",
+  "scatter.aes.categorical.one": "{n} category",
+  "scatter.aes.categorical.other": "{n} categories",
   "scatter.aes.range": "range: {min} → {max}",
   "scatter.aes.cbSafe": " · 👁",
   "scatter.aes.cbSafeNote": "👁 colour-blind-safe",

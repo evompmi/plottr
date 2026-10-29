@@ -627,6 +627,17 @@ input[type="range"]::-moz-range-thumb {
   border-bottom: 1px solid var(--border-subtle);
   background: transparent;
 }
+/* Detected column type beside an aesthetic-mapping section title. */
+.dv-aes-tag {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  padding: 4px 7px;
+  white-space: nowrap;
+}
 /* Shell icon buttons in the app bar (switcher, settings, theme, language). */
 .dv-icon-btn {
   display: inline-flex;

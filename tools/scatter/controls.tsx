@@ -3,9 +3,9 @@
 // size / shape aesthetics, axes, style, filters).
 
 import { PaletteStrip, ShapePreview } from "./shapes";
-import { AesBox } from "./steps";
 import { fmtTick, SHAPES, PlotStepProps, RefLine } from "./helpers";
 import {
+  AesMappingSection,
   BaseStyleControls,
   ColorInput,
   ControlSection,
@@ -358,7 +358,20 @@ export function PlotControls({
               </ControlSection>
 
               {/* ── Color aesthetic ── */}
-              <AesBox theme="color">
+              <AesMappingSection
+                kind="color"
+                title={tr("scatter.aes.color")}
+                tag={
+                  hasColorMap && colorMapType
+                    ? colorMapType === "continuous"
+                      ? tr("scatter.aes.continuous")
+                      : tr("scatter.aes.categorical", {
+                          n: colorMapCategories.length,
+                          count: colorMapCategories.length,
+                        })
+                    : null
+                }
+              >
                 <select
                   aria-label={tr("scatter.aes.color")}
                   value={colorMapCol == null ? "" : colorMapCol}
@@ -366,7 +379,7 @@ export function PlotControls({
                     setColorMapCol(e.target.value === "" ? null : parseInt(e.target.value))
                   }
                   className="dv-select"
-                  style={{ width: "100%", marginBottom: hasColorMap ? 8 : 0 }}
+                  style={{ width: "100%" }}
                 >
                   <option value="">{tr("scatter.aes.none")}</option>
                   {mappableCols
@@ -380,25 +393,6 @@ export function PlotControls({
 
                 {hasColorMap && colorMapType && (
                   <>
-                    <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 6 }}>
-                      {tr("scatter.aes.detected")}
-                      <strong
-                        style={{
-                          color:
-                            colorMapType === "continuous"
-                              ? "var(--accent-dna)"
-                              : "var(--accent-blue)",
-                        }}
-                      >
-                        {colorMapType === "continuous"
-                          ? tr("scatter.aes.continuous")
-                          : tr("scatter.aes.categorical", {
-                              n: colorMapCategories.length,
-                              count: colorMapCategories.length,
-                            })}
-                      </strong>
-                    </div>
-
                     {colorMapType === "continuous" && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         <select
@@ -467,10 +461,23 @@ export function PlotControls({
                     )}
                   </>
                 )}
-              </AesBox>
+              </AesMappingSection>
 
               {/* ── Size aesthetic ── */}
-              <AesBox theme="size">
+              <AesMappingSection
+                kind="size"
+                title={tr("scatter.aes.size")}
+                tag={
+                  hasSizeMap && sizeMapType
+                    ? sizeMapType === "continuous"
+                      ? tr("scatter.aes.continuous")
+                      : tr("scatter.aes.categorical", {
+                          n: sizeMapCategories.length,
+                          count: sizeMapCategories.length,
+                        })
+                    : null
+                }
+              >
                 <select
                   aria-label={tr("scatter.aes.size")}
                   value={sizeMapCol == null ? "" : sizeMapCol}
@@ -478,7 +485,7 @@ export function PlotControls({
                     setSizeMapCol(e.target.value === "" ? null : parseInt(e.target.value))
                   }
                   className="dv-select"
-                  style={{ width: "100%", marginBottom: hasSizeMap ? 8 : 0 }}
+                  style={{ width: "100%" }}
                 >
                   <option value="">{tr("scatter.aes.none")}</option>
                   {mappableCols
@@ -492,25 +499,6 @@ export function PlotControls({
 
                 {hasSizeMap && sizeMapType && (
                   <>
-                    <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 6 }}>
-                      {tr("scatter.aes.detected")}
-                      <strong
-                        style={{
-                          color:
-                            sizeMapType === "continuous"
-                              ? "var(--accent-dna)"
-                              : "var(--accent-blue)",
-                        }}
-                      >
-                        {sizeMapType === "continuous"
-                          ? tr("scatter.aes.continuous")
-                          : tr("scatter.aes.categorical", {
-                              n: sizeMapCategories.length,
-                              count: sizeMapCategories.length,
-                            })}
-                      </strong>
-                    </div>
-
                     {sizeMapType === "continuous" && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         <SliderControl
@@ -568,10 +556,21 @@ export function PlotControls({
                     )}
                   </>
                 )}
-              </AesBox>
+              </AesMappingSection>
 
               {/* ── Shape aesthetic ── */}
-              <AesBox theme="shape">
+              <AesMappingSection
+                kind="shape"
+                title={tr("scatter.aes.shape")}
+                tag={
+                  hasShapeMap
+                    ? tr("scatter.aes.categorical", {
+                        n: shapeMapCategories.length,
+                        count: shapeMapCategories.length,
+                      })
+                    : null
+                }
+              >
                 <select
                   aria-label={tr("scatter.aes.shape")}
                   value={shapeMapCol == null ? "" : shapeMapCol}
@@ -579,7 +578,7 @@ export function PlotControls({
                     setShapeMapCol(e.target.value === "" ? null : parseInt(e.target.value))
                   }
                   className="dv-select"
-                  style={{ width: "100%", marginBottom: hasShapeMap ? 8 : 0 }}
+                  style={{ width: "100%" }}
                 >
                   <option value="">{tr("scatter.aes.none")}</option>
                   {mappableCols
@@ -643,7 +642,7 @@ export function PlotControls({
                     </div>
                   </>
                 )}
-              </AesBox>
+              </AesMappingSection>
             </>
           ),
         },

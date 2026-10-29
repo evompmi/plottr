@@ -146,10 +146,9 @@ const en = {
 
   // Color/Size mapping tiles
   "volcano.map.none": "— None —",
-  "volcano.map.detected": "Detected: ",
-  "volcano.map.continuous": "numeric (continuous)",
-  "volcano.map.categorical.one": "categorical ({n} group)",
-  "volcano.map.categorical.other": "categorical ({n} groups)",
+  "volcano.map.continuous": "continuous",
+  "volcano.map.categorical.one": "{n} category",
+  "volcano.map.categorical.other": "{n} categories",
   "volcano.map.diverging": "  (diverging)",
   "volcano.map.direction": "Direction",
   "volcano.map.directionAria": "Palette direction",

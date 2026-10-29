@@ -9,7 +9,7 @@
 //                   Loaded by tests/helpers/volcano-loader.js.
 //   chart.tsx    — VolcanoChart (forwardRef SVG renderer)
 //   chart-layout.ts / chart-legends.tsx — supporting modules for chart.tsx
-//   controls.tsx — VolcanoAesBox + sidebar tiles (Thresholds / Colors /
+//   controls.tsx — VolcanoAesBox (Configure tiles) + sidebar tiles (Thresholds / Colors /
 //                   ColorMap / SizeMap / Labels / Style / Summary).
 //   steps.tsx    — ConfigureStep + PlotStep wrappers.
 //   reports.ts   — buildVolcanoRScript + buildVolcanoCsv (sanitised)

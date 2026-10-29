@@ -67,6 +67,7 @@ per-file paths so the dependency graph stays visible.
 | File                         | Role                                                                                     |
 | ---------------------------- | ---------------------------------------------------------------------------------------- |
 | `ActionsPanel.tsx`           | Plot-step downloads + Start over; hands them to the shell's header export bar.           |
+| `AesMappingSection.tsx`      | Sidebar section for a colour / size / shape mapping: glyph, title, detected-type tag.    |
 | `AppBar.tsx`                 | Sticky top bar; `AppChromeContext` (brand, switcher, utilities from `_app`), `FileChip`. |
 | `BaseStyleControls.tsx`      | Background / grid on-off / grid colour controls.                                         |
 | `CldLabels.tsx`              | Compact-letter-display annotation renderer.                                              |
