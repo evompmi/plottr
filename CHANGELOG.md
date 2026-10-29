@@ -7,19 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-29
+
+> Long-form release notes live in
+> [`docs/release-notes/v2.2.0.md`](docs/release-notes/v2.2.0.md). The
+> entries below are summary bullets that link there.
+>
+> The "Clean Wells" release: a fill-in Excel template and keep / drop choices for noisy technical
+> replicates in qPCR, plus plainer mapping and column-role boxes across tools. Charts and
+> statistics are unchanged unless you drop wells.
+
 ### Added
 
-- qPCR: the upload step offers an Excel template (.xlsx, built in the browser in English or French): a "How to fill" sheet explaining each column, an empty Data sheet with the headers ready, and a small Example that pastes straight in. Regression: 14 tests.
-- qPCR: each technical-replicate set flagged for SD > 0.5 cycles gets a selector — keep all wells, drop the outlier well (farthest from the set's median, offered for three or more wells) or drop the whole set. Exclusions flow into the statistics, report, R script and methods text. Regression: 7 tests.
+- **qPCR Excel template.** The upload step offers a fill-in .xlsx (How to fill / Data / Example),
+  built in the browser in English or French. Regression: 14 tests. See
+  [`docs/release-notes/v2.2.0.md`](docs/release-notes/v2.2.0.md#qpcr-fill-in-excel-template).
+- **qPCR flagged replicates.** Each technical-replicate set with SD > 0.5 cycles can keep all
+  wells, drop its outlier well or drop the whole set; exclusions reach the statistics, report,
+  R script and Methods text. Regression: 7 tests. See
+  [`docs/release-notes/v2.2.0.md`](docs/release-notes/v2.2.0.md#qpcr-keep-or-drop-flagged-technical-replicates).
 
 ### Changed
 
-- Scatter and Volcano: the Colour / Size / Shape mapping boxes in the sidebar are now plain sections like the other controls — a small glyph, the title, and a tag naming the detected column type ("continuous", "3 categories") — instead of pastel cards with coloured header bands.
-- Group Plot, Line Plot, RLU Timecourse and Volcano: the Configure step's column-role cards (Group / Value, X / Y / Group by, Calibration / Time axis, X / Y / Label) are now plain white cards with the same small section title, matching the other Configure panels.
-- Landing: the rule above the four "how it works" steps is gone and the steps sit a little higher.
-- RLU Timecourse: Sample selection sits on its own row under Series / Layout, and its panel opens there, pushing the plot down instead of floating over it.
-- Venn: clicking the selected row of the Intersections list again clears the selection, as clicking a selected region on the chart does, and the Items hint now says so. Regression: 1 test.
-- Heatmap: the cell-border width is a −/+ number box like the other numeric settings, instead of the browser's native spinner, and the border colour now has its own title, aligned with Width.
+- **Mapping and column-role boxes.** Scatter / Volcano mapping boxes are plain sidebar sections
+  with a glyph and a detected-type tag; the Configure-step role cards in Group Plot, Line Plot,
+  RLU Timecourse and Volcano are plain panels. See
+  [`docs/release-notes/v2.2.0.md`](docs/release-notes/v2.2.0.md#plainer-mapping-and-column-role-boxes).
+- **Smaller control fixes.** Heatmap border width as a −/+ box; Venn list row deselects on a
+  second click (regression: 1 test); RLU sample selection on its own row; tighter landing steps.
+  See [`docs/release-notes/v2.2.0.md`](docs/release-notes/v2.2.0.md#smaller-fixes-to-controls).
 
 ## [2.1.0] - 2026-10-23
 
