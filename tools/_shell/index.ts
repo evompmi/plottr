@@ -12,6 +12,8 @@
 // ── React components ────────────────────────────────────────────────
 export { ActionsPanel } from "./ActionsPanel";
 export type { ActionsPanelDownload } from "./ActionsPanel";
+export { AesMappingSection } from "./AesMappingSection";
+export type { AesKind, AesMappingSectionProps } from "./AesMappingSection";
 export { AppBar, AppChromeContext, FileChip } from "./AppBar";
 export type { AppChrome } from "./AppBar";
 export { BaseStyleControls } from "./BaseStyleControls";

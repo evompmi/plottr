@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Scatter and Volcano: the Colour / Size / Shape mapping boxes in the sidebar are now plain sections like the other controls — a small glyph, the title, and a tag naming the detected column type ("continuous", "3 categories") — instead of pastel cards with coloured header bands.
 - Landing: the rule above the four "how it works" steps is gone and the steps sit a little higher.
 - RLU Timecourse: Sample selection sits on its own row under Series / Layout, and its panel opens there, pushing the plot down instead of floating over it.
 - Venn: clicking the selected row of the Intersections list again clears the selection, as clicking a selected region on the chart does, and the Items hint now says so. Regression: 1 test.

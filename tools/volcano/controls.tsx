@@ -6,6 +6,7 @@
 // `_shell/*`.
 
 import {
+  AesMappingSection,
   ColorInput,
   ControlSection,
   DiscretePaletteRow,
@@ -32,9 +33,8 @@ import { useT, type VolcanoKey } from "./i18n";
 import { COLOR_PALETTES, DIVERGING_PALETTES, interpolateColor } from "../_core/color";
 const { useState, useEffect, useMemo } = React;
 
-// ── AesBox themes — one source of truth used by Configure tiles +
-// the ColorMap / SizeMap sidebar boxes. Same `--aes-*` CSS vars
-// scatter / boxplot use, so the visual language carries across tools.
+// ── AesBox themes for the Configure-step role tiles. Same `--aes-*` CSS
+// vars boxplot / lineplot use, so the visual language carries across tools.
 export const VOLCANO_AES_THEMES = {
   // X axis (log2 fold change) — purple "shape" theme. Mirrors boxplot's
   // group-column tile colour so the "primary positional axis" idea is
@@ -64,34 +64,12 @@ export const VOLCANO_AES_THEMES = {
     headerText: "var(--aes-color-header-text)",
     label: "Feature label (optional)",
   },
-  // Sidebar aesthetic boxes — matches scatter's "Color" and "Size"
-  // aesthetic cards exactly (same `--aes-*` CSS vars, same labels) so
-  // the visual language carries across tools. The configure-step
-  // tiles above re-use the same CSS vars in different semantic roles
-  // — visually identical, but they only ever appear on different
-  // steps so there's no clash.
-  colorMap: {
-    bg: "var(--aes-color-bg)",
-    border: "var(--aes-color-border)",
-    header: "var(--aes-color-header)",
-    headerText: "var(--aes-color-header-text)",
-    label: "Color",
-  },
-  sizeMap: {
-    bg: "var(--aes-size-bg)",
-    border: "var(--aes-size-border)",
-    header: "var(--aes-size-header)",
-    headerText: "var(--aes-size-header-text)",
-    label: "Size",
-  },
 } as const;
 
 const AES_LABEL_KEYS: Record<keyof typeof VOLCANO_AES_THEMES, VolcanoKey> = {
   x: "volcano.aes.x",
   y: "volcano.aes.y",
   label: "volcano.aes.label",
-  colorMap: "volcano.aes.colorMap",
-  sizeMap: "volcano.aes.sizeMap",
 };
 
 export function VolcanoAesBox({
@@ -722,13 +700,26 @@ export function ColorMapTile({
   // why we don't go through `window`.
   const paletteNames = Object.keys(COLOR_PALETTES);
   return (
-    <VolcanoAesBox theme="colorMap">
+    <AesMappingSection
+      kind="color"
+      title={tr("volcano.aes.colorMap")}
+      tag={
+        colorMap
+          ? colorMap.type === "continuous"
+            ? tr("volcano.map.continuous")
+            : tr("volcano.map.categorical", {
+                n: colorMap.legend.length,
+                count: colorMap.legend.length,
+              })
+          : null
+      }
+    >
       <select
         aria-label={tr("volcano.aes.colorMap")}
         className="dv-select"
         value={col === -1 ? "" : col}
         onChange={(e) => setCol(e.target.value === "" ? -1 : parseInt(e.target.value))}
-        style={{ width: "100%", marginBottom: colorMap ? 8 : 0 }}
+        style={{ width: "100%" }}
       >
         <option value="">{tr("volcano.map.none")}</option>
         {candidates.map(({ h, i }) => (
@@ -739,21 +730,6 @@ export function ColorMapTile({
       </select>
       {colorMap && (
         <>
-          <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 6 }}>
-            {tr("volcano.map.detected")}
-            <strong
-              style={{
-                color: colorMap.type === "continuous" ? "var(--dna-text)" : "var(--link)",
-              }}
-            >
-              {colorMap.type === "continuous"
-                ? tr("volcano.map.continuous")
-                : tr("volcano.map.categorical", {
-                    n: colorMap.legend.length,
-                    count: colorMap.legend.length,
-                  })}
-            </strong>
-          </div>
           {colorMap.type === "continuous" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <select
@@ -851,7 +827,7 @@ export function ColorMapTile({
           )}
         </>
       )}
-    </VolcanoAesBox>
+    </AesMappingSection>
   );
 }
 
@@ -869,13 +845,13 @@ export function SizeMapTile({
   const candidates = eligibleColumns(parsed, xCol, yCol, labelCol);
   const active = col >= 0;
   return (
-    <VolcanoAesBox theme="sizeMap">
+    <AesMappingSection kind="size" title={tr("volcano.aes.sizeMap")}>
       <select
         aria-label={tr("volcano.aes.sizeMap")}
         className="dv-select"
         value={col === -1 ? "" : col}
         onChange={(e) => setCol(e.target.value === "" ? -1 : parseInt(e.target.value))}
-        style={{ width: "100%", marginBottom: active ? 8 : 0 }}
+        style={{ width: "100%" }}
       >
         <option value="">{tr("volcano.map.none")}</option>
         {candidates.map(({ h, i }) => (
@@ -909,7 +885,7 @@ export function SizeMapTile({
           </span>
         </div>
       )}
-    </VolcanoAesBox>
+    </AesMappingSection>
   );
 }
 
