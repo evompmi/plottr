@@ -96,6 +96,7 @@ per-file paths so the dependency graph stays visible.
 | `PlotActionsBar.tsx`         | App-bar export bar: two-click Start over, a More menu (PNG, CSV, …), Download SVG.       |
 | `PlotToolShell.tsx`          | Outer page frame — AppBar (steps, file chip, exports, prefs) + banners + children.       |
 | `PrefsPanel.tsx`             | Gear-menu UI on top of `prefs-store`.                                                    |
+| `RoleCard.tsx`               | Configure-step card for one column role or set-up block: `dv-panel` + mono title.        |
 | `ScrollablePlotCard.tsx`     | Horizontal-scroll affordance (edge fades + "Scroll for more →" pill).                    |
 | `SignificanceBrackets.tsx`   | Pair-wise significance-bracket renderer (vertical / horizontal).                         |
 | `SliderControl.tsx`          | Labelled range slider (memo-wrapped).                                                    |

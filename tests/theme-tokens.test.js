@@ -69,9 +69,6 @@ const TEXT_PAIRS = [
   ["--dna-text", "--surface"],
   ["--dna-text", "--surface-subtle"],
   ["--dna-text", "--page-bg"],
-  ["--aes-color-header-text", "--aes-color-header"],
-  ["--aes-size-header-text", "--aes-size-header"],
-  ["--aes-shape-header-text", "--aes-shape-header"],
   ["--warning-text", "--surface"],
   ["--plot-card-text-muted", "--plot-card-bg"],
   ...["--role-group-text", "--role-value-text", "--role-filter-text"].flatMap((t) =>

@@ -1,11 +1,9 @@
-// lineplot/steps.tsx — UploadStep + ConfigureStep panels, plus the LpAesBox
-// themed wrapper used in the configure-step grid. (The ControlSection
-// disclosure tile now lives in ../_shell and is imported there directly.)
+// lineplot/steps.tsx — UploadStep + ConfigureStep panels.
 
 import type { UploadStepProps, ConfigureStepProps } from "./helpers";
-import { DataPreview, DetectedSeparatorBadge, HowTo, UploadPanel } from "../_shell";
+import { DataPreview, DetectedSeparatorBadge, HowTo, RoleCard, UploadPanel } from "../_shell";
 import { useLineplotHowTo } from "./howto";
-import { useT, type LineplotKey } from "./i18n";
+import { useT } from "./i18n";
 
 // ── UploadStep ─────────────────────────────────────────────────────────────
 
@@ -46,63 +44,6 @@ export function UploadStep({
 // ── ConfigureStep ──────────────────────────────────────────────────────────
 // Preview the parsed table and confirm the column roles before plotting.
 
-// Role-colour themes. Reuse scatter's `--aes-*` CSS vars so the configure-
-// step cards feel visually related to scatter's aesthetic selectors —
-// slate (X), emerald (Y), purple (Group). Adds the theme-aware light/dark
-// palette for free (vars defined per-theme in tools/theme.css).
-const LP_AES_THEMES = {
-  x: {
-    bg: "var(--aes-color-bg)",
-    border: "var(--aes-color-border)",
-    header: "var(--aes-color-header)",
-    headerText: "var(--aes-color-header-text)",
-    label: "X axis",
-  },
-  y: {
-    bg: "var(--aes-size-bg)",
-    border: "var(--aes-size-border)",
-    header: "var(--aes-size-header)",
-    headerText: "var(--aes-size-header-text)",
-    label: "Y axis",
-  },
-  group: {
-    bg: "var(--aes-shape-bg)",
-    border: "var(--aes-shape-border)",
-    header: "var(--aes-shape-header)",
-    headerText: "var(--aes-shape-header-text)",
-    label: "Group by",
-  },
-};
-
-const LP_AES_LABEL_KEYS: Record<"x" | "y" | "group", LineplotKey> = {
-  x: "lineplot.var.xAxis",
-  y: "lineplot.var.yAxis",
-  group: "lineplot.var.groupBy",
-};
-
-function LpAesBox({ theme, children }: { theme: "x" | "y" | "group"; children?: React.ReactNode }) {
-  const tr = useT();
-  const t = LP_AES_THEMES[theme];
-  return (
-    <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
-      <div style={{ background: t.header, padding: "8px 14px", borderRadius: "8px 8px 0 0" }}>
-        <span
-          style={{
-            color: t.headerText,
-            fontWeight: 700,
-            fontSize: 12,
-            textTransform: "uppercase",
-            letterSpacing: "0.8px",
-          }}
-        >
-          {tr(LP_AES_LABEL_KEYS[theme])}
-        </span>
-      </div>
-      <div style={{ padding: "12px 14px", minHeight: 40 }}>{children}</div>
-    </div>
-  );
-}
-
 export function ConfigureStep({
   parsed,
   fileName,
@@ -127,7 +68,7 @@ export function ConfigureStep({
           gap: 12,
         }}
       >
-        <LpAesBox theme="x">
+        <RoleCard title={tr("lineplot.var.xAxis")}>
           <select
             aria-label={tr("lineplot.var.xAxis")}
             value={xCol ?? ""}
@@ -144,8 +85,8 @@ export function ConfigureStep({
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
             {tr("lineplot.cfg.xNote")}
           </div>
-        </LpAesBox>
-        <LpAesBox theme="y">
+        </RoleCard>
+        <RoleCard title={tr("lineplot.var.yAxis")}>
           <select
             aria-label={tr("lineplot.var.yAxis")}
             value={yCol ?? ""}
@@ -162,8 +103,8 @@ export function ConfigureStep({
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
             {tr("lineplot.cfg.yNote")}
           </div>
-        </LpAesBox>
-        <LpAesBox theme="group">
+        </RoleCard>
+        <RoleCard title={tr("lineplot.var.groupBy")}>
           <select
             aria-label={tr("lineplot.var.groupBy")}
             value={groupCol == null ? "" : groupCol}
@@ -181,7 +122,7 @@ export function ConfigureStep({
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
             {tr("lineplot.cfg.groupNote")}
           </div>
-        </LpAesBox>
+        </RoleCard>
       </div>
       {!canPlot && (
         <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--warning-text)" }}>
