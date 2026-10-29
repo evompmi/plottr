@@ -48,6 +48,8 @@ export { ParseErrorBanner } from "./ParseErrorBanner";
 export { MethodsButton } from "./MethodsButton";
 export { PlotActionsBar } from "./PlotActionsBar";
 export { PlotToolShell } from "./PlotToolShell";
+export { RoleCard } from "./RoleCard";
+export type { RoleCardProps } from "./RoleCard";
 export { PrefsPanel } from "./PrefsPanel";
 export { ValueListPanel } from "./ValueListPanel";
 export { ScrollablePlotCard } from "./ScrollablePlotCard";

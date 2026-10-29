@@ -1,4 +1,4 @@
-// Sidebar tiles + AesBox primitive for the Volcano tool. Pattern-matches
+// Sidebar tiles for the Volcano tool. Pattern-matches
 // boxplot/controls.tsx and scatter's tile layout. Shared form widgets
 // (SliderControl, ColorInput, NumberInput, DiscretePaletteRow) and
 // palette helpers (COLOR_PALETTES, DIVERGING_PALETTES, interpolateColor,
@@ -28,78 +28,10 @@ import type {
   ThresholdsTileProps,
 } from "./helpers";
 import { matchPointsByLabel } from "./helpers";
-import { useT, type VolcanoKey } from "./i18n";
+import { useT } from "./i18n";
 
 import { COLOR_PALETTES, DIVERGING_PALETTES, interpolateColor } from "../_core/color";
 const { useState, useEffect, useMemo } = React;
-
-// ── AesBox themes for the Configure-step role tiles. Same `--aes-*` CSS
-// vars boxplot / lineplot use, so the visual language carries across tools.
-export const VOLCANO_AES_THEMES = {
-  // X axis (log2 fold change) — purple "shape" theme. Mirrors boxplot's
-  // group-column tile colour so the "primary positional axis" idea is
-  // visually consistent across tools.
-  x: {
-    bg: "var(--aes-shape-bg)",
-    border: "var(--aes-shape-border)",
-    header: "var(--aes-shape-header)",
-    headerText: "var(--aes-shape-header-text)",
-    label: "X axis · log₂ fold change",
-  },
-  // Y axis (p-value) — green "size" theme, same as boxplot's value-
-  // column tile. The "primary measurement" slot.
-  y: {
-    bg: "var(--aes-size-bg)",
-    border: "var(--aes-size-border)",
-    header: "var(--aes-size-header)",
-    headerText: "var(--aes-size-header-text)",
-    label: "Y axis · p-value (−log₁₀)",
-  },
-  // Label column — slate "color" theme, neutral / auxiliary feel for
-  // an optional role.
-  label: {
-    bg: "var(--aes-color-bg)",
-    border: "var(--aes-color-border)",
-    header: "var(--aes-color-header)",
-    headerText: "var(--aes-color-header-text)",
-    label: "Feature label (optional)",
-  },
-} as const;
-
-const AES_LABEL_KEYS: Record<keyof typeof VOLCANO_AES_THEMES, VolcanoKey> = {
-  x: "volcano.aes.x",
-  y: "volcano.aes.y",
-  label: "volcano.aes.label",
-};
-
-export function VolcanoAesBox({
-  theme,
-  children,
-}: {
-  theme: keyof typeof VOLCANO_AES_THEMES;
-  children: React.ReactNode;
-}) {
-  const tr = useT();
-  const t = VOLCANO_AES_THEMES[theme];
-  return (
-    <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
-      <div style={{ background: t.header, padding: "8px 14px", borderRadius: "8px 8px 0 0" }}>
-        <span
-          style={{
-            color: t.headerText,
-            fontWeight: 700,
-            fontSize: 12,
-            textTransform: "uppercase",
-            letterSpacing: "0.8px",
-          }}
-        >
-          {tr(AES_LABEL_KEYS[theme])}
-        </span>
-      </div>
-      <div style={{ padding: "12px 14px", minHeight: 40 }}>{children}</div>
-    </div>
-  );
-}
 
 // Collapsible disclosure panel — same shape as scatter / lineplot /
 // upset's ControlSection so the visual language stays consistent across

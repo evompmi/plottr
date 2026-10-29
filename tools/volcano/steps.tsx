@@ -2,7 +2,7 @@
 // Stateless presentational wrappers — all state lives in App via
 // usePlotToolState or local hooks there. Shared UI (DataPreview,
 // downloadCsv, fileBaseName, …) resolves through shared.bundle.js.
-// AesBox / sidebar tiles come from ./controls.tsx; the SVG renderer
+// Sidebar tiles come from ./controls.tsx; the SVG renderer
 // comes from ./chart.tsx.
 
 import {
@@ -11,12 +11,12 @@ import {
   DetectedSeparatorBadge,
   DownloadTiles,
   ControlTabs,
+  RoleCard,
   WorkspaceLayout,
 } from "../_shell";
 import type { ChartDataTableRow } from "../_shell";
 import { classifyPoint } from "./helpers";
 import {
-  VolcanoAesBox,
   ThresholdsTile,
   ColorsTile,
   ColorMapTile,
@@ -38,10 +38,8 @@ const TABLE_MAX_ROWS = 2000;
 import { fileBaseName } from "../_core/download";
 // ── Configure step ─────────────────────────────────────────────────────
 //
-// Same shape as boxplot's ConfigureStep — coloured `AesBox`-style cards
-// for column roles, required ones on top, optional below. Reuses the
-// `--aes-*` CSS vars defined in theme.css so the colour palette is
-// consistent with scatter / boxplot. NO back / plot buttons: the
+// Same shape as boxplot's ConfigureStep — one `RoleCard` per column
+// role, side by side. NO back / plot buttons: the
 // StepNavBar at the top of PlotToolShell IS the navigation. The user
 // clicks "Plot" in the nav to advance, and `canNavigate` gates the
 // transition (it forbids "plot" until xCol and yCol are both valid).
@@ -73,7 +71,7 @@ export function ConfigureStep({
           marginBottom: 12,
         }}
       >
-        <VolcanoAesBox theme="x">
+        <RoleCard title={tr("volcano.aes.x")}>
           <select
             aria-label={tr("volcano.aes.x")}
             className="dv-select"
@@ -96,8 +94,8 @@ export function ConfigureStep({
             style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}
             dangerouslySetInnerHTML={{ __html: tr("volcano.cfg.xNote") }}
           />
-        </VolcanoAesBox>
-        <VolcanoAesBox theme="y">
+        </RoleCard>
+        <RoleCard title={tr("volcano.aes.y")}>
           <select
             aria-label={tr("volcano.aes.y")}
             className="dv-select"
@@ -137,8 +135,8 @@ export function ConfigureStep({
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
             {tr("volcano.cfg.adjustedNote")}
           </div>
-        </VolcanoAesBox>
-        <VolcanoAesBox theme="label">
+        </RoleCard>
+        <RoleCard title={tr("volcano.aes.label")}>
           <select
             aria-label={tr("volcano.aes.label")}
             className="dv-select"
@@ -156,7 +154,7 @@ export function ConfigureStep({
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
             {tr("volcano.cfg.labelNote")}
           </div>
-        </VolcanoAesBox>
+        </RoleCard>
       </div>
 
       {/* Warning banner when required roles aren't assigned. The stepper

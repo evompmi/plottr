@@ -5,66 +5,21 @@
 // shared.bundle.js. Prop types live in ./helpers.ts (the type-canonical home).
 
 import type { ConfigureStepProps, FilterStepProps, UploadStepProps } from "./helpers";
-import { DataPreview, DetectedSeparatorBadge, HowTo, ValueListPanel, UploadPanel } from "../_shell";
+import {
+  DataPreview,
+  DetectedSeparatorBadge,
+  HowTo,
+  RoleCard,
+  ValueListPanel,
+  UploadPanel,
+} from "../_shell";
 import { useBoxplotHowTo } from "./howto";
-import { useT, ttHtml, type BoxplotKey } from "./i18n";
+import { useT, ttHtml } from "./i18n";
 
 import { roleColors, roleTextColors } from "../_core/color";
 import type { ColumnRole } from "../_core/csv";
-// Role-colour themes for the Configure-step AesBox cards. Reuses scatter's
-// `--aes-*` CSS vars so the visual language is consistent across tools
-// (slate "Color" theme → Group; emerald "Size" theme → Value). Theme-aware
-// light/dark variants come free — vars defined per-theme in theme.css.
-const BP_AES_THEMES = {
-  group: {
-    bg: "var(--aes-shape-bg)",
-    border: "var(--aes-shape-border)",
-    header: "var(--aes-shape-header)",
-    headerText: "var(--aes-shape-header-text)",
-    labelKey: "boxplot.steps.aes.group" as BoxplotKey,
-  },
-  value: {
-    bg: "var(--aes-size-bg)",
-    border: "var(--aes-size-border)",
-    header: "var(--aes-size-header)",
-    headerText: "var(--aes-size-header-text)",
-    labelKey: "boxplot.steps.aes.value" as BoxplotKey,
-  },
-};
-
-interface BpAesTheme {
-  bg: string;
-  border: string;
-  header: string;
-  headerText: string;
-  labelKey: BoxplotKey;
-}
-
-function BpAesBox({ theme, children }: { theme: string; children?: React.ReactNode }) {
-  const tr = useT();
-  const t = (BP_AES_THEMES as Record<string, BpAesTheme>)[theme];
-  return (
-    <div style={{ borderRadius: 10, border: `1.5px solid ${t.border}`, background: t.bg }}>
-      <div style={{ background: t.header, padding: "8px 14px", borderRadius: "8px 8px 0 0" }}>
-        <span
-          style={{
-            color: t.headerText,
-            fontWeight: 700,
-            fontSize: 12,
-            textTransform: "uppercase",
-            letterSpacing: "0.8px",
-          }}
-        >
-          {tr(t.labelKey)}
-        </span>
-      </div>
-      <div style={{ padding: "12px 14px", minHeight: 40 }}>{children}</div>
-    </div>
-  );
-}
-
 // Compact "Other columns" panel — replaces the old ColumnRoleEditor. Group
-// and Value are already assigned by the AesBox cards above, so this list
+// and Value are already assigned by the role cards above, so this list
 // only surfaces the remaining columns and gives each one a single binary
 // decision: "use as filter" (on = role `filter`; off = role `ignore`).
 // Users can still rename; the per-column value preview stays. If nothing
@@ -237,8 +192,7 @@ export function ConfigureStep({
   const groupColIdx = colRoles.indexOf("group");
   return (
     <div>
-      {/* Primary role shortcuts — AesBox cards matching scatter's aesthetic
-          selectors. Each picks the single column playing that role; the
+      {/* Primary role shortcuts — one RoleCard per role. Each picks the single column playing that role; the
           parent's `onRoleChange` handler automatically demotes the previous
           holder to "filter" when a new column is chosen. Every non-primary
           column is then handled by the compact `OtherColumnsPanel` below
@@ -252,7 +206,7 @@ export function ConfigureStep({
           marginBottom: 16,
         }}
       >
-        <BpAesBox theme="group">
+        <RoleCard title={tr("boxplot.steps.aes.group")}>
           <select
             aria-label={tr("boxplot.steps.aes.group")}
             value={groupColIdx >= 0 ? groupColIdx : ""}
@@ -290,8 +244,8 @@ export function ConfigureStep({
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
             {tr("boxplot.steps.groupHint")}
           </div>
-        </BpAesBox>
-        <BpAesBox theme="value">
+        </RoleCard>
+        <RoleCard title={tr("boxplot.steps.aes.value")}>
           <select
             aria-label={tr("boxplot.steps.aes.value")}
             value={valueColIdx >= 0 ? valueColIdx : ""}
@@ -329,7 +283,7 @@ export function ConfigureStep({
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
             {tr("boxplot.steps.valueHint")}
           </div>
-        </BpAesBox>
+        </RoleCard>
       </div>
       <OtherColumnsPanel
         headers={parsedHeaders}
