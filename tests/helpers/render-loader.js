@@ -171,6 +171,7 @@ function ensureSharedBundleLoaded() {
         "NumberInput",
         "ParseErrorBanner",
         "MethodsButton",
+        "placeMethodsPopover",
         "PlotActionsBar",
         "PlotActionsContext",
         "PlotStyleIconPicker",

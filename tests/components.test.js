@@ -542,6 +542,36 @@ test("opens a read-only paragraph built on demand and closes again", function ()
   React.act(() => root.unmount());
 });
 
+test("popover opens below the button when it fits", function () {
+  const btn = { top: 100, bottom: 130, left: 600, right: 700 };
+  const pos = sc.placeMethodsPopover(btn, 520, 300, 1400, 900);
+  eq(pos.top, 136);
+  eq(pos.left, 180, "right-aligned with the button");
+});
+
+test("popover flips above a button near the bottom of the window", function () {
+  const btn = { top: 800, bottom: 830, left: 600, right: 700 };
+  const pos = sc.placeMethodsPopover(btn, 520, 300, 1400, 900);
+  eq(pos.top, 494, "800 - 6 - 300");
+});
+
+test("popover is pinned inside the window when it fits neither below nor above", function () {
+  const btn = { top: 200, bottom: 230, left: 600, right: 700 };
+  const pos = sc.placeMethodsPopover(btn, 520, 700, 1400, 900);
+  eq(pos.top, 192, "900 - 8 - 700: bottom edge on the window margin");
+  const offBottom = { top: 1200, bottom: 1230, left: 600, right: 700 };
+  eq(sc.placeMethodsPopover(offBottom, 520, 300, 1400, 900).top, 592, "button scrolled off-screen");
+  const tall = sc.placeMethodsPopover(btn, 520, 2000, 1400, 900);
+  eq(tall.top, 8, "never above the top margin");
+});
+
+test("popover is pushed back inside the window horizontally", function () {
+  const nearLeft = { top: 100, bottom: 130, left: 10, right: 110 };
+  eq(sc.placeMethodsPopover(nearLeft, 520, 300, 1400, 900).left, 8);
+  const pastRight = { top: 100, bottom: 130, left: 1400, right: 1500 };
+  eq(sc.placeMethodsPopover(pastRight, 520, 300, 1400, 900).left, 1400 - 8 - 520);
+});
+
 suite("ColumnRoleEditor");
 
 test("renders column role dropdowns", function () {

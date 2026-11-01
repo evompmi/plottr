@@ -1,15 +1,56 @@
 // "Methods" button for a stats panel header: opens a read-only popover with
 // a methods-section paragraph describing the analysis (built on demand by
-// `getText`, see methods-text.ts) and a Copy button. Closes on Escape, on the
-// close button, or on a click outside. The wrapper is a flex box so the button
+// `getText`, see methods-text.ts) and a Copy button. The popover opens below the
+// button, or above it when the button sits near the bottom of the window, and
+// always stays inside the window. Closes on Escape, on the close button, or on a
+// click outside. The wrapper is a flex box so the button
 // stretches to the height of the header row it sits in (matching TXT / R).
 
 import { useShellT } from "./i18n";
 
-const { useEffect, useRef, useState } = React;
+const { useEffect, useLayoutEffect, useRef, useState } = React;
 
 interface MethodsButtonProps {
   getText: () => string;
+}
+
+export interface PopoverRect {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+export interface PopoverPlacement {
+  top: number;
+  left: number;
+}
+
+const POPOVER_GAP = 6;
+const VIEWPORT_MARGIN = 8;
+
+// Viewport position for a popover of `width` × `height` anchored to the
+// button `btn`: below the button when it fits, else above it, else pinned to
+// the bottom edge of the window (the popover is capped at 70vh, so it fits);
+// right-aligned with the button and pushed back inside the window horizontally.
+export function placeMethodsPopover(
+  btn: PopoverRect,
+  width: number,
+  height: number,
+  viewportW: number,
+  viewportH: number
+): PopoverPlacement {
+  const below = btn.bottom + POPOVER_GAP;
+  const above = btn.top - POPOVER_GAP - height;
+  const bottomLimit = viewportH - VIEWPORT_MARGIN;
+  let top: number;
+  if (below + height <= bottomLimit) top = below;
+  else if (above >= VIEWPORT_MARGIN && above + height <= bottomLimit) top = above;
+  else top = bottomLimit - height;
+  top = Math.max(VIEWPORT_MARGIN, top);
+  const maxLeft = viewportW - VIEWPORT_MARGIN - width;
+  const left = Math.max(VIEWPORT_MARGIN, Math.min(btn.right - width, maxLeft));
+  return { top, left };
 }
 
 function copyText(text: string, fallbackEl: HTMLElement | null): Promise<boolean> {
@@ -40,18 +81,31 @@ export function MethodsButton({ getText }: MethodsButtonProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
-  // Fixed-position anchor under the button: stats panels clip overflow, so
-  // the popover lives in viewport coordinates and follows scroll / resize.
-  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+  // Fixed-position placement next to the button: stats panels clip overflow,
+  // so the popover lives in viewport coordinates and follows scroll / resize.
+  // Placed before paint (layout effect) once its size is known; hidden until then.
+  const [anchor, setAnchor] = useState<PopoverPlacement | null>(null);
   const open = text != null;
 
-  useEffect(() => {
-    if (!open) return undefined;
+  useLayoutEffect(() => {
+    if (!open) {
+      setAnchor(null);
+      return undefined;
+    }
     const place = () => {
       const b = btnRef.current;
-      if (!b) return;
-      const r = b.getBoundingClientRect();
-      setAnchor({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
+      const pop = popRef.current;
+      if (!b || !pop) return;
+      setAnchor(
+        placeMethodsPopover(
+          b.getBoundingClientRect(),
+          pop.offsetWidth,
+          pop.offsetHeight,
+          window.innerWidth,
+          window.innerHeight
+        )
+      );
     };
     place();
     window.addEventListener("scroll", place, true);
@@ -60,7 +114,7 @@ export function MethodsButton({ getText }: MethodsButtonProps) {
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
     };
-  }, [open]);
+  }, [open, text]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -106,11 +160,13 @@ export function MethodsButton({ getText }: MethodsButtonProps) {
           role="dialog"
           aria-label={tr("shell.methods.title")}
           data-testid="methods-popover"
+          ref={popRef}
           onClick={(e) => e.stopPropagation()}
           style={{
             position: "fixed",
             top: anchor ? anchor.top : 0,
-            right: anchor ? anchor.right : 8,
+            left: anchor ? anchor.left : 0,
+            visibility: anchor ? "visible" : "hidden",
             zIndex: 40,
             width: 520,
             maxWidth: "80vw",
