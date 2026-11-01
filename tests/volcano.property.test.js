@@ -35,6 +35,8 @@ const {
   autoDetectColumns,
   pickTopLabels,
   layoutLabels,
+  buildObstacleGrid,
+  forEachObstacleNear,
   approxMonoCharWidth,
   detectColorMapType,
   buildColorMap,
@@ -1154,5 +1156,57 @@ test("null / missing parsed returns []", () => {
       const c = eligibleColumns({}, xCol, yCol, -1);
       return a.length === 0 && b.length === 0 && c.length === 0;
     })
+  );
+});
+
+// ── obstacle grid ──────────────────────────────────────────────────────
+//
+// layoutLabels only tests points that forEachObstacleNear hands it, with the
+// query rectangle grown by the largest point radius. Its placements match
+// the old every-point scan as long as the query visits every point whose
+// centre lies in the rectangle, never visits one twice, and always visits
+// points with a non-finite radius.
+
+suite("volcano property — obstacle grid query");
+
+const arbGridCoord = fc.oneof(
+  { weight: 8, arbitrary: fc.double({ min: -50, max: 900, noNaN: true }) },
+  { weight: 1, arbitrary: fc.double({ min: -1e6, max: 1e6, noNaN: true }) },
+  { weight: 1, arbitrary: fc.constantFrom(NaN, Infinity, -Infinity) }
+);
+const arbGridObstacle = fc.record({
+  x: arbGridCoord,
+  y: arbGridCoord,
+  r: fc.oneof(
+    { weight: 9, arbitrary: fc.double({ min: 0, max: 8, noNaN: true }) },
+    { weight: 1, arbitrary: fc.constantFrom(NaN, Infinity) }
+  ),
+});
+
+test("visits every point inside the query rectangle exactly once", () => {
+  check(
+    fc.property(
+      fc.array(arbGridObstacle, { maxLength: 300 }),
+      fc.double({ min: -100, max: 1000, noNaN: true }),
+      fc.double({ min: -100, max: 1000, noNaN: true }),
+      fc.double({ min: 0, max: 400, noNaN: true }),
+      fc.double({ min: 0, max: 400, noNaN: true }),
+      (obstacles, x0, y0, w, h) => {
+        const grid = buildObstacleGrid(obstacles);
+        const seen = new Map();
+        forEachObstacleNear(grid, x0, y0, x0 + w, y0 + h, (o) => {
+          seen.set(o, (seen.get(o) || 0) + 1);
+        });
+        for (const count of seen.values()) if (count !== 1) return false;
+        for (const o of obstacles) {
+          const finiteXY = Number.isFinite(o.x) && Number.isFinite(o.y);
+          if (!finiteXY) continue;
+          const mustVisit =
+            !Number.isFinite(o.r) || (o.x >= x0 && o.x <= x0 + w && o.y >= y0 && o.y <= y0 + h);
+          if (mustVisit && !seen.has(o)) return false;
+        }
+        return true;
+      }
+    )
   );
 });

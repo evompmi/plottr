@@ -47,6 +47,8 @@ module.exports = {
   autoDetectColumns: helpers.autoDetectColumns,
   pickTopLabels: helpers.pickTopLabels,
   layoutLabels: helpers.layoutLabels,
+  buildObstacleGrid: helpers.buildObstacleGrid,
+  forEachObstacleNear: helpers.forEachObstacleNear,
   approxMonoCharWidth: helpers.approxMonoCharWidth,
   detectColorMapType: helpers.detectColorMapType,
   buildColorMap: helpers.buildColorMap,
