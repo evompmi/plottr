@@ -2,7 +2,7 @@
 // download chips. Pure functions; no React. Test/post-hoc labels live here
 // so PerXDetail and PerXStatsPanel can share them.
 
-import { formatX, EnrichedPerXRow, SelectTestResult } from "./helpers";
+import { formatX, EnrichedPerXRow, PerXStatsRow, SelectTestResult } from "./helpers";
 import {
   STATS_POSTHOC_REGISTRY,
   STATS_TEST_REGISTRY,
@@ -157,7 +157,7 @@ export function buildAggregateReport(rows: EnrichedPerXRow[], xLabel: string): s
   return head.join("\n") + rows.map((r) => buildPerXTextBlock(r, xLabel)).join("");
 }
 
-export function buildAggregateRScript(rows: EnrichedPerXRow[], xLabel: string): string {
+export function buildAggregateRScript(rows: PerXStatsRow[], xLabel: string): string {
   if (!rows.length || typeof buildRScript !== "function") return "";
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   // sanitizeRComment strips embedded line terminators so a hostile x-axis

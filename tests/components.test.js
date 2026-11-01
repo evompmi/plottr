@@ -1453,6 +1453,42 @@ suite("LineChart");
     });
     assert(html.startsWith("<svg"), "root should be an SVG");
   });
+
+  // Replication planning is computed only for an expanded x row, not for
+  // every x up front — it still appears once the row opens.
+  test("PerXStatsPanel shows replication planning once an x row is expanded", function () {
+    const React = require("react");
+    const PerXStatsPanel = tool.exports.PerXStatsPanel;
+    const rows = [0, 2].map((x) => ({
+      x,
+      names: ["WT", "mutant_A"],
+      values: [
+        [0.55, 0.58, 0.61, 0.57],
+        [0.42, 0.39, 0.45, 0.4],
+      ],
+      chosenTest: "welchT",
+      result: null,
+    }));
+    const { container, root } = renderWithEffects(PerXStatsPanel, {
+      rows,
+      xLabel: "Time",
+      fileName: "growth.csv",
+      displayKind: "sem",
+    });
+    assert(
+      !container.textContent.includes("Replication planning"),
+      "collapsed rows show no replication planning"
+    );
+    const rowButtons = container.querySelectorAll("button.dv-set-row");
+    eq(rowButtons.length, 2);
+    React.act(() => rowButtons[1].click());
+    assert(
+      container.textContent.includes("Replication planning"),
+      "the expanded row shows replication planning"
+    );
+    assert(container.textContent.includes("80% power"), "planning lists n for 80% power");
+    React.act(() => root.unmount());
+  });
 })();
 
 // ════════════════════════════════════════════════════════════════════════════

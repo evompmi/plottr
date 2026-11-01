@@ -3,7 +3,15 @@
 // lineplot-loader.js loads this file directly). Keep render-layer code and
 // UI-specific components out — they belong in tools/lineplot.tsx.
 
-import { CHART_MARGIN, TestResult, buildLineD, round2, round4, runTest } from "../_shell";
+import {
+  CHART_MARGIN,
+  TestResult,
+  buildLineD,
+  computePowerFromData,
+  round2,
+  round4,
+  runTest,
+} from "../_shell";
 import type { LegendBlock, PowerFromDataResult } from "../_shell";
 import { tinv } from "../_core/stats/dist";
 import { sampleMean, sampleSD } from "../_core/stats/tests";
@@ -279,9 +287,10 @@ export interface ChartProps {
 // ── Per-x stats panel prop interfaces ───────────────────────────────────────
 //
 // `PerXStatsPanel` enriches every input row with `rec` / `chosenTest` /
-// `result` / `postHocResult` / `powerResult` / `pAdj` derived from the
-// override state — so `PerXDetail` (the expander) consumes the enriched
-// shape, while the panel itself accepts the raw `PerXRow[]`.
+// `result` / `postHocResult` / `pAdj` derived from the override state
+// (`PerXStatsRow`) — the plot's stars need those for every x. Replication
+// planning (`powerResult`) is added only where it is shown: in `PerXDetail`,
+// mounted while a row is expanded, and in the text report.
 
 // `selectTest` returns `recommendation` plus an optional `suggestion` field
 // that the global type stub omits; we widen here so the panel can pick up
@@ -327,18 +336,29 @@ export interface PostHocResult {
 }
 
 // PerXRow + the override-derived fields PerXStatsPanel attaches to it.
-export interface EnrichedPerXRow extends PerXRow {
+export interface PerXStatsRow extends PerXRow {
   rec: SelectTestResult | null;
   chosenTest: RecommendedTest | null;
   result: TestResult | null;
   postHocName: Exclude<RecommendedPostHoc, null> | null;
   postHocResult: PostHocResult | null;
-  powerResult: PowerFromDataResult | null;
   pAdj: number | null;
 }
 
+// A PerXStatsRow with its replication planning, as the text report needs it.
+export interface EnrichedPerXRow extends PerXStatsRow {
+  powerResult: PowerFromDataResult | null;
+}
+
+// Replication planning for one x value. Its sample-size search is the
+// costliest part of a row's statistics, so it runs only where it is shown —
+// an expanded row and the text report — not for every x up front.
+export function withPower(row: PerXStatsRow): EnrichedPerXRow {
+  return { ...row, powerResult: computePowerFromData(row.chosenTest ?? "", row.values) };
+}
+
 export interface PerXDetailProps {
-  row: EnrichedPerXRow;
+  row: PerXStatsRow;
   onOverrideTest: (test: RecommendedTest | null) => void;
   isOverridden: boolean;
 }

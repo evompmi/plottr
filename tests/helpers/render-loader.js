@@ -331,6 +331,7 @@ function loadTool(toolName) {
     "GofPanel: typeof GofPanel !== 'undefined' ? GofPanel : undefined," +
     "QpcrChart: typeof QpcrChart !== 'undefined' ? QpcrChart : undefined," +
     "QpcrStatsPanel: typeof QpcrStatsPanel !== 'undefined' ? QpcrStatsPanel : undefined," +
+    "PerXStatsPanel: typeof PerXStatsPanel !== 'undefined' ? PerXStatsPanel : undefined," +
     "BoxplotStatsPanel: typeof BoxplotStatsPanel !== 'undefined' ? BoxplotStatsPanel : undefined," +
     "BoxplotStatsDisplayBar: typeof BoxplotStatsDisplayBar !== 'undefined' ? BoxplotStatsDisplayBar : undefined," +
     "ShapeFillTile: typeof ShapeFillTile !== 'undefined' ? ShapeFillTile : undefined," +
