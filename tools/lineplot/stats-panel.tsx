@@ -24,7 +24,8 @@ import {
 } from "../_shell";
 import {
   formatX,
-  EnrichedPerXRow,
+  withPower,
+  PerXStatsRow,
   PerXDetailProps,
   PerXStatsPanelProps,
   PerXRow,
@@ -75,6 +76,10 @@ function lpPosthocLabel(key: string): string {
 // RLU Timecourse through `GroupTestSections`), plus the BH-adjusted p.
 export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProps) {
   const tr = useT();
+  const powerResult = useMemo(
+    () => computePowerFromData(row.chosenTest ?? "", row.values),
+    [row.chosenTest, row.values]
+  );
   const res = row.result ?? ({} as TestResult);
   const p = res.error ? null : typeof res.p === "number" ? res.p : null;
   const resultParts = res.error
@@ -98,7 +103,7 @@ export function PerXDetail({ row, onOverrideTest, isOverridden }: PerXDetailProp
       error={!!res.error}
       postHocName={row.postHocName}
       postHocResult={row.postHocResult}
-      powerResult={row.powerResult}
+      powerResult={powerResult}
       isOverridden={!!isOverridden}
       onOverrideTest={(t) => onOverrideTest && onOverrideTest(t)}
     />
@@ -112,8 +117,8 @@ export function PerXStatsPanel({ rows, xLabel, fileName, displayKind }: PerXStat
   const stem = fileBaseName(fileName, "lineplot");
   const hasR = typeof buildRScript === "function";
 
-  const enriched = useMemo<EnrichedPerXRow[]>(() => {
-    const withChosen: EnrichedPerXRow[] = rows.map((r: PerXRow) => {
+  const enriched = useMemo<PerXStatsRow[]>(() => {
+    const withChosen: PerXStatsRow[] = rows.map((r: PerXRow) => {
       const key = formatX(r.x);
       const rec = selectTest(r.values) as SelectTestResult;
       const recTest = rec.recommendation?.test ?? null;
@@ -127,8 +132,7 @@ export function PerXStatsPanel({ rows, xLabel, fileName, displayKind }: PerXStat
       const postHocResult = (
         r.names.length >= 3 && postHocName ? runPostHoc(postHocName, r.values) : null
       ) as PostHocResult | null;
-      const powerResult = computePowerFromData(chosenTest ?? "", r.values);
-      return { ...r, rec, chosenTest, result, postHocName, postHocResult, powerResult, pAdj: null };
+      return { ...r, rec, chosenTest, result, postHocName, postHocResult, pAdj: null };
     });
     // Recompute BH-adjusted p-values across the x-axis using the (possibly
     // user-overridden) per-x test results.
@@ -153,7 +157,7 @@ export function PerXStatsPanel({ rows, xLabel, fileName, displayKind }: PerXStat
       return next;
     });
 
-  const xSlug = (row: EnrichedPerXRow, i: number): string => {
+  const xSlug = (row: PerXStatsRow, i: number): string => {
     const raw = formatX(row.x);
     const clean =
       typeof svgSafeId === "function"
@@ -164,12 +168,13 @@ export function PerXStatsPanel({ rows, xLabel, fileName, displayKind }: PerXStat
     return clean || `x-${i + 1}`;
   };
   const downloadReport = () => {
-    if (enriched.length <= 1) {
-      downloadText(buildAggregateReport(enriched, xLabel), `${stem}_stats.txt`);
+    const withPlanning = enriched.map(withPower);
+    if (withPlanning.length <= 1) {
+      downloadText(buildAggregateReport(withPlanning, xLabel), `${stem}_stats.txt`);
       return;
     }
     downloadTexts(
-      enriched.map((row, i) => ({
+      withPlanning.map((row, i) => ({
         text: buildAggregateReport([row], xLabel),
         filename: `${stem}_${xSlug(row, i)}_stats.txt`,
       }))

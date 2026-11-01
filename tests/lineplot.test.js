@@ -12,6 +12,7 @@ const {
   computeSeries,
   computePerXStats,
   lineDashArray,
+  withPower,
 } = require("./helpers/lineplot-loader");
 
 // ── buildLineD ──────────────────────────────────────────────────────────────
@@ -276,6 +277,64 @@ test("x values that never appear in ≥2 groups produce no rows", () => {
     },
   ];
   eq(computePerXStats(series), []);
+});
+
+suite("lineplot — withPower (replication planning added on demand)");
+
+// The per-x panel no longer computes replication planning for every x up
+// front; the text report adds it per row with withPower. It must carry the
+// same planning the panel shows for that row.
+const statsRow = (chosenTest, values) => ({
+  x: 4,
+  names: values.map((_, i) => `G${i + 1}`),
+  values,
+  rec: null,
+  chosenTest,
+  result: null,
+  postHocName: null,
+  postHocResult: null,
+  pAdj: 0.01,
+});
+
+test("two groups: Cohen's d planning with three α rows, row fields kept", () => {
+  const row = statsRow("welchT", [
+    [0.55, 0.58, 0.61, 0.57],
+    [0.42, 0.39, 0.45, 0.4],
+  ]);
+  const out = withPower(row);
+  assert(out.powerResult, "expected replication planning");
+  eq(out.powerResult.effectLabel, "Cohen's d (unpooled SD)");
+  eq(
+    out.powerResult.rows.map((r) => r.alpha),
+    [0.05, 0.01, 0.001]
+  );
+  for (const r of out.powerResult.rows) assert(Number.isInteger(r.nForTarget), `α=${r.alpha}`);
+  eq(out.x, 4);
+  eq(out.pAdj, 0.01);
+  assert(out.values === row.values, "values passed through");
+});
+
+test("three groups: Cohen's f planning", () => {
+  const out = withPower(
+    statsRow("welchANOVA", [
+      [1, 2, 3],
+      [2, 3, 4],
+      [5, 6, 7],
+    ])
+  );
+  eq(out.powerResult.effectLabel, "Cohen's f");
+});
+
+test("no chosen test → no planning", () => {
+  eq(
+    withPower(
+      statsRow(null, [
+        [1, 2],
+        [3, 4],
+      ])
+    ).powerResult,
+    null
+  );
 });
 
 summary();
