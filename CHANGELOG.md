@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Faster on large files, with identical results: Line Plot's statistics no longer freeze the page for seconds on many x-values (the n-for-80%-power search is a binary search), Heatmap clusters 2 000 rows in a fraction of the time, and Volcano's label placement no longer stalls the label sliders on tens of thousands of genes. Regression: 7 tests.
+
 ## [2.2.0] - 2026-10-29
 
 > Long-form release notes live in

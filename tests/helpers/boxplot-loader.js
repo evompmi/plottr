@@ -55,6 +55,7 @@ ctx.assignBracketLevels = bracketLevels.assignBracketLevels;
 
 const powerFromData = runCjs(ctx, powerFromDataCjs);
 ctx.computePowerFromData = powerFromData.computePowerFromData;
+ctx.smallestNReaching = powerFromData.smallestNReaching;
 
 const helpers = runCjs(ctx, helpersCjs);
 
@@ -88,6 +89,9 @@ module.exports = {
   compactLetterDisplay: ctx.compactLetterDisplay,
   assignBracketLevels: ctx.assignBracketLevels,
   computePowerFromData: ctx.computePowerFromData,
+  smallestNReaching: ctx.smallestNReaching,
+  powerAnova: ctx.powerAnova,
+  powerTwoSample: ctx.powerTwoSample,
   // Boxplot-specific pure helpers.
   formatBpStatShort: helpers.formatBpStatShort,
   formatBpResultLine: helpers.formatBpResultLine,

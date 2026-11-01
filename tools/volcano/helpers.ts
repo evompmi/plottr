@@ -379,6 +379,96 @@ export interface ObstaclePoint {
   r: number;
 }
 
+// Uniform bucket grid over the obstacle points. A label candidate can only
+// collide with points near its box or its leader, so each candidate visits
+// the few cells around them instead of every point — with 30 000 genes the
+// full scans froze the page for seconds while the label-count slider moved.
+// The collision tests themselves are unchanged and run on every point that
+// could pass them, so the counts (and the chosen placements) are identical.
+export interface ObstacleGrid {
+  cell: number;
+  minX: number;
+  minY: number;
+  cols: number;
+  rows: number;
+  cells: ObstaclePoint[][];
+  // Points whose radius isn't finite can't be bounded to a cell range; they
+  // are tested against every candidate, as before.
+  unbounded: ObstaclePoint[];
+  maxR: number;
+}
+
+const GRID_CELL_PX = 16;
+const GRID_MAX_CELLS_PER_AXIS = 512;
+
+export function buildObstacleGrid(obstacles: ObstaclePoint[]): ObstacleGrid {
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity,
+    maxR = 0;
+  const unbounded: ObstaclePoint[] = [];
+  const placeable: ObstaclePoint[] = [];
+  for (const o of obstacles) {
+    // A point with a non-finite coordinate fails every collision test.
+    if (!Number.isFinite(o.x) || !Number.isFinite(o.y)) continue;
+    if (!Number.isFinite(o.r)) {
+      unbounded.push(o);
+      continue;
+    }
+    placeable.push(o);
+    if (o.x < minX) minX = o.x;
+    if (o.x > maxX) maxX = o.x;
+    if (o.y < minY) minY = o.y;
+    if (o.y > maxY) maxY = o.y;
+    if (o.r > maxR) maxR = o.r;
+  }
+  if (placeable.length === 0) {
+    return { cell: 1, minX: 0, minY: 0, cols: 0, rows: 0, cells: [], unbounded, maxR: 0 };
+  }
+  const cell = Math.max(
+    GRID_CELL_PX,
+    (maxX - minX) / GRID_MAX_CELLS_PER_AXIS,
+    (maxY - minY) / GRID_MAX_CELLS_PER_AXIS
+  );
+  const cols = Math.floor((maxX - minX) / cell) + 1;
+  const rows = Math.floor((maxY - minY) / cell) + 1;
+  const cells: ObstaclePoint[][] = Array.from({ length: cols * rows }, () => []);
+  for (const o of placeable) {
+    const cx = Math.floor((o.x - minX) / cell);
+    const cy = Math.floor((o.y - minY) / cell);
+    cells[cy * cols + cx].push(o);
+  }
+  return { cell, minX, minY, cols, rows, cells, unbounded, maxR };
+}
+
+// Calls `visit` once for every point that could lie in the rectangle
+// [x0, x1] × [y0, y1] (whole cells, so a superset), plus every unbounded
+// point.
+export function forEachObstacleNear(
+  grid: ObstacleGrid,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  visit: (o: ObstaclePoint) => void
+): void {
+  for (const o of grid.unbounded) visit(o);
+  if (grid.cols === 0) return;
+  // One cell of slack on each side keeps float rounding at a boundary from
+  // dropping a point.
+  const c0 = Math.max(0, Math.floor((x0 - grid.minX) / grid.cell) - 1);
+  const c1 = Math.min(grid.cols - 1, Math.floor((x1 - grid.minX) / grid.cell) + 1);
+  const r0 = Math.max(0, Math.floor((y0 - grid.minY) / grid.cell) - 1);
+  const r1 = Math.min(grid.rows - 1, Math.floor((y1 - grid.minY) / grid.cell) + 1);
+  for (let cy = r0; cy <= r1; cy++) {
+    for (let cx = c0; cx <= c1; cx++) {
+      const bucket = grid.cells[cy * grid.cols + cx];
+      for (let k = 0; k < bucket.length; k++) visit(bucket[k]);
+    }
+  }
+}
+
 // The chart caller passes a `LayoutBounds` rect that is typically
 // slightly larger than the inner data-plot area, so labels can legally
 // land in the chart's outer margin where there are no data points to
@@ -559,7 +649,7 @@ const PENALTY_BBOX_OVERLAP_PER_100PX2 = 1;
 // sub-degree refinement (refineForcedAngle) call the same evaluator.
 function evaluateCandidate(
   inp: LayoutInput,
-  obstacles: ObstaclePoint[],
+  grid: ObstacleGrid,
   bounds: LayoutBounds,
   placed: PlacedLabel[],
   angleDeg: number,
@@ -594,34 +684,50 @@ function evaluateCandidate(
   }
 
   let bboxHitsPointCount = 0;
-  for (const obs of obstacles) {
-    const ox = obs.x - sx;
-    const oy = obs.y - sy;
-    if (ox * ox + oy * oy < 1) continue;
-    if (pointInPaddedRect(obs.x, obs.y, bbox, obs.r + LABEL_BBOX_PAD)) {
-      bboxHitsPointCount++;
+  const bboxReach = grid.maxR + LABEL_BBOX_PAD;
+  forEachObstacleNear(
+    grid,
+    bbox.x - bboxReach,
+    bbox.y - bboxReach,
+    bbox.x + bbox.w + bboxReach,
+    bbox.y + bbox.h + bboxReach,
+    (obs) => {
+      const ox = obs.x - sx;
+      const oy = obs.y - sy;
+      if (ox * ox + oy * oy < 1) return;
+      if (pointInPaddedRect(obs.x, obs.y, bbox, obs.r + LABEL_BBOX_PAD)) {
+        bboxHitsPointCount++;
+      }
     }
-  }
+  );
 
   let leaderHitsPointCount = 0;
-  for (const obs of obstacles) {
-    const ox = obs.x - sx;
-    const oy = obs.y - sy;
-    if (ox * ox + oy * oy < 1) continue;
-    if (
-      lineSegmentIntersectsCircle(
-        startX,
-        startY,
-        leaderEnd.x,
-        leaderEnd.y,
-        obs.x,
-        obs.y,
-        obs.r + 0.5
-      )
-    ) {
-      leaderHitsPointCount++;
+  const leaderReach = grid.maxR + 0.5;
+  forEachObstacleNear(
+    grid,
+    Math.min(startX, leaderEnd.x) - leaderReach,
+    Math.min(startY, leaderEnd.y) - leaderReach,
+    Math.max(startX, leaderEnd.x) + leaderReach,
+    Math.max(startY, leaderEnd.y) + leaderReach,
+    (obs) => {
+      const ox = obs.x - sx;
+      const oy = obs.y - sy;
+      if (ox * ox + oy * oy < 1) return;
+      if (
+        lineSegmentIntersectsCircle(
+          startX,
+          startY,
+          leaderEnd.x,
+          leaderEnd.y,
+          obs.x,
+          obs.y,
+          obs.r + 0.5
+        )
+      ) {
+        leaderHitsPointCount++;
+      }
     }
-  }
+  );
 
   let leaderCrossCount = 0;
   for (const p of placed) {
@@ -676,7 +782,7 @@ const REFINE_STEPS_LEVEL_2 = 3;
 
 function refineForcedAngle(
   inp: LayoutInput,
-  obstacles: ObstaclePoint[],
+  grid: ObstacleGrid,
   bounds: LayoutBounds,
   placed: PlacedLabel[],
   baseAngleDeg: number,
@@ -692,7 +798,7 @@ function refineForcedAngle(
     const offset = -REFINE_RANGE_DEG + (2 * REFINE_RANGE_DEG * i) / (REFINE_STEPS_LEVEL_1 - 1);
     const angleDeg = baseAngleDeg + offset;
     if (Math.abs(offset) < 1e-9) continue; // skip the base — already evaluated
-    const result = evaluateCandidate(inp, obstacles, bounds, placed, angleDeg, baseDistance);
+    const result = evaluateCandidate(inp, grid, bounds, placed, angleDeg, baseDistance);
     if (result && result.penalty < best.penalty) {
       best = result;
       bestLevel1Angle = angleDeg;
@@ -708,7 +814,7 @@ function refineForcedAngle(
     const offset = -half + (2 * half * i) / (REFINE_STEPS_LEVEL_2 - 1);
     if (Math.abs(offset) < 1e-9) continue;
     const angleDeg = bestLevel1Angle + offset;
-    const result = evaluateCandidate(inp, obstacles, bounds, placed, angleDeg, baseDistance);
+    const result = evaluateCandidate(inp, grid, bounds, placed, angleDeg, baseDistance);
     if (result && result.penalty < best.penalty) {
       best = result;
     }
@@ -724,7 +830,7 @@ function refineForcedAngle(
 // on the true minimum.
 function findBestPlacement(
   inp: LayoutInput,
-  obstacles: ObstaclePoint[],
+  grid: ObstacleGrid,
   bounds: LayoutBounds,
   placed: PlacedLabel[]
 ): { placement: PlacedLabel; penalty: number } {
@@ -738,7 +844,7 @@ function findBestPlacement(
 
   distanceLoop: for (const dist of LEADER_DISTANCES) {
     for (const deg of LABEL_ANGLES_DEG) {
-      const result = evaluateCandidate(inp, obstacles, bounds, placed, deg, dist);
+      const result = evaluateCandidate(inp, grid, bounds, placed, deg, dist);
       if (!result) continue;
 
       if (result.penalty < 1e-9) {
@@ -766,7 +872,7 @@ function findBestPlacement(
     // distance, missing such fits).
     const refined = refineForcedAngle(
       inp,
-      obstacles,
+      grid,
       bounds,
       placed,
       bestForced.angleDeg,
@@ -818,7 +924,7 @@ function findBestPlacement(
 // what the multi-restart wrapper minimizes over.
 function greedyPass(
   inputs: LayoutInput[],
-  obstacles: ObstaclePoint[],
+  grid: ObstacleGrid,
   bounds: LayoutBounds,
   order: number[]
 ): { placed: PlacedLabel[]; totalPenalty: number } {
@@ -826,7 +932,7 @@ function greedyPass(
   const placedAt: number[] = []; // input index for each entry in placedInOrder
   let totalPenalty = 0;
   for (const idx of order) {
-    const { placement, penalty } = findBestPlacement(inputs[idx], obstacles, bounds, placedInOrder);
+    const { placement, penalty } = findBestPlacement(inputs[idx], grid, bounds, placedInOrder);
     placedInOrder.push(placement);
     placedAt.push(idx);
     totalPenalty += penalty;
@@ -912,9 +1018,10 @@ export function layoutLabels(
   // ~5–20 ms on a 50-label dense plot. Fast enough that we don't gate
   // it behind a "high density" heuristic; just always run K passes.
   const orderings = buildOrderings(inputs);
-  let best = greedyPass(inputs, obstacles, bounds, orderings[0]);
+  const grid = buildObstacleGrid(obstacles);
+  let best = greedyPass(inputs, grid, bounds, orderings[0]);
   for (let i = 1; i < orderings.length; i++) {
-    const candidate = greedyPass(inputs, obstacles, bounds, orderings[i]);
+    const candidate = greedyPass(inputs, grid, bounds, orderings[i]);
     if (candidate.totalPenalty < best.totalPenalty) {
       best = candidate;
     }

@@ -95,8 +95,10 @@ export function hclust(distMatrix: number[][], linkage: LinkageMethod): HClustRe
     clusters[i] = { index: i, left: null, right: null, height: 0, size: 1 };
     D[i] = distMatrix[i].slice();
   }
-  const active = new Set<number>();
-  for (let i = 0; i < n; i++) active.add(i);
+  // Clusters are only ever removed, so walking 0 … n − 1 over `alive` visits
+  // the remaining ones in ascending index order.
+  const alive: boolean[] = new Array(n).fill(true);
+  let aliveCount = n;
 
   const mergeFn: ((d1: number, d2: number) => number) | null =
     linkage === "complete"
@@ -105,26 +107,46 @@ export function hclust(distMatrix: number[][], linkage: LinkageMethod): HClustRe
         ? (d1, d2) => Math.min(d1, d2)
         : null; // signals UPGMA (size-weighted average)
 
-  while (active.size > 1) {
+  // Nearest-neighbour cache: for each live cluster i, the closest live j > i
+  // (smallest j on ties) over finite distances, or -1 / Infinity when none.
+  // Each merge picks the lexicographically first (i, j) among the pairs at
+  // the global minimum — exactly what scanning every pair from scratch
+  // picks — but only the rows the merge touched are rescanned, instead of
+  // the whole O(n²) triangle per merge (2 s for 2 000 heatmap rows).
+  const nnJ: number[] = new Array(n).fill(-1);
+  const nnD: number[] = new Array(n).fill(Infinity);
+  const rescan = (i: number): void => {
+    let best = Infinity;
+    let bestJ = -1;
+    const row = D[i];
+    for (let j = i + 1; j < n; j++) {
+      if (!alive[j]) continue;
+      const d = row[j];
+      if (Number.isFinite(d) && d < best) {
+        best = d;
+        bestJ = j;
+      }
+    }
+    nnJ[i] = bestJ;
+    nnD[i] = best;
+  };
+  for (let i = 0; i < n; i++) rescan(i);
+
+  while (aliveCount > 1) {
     let best = Infinity;
     let bi = -1,
       bj = -1;
-    const act = Array.from(active);
-    for (let ai = 0; ai < act.length; ai++) {
-      for (let aj = ai + 1; aj < act.length; aj++) {
-        const i = act[ai],
-          j = act[aj];
-        const d = D[i][j];
-        if (Number.isFinite(d) && d < best) {
-          best = d;
-          bi = i;
-          bj = j;
-        }
+    for (let i = 0; i < n; i++) {
+      if (alive[i] && nnJ[i] >= 0 && nnD[i] < best) {
+        best = nnD[i];
+        bi = i;
+        bj = nnJ[i];
       }
     }
     if (bi < 0) {
-      bi = act[0];
-      bj = act[1];
+      // No finite distance left: force-merge the first two live clusters.
+      bi = alive.indexOf(true);
+      bj = alive.indexOf(true, bi + 1);
       best = 0;
     }
 
@@ -148,9 +170,10 @@ export function hclust(distMatrix: number[][], linkage: LinkageMethod): HClustRe
     const sizeI = clusters[bi].size;
     const sizeJ = clusters[bj].size;
 
-    active.delete(bj);
-    for (const k of active) {
-      if (k === bi) continue;
+    alive[bj] = false;
+    aliveCount--;
+    for (let k = 0; k < n; k++) {
+      if (!alive[k] || k === bi) continue;
       const dik = D[bi][k];
       const djk = D[bj][k];
       let nd: number;
@@ -163,10 +186,25 @@ export function hclust(distMatrix: number[][], linkage: LinkageMethod): HClustRe
       D[k][bi] = nd;
     }
     clusters[bi] = merged;
+
+    // Refresh the cache. Row bi changed throughout. A row k < bi changed only
+    // at column bi (and lost column bj); a row k > bi only lost column bj.
+    rescan(bi);
+    for (let k = 0; k < n; k++) {
+      if (!alive[k] || k === bi) continue;
+      if (nnJ[k] === bi || nnJ[k] === bj) {
+        rescan(k);
+      } else if (k < bi) {
+        const nd = D[k][bi];
+        if (Number.isFinite(nd) && (nd < nnD[k] || (nd === nnD[k] && bi < nnJ[k]))) {
+          nnJ[k] = bi;
+          nnD[k] = nd;
+        }
+      }
+    }
   }
 
-  const rootId = Array.from(active)[0];
-  const tree = clusters[rootId];
+  const tree = clusters[alive.indexOf(true)];
 
   const order: number[] = [];
   (function walk(node: HClustTreeNode | null) {

@@ -280,6 +280,126 @@ test("hclust order length equals nRows", () => {
   );
 });
 
+// hclust keeps a nearest-neighbour cache instead of rescanning every pair
+// per merge. Reference: the full-scan merge loop it replaced. Both must
+// build the same tree — same merge pairs (ties broken toward the
+// lexicographically first pair), heights and sizes — including on matrices
+// full of ties and non-finite entries.
+function hclustFullScan(distMatrix, linkage) {
+  const n = distMatrix.length;
+  if (n === 0) return { tree: null, order: [] };
+  if (n === 1)
+    return { tree: { index: 0, left: null, right: null, height: 0, size: 1 }, order: [0] };
+  const clusters = new Array(n);
+  const D = new Array(n);
+  for (let i = 0; i < n; i++) {
+    clusters[i] = { index: i, left: null, right: null, height: 0, size: 1 };
+    D[i] = distMatrix[i].slice();
+  }
+  const active = new Set();
+  for (let i = 0; i < n; i++) active.add(i);
+  const mergeFn = linkage === "complete" ? Math.max : linkage === "single" ? Math.min : null;
+  while (active.size > 1) {
+    let best = Infinity;
+    let bi = -1;
+    let bj = -1;
+    const act = Array.from(active);
+    for (let ai = 0; ai < act.length; ai++) {
+      for (let aj = ai + 1; aj < act.length; aj++) {
+        const d = D[act[ai]][act[aj]];
+        if (Number.isFinite(d) && d < best) {
+          best = d;
+          bi = act[ai];
+          bj = act[aj];
+        }
+      }
+    }
+    if (bi < 0) {
+      bi = act[0];
+      bj = act[1];
+      best = 0;
+    }
+    const merged = {
+      index: -1,
+      left: clusters[bi],
+      right: clusters[bj],
+      height: Math.max(best, Math.max(clusters[bi].height, clusters[bj].height)),
+      size: clusters[bi].size + clusters[bj].size,
+    };
+    const sizeI = clusters[bi].size;
+    const sizeJ = clusters[bj].size;
+    active.delete(bj);
+    for (const k of active) {
+      if (k === bi) continue;
+      const nd = mergeFn
+        ? mergeFn(D[bi][k], D[bj][k])
+        : (sizeI * D[bi][k] + sizeJ * D[bj][k]) / (sizeI + sizeJ);
+      D[bi][k] = nd;
+      D[k][bi] = nd;
+    }
+    clusters[bi] = merged;
+  }
+  return { tree: clusters[Array.from(active)[0]] };
+}
+
+const treeKey = (node) =>
+  node.left === null
+    ? String(node.index)
+    : `(${treeKey(node.left)},${treeKey(node.right)}:${Object.is(node.height, -0) ? 0 : node.height}/${node.size})`;
+
+// Symmetric matrix with a zero diagonal. Small integer distances force many
+// ties; NaN / Infinity entries exercise the non-finite skips and the
+// force-merge fallback.
+const arbDistMatrix = fc.integer({ min: 2, max: 18 }).chain((n) =>
+  fc
+    .array(
+      fc.oneof(
+        { weight: 6, arbitrary: fc.integer({ min: 0, max: 4 }) },
+        { weight: 3, arbitrary: fc.double({ min: 0, max: 10, noNaN: true }) },
+        { weight: 1, arbitrary: fc.constantFrom(NaN, Infinity) }
+      ),
+      { minLength: (n * (n - 1)) / 2, maxLength: (n * (n - 1)) / 2 }
+    )
+    .map((upper) => {
+      const D = Array.from({ length: n }, () => new Array(n).fill(0));
+      let t = 0;
+      for (let i = 0; i < n; i++)
+        for (let j = i + 1; j < n; j++) {
+          D[i][j] = upper[t];
+          D[j][i] = upper[t];
+          t++;
+        }
+      return D;
+    })
+);
+
+test("builds the same tree as the full-scan merge loop (ties, NaN, Infinity)", () => {
+  check(
+    fc.property(arbDistMatrix, fc.constantFrom(...LINKAGES), (D, linkage) => {
+      const got = hclust(D, linkage);
+      const want = hclustFullScan(D, linkage);
+      return treeKey(got.tree) === treeKey(want.tree);
+    })
+  );
+});
+
+test("builds the same tree as the full-scan merge loop on heatmap distances", () => {
+  checkHeavy(
+    fc.property(
+      arbWideCsv,
+      fc.constantFrom(...METRICS),
+      fc.constantFrom(...LINKAGES),
+      (text, metric, linkage) => {
+        const parsed = parseWideMatrix(text);
+        const m = parsed && parsed.matrix;
+        if (!m || m.length < 2) return true;
+        const D = pairwiseDistance(m, metric);
+        return treeKey(hclust(D, linkage).tree) === treeKey(hclustFullScan(D, linkage).tree);
+      }
+    )
+  );
+});
+
 // ── kmeans ─────────────────────────────────────────────────────────────
 
 suite("heatmap property — kmeans");

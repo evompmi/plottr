@@ -17,6 +17,26 @@
 import { powerAnova, powerTwoSample } from "../_core/stats/dist";
 import { cohenDCI, cohenDUnpooledCI, sampleMean, sampleSD } from "../_core/stats/tests";
 
+// Smallest n in [lo, hi] with power(n) ≥ target, or null when even n = hi
+// falls short. Power rises with n for a fixed effect, α and design, so a
+// binary search returns the same n as scanning n = lo, lo + 1, … — in
+// ~13 power evaluations instead of up to 5 000. (A small effect needs n in
+// the thousands; the linear scan made Line Plot's per-x panel take seconds.)
+export function smallestNReaching(
+  power: (n: number) => number,
+  target: number,
+  lo = 2,
+  hi = 5000
+): number | null {
+  if (!(power(hi) >= target)) return null;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (power(mid) >= target) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo;
+}
+
 export interface PowerFromDataRow {
   alpha: number;
   nForTarget: number | null;
@@ -84,15 +104,8 @@ export function computePowerFromData(
             : cohenDCI(dSigned, n1, n2)
           : null;
     const rows = alphas.map((alpha) => {
-      let needed: number | null = null;
-      if (dAbs > 0) {
-        for (let n = 2; n <= 5000; n++) {
-          if (powerTwoSample(dAbs, n, alpha, 2) >= target) {
-            needed = n;
-            break;
-          }
-        }
-      }
+      const needed =
+        dAbs > 0 ? smallestNReaching((n) => powerTwoSample(dAbs, n, alpha, 2), target) : null;
       return { alpha, nForTarget: needed };
     });
     return {
@@ -144,15 +157,7 @@ export function computePowerFromData(
     }
     const f = ssW > 0 ? Math.sqrt(ssB / ssW) : 0;
     const rows = alphas.map((alpha) => {
-      let needed: number | null = null;
-      if (f > 0) {
-        for (let n = 2; n <= 5000; n++) {
-          if (powerAnova(f, n, alpha, kk) >= target) {
-            needed = n;
-            break;
-          }
-        }
-      }
+      const needed = f > 0 ? smallestNReaching((n) => powerAnova(f, n, alpha, kk), target) : null;
       return { alpha, nForTarget: needed };
     });
     return {
