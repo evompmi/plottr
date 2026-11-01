@@ -45,7 +45,7 @@ export type { HowToContent, HowToExampleTableProps } from "./HowTo";
 export { HowToCard } from "./HowToCard";
 export { NumberInput } from "./NumberInput";
 export { ParseErrorBanner } from "./ParseErrorBanner";
-export { MethodsButton } from "./MethodsButton";
+export { MethodsButton, placeMethodsPopover } from "./MethodsButton";
 export { PlotActionsBar } from "./PlotActionsBar";
 export { PlotToolShell } from "./PlotToolShell";
 export { RoleCard } from "./RoleCard";

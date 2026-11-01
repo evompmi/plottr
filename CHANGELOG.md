@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Methods popover stays on screen.** It opens above the Methods button when the button is near
+  the bottom of the window, and is kept inside the window, so its Copy button is always
+  reachable. Regression: 4 tests.
+
 ## [2.2.1] - 2026-11-01
 
 > Long-form release notes live in
