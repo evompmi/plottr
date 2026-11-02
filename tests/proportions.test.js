@@ -49,6 +49,70 @@ test("errors carry the offending cell", () => {
   eq(dup.group, "x");
 });
 
+suite("one row per observation");
+
+const rawOf = (csv) => L.parseRaw(csv);
+
+test("rows are tallied per group × outcome, in order of first appearance", () => {
+  const raw = rawOf(
+    "Plant,Genotype,Status\n1,WT,yes\n2,WT,no\n3,mut,no\n4,WT,yes\n5,mut,no\n6,mut,yes\n"
+  );
+  const r = L.countLongTable(raw, { group: 1, category: 2, count: null });
+  eq(r.table.groups.join(), "WT,mut");
+  eq(r.table.categories.join(), "yes,no");
+  eq(JSON.stringify(r.table.counts), "[[2,1],[1,2]]");
+  eq(r.skipped, 0);
+});
+
+test("a count column is summed; bad rows are left out and counted, blank lines ignored", () => {
+  const raw = rawOf(
+    "Genotype,Status,n\nWT,yes,41\nWT,no,7\nmut,yes,3\nmut,no,40\nmut,no,3\n,no,5\nWT,,2\nWT,yes,2.5\nWT,yes,-1\n\n"
+  );
+  const r = L.countLongTable(raw, { group: 0, category: 1, count: 2 });
+  eq(JSON.stringify(r.table.counts), "[[41,7],[3,43]]");
+  eq(r.skipped, 4, "blank group, blank outcome, 2.5 and −1");
+});
+
+test("tallying the rows of a counts table gives the same table back", () => {
+  const t = parse(COLON).table;
+  const lines = ["id,group,outcome"];
+  let id = 0;
+  t.groups.forEach((g, i) =>
+    t.categories.forEach((c, j) => {
+      for (let k = 0; k < t.counts[i][j]; k++) lines.push(`${++id},${g},${c}`);
+    })
+  );
+  const r = L.countLongTable(rawOf(lines.join("\n")), { group: 1, category: 2, count: null });
+  eq(JSON.stringify(r.table), JSON.stringify(t));
+});
+
+test("guessLongRoles: ID column skipped, outcome = last text column, count column by header", () => {
+  const plants = rawOf(
+    "Plant,Genotype,Replicate,Status\n1,WT,1,yes\n2,WT,2,no\n3,mut,1,no\n4,mut,2,yes\n5,WT,1,yes\n6,mut,2,no\n"
+  );
+  eq(JSON.stringify(L.guessLongRoles(plants)), '{"group":1,"category":3,"count":null}');
+  const tidy = rawOf("Genotype,Status,n\nWT,yes,41\nWT,no,7\nmut,yes,3\nmut,no,43\n");
+  eq(JSON.stringify(L.guessLongRoles(tidy)), '{"group":0,"category":1,"count":2}');
+  // A count-like header with non-count values is not a count column.
+  const pct = rawOf("Genotype,Status,n\nWT,yes,4.5\nWT,no,7\nmut,yes,3\nmut,no,43\n");
+  eq(L.guessLongRoles(pct).count, null);
+  // Two text columns: the later one is taken as the outcome (Configure can swap
+  // them); a column with a distinct value per row is neither.
+  const swapped = rawOf("Status,Genotype,Weight\nyes,WT,1.2\nno,WT,1.4\nno,mut,0.9\nyes,mut,1.1\n");
+  eq(JSON.stringify(L.guessLongRoles(swapped)), '{"group":0,"category":1,"count":null}');
+  // Nothing repeats: fall back to the first two columns.
+  eq(
+    JSON.stringify(L.guessLongRoles(rawOf("a,b\n1,2\n3,4\n"))),
+    '{"group":0,"category":1,"count":null}'
+  );
+});
+
+test("canReadLong: two columns and a non-blank row", () => {
+  eq(L.canReadLong(rawOf("Genotype,Status\nWT,yes\n")), true);
+  eq(L.canReadLong(rawOf("Genotype\nWT\nmut\n")), false);
+  eq(L.canReadLong({ headers: ["a", "b"], rows: [["", " "]] }), false);
+});
+
 suite("applySelection / collapseToFocus");
 
 test("order and inclusion follow the order lists; empty groups dropped", () => {

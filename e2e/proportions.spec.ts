@@ -135,3 +135,38 @@ test("configure: groups reorder by drag and drop", async ({ page }) => {
   await dragBy(page, list.getByTestId("drag-handle").first(), rowH * 1.2);
   expect(await order()).toEqual([before[1], before[0], ...before.slice(2)]);
 });
+
+// One row per plant: the tool reads the long layout, guesses the group and
+// outcome columns, and counts them; the columns can be changed in Configure.
+test("one row per observation: columns guessed, counted, editable", async ({ page }) => {
+  const rows = ["Plant,Genotype,Replicate,Status"];
+  const add = (g: string, yes: number, no: number) => {
+    for (let i = 0; i < yes; i++) rows.push(`${rows.length},${g},${(i % 3) + 1},colonised`);
+    for (let i = 0; i < no; i++) rows.push(`${rows.length},${g},${(i % 3) + 1},not colonised`);
+  };
+  add("WT", 12, 3);
+  add("mut-1", 2, 13);
+  add("mut-2", 4, 11);
+  await page.goto("/index.html#/proportions");
+  await page.getByRole("textbox", { name: /paste/i }).fill(rows.join("\n") + "\n");
+  await page.getByTestId("paste-parse").click();
+  await expect(page.getByRole("button", { name: "One row per observation" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  // Not a counts table (text in the outcome columns): that option is off.
+  await expect(page.getByRole("button", { name: "Counts table" })).toBeDisabled();
+  await expect(page.getByTestId("proportions-role-group")).toHaveValue("1");
+  await expect(page.getByTestId("proportions-role-category")).toHaveValue("3");
+  await expect(page.getByTestId("proportions-role-count")).toHaveValue("");
+  await expect(page.getByText("— 3 groups × 2 outcome categories")).toBeVisible();
+  await page.getByTestId("step-plot").click();
+  await expect(page.locator("g#bars rect")).toHaveCount(3);
+  await expect(page.locator("g#n-labels text").first()).toHaveText("12/15");
+  // Group by replicate instead: picking the outcome's column for groups swaps them.
+  await page.getByTestId("step-configure").click();
+  await page.getByTestId("proportions-role-group").selectOption("2");
+  await expect(page.getByText("— 3 groups × 2 outcome categories")).toBeVisible();
+  await page.getByTestId("proportions-role-category").selectOption("2");
+  await expect(page.getByTestId("proportions-role-group")).toHaveValue("3");
+});

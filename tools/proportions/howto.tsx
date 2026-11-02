@@ -41,6 +41,22 @@ export function useProportionsHowTo(): HowToContent {
           ]}
           caption={tr("proportions.howto.exCaption2")}
         />
+        {html("proportions.howto.longLayout")}
+        <HowToExampleTable
+          headers={[
+            tr("proportions.howto.exPlant"),
+            tr("proportions.howto.exGroup"),
+            tr("proportions.howto.exStatus"),
+          ]}
+          rows={[
+            ["1", "WT", tr("proportions.howto.exYes")],
+            ["2", "WT", tr("proportions.howto.exNo")],
+            ["3", "mutant-1", tr("proportions.howto.exNo")],
+          ]}
+          more
+          highlight={[1, 2]}
+          caption={tr("proportions.howto.exCaption3")}
+        />
       </>
     ),
     display: html("proportions.howto.display"),

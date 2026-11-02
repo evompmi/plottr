@@ -145,6 +145,129 @@ export function parseCountsTable(
 
 // ── Selection / reordering ──────────────────────────────────────────────
 
+// ── One row per observation ─────────────────────────────────────────────
+//
+// The other accepted layout: each row is one plant / seed / animal with its
+// group and its outcome (`Genotype, Status`), or one row per group × outcome
+// with a column already holding the count (`Genotype, Status, n`). The user
+// picks the columns in Configure; the tool tallies the counts table.
+
+// How the file is read: a groups × outcomes counts table, or one row per
+// observation tallied by the tool.
+export type DataLayout = "counts" | "long";
+
+export interface LongRoles {
+  group: number;
+  category: number;
+  // Column holding counts; null = count the rows.
+  count: number | null;
+}
+
+export interface LongCountResult {
+  table: CountsTable;
+  // Rows left out: blank group or outcome, or a count that is not a whole
+  // number ≥ 0.
+  skipped: number;
+}
+
+// Header names read as a count column when every value is a whole number ≥ 0.
+const COUNT_HEADER = /^(n|counts?|freq(uency)?|number|nb|nombre|effectifs?|total)$/i;
+
+const cell = (row: string[], i: number): string => String(row[i] ?? "").trim();
+
+function isCount(v: string): boolean {
+  if (v === "" || !isNumericValue(v)) return false;
+  const x = toNumericValue(v);
+  return Number.isInteger(x) && x >= 0;
+}
+
+// Whether the file can be read one row per observation: two columns and at
+// least one non-blank row.
+export function canReadLong(parsed: Pick<ParseRawResult, "headers" | "rows">): boolean {
+  return (
+    parsed.headers.length >= 2 &&
+    parsed.rows.some((r) => r.some((c) => String(c ?? "").trim() !== ""))
+  );
+}
+
+// First guess at the columns. Count column: a count-like header ("n",
+// "count", "effectif", …) whose values are all whole numbers ≥ 0. Group and
+// outcome come from the columns with repeated values (an ID column, unique
+// per row, is neither), text columns before numeric ones: the outcome is the
+// last such column, the group the first other one. Falls back to columns 0
+// and 1.
+export function guessLongRoles(parsed: Pick<ParseRawResult, "headers" | "rows">): LongRoles {
+  const { headers } = parsed;
+  const rows = parsed.rows.filter((r) => r.some((c) => String(c ?? "").trim() !== ""));
+  const nCols = headers.length;
+  let count: number | null = null;
+  for (let i = 0; i < nCols; i++) {
+    const vals = rows.map((r) => cell(r, i)).filter((v) => v !== "");
+    if (
+      COUNT_HEADER.test(String(headers[i] ?? "").trim()) &&
+      vals.length > 0 &&
+      vals.every(isCount)
+    ) {
+      count = i;
+      break;
+    }
+  }
+  const candidates: { i: number; text: boolean }[] = [];
+  for (let i = 0; i < nCols; i++) {
+    if (i === count) continue;
+    const vals = rows.map((r) => cell(r, i)).filter((v) => v !== "");
+    const distinct = new Set(vals).size;
+    if (distinct < 2 || distinct > 50 || distinct > 0.8 * vals.length) continue;
+    candidates.push({ i, text: vals.some((v) => !isNumericValue(v)) });
+  }
+  const ranked = [...candidates.filter((c) => c.text), ...candidates.filter((c) => !c.text)];
+  const others = Array.from({ length: nCols }, (_, i) => i).filter((i) => i !== count);
+  const category =
+    ranked.filter((c) => c.text).length > 0
+      ? ranked.filter((c) => c.text).slice(-1)[0].i
+      : ranked.length > 0
+        ? ranked[ranked.length - 1].i
+        : (others[1] ?? others[0] ?? 0);
+  const group = ranked.find((c) => c.i !== category)?.i ?? others.find((i) => i !== category) ?? 0;
+  return { group, category, count };
+}
+
+// Tally a counts table from rows: groups and outcomes in order of first
+// appearance, each cell the number of rows (or the sum of the count column).
+export function countLongTable(
+  parsed: Pick<ParseRawResult, "headers" | "rows">,
+  roles: LongRoles
+): LongCountResult {
+  const groups: string[] = [];
+  const categories: string[] = [];
+  const gi = new Map<string, number>();
+  const ci = new Map<string, number>();
+  const cells = new Map<string, number>();
+  let skipped = 0;
+  for (const row of parsed.rows) {
+    if (!row.some((c) => String(c ?? "").trim() !== "")) continue;
+    const g = cell(row, roles.group);
+    const c = cell(row, roles.category);
+    const raw = roles.count === null ? "1" : cell(row, roles.count);
+    if (g === "" || c === "" || !isCount(raw)) {
+      skipped++;
+      continue;
+    }
+    if (!gi.has(g)) {
+      gi.set(g, groups.length);
+      groups.push(g);
+    }
+    if (!ci.has(c)) {
+      ci.set(c, categories.length);
+      categories.push(c);
+    }
+    const key = `${gi.get(g)}\u0000${ci.get(c)}`;
+    cells.set(key, (cells.get(key) ?? 0) + toNumericValue(raw));
+  }
+  const counts = groups.map((_, a) => categories.map((_, b) => cells.get(`${a}\u0000${b}`) ?? 0));
+  return { table: { groups, categories, counts }, skipped };
+}
+
 export function defaultOrder(names: string[]): OrderItem[] {
   return names.map((name) => ({ name, include: true }));
 }
@@ -493,6 +616,17 @@ export interface OrderListProps {
 
 export interface ConfigureStepProps {
   table: CountsTable;
+  layout: DataLayout;
+  onLayoutChange: (layout: DataLayout) => void;
+  // Why the file is not a counts table (the tooltip of the disabled "Counts
+  // table" option); null when it is one.
+  countsError: string | null;
+  // The file as parsed, for the column pickers and the preview.
+  headers: string[];
+  rows: string[][];
+  longRoles: LongRoles | null;
+  onLongRolesChange: (roles: LongRoles) => void;
+  skippedRows: number;
   fileName: string;
   detectedSep: string;
   blankCells: number;

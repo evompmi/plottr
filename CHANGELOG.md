@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Group Plot. Proportions lists the test, the comparisons (all pairs, or each group vs the
   control), the correction and the CI; qPCR prints Group Plot's recap for each gene under its
   panel. Regression: 7 tests.
+- **Proportions reads one row per observation.** A file with one row per plant (group and
+  outcome columns, or a column of counts) is counted by the tool; pick the columns in Configure.
+  Regression: 8 tests.
 
 ### Fixed
 

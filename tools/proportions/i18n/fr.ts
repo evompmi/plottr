@@ -7,9 +7,9 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.example.subtitle": "4 génotypes · effectifs colonisées / non colonisées",
   "proportions.example.f2": "Ou charger un exemple de ségrégation (F2 dihybride, 9:3:3:1)",
   "proportions.upload.hint":
-    "CSV · TSV · TXT · 1re colonne = noms des groupes · une colonne d’effectifs par modalité · 2 Mo max",
+    "CSV · TSV · TXT · un tableau d’effectifs (groupes × modalités) ou une ligne par observation · 2 Mo max",
   "proportions.err.tooFewColumns":
-    "Tableau d’effectifs attendu : une première colonne de noms de groupes et au moins deux colonnes d’effectifs.",
+    "Tableau d’effectifs attendu (une colonne de noms de groupes et une colonne d’effectifs par modalité) ou une ligne par observation (une colonne de groupe et une colonne de modalité).",
   "proportions.err.tooFewRows": "Au moins deux groupes (lignes) sont nécessaires.",
   "proportions.err.notCount":
     "« {value} » (groupe « {group} », colonne « {category} ») n’est pas un effectif : chaque cellule doit être un entier ≥ 0. Les pourcentages ne peuvent pas être analysés ici : saisissez les nombres d’individus.",
@@ -30,8 +30,25 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.cfg.blank.other": "{count} cellules vides ont été lues comme 0.",
   "proportions.cfg.needTwo": "Conservez au moins deux groupes et deux modalités.",
   "proportions.cfg.dropped": "Exclus car sans observation dans les modalités conservées : {names}",
-  "proportions.cfg.groups": "Groupes (lignes)",
-  "proportions.cfg.categories": "Modalités (colonnes)",
+  "proportions.cfg.groups": "Groupes",
+  "proportions.cfg.categories": "Modalités",
+  "proportions.cfg.layout": "Format des données",
+  "proportions.cfg.layoutCounts": "Tableau d’effectifs",
+  "proportions.cfg.layoutLong": "Une ligne par observation",
+  "proportions.cfg.countsHelp":
+    "Chaque ligne est un groupe et chaque colonne après la première une modalité, chaque case un nombre d’individus.",
+  "proportions.cfg.longHelp":
+    "Chaque ligne est un individu (plante, graine, animal…) : choisissez ses colonnes de groupe et de modalité, et Plöttr les compte. Si une colonne contient déjà des effectifs (une ligne par groupe × modalité), choisissez-la sous Effectifs.",
+  "proportions.cfg.notCounts": "Non lu comme un tableau d’effectifs : {reason}",
+  "proportions.cfg.roleGroup": "Groupes (une barre chacun)",
+  "proportions.cfg.roleCategory": "Modalité",
+  "proportions.cfg.roleCount": "Effectifs",
+  "proportions.cfg.countNone": "Aucune : compter les lignes",
+  "proportions.cfg.column": "Colonne {n}",
+  "proportions.cfg.skipped.one":
+    "{count} ligne a été écartée : groupe ou modalité vide, ou effectif qui n’est pas un entier ≥ 0.",
+  "proportions.cfg.skipped.other":
+    "{count} lignes ont été écartées : groupe ou modalité vide, ou effectif qui n’est pas un entier ≥ 0.",
   "proportions.cfg.include": "Inclure {name}",
   "proportions.cfg.up": "Monter {name}",
   "proportions.cfg.down": "Descendre {name}",
@@ -203,6 +220,12 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.howto.exWG": "Ridé vert",
   "proportions.howto.exCaption2":
     "Plusieurs classes (p. ex. effectifs phénotypiques pour un test 9:3:3:1) : même principe, une colonne par classe.",
+  "proportions.howto.longLayout":
+    "Ou <strong>une ligne par observation</strong>, comme noté à la paillasse : chaque ligne une plante avec son groupe et sa modalité, dans n’importe quel ordre de colonnes et à côté d’autres colonnes. Plöttr compte les lignes ; vous choisissez les colonnes de groupe et de modalité à l’étape Configurer. Une colonne contenant déjà des effectifs (une ligne par groupe × modalité) fonctionne aussi.",
+  "proportions.howto.exPlant": "Plante",
+  "proportions.howto.exStatus": "Statut",
+  "proportions.howto.exCaption3":
+    "Une ligne par plante : les colonnes de groupe et de modalité sont comptées pour former le tableau ci-dessus.",
   "proportions.howto.display":
     "<strong>Proportion</strong> affiche le % d’une modalité avec IC de Wilson à 95 %. <strong>Empilé</strong> et <strong>Mosaïque</strong> montrent toutes les modalités ; en mosaïque, la largeur suit l’effectif du groupe. Le test est choisi automatiquement : exact de Fisher pour les tableaux 2×2 ou quand les effectifs attendus sont faibles, χ² sinon. Les comparaisons deux à deux utilisent la correction de Holm par défaut ; choisissez un groupe témoin dans « Comparer » pour ne tester chaque groupe que contre lui. Le panneau d’ajustement compare les effectifs à des proportions comme 3:1 ou 9:3:3:1.",
   "proportions.methods.design":
