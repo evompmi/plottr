@@ -5,11 +5,16 @@
 // lives in `./layout` and `./scales` so it's independently testable; this
 // file orchestrates the React/SVG render around their outputs.
 
-// statsSummaryHeight + STATS_FONT are now consumed inside ./layout's
-// computeViewBox; chart.tsx still pulls STATS_LINE_H + STATS_FONT for its
-// internal SVG text rendering.
-import { STATS_LINE_H, STATS_FONT, ChartProps, BoxplotGroup, Subgroup } from "./helpers";
-import { CldLabels, SignificanceBrackets, renderSvgLegend, valueAxisLeftMargin } from "../_shell";
+// The summary text itself is `StatsSummaryLines` (_shell), shared with
+// Proportions and qPCR; ./layout reserves its height.
+import { STATS_LINE_H, ChartProps, BoxplotGroup, Subgroup } from "./helpers";
+import {
+  CldLabels,
+  SignificanceBrackets,
+  StatsSummaryLines,
+  renderSvgLegend,
+  valueAxisLeftMargin,
+} from "../_shell";
 import {
   computeAnnotationPadding,
   computeBandSizing,
@@ -41,20 +46,9 @@ function statsTextLines(
   anchor: "start" | "middle" | "end" = "start",
   baseline?: "middle" | "central" | "hanging"
 ) {
-  return lines.map((line, i) => (
-    <text
-      key={i}
-      x={x}
-      y={yStart + i * STATS_LINE_H}
-      textAnchor={anchor}
-      dominantBaseline={baseline}
-      fontSize={STATS_FONT}
-      fill="#aaa"
-      fontFamily="monospace"
-    >
-      {line}
-    </text>
-  ));
+  return (
+    <StatsSummaryLines lines={lines} x={x} yStart={yStart} anchor={anchor} baseline={baseline} />
+  );
 }
 function renderStatsSummary(summary: string | null, y: number, x: number) {
   if (!summary) return null;

@@ -77,6 +77,7 @@ const VIS_INIT_QPCR: QpcrVis = {
   yLabel: "",
   annotation: "brackets",
   showNs: false,
+  showSummary: false,
   discretePalette: "okabe-ito",
   barOutline: true,
   barOutlineWidth: 1,

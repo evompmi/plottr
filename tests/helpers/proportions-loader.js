@@ -22,6 +22,7 @@ module.exports = {
   groupSummaries: helpers.groupSummaries,
   dropEmptyCategories: helpers.dropEmptyCategories,
   analyseTable: helpers.analyseTable,
+  proportionsSummaryText: helpers.proportionsSummaryText,
   bracketPairs: helpers.bracketPairs,
   RATIO_PRESETS: helpers.RATIO_PRESETS,
   parseRatio: helpers.parseRatio,

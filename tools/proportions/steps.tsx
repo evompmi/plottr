@@ -13,7 +13,7 @@ import {
 } from "../_shell";
 import type { ChartDataTableRow } from "../_shell";
 import { fileBaseName } from "../_core/download";
-import { formatPct } from "./helpers";
+import { formatPct, proportionsSummaryText } from "./helpers";
 import type {
   ColorItem,
   ConfigureStepProps,
@@ -218,6 +218,8 @@ export function PlotStep({
       ? "brackets"
       : vis.annotation;
 
+  const statsSummary = proportionsSummaryText(analysis, vis, tr);
+
   const colorItems: ColorItem[] =
     vis.chartType === "proportion"
       ? summaries.map((s, i) => ({ name: s.group, color: groupColors[i], n: s.n }))
@@ -313,6 +315,7 @@ export function PlotStep({
             <ProportionsChart
               ref={chartRef}
               table={shown}
+              statsSummary={statsSummary}
               chartType={vis.chartType}
               summaries={summaries}
               brackets={brackets}

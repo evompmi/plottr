@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Statistics summary in Proportions and qPCR.** "Print summary below plot" in the toolbar, as in
+  Group Plot. Proportions lists the test, the comparisons (all pairs, or each group vs the
+  control), the correction and the CI; qPCR prints Group Plot's recap for each gene under its
+  panel. Regression: 7 tests.
+
 ### Fixed
 
 - **Methods popover stays on screen.** It opens above the Methods button when the button is near

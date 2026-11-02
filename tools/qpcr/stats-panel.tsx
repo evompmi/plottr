@@ -394,6 +394,24 @@ export function QpcrStatsDisplayBar({ genes, normalize, vis, updVis }: QpcrStats
         />
         {tr("qpcr.stats.showNs")}
       </label>
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 13,
+          color: "var(--text-muted)",
+          cursor: "pointer",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={vis.showSummary}
+          onChange={(e) => updVis({ showSummary: e.target.checked })}
+          data-testid="qpcr-show-summary"
+        />
+        {tr("qpcr.stats.printSummary")}
+      </label>
     </div>
   );
 }

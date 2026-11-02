@@ -33,6 +33,8 @@ import {
 } from "../_core/stats";
 import { postHocForTest, runPostHoc, runTest } from "../_shell/stats-dispatch";
 import type { PostHocResult, TestResult } from "../_shell/stats-dispatch";
+import { summariseEqualVariance, summariseNormality } from "../_shell/StatsSummary";
+import type { QpcrKey } from "./i18n/en";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -96,6 +98,8 @@ export interface QpcrVis {
   showCalibrator: boolean;
   annotation: AnnotationMode;
   showNs: boolean;
+  // "Print summary below plot" (grey recap lines under each gene's panel).
+  showSummary: boolean;
   discretePalette: string;
   horizontal: boolean;
   pointSize: number;
@@ -718,6 +722,56 @@ export function runGeneStats(g: GeneAnalysis, override: string | null): GeneStat
   return { tested, rec, chosenTest, testResult, postHocName, postHocResult };
 }
 
+// "Print summary below plot" text for one gene, in Group Plot's layout:
+// normality and equal variance of ΔCt, the test (on ΔCt), the post-hoc for
+// three or more groups and the error bars. Null when hidden or when the gene
+// could not be tested. `tr` is the tool's translator (passed in so this file
+// stays free of the i18n runtime).
+export type QpcrSummaryTr = (key: QpcrKey, vars?: Record<string, string>) => string;
+
+const SUMMARY_TEST_KEYS: Record<string, QpcrKey> = {
+  studentT: "qpcr.test.studentT",
+  welchT: "qpcr.test.welchT",
+  mannWhitney: "qpcr.test.mannWhitney",
+  oneWayANOVA: "qpcr.test.oneWayANOVA",
+  welchANOVA: "qpcr.test.welchANOVA",
+  kruskalWallis: "qpcr.test.kruskalWallis",
+};
+const SUMMARY_POSTHOC_KEYS: Record<string, QpcrKey> = {
+  tukeyHSD: "qpcr.posthoc.tukeyHSD",
+  gamesHowell: "qpcr.posthoc.gamesHowell",
+  dunn: "qpcr.posthoc.dunn",
+};
+
+export function qpcrSummaryText(
+  st: GeneStats,
+  vis: Pick<QpcrVis, "showSummary" | "chartStyle" | "errorBar">,
+  tr: QpcrSummaryTr
+): string | null {
+  if (!vis.showSummary || !st.chosenTest || !st.testResult || st.testResult.error) return null;
+  const yesNo = (v: string): string =>
+    v === "yes" ? tr("qpcr.summary.yes") : v === "no" ? tr("qpcr.summary.no") : v;
+  const name = (keys: Record<string, QpcrKey>, id: string): string =>
+    keys[id] ? tr(keys[id]) : id;
+  const lines = [
+    tr("qpcr.summary.normality", { v: yesNo(summariseNormality(st.rec?.normality)) }),
+    tr("qpcr.summary.equalVar", { v: yesNo(summariseEqualVariance(st.rec?.levene)) }),
+    tr("qpcr.summary.test", { test: name(SUMMARY_TEST_KEYS, st.chosenTest) }),
+  ];
+  if (st.tested.length > 2 && st.postHocName) {
+    lines.push(tr("qpcr.summary.posthoc", { name: name(SUMMARY_POSTHOC_KEYS, st.postHocName) }));
+  }
+  const bar = vis.chartStyle === "box" ? "none" : vis.errorBar;
+  if (bar !== "none") {
+    lines.push(
+      tr("qpcr.summary.errorBars", {
+        bar: bar === "ci95" ? tr("qpcr.chart.errCi") : bar === "sd" ? "SD" : "SEM",
+      })
+    );
+  }
+  return lines.join("\n");
+}
+
 // Result line in Group Plot's format (boxplot formatBpResultLine).
 export function formatResultLine(test: string | null, res: TestResult | null): string {
   if (!test || !res) return "—";
@@ -874,6 +928,8 @@ export function guessControl(groups: string[]): string {
 export interface QpcrChartProps {
   genes: GeneAnalysis[];
   annotations: GeneAnnotation[];
+  // "Print summary below plot" text per gene (lines joined by "\n"), or null.
+  summaries?: Array<string | null>;
   colors: string[]; // per display group (union order)
   groupOrder: string[];
   normalize: Normalization;

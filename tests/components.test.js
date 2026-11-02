@@ -2511,6 +2511,42 @@ suite("ProportionsChart + stats panels");
     adjustMethod: "holm",
   };
 
+  test("print summary below plot: test, comparisons (all pairs / vs control), correction, CI", () => {
+    const { proportionsSummaryText, tt } = tool.exports;
+    const on = { ...vis, showSummary: true };
+    const allPairs = proportionsSummaryText(analysis, on, tt);
+    eq(
+      allPairs,
+      [
+        "Test: Pearson's χ² test",
+        "Comparisons: all pairs (Fisher's exact test)",
+        "Correction: Holm",
+        "Error bars: Wilson 95% CI",
+      ].join("\n")
+    );
+    const vsWT = proportionsSummaryText(
+      P.analyseTable(table, "auto", "bh", "WT"),
+      { ...on, adjustMethod: "bh" },
+      tt
+    );
+    eq(vsWT.split("\n")[1], "Comparisons: each group vs WT (Fisher's exact test)");
+    eq(vsWT.split("\n")[2], "Correction: Benjamini–Hochberg");
+    const vbHeight = (html) => Number(html.match(/viewBox="0 0 [\d.]+ ([\d.]+)"/)[1]);
+    const off = renderHtml(ProportionsChart, base);
+    const html = renderHtml(ProportionsChart, { ...base, statsSummary: allPairs });
+    assert(!off.includes('id="stats-summary"'), "no summary unless asked");
+    const g = html.match(/<g id="stats-summary">(.*?)<\/g>/s);
+    assert(g, "summary group in the SVG");
+    eq(
+      [...g[1].matchAll(/>([^<>]+)<\/text>/g)].map((m) => m[1]).join("|"),
+      allPairs.split("\n").join("|").replace(/'/g, "&#x27;")
+    );
+    // 4 lines × 11 + 14 padding added under the axis; last line inside the viewBox.
+    eq(vbHeight(html) - vbHeight(off), 4 * 11 + 14);
+    const ys = [...g[1].matchAll(/ y="([\d.]+)"/g)].map((m) => Number(m[1]));
+    assert(ys[3] < vbHeight(html), "last line inside the viewBox");
+  });
+
   test("proportion chart: one bar + CI whisker + n label per group, brackets for sig pairs", () => {
     const html = renderHtml(ProportionsChart, base);
     eq((html.match(/<rect id="bar-/g) || []).length, 4);
@@ -2934,6 +2970,54 @@ suite("QpcrChart + QpcrStatsPanel");
     const labels = [...axis.matchAll(/>([^<>]+)<\/text>/g)].map((m) => m[1]);
     eq(labels.join(","), "0.5,1,2,4,8,16,32,64,Fold change (log₂ scale)");
     assert(html.includes('stroke-dasharray="4,3"'), "reference line at FC = 1");
+  });
+
+  test("print summary below plot: one block per gene under its panel, in Group Plot's layout", () => {
+    const { qpcrSummaryText, tt } = tool.exports;
+    const text = qpcrSummaryText(stats[0], { ...vis, showSummary: true }, tt);
+    eq(
+      text,
+      [
+        "Normality (ΔCt): no",
+        "Equal variance: yes",
+        "Test on ΔCt: Welch's ANOVA",
+        "Post-hoc: Games-Howell",
+        "Error bars: 95 % CI",
+      ].join("\n")
+    );
+    eq(qpcrSummaryText(stats[0], vis, tt), null, "off by default (showSummary unset)");
+    const vbHeight = (html) => Number(html.match(/viewBox="0 0 [\d.]+ ([\d.]+)"/)[1]);
+    const off = renderHtml(QpcrChart, chartProps());
+    const html = renderHtml(QpcrChart, { ...chartProps(), summaries: [text] });
+    assert(!off.includes('id="stats-summary-'), "no summary unless asked");
+    const g = html.match(/<g id="stats-summary-PR1">(.*?)<\/g>/s);
+    assert(g, "summary named per gene");
+    eq(
+      [...g[1].matchAll(/>([^<>]+)<\/text>/g)].map((m) => m[1]).join("|"),
+      text.split("\n").join("|").replace(/'/g, "&#x27;")
+    );
+    eq(vbHeight(html) - vbHeight(off), 5 * 11 + 14);
+    // Horizontal charts keep it under the panel too.
+    const hz = renderHtml(QpcrChart, { ...chartProps({ horizontal: true }), summaries: [text] });
+    assert(hz.includes('id="stats-summary-PR1"'));
+  });
+
+  test("display bar: the print-summary checkbox toggles vis.showSummary", () => {
+    const React = require("react");
+    const { QpcrStatsDisplayBar } = tool.exports;
+    const patches = [];
+    const { container, root } = renderWithEffects(QpcrStatsDisplayBar, {
+      genes,
+      normalize: "control",
+      vis,
+      updVis: (p) => patches.push(p),
+    });
+    const box = container.querySelector('[data-testid="qpcr-show-summary"]');
+    assert(box && !box.checked, "unchecked by default");
+    assert(box.parentElement.textContent.includes("Print summary below plot"));
+    React.act(() => box.click());
+    eq(JSON.stringify(patches), '[{"showSummary":true}]');
+    React.act(() => root.unmount());
   });
 
   test("chart: y-scale switch (linear FC / −ΔΔCt), dots, letters", () => {

@@ -10,6 +10,8 @@ import {
   STATS_TESTS_FOR_K,
   STATS_TESTS_FOR_K2,
   STATS_TEST_REGISTRY,
+  summariseEqualVariance,
+  summariseNormality,
 } from "../_shell";
 import type { ActionsPanelDownload, LegendBlock, PowerFromDataResult, TestResult } from "../_shell";
 import { compactLetterDisplay, selectTest } from "../_core/stats/posthoc";
@@ -17,16 +19,15 @@ import { pStars } from "../_core/stats/format";
 import { buildCsvString } from "../_core/csv";
 import type { ColumnRole } from "../_core/csv";
 import { formatP } from "../_core/stats/format";
-import type { NormalityResult } from "../_core/stats/types";
-// ── Stats summary SVG layout constants ──────────────────────────────────────
+// ── Stats summary SVG layout (shared with Proportions / qPCR) ───────────────
 
-export const STATS_LINE_H = 11;
-export const STATS_FONT = 8;
-
-export function statsSummaryHeight(summary: string | null): number {
-  if (!summary) return 0;
-  return summary.split("\n").length * STATS_LINE_H + 14; // 14 = top/bottom padding
-}
+export {
+  STATS_FONT,
+  STATS_LINE_H,
+  statsSummaryHeight,
+  summariseEqualVariance,
+  summariseNormality,
+} from "../_shell";
 
 // ── Test / post-hoc metadata ────────────────────────────────────────────────
 //
@@ -311,25 +312,6 @@ export function computeBpAnnotationSpec(
 // Plain-text "print summary below plot" string — a lean four-line recap
 // (normality / equal variance / test / post-hoc). Detailed per-pair stats
 // live in the TXT / R downloads.
-export function summariseNormality(norm: NormalityResult[] | null | undefined): string {
-  if (!Array.isArray(norm) || norm.length === 0) return "—";
-  let hasTrue = false;
-  let hasFalse = false;
-  for (const r of norm) {
-    if (r.normal === true) hasTrue = true;
-    else if (r.normal === false) hasFalse = true;
-  }
-  if (hasFalse) return "no";
-  if (hasTrue) return "yes";
-  return "—";
-}
-
-export function summariseEqualVariance(lev: SelectTestResult["levene"] | null | undefined): string {
-  if (!lev || "error" in lev) return "—";
-  if (lev.F == null) return "—";
-  return lev.equalVar ? "yes" : "no";
-}
-
 interface SummaryTextRow {
   skip?: boolean;
   k: number;
