@@ -183,21 +183,6 @@ export function ConfigureStep({
   return (
     <div>
       <div className="dv-panel" style={{ marginBottom: 12 }}>
-        <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-muted)" }}>
-          <strong style={{ color: "var(--text)" }}>
-            {fileName || tr("proportions.cfg.pasted")}
-          </strong>
-          {tr("proportions.cfg.shape", {
-            groups: table.groups.length,
-            cats: table.categories.length,
-          })}
-          <DetectedSeparatorBadge sep={detectedSep} />
-        </p>
-        <p style={{ fontSize: 11, color: "var(--text-faint)", margin: 0 }}>
-          {tr("proportions.cfg.help")}
-        </p>
-      </div>
-      <div className="dv-panel" style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
             {tr("proportions.cfg.layout")}
@@ -257,11 +242,23 @@ export function ConfigureStep({
               onChange={onLongRolesChange}
             />
           </div>
-          <div className="dv-panel" style={{ marginBottom: 12 }}>
-            <DataPreview headers={headers} rows={rows} maxRows={6} />
-          </div>
         </>
       )}
+      {/* The file and what was read from it, above its first rows — the
+          same place as in the other tools' Configure steps. */}
+      <div className="dv-panel" style={{ marginBottom: 12 }}>
+        <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--text-muted)" }}>
+          <strong style={{ color: "var(--text)" }}>
+            {fileName || tr("proportions.cfg.pasted")}
+          </strong>
+          {tr("proportions.cfg.shape", {
+            groups: table.groups.length,
+            cats: table.categories.length,
+          })}
+          <DetectedSeparatorBadge sep={detectedSep} />
+        </p>
+        <DataPreview headers={headers} rows={rows} maxRows={6} />
+      </div>
       {layout === "long" && skippedRows > 0 && (
         <div
           className="dv-panel"
@@ -309,6 +306,9 @@ export function ConfigureStep({
           )}
         </div>
       )}
+      <p style={{ fontSize: 11, color: "var(--text-faint)", margin: "0 0 8px" }}>
+        {tr("proportions.cfg.help")}
+      </p>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
         <OrderList
           title={tr("proportions.cfg.groups")}

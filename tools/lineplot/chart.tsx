@@ -12,7 +12,12 @@ import {
   SeriesPoint,
 } from "./helpers";
 import { renderLinePoint } from "./shapes";
-import { computeLegendHeight, renderSvgLegend } from "../_shell";
+import {
+  StatsSummaryLines,
+  computeLegendHeight,
+  renderSvgLegend,
+  statsSummaryHeight,
+} from "../_shell";
 import type { LegendBlock } from "../_shell";
 import { makeTicks } from "../_core/scale";
 import { valueAxisLeftMargin } from "../_shell/chart-layout";
@@ -47,6 +52,8 @@ export const Chart = memo(
       errorType,
       svgLegend,
       showStars,
+      showNs = false,
+      statsSummary = null,
     },
     ref
   ) {
@@ -63,13 +70,15 @@ export const Chart = memo(
     };
     const itemW = (b: LegendBlock): number => {
       const maxLen = Math.max(0, ...(b.items || []).map((i) => (i.label || "").length));
-      return Math.max(110, maxLen * 6 + 28);
+      // Same floor and cap as Scatter, so short labels sit close together.
+      return Math.max(88, Math.min(260, maxLen * 6 + 28));
     };
     const legendH = computeLegendHeight(svgLegend, vbW - MARGIN.left - MARGIN.right, itemW);
     // The title/subtitle band scales with the "Text size" slider so larger
     // headings get proportionally more room (× 1 at the 11 px default).
     const topPad = ((plotTitle ? 20 : 0) + (plotSubtitle ? 16 : 0)) * (tickFontSize / 11);
     const starRowH = showStars && perXStats.some((r) => r.pAdj != null) ? STAR_ROW_H : 0;
+    const summaryH = statsSummaryHeight(statsSummary);
 
     const w = vbW - MARGIN.left - MARGIN.right;
     const h = vbH - MARGIN.top - MARGIN.bottom;
@@ -110,7 +119,7 @@ export const Chart = memo(
     return (
       <svg
         ref={ref}
-        viewBox={`0 0 ${vbW} ${vbH + legendH + topPad}`}
+        viewBox={`0 0 ${vbW} ${vbH + legendH + topPad + summaryH}`}
         style={{ width: vbW, maxWidth: "100%", height: "auto", display: "block", margin: "0 auto" }}
         xmlns="http://www.w3.org/2000/svg"
         role="img"
@@ -119,7 +128,13 @@ export const Chart = memo(
         <title>{plotTitle || tt("lineplot.chart.fallbackTitle")}</title>
         <desc>{`Line chart with ${series.length} group${series.length === 1 ? "" : "s"}`}</desc>
         <g id="background">
-          <rect x={0} y={0} width={vbW} height={vbH + legendH + topPad} fill={plotBg || "#fff"} />
+          <rect
+            x={0}
+            y={0}
+            width={vbW}
+            height={vbH + legendH + topPad + summaryH}
+            fill={plotBg || "#fff"}
+          />
         </g>
         {plotTitle && (
           <g id="title">
@@ -274,7 +289,7 @@ export const Chart = memo(
               {perXStats.map((r, i) => {
                 if (r.pAdj == null) return null;
                 const s = pStars(r.pAdj);
-                if (!s || s === "ns") return null;
+                if (!s || (s === "ns" && !showNs)) return null;
                 return (
                   <text
                     key={`star-${i}`}
@@ -385,6 +400,15 @@ export const Chart = memo(
             vbW - MARGIN.left - MARGIN.right,
             itemW,
             14
+          )}
+          {statsSummary && (
+            <g id="stats-summary">
+              <StatsSummaryLines
+                lines={statsSummary.split("\n")}
+                x={MARGIN.left}
+                yStart={vbH + legendH + 10}
+              />
+            </g>
           )}
         </g>
       </svg>

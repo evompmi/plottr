@@ -9,6 +9,7 @@ import {
   DownloadTiles,
   DragHandle,
   ControlTabs,
+  RoleCard,
   WorkspaceLayout,
   SegToggle,
   useDragReorder,
@@ -80,19 +81,13 @@ function ColumnSelect({
   onChange: (i: number) => void;
   testId: string;
 }) {
+  // One column role per card, as in the other tools' Configure steps.
   return (
-    <label
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-        fontSize: 12,
-        color: "var(--text)",
-      }}
-    >
-      {label}
+    <RoleCard title={label}>
       <select
         className="dv-select"
+        style={{ width: "100%" }}
+        aria-label={label}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         data-testid={testId}
@@ -104,7 +99,7 @@ function ColumnSelect({
           </option>
         ))}
       </select>
-    </label>
+    </RoleCard>
   );
 }
 
@@ -318,19 +313,10 @@ export function ConfigureStep(p: ConfigureStepProps) {
   return (
     <div>
       <div className="dv-panel" style={{ marginBottom: 12 }}>
-        <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--text-muted)" }}>
-          <strong style={{ color: "var(--text)" }}>{p.fileName || tr("qpcr.cfg.pasted")}</strong>
-          {data
-            ? tr("qpcr.cfg.shape", {
-                wells: data.wells.length,
-                genes: data.genes.length,
-                groups: data.groups.length,
-              })
-            : ""}
-          <DetectedSeparatorBadge sep={p.detectedSep} />
-        </p>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
-          <span style={{ fontSize: 12, color: "var(--text)" }}>{tr("qpcr.cfg.layout")}</span>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+            {tr("qpcr.cfg.layout")}
+          </span>
           <SegToggle<QpcrLayout>
             value={p.layout}
             onChange={p.setLayout}
@@ -342,62 +328,63 @@ export function ConfigureStep(p: ConfigureStepProps) {
             ]}
           />
         </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-            gap: 10,
-          }}
-        >
-          <ColumnSelect
-            label={tr("qpcr.cfg.colSample")}
-            value={p.layout === "long" ? p.longCols.sample : p.wideCols.sample}
-            headers={p.headers}
-            testId="qpcr-col-sample"
-            onChange={(i) =>
-              p.layout === "long"
-                ? p.setLongCols({ ...p.longCols, sample: i })
-                : p.setWideCols({ ...p.wideCols, sample: i })
-            }
-          />
-          <ColumnSelect
-            label={tr("qpcr.cfg.colGroup")}
-            value={p.layout === "long" ? p.longCols.group : p.wideCols.group}
-            headers={p.headers}
-            testId="qpcr-col-group"
-            onChange={(i) =>
-              p.layout === "long"
-                ? p.setLongCols({ ...p.longCols, group: i })
-                : p.setWideCols({ ...p.wideCols, group: i })
-            }
-          />
-          {p.layout === "long" && (
-            <>
-              <ColumnSelect
-                label={tr("qpcr.cfg.colGene")}
-                value={p.longCols.gene}
-                headers={p.headers}
-                testId="qpcr-col-gene"
-                onChange={(i) => p.setLongCols({ ...p.longCols, gene: i })}
-              />
-              <ColumnSelect
-                label={tr("qpcr.cfg.colCt")}
-                value={p.longCols.ct}
-                headers={p.headers}
-                testId="qpcr-col-ct"
-                onChange={(i) => p.setLongCols({ ...p.longCols, ct: i })}
-              />
-            </>
-          )}
-        </div>
-        {p.layout === "wide" && (
-          <p style={{ fontSize: 11, color: "var(--text-faint)", margin: "8px 0 0" }}>
-            {tr("qpcr.cfg.wideGenes", {
-              genes: p.wideCols.genes.map((c) => p.headers[c]).join(", ") || "—",
-            })}
-          </p>
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <ColumnSelect
+          label={tr("qpcr.cfg.colSample")}
+          value={p.layout === "long" ? p.longCols.sample : p.wideCols.sample}
+          headers={p.headers}
+          testId="qpcr-col-sample"
+          onChange={(i) =>
+            p.layout === "long"
+              ? p.setLongCols({ ...p.longCols, sample: i })
+              : p.setWideCols({ ...p.wideCols, sample: i })
+          }
+        />
+        <ColumnSelect
+          label={tr("qpcr.cfg.colGroup")}
+          value={p.layout === "long" ? p.longCols.group : p.wideCols.group}
+          headers={p.headers}
+          testId="qpcr-col-group"
+          onChange={(i) =>
+            p.layout === "long"
+              ? p.setLongCols({ ...p.longCols, group: i })
+              : p.setWideCols({ ...p.wideCols, group: i })
+          }
+        />
+        {p.layout === "long" && (
+          <>
+            <ColumnSelect
+              label={tr("qpcr.cfg.colGene")}
+              value={p.longCols.gene}
+              headers={p.headers}
+              testId="qpcr-col-gene"
+              onChange={(i) => p.setLongCols({ ...p.longCols, gene: i })}
+            />
+            <ColumnSelect
+              label={tr("qpcr.cfg.colCt")}
+              value={p.longCols.ct}
+              headers={p.headers}
+              testId="qpcr-col-ct"
+              onChange={(i) => p.setLongCols({ ...p.longCols, ct: i })}
+            />
+          </>
         )}
       </div>
+      {p.layout === "wide" && (
+        <p style={{ fontSize: 11, color: "var(--text-faint)", margin: "0 0 12px" }}>
+          {tr("qpcr.cfg.wideGenes", {
+            genes: p.wideCols.genes.map((c) => p.headers[c]).join(", ") || "—",
+          })}
+        </p>
+      )}
 
       {p.parseError && (
         <div className="dv-panel" role="status" style={warnBox}>
@@ -652,6 +639,17 @@ export function ConfigureStep(p: ConfigureStepProps) {
           )}
 
           <div className="dv-panel">
+            <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--text-muted)" }}>
+              <strong style={{ color: "var(--text)" }}>
+                {p.fileName || tr("qpcr.cfg.pasted")}
+              </strong>
+              {tr("qpcr.cfg.shape", {
+                wells: data.wells.length,
+                genes: data.genes.length,
+                groups: data.groups.length,
+              })}
+              <DetectedSeparatorBadge sep={p.detectedSep} />
+            </p>
             <p style={{ fontSize: 11, color: "var(--text-faint)", margin: "0 0 8px" }}>
               {tr("qpcr.cfg.preview")}
             </p>

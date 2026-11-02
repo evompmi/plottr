@@ -7,7 +7,7 @@ import {
   ColorInput,
   DiscretePaletteRow,
   DownloadTiles,
-  OnOffToggle,
+  CheckboxField,
   SliderControl,
   applyDiscretePalette,
   ControlTabs,
@@ -212,14 +212,11 @@ export function PlotControls({
                   {tr("venn.tile.display")}
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div>
-                    <span className="dv-label">{tr("venn.ctrl.proportionalAreas")}</span>
-                    <OnOffToggle
-                      value={proportional}
-                      onChange={onProportionalChange}
-                      ariaLabel={tr("venn.ctrl.proportionalAreas")}
-                    />
-                  </div>
+                  <CheckboxField
+                    label={tr("venn.ctrl.proportionalAreas")}
+                    checked={proportional}
+                    onChange={onProportionalChange}
+                  />
                   {proportional && (
                     <SliderControl
                       label={tr("venn.ctrl.propReadable")}
@@ -249,14 +246,11 @@ export function PlotControls({
                     step={0.05}
                     onChange={sv("fillOpacity")}
                   />
-                  <div>
-                    <span className="dv-label">{tr("venn.ctrl.circleOutline")}</span>
-                    <OnOffToggle
-                      value={vis.showOutline}
-                      onChange={(v) => updVis({ showOutline: v })}
-                      ariaLabel={tr("venn.ctrl.circleOutline")}
-                    />
-                  </div>
+                  <CheckboxField
+                    label={tr("venn.ctrl.circleOutline")}
+                    checked={vis.showOutline}
+                    onChange={(v) => updVis({ showOutline: v })}
+                  />
                   <SliderControl
                     label={tr("venn.ctrl.fontSize")}
                     value={vis.fontSize}

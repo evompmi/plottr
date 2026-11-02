@@ -36,10 +36,7 @@ async function plotWithPies(page: Page) {
     .locator("select:visible")
     .filter({ has: page.locator("option", { hasText: "Phenotype" }) });
   await colorBy.first().selectOption({ label: "Phenotype" });
-  await page
-    .getByRole("group", { name: "Composition pies" })
-    .getByRole("button", { name: "On" })
-    .click();
+  await page.getByRole("checkbox", { name: "Composition pies" }).check();
 }
 
 test("composition pies open in Proportions as a counts table", async ({ page }) => {

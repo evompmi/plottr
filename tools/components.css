@@ -25,6 +25,27 @@
   margin-bottom: 2px;
 }
 
+/* On / off setting: checkbox + label on one row (CheckboxField). */
+.dv-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.dv-check input {
+  margin: 0;
+  accent-color: var(--cta-primary-bg);
+  cursor: inherit;
+}
+.dv-check[data-disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* Text input — `inp` */
 .dv-input {
   background: var(--surface);

@@ -8,7 +8,7 @@ import {
   ColorInput,
   ControlSection,
   DiscretePaletteRow,
-  OnOffToggle,
+  CheckboxField,
   SegToggle,
   SliderControl,
 } from "../_shell";
@@ -21,10 +21,14 @@ import type {
 } from "./helpers";
 import { useT } from "./i18n";
 
-function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
+// A labelled control; without a label (a CheckboxField carries its own) only
+// the spacing.
+function Field({ label, children }: { label?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
+      {label != null && (
+        <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
+      )}
       {children}
     </div>
   );
@@ -83,11 +87,11 @@ export function ChartTile({ vis, updVis, categories, focus, setFocus }: ChartTil
         </Field>
       )}
       {isProp && (
-        <Field label={tr("proportions.chart.ci")}>
-          <OnOffToggle
-            value={vis.showCI}
+        <Field>
+          <CheckboxField
+            label={tr("proportions.chart.ci")}
+            checked={vis.showCI}
             onChange={(v) => updVis({ showCI: v })}
-            ariaLabel={tr("proportions.chart.ci")}
           />
         </Field>
       )}
@@ -105,11 +109,11 @@ export function ChartTile({ vis, updVis, categories, focus, setFocus }: ChartTil
           />
         </Field>
       )}
-      <Field label={tr("proportions.chart.showN")}>
-        <OnOffToggle
-          value={vis.showN}
+      <Field>
+        <CheckboxField
+          label={tr("proportions.chart.showN")}
+          checked={vis.showN}
           onChange={(v) => updVis({ showN: v })}
-          ariaLabel={tr("proportions.chart.showN")}
         />
       </Field>
     </ControlSection>
@@ -207,16 +211,12 @@ export function StyleTile({ vis, updVis }: TileProps) {
           onChange={(v) => updVis({ barWidthFrac: Number(v) })}
         />
       )}
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
-          {tr("proportions.style.outline")}
-        </div>
-        <OnOffToggle
-          value={vis.barOutline}
-          onChange={(v) => updVis({ barOutline: v })}
-          ariaLabel={tr("proportions.style.outline")}
-        />
-      </div>
+      <CheckboxField
+        label={tr("proportions.style.outline")}
+        checked={vis.barOutline}
+        onChange={(v) => updVis({ barOutline: v })}
+        style={{ marginBottom: 10 }}
+      />
       {vis.barOutline && (
         <SliderControl
           label={tr("proportions.style.outlineWidth")}

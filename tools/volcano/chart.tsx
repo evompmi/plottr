@@ -458,9 +458,9 @@ export const VolcanoChart = memo(
              Axes (line + ticks + tick labels) are rendered unconditionally,
              matching the scatter / lineplot idiom — a chart without ticks
              isn't useful, so the toggle on the sidebar gates only the
-             background grid. Tick text uses sans-serif (not the monospace
-             we use elsewhere) so digits land on the same baseline as
-             scatter / lineplot exports. */}
+             background grid. Ticks, axis titles and title are sans-serif
+             like every other chart; only the gene labels stay monospace,
+             because the label layout sizes them as fixed-width text. */}
         {showAxes && (
           <g id="grid">
             {xTicks.map((t, i) => (
@@ -544,7 +544,7 @@ export const VolcanoChart = memo(
             textAnchor="middle"
             fontSize={13 * textScale}
             fill="#222"
-            fontFamily="ui-monospace, Menlo, monospace"
+            fontFamily="sans-serif"
           >
             {xLabel}
           </text>
@@ -556,7 +556,7 @@ export const VolcanoChart = memo(
             textAnchor="middle"
             fontSize={13 * textScale}
             fill="#222"
-            fontFamily="ui-monospace, Menlo, monospace"
+            fontFamily="sans-serif"
             transform={`rotate(-90, ${20 + ascentNudge * 13}, ${MARGIN.top + h / 2})`}
           >
             {yLabel}
@@ -572,7 +572,7 @@ export const VolcanoChart = memo(
               fontSize={14 * textScale}
               fontWeight="700"
               fill="#222"
-              fontFamily="ui-monospace, Menlo, monospace"
+              fontFamily="sans-serif"
             >
               {title}
             </text>
@@ -586,7 +586,7 @@ export const VolcanoChart = memo(
               textAnchor="middle"
               fontSize={11 * textScale}
               fill="#666"
-              fontFamily="ui-monospace, Menlo, monospace"
+              fontFamily="sans-serif"
             >
               {subtitle}
             </text>

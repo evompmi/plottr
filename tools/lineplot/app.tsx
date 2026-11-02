@@ -51,6 +51,8 @@ const VIS_INIT_LINEPLOT: LineplotVis = {
   discretePalette: "okabe-ito",
   errorType: "sem",
   showStars: true,
+  showNs: false,
+  showSummary: false,
   // Per-group line style (solid/dashed/dotted) and point marker
   // (shape + filled/open), keyed by group name. Empty maps fall back to
   // solid / filled circle in `computeSeries`.

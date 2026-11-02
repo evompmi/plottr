@@ -62,7 +62,6 @@ const fr: Record<UpsetKey, string> = {
   "upset.stat.off": "Désact.",
   "upset.stat.stars": "Étoiles",
   "upset.stat.pvalue": "p-value",
-  "upset.stat.on": "Activé",
   "upset.stat.sigMarkersNote":
     "Seules les intersections testées sont marquées. Utilise la p bilatérale (plus petite queue × 2, corrigée BH sur tous les tests lancés cette session), de sorte que l’enrichissement et l’appauvrissement apparaissent tous deux.",
   "upset.stat.colorBars": "Colorer les barres par significativité",

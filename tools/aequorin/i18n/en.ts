@@ -85,8 +85,6 @@ const en = {
 
   "aequorin.ctrl.summaryBarplot": "Summary barplot",
   "aequorin.ctrl.summaryBarplotTitle": "Barplot of the sum (Σ) of plotted values per condition",
-  "aequorin.ctrl.off": "Off",
-  "aequorin.ctrl.on": "On",
   "aequorin.ctrl.layout": "Layout",
   "aequorin.ctrl.autoPlaceholder": "auto",
   "aequorin.ctrl.grid": "Grid",
@@ -144,7 +142,6 @@ const en = {
   "aequorin.pa.dragTip": "Tip: drag across the plot to set the time window. Adjust it in Axes.",
   "aequorin.pa.noneSelected":
     "No conditions or samples selected. Enable at least one to display the plot.",
-  "aequorin.pa.timecourse": "Time-course plot",
   "aequorin.cond.show": "Show {name}",
   "aequorin.cond.name": "Display name for {name}",
   "aequorin.pa.dragTipClear": " Click clear to reset.",
@@ -152,7 +149,7 @@ const en = {
   "aequorin.pa.resetTitle": "Reset the time window to the full data range",
   "aequorin.pa.samples": "Samples",
   "aequorin.pa.close": "✕ Close",
-  "aequorin.pa.sampleSelection": "🔬 Sample selection",
+  "aequorin.pa.sampleSelection": "Sample selection",
 
   // Stats panel — test names
   "aequorin.test.studentT": "Student's t-test",

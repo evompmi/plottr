@@ -7,6 +7,7 @@
 
 import {
   AesMappingSection,
+  CheckboxField,
   ColorInput,
   ControlSection,
   DiscretePaletteRow,
@@ -33,19 +34,7 @@ import { useT } from "./i18n";
 import { COLOR_PALETTES, DIVERGING_PALETTES, interpolateColor } from "../_core/color";
 const { useState, useEffect, useMemo } = React;
 
-// Collapsible disclosure panel — same shape as scatter / lineplot /
-// upset's ControlSection so the visual language stays consistent across
-// every plot tool. Clicking the header toggles the body; the disclosure
-// chevron flips via `dv-disclosure-open` (CSS rotation in
-// components.css). After expand, scrollDisclosureIntoView ensures the
-// newly-opened body lands inside the sticky sidebar's scroll viewport.
-// Canonical on/off selector — the `dv-seg` segmented pill-bar declared
-// in components.css. Same widget power and molarity use for two-state
-// pickers (mode / alpha / tails / separator). A row of buttons where
-// the active one carries `dv-seg-btn-active`; one source of truth means
-// a future tweak propagates to every tool without per-tile drift. Label
-// sits above the pill-bar in `dv-label` typography for consistency
-// with how power.tsx introduces each segmented control.
+// An on / off setting of the volcano tiles: the shared CheckboxField.
 export function ToggleRow({
   checked,
   onChange,
@@ -55,32 +44,7 @@ export function ToggleRow({
   onChange: (v: boolean) => void;
   children: React.ReactNode;
 }) {
-  const tr = useT();
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <span className="dv-label">{children}</span>
-      <div className="dv-seg">
-        <button
-          type="button"
-          onClick={() => onChange(true)}
-          aria-pressed={checked}
-          className={"dv-seg-btn" + (checked ? " dv-seg-btn-active" : "")}
-          style={{ fontSize: 12 }}
-        >
-          {tr("volcano.on")}
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange(false)}
-          aria-pressed={!checked}
-          className={"dv-seg-btn" + (!checked ? " dv-seg-btn-active" : "")}
-          style={{ fontSize: 12 }}
-        >
-          {tr("volcano.off")}
-        </button>
-      </div>
-    </div>
-  );
+  return <CheckboxField label={children} checked={checked} onChange={onChange} />;
 }
 
 export function ThresholdsTile({ vis, updVis }: ThresholdsTileProps) {

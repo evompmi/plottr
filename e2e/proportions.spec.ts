@@ -40,7 +40,7 @@ test("colonisation example: bars, CI whiskers, brackets, χ² chosen", async ({ 
   await expect(page.getByTestId("proportions-pairs").locator("tbody tr")).toHaveCount(6);
   // R / report downloads live in the statistics column's exports.
   await expect(
-    page.getByTestId("proportions-stats").getByRole("heading", { name: "Statistics" })
+    page.getByTestId("proportions-stats").getByRole("heading", { name: "Counts and tests" })
   ).toBeVisible();
   await expect(page.getByTestId("proportions-dl-txt")).toBeVisible();
   await expect(page.getByTestId("proportions-dl-r")).toBeVisible();
@@ -85,7 +85,7 @@ test("chart types and test override", async ({ page }) => {
   await expect(page.locator("g#legend > g")).toHaveCount(2);
   await page.getByRole("button", { name: "Mosaic", exact: true }).click();
   await expect(page.locator("g#segments > g")).toHaveCount(4);
-  await page.getByRole("button", { name: "Fisher", exact: true }).click();
+  await page.getByTestId("proportions-test-choice").selectOption("fisher");
   await expect(page.getByTestId("proportions-omnibus")).toContainText("Fisher's exact test (4×2)");
   await expect(page.getByTestId("proportions-override-note")).toContainText(
     "You picked Fisher's exact test where χ² would also be valid"

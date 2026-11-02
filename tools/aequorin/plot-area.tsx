@@ -1,5 +1,5 @@
-// PlotPanel (the main plot orchestrator — renders the collapsible time-course
-// chart tile, the collapsible Σ barplot tile with its per-replicate CSV
+// PlotPanel (the main plot orchestrator — renders the time-course chart in
+// its plot card, the collapsible Σ barplot tile with its per-replicate CSV
 // table, and embeds the stats panel), plus the smaller right-column UI
 // affordances SampleSelectionOverlay (the sticky "Sample selection" pill
 // with its popover grid) and ConditionEditor (the sidebar "Conditions" tile
@@ -99,7 +99,6 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
   const activeStats = stats.filter((s) => s.enabled);
   const combinedRef = useRef<SVGSVGElement | null>(null);
   const facetRefs = useRef<Record<string, SVGSVGElement | null>>({});
-  const [chartOpen, setChartOpen] = useState(true);
   const [replicateTableOpen, setReplicateTableOpen] = useState(false);
   const [insetOpen, setInsetOpen] = useState(true);
   useEffect(() => {
@@ -559,65 +558,13 @@ export const PlotPanel = React.forwardRef<PlotPanelHandle, PlotPanelProps>(funct
     </div>
   ) : null;
 
-  // ── Collapsible time-course chart tile ──
-  // Same two-level theming as IntegralTile: outer is themed chrome (goes
-  // dark in dark mode), inner wraps the chart SVG in a .dv-plot-card so
-  // the plot canvas stays white-and-dimmed for export consistency.
+  // ── Time-course chart ──
+  // The chart sits in a .dv-plot-card straight on the canvas, as in every
+  // other tool; the card stays white (dimmed in dark mode) for export
+  // consistency.
   const ChartTile = (chartContent: React.ReactNode) => (
-    <div
-      style={{
-        borderRadius: 10,
-        border: "1px solid var(--border-strong)",
-        background: "var(--surface)",
-        overflow: "hidden",
-      }}
-    >
-      <button
-        onClick={() => setChartOpen(!chartOpen)}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 14px",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          fontFamily: "inherit",
-        }}
-      >
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text-muted)",
-          }}
-        >
-          <span
-            className={"dv-disclosure" + (chartOpen ? " dv-disclosure-open" : "")}
-            aria-hidden="true"
-          />
-          {tr("aequorin.pa.timecourse")}
-        </span>
-      </button>
-      {chartOpen && (
-        <div style={{ padding: "0 12px 12px" }}>
-          <div
-            className="dv-plot-card"
-            style={{
-              background: "var(--plot-card-bg)",
-              borderRadius: 8,
-              border: "1px solid var(--plot-card-border)",
-              padding: 12,
-            }}
-          >
-            {chartContent}
-          </div>
-        </div>
-      )}
+    <div className="dv-plot-card" style={{ background: "var(--plot-card-bg)", padding: 16 }}>
+      {chartContent}
     </div>
   );
 
@@ -838,19 +785,10 @@ export function SampleSelectionOverlay({
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <span className="dv-toolbar-label">{tr("aequorin.pa.samples")}</span>
         <button
+          type="button"
+          className="dv-btn dv-btn-secondary"
           onClick={() => setShowColumnOverlay(!showColumnOverlay)}
           aria-pressed={showColumnOverlay}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 8,
-            fontSize: 12,
-            fontWeight: 600,
-            fontFamily: "inherit",
-            cursor: "pointer",
-            background: showColumnOverlay ? "var(--warning-bg)" : "var(--surface)",
-            color: "var(--warning-text)",
-            border: `1px solid ${showColumnOverlay ? "var(--warning-text)" : "var(--warning-border)"}`,
-          }}
         >
           {showColumnOverlay ? tr("aequorin.pa.close") : tr("aequorin.pa.sampleSelection")}
         </button>

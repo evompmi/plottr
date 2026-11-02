@@ -95,6 +95,7 @@ module.exports = {
   formatX: lineplotHelpers.formatX,
   computeSeries: lineplotHelpers.computeSeries,
   computePerXStats: lineplotHelpers.computePerXStats,
+  lineplotSummaryText: lineplotHelpers.lineplotSummaryText,
   lineDashArray: lineplotHelpers.lineDashArray,
   withPower: lineplotHelpers.withPower,
 };

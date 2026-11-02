@@ -17,6 +17,7 @@ import { tinv } from "../_core/stats/dist";
 import { sampleMean, sampleSD } from "../_core/stats/tests";
 import { bhAdjust, selectTest } from "../_core/stats/posthoc";
 import type { ParseDataResult } from "../_core/csv";
+import type { LineplotKey } from "./i18n/en";
 // ── Constants ──────────────────────────────────────────────────────────────
 // `MARGIN`, `buildLineD`, `round2`, `round4` are shared with aequorin
 // via `_shell/chart-layout.ts` and `_shell/round.ts`. Re-exported through
@@ -174,6 +175,10 @@ export interface LineplotVis {
   discretePalette: string;
   errorType: ErrorKind;
   showStars: boolean;
+  // Stars display: also mark x-values that are not significant ("ns").
+  showNs: boolean;
+  // "Print summary below plot" (grey recap lines under the legend).
+  showSummary: boolean;
   groupLineStyles: Record<string, LineStyle>;
   groupPointShapes: Record<string, PointShape>;
   groupPointFilled: Record<string, boolean>;
@@ -282,6 +287,9 @@ export interface ChartProps {
   errorType: ErrorKind;
   svgLegend: LegendBlock[] | null;
   showStars: boolean;
+  showNs?: boolean;
+  // "Print summary below plot" text (lines joined by "\n"), or null.
+  statsSummary?: string | null;
 }
 
 // ── Per-x stats panel prop interfaces ───────────────────────────────────────
@@ -369,6 +377,33 @@ export interface PerXStatsPanelProps {
   fileName: string;
   // Error-bar kind (sem / sd / ci95) for the methods text.
   displayKind?: string;
+}
+
+// "Print summary below plot" text: the test(s) run at each x, the BH
+// adjustment across x that the stars use, and the error bars. Null when
+// hidden or when no x could be tested. `tr` and `testLabel` come from the
+// caller so this file stays free of the i18n runtime.
+export type LineplotSummaryTr = (key: LineplotKey, vars?: Record<string, string>) => string;
+
+export function lineplotSummaryText(
+  rows: PerXRow[],
+  errorType: ErrorKind,
+  show: boolean,
+  tr: LineplotSummaryTr,
+  testLabel: (id: string) => string
+): string | null {
+  if (!show) return null;
+  const tests = [
+    ...new Set(rows.map((r) => r.chosenTest).filter((t): t is RecommendedTest => !!t)),
+  ];
+  if (tests.length === 0) return null;
+  const lines = [tr("lineplot.summary.test", { tests: tests.map(testLabel).join(", ") })];
+  if (rows.length > 1) lines.push(tr("lineplot.summary.bh"));
+  if (errorType !== "none") {
+    const bar = errorType === "ci95" ? "95% CI" : errorType === "sd" ? "SD" : "SEM";
+    lines.push(tr("lineplot.summary.errorBars", { bar }));
+  }
+  return lines.join("\n");
 }
 
 export function computePerXStats(series: Series[]) {

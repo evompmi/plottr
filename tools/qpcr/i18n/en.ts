@@ -184,6 +184,7 @@ const en = {
   "qpcr.tab.axes": "Axes",
   "qpcr.plot.controlsLabel": "Plot controls",
   "qpcr.stats.title": "Statistics",
+  "qpcr.stats.introTitle": "Tests on ΔCt",
   "qpcr.stats.desc": "Tests on ΔCt per target gene; fold changes are back-transformed estimates.",
   "qpcr.stats.displayOnPlot": "Display on plot",
   "qpcr.stats.off": "Off",
@@ -217,7 +218,7 @@ const en = {
   "qpcr.stats.needTwo":
     "Need at least two groups with two or more biological replicates to run a test.",
   "qpcr.stats.test": "Test",
-  "qpcr.stats.auto": "Auto — {test}",
+  "qpcr.stats.recommendedSuffix": "  (recommended)",
   "qpcr.stats.onDct": "on ΔCt",
   "qpcr.stats.posthoc": "Post-hoc: {name}",
   "qpcr.stats.pair": "Pair",

@@ -8,7 +8,7 @@ import {
   ControlSection,
   DownloadTiles,
   NumberInput,
-  OnOffToggle,
+  CheckboxField,
   SliderControl,
   ControlTabs,
 } from "../_shell";
@@ -315,22 +315,16 @@ export function PlotControls({
                   step={1}
                   onChange={sv("fontSize")}
                 />
-                <div>
-                  <div className="dv-label">{tr("upset.disp.intersectionLabels")}</div>
-                  <OnOffToggle
-                    value={vis.showIntersectionLabels !== false}
-                    onChange={(v) => updVis({ showIntersectionLabels: v })}
-                    ariaLabel={tr("upset.disp.intersectionLabels")}
-                  />
-                </div>
-                <div>
-                  <div className="dv-label">{tr("upset.disp.setSizeLabels")}</div>
-                  <OnOffToggle
-                    value={vis.showSetSizeLabels !== false}
-                    onChange={(v) => updVis({ showSetSizeLabels: v })}
-                    ariaLabel={tr("upset.disp.setSizeLabels")}
-                  />
-                </div>
+                <CheckboxField
+                  label={tr("upset.disp.intersectionLabels")}
+                  checked={vis.showIntersectionLabels !== false}
+                  onChange={(v) => updVis({ showIntersectionLabels: v })}
+                />
+                <CheckboxField
+                  label={tr("upset.disp.setSizeLabels")}
+                  checked={vis.showSetSizeLabels !== false}
+                  onChange={(v) => updVis({ showSetSizeLabels: v })}
+                />
                 <div
                   style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
                 >
@@ -558,45 +552,11 @@ export function PlotControls({
                 </div>
 
                 <div>
-                  <div className="dv-label">{tr("upset.stat.colorBars")}</div>
-                  <div
-                    style={{
-                      display: "flex",
-                      borderRadius: 6,
-                      overflow: "hidden",
-                      border: "1px solid var(--border-strong)",
-                    }}
-                  >
-                    {(
-                      [
-                        [false, tr("upset.stat.off")],
-                        [true, tr("upset.stat.on")],
-                      ] as const
-                    ).map(([value, label]) => {
-                      const active = !!vis.colorBarsBySignificance === value;
-                      return (
-                        <button
-                          key={String(value)}
-                          type="button"
-                          onClick={() => updVis({ colorBarsBySignificance: value })}
-                          style={{
-                            flex: 1,
-                            padding: "4px 0",
-                            fontSize: 11,
-                            fontWeight: active ? 700 : 400,
-                            fontFamily: "inherit",
-                            cursor: "pointer",
-                            border: "none",
-                            background: active ? "var(--seg-selected-bg)" : "var(--surface)",
-                            color: active ? "var(--seg-selected-text)" : "var(--text-muted)",
-                            transition: "background 120ms ease, color 120ms ease",
-                          }}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <CheckboxField
+                    label={tr("upset.stat.colorBars")}
+                    checked={!!vis.colorBarsBySignificance}
+                    onChange={(v) => updVis({ colorBarsBySignificance: v })}
+                  />
                   <p
                     style={{
                       margin: "4px 0 0",

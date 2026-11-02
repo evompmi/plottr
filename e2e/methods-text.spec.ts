@@ -43,8 +43,8 @@ const CASES: Array<{ tool: string; expects: RegExp[]; prepare?: (page: Page) => 
       await page.getByRole("tab", { name: "Σ barplot" }).click();
       await page
         .getByTitle("Barplot of the sum (Σ) of plotted values per condition")
-        .getByRole("button", { name: "On", exact: true })
-        .click();
+        .getByRole("checkbox")
+        .check();
       // The barplot brings a statistics column, folded into a rail.
       await page.getByRole("button", { name: "Show Statistics" }).click();
     },

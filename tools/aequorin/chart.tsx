@@ -73,7 +73,8 @@ export const Chart = memo(
     };
     const aequorinItemW = (b: LegendBlock): number => {
       const maxLen = Math.max(0, ...(b.items || []).map((i) => (i.label || "").length));
-      return Math.max(110, maxLen * 6 + 28);
+      // Same floor and cap as Scatter, so short labels sit close together.
+      return Math.max(88, Math.min(260, maxLen * 6 + 28));
     };
     const legendH = computeLegendHeight(svgLegend, vbW - MARGIN.left - MARGIN.right, aequorinItemW);
     // The title/subtitle band scales with the "Text size" slider so larger

@@ -160,11 +160,25 @@ export function DiscretePaletteSelect({ value, onChange }: DiscretePaletteSelect
         title={tr("shell.palette.pickerTitle")}
         aria-label={tr("shell.palette.label")}
       >
-        {keys.map((k) => (
-          <option key={k} value={k}>
-            {k + (COLORBLIND_SAFE_PALETTES.has(k) ? "  👁" : "")}
-          </option>
-        ))}
+        {/* Colour-blind-safe palettes first, in their own group. */}
+        <optgroup label={tr("shell.palette.groupSafe")}>
+          {keys
+            .filter((k) => COLORBLIND_SAFE_PALETTES.has(k))
+            .map((k) => (
+              <option key={k} value={k}>
+                {k}
+              </option>
+            ))}
+        </optgroup>
+        <optgroup label={tr("shell.palette.groupOther")}>
+          {keys
+            .filter((k) => !COLORBLIND_SAFE_PALETTES.has(k))
+            .map((k) => (
+              <option key={k} value={k}>
+                {k}
+              </option>
+            ))}
+        </optgroup>
       </select>
       <DiscreteSwatchStrip palette={value} />
     </div>

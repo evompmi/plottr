@@ -75,7 +75,6 @@ const en = {
   "upset.stat.off": "Off",
   "upset.stat.stars": "Stars",
   "upset.stat.pvalue": "p-value",
-  "upset.stat.on": "On",
   "upset.stat.sigMarkersNote":
     "Only tested intersections are marked. Uses the two-sided p (smaller tail × 2, BH-adjusted across every test run this session), so both enrichment and depletion show up.",
   "upset.stat.colorBars": "Color bars by significance",

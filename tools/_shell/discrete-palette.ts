@@ -111,8 +111,8 @@ export const DISCRETE_PALETTES: Record<string, string[]> = {
 };
 
 // Subset considered colour-blind-safe (no red/green adjacency, sufficient
-// luminance contrast). Surfaced as a 👁 glyph in the dropdown so users can
-// quickly tell. Conservative on purpose — Set2 / Pastel2 are arguably
+// luminance contrast). The palette dropdowns list them as colour-blind safe so
+// users can quickly tell. Conservative on purpose — Set2 / Pastel2 are arguably
 // borderline; only the unambiguous ones are marked.
 export const COLORBLIND_SAFE_PALETTES = new Set(["okabe-ito", "dark2", "paired", "viridis-d"]);
 

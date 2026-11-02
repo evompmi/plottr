@@ -36,11 +36,10 @@ const en = {
   "scatter.pt.opacity": "Opacity",
   "scatter.pt.stroke": "Stroke",
   "scatter.pt.strokeWidth": "Stroke width",
-  "scatter.on": "On",
-  "scatter.off": "Off",
 
   // Regression
   "scatter.reg.title": "Regression line",
+  "scatter.reg.show": "Show",
   "scatter.reg.needPoints": "Need ≥ 2 points with variation in X.",
   "scatter.reg.slope": "slope: ",
   "scatter.reg.intercept": "intercept: ",
@@ -78,8 +77,7 @@ const en = {
   "scatter.aes.categorical.one": "{n} category",
   "scatter.aes.categorical.other": "{n} categories",
   "scatter.aes.range": "range: {min} → {max}",
-  "scatter.aes.cbSafe": " · 👁",
-  "scatter.aes.cbSafeNote": "👁 colour-blind-safe",
+  "scatter.aes.cbSafe": "  (colour-blind safe)",
   "scatter.size.min": "Min size",
   "scatter.size.max": "Max size",
 

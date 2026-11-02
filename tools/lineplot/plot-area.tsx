@@ -2,7 +2,8 @@
 // chart (with the stars toggle above it) and the per-x statistics column.
 
 import { Chart } from "./chart";
-import { LineplotStatsDisplayBar, PerXStatsPanel } from "./stats-panel";
+import { LineplotStatsDisplayBar, PerXStatsPanel, lpTestLabel } from "./stats-panel";
+import { lineplotSummaryText } from "./helpers";
 import { WorkspaceLayout } from "../_shell";
 import { useT } from "./i18n";
 import { PlotControls } from "./controls";
@@ -25,8 +26,12 @@ export function PlotStep(props: PlotStepProps) {
     setShowStars,
     svgRef,
     svgLegend,
+    updVis,
   } = props;
   const tr = useT();
+  const showNs = vis.showNs ?? false;
+  const showSummary = vis.showSummary ?? false;
+  const statsSummary = lineplotSummaryText(statsRows, errorType, showSummary, tr, lpTestLabel);
 
   const vbW = 700;
   const vbH = 440;
@@ -40,7 +45,14 @@ export function PlotStep(props: PlotStepProps) {
       controls={<PlotControls {...props} />}
       toolbar={
         statsRows.length > 0 ? (
-          <LineplotStatsDisplayBar showStars={showStars} setShowStars={setShowStars} />
+          <LineplotStatsDisplayBar
+            showStars={showStars}
+            setShowStars={setShowStars}
+            showNs={showNs}
+            setShowNs={(v) => updVis({ showNs: v })}
+            showSummary={showSummary}
+            setShowSummary={(v) => updVis({ showSummary: v })}
+          />
         ) : null
       }
       figure={
@@ -90,6 +102,8 @@ export function PlotStep(props: PlotStepProps) {
               errorType={errorType}
               svgLegend={svgLegend}
               showStars={showStars}
+              showNs={showNs}
+              statsSummary={statsSummary}
             />
           )}
         </div>

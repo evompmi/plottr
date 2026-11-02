@@ -13,7 +13,7 @@ import {
   ControlSection,
   DiscretePaletteRow,
   NumberInput,
-  OnOffToggle,
+  CheckboxField,
   SegToggle,
   SliderControl,
   resolveDiscretePalette,
@@ -315,39 +315,12 @@ export function PlotControls({
               <ControlSection
                 title={tr("aequorin.ctrl.summaryBarplot")}
                 headerRight={
-                  <div
-                    style={{
-                      display: "flex",
-                      borderRadius: 4,
-                      overflow: "hidden",
-                      border: "1px solid var(--border-strong)",
-                    }}
+                  <CheckboxField
+                    label={tr("aequorin.ctrl.show")}
+                    checked={vis.showInset}
+                    onChange={(v) => updVis({ showInset: v })}
                     title={tr("aequorin.ctrl.summaryBarplotTitle")}
-                  >
-                    {(["off", "on"] as const).map((mode) => {
-                      const active = mode === "on" ? vis.showInset : !vis.showInset;
-                      return (
-                        <button
-                          key={mode}
-                          type="button"
-                          onClick={() => updVis({ showInset: mode === "on" })}
-                          style={{
-                            padding: "2px 8px",
-                            fontSize: 10,
-                            fontWeight: active ? 700 : 400,
-                            fontFamily: "inherit",
-                            cursor: "pointer",
-                            border: "none",
-                            background: active ? "var(--seg-selected-bg)" : "var(--surface)",
-                            color: active ? "var(--seg-selected-text)" : "var(--text-muted)",
-                            transition: "background 120ms ease, color 120ms ease",
-                          }}
-                        >
-                          {mode === "off" ? tr("aequorin.ctrl.off") : tr("aequorin.ctrl.on")}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  />
                 }
               >
                 {vis.showInset && (
@@ -376,14 +349,11 @@ export function PlotControls({
                           placeholder={tr("aequorin.ctrl.autoPlaceholder")}
                         />
                       </label>
-                      <div>
-                        <span className="dv-label">{tr("aequorin.ctrl.grid")}</span>
-                        <OnOffToggle
-                          value={vis.insetShowGrid}
-                          onChange={(v) => updVis({ insetShowGrid: v })}
-                          ariaLabel={tr("aequorin.ctrl.grid")}
-                        />
-                      </div>
+                      <CheckboxField
+                        label={tr("aequorin.ctrl.grid")}
+                        checked={vis.insetShowGrid}
+                        onChange={(v) => updVis({ insetShowGrid: v })}
+                      />
                       {vis.insetShowGrid && (
                         <label style={{ display: "block" }}>
                           <span className="dv-label">{tr("aequorin.ctrl.gridColor")}</span>
@@ -433,14 +403,11 @@ export function PlotControls({
                       step={0.05}
                       onChange={(v) => updVis({ insetFillOpacity: v })}
                     />
-                    <div>
-                      <span className="dv-label">{tr("aequorin.ctrl.barOutline")}</span>
-                      <OnOffToggle
-                        value={vis.insetShowBarOutline}
-                        onChange={(v) => updVis({ insetShowBarOutline: v })}
-                        ariaLabel={tr("aequorin.ctrl.barOutline")}
-                      />
-                    </div>
+                    <CheckboxField
+                      label={tr("aequorin.ctrl.barOutline")}
+                      checked={vis.insetShowBarOutline}
+                      onChange={(v) => updVis({ insetShowBarOutline: v })}
+                    />
                     {vis.insetShowBarOutline && (
                       <>
                         <SliderControl
@@ -494,14 +461,11 @@ export function PlotControls({
 
                     <SubHeading>{tr("aequorin.ctrl.points")}</SubHeading>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      <div>
-                        <span className="dv-label">{tr("aequorin.ctrl.show")}</span>
-                        <OnOffToggle
-                          value={vis.insetShowPoints}
-                          onChange={(v) => updVis({ insetShowPoints: v })}
-                          ariaLabel={tr("aequorin.ctrl.showPoints")}
-                        />
-                      </div>
+                      <CheckboxField
+                        label={tr("aequorin.ctrl.show")}
+                        checked={vis.insetShowPoints}
+                        onChange={(v) => updVis({ insetShowPoints: v })}
+                      />
                       {vis.insetShowPoints && (
                         <>
                           <label style={{ display: "block" }}>

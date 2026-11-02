@@ -25,7 +25,6 @@ import type {
   GofPanelProps,
   ProportionsStatsDisplayBarProps,
   StatsPanelProps,
-  TestChoice,
 } from "./helpers";
 import { useT } from "./i18n";
 
@@ -36,6 +35,12 @@ const { useMemo } = React;
 const thS: React.CSSProperties = { ...inspectorTh, whiteSpace: "normal", verticalAlign: "bottom" };
 const tdS: React.CSSProperties = { ...inspectorTd, whiteSpace: "normal" };
 const firstCol = inspectorFirstCol;
+// The Wilson CI under each count, on its own line so neither breaks.
+const ciLine: React.CSSProperties = {
+  whiteSpace: "nowrap",
+  fontSize: 11,
+  color: "var(--text-muted)",
+};
 const note: React.CSSProperties = { fontSize: 11, color: "var(--text-faint)", margin: 0 };
 const resultBox: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
@@ -160,7 +165,7 @@ export function StatsPanel({
 
   return (
     <div className="dv-inspector" data-testid="proportions-stats">
-      <InspectorSection label={tr("proportions.stats.title")}>
+      <InspectorSection label={tr("proportions.stats.introTitle")}>
         <p style={{ margin: 0, fontSize: 12, color: "var(--text-faint)" }}>
           {tr("proportions.stats.desc")}
         </p>
@@ -168,34 +173,40 @@ export function StatsPanel({
       </InspectorSection>
       <div className="dv-inspector-body">
         <h3 className="dv-tile-title dv-inspector-split">{tr("proportions.stats.summary")}</h3>
-        <table style={inspectorTable}>
-          <thead>
-            <tr>
-              <th style={{ ...thS, ...firstCol }}>{tr("proportions.stats.group")}</th>
-              <th style={thS}>n</th>
-              {categories.map((c) => (
-                <th key={c} style={thS}>
-                  {tr("proportions.stats.catCol", { cat: c })}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {summaries.map((s) => (
-              <tr key={s.group}>
-                <td style={{ ...tdS, ...firstCol }}>{s.group}</td>
-                <td style={tdS}>{s.n}</td>
-                {s.counts.map((x, c) => (
-                  <td key={c} style={tdS}>
-                    {`${x} · ${formatPct(s.props[c].p)} [${formatPct(s.props[c].lower)}, ${formatPct(
-                      s.props[c].upper
-                    )}]`}
-                  </td>
+        {/* Many outcome columns scroll sideways rather than squeezing the cells. */}
+        <div style={{ overflowX: "auto" }}>
+          <table style={inspectorTable}>
+            <thead>
+              <tr>
+                <th style={{ ...thS, ...firstCol }}>{tr("proportions.stats.group")}</th>
+                <th style={thS}>n</th>
+                {categories.map((c) => (
+                  <th key={c} style={thS}>
+                    {tr("proportions.stats.catCol", { cat: c })}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {summaries.map((s) => (
+                <tr key={s.group}>
+                  <td style={{ ...tdS, ...firstCol }}>{s.group}</td>
+                  <td style={tdS}>{s.n}</td>
+                  {s.counts.map((x, c) => (
+                    <td key={c} style={tdS}>
+                      <div
+                        style={{ whiteSpace: "nowrap" }}
+                      >{`${x} · ${formatPct(s.props[c].p)}`}</div>
+                      <div style={ciLine}>
+                        {`[${formatPct(s.props[c].lower)}, ${formatPct(s.props[c].upper)}]`}
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <p style={note}>{tr("proportions.stats.wilsonNote")}</p>
 
         <h3 className="dv-tile-title dv-inspector-split">{tr("proportions.stats.test")}</h3>
@@ -203,19 +214,39 @@ export function StatsPanel({
           <p style={note}>{tr("proportions.stats.tooSmall")}</p>
         ) : (
           <>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <SegToggle<TestChoice>
-                value={vis.testChoice}
-                onChange={(v) => updVis({ testChoice: v })}
-                ariaLabel={tr("proportions.stats.testChoice")}
-                style={{ flex: 1 }}
-                options={[
-                  { value: "auto", label: tr("proportions.stats.auto") },
-                  { value: "fisher", label: "Fisher" },
-                  { value: "chi2", label: "χ²" },
-                ]}
-              />
-            </div>
+            {/* Group Plot's picker: the recommended test is marked, and
+                picking it returns to automatic choice. */}
+            <label
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                fontSize: 12,
+                color: "var(--text-muted)",
+                marginBottom: 6,
+              }}
+            >
+              {tr("proportions.stats.testChoice")}
+              <select
+                className="dv-select"
+                style={{ width: "100%", minHeight: 34 }}
+                value={vis.testChoice === "auto" ? selection.test : vis.testChoice}
+                onChange={(e) => {
+                  const v = e.target.value === "chi2" ? "chi2" : "fisher";
+                  updVis({ testChoice: v === selection.test ? "auto" : v });
+                }}
+                data-testid="proportions-test-choice"
+              >
+                {(["fisher", "chi2"] as const).map((t) => (
+                  <option key={t} value={t}>
+                    {tr(
+                      t === "fisher" ? "proportions.stats.fisherName" : "proportions.stats.chi2Name"
+                    )}
+                    {t === selection.test ? tr("proportions.stats.recommendedSuffix") : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div style={explainer} data-testid="proportions-test-reason">
               <div style={{ fontWeight: 700, marginBottom: 2 }}>
                 {tr("proportions.stats.whyTitle")}

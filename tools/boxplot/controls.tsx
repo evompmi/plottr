@@ -14,7 +14,7 @@ import {
   ControlTabs,
   DiscretePaletteRow,
   GroupColorEditor,
-  OnOffToggle,
+  CheckboxField,
   PlotStyleIconPicker,
   RaincloudStyleIcon,
   SegToggle,
@@ -221,12 +221,14 @@ export function PlotControls({
                 </div>
                 <div>
                   <div className="dv-label">{tr("boxplot.ctrl.orientation")}</div>
-                  <OnOffToggle
-                    value={vis.horizontal}
-                    onChange={(v) => updVis({ horizontal: v })}
-                    offLabel={tr("boxplot.ctrl.vertical")}
-                    onLabel={tr("boxplot.ctrl.horizontal")}
+                  <SegToggle<"vertical" | "horizontal">
+                    value={vis.horizontal ? "horizontal" : "vertical"}
+                    onChange={(v) => updVis({ horizontal: v === "horizontal" })}
                     ariaLabel={tr("boxplot.ctrl.orientation")}
+                    options={[
+                      { value: "vertical", label: tr("boxplot.ctrl.vertical") },
+                      { value: "horizontal", label: tr("boxplot.ctrl.horizontal") },
+                    ]}
                   />
                 </div>
               </div>
@@ -307,14 +309,11 @@ export function PlotControls({
                         onChange={sv("errStrokeWidth")}
                       />
                     )}
-                    <div>
-                      <div className="dv-label">{tr("boxplot.ctrl.barOutline")}</div>
-                      <OnOffToggle
-                        value={vis.showBarOutline}
-                        onChange={(v) => updVis({ showBarOutline: v })}
-                        ariaLabel={tr("boxplot.ctrl.barOutline")}
-                      />
-                    </div>
+                    <CheckboxField
+                      label={tr("boxplot.ctrl.barOutline")}
+                      checked={vis.showBarOutline}
+                      onChange={(v) => updVis({ showBarOutline: v })}
+                    />
                     {vis.showBarOutline && (
                       <>
                         <SliderControl
@@ -388,25 +387,19 @@ export function PlotControls({
 
               {/* Data points */}
               <ControlSection title={tr("boxplot.ctrl.dataPoints")}>
-                <div>
-                  <div className="dv-label">{tr("boxplot.ctrl.showPoints")}</div>
-                  <OnOffToggle
-                    value={vis.showPoints}
-                    onChange={(v) => updVis({ showPoints: v })}
-                    ariaLabel={tr("boxplot.ctrl.showPoints")}
-                  />
-                </div>
+                <CheckboxField
+                  label={tr("boxplot.ctrl.showPoints")}
+                  checked={vis.showPoints}
+                  onChange={(v) => updVis({ showPoints: v })}
+                />
                 {vis.showPoints && (
                   <>
                     {vis.plotStyle !== "bar" && (
-                      <div>
-                        <div className="dv-label">{tr("boxplot.ctrl.markOutliers")}</div>
-                        <OnOffToggle
-                          value={vis.markOutliers}
-                          onChange={(v) => updVis({ markOutliers: v })}
-                          ariaLabel={tr("boxplot.ctrl.markOutliers")}
-                        />
-                      </div>
+                      <CheckboxField
+                        label={tr("boxplot.ctrl.markOutliers")}
+                        checked={vis.markOutliers}
+                        onChange={(v) => updVis({ markOutliers: v })}
+                      />
                     )}
                     <div>
                       <div className="dv-label">{tr("boxplot.ctrl.colorBy")}</div>
@@ -426,14 +419,11 @@ export function PlotControls({
                       </select>
                     </div>
                     {colorByCol >= 0 && (
-                      <div>
-                        <div className="dv-label">{tr("boxplot.ctrl.compPies")}</div>
-                        <OnOffToggle
-                          value={vis.showCompPie}
-                          onChange={(v) => updVis({ showCompPie: v })}
-                          ariaLabel={tr("boxplot.ctrl.compPies")}
-                        />
-                      </div>
+                      <CheckboxField
+                        label={tr("boxplot.ctrl.compPies")}
+                        checked={vis.showCompPie}
+                        onChange={(v) => updVis({ showCompPie: v })}
+                      />
                     )}
                     {colorByCol >= 0 && vis.showCompPie && compositionTables.length > 0 && (
                       <div>

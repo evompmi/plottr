@@ -11,7 +11,7 @@ import {
   ControlSection,
   DiscretePaletteRow,
   DotStyleIcon,
-  OnOffToggle,
+  CheckboxField,
   PlotStyleIconPicker,
   SegToggle,
   SliderControl,
@@ -27,10 +27,14 @@ import type {
 } from "./helpers";
 import { useT } from "./i18n";
 
-function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
+// A labelled control; without a label (a CheckboxField carries its own) only
+// the spacing.
+function Field({ label, children }: { label?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
+      {label != null && (
+        <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
+      )}
       {children}
     </div>
   );
@@ -117,11 +121,11 @@ export function ChartTile({ vis, updVis, normalize }: ChartTileProps) {
         </Field>
       )}
       {normalize === "control" && (
-        <Field label={tr("qpcr.chart.showCalibrator")}>
-          <OnOffToggle
-            value={vis.showCalibrator}
+        <Field>
+          <CheckboxField
+            label={tr("qpcr.chart.showCalibrator")}
+            checked={vis.showCalibrator}
             onChange={(v) => updVis({ showCalibrator: v })}
-            ariaLabel={tr("qpcr.chart.showCalibrator")}
           />
           {!vis.showCalibrator && <div style={note}>{tr("qpcr.chart.calibratorHiddenNote")}</div>}
         </Field>
@@ -230,11 +234,11 @@ export function DataPointsTile({ vis, updVis }: TileProps) {
   const tr = useT();
   return (
     <ControlSection title={tr("qpcr.tile.dataPoints")}>
-      <Field label={tr("qpcr.chart.points")}>
-        <OnOffToggle
-          value={vis.showPoints}
+      <Field>
+        <CheckboxField
+          label={tr("qpcr.chart.points")}
+          checked={vis.showPoints}
           onChange={(v) => updVis({ showPoints: v })}
-          ariaLabel={tr("qpcr.chart.points")}
         />
       </Field>
       {vis.showPoints && (

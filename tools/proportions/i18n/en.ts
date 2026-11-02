@@ -111,6 +111,7 @@ const en = {
   "proportions.tab.style": "Style",
   "proportions.controlsLabel": "Plot controls",
   "proportions.stats.title": "Statistics",
+  "proportions.stats.introTitle": "Counts and tests",
   "proportions.stats.desc": "Counts with Wilson CIs and tests on the table shown in the chart.",
   "proportions.stats.displayOnPlot": "Display on plot",
   "proportions.stats.off": "Off",
@@ -135,7 +136,9 @@ const en = {
     "Wilson score intervals (Brown, Cai & DasGupta 2001): unlike the textbook p ± 1.96·SE, they keep close to 95 % coverage for small n and for proportions near 0 or 100 %.",
   "proportions.stats.test": "Do the groups differ?",
   "proportions.stats.testChoice": "Test",
-  "proportions.stats.auto": "Auto",
+  "proportions.stats.fisherName": "Fisher's exact test",
+  "proportions.stats.chi2Name": "Pearson's χ² test",
+  "proportions.stats.recommendedSuffix": "  (recommended)",
   "proportions.stats.whyTitle": "Why this test?",
   "proportions.stats.whyTwoByTwo":
     "With 2 groups and 2 outcomes, Fisher's exact test is used. It computes the p-value exactly, from every table that has the same row and column totals as yours, so it is valid at any sample size — and it is quick for a 2×2 table.",

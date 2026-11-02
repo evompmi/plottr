@@ -426,7 +426,7 @@ function DilutionMode({ compact }: { compact?: boolean }) {
               margin: "0 0 12px",
               fontSize: 12,
               fontWeight: 600,
-              color: "var(--link)",
+              color: "var(--text)",
             }}
           >
             {tr("molarity.dil.stock")}
@@ -458,7 +458,7 @@ function DilutionMode({ compact }: { compact?: boolean }) {
               margin: "12px 0 12px",
               fontSize: 12,
               fontWeight: 600,
-              color: "var(--link)",
+              color: "var(--text)",
             }}
           >
             {tr("molarity.dil.final")}
@@ -609,7 +609,7 @@ function BatchMode() {
           {tr("molarity.batch.unitsNote")}
         </p>
         <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--link)" }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>
             {tr("molarity.batch.separator")}
           </span>
           <div className="dv-seg">
@@ -815,7 +815,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
         }}
       >
         <div className="dv-panel" style={{ flex: 1, marginBottom: 0, padding: 12 }}>
-          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--dna-text)" }}>
+          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--text)" }}>
             {tr("molarity.lig.vector")}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -851,7 +851,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
         </div>
 
         <div className="dv-panel" style={{ flex: 1, marginBottom: 0, padding: 12 }}>
-          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--dna-text)" }}>
+          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--text)" }}>
             {tr("molarity.lig.insert")}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -872,7 +872,7 @@ function LigationMode({ compact }: { compact?: boolean }) {
         </div>
 
         <div className="dv-panel" style={{ flex: 1, marginBottom: 0, padding: 12 }}>
-          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--dna-text)" }}>
+          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "var(--text)" }}>
             {tr("molarity.lig.molarRatio")}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -1045,13 +1045,14 @@ export function App() {
     },
   ];
 
-  const chemColor = "var(--link)";
-  const dnaColor = "var(--dna-text)";
+  // Section labels are plain chrome text: blue stays for actions and links.
+  const chemColor = "var(--text-muted)";
+  const dnaColor = "var(--text-muted)";
 
   return (
     <div
       className="dv-calc"
-      style={{ maxWidth: 720, margin: "0 auto", padding: compact ? "16px 16px 80px" : "28px 20px" }}
+      style={{ maxWidth: 960, margin: "0 auto", padding: compact ? "16px 16px 80px" : "28px 20px" }}
     >
       {/* The tool's name is in the app bar's switcher; the heading stays for
           screen readers and the document outline. */}

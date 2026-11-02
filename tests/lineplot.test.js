@@ -12,6 +12,7 @@ const {
   computeSeries,
   computePerXStats,
   lineDashArray,
+  lineplotSummaryText,
   withPower,
 } = require("./helpers/lineplot-loader");
 
@@ -210,6 +211,45 @@ test("solid style has no dash array", () => {
 test("dashed / dotted scale proportionally with stroke width", () => {
   eq(lineDashArray("dashed", 2), "8,5");
   eq(lineDashArray("dotted", 2), "2,4");
+});
+
+// ── lineplotSummaryText ─────────────────────────────────────────────────────
+
+suite("lineplotSummaryText");
+
+const trStub = (k, v) => (v ? `${k}${JSON.stringify(v)}` : k);
+const label = (id) => `<${id}>`;
+
+test("lists the distinct tests, the BH step across x and the error bars", () => {
+  const rows = [
+    { x: 0, chosenTest: "welchANOVA" },
+    { x: 2, chosenTest: "welchANOVA" },
+    { x: 4, chosenTest: "kruskalWallis" },
+    { x: 6, chosenTest: null },
+  ];
+  eq(
+    lineplotSummaryText(rows, "sem", true, trStub, label),
+    [
+      'lineplot.summary.test{"tests":"<welchANOVA>, <kruskalWallis>"}',
+      "lineplot.summary.bh",
+      'lineplot.summary.errorBars{"bar":"SEM"}',
+    ].join("\n")
+  );
+  eq(
+    lineplotSummaryText(rows, "ci95", true, trStub, label).split("\n")[2],
+    'lineplot.summary.errorBars{"bar":"95% CI"}'
+  );
+  eq(lineplotSummaryText(rows, "none", true, trStub, label).split("\n").length, 2, "no bars line");
+});
+
+test("one x: no BH line; hidden or nothing tested → null", () => {
+  eq(
+    lineplotSummaryText([{ x: 0, chosenTest: "welchT" }], "sd", true, trStub, label),
+    'lineplot.summary.test{"tests":"<welchT>"}\nlineplot.summary.errorBars{"bar":"SD"}'
+  );
+  eq(lineplotSummaryText([{ x: 0, chosenTest: "welchT" }], "sd", false, trStub, label), null);
+  eq(lineplotSummaryText([{ x: 0, chosenTest: null }], "sd", true, trStub, label), null);
+  eq(lineplotSummaryText([], "sd", true, trStub, label), null);
 });
 
 // ── computePerXStats ───────────────────────────────────────────────────────

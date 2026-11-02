@@ -91,6 +91,11 @@ const fr: Record<LineplotKey, string> = {
   "lineplot.sp.displayOnPlot": "Afficher sur le tracé",
   "lineplot.sp.off": "Désact.",
   "lineplot.sp.stars": "Étoiles",
+  "lineplot.sp.showNs": "Afficher ns",
+  "lineplot.sp.printSummary": "Imprimer le résumé sous le tracé",
+  "lineplot.summary.test": "Test à chaque x : {tests}",
+  "lineplot.summary.bh": "Valeurs p : Benjamini–Hochberg sur les x",
+  "lineplot.summary.errorBars": "Barres d’erreur : {bar}",
   "lineplot.howto.title": "Line Plot — Comment l’utiliser",
   "lineplot.howto.subtitle":
     "Moyenne ± erreur par groupe sur un axe des x, avec significativité par x",
