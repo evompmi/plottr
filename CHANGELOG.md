@@ -7,39 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-02
+
+> Long-form release notes live in
+> [`docs/release-notes/v2.3.0.md`](docs/release-notes/v2.3.0.md). The entries below are summary bullets that link there.
+>
+> The "Consistency" release: one set of controls across tools, Proportions reading one row per
+> observation, and the statistics summary under the plot in three more tools. Statistical results
+> are unchanged.
+
 ### Added
 
-- **Statistics summary in Proportions and qPCR.** "Print summary below plot" in the toolbar, as in
-  Group Plot. Proportions lists the test, the comparisons (all pairs, or each group vs the
-  control), the correction and the CI; qPCR prints Group Plot's recap for each gene under its
-  panel. Regression: 7 tests.
-- **Proportions reads one row per observation.** A file with one row per plant (group and
-  outcome columns, or a column of counts) is counted by the tool; pick the columns in Configure.
-  Regression: 8 tests.
+- **Proportions reads one row per observation.** The tool counts the rows; pick the group,
+  outcome and optional count columns in Configure. Regression: 8 tests. See
+  [`docs/release-notes/v2.3.0.md`](docs/release-notes/v2.3.0.md#proportions-reads-one-row-per-observation).
+- **Statistics summary under the plot** in Proportions, qPCR and Line Plot (which also gains
+  "Show ns"). Regression: 10 tests. See
+  [`docs/release-notes/v2.3.0.md`](docs/release-notes/v2.3.0.md#statistics-summary-under-the-plot-in-proportions-qpcr-and-line-plot).
 
 ### Changed
 
-- **Interface consistency pass.** Every on / off setting is a checkbox; the test picker is the
-  same "(recommended)" dropdown in Group Plot, Scatter, qPCR and Proportions; Line Plot gains
-  "Show ns" and "Print summary below plot"; qPCR and Proportions Configure steps use column cards
-  with the file line above the preview; the RLU plot sits on the canvas; emoji in the Methods
-  button, palette lists and RLU sample selection are replaced; Volcano axis titles are
-  sans-serif; calculators share one width, without blue on non-actions. Regression: 4 tests.
+- **One set of controls across tools.** Checkboxes for on / off settings, one "(recommended)"
+  test picker, column cards in every Configure step, icons instead of emoji, RLU plot on the
+  canvas. Regression: 1 test. See [`docs/release-notes/v2.3.0.md`](docs/release-notes/v2.3.0.md#one-set-of-controls-across-tools).
 
 ### Fixed
 
-- **qPCR could get stuck on Configure.** A group unticked under "Reference genes only" and then
-  made the control again stayed unticked behind a locked checkbox, blocking the plot; the control
-  now always counts. Configure also lists what still blocks the plot (genes, groups, an invalid
-  efficiency). Regression: 4 tests.
-- **Statistics column tidy-up.** Proportions and qPCR no longer repeat "Statistics" as the first
-  section title, and inspector table cells no longer break mid-value.
-- **Venn legend names in dark ink.** The set colour is kept on the swatch; coloured text was
-  hard to read in exported figures. Regression: 1 test.
-- **Landing page lists the real text download** (`stats.txt`, not `methods.txt`).
-- **Methods popover stays on screen.** It opens above the Methods button when the button is near
-  the bottom of the window, and is kept inside the window, so its Copy button is always
-  reachable. Regression: 4 tests.
+- **qPCR Configure no longer gets stuck** after switching between "Control group" and "Reference
+  genes only", and lists what still blocks the plot. Regression: 4 tests.
+- **Methods popover stays on screen**; no doubled "Statistics" heading; table cells no longer
+  break mid-value; Venn legend names in dark text; the landing lists `stats.txt`. Regression: 5
+  tests. See [`docs/release-notes/v2.3.0.md`](docs/release-notes/v2.3.0.md#-fixed).
 
 ## [2.2.1] - 2026-11-01
 
