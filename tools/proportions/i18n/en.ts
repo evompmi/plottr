@@ -8,9 +8,9 @@ const en = {
   "proportions.example.subtitle": "4 genotypes · colonised vs. not colonised counts",
   "proportions.example.f2": "Or load a phenotype-ratio example (dihybrid F2, 9:3:3:1)",
   "proportions.upload.hint":
-    "CSV · TSV · TXT · first column = group names · one column per outcome holding counts · 2 MB max",
+    "CSV · TSV · TXT · a counts table (groups × outcomes) or one row per observation · 2 MB max",
   "proportions.err.tooFewColumns":
-    "Expected a counts table: a first column of group names plus at least two outcome columns holding counts.",
+    "Expected a counts table (a column of group names plus one column of counts per outcome) or one row per observation (a group column and an outcome column).",
   "proportions.err.tooFewRows": "Expected at least two groups (rows).",
   "proportions.err.notCount":
     "“{value}” (group “{group}”, column “{category}”) is not a count — every outcome cell must be a whole number ≥ 0. Percentages cannot be analysed here: enter the numbers of individuals.",
@@ -32,8 +32,25 @@ const en = {
   "proportions.cfg.needTwo": "Keep at least two groups and two outcome categories.",
   "proportions.cfg.dropped":
     "Left out because they have no observations in the kept outcomes: {names}",
-  "proportions.cfg.groups": "Groups (rows)",
-  "proportions.cfg.categories": "Outcome categories (columns)",
+  "proportions.cfg.groups": "Groups",
+  "proportions.cfg.categories": "Outcome categories",
+  "proportions.cfg.layout": "Data layout",
+  "proportions.cfg.layoutCounts": "Counts table",
+  "proportions.cfg.layoutLong": "One row per observation",
+  "proportions.cfg.countsHelp":
+    "Each row is a group and each column after the first an outcome, each cell a number of individuals.",
+  "proportions.cfg.longHelp":
+    "Each row is one individual (plant, seed, animal…): choose its group and outcome columns, and Plöttr counts them. If a column already holds counts (one row per group × outcome), choose it under Counts.",
+  "proportions.cfg.notCounts": "Not read as a counts table: {reason}",
+  "proportions.cfg.roleGroup": "Groups (one bar each)",
+  "proportions.cfg.roleCategory": "Outcome",
+  "proportions.cfg.roleCount": "Counts",
+  "proportions.cfg.countNone": "None: count the rows",
+  "proportions.cfg.column": "Column {n}",
+  "proportions.cfg.skipped.one":
+    "{count} row was left out: blank group or outcome, or a count that is not a whole number ≥ 0.",
+  "proportions.cfg.skipped.other":
+    "{count} rows were left out: blank group or outcome, or a count that is not a whole number ≥ 0.",
   "proportions.cfg.include": "Include {name}",
   "proportions.cfg.up": "Move {name} up",
   "proportions.cfg.down": "Move {name} down",
@@ -207,6 +224,12 @@ const en = {
   "proportions.howto.exWG": "Wrinkled green",
   "proportions.howto.exCaption2":
     "Several outcome classes (e.g. phenotype counts for a 9:3:3:1 test) work the same way: one column per class.",
+  "proportions.howto.longLayout":
+    "Or <strong>one row per observation</strong>, as scored at the bench: each row one plant with its group and its outcome, in any column order and alongside other columns. Plöttr counts the rows; you pick the group and outcome columns in Configure. A column that already holds counts (one row per group × outcome) works too.",
+  "proportions.howto.exPlant": "Plant",
+  "proportions.howto.exStatus": "Status",
+  "proportions.howto.exCaption3":
+    "One row per plant: the group and outcome columns are counted into the table above.",
   "proportions.howto.display":
     "<strong>Proportion</strong> shows % of one outcome with Wilson 95 % CIs. <strong>Stacked</strong> and <strong>Mosaic</strong> show every outcome; mosaic widths follow group size. The test is picked automatically: Fisher's exact test for 2×2 tables or when expected counts are small, χ² otherwise. Pairwise comparisons use Holm correction by default; pick a control group under Compare to test each group against it only. The goodness-of-fit panel tests counts against ratios such as 3:1 or 9:3:3:1.",
   "proportions.methods.design":

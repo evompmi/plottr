@@ -1,13 +1,17 @@
-// Step components for the Proportions tool: ConfigureStep (choose and
-// order groups / categories) and PlotStep (workspace: tabbed controls, chart,
+// Step components for the Proportions tool: ConfigureStep (data layout, the
+// columns of a one-row-per-observation file, then choose and order groups /
+// categories) and PlotStep (workspace: tabbed controls, chart,
 // statistics column).
 
 import {
   ChartDataTable,
   ControlTabs,
+  DataPreview,
   DetectedSeparatorBadge,
   DownloadTiles,
   DragHandle,
+  RoleCard,
+  SegToggle,
   WorkspaceLayout,
   useDragReorder,
 } from "../_shell";
@@ -17,6 +21,8 @@ import { formatPct, proportionsSummaryText } from "./helpers";
 import type {
   ColorItem,
   ConfigureStepProps,
+  DataLayout,
+  LongRoles,
   OrderItem,
   OrderListProps,
   PlotStepProps,
@@ -101,8 +107,67 @@ export function OrderList({ title, items, onChange, testIdPrefix }: OrderListPro
   );
 }
 
+// One column-role picker of the one-row-per-observation layout. Picking a
+// column another role already uses swaps the two, so group and outcome never
+// share a column.
+function LongRolePicker({
+  title,
+  role,
+  headers,
+  roles,
+  onChange,
+}: {
+  title: string;
+  role: keyof LongRoles;
+  headers: string[];
+  roles: LongRoles;
+  onChange: (roles: LongRoles) => void;
+}) {
+  const tr = useT();
+  const current = roles[role];
+  const pick = (v: number | null) => {
+    const next: LongRoles = { ...roles, [role]: v };
+    if (v !== null) {
+      for (const other of ["group", "category", "count"] as const) {
+        if (other !== role && roles[other] === v) {
+          if (other === "count") next.count = null;
+          else if (current !== null) next[other] = current;
+        }
+      }
+    }
+    onChange(next);
+  };
+  return (
+    <RoleCard title={title}>
+      <select
+        aria-label={title}
+        className="dv-select"
+        style={{ width: "100%" }}
+        value={current === null ? "" : String(current)}
+        onChange={(e) => pick(e.target.value === "" ? null : Number(e.target.value))}
+        data-testid={`proportions-role-${role}`}
+      >
+        {role === "count" && <option value="">{tr("proportions.cfg.countNone")}</option>}
+        {headers.map((h, i) => (
+          <option key={i} value={i}>
+            {h || tr("proportions.cfg.column", { n: i + 1 })}
+          </option>
+        ))}
+      </select>
+    </RoleCard>
+  );
+}
+
 export function ConfigureStep({
   table,
+  layout,
+  onLayoutChange,
+  countsError,
+  headers,
+  rows,
+  longRoles,
+  onLongRolesChange,
+  skippedRows,
   fileName,
   detectedSep,
   blankCells,
@@ -132,7 +197,87 @@ export function ConfigureStep({
           {tr("proportions.cfg.help")}
         </p>
       </div>
-      {blankCells > 0 && (
+      <div className="dv-panel" style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+            {tr("proportions.cfg.layout")}
+          </span>
+          <SegToggle<DataLayout>
+            value={layout}
+            onChange={onLayoutChange}
+            ariaLabel={tr("proportions.cfg.layout")}
+            style={{ flex: "0 0 auto", minWidth: 340 }}
+            options={[
+              {
+                value: "counts",
+                label: tr("proportions.cfg.layoutCounts"),
+                disabled: countsError !== null,
+                title:
+                  countsError === null
+                    ? undefined
+                    : tr("proportions.cfg.notCounts", { reason: countsError }),
+              },
+              { value: "long", label: tr("proportions.cfg.layoutLong") },
+            ]}
+          />
+        </div>
+        <p style={{ fontSize: 11, color: "var(--text-faint)", margin: "8px 0 0" }}>
+          {layout === "counts" ? tr("proportions.cfg.countsHelp") : tr("proportions.cfg.longHelp")}
+        </p>
+      </div>
+      {layout === "long" && longRoles && (
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 12,
+              marginBottom: 12,
+            }}
+          >
+            <LongRolePicker
+              title={tr("proportions.cfg.roleGroup")}
+              role="group"
+              headers={headers}
+              roles={longRoles}
+              onChange={onLongRolesChange}
+            />
+            <LongRolePicker
+              title={tr("proportions.cfg.roleCategory")}
+              role="category"
+              headers={headers}
+              roles={longRoles}
+              onChange={onLongRolesChange}
+            />
+            <LongRolePicker
+              title={tr("proportions.cfg.roleCount")}
+              role="count"
+              headers={headers}
+              roles={longRoles}
+              onChange={onLongRolesChange}
+            />
+          </div>
+          <div className="dv-panel" style={{ marginBottom: 12 }}>
+            <DataPreview headers={headers} rows={rows} maxRows={6} />
+          </div>
+        </>
+      )}
+      {layout === "long" && skippedRows > 0 && (
+        <div
+          className="dv-panel"
+          role="status"
+          style={{
+            background: "var(--warning-bg)",
+            borderColor: "var(--warning-border)",
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 12, color: "var(--warning-text)" }}>
+            {tr("proportions.cfg.skipped", { count: skippedRows })}
+          </p>
+        </div>
+      )}
+      {layout === "counts" && blankCells > 0 && (
         <div
           className="dv-panel"
           style={{ background: "var(--warning-bg)", borderColor: "var(--warning-border)" }}

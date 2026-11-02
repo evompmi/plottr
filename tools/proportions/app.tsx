@@ -23,14 +23,26 @@ import {
   analyseTable,
   applySelection,
   bracketPairs,
+  canReadLong,
   collapseToFocus,
+  countLongTable,
   defaultOrder,
   groupSummaries,
+  guessLongRoles,
   parseCountsTable,
   parseRatio,
   resolveColors,
 } from "./helpers";
-import type { CountsParseError, CountsTable, OrderItem, ProportionsVis } from "./helpers";
+import type {
+  CountsParseError,
+  CountsParseResult,
+  CountsTable,
+  DataLayout,
+  LongRoles,
+  OrderItem,
+  ProportionsVis,
+} from "./helpers";
+import type { ParseRawResult } from "../_core/csv";
 import { ConfigureStep, PlotStep } from "./steps";
 import { buildProportionsCsv, buildProportionsRScript, buildProportionsReport } from "./reports";
 import { autoDetectSep, fixDecimalCommas, parseRaw } from "../_core/csv";
@@ -143,6 +155,12 @@ export function App() {
   } = shell;
 
   const [rawText, setRawText] = useState<string | null>(null);
+  // The file as parsed, kept so Configure can switch layout or columns.
+  const [raw, setRaw] = useState<Pick<ParseRawResult, "headers" | "rows"> | null>(null);
+  const [countsParse, setCountsParse] = useState<CountsParseResult | null>(null);
+  const [layout, setLayout] = useState<DataLayout>("counts");
+  const [longRoles, setLongRoles] = useState<LongRoles | null>(null);
+  const [skippedRows, setSkippedRows] = useState(0);
   const [table, setTable] = useState<CountsTable | null>(null);
   const [blankCells, setBlankCells] = useState(0);
   const [detectedSep, setDetectedSep] = useState("");
@@ -159,6 +177,50 @@ export function App() {
   // A group name, so it survives reordering; dataset-specific, not persisted.
   const [control, setControl] = useState<string | null>(null);
 
+  // A new counts table (new file, layout or columns): every group and outcome
+  // kept in file order, per-dataset choices cleared.
+  const adoptTable = useCallback((t: CountsTable) => {
+    setTable(t);
+    setGroupOrder(defaultOrder(t.groups));
+    setCatOrder(defaultOrder(t.categories));
+    setFocus(0);
+    setRatioText("");
+    setGroupColorOv({});
+    setCatColorOv({});
+    setControl(null);
+  }, []);
+
+  const changeLayout = useCallback(
+    (next: DataLayout) => {
+      if (!raw) return;
+      if (next === "counts") {
+        if (!countsParse?.table) return;
+        setLayout("counts");
+        setSkippedRows(0);
+        adoptTable(countsParse.table);
+        return;
+      }
+      const roles = longRoles ?? guessLongRoles(raw);
+      const long = countLongTable(raw, roles);
+      setLayout("long");
+      setLongRoles(roles);
+      setSkippedRows(long.skipped);
+      adoptTable(long.table);
+    },
+    [raw, countsParse, longRoles, adoptTable]
+  );
+
+  const changeLongRoles = useCallback(
+    (roles: LongRoles) => {
+      if (!raw) return;
+      const long = countLongTable(raw, roles);
+      setLongRoles(roles);
+      setSkippedRows(long.skipped);
+      adoptTable(long.table);
+    },
+    [raw, adoptTable]
+  );
+
   // Returns the parsed table (null on a parse error) so the hand-off path
   // can decide whether to skip straight to the plot.
   const doParse = useCallback(
@@ -172,26 +234,35 @@ export function App() {
       const raw = parseRaw(dc.text, effectiveSep);
       setInjectionWarning(raw.injectionWarnings);
       const res = parseCountsTable(raw);
-      if (!res.table) {
+      // A counts table when it reads as one; otherwise one row per observation.
+      let next: CountsTable;
+      if (res.table) {
+        next = res.table;
+        setLayout("counts");
+        setLongRoles(null);
+        setSkippedRows(0);
+      } else if (canReadLong(raw)) {
+        const roles = guessLongRoles(raw);
+        const long = countLongTable(raw, roles);
+        next = long.table;
+        setLayout("long");
+        setLongRoles(roles);
+        setSkippedRows(long.skipped);
+      } else {
         setParseError(res.error ? parseErrorMessage(res.error) : null);
         return null;
       }
       setParseError(null);
       setRawText(dc.text);
-      setTable(res.table);
+      setRaw({ headers: raw.headers, rows: raw.rows });
+      setCountsParse(res);
       setBlankCells(res.blankCells);
-      setGroupOrder(defaultOrder(res.table.groups));
-      setCatOrder(defaultOrder(res.table.categories));
-      setFocus(0);
-      setRatioText("");
-      setGroupColorOv({});
-      setCatColorOv({});
+      adoptTable(next);
       setOrigin(null);
-      setControl(null);
       setStep("configure");
-      return res.table;
+      return next;
     },
-    [setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep]
+    [adoptTable, setCommaFixed, setCommaFixCount, setInjectionWarning, setParseError, setStep]
   );
 
   const handleFileLoad = useCallback(
@@ -238,6 +309,10 @@ export function App() {
 
   const resetAll = useCallback(() => {
     setRawText(null);
+    setRaw(null);
+    setCountsParse(null);
+    setLongRoles(null);
+    setSkippedRows(0);
     setTable(null);
     setGroupOrder([]);
     setCatOrder([]);
@@ -425,6 +500,18 @@ export function App() {
       {step === "configure" && table && selection && (
         <ConfigureStep
           table={table}
+          layout={layout}
+          onLayoutChange={changeLayout}
+          countsError={
+            countsParse && !countsParse.table && countsParse.error
+              ? parseErrorMessage(countsParse.error)
+              : null
+          }
+          headers={raw?.headers ?? []}
+          rows={raw?.rows ?? []}
+          longRoles={longRoles}
+          onLongRolesChange={changeLongRoles}
+          skippedRows={skippedRows}
           fileName={fileName}
           detectedSep={detectedSep}
           blankCells={blankCells}

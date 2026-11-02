@@ -32,6 +32,58 @@ const arbCountsCsvMax = (maxCell, maxR = 6, maxC = 4) =>
     });
 const arbCountsCsv = arbCountsCsvMax(40);
 
+suite("countLongTable — one row per observation");
+
+test("tallying a counts table's rows, in any order, gives back its counts", () => {
+  check(
+    fc.property(
+      arbCountsCsv.chain((t) => {
+        const rows = [];
+        t.groups.forEach((g, i) =>
+          t.cats.forEach((c, j) => {
+            for (let k = 0; k < t.counts[i][j]; k++) rows.push([g, c]);
+          })
+        );
+        return fc
+          .shuffledSubarray(rows, { minLength: rows.length })
+          .map((shuffled) => ({ t, shuffled }));
+      }),
+      ({ t, shuffled }) => {
+        const raw = L.parseRaw(
+          ["group,outcome", ...shuffled.map((r) => r.join(","))].join("\n") + "\n"
+        );
+        const r = L.countLongTable(raw, { group: 0, category: 1, count: null });
+        if (r.skipped !== 0) return false;
+        // Groups / outcomes with no rows never appear; every other cell matches.
+        for (let i = 0; i < t.groups.length; i++)
+          for (let j = 0; j < t.cats.length; j++) {
+            const gi = r.table.groups.indexOf(t.groups[i]);
+            const ci = r.table.categories.indexOf(t.cats[j]);
+            const got = gi < 0 || ci < 0 ? 0 : r.table.counts[gi][ci];
+            if (got !== t.counts[i][j]) return false;
+          }
+        return true;
+      }
+    ),
+    RUNS_HEAVY
+  );
+});
+
+test("never throws on any CSV and any column choice; counts are whole numbers ≥ 0", () => {
+  check(
+    fc.property(arbAnyCsv, fc.nat(5), fc.nat(5), fc.option(fc.nat(5)), (text, g, c, n) => {
+      const raw = L.parseRaw(text);
+      const r = L.countLongTable(raw, { group: g, category: c, count: n });
+      L.guessLongRoles(raw);
+      return r.table.counts.every(
+        (row) =>
+          row.length === r.table.categories.length &&
+          row.every((x) => Number.isInteger(x) && x >= 0)
+      );
+    })
+  );
+});
+
 suite("parseCountsTable — resilience");
 
 test("never throws; returns exactly one of table / error", () => {
