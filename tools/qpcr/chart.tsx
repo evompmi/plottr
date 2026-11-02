@@ -11,7 +11,13 @@
 // FC = 1 line stays and its comparisons show as "vs control" stars above the
 // other groups, explained by a footnote. Hex literals only inside the SVG.
 
-import { CldLabels, SignificanceBrackets, assignBracketLevels } from "../_shell";
+import {
+  CldLabels,
+  SignificanceBrackets,
+  StatsSummaryLines,
+  assignBracketLevels,
+  statsSummaryHeight,
+} from "../_shell";
 import { svgSafeId } from "../_core/svg-export";
 import { makeTicks } from "../_core/scale";
 import { arrayMax, arrayMin } from "../_core/numeric";
@@ -114,6 +120,7 @@ export const QpcrChart = memo(
   forwardRef<SVGSVGElement, QpcrChartProps>(function QpcrChart(props, ref) {
     const {
       genes: allGenes,
+      summaries = [],
       annotations,
       colors,
       groupOrder,
@@ -206,18 +213,25 @@ export const QpcrChart = memo(
       textW("0.125", fs),
       ...axes.flatMap((a) => a.ticks.map((t) => textW(t.label, fs - 1)))
     );
+    // "Print summary below plot": every cell reserves the tallest gene's
+    // block under its axis, so the panels stay aligned.
+    const summaryH = Math.max(
+      0,
+      ...genes.map((_, gi) => statsSummaryHeight(summaries[gi] ?? null))
+    );
+    const axisBottom = horizontal ? 2 * fs + 22 : xLabelH + 10;
     const FM = horizontal
       ? {
           left: maxLabelW + 14,
           right: 12 + annotBand,
           top: fs + 12,
-          bottom: 2 * fs + 22,
+          bottom: axisBottom + summaryH,
         }
       : {
           left: 34 + fs + tickW,
           right: 12,
           top: fs + 12 + annotBand,
-          bottom: xLabelH + 10,
+          bottom: axisBottom + summaryH,
         };
     const cellW = FM.left + fw + FM.right;
     const cellH = FM.top + fh + FM.bottom;
@@ -299,6 +313,7 @@ export const QpcrChart = memo(
           const oneAt = val(toAxis(0, yScale)); // FC = 1
           const base = yScale === "linear" ? val(0) : relToControl ? oneAt : val(lo);
           const ann = annotations[gi];
+          const summary = summaries[gi] ?? null;
           const leveled = assignBracketLevels(ann.brackets);
           const clipId = `clip-${gid}`;
           const outline = barOutline ? barOutlineWidth : 0;
@@ -612,6 +627,15 @@ export const QpcrChart = memo(
                   fontSize={fs}
                   textColor="#222222"
                 />
+              )}
+              {summary && (
+                <g id={`stats-summary-${gid}`}>
+                  <StatsSummaryLines
+                    lines={summary.split("\n")}
+                    x={left}
+                    yStart={top + fh + axisBottom + 10}
+                  />
+                </g>
               )}
               {ann.vsControl.some((c) => c !== "") && (
                 <g id={`vs-control-${gid}`}>

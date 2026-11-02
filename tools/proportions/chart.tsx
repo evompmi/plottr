@@ -5,7 +5,13 @@
 // Pure render: every number comes from props (analysis lives in app.tsx).
 // Hex literals only inside the SVG (chrome / SVG theming split).
 
-import { CldLabels, SignificanceBrackets, assignBracketLevels } from "../_shell";
+import {
+  CldLabels,
+  SignificanceBrackets,
+  StatsSummaryLines,
+  assignBracketLevels,
+  statsSummaryHeight,
+} from "../_shell";
 import { svgSafeId } from "../_core/svg-export";
 import { mosaicSpans, stackSegments } from "./helpers";
 import type { ProportionsChartProps } from "./helpers";
@@ -38,6 +44,7 @@ export const ProportionsChart = memo(
   forwardRef<SVGSVGElement, ProportionsChartProps>(function ProportionsChart(props, ref) {
     const {
       table,
+      statsSummary = null,
       chartType,
       summaries,
       brackets,
@@ -103,11 +110,12 @@ export const ProportionsChart = memo(
     const legendW = isProp
       ? 0
       : 28 + Math.max(...table.categories.map((c) => textW(c, fs)), textW("Category", fs));
+    const axisBottom = 14 + xLabelH + nLineH;
     const M = {
       left: Math.max(30 + fs + textW("100 %", fs), overhang + 8),
       right: 16 + legendW,
       top: 12 + titleH + annotH,
-      bottom: 14 + xLabelH + nLineH,
+      bottom: axisBottom + statsSummaryHeight(statsSummary),
     };
     const VBW = M.left + plotWidth + M.right;
     const VBH = M.top + plotHeight + M.bottom;
@@ -440,6 +448,15 @@ export const ProportionsChart = memo(
                 </g>
               );
             })}
+          </g>
+        )}
+        {statsSummary && (
+          <g id="stats-summary">
+            <StatsSummaryLines
+              lines={statsSummary.split("\n")}
+              x={M.left}
+              yStart={M.top + plotHeight + axisBottom + 10}
+            />
           </g>
         )}
       </svg>

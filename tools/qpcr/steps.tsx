@@ -15,7 +15,7 @@ import {
 } from "../_shell";
 import { fileBaseName, saveBlob } from "../_core/download";
 import { buildXlsx } from "../_core/xlsx";
-import { excludedWells, techRepKey } from "./helpers";
+import { excludedWells, qpcrSummaryText, techRepKey } from "./helpers";
 import type {
   ConfigureStepProps,
   GeneRow,
@@ -671,6 +671,7 @@ export function ConfigureStep(p: ConfigureStepProps) {
 
 export function PlotStep(p: PlotStepProps) {
   const tr = useT();
+  const summaries = p.stats.map((st) => qpcrSummaryText(st, p.vis, tr));
   return (
     <WorkspaceLayout
       controlsLabel={tr("qpcr.plot.controlsLabel")}
@@ -757,6 +758,7 @@ export function PlotStep(p: PlotStepProps) {
             <QpcrChart
               ref={p.chartRef}
               genes={p.genes}
+              summaries={summaries}
               annotations={p.annotations}
               colors={p.colors}
               groupOrder={p.groupOrder}

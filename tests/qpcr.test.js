@@ -335,6 +335,41 @@ test("standard curve vs lm(Ct ~ log10(qty))", () => {
 
 suite("statistics wiring");
 
+test("qpcrSummaryText: Group Plot's recap per gene, on ΔCt; post-hoc only for k > 2", () => {
+  const trStub = (k, v) => (v ? `${k}${JSON.stringify(v)}` : k);
+  const samples = L.aggregateTechReps(load().parsed.data.wells);
+  const g = L.computeGene(samples, cfgFor({}), "PR1");
+  const st = L.runGeneStats(g, null);
+  const vis = { showSummary: true, chartStyle: "bar", errorBar: "ci95" };
+  // JA fails Shapiro-Wilk (Mock and SA pass); Levene finds equal variances.
+  eq(
+    L.qpcrSummaryText(st, vis, trStub),
+    [
+      'qpcr.summary.normality{"v":"qpcr.summary.no"}',
+      'qpcr.summary.equalVar{"v":"qpcr.summary.yes"}',
+      'qpcr.summary.test{"test":"qpcr.test.welchANOVA"}',
+      'qpcr.summary.posthoc{"name":"qpcr.posthoc.gamesHowell"}',
+      'qpcr.summary.errorBars{"bar":"qpcr.chart.errCi"}',
+    ].join("\n")
+  );
+  // Box plots draw no mean ± error bars, so no error-bar line.
+  const box = L.qpcrSummaryText(st, { ...vis, chartStyle: "box" }, trStub).split("\n");
+  eq(box.length, 4);
+  eq(
+    L.qpcrSummaryText(st, { ...vis, errorBar: "sem" }, trStub).split("\n")[4],
+    'qpcr.summary.errorBars{"bar":"SEM"}'
+  );
+  // Two groups: a t-test, no post-hoc line.
+  const two = L.computeGene(samples, { ...cfgFor({}), groupOrder: ["Mock", "SA"] }, "PR1");
+  const lines2 = L.qpcrSummaryText(L.runGeneStats(two, null), vis, trStub).split("\n");
+  eq(lines2[2], 'qpcr.summary.test{"test":"qpcr.test.welchT"}');
+  assert(!lines2.some((l) => l.startsWith("qpcr.summary.posthoc")), "no post-hoc for k = 2");
+  // Hidden, or nothing could be tested → null.
+  eq(L.qpcrSummaryText(st, { ...vis, showSummary: false }, trStub), null);
+  const one = L.computeGene(samples, { ...cfgFor({}), groupOrder: ["Mock"] }, "PR1");
+  eq(L.qpcrSummaryText(L.runGeneStats(one, null), vis, trStub), null);
+});
+
 test("override respected only when valid for k; annotation projection", () => {
   const samples = L.aggregateTechReps(load().parsed.data.wells);
   const g = L.computeGene(samples, cfgFor({}), "PR1");

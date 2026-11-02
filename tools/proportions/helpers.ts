@@ -37,6 +37,7 @@ import type {
 } from "../_core/stats";
 import { isNumericValue, toNumericValue } from "../_core/numeric";
 import type { ParseRawResult } from "../_core/csv";
+import type { ProportionsKey } from "./i18n/en";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -88,6 +89,8 @@ export interface ProportionsVis {
   gridColor: string;
   testChoice: TestChoice;
   adjustMethod: PAdjustMethod;
+  // "Print summary below plot" (grey recap lines in the SVG).
+  showSummary: boolean;
 }
 
 export interface OrderItem {
@@ -297,6 +300,40 @@ export function analyseTable(
   return { table, selection, test, fisher, chi2, p, pairs, control, cld, error: null };
 }
 
+// "Print summary below plot" text: the test that ran, which pairs were
+// compared (all pairs, or each group against the control), the correction
+// and, on the proportion chart, the error bars. Null when hidden or when the
+// table is too small to test. `tr` is the tool's translator (passed in so
+// this file stays free of the i18n runtime).
+export type ProportionsSummaryTr = (key: ProportionsKey, vars?: Record<string, string>) => string;
+
+export function proportionsSummaryText(
+  analysis: ProportionsAnalysis,
+  vis: Pick<ProportionsVis, "showSummary" | "chartType" | "showCI" | "adjustMethod">,
+  tr: ProportionsSummaryTr
+): string | null {
+  if (!vis.showSummary || analysis.error) return null;
+  const lines = [
+    tr("proportions.summary.test", {
+      test: tr(
+        analysis.test === "fisher" ? "proportions.summary.fisher" : "proportions.summary.chi2"
+      ),
+    }),
+  ];
+  if (analysis.table.groups.length > 2) {
+    lines.push(
+      analysis.control === null
+        ? tr("proportions.summary.pairsAll")
+        : tr("proportions.summary.pairsControl", { group: analysis.table.groups[analysis.control] })
+    );
+    lines.push(
+      tr(vis.adjustMethod === "bh" ? "proportions.summary.bh" : "proportions.summary.holm")
+    );
+  }
+  if (vis.chartType === "proportion" && vis.showCI) lines.push(tr("proportions.summary.ci"));
+  return lines.join("\n");
+}
+
 // Brackets for the chart: significant pairs (adjusted p < 0.05) by
 // default, every pair when `showNs`. With exactly two groups the single
 // "pair" is the omnibus test itself.
@@ -414,6 +451,8 @@ export function formatPct(p: number, digits = 1): string {
 
 export interface ProportionsChartProps {
   table: CountsTable;
+  // "Print summary below plot" text (lines joined by "\n"), or null.
+  statsSummary?: string | null;
   chartType: ChartType;
   // Proportion chart: summaries of the analysed (focus vs rest) table;
   // index 0 is the focus category.

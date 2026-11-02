@@ -332,6 +332,10 @@ function loadTool(toolName) {
     "GofPanel: typeof GofPanel !== 'undefined' ? GofPanel : undefined," +
     "QpcrChart: typeof QpcrChart !== 'undefined' ? QpcrChart : undefined," +
     "QpcrStatsPanel: typeof QpcrStatsPanel !== 'undefined' ? QpcrStatsPanel : undefined," +
+    "QpcrStatsDisplayBar: typeof QpcrStatsDisplayBar !== 'undefined' ? QpcrStatsDisplayBar : undefined," +
+    "qpcrSummaryText: typeof qpcrSummaryText !== 'undefined' ? qpcrSummaryText : undefined," +
+    "proportionsSummaryText: typeof proportionsSummaryText !== 'undefined' ? proportionsSummaryText : undefined," +
+    "tt: typeof tt !== 'undefined' ? tt : undefined," +
     "PerXStatsPanel: typeof PerXStatsPanel !== 'undefined' ? PerXStatsPanel : undefined," +
     "BoxplotStatsPanel: typeof BoxplotStatsPanel !== 'undefined' ? BoxplotStatsPanel : undefined," +
     "BoxplotStatsDisplayBar: typeof BoxplotStatsDisplayBar !== 'undefined' ? BoxplotStatsDisplayBar : undefined," +

@@ -121,6 +121,75 @@ test("override forces Fisher; 2×2 gets an odds ratio", () => {
   eq(L.analyseTable(t, "chi2", "holm").test, "chi2");
 });
 
+suite("proportionsSummaryText");
+
+// Stub translator: the key, then its variables — pins which lines are built
+// and with what, independent of the catalog wording.
+const trStub = (k, v) => (v ? `${k}${JSON.stringify(v)}` : k);
+const SUMMARY_VIS = {
+  showSummary: true,
+  chartType: "proportion",
+  showCI: true,
+  adjustMethod: "holm",
+};
+
+test("all pairs: test, comparisons, correction, Wilson CI", () => {
+  const a = L.analyseTable(parse(COLON).table, "auto", "holm");
+  eq(
+    L.proportionsSummaryText(a, SUMMARY_VIS, trStub),
+    [
+      'proportions.summary.test{"test":"proportions.summary.chi2"}',
+      "proportions.summary.pairsAll",
+      "proportions.summary.holm",
+      "proportions.summary.ci",
+    ].join("\n")
+  );
+});
+
+test("each group vs a control names the control; BH; no CI line off the proportion chart", () => {
+  const t = parse(COLON).table;
+  const a = L.analyseTable(t, "auto", "bh", t.groups[2]);
+  eq(a.control, 2);
+  const vis = { ...SUMMARY_VIS, adjustMethod: "bh", chartType: "stacked" };
+  eq(
+    L.proportionsSummaryText(a, vis, trStub),
+    [
+      'proportions.summary.test{"test":"proportions.summary.chi2"}',
+      `proportions.summary.pairsControl{"group":"${t.groups[2]}"}`,
+      "proportions.summary.bh",
+    ].join("\n")
+  );
+  eq(
+    L.proportionsSummaryText(a, { ...SUMMARY_VIS, showCI: false }, trStub).split("\n").length,
+    3,
+    "CI hidden → no error-bar line"
+  );
+});
+
+test("two groups: test only (no pairwise step); hidden or untestable → null", () => {
+  const t = {
+    groups: ["a", "b"],
+    categories: ["y", "n"],
+    counts: [
+      [10, 3],
+      [2, 15],
+    ],
+  };
+  const a = L.analyseTable(t, "auto", "holm");
+  eq(
+    L.proportionsSummaryText(a, SUMMARY_VIS, trStub),
+    'proportions.summary.test{"test":"proportions.summary.fisher"}\nproportions.summary.ci'
+  );
+  eq(L.proportionsSummaryText(a, { ...SUMMARY_VIS, showSummary: false }, trStub), null);
+  const tiny = L.analyseTable(
+    { groups: ["a"], categories: ["y", "n"], counts: [[1, 2]] },
+    "auto",
+    "holm"
+  );
+  eq(tiny.error, "tooSmall");
+  eq(L.proportionsSummaryText(tiny, SUMMARY_VIS, trStub), null);
+});
+
 test("all-zero categories are dropped before testing", () => {
   const t = {
     groups: ["a", "b"],

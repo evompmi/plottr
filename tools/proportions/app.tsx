@@ -80,6 +80,7 @@ const VIS_INIT_PROPORTIONS: ProportionsVis = {
   gridColor: "#e0e0e0",
   testChoice: "auto",
   adjustMethod: "holm",
+  showSummary: false,
 };
 
 // ── Bundled example datasets ──

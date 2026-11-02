@@ -46,6 +46,14 @@ export { HowToCard } from "./HowToCard";
 export { NumberInput } from "./NumberInput";
 export { ParseErrorBanner } from "./ParseErrorBanner";
 export { MethodsButton, placeMethodsPopover } from "./MethodsButton";
+export {
+  STATS_FONT,
+  STATS_LINE_H,
+  StatsSummaryLines,
+  statsSummaryHeight,
+  summariseEqualVariance,
+  summariseNormality,
+} from "./StatsSummary";
 export { PlotActionsBar } from "./PlotActionsBar";
 export { PlotToolShell } from "./PlotToolShell";
 export { RoleCard } from "./RoleCard";
