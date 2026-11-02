@@ -220,7 +220,7 @@ export const VennChart = memo(
                 dominantBaseline="central"
                 fontSize="13"
                 fontWeight="600"
-                fill={colors[setNames[i]] || PALETTE[i]}
+                fill="#222222"
                 fontFamily="sans-serif"
               >
                 {setNames[i]} ({sets.get(setNames[i])?.size ?? 0})

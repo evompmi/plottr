@@ -106,6 +106,7 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.tab.style": "Style",
   "proportions.controlsLabel": "Réglages du graphique",
   "proportions.stats.title": "Statistiques",
+  "proportions.stats.introTitle": "Effectifs et tests",
   "proportions.stats.desc":
     "Effectifs avec IC de Wilson et tests sur le tableau affiché dans le graphique.",
   "proportions.stats.displayOnPlot": "Afficher sur le tracé",
@@ -132,7 +133,9 @@ const fr: Record<ProportionsKey, string> = {
     "Intervalles de score de Wilson (Brown, Cai & DasGupta 2001) : contrairement au classique p ± 1,96·ET, ils gardent une couverture proche de 95 % pour les petits effectifs et les proportions proches de 0 ou 100 %.",
   "proportions.stats.test": "Les groupes diffèrent-ils ?",
   "proportions.stats.testChoice": "Test",
-  "proportions.stats.auto": "Auto",
+  "proportions.stats.fisherName": "Test exact de Fisher",
+  "proportions.stats.chi2Name": "Test du χ² de Pearson",
+  "proportions.stats.recommendedSuffix": "  (recommandé)",
   "proportions.stats.whyTitle": "Pourquoi ce test ?",
   "proportions.stats.whyTwoByTwo":
     "Avec 2 groupes et 2 modalités, le test exact de Fisher est utilisé. Il calcule la p-value exactement, à partir de tous les tableaux ayant les mêmes totaux de lignes et de colonnes que le vôtre : il est donc valable quel que soit l’effectif, et rapide pour un tableau 2×2.",

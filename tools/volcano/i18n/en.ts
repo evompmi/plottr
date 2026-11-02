@@ -56,8 +56,6 @@ const en = {
   "volcano.thresh.pCutoff": "p-value cutoff",
   "volcano.thresh.none": "None",
   "volcano.thresh.showRefLines": "Show reference lines",
-  "volcano.on": "On",
-  "volcano.off": "Off",
 
   // Colors tile
   "volcano.colors.title": "Colors",

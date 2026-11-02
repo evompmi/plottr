@@ -10,7 +10,7 @@ import {
   ColorInput,
   ControlSection,
   NumberInput,
-  OnOffToggle,
+  CheckboxField,
   SegToggle,
   ControlTabs,
 } from "../_shell";
@@ -303,72 +303,20 @@ export function PlotControls({
                       ))}
                     </div>
                     {rowMode === "hierarchical" && (
-                      <>
-                        <div
-                          style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 4px" }}
-                        >
-                          {tr("heatmap.dendro.rowHeading")}
-                        </div>
-                        <div
-                          className="dv-seg"
-                          role="group"
-                          aria-label={tr("heatmap.dendro.rowAria")}
-                        >
-                          {(
-                            [
-                              [false, tr("heatmap.off")],
-                              [true, tr("heatmap.on")],
-                            ] as const
-                          ).map(([value, label]) => {
-                            const active = !!vis.showRowDendrogram === value;
-                            return (
-                              <button
-                                key={String(value)}
-                                type="button"
-                                aria-pressed={active}
-                                className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
-                                onClick={() => updVis({ showRowDendrogram: value })}
-                              >
-                                {label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </>
+                      <CheckboxField
+                        label={tr("heatmap.dendro.rowHeading")}
+                        checked={!!vis.showRowDendrogram}
+                        onChange={(v) => updVis({ showRowDendrogram: v })}
+                        style={{ marginTop: 8 }}
+                      />
                     )}
                     {colMode === "hierarchical" && (
-                      <>
-                        <div
-                          style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 4px" }}
-                        >
-                          {tr("heatmap.dendro.colHeading")}
-                        </div>
-                        <div
-                          className="dv-seg"
-                          role="group"
-                          aria-label={tr("heatmap.dendro.colAria")}
-                        >
-                          {(
-                            [
-                              [false, tr("heatmap.off")],
-                              [true, tr("heatmap.on")],
-                            ] as const
-                          ).map(([value, label]) => {
-                            const active = !!vis.showColDendrogram === value;
-                            return (
-                              <button
-                                key={String(value)}
-                                type="button"
-                                aria-pressed={active}
-                                className={"dv-seg-btn" + (active ? " dv-seg-btn-active" : "")}
-                                onClick={() => updVis({ showColDendrogram: value })}
-                              >
-                                {label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </>
+                      <CheckboxField
+                        label={tr("heatmap.dendro.colHeading")}
+                        checked={!!vis.showColDendrogram}
+                        onChange={(v) => updVis({ showColDendrogram: v })}
+                        style={{ marginTop: 8 }}
+                      />
                     )}
                     <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
                       {tr("heatmap.dendro.note")}
@@ -419,9 +367,6 @@ export function PlotControls({
                     ))}
                   </select>
                   <PaletteStrip palette={vis.palette} invert={vis.invertPalette} />
-                  <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2 }}>
-                    {tr("heatmap.colour.cbSafeNote")}
-                  </div>
                 </label>
                 <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
                   <span className="dv-label" style={{ fontSize: 11, flexShrink: 0 }}>
@@ -524,37 +469,20 @@ export function PlotControls({
                     />
                   </label>
                 </div>
-                <div style={{ marginTop: 10 }}>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
-                    {tr("heatmap.range.legendHist")}
-                  </div>
-                  <OnOffToggle
-                    value={vis.showLegendHistogram}
-                    onChange={(v) => updVis({ showLegendHistogram: v })}
-                    ariaLabel={tr("heatmap.range.legendHist")}
-                  />
-                </div>
+                <CheckboxField
+                  label={tr("heatmap.range.legendHist")}
+                  checked={vis.showLegendHistogram}
+                  onChange={(v) => updVis({ showLegendHistogram: v })}
+                  style={{ marginTop: 10 }}
+                />
               </ControlSection>
 
               <ControlSection title={tr("heatmap.sec.cellBorders")}>
-                <div className="dv-seg" role="group" aria-label={tr("heatmap.sec.cellBorders")}>
-                  <button
-                    type="button"
-                    aria-pressed={!cellBorder.on}
-                    className={"dv-seg-btn" + (!cellBorder.on ? " dv-seg-btn-active" : "")}
-                    onClick={() => updCellBorder({ on: false })}
-                  >
-                    {tr("heatmap.off")}
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={cellBorder.on}
-                    className={"dv-seg-btn" + (cellBorder.on ? " dv-seg-btn-active" : "")}
-                    onClick={() => updCellBorder({ on: true })}
-                  >
-                    {tr("heatmap.on")}
-                  </button>
-                </div>
+                <CheckboxField
+                  label={tr("heatmap.sec.cellBorders")}
+                  checked={cellBorder.on}
+                  onChange={(v) => updCellBorder({ on: v })}
+                />
                 {cellBorder.on && (
                   <div style={{ marginTop: 8, display: "flex", alignItems: "flex-start", gap: 8 }}>
                     <div style={{ fontSize: 11 }}>
@@ -640,60 +568,18 @@ export function PlotControls({
                     style={{ width: "100%" }}
                   />
                 </label>
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
-                    {tr("heatmap.labels.rowNames")}
-                  </div>
-                  <div
-                    className="dv-seg"
-                    role="group"
-                    aria-label={tr("heatmap.labels.rowNamesAria")}
-                  >
-                    <button
-                      type="button"
-                      aria-pressed={!vis.showRowLabels}
-                      className={"dv-seg-btn" + (!vis.showRowLabels ? " dv-seg-btn-active" : "")}
-                      onClick={() => updVis({ showRowLabels: false })}
-                    >
-                      {tr("heatmap.off")}
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={vis.showRowLabels}
-                      className={"dv-seg-btn" + (vis.showRowLabels ? " dv-seg-btn-active" : "")}
-                      onClick={() => updVis({ showRowLabels: true })}
-                    >
-                      {tr("heatmap.on")}
-                    </button>
-                  </div>
-                </div>
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
-                    {tr("heatmap.labels.colNames")}
-                  </div>
-                  <div
-                    className="dv-seg"
-                    role="group"
-                    aria-label={tr("heatmap.labels.colNamesAria")}
-                  >
-                    <button
-                      type="button"
-                      aria-pressed={!vis.showColLabels}
-                      className={"dv-seg-btn" + (!vis.showColLabels ? " dv-seg-btn-active" : "")}
-                      onClick={() => updVis({ showColLabels: false })}
-                    >
-                      {tr("heatmap.off")}
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={vis.showColLabels}
-                      className={"dv-seg-btn" + (vis.showColLabels ? " dv-seg-btn-active" : "")}
-                      onClick={() => updVis({ showColLabels: true })}
-                    >
-                      {tr("heatmap.on")}
-                    </button>
-                  </div>
-                </div>
+                <CheckboxField
+                  label={tr("heatmap.labels.rowNames")}
+                  checked={vis.showRowLabels}
+                  onChange={(v) => updVis({ showRowLabels: v })}
+                  style={{ marginTop: 8 }}
+                />
+                <CheckboxField
+                  label={tr("heatmap.labels.colNames")}
+                  checked={vis.showColLabels}
+                  onChange={(v) => updVis({ showColLabels: v })}
+                  style={{ marginTop: 8 }}
+                />
               </ControlSection>
             </>
           ),

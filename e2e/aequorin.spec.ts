@@ -56,9 +56,9 @@ test("Σ sums CSV sits in the More menu while the barplot is on", async ({ page 
 
   await page.getByRole("tab", { name: "Σ barplot" }).click();
   await page
-    .locator(".dv-workspace-controls")
-    .getByRole("button", { name: "On", exact: true })
-    .click();
+    .getByTitle(/Barplot of the sum/)
+    .getByRole("checkbox")
+    .check();
   await more.click();
   const [dl] = await Promise.all([
     page.waitForEvent("download"),

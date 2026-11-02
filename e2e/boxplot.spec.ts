@@ -69,10 +69,7 @@ test("boxplot: outlier marks can be turned off while points are shown", async ({
   const pointCount = await points.count();
 
   await page.getByRole("tab", { name: "Style" }).click();
-  await page
-    .getByRole("group", { name: "Mark outliers in black" })
-    .getByRole("button", { name: "Off" })
-    .click();
+  await page.getByRole("checkbox", { name: "Mark outliers in black" }).uncheck();
 
   await expect(marks).toHaveCount(0);
   await expect(points).toHaveCount(pointCount);

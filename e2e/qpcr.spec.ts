@@ -104,10 +104,7 @@ test("no calibrator: 2^−ΔCt relative to the reference genes; SEM error bars",
 test("calibrator column hidden: vs-control stars, letters unavailable", async ({ page }) => {
   await loadExample(page);
   await page.getByTestId("step-plot").click();
-  await page
-    .getByRole("group", { name: "Calibrator column" })
-    .getByRole("button", { name: "Off", exact: true })
-    .click();
+  await page.getByRole("checkbox", { name: "Calibrator column" }).uncheck();
   const xAxis = page.locator("g#axis-x-RD29A");
   await expect(xAxis).not.toContainText("Control");
   await expect(xAxis).toContainText("Drought");

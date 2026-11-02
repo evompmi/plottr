@@ -181,6 +181,7 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.tab.axes": "Axes",
   "qpcr.plot.controlsLabel": "Réglages du graphique",
   "qpcr.stats.title": "Statistiques",
+  "qpcr.stats.introTitle": "Tests sur ΔCt",
   "qpcr.stats.desc":
     "Tests sur les ΔCt pour chaque gène cible ; les ratios d’expression sont des estimations retransformées.",
   "qpcr.stats.displayOnPlot": "Afficher sur le tracé",
@@ -216,7 +217,7 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.stats.needTwo":
     "Il faut au moins deux groupes avec deux réplicats biologiques ou plus pour réaliser un test.",
   "qpcr.stats.test": "Test",
-  "qpcr.stats.auto": "Auto — {test}",
+  "qpcr.stats.recommendedSuffix": "  (recommandé)",
   "qpcr.stats.onDct": "sur les ΔCt",
   "qpcr.stats.posthoc": "Post-hoc : {name}",
   "qpcr.stats.pair": "Paire",

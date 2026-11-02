@@ -6,10 +6,8 @@
 // tech via `aria-pressed` on each button inside a labelled `role="group"`.
 //
 // `SegToggle<T>` is the general multi-option control (T is the value union, so
-// `onChange` stays fully typed with no cast at the call site). `OnOffToggle` is
-// the boolean-backed convenience wrapper for the ubiquitous Off/On case.
-
-import { useShellT } from "./i18n";
+// `onChange` stays fully typed with no cast at the call site). An on / off
+// setting is a checkbox instead (`CheckboxField`).
 
 export interface SegOption<T extends string> {
   value: T;
@@ -57,40 +55,5 @@ export function SegToggle<T extends string>({
         );
       })}
     </div>
-  );
-}
-
-export interface OnOffToggleProps {
-  value: boolean;
-  onChange: (value: boolean) => void;
-  offLabel?: string;
-  onLabel?: string;
-  ariaLabel?: string;
-  disabled?: boolean;
-  style?: React.CSSProperties;
-}
-
-export function OnOffToggle({
-  value,
-  onChange,
-  offLabel,
-  onLabel,
-  ariaLabel,
-  disabled,
-  style,
-}: OnOffToggleProps): React.ReactElement {
-  const tr = useShellT();
-  return (
-    <SegToggle<"off" | "on">
-      value={value ? "on" : "off"}
-      onChange={(v) => onChange(v === "on")}
-      options={[
-        { value: "off", label: offLabel ?? tr("shell.toggle.off") },
-        { value: "on", label: onLabel ?? tr("shell.toggle.on") },
-      ]}
-      ariaLabel={ariaLabel}
-      disabled={disabled}
-      style={style}
-    />
   );
 }

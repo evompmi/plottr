@@ -80,7 +80,8 @@ per-file paths so the dependency graph stays visible.
 | `DatasheetIcon.tsx`          | Notepad icon on every upload step's sample-dataset banner.                                |
 | `DetectedSeparatorBadge.tsx` | Inline reminder of the delimiter the auto-detector picked.                                |
 | `PlotStyleIcons.tsx`         | Icon buttons for a chart's plot style (box / violin / bar …), selected = ink pill.        |
-| `SegToggle.tsx`              | Accessible segmented toggle (`.dv-seg`); `OnOffToggle` alongside.                         |
+| `SegToggle.tsx`              | Accessible segmented toggle (`.dv-seg`) for choices between named options.                |
+| `CheckboxField.tsx`          | Labelled checkbox for every on / off setting.                                             |
 | `DataPreview.tsx`            | Compact table preview for parsed CSV/TSV.                                                 |
 | `DiscretePaletteRow.tsx`     | Dropdown + swatch strip for picking a discrete palette.                                   |
 | `DownloadTiles.tsx`          | `ActionsPanel` wrapper auto-building SVG / PNG callbacks.                                 |

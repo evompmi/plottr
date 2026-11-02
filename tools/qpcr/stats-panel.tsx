@@ -129,7 +129,7 @@ export function QpcrStatsPanel({
 
   return (
     <div className="dv-inspector" data-testid="qpcr-stats">
-      <InspectorSection label={tr("qpcr.stats.title")}>
+      <InspectorSection label={tr("qpcr.stats.introTitle")}>
         <p style={{ margin: 0, fontSize: 12, color: "var(--text-faint)" }}>
           {tr("qpcr.stats.desc")}
         </p>
@@ -236,19 +236,22 @@ export function QpcrStatsPanel({
                     }}
                   >
                     {tr("qpcr.stats.test")}
+                    {/* Group Plot's picker: the recommended test is marked, and
+                        picking it clears the override. */}
                     <select
                       className="dv-select"
-                      value={override ?? ""}
-                      onChange={(e) => onOverride(g.gene, e.target.value || null)}
+                      value={override ?? recTest ?? ""}
+                      onChange={(e) => {
+                        const next = e.target.value || null;
+                        onOverride(g.gene, next === recTest ? null : next);
+                      }}
                       data-testid={`qpcr-test-${g.gene}`}
                       style={{ width: "100%", minHeight: 34 }}
                     >
-                      <option value="">
-                        {tr("qpcr.stats.auto", { test: testLabel(recTest) })}
-                      </option>
                       {options.map((t) => (
                         <option key={t} value={t}>
                           {testLabel(t)}
+                          {t === recTest ? tr("qpcr.stats.recommendedSuffix") : ""}
                         </option>
                       ))}
                     </select>
@@ -287,7 +290,9 @@ export function QpcrStatsPanel({
                             const pp = pr.pAdj != null ? pr.pAdj : pr.p;
                             return (
                               <tr key={`${pr.i}-${pr.j}`}>
-                                <td style={{ ...tdS, ...firstCol }}>{`${b} vs ${a}`}</td>
+                                <td
+                                  style={{ ...tdS, ...firstCol, whiteSpace: "nowrap" }}
+                                >{`${b} vs ${a}`}</td>
                                 <td style={tdS}>{ga && gb ? fc(gb.meanL - ga.meanL) : "—"}</td>
                                 <td style={tdS}>{formatP(pp)}</td>
                                 <td

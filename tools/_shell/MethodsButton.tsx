@@ -74,6 +74,28 @@ function copyText(text: string, fallbackEl: HTMLElement | null): Promise<boolean
   return Promise.resolve(false);
 }
 
+// A page with text lines, drawn in currentColor like the app bar's icons.
+function MethodsIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+    >
+      <path d="M4 1.5h5.5L12.5 4.5v10h-8.5z" />
+      <path d="M9.5 1.5v3h3" />
+      <path d="M6 8h4.5M6 10.5h4.5M6 13h2.5" />
+    </svg>
+  );
+}
+
 export function MethodsButton({ getText }: MethodsButtonProps) {
   const tr = useShellT();
   const [text, setText] = useState<string | null>(null);
@@ -147,13 +169,15 @@ export function MethodsButton({ getText }: MethodsButtonProps) {
         title={tr("shell.methods.buttonTitle")}
         aria-expanded={open}
         data-testid="methods-button"
+        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
         onClick={(e) => {
           e.stopPropagation();
           setCopied(false);
           setText(open ? null : getText());
         }}
       >
-        {"📝 " + tr("shell.methods.button")}
+        <MethodsIcon />
+        {tr("shell.methods.button")}
       </button>
       {open && (
         <div

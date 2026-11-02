@@ -1,9 +1,9 @@
-// `BaseStyleControls` — background colour + grid on/off + grid
+// `BaseStyleControls` — background colour + grid checkbox + grid
 // colour controls. Used in the plot-style tile of every group-aware
 // plot tool's sidebar.
 
 import { ColorInput } from "./ColorInput";
-import { OnOffToggle } from "./SegToggle";
+import { CheckboxField } from "./CheckboxField";
 import { useShellT } from "./i18n";
 
 const h = React.createElement;
@@ -40,16 +40,12 @@ export function BaseStyleControls(props: BaseStyleControlsProps) {
         label: tr("shell.style.background"),
       })
     ),
-    h(
-      "div",
-      { key: "grid" },
-      h("span", { className: "dv-label" }, tr("shell.style.grid")),
-      h(OnOffToggle, {
-        value: showGrid,
-        onChange: onShowGridChange,
-        ariaLabel: tr("shell.style.grid"),
-      })
-    ),
+    h(CheckboxField, {
+      key: "grid",
+      label: tr("shell.style.grid"),
+      checked: showGrid,
+      onChange: onShowGridChange,
+    }),
   ];
   if (showGrid) {
     children.push(

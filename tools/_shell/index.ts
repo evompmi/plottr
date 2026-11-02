@@ -45,6 +45,7 @@ export type { HowToContent, HowToExampleTableProps } from "./HowTo";
 export { HowToCard } from "./HowToCard";
 export { NumberInput } from "./NumberInput";
 export { ParseErrorBanner } from "./ParseErrorBanner";
+export { CheckboxField } from "./CheckboxField";
 export { MethodsButton, placeMethodsPopover } from "./MethodsButton";
 export {
   STATS_FONT,
@@ -61,7 +62,7 @@ export type { RoleCardProps } from "./RoleCard";
 export { PrefsPanel } from "./PrefsPanel";
 export { ValueListPanel } from "./ValueListPanel";
 export { ScrollablePlotCard } from "./ScrollablePlotCard";
-export { SegToggle, OnOffToggle } from "./SegToggle";
+export { SegToggle } from "./SegToggle";
 export {
   PlotStyleIconPicker,
   BoxStyleIcon,
@@ -71,7 +72,7 @@ export {
   DotStyleIcon,
 } from "./PlotStyleIcons";
 export type { PlotStyleOption, PlotStyleIconPickerProps } from "./PlotStyleIcons";
-export type { SegOption, SegToggleProps, OnOffToggleProps } from "./SegToggle";
+export type { SegOption, SegToggleProps } from "./SegToggle";
 export { SignificanceBrackets } from "./SignificanceBrackets";
 export { SliderControl } from "./SliderControl";
 export { StatsTable } from "./StatsTable";

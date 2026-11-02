@@ -8,12 +8,12 @@ test("Σ barplot opens in Group Plot with the A.U.C. label", async ({ page }) =>
   await page.goto("/index.html#/aequorin");
   await page.getByTestId("load-example").click();
   await page.getByTestId("step-plot").click();
-  // Σ barplot is off by default; its Off/On toggle sits in the Σ barplot tab.
+  // Σ barplot is off by default; its Show checkbox sits in the Σ barplot tab.
   await page.getByRole("tab", { name: "Σ barplot" }).click();
   await page
     .getByTitle(/Barplot of the sum/)
-    .getByRole("button", { name: "On", exact: true })
-    .click();
+    .getByRole("checkbox")
+    .check();
   await page.getByRole("button", { name: "↗ Open in Boxplot" }).click();
   await expect(page).toHaveURL(/#\/boxplot/);
   await expect(page.locator("svg g#groups").first()).toBeVisible();

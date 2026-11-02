@@ -72,8 +72,6 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.ctrl.summaryBarplot": "Diagramme en barres récapitulatif",
   "aequorin.ctrl.summaryBarplotTitle":
     "Diagramme en barres de la somme (Σ) des valeurs tracées par condition",
-  "aequorin.ctrl.off": "Désact.",
-  "aequorin.ctrl.on": "Activé",
   "aequorin.ctrl.layout": "Disposition",
   "aequorin.ctrl.autoPlaceholder": "auto",
   "aequorin.ctrl.grid": "Grille",
@@ -129,7 +127,6 @@ const fr: Record<AequorinKey, string> = {
     "Astuce : glissez sur le tracé pour définir la fenêtre temporelle. Ajustez-la dans Axes.",
   "aequorin.pa.noneSelected":
     "Aucune condition ni aucun échantillon sélectionné. Activez-en au moins un pour afficher le graphique.",
-  "aequorin.pa.timecourse": "Graphique chronologique",
   "aequorin.cond.show": "Afficher {name}",
   "aequorin.cond.name": "Nom affiché pour {name}",
   "aequorin.pa.dragTipClear": " Cliquez sur effacer pour réinitialiser.",
@@ -137,7 +134,7 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.pa.resetTitle": "Réinitialiser la fenêtre temporelle à la plage complète des données",
   "aequorin.pa.samples": "Échantillons",
   "aequorin.pa.close": "✕ Fermer",
-  "aequorin.pa.sampleSelection": "🔬 Sélection d’échantillons",
+  "aequorin.pa.sampleSelection": "Sélection d’échantillons",
   "aequorin.test.studentT": "Test t de Student",
   "aequorin.test.welchT": "Test t de Welch",
   "aequorin.test.mannWhitney": "Mann-Whitney U",

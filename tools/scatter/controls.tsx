@@ -12,7 +12,7 @@ import {
   DiscretePaletteRow,
   DownloadTiles,
   NumberInput,
-  OnOffToggle,
+  CheckboxField,
   SliderControl,
   applyDiscretePalette,
   scrollDisclosureIntoView,
@@ -410,9 +410,6 @@ export function PlotControls({
                         </select>
                         <PaletteStrip palette={colorMapPalette} />
                         <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
-                          {tr("scatter.aes.cbSafeNote")}
-                        </span>
-                        <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
                           {tr("scatter.aes.range", {
                             min: fmtTick(colorMapRange[0]),
                             max: fmtTick(colorMapRange[1]),
@@ -665,39 +662,11 @@ export function PlotControls({
                   <p className="dv-tile-title" style={{ margin: 0 }}>
                     {tr("scatter.reg.title")}
                   </p>
-                  <div
-                    style={{
-                      display: "flex",
-                      borderRadius: 6,
-                      overflow: "hidden",
-                      border: "1px solid var(--border-strong)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {(["off", "on"] as const).map((mode) => {
-                      const active = mode === "on" ? regression.on : !regression.on;
-                      return (
-                        <button
-                          key={mode}
-                          type="button"
-                          onClick={() => updRegression({ on: mode === "on" })}
-                          style={{
-                            padding: "4px 12px",
-                            fontSize: 11,
-                            fontWeight: active ? 700 : 400,
-                            fontFamily: "inherit",
-                            cursor: "pointer",
-                            border: "none",
-                            background: active ? "var(--seg-selected-bg)" : "var(--surface)",
-                            color: active ? "var(--seg-selected-text)" : "var(--text-muted)",
-                            transition: "background 120ms ease, color 120ms ease",
-                          }}
-                        >
-                          {mode === "off" ? tr("scatter.off") : tr("scatter.on")}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <CheckboxField
+                    label={tr("scatter.reg.show")}
+                    checked={regression.on}
+                    onChange={(v) => updRegression({ on: v })}
+                  />
                 </div>
                 {regression.on && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -757,22 +726,16 @@ export function PlotControls({
                       step={0.25}
                       onChange={(v) => updRegression({ strokeWidth: v })}
                     />
-                    <div>
-                      <span className="dv-label">{tr("scatter.reg.dashed")}</span>
-                      <OnOffToggle
-                        value={regression.dashed}
-                        onChange={(v) => updRegression({ dashed: v })}
-                        ariaLabel={tr("scatter.reg.dashed")}
-                      />
-                    </div>
-                    <div>
-                      <span className="dv-label">{tr("scatter.reg.showEq")}</span>
-                      <OnOffToggle
-                        value={regression.showStats}
-                        onChange={(v) => updRegression({ showStats: v })}
-                        ariaLabel={tr("scatter.reg.showEq")}
-                      />
-                    </div>
+                    <CheckboxField
+                      label={tr("scatter.reg.dashed")}
+                      checked={regression.dashed}
+                      onChange={(v) => updRegression({ dashed: v })}
+                    />
+                    <CheckboxField
+                      label={tr("scatter.reg.showEq")}
+                      checked={regression.showStats}
+                      onChange={(v) => updRegression({ showStats: v })}
+                    />
                     {regression.showStats && (
                       <div>
                         <div className="dv-label">{tr("scatter.reg.labelPos")}</div>
@@ -931,14 +894,11 @@ export function PlotControls({
                         step={0.25}
                         onChange={(v) => updateRefLine(rl.id, "strokeWidth", v)}
                       />
-                      <div>
-                        <span className="dv-label">{tr("scatter.ref.dashed")}</span>
-                        <OnOffToggle
-                          value={rl.dashed}
-                          onChange={(v) => updateRefLine(rl.id, "dashed", v)}
-                          ariaLabel={tr("scatter.ref.dashed")}
-                        />
-                      </div>
+                      <CheckboxField
+                        label={tr("scatter.ref.dashed")}
+                        checked={rl.dashed}
+                        onChange={(v) => updateRefLine(rl.id, "dashed", v)}
+                      />
                       {rl.dashed && (
                         <select
                           value={rl.dashArray}

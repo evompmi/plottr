@@ -951,7 +951,7 @@ export function App() {
           className="dv-panel"
           style={{
             padding: "12px 16px",
-            borderLeft: "4px solid var(--accent-blue)",
+            borderLeft: "4px solid var(--border-strong)",
             flex: "1 1 100%",
           }}
         >
@@ -1195,7 +1195,7 @@ export function App() {
                 fontWeight: 700,
                 // When solving for power, traffic-light the readout so the
                 // user sees at a glance whether the design is adequately
-                // powered (≥ 80%, the default link blue), marginal (60–80%,
+                // powered (≥ 80%, plain text), marginal (60–80%,
                 // amber `--warning-text`) or under-powered (< 60%, red
                 // `--danger-text`). All three are text tokens, legible in
                 // both themes. All other solveFor targets (sample size) stay
@@ -1207,7 +1207,7 @@ export function App() {
                       ? "var(--danger-text)"
                       : solveFor === "power" && result < 0.8
                         ? "var(--warning-text)"
-                        : "var(--link)",
+                        : "var(--text)",
                 fontFamily: "var(--font-mono)",
               }}
             >

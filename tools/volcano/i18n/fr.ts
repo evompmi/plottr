@@ -47,8 +47,6 @@ const fr: Record<VolcanoKey, string> = {
   "volcano.thresh.pCutoff": "Seuil de p-value",
   "volcano.thresh.none": "Aucun",
   "volcano.thresh.showRefLines": "Afficher les lignes de référence",
-  "volcano.on": "Activé",
-  "volcano.off": "Désactivé",
   "volcano.colors.title": "Couleurs",
   "volcano.colors.up": "Surexprimé",
   "volcano.colors.down": "Sous-exprimé",

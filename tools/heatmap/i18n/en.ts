@@ -48,12 +48,8 @@ const en = {
   // Dendrogram toggles + note
   "heatmap.dendro.rowHeading": "Hierarchical · Row dendrogram",
   "heatmap.dendro.colHeading": "Hierarchical · Column dendrogram",
-  "heatmap.dendro.rowAria": "Show row dendrogram",
-  "heatmap.dendro.colAria": "Show column dendrogram",
   "heatmap.dendro.note":
     "Leaf order + cluster structure stay applied when hidden. Drag on the heatmap to open a zoomed selection if you still need per-cluster exports. Applies to both the main and zoomed plots.",
-  "heatmap.on": "On",
-  "heatmap.off": "Off",
 
   // K-means seed
   "heatmap.kmeans.seed": "K-means · Seed",
@@ -62,8 +58,7 @@ const en = {
   // Colour scale
   "heatmap.colour.palette": "Palette",
   "heatmap.colour.diverging": "  (diverging)",
-  "heatmap.colour.cbSafe": " · 👁",
-  "heatmap.colour.cbSafeNote": "👁 colour-blind-safe",
+  "heatmap.colour.cbSafe": "  (colour-blind safe)",
   "heatmap.colour.direction": "Direction",
   "heatmap.colour.directionAria": "Palette direction",
   "heatmap.colour.normal": "Normal",
@@ -105,8 +100,6 @@ const en = {
   "heatmap.labels.yAxis": "Y-axis label",
   "heatmap.labels.rowNames": "Row names",
   "heatmap.labels.colNames": "Column names",
-  "heatmap.labels.rowNamesAria": "Show row names",
-  "heatmap.labels.colNamesAria": "Show column names",
 
   // Chart (baked into SVG export)
   "heatmap.chart.cluster": "Cluster n° {n}",

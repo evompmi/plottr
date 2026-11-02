@@ -17,8 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   outcome columns, or a column of counts) is counted by the tool; pick the columns in Configure.
   Regression: 8 tests.
 
+### Changed
+
+- **Interface consistency pass.** Every on / off setting is a checkbox; the test picker is the
+  same "(recommended)" dropdown in Group Plot, Scatter, qPCR and Proportions; Line Plot gains
+  "Show ns" and "Print summary below plot"; qPCR and Proportions Configure steps use column cards
+  with the file line above the preview; the RLU plot sits on the canvas; emoji in the Methods
+  button, palette lists and RLU sample selection are replaced; Volcano axis titles are
+  sans-serif; calculators share one width, without blue on non-actions. Regression: 4 tests.
+
 ### Fixed
 
+- **Statistics column tidy-up.** Proportions and qPCR no longer repeat "Statistics" as the first
+  section title, and inspector table cells no longer break mid-value.
+- **Venn legend names in dark ink.** The set colour is kept on the swatch; coloured text was
+  hard to read in exported figures. Regression: 1 test.
+- **Landing page lists the real text download** (`stats.txt`, not `methods.txt`).
 - **Methods popover stays on screen.** It opens above the Methods button when the button is near
   the bottom of the window, and is kept inside the window, so its Copy button is always
   reachable. Regression: 4 tests.

@@ -62,7 +62,7 @@ const POSTHOC_LABEL_KEYS_LP: Record<string, LineplotKey> = {
   gamesHowell: "lineplot.posthoc.gamesHowell",
   dunn: "lineplot.posthoc.dunn",
 };
-function lpTestLabel(key: string | null | undefined): string {
+export function lpTestLabel(key: string | null | undefined): string {
   if (!key) return "—";
   return TEST_LABEL_KEYS_LP[key] ? tt(TEST_LABEL_KEYS_LP[key]) : TEST_LABELS_LP[key] || key;
 }
@@ -277,17 +277,35 @@ export function PerXStatsPanel({ rows, xLabel, fileName, displayKind }: PerXStat
   );
 }
 
-// Marks on the plot (Off / Stars), shown in the workspace toolbar. Stars
-// render at each x whose BH-adjusted p < 0.05; lineplot has no letters or
-// brackets layer, and no summary line (per-x text would clutter the chart).
+// Marks on the plot (Off / Stars), shown in the workspace toolbar, with the
+// same "Show ns" and "Print summary below plot" checkboxes as Group Plot.
+// Stars render at each x whose BH-adjusted p < 0.05 ("ns" elsewhere when
+// Show ns is ticked); lineplot has no letters or brackets layer.
 export function LineplotStatsDisplayBar({
   showStars,
   setShowStars,
+  showNs,
+  setShowNs,
+  showSummary,
+  setShowSummary,
 }: {
   showStars: boolean;
   setShowStars: (b: boolean) => void;
+  showNs: boolean;
+  setShowNs: (b: boolean) => void;
+  showSummary: boolean;
+  setShowSummary: (b: boolean) => void;
 }) {
   const tr = useT();
+  const check = (disabled: boolean): React.CSSProperties => ({
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 13,
+    color: disabled ? "var(--text-faint)" : "var(--text-muted)",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.6 : 1,
+  });
   return (
     <>
       <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>
@@ -303,6 +321,25 @@ export function LineplotStatsDisplayBar({
         ]}
         style={{ flex: "0 0 auto" }}
       />
+      <label style={check(!showStars)}>
+        <input
+          type="checkbox"
+          checked={showStars && showNs}
+          disabled={!showStars}
+          onChange={(e) => setShowNs(e.target.checked)}
+          data-testid="lineplot-show-ns"
+        />
+        {tr("lineplot.sp.showNs")}
+      </label>
+      <label style={check(false)}>
+        <input
+          type="checkbox"
+          checked={showSummary}
+          onChange={(e) => setShowSummary(e.target.checked)}
+          data-testid="lineplot-show-summary"
+        />
+        {tr("lineplot.sp.printSummary")}
+      </label>
     </>
   );
 }

@@ -517,6 +517,33 @@ test("folds the test justification into a details disclosure", function () {
   eq(renderHtml(sc.WhyThisTest, { text: null }), "");
 });
 
+suite("CheckboxField");
+
+test("an on / off setting: the box and its label in one clickable row", function () {
+  const React = require("react");
+  const seen = [];
+  const { container, root } = renderWithEffects(sc.CheckboxField, {
+    label: "Show grid",
+    checked: false,
+    onChange: (v) => seen.push(v),
+    testId: "cb",
+  });
+  const label = container.querySelector("label.dv-check");
+  assert(label && label.textContent === "Show grid", "label text in the row");
+  const box = container.querySelector('[data-testid="cb"]');
+  eq(box.type, "checkbox");
+  React.act(() => label.querySelector("span").click());
+  eq(JSON.stringify(seen), "[true]", "clicking the text toggles it");
+  React.act(() => root.unmount());
+  const off = renderHtml(sc.CheckboxField, {
+    label: "x",
+    checked: true,
+    onChange: noop,
+    disabled: true,
+  });
+  assert(off.includes('data-disabled="true"') && off.includes("disabled"), "disabled state");
+});
+
 suite("MethodsButton");
 
 test("opens a read-only paragraph built on demand and closes again", function () {
@@ -1454,6 +1481,54 @@ suite("LineChart");
       "solid series should not carry a stroke-dasharray attribute"
     );
     assert(html.includes("<polygon"), "triangle point shape should render as a polygon");
+  });
+
+  test("stars: ns only with Show ns; the summary sits under the legend inside the viewBox", function () {
+    const base = {
+      series: sampleSeries,
+      perXStats: [
+        { x: 0, pAdj: 0.4 },
+        { x: 4, pAdj: 0.0001 },
+      ],
+      xMin: 0,
+      xMax: 4,
+      yMin: 0,
+      yMax: 0.7,
+      vbW: 700,
+      vbH: 440,
+      xLabel: "Time (h)",
+      yLabel: "OD600",
+      plotTitle: "",
+      plotSubtitle: "",
+      plotBg: "#ffffff",
+      showGrid: false,
+      gridColor: "#e0e0e0",
+      lineWidth: 1.5,
+      pointRadius: 3.5,
+      errorStrokeWidth: 1,
+      errorCapWidth: 6,
+      tickFontSize: 11,
+      errorType: "sem",
+      svgLegend: null,
+      showStars: true,
+    };
+    const stars = (html) =>
+      [...html.match(/<g id="significance-stars">(.*?)<\/g>/s)[1].matchAll(/>([^<]+)<\/text>/g)]
+        .map((m) => m[1])
+        .join(",");
+    eq(stars(renderHtml(Chart, base)), "***");
+    eq(stars(renderHtml(Chart, { ...base, showNs: true })), "ns,***");
+    const vbH = (html) => Number(html.match(/viewBox="0 0 700 ([\d.]+)"/)[1]);
+    const off = renderHtml(Chart, base);
+    const summary = "Test at each x: Welch's ANOVA\nError bars: SEM";
+    const on = renderHtml(Chart, { ...base, statsSummary: summary });
+    assert(!off.includes('id="stats-summary"'));
+    eq(vbH(on) - vbH(off), 2 * 11 + 14, "two lines + padding");
+    const g = on.match(/<g id="stats-summary">(.*?)<\/g>/s)[1];
+    eq(
+      [...g.matchAll(/>([^<]+)<\/text>/g)].map((m) => m[1]).join("|"),
+      "Test at each x: Welch&#x27;s ANOVA|Error bars: SEM"
+    );
   });
 
   test("renders with empty series", function () {
@@ -2662,8 +2737,15 @@ suite("ProportionsChart + stats panels");
       vis,
       updVis: noop,
     });
-    assert(html.includes("41 · 85.4 % [72.8 %, 92.8 %]"), "Wilson summary cell");
-    assert(/<h3[^>]*>Statistics<\/h3>/.test(html), "Statistics title");
+    // Count · % on one line, the Wilson CI on the next; neither breaks inside.
+    assert(
+      /<div style="white-space:nowrap">41 · 85\.4 %<\/div><div style="[^"]*white-space:nowrap[^"]*">\[72\.8 %, 92\.8 %\]<\/div>/.test(
+        html
+      ),
+      "Wilson summary cell"
+    );
+    assert(/<h3[^>]*>Counts and tests<\/h3>/.test(html), "first section title");
+    assert(!/<h3[^>]*>Statistics<\/h3>/.test(html), "no second Statistics heading");
     assert(/data-testid="proportions-dl-r"[^>]*>R script</.test(html), "R script export");
     assert(/data-testid="proportions-dl-txt"[^>]*>Report \.txt</.test(html), "report export");
     assert(!html.includes("Display on plot"), "display controls live in the toolbar");
@@ -3238,7 +3320,7 @@ suite("QpcrChart + QpcrStatsPanel");
     React.act(() => off.r.root.unmount());
   });
 
-  test("stats panel: Statistics heading, ΔCt explainer, decision trace, R / report exports", () => {
+  test("stats panel: Tests on ΔCt heading, ΔCt explainer, decision trace, R / report exports", () => {
     const html = renderHtml(QpcrStatsPanel, {
       genes,
       stats,
@@ -3250,13 +3332,16 @@ suite("QpcrChart + QpcrStatsPanel");
       onDownloadReport: noop,
       onDownloadR: noop,
     });
-    assert(/<h3[^>]*>Statistics<\/h3>/.test(html));
+    // The column header says "Statistics"; its first section names what it holds.
+    assert(/<h3[^>]*>Tests on ΔCt<\/h3>/.test(html));
+    assert(!/<h3[^>]*>Statistics<\/h3>/.test(html), "no second Statistics heading");
     assert(/data-testid="qpcr-dl-r"[^>]*>R script</.test(html), "R script export");
     assert(/data-testid="qpcr-dl-txt"[^>]*>Report \.txt</.test(html), "report export");
     assert(html.indexOf("Why the tests use ΔCt") < html.indexOf("R script"), "exports last");
     assert(html.includes("Why the tests use ΔCt"));
     assert(html.includes("Do not run t-tests or ANOVA on 2^−ΔΔCt values."));
-    assert(html.includes("Auto — Welch&#x27;s ANOVA"));
+    assert(html.includes("Welch&#x27;s ANOVA  (recommended)"), "recommended test marked");
+    assert(!html.includes("Auto —"), "no separate Auto entry");
     assert(html.includes("Welch&#x27;s ANOVA on ΔCt: F(2, "));
     assert(html.includes("1 (calibrator)"));
     assert(!html.includes("Group Plot"), "no hand-off to Group Plot");
@@ -3806,6 +3891,37 @@ test("loads once for #/<tool>?example, cleans the hash, ignores other routes", f
   window.dispatchEvent(new HashChangeEvent("hashchange"));
   eq(loads, 2, "no listener after unmount");
   window.history.replaceState(null, "", "#");
+});
+
+suite("VennChart legend");
+
+test("legend names are dark text beside a set-coloured swatch", function () {
+  const { VennChart } = loadTool("venn").exports;
+  const V = require("./helpers/venn-loader");
+  const sets = new Map([
+    ["Drought", new Set(["a", "b", "c"])],
+    ["Heat", new Set(["b", "c", "d"])],
+  ]);
+  const html = renderHtml(VennChart, {
+    setNames: ["Drought", "Heat"],
+    sets,
+    intersections: V.computeIntersections(["Drought", "Heat"], sets),
+    colors: { Drought: "#E69F00", Heat: "#56B4E9" },
+    selectedMask: null,
+    plotTitle: "",
+    plotBg: "#ffffff",
+    fontSize: 14,
+    fillOpacity: 0.25,
+    proportional: true,
+  });
+  const legend = html.match(/<g id="legend">(.*?)<\/g><\/svg>/s)[1];
+  const texts = [...legend.matchAll(/<text[^>]*fill="([^"]+)"[^>]*>([^<]+)</g)];
+  eq(texts.map((m) => m[2]).join("|"), "Drought (3)|Heat (3)");
+  eq(texts.map((m) => m[1]).join("|"), "#222222|#222222", "names in dark ink");
+  assert(
+    legend.includes('fill="#E69F00"') && legend.includes('fill="#56B4E9"'),
+    "swatches keep the set colours"
+  );
 });
 
 suite("Venn IntersectionTable");

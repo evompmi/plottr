@@ -113,6 +113,11 @@ const en = {
   "lineplot.sp.displayOnPlot": "Display on plot",
   "lineplot.sp.off": "Off",
   "lineplot.sp.stars": "Stars",
+  "lineplot.sp.showNs": "Show ns",
+  "lineplot.sp.printSummary": "Print summary below plot",
+  "lineplot.summary.test": "Test at each x: {tests}",
+  "lineplot.summary.bh": "p-values: Benjamini–Hochberg across x",
+  "lineplot.summary.errorBars": "Error bars: {bar}",
 
   // Per-x expanded detail
 

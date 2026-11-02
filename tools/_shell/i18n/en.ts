@@ -136,10 +136,6 @@ const en = {
   "shell.howto.display": "Display",
   "shell.howto.tips": "Tips",
 
-  // SegToggle / OnOffToggle — default labels (callers may override)
-  "shell.toggle.on": "On",
-  "shell.toggle.off": "Off",
-
   "shell.inspector.show": "Show {name}",
   "shell.inspector.hide": "Hide",
   "shell.reorder.drag": "Drag to reorder",
@@ -169,7 +165,9 @@ const en = {
   "shell.palette.swatchTitle": "{hex} — click to copy",
   "shell.palette.swatchAria": "Copy {hex} to clipboard",
   "shell.palette.pickerTitle":
-    "Pick a discrete palette. Picking a palette overwrites every group's colour. 👁 marks colour-blind-safe palettes.",
+    "Pick a discrete palette. Picking a palette overwrites every group's colour. Colour-blind-safe palettes are listed first.",
+  "shell.palette.groupSafe": "Colour-blind safe",
+  "shell.palette.groupOther": "Other palettes",
 
   // PrefsPanel
   "shell.prefs.title": "Visual plot settings",
