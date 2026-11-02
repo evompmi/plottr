@@ -162,3 +162,34 @@ test("configure: group order reorders by drag and drop", async ({ page }) => {
   await dragBy(page, list.getByTestId("drag-handle").first(), rowH * (before.length - 0.8));
   expect(await order()).toEqual([...before.slice(1), "Control"]);
 });
+
+// Regression: a group unticked under "Reference genes only" and then made the
+// calibrator again used to stay unticked behind a locked checkbox, blocking
+// the plot with no way out.
+test("control unticked in refs mode still counts when switching back", async ({ page }) => {
+  await page.goto("/index.html#/qpcr");
+  await page.getByTestId("load-example").click();
+  await page.getByRole("button", { name: "Reference genes only" }).click();
+  await page.getByRole("checkbox", { name: "Include Control" }).uncheck();
+  await page.getByRole("button", { name: "Control group" }).click();
+  const control = page.getByRole("checkbox", { name: "Include Control" });
+  await expect(control).toBeChecked();
+  await expect(control).toBeDisabled();
+  await expect(page.getByTestId("qpcr-blockers")).toHaveCount(0);
+  await expect(page.getByTestId("step-plot")).toBeEnabled();
+  await page.getByTestId("step-plot").click();
+  await expect(page.locator("g#facet-RD29A")).toBeVisible();
+});
+
+test("Configure says what blocks the plot", async ({ page }) => {
+  await page.goto("/index.html#/qpcr");
+  await page.getByTestId("load-example").click();
+  await page.getByTestId("qpcr-eff-ACT2").fill("1");
+  const blockers = page.getByTestId("qpcr-blockers");
+  await expect(blockers).toContainText("Efficiency not valid for ACT2");
+  await expect(page.getByTestId("qpcr-eff-ACT2")).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByTestId("step-plot")).toBeDisabled();
+  await page.getByTestId("qpcr-eff-ACT2").fill("95 %");
+  await expect(blockers).toHaveCount(0);
+  await expect(page.getByTestId("step-plot")).toBeEnabled();
+});

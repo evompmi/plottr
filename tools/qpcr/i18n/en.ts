@@ -43,6 +43,11 @@ const en = {
   "qpcr.cfg.wells": "Wells",
   "qpcr.cfg.missing": "({n} without Ct)",
   "qpcr.cfg.needRoles": "Mark at least one reference gene and one target gene.",
+  "qpcr.cfg.blockedTitle": "Before plotting:",
+  "qpcr.cfg.needGroupsControl": "Keep at least two groups, including the control group.",
+  "qpcr.cfg.needGroupsRefs": "Keep at least one group.",
+  "qpcr.cfg.badEff":
+    "Efficiency not valid for {genes}: enter a percentage (95 %) or a factor between 1 and 3 (1.95).",
   "qpcr.cfg.groups": "Groups",
   "qpcr.cfg.normalize": "Normalise to",
   "qpcr.cfg.normControl": "Control group",

@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **qPCR could get stuck on Configure.** A group unticked under "Reference genes only" and then
+  made the control again stayed unticked behind a locked checkbox, blocking the plot; the control
+  now always counts. Configure also lists what still blocks the plot (genes, groups, an invalid
+  efficiency). Regression: 4 tests.
 - **Statistics column tidy-up.** Proportions and qPCR no longer repeat "Statistics" as the first
   section title, and inspector table cells no longer break mid-value.
 - **Venn legend names in dark ink.** The set colour is kept on the swatch; coloured text was

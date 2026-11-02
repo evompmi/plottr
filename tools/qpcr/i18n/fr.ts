@@ -41,6 +41,11 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.cfg.wells": "Puits",
   "qpcr.cfg.missing": "({n} sans Ct)",
   "qpcr.cfg.needRoles": "Indiquez au moins un gène de référence et un gène cible.",
+  "qpcr.cfg.blockedTitle": "Avant de tracer :",
+  "qpcr.cfg.needGroupsControl": "Gardez au moins deux groupes, dont le groupe contrôle.",
+  "qpcr.cfg.needGroupsRefs": "Gardez au moins un groupe.",
+  "qpcr.cfg.badEff":
+    "Efficacité non valide pour {genes} : saisissez un pourcentage (95 %) ou un facteur entre 1 et 3 (1,95).",
   "qpcr.cfg.groups": "Groupes",
   "qpcr.cfg.normalize": "Normaliser par",
   "qpcr.cfg.normControl": "Groupe contrôle",

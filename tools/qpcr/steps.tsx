@@ -299,8 +299,7 @@ export function StdCurvePanel({ text, setText, curves, onApply }: StdCurvePanelP
 export function ConfigureStep(p: ConfigureStepProps) {
   const tr = useT();
   const { data, geneRows, groupOrder } = p;
-  const nRef = geneRows.filter((g) => g.role === "ref").length;
-  const nTarget = geneRows.filter((g) => g.role === "target").length;
+  const badEff = new Set(p.blockers.flatMap((b) => (b.kind === "efficiency" ? b.genes : [])));
   const roles: { value: GeneRow["role"]; label: string }[] = [
     { value: "ref", label: tr("qpcr.cfg.roleRef") },
     { value: "target", label: tr("qpcr.cfg.roleTarget") },
@@ -448,7 +447,11 @@ export function ConfigureStep(p: ConfigureStepProps) {
                         <input
                           type="text"
                           className="dv-input"
-                          style={{ width: 80 }}
+                          style={{
+                            width: 80,
+                            ...(badEff.has(g.name) ? { borderColor: "var(--danger-text)" } : {}),
+                          }}
+                          aria-invalid={badEff.has(g.name) || undefined}
                           value={g.effText}
                           onChange={(e) => p.setGeneEff(g.name, e.target.value)}
                           aria-label={tr("qpcr.cfg.effFor", { gene: g.name })}
@@ -471,11 +474,6 @@ export function ConfigureStep(p: ConfigureStepProps) {
               <p style={{ fontSize: 11, color: "var(--text-faint)", margin: "6px 0 0" }}>
                 {tr("qpcr.cfg.effHelp")}
               </p>
-              {(nRef === 0 || nTarget === 0) && (
-                <p style={{ fontSize: 12, color: "var(--warning-text)", margin: "6px 0 0" }}>
-                  {tr("qpcr.cfg.needRoles")}
-                </p>
-              )}
             </div>
             <div className="dv-panel" style={{ flex: "1 1 260px", minWidth: 0 }}>
               <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
@@ -552,7 +550,7 @@ export function ConfigureStep(p: ConfigureStepProps) {
                     <DragHandle {...groupDrag.handleProps(i)} />
                     <input
                       type="checkbox"
-                      checked={it.include}
+                      checked={it.include || (p.normalize === "control" && it.name === p.control)}
                       disabled={p.normalize === "control" && it.name === p.control}
                       onChange={(e) =>
                         p.setGroupOrder(
@@ -599,6 +597,41 @@ export function ConfigureStep(p: ConfigureStepProps) {
               </ul>
             </div>
           </div>
+
+          {p.blockers.length > 0 && (
+            <div
+              className="dv-panel"
+              role="status"
+              data-testid="qpcr-blockers"
+              style={{ ...warnBox, marginBottom: 12 }}
+            >
+              <p
+                style={{
+                  margin: "0 0 4px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--warning-text)",
+                }}
+              >
+                {tr("qpcr.cfg.blockedTitle")}
+              </p>
+              <ul
+                style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "var(--warning-text)" }}
+              >
+                {p.blockers.map((b) => (
+                  <li key={b.kind}>
+                    {b.kind === "roles"
+                      ? tr("qpcr.cfg.needRoles")
+                      : b.kind === "groups"
+                        ? tr(
+                            b.need === 2 ? "qpcr.cfg.needGroupsControl" : "qpcr.cfg.needGroupsRefs"
+                          )
+                        : tr("qpcr.cfg.badEff", { genes: b.genes.join(", ") })}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <StdCurvePanel
             text={p.stdText}
