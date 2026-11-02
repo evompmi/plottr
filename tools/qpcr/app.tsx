@@ -26,17 +26,19 @@ import {
   aggregateTechReps,
   computeGene,
   detectLayout,
-  exclusionCounts,
   excludedWells,
+  exclusionCounts,
   geneAnnotation,
   genormM,
   guessControl,
   guessRefs,
+  keptGroups,
   noisyTechReps,
   parseEfficiency,
   parseLong,
   parseStandardCurve,
   parseWide,
+  qpcrBlockers,
   runGeneStats,
   sampleRowsForCsv,
   standardCurves,
@@ -281,19 +283,13 @@ export function App() {
       // No calibrator in "refs" mode: "" matches no group, so nothing is
       // highlighted as the control downstream.
       control: normalize === "control" ? control : "",
-      groupOrder: groupOrder.filter((g) => g.include).map((g) => g.name),
+      groupOrder: keptGroups(groupOrder, normalize, control),
     };
   }, [geneRows, normalize, control, groupOrder]);
 
-  const effValid = [...cfg.refs, ...cfg.targets].every((g) => Number.isFinite(cfg.eff[g]));
-  const ready =
-    !!data &&
-    cfg.refs.length > 0 &&
-    cfg.targets.length > 0 &&
-    (normalize === "refs"
-      ? cfg.groupOrder.length >= 1
-      : cfg.groupOrder.length >= 2 && cfg.groupOrder.includes(control)) &&
-    effValid;
+  const blockers = useMemo(() => (data ? qpcrBlockers(cfg) : []), [data, cfg]);
+  const effValid = !blockers.some((b) => b.kind === "efficiency");
+  const ready = !!data && blockers.length === 0;
 
   // Flagged on every well, so a set stays listed (and can be restored)
   // after the user drops some of its wells.
@@ -440,6 +436,7 @@ export function App() {
           setGroupOrder={setGroupOrder}
           normalize={normalize}
           setNormalize={setNormalize}
+          blockers={blockers}
           control={control}
           setControl={(g) => {
             setControl(g);

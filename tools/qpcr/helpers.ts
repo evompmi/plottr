@@ -394,6 +394,41 @@ export function parseEfficiency(raw: string): number | null {
   return E > 1 && E < 3 ? E : null;
 }
 
+// Groups that enter the analysis, in display order: the ticked ones, plus the
+// calibrator in "control" mode, which cannot be left out (its checkbox is
+// locked). A group unticked in "refs" mode and then made the calibrator
+// therefore still counts.
+export function keptGroups(
+  order: OrderItem[],
+  normalize: Normalization,
+  control: string
+): string[] {
+  return order
+    .filter((g) => g.include || (normalize === "control" && g.name === control))
+    .map((g) => g.name);
+}
+
+// What still stops the plot step, in the order the Configure step lists it:
+// a reference and a target gene, enough groups (two including the control,
+// or one without a calibrator), and a valid efficiency for every gene used.
+export type QpcrBlocker =
+  | { kind: "roles" }
+  | { kind: "groups"; need: 1 | 2 }
+  | { kind: "efficiency"; genes: string[] };
+
+export function qpcrBlockers(cfg: QpcrConfig): QpcrBlocker[] {
+  const out: QpcrBlocker[] = [];
+  if (cfg.refs.length === 0 || cfg.targets.length === 0) out.push({ kind: "roles" });
+  if (cfg.normalize === "refs") {
+    if (cfg.groupOrder.length < 1) out.push({ kind: "groups", need: 1 });
+  } else if (cfg.groupOrder.length < 2 || !cfg.groupOrder.includes(cfg.control)) {
+    out.push({ kind: "groups", need: 2 });
+  }
+  const bad = [...cfg.refs, ...cfg.targets].filter((g) => !Number.isFinite(cfg.eff[g]));
+  if (bad.length > 0) out.push({ kind: "efficiency", genes: bad });
+  return out;
+}
+
 export function efficiencyPercent(E: number): number {
   return (E - 1) * 100;
 }
@@ -1045,6 +1080,8 @@ export interface ConfigureStepProps {
   setGeneRole: (gene: string, role: GeneRow["role"]) => void;
   setGeneEff: (gene: string, text: string) => void;
   groupOrder: OrderItem[];
+  // What still stops the plot step (listed under the gene and group panels).
+  blockers: QpcrBlocker[];
   setGroupOrder: (o: OrderItem[]) => void;
   normalize: Normalization;
   setNormalize: (n: Normalization) => void;

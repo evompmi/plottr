@@ -333,6 +333,50 @@ test("standard curve vs lm(Ct ~ log10(qty))", () => {
   eq(bad.effOutOfRange, true); // slope −2.75 → E ≈ 131 %
 });
 
+suite("configure readiness");
+
+test("keptGroups: the calibrator always counts in control mode, even if unticked", () => {
+  const order = [
+    { name: "Control", include: false },
+    { name: "Drought", include: true },
+    { name: "Salt", include: false },
+  ];
+  eq(L.keptGroups(order, "control", "Control").join(), "Control,Drought");
+  eq(L.keptGroups(order, "refs", "Control").join(), "Drought", "no calibrator in refs mode");
+  eq(L.keptGroups(order, "control", "Salt").join(), "Drought,Salt");
+});
+
+test("qpcrBlockers lists every reason the plot is unavailable, and nothing when ready", () => {
+  const cfg = {
+    refs: ["ACT2"],
+    targets: ["PR1"],
+    eff: { ACT2: 2, PR1: 2 },
+    normalize: "control",
+    control: "Mock",
+    groupOrder: ["Mock", "SA"],
+  };
+  eq(JSON.stringify(L.qpcrBlockers(cfg)), "[]");
+  eq(JSON.stringify(L.qpcrBlockers({ ...cfg, targets: [] })), '[{"kind":"roles"}]');
+  eq(
+    JSON.stringify(L.qpcrBlockers({ ...cfg, groupOrder: ["Mock"] })),
+    '[{"kind":"groups","need":2}]'
+  );
+  eq(
+    JSON.stringify(L.qpcrBlockers({ ...cfg, groupOrder: ["SA", "JA"] })),
+    '[{"kind":"groups","need":2}]',
+    "control not among the kept groups"
+  );
+  eq(JSON.stringify(L.qpcrBlockers({ ...cfg, normalize: "refs", groupOrder: ["SA"] })), "[]");
+  eq(
+    JSON.stringify(L.qpcrBlockers({ ...cfg, normalize: "refs", groupOrder: [] })),
+    '[{"kind":"groups","need":1}]'
+  );
+  eq(
+    JSON.stringify(L.qpcrBlockers({ ...cfg, eff: { ACT2: NaN, PR1: 2 }, targets: [] })),
+    '[{"kind":"roles"},{"kind":"efficiency","genes":["ACT2"]}]'
+  );
+});
+
 suite("statistics wiring");
 
 test("qpcrSummaryText: Group Plot's recap per gene, on ΔCt; post-hoc only for k > 2", () => {
