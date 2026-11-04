@@ -217,8 +217,8 @@ picks them up through identical wiring.
                                 │
                                 ▼
    FileDropZone (_shell)
-        • gate FILE_LIMIT_BYTES (2 MB hard reject)
-        • warn FILE_WARN_BYTES (1 MB)
+        • gate FILE_LIMIT_BYTES (4 MB hard reject)
+        • warn FILE_WARN_BYTES (2 MB)
                                 │
                                 ▼
    tool/app.tsx — doParse(text, sepOverride)

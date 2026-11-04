@@ -63,7 +63,7 @@ const fr: Record<LineplotKey, string> = {
   "lineplot.example.title": "Courbes de croissance bactérienne",
   "lineplot.example.subtitle": "3 souches × 5 points de temps × 3 réplicats",
   "lineplot.upload.hint":
-    "CSV · TSV · TXT — une ligne par observation, colonnes pour X, Y et le regroupement · 2 Mo max",
+    "CSV · TSV · TXT — une ligne par observation, colonnes pour X, Y et le regroupement · 4 Mo max",
   "lineplot.test.studentT": "test t de Student",
   "lineplot.test.welchT": "test t de Welch",
   "lineplot.test.mannWhitney": "Mann-Whitney U",

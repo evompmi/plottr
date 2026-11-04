@@ -7,7 +7,7 @@ const fr: Record<QpcrKey, string> = {
   "qpcr.example.subtitle":
     "2 gènes de référence + 2 cibles · 3 groupes × 4 réplicats biologiques × 3 techniques",
   "qpcr.upload.hint":
-    "CSV · TSV · TXT · long (Échantillon, Groupe, Gène, Ct — une ligne par puits) ou large (Échantillon, Groupe, une colonne de Ct par gène) · 2 Mo max",
+    "CSV · TSV · TXT · long (Échantillon, Groupe, Gène, Ct — une ligne par puits) ou large (Échantillon, Groupe, une colonne de Ct par gène) · 4 Mo max",
   "qpcr.err.tooFew": "Au moins trois colonnes attendues : échantillon, groupe et valeurs de Ct.",
   "qpcr.err.empty": "Aucune ligne exploitable : vérifiez les colonnes échantillon et groupe.",
   "qpcr.err.noGenes": "Il faut au moins deux gènes (une référence et une cible).",

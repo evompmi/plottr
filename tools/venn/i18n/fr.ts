@@ -32,7 +32,7 @@ const fr: Record<VennKey, string> = {
   "venn.example.title": "DEG de réponse au stress chez Arabidopsis",
   "venn.example.subtitle": "3 ensembles — Sécheresse · Chaleur · Sel",
   "venn.upload.hint":
-    "CSV · TSV · TXT — large (une colonne par ensemble, 2–3) ou long (élément, ensemble) · 2 Mo max",
+    "CSV · TSV · TXT — large (une colonne par ensemble, 2–3) ou long (élément, ensemble) · 4 Mo max",
   "venn.picker.choose": "Choisir les ensembles à superposer",
   "venn.picker.pick": "Choisissez 2 ou 3 ensembles à superposer.",
   "venn.picker.one": "1 sélectionné — choisissez-en au moins un autre.",

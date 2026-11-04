@@ -9,7 +9,7 @@ const fr: Record<VolcanoKey, string> = {
   "volcano.example.title": "Résultats DESeq2 fictifs",
   "volcano.example.subtitle": "200 caractéristiques · transcriptomique circadienne végétale",
   "volcano.upload.hint":
-    "CSV · TSV · TXT · une ligne par caractéristique · attend des colonnes log2FC + p-value · 2 Mo max",
+    "CSV · TSV · TXT · une ligne par caractéristique · attend des colonnes log2FC + p-value · 4 Mo max",
   "volcano.class.ns": "non significatif",
   "volcano.class.down": "sous-exprimé",
   "volcano.class.up": "surexprimé",

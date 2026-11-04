@@ -10,7 +10,7 @@ const en = {
   "volcano.example.title": "Mock DESeq2 results",
   "volcano.example.subtitle": "200 features · plant circadian transcriptomics",
   "volcano.upload.hint":
-    "CSV · TSV · TXT · one row per feature · expects log2FC + p-value columns · 2 MB max",
+    "CSV · TSV · TXT · one row per feature · expects log2FC + p-value columns · 4 MB max",
 
   // Chart — class labels (summary / accessible legend), title fallback
   "volcano.class.ns": "not significant",

@@ -44,9 +44,9 @@ const en = {
   // FileDropZone
   "shell.upload.dropAria": "Drop a data file here or press Enter to browse",
   "shell.upload.dropMain": "Drop CSV, TSV, or TXT — or click to browse",
-  "shell.upload.dropHint": "CSV · TSV · TXT · DAT — 2 MB max",
+  "shell.upload.dropHint": "CSV · TSV · TXT · DAT — 4 MB max",
   "shell.upload.tooLarge":
-    "File too large ({mb} MB). Maximum is 2 MB — split the file or sample rows and try again.",
+    "File too large ({mb} MB). Maximum is 4 MB — split the file or sample rows and try again.",
   "shell.upload.largeWarn": "Large file ({mb} MB) — parsing may take a moment.",
   "shell.upload.readError": "Couldn't read the file ({msg}). Check permissions and try again.",
   "shell.upload.unknownError": "unknown error",
@@ -114,10 +114,10 @@ const en = {
   "shell.paste.aria": "Paste tabular data",
   "shell.paste.parse": "Parse pasted data",
   "shell.paste.clear": "Clear",
-  "shell.paste.maxSize": "2 MB max",
+  "shell.paste.maxSize": "4 MB max",
   "shell.paste.empty": "Paste some data first — copy a selection from Excel, Sheets, or any CSV.",
   "shell.paste.tooLarge":
-    "Pasted data too large ({mb} MB). Maximum is 2 MB — split the data or sample rows and try again.",
+    "Pasted data too large ({mb} MB). Maximum is 4 MB — split the data or sample rows and try again.",
   "shell.paste.largeWarn": "Large paste ({mb} MB) — parsing may take a moment.",
 
   // ActionsPanel — plot-step download / reset chrome

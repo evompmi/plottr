@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Files and pasted data up to 4 MB are accepted (was 2 MB); the large-file warning now appears above 2 MB (was 1 MB). Measured at 4 MB, every plot tool loads realistic data in about 2.5 s or less.
+
 ## [2.3.0] - 2026-11-02
 
 > Long-form release notes live in

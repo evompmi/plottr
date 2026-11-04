@@ -126,7 +126,7 @@ const fr: Record<HeatmapKey, string> = {
   "heatmap.example.subtitle":
     "500 gènes × 6 échantillons (3 Contrôle · 3 Stress) · démo clustérisée",
   "heatmap.upload.hint":
-    "CSV · TSV · TXT — première colonne = étiquettes de ligne, première ligne = étiquettes de colonne, le reste numérique · 2 Mo max",
+    "CSV · TSV · TXT — première colonne = étiquettes de ligne, première ligne = étiquettes de colonne, le reste numérique · 4 Mo max",
   "heatmap.howto.title": "Heatmap — Comment l’utiliser",
   "heatmap.howto.subtitle": "Matrice numérique avec clustering optionnel des lignes / colonnes",
   "heatmap.howto.purpose":

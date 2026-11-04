@@ -39,7 +39,7 @@ const fr: Record<MolarityKey, string> = {
 
   "molarity.batch.errPaste": "Collez vos données ci-dessus.",
   "molarity.batch.errTooLarge":
-    "Données collées trop volumineuses ({mb} Mo). Maximum 2 Mo — collez moins de lignes.",
+    "Données collées trop volumineuses ({mb} Mo). Maximum 4 Mo — collez moins de lignes.",
   "molarity.batch.errNoRows": "Aucune ligne de données trouvée.",
   "molarity.batch.errCols": "Au moins 4 colonnes requises : Nom, MM, Concentration, Volume.",
   "molarity.batch.errInvalidMw": "MM invalide : {v}",

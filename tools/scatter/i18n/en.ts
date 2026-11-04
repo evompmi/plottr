@@ -16,7 +16,7 @@ const en = {
   "scatter.aes.shape": "Shape",
   "scatter.example.title": "Fisher's Iris dataset",
   "scatter.example.subtitle": "150 flowers × 4 measurements · 3 species",
-  "scatter.upload.hint": "CSV · TSV · TXT — one column per variable, one row per point · 2 MB max",
+  "scatter.upload.hint": "CSV · TSV · TXT — one column per variable, one row per point · 4 MB max",
 
   // Downloads + variables
   "scatter.dl.csv": "CSV",

@@ -81,7 +81,7 @@ const en = {
   "lineplot.example.title": "Bacterial growth curves",
   "lineplot.example.subtitle": "3 strains × 5 timepoints × 3 replicates",
   "lineplot.upload.hint":
-    "CSV · TSV · TXT — one row per observation, columns for X, Y, and grouping · 2 MB max",
+    "CSV · TSV · TXT — one row per observation, columns for X, Y, and grouping · 4 MB max",
 
   // Test / post-hoc display names
   "lineplot.test.studentT": "Student's t-test",

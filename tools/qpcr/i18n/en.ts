@@ -8,7 +8,7 @@ const en = {
   "qpcr.example.subtitle":
     "2 reference + 2 target genes · 3 groups × 4 biological × 3 technical replicates",
   "qpcr.upload.hint":
-    "CSV · TSV · TXT · long (Sample, Group, Gene, Ct — one row per well) or wide (Sample, Group, one Ct column per gene) · 2 MB max",
+    "CSV · TSV · TXT · long (Sample, Group, Gene, Ct — one row per well) or wide (Sample, Group, one Ct column per gene) · 4 MB max",
   "qpcr.err.tooFew": "Expected at least three columns: sample, group, and Ct values.",
   "qpcr.err.empty": "No usable rows: check the sample and group columns.",
   "qpcr.err.noGenes": "Need at least two genes (one reference and one target).",

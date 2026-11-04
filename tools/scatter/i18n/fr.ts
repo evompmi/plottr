@@ -14,7 +14,7 @@ const fr: Record<ScatterKey, string> = {
   "scatter.example.title": "Jeu de données Iris de Fisher",
   "scatter.example.subtitle": "150 fleurs × 4 mesures · 3 espèces",
   "scatter.upload.hint":
-    "CSV · TSV · TXT — une colonne par variable, une ligne par point · 2 Mo max",
+    "CSV · TSV · TXT — une colonne par variable, une ligne par point · 4 Mo max",
   "scatter.dl.csv": "CSV",
   "scatter.dl.csvTitle":
     "Télécharger la table de données filtrée — seulement les colonnes et lignes actuellement tracées",

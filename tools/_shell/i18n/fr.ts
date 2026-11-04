@@ -35,9 +35,9 @@ const fr: Record<ShellKey, string> = {
   "shell.upload.dropAria":
     "Déposez un fichier de données ici ou appuyez sur Entrée pour parcourir votre disque",
   "shell.upload.dropMain": "Déposez un CSV, TSV ou TXT — ou cliquez pour parcourir votre disque",
-  "shell.upload.dropHint": "CSV · TSV · TXT · DAT — 2 Mo max",
+  "shell.upload.dropHint": "CSV · TSV · TXT · DAT — 4 Mo max",
   "shell.upload.tooLarge":
-    "Fichier trop volumineux ({mb} Mo). Le maximum est 2 Mo — divisez le fichier ou échantillonnez des lignes et réessayez.",
+    "Fichier trop volumineux ({mb} Mo). Le maximum est 4 Mo — divisez le fichier ou échantillonnez des lignes et réessayez.",
   "shell.upload.largeWarn": "Fichier volumineux ({mb} Mo) — l’analyse peut prendre un moment.",
   "shell.upload.readError":
     "Impossible de lire le fichier ({msg}). Vérifiez les autorisations et réessayez.",
@@ -93,11 +93,11 @@ const fr: Record<ShellKey, string> = {
   "shell.paste.aria": "Coller des données tabulaires",
   "shell.paste.parse": "Analyser les données collées",
   "shell.paste.clear": "Effacer",
-  "shell.paste.maxSize": "2 Mo max",
+  "shell.paste.maxSize": "4 Mo max",
   "shell.paste.empty":
     "Collez d’abord des données — copiez une sélection depuis Excel, Sheets ou n’importe quel CSV.",
   "shell.paste.tooLarge":
-    "Données collées trop volumineuses ({mb} Mo). Le maximum est 2 Mo — divisez les données ou échantillonnez des lignes et réessayez.",
+    "Données collées trop volumineuses ({mb} Mo). Le maximum est 4 Mo — divisez les données ou échantillonnez des lignes et réessayez.",
   "shell.paste.largeWarn": "Collage volumineux ({mb} Mo) — l’analyse peut prendre un moment.",
   "shell.actions.title": "Actions",
   "shell.actions.svgTitle":
