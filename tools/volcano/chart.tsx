@@ -70,6 +70,9 @@ const POINT_RASTERIZE_THRESHOLD = 1000;
 // users can't visually tell the on-screen layer is rasterised.
 const POINT_RASTERIZE_MAX_DPR = 6;
 
+// Stroke width of an open-circle point (pointStyle "open"), in px.
+const OPEN_POINT_STROKE = 1;
+
 // `VolcanoChartProps` is the type-canonical home in helpers.ts; this
 // file imports it so chart-internal consumers (e.g. tests stubbing
 // chart props) and chart-external callers reach for the same type.
@@ -91,6 +94,7 @@ export const VolcanoChart = memo(
       colors,
       pointRadius,
       pointAlpha,
+      pointStyle = "filled",
       showRefLines,
       showLabels,
       topNUp,
@@ -112,6 +116,7 @@ export const VolcanoChart = memo(
     const VBW = plotWidth && plotWidth > 0 ? plotWidth : DEFAULT_VBW;
     const fillFor = makeFillFor(colors, colorMap);
     const radiusFor = makeRadiusFor(pointRadius, sizeMap);
+    const openPoints = pointStyle === "open";
 
     // Reserve right-side space for the in-SVG legend column when any
     // aesthetic mapping is active. Inner plot width shrinks to fit.
@@ -286,10 +291,16 @@ export const VolcanoChart = memo(
         for (const cls of ["ns", "down", "up"] as VolcanoClass[]) {
           for (const r of rendered) {
             if (r.cls !== cls) continue;
-            ctx.fillStyle = fillFor(r.pt.idx, cls);
             ctx.beginPath();
             ctx.arc(r.px.x, r.px.y, radiusFor(r.pt.idx), 0, 2 * Math.PI);
-            ctx.fill();
+            if (openPoints) {
+              ctx.strokeStyle = fillFor(r.pt.idx, cls);
+              ctx.lineWidth = OPEN_POINT_STROKE;
+              ctx.stroke();
+            } else {
+              ctx.fillStyle = fillFor(r.pt.idx, cls);
+              ctx.fill();
+            }
           }
         }
         return canvas.toDataURL("image/png");
@@ -299,7 +310,7 @@ export const VolcanoChart = memo(
       // transitively via `rendered`). Same memo-deps caveat as
       // labelLayout above.
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      [useRasterize, rendered, pointAlpha, VBW, colors, colorMap, pointRadius, sizeMap]
+      [useRasterize, rendered, pointAlpha, openPoints, VBW, colors, colorMap, pointRadius, sizeMap]
     );
 
     // Click-to-label hit testing for the rasterised path: a transparent
@@ -345,6 +356,7 @@ export const VolcanoChart = memo(
     const exportDataRef = useRef<{
       rendered: typeof rendered;
       pointAlpha: number;
+      openPoints: boolean;
       summaryNs: number;
       summaryDown: number;
       summaryUp: number;
@@ -355,6 +367,7 @@ export const VolcanoChart = memo(
       ? {
           rendered,
           pointAlpha,
+          openPoints,
           summaryNs: summary.ns,
           summaryDown: summary.down,
           summaryUp: summary.up,
@@ -405,7 +418,10 @@ export const VolcanoChart = memo(
         for (const meta of classMeta) {
           const g = doc.createElementNS(NS, "g");
           g.setAttribute("id", `points-${meta.cls}`);
-          g.setAttribute("fill-opacity", String(snapshot.pointAlpha));
+          g.setAttribute(
+            snapshot.openPoints ? "stroke-opacity" : "fill-opacity",
+            String(snapshot.pointAlpha)
+          );
           g.setAttribute(
             "aria-label",
             `${meta.count} ${meta.label} point${meta.count !== 1 ? "s" : ""}`
@@ -416,7 +432,14 @@ export const VolcanoChart = memo(
             c.setAttribute("cx", String(r.px.x));
             c.setAttribute("cy", String(r.px.y));
             c.setAttribute("r", String(snapshot.radiusFor(r.pt.idx)));
-            c.setAttribute("fill", snapshot.fillFor(r.pt.idx, meta.cls));
+            const color = snapshot.fillFor(r.pt.idx, meta.cls);
+            if (snapshot.openPoints) {
+              c.setAttribute("fill", "none");
+              c.setAttribute("stroke", color);
+              c.setAttribute("stroke-width", String(OPEN_POINT_STROKE));
+            } else {
+              c.setAttribute("fill", color);
+            }
             g.appendChild(c);
           }
           dataPoints.appendChild(g);
@@ -720,7 +743,8 @@ export const VolcanoChart = memo(
                 <g
                   key={cls}
                   id={`points-${cls}`}
-                  fillOpacity={pointAlpha}
+                  fillOpacity={openPoints ? undefined : pointAlpha}
+                  strokeOpacity={openPoints ? pointAlpha : undefined}
                   aria-label={tt("volcano.chart.classPointsAria", { count, label: classLabel })}
                 >
                   {rendered
@@ -731,7 +755,11 @@ export const VolcanoChart = memo(
                         cx={r.px.x}
                         cy={r.px.y}
                         r={radiusFor(r.pt.idx)}
-                        fill={fillFor(r.pt.idx, cls)}
+                        fill={openPoints ? "none" : fillFor(r.pt.idx, cls)}
+                        stroke={openPoints ? fillFor(r.pt.idx, cls) : undefined}
+                        strokeWidth={openPoints ? OPEN_POINT_STROKE : undefined}
+                        // An open circle's hollow centre still takes the click.
+                        pointerEvents={openPoints ? "visible" : undefined}
                         style={onPointClick ? { cursor: "pointer" } : undefined}
                         onClick={
                           onPointClick
@@ -861,6 +889,7 @@ export const VolcanoChart = memo(
                 sizeMap={sizeMap}
                 title={sizeMapLabel || "size"}
                 width={LEGEND_W - LEGEND_GAP}
+                open={openPoints}
                 yOffset={
                   colorMap
                     ? colorMap.type === "continuous"

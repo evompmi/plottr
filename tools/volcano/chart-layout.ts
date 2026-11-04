@@ -9,7 +9,7 @@ import {
   VolcanoPoint,
   VolcanoClass,
   classifyPoint,
-  negLog10P,
+  pointNegLog10,
   pickTopLabels,
   layoutLabels,
   approxMonoCharWidth,
@@ -106,7 +106,7 @@ export function computeAxisRanges(
       const a = Math.abs(pt.log2fc);
       if (a > absMaxFc) absMaxFc = a;
     }
-    const nl = negLog10P(pt.p, pFloor);
+    const nl = pointNegLog10(pt, pFloor);
     if (Number.isFinite(nl) && nl > maxNL) maxNL = nl;
   }
   // Pad to at least the cutoff so reference lines are visible even on a
@@ -149,7 +149,7 @@ export function buildRenderedPoints(
   const out: RenderedPoint[] = [];
   for (const pt of points) {
     if (!Number.isFinite(pt.log2fc)) continue;
-    const nl = negLog10P(pt.p, pFloor);
+    const nl = pointNegLog10(pt, pFloor);
     const cls = classifyPoint(pt.log2fc, pt.p, fcCutoff, pCutoff);
     out.push({ pt, cls, nl, px: { x: sx(pt.log2fc), y: sy(nl) } });
   }

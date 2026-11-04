@@ -2272,12 +2272,18 @@ suite("VolcanoChart (raster ↔ vector export)");
   // Union of the canvas 2D methods volcano + heatmap painting touch —
   // both suites share the same realm's HTMLCanvasElement.prototype so
   // whoever installs last wins; keep the API surface complete.
+  const stubCalls = { fill: 0, stroke: 0 };
   const stubCtx = {
     setTransform() {},
     clearRect() {},
     beginPath() {},
     arc() {},
-    fill() {},
+    fill() {
+      stubCalls.fill++;
+    },
+    stroke() {
+      stubCalls.stroke++;
+    },
     fillRect() {},
     strokeRect() {},
     set globalAlpha(_v) {},
@@ -2428,6 +2434,88 @@ suite("VolcanoChart (raster ↔ vector export)");
     const svg = container.querySelector("svg");
     const clone = globalThis.buildExportSvg(svg);
     auditRects(clone, "volcano vector path");
+  });
+
+  test("open points, vector path: stroked circles in the class colour, no fill", function () {
+    const points = buildPoints(200);
+    const { container } = renderWithEffects(VolcanoChart, {
+      ...baseProps,
+      points,
+      pointStyle: "open",
+    });
+    const svg = container.querySelector("svg");
+    const classColor = { up: "#dc2626", down: "#2563eb", ns: "#9ca3af" };
+    for (const cls of ["ns", "down", "up"]) {
+      const g = svg.querySelector("#points-" + cls);
+      eq(g.getAttribute("stroke-opacity"), "0.7");
+      eq(g.getAttribute("fill-opacity"), null);
+      const circles = g.querySelectorAll("circle");
+      assert(circles.length > 0, cls + " has circles");
+      circles.forEach((c) => {
+        eq(c.getAttribute("fill"), "none");
+        eq(c.getAttribute("stroke"), classColor[cls]);
+        eq(c.getAttribute("stroke-width"), "1");
+      });
+    }
+    // Filled (the default) keeps solid discs with fill-opacity.
+    const filled = renderWithEffects(VolcanoChart, { ...baseProps, points }).container;
+    const up = filled.querySelector("#points-up");
+    eq(up.getAttribute("fill-opacity"), "0.7");
+    eq(up.querySelector("circle").getAttribute("fill"), "#dc2626");
+    eq(up.querySelector("circle").getAttribute("stroke"), null);
+  });
+
+  test("open points with a size mapping: points and size-legend samples are outlines", function () {
+    const points = buildPoints(200);
+    const byIdx = new Map(points.map((p) => [p.idx, 2 + (p.idx % 7)]));
+    const sizeMap = { byIdx, vmin: 0, vmax: 60, minR: 2, maxR: 8 };
+    const { container } = renderWithEffects(VolcanoChart, {
+      ...baseProps,
+      points,
+      pointStyle: "open",
+      sizeMap,
+      sizeMapLabel: "baseMean",
+    });
+    const svg = container.querySelector("svg");
+    const radii = new Set();
+    svg.querySelectorAll("#data-points circle").forEach((c) => {
+      eq(c.getAttribute("fill"), "none");
+      radii.add(c.getAttribute("r"));
+    });
+    assert(radii.size > 1, "size mapping still varies the radius");
+    const legendCircles = svg.querySelectorAll("#size-legend circle");
+    assert(legendCircles.length > 0, "size legend draws sample circles");
+    legendCircles.forEach((c) => eq(c.getAttribute("fill"), "none"));
+  });
+
+  test("open points, raster path: canvas strokes, export clone has stroked circles", function () {
+    const points = buildPoints(1500);
+    stubCalls.fill = 0;
+    stubCalls.stroke = 0;
+    const { container } = renderWithEffects(VolcanoChart, {
+      ...baseProps,
+      points,
+      pointStyle: "open",
+    });
+    eq(stubCalls.fill, 0);
+    eq(stubCalls.stroke, 1500);
+    const clone = globalThis.buildExportSvg(container.querySelector("svg"));
+    const up = clone.querySelector("#data-points #points-up");
+    eq(up.getAttribute("stroke-opacity"), "0.7");
+    eq(up.getAttribute("fill-opacity"), null);
+    const circles = clone.querySelectorAll("#data-points circle");
+    eq(circles.length, 1500);
+    circles.forEach((c) => {
+      eq(c.getAttribute("fill"), "none");
+      eq(c.getAttribute("stroke-width"), "1");
+      assert(/^#/.test(c.getAttribute("stroke") || ""), "stroke is a hex colour");
+    });
+    // Filled raster path paints with fill() only.
+    stubCalls.fill = 0;
+    stubCalls.stroke = 0;
+    renderWithEffects(VolcanoChart, { ...baseProps, points });
+    eq(stubCalls.fill, 1500);
+    eq(stubCalls.stroke, 0);
   });
 
   test("raster→vector transition unregisters the mutator on the live svg", function () {

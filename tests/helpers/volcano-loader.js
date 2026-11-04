@@ -25,6 +25,7 @@ vm.runInContext(
   ctx
 );
 const helpers = runCjs(ctx, helpersCjs);
+const reports = runCjs(ctx, bundleShell("volcano/reports.ts"));
 
 module.exports = {
   // shared.js re-exports kept for parity with sibling loaders
@@ -56,4 +57,9 @@ module.exports = {
   matchPointsByLabel: helpers.matchPointsByLabel,
   buildPoints: helpers.buildPoints,
   eligibleColumns: helpers.eligibleColumns,
+  detectPScale: helpers.detectPScale,
+  pointNegLog10: helpers.pointNegLog10,
+  // volcano/reports.ts
+  buildVolcanoRScript: reports.buildVolcanoRScript,
+  buildVolcanoCsv: reports.buildVolcanoCsv,
 };

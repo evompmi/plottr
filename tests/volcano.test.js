@@ -7,7 +7,7 @@
 //   - pickTopLabels: ranks by |log2FC| × -log10(p), excludes ns
 //   - layoutLabels: greedy collision-avoid; forced-anchor fallback
 
-const { suite, test, assert, eq, summary } = require("./harness");
+const { suite, test, assert, eq, approx, summary } = require("./harness");
 const {
   VOLCANO_DEFAULT_COLORS,
   classifyPoint,
@@ -25,6 +25,10 @@ const {
   matchPointsByLabel,
   buildPoints,
   eligibleColumns,
+  buildVolcanoRScript,
+  buildVolcanoCsv,
+  detectPScale,
+  pointNegLog10,
   interpolateColor,
   COLOR_PALETTES,
   PALETTE,
@@ -1101,6 +1105,182 @@ test("ordering-perturbed grid still resolves cleanly when sparse", () => {
   const placed = layoutLabels(inputs, [], bigBounds());
   const forcedCount = placed.filter((p) => p.forced).length;
   eq(forcedCount, 0);
+});
+
+// ── buildVolcanoRScript: point style ─────────────────────────────────────
+
+suite("buildVolcanoRScript — point style");
+
+{
+  const rArgs = {
+    points: [
+      { idx: 0, log2fc: 2, p: 0.001, label: "A" },
+      { idx: 1, log2fc: -2, p: 0.002, label: "B" },
+      { idx: 2, log2fc: 0.1, p: 0.5, label: "C" },
+    ],
+    fcCutoff: 1,
+    pCutoff: 0.05,
+    colors: VOLCANO_DEFAULT_COLORS,
+    xLabel: "",
+    yLabel: "",
+    plotTitle: "",
+    yIsAdjusted: false,
+    generatedAt: "2026-01-01T00:00:00Z",
+  };
+
+  test("filled (default) keeps ggplot's solid point shape", () => {
+    const txt = buildVolcanoRScript(rArgs);
+    assert(txt.includes("  geom_point(alpha = 0.7) +\n"), "plain geom_point line");
+    assert(!txt.includes("shape = 1"), "no open-circle shape");
+    eq(buildVolcanoRScript({ ...rArgs, pointStyle: "filled" }), txt);
+  });
+
+  test("open draws hollow circles (shape = 1)", () => {
+    const txt = buildVolcanoRScript({ ...rArgs, pointStyle: "open" });
+    assert(txt.includes("  geom_point(alpha = 0.7, shape = 1) +\n"), "shape = 1 geom_point line");
+    eq((txt.match(/geom_point\(/g) || []).length, 1);
+  });
+}
+
+// ── Log-transformed p columns ────────────────────────────────────────────
+
+suite("volcano — p column already log-transformed");
+
+test("detectPScale: plain p-values stay raw", () => {
+  const r = detectPScale(["0.5", "1e-8", "0", "1", "", "NA"], "padj");
+  eq(r.scale, "p");
+  eq(r.reason, null);
+});
+
+test("detectPScale: any value above 1 means −log10(p)", () => {
+  const r = detectPScale(["0.3", "5.2", "12.7", "0"], "padj");
+  eq(r.scale, "neglog10");
+  eq(r.reason, "above1");
+});
+
+test("detectPScale: negative values mean log10(p)", () => {
+  const r = detectPScale(["-0.3", "-5.2", "-12.7", "0"], "padj");
+  eq(r.scale, "log10");
+  eq(r.reason, "negative");
+  // Mostly negative with a stray positive still reads as log10(p).
+  eq(detectPScale(["-3", "-4", "-5", "2"], "x").scale, "log10");
+  // A lone negative among values above 1 reads as −log10(p).
+  eq(detectPScale(["3", "4", "5", "-0.01"], "x").scale, "neglog10");
+});
+
+test("detectPScale: values in [0, 1] with a log header read as −log10(p)", () => {
+  eq(detectPScale(["0.2", "0.9"], "-log10(padj)").reason, "header");
+  eq(detectPScale(["0.2", "0.9"], "mlog10_FDR").scale, "neglog10");
+  eq(detectPScale(["0.2", "0.9"], "pvalue").scale, "p");
+});
+
+test("buildPoints: −log10 input back-transforms p and keeps the column as y", () => {
+  const raw = [
+    ["A", "2", "5"],
+    ["B", "-1.5", "0.5"],
+    ["C", "3", "400"],
+    ["D", "1", "x"],
+  ];
+  const pts = buildPoints(raw, 1, 2, 0, "neglog10");
+  eq(pts.length, 4);
+  approx(pts[0].p, 1e-5, 1e-18);
+  eq(pts[0].nlog10, 5);
+  approx(pts[1].p, Math.pow(10, -0.5), 1e-15);
+  // 10^-400 underflows to 0, but the y position is still 400.
+  eq(pts[2].p, 0);
+  eq(pointNegLog10(pts[2], 1e-300), 400);
+  assert(Number.isNaN(pts[3].p), "non-numeric stays NaN");
+  // Underflowed p counts as significant, and is not reported as clamped.
+  eq(classifyPoint(pts[2].log2fc, pts[2].p, 1, 0.05), "up");
+  eq(countClamped(pts), 0);
+});
+
+test("buildPoints: log10 input flips the sign", () => {
+  const pts = buildPoints([["A", "2", "-3"]], 1, 2, 0, "log10");
+  approx(pts[0].p, 1e-3, 1e-15);
+  eq(pts[0].nlog10, 3);
+  eq(pointNegLog10(pts[0], 1e-300), 3);
+});
+
+test("buildPoints: raw input is unchanged (no nlog10)", () => {
+  const pts = buildPoints([["A", "2", "0.001"]], 1, 2, 0);
+  eq(pts[0].p, 0.001);
+  eq(pts[0].nlog10, undefined);
+  approx(pointNegLog10(pts[0], 1e-300), 3, 1e-12);
+});
+
+test("autoDetectColumns: finds log-named p columns, adjusted first", () => {
+  const r = autoDetectColumns(["gene", "log2FoldChange", "-log10(pvalue)", "-log10(padj)"]);
+  eq(r.xCol, 1);
+  eq(r.yCol, 3);
+  eq(r.yIsAdjusted, true);
+  const raw = autoDetectColumns(["gene", "logFC", "mlog10_pval"]);
+  eq(raw.yCol, 2);
+  eq(raw.yIsAdjusted, false);
+  // A plain padj still wins over a log one.
+  eq(autoDetectColumns(["gene", "logFC", "-log10(padj)", "padj"]).yCol, 3);
+});
+
+test("CSV export: log input writes the column's own −log10(p)", () => {
+  const pts = buildPoints(
+    [
+      ["A", "2", "400"],
+      ["B", "0.1", "0.2"],
+    ],
+    1,
+    2,
+    0,
+    "neglog10"
+  );
+  const { rows } = buildVolcanoCsv({ points: pts, fcCutoff: 1, pCutoff: 0.05, yIsAdjusted: true });
+  eq(rows[0][3], "400");
+  eq(rows[0][4], "up");
+  eq(rows[1][3], "0.2");
+  eq(rows[1][4], "ns");
+});
+
+test("R script: log input carries −log10(p) and derives p from it", () => {
+  const pts = buildPoints(
+    [
+      ["A", "2", "400"],
+      ["B", "-2", "6"],
+      ["C", "0.1", "0.2"],
+    ],
+    1,
+    2,
+    0,
+    "neglog10"
+  );
+  const txt = buildVolcanoRScript({
+    points: pts,
+    fcCutoff: 1,
+    pCutoff: 0.05,
+    colors: VOLCANO_DEFAULT_COLORS,
+    xLabel: "",
+    yLabel: "",
+    plotTitle: "",
+    yIsAdjusted: true,
+    pScale: "neglog10",
+    generatedAt: "2026-01-01T00:00:00Z",
+  });
+  assert(/nlog10p = c\(400, 6, 0\.2\)/.test(txt), "nlog10p vector holds the column's values");
+  assert(txt.includes("df$pvalue <- 10^(-df$nlog10p)"), "p derived from -log10(p)");
+  assert(!txt.includes("p_floor"), "no p = 0 floor for log input");
+  assert(!/pvalue {2}= c\(/.test(txt), "no raw pvalue vector");
+  // Raw input keeps today's script.
+  const rawTxt = buildVolcanoRScript({
+    points: buildPoints([["A", "2", "0.001"]], 1, 2, 0),
+    fcCutoff: 1,
+    pCutoff: 0.05,
+    colors: VOLCANO_DEFAULT_COLORS,
+    xLabel: "",
+    yLabel: "",
+    plotTitle: "",
+    yIsAdjusted: false,
+    generatedAt: "2026-01-01T00:00:00Z",
+  });
+  assert(rawTxt.includes("p_floor <- min("), "raw input keeps the p floor");
+  assert(rawTxt.includes("  pvalue  = c(0.001)"), "raw pvalue vector");
 });
 
 summary();

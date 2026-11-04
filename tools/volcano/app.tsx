@@ -34,8 +34,16 @@ import {
   buildColorMap,
   buildSizeMap,
   buildPoints,
+  detectPScale,
 } from "./helpers";
-import type { ColorMap, LabelLayoutInfo, VolcanoPoint, VolcanoVis } from "./helpers";
+import type {
+  ColorMap,
+  LabelLayoutInfo,
+  PScale,
+  PScaleReason,
+  VolcanoPoint,
+  VolcanoVis,
+} from "./helpers";
 import { ConfigureStep, PlotStep } from "./steps";
 import { buildVolcanoRScript, buildVolcanoCsv } from "./reports";
 
@@ -60,6 +68,7 @@ const VIS_INIT_VOLCANO: VolcanoVis = {
   tickFontSize: 11,
   pointRadius: 3,
   pointAlpha: 0.7,
+  pointStyle: "filled",
   labelFontSize: 11,
   // Aesthetic mapping defaults (used when the colour-/size-map tiles
   // are toggled On). Column indices live in local state; these are the
@@ -358,6 +367,12 @@ export function App() {
   const [yCol, setYCol] = useState(-1);
   const [labelCol, setLabelCol] = useState(-1);
   const [yIsAdjusted, setYIsAdjusted] = useState(false);
+  // How the p column is written (raw / −log₁₀ / log₁₀), re-guessed from
+  // the column's values whenever a p column is picked; the user can
+  // override it on the Configure step. `pScaleReason` is why the guess
+  // went log (shown as a note), null when it stayed raw or was overridden.
+  const [pScale, setPScale] = useState<PScale>("p");
+  const [pScaleReason, setPScaleReason] = useState<PScaleReason>(null);
   const [rawText, setRawText] = useState<string | null>(null);
   const sepRef = useRef("");
   // Separator the auto-detector resolved on the most recent parse. Surfaced
@@ -453,7 +468,14 @@ export function App() {
       // Auto-pick column roles on first load.
       const guess = autoDetectColumns(out.headers);
       setXCol(guess.xCol >= 0 ? guess.xCol : 0);
-      setYCol(guess.yCol >= 0 ? guess.yCol : Math.min(1, out.headers.length - 1));
+      const y = guess.yCol >= 0 ? guess.yCol : Math.min(1, out.headers.length - 1);
+      setYCol(y);
+      const scale = detectPScale(
+        out.rawData.map((r) => r[y]),
+        out.headers[y]
+      );
+      setPScale(scale.scale);
+      setPScaleReason(scale.reason);
       setLabelCol(guess.labelCol);
       setYIsAdjusted(guess.yIsAdjusted);
       // Drop any prior manual selection / aesthetic mappings — their
@@ -504,6 +526,8 @@ export function App() {
     setYCol(-1);
     setLabelCol(-1);
     setYIsAdjusted(false);
+    setPScale("p");
+    setPScaleReason(null);
     setFileName("");
     setInjectionWarning(null);
     setManualSelection(new Set());
@@ -516,8 +540,27 @@ export function App() {
 
   const points: VolcanoPoint[] = useMemo(() => {
     if (!parsed || xCol < 0 || yCol < 0) return [];
-    return buildPoints(parsed.rawData, xCol, yCol, labelCol);
-  }, [parsed, xCol, yCol, labelCol]);
+    return buildPoints(parsed.rawData, xCol, yCol, labelCol, pScale);
+  }, [parsed, xCol, yCol, labelCol, pScale]);
+
+  // Picking a p column re-guesses its scale from that column's values.
+  const chooseYCol = useCallback(
+    (i: number) => {
+      setYCol(i);
+      if (!parsed) return;
+      const scale = detectPScale(
+        parsed.rawData.map((r) => r[i]),
+        parsed.headers[i]
+      );
+      setPScale(scale.scale);
+      setPScaleReason(scale.reason);
+    },
+    [parsed]
+  );
+  const choosePScale = useCallback((s: PScale) => {
+    setPScale(s);
+    setPScaleReason(null);
+  }, []);
 
   const pFloor = useMemo(() => computePFloor(points), [points]);
   const clampedCount = useMemo(() => countClamped(points), [points]);
@@ -527,7 +570,15 @@ export function App() {
   );
 
   const xLabel = parsed && xCol >= 0 ? parsed.headers[xCol] : tr("volcano.xLabelFallback");
-  const yLabel = parsed && yCol >= 0 ? "−log₁₀(" + parsed.headers[yCol] + ")" : "−log₁₀(p-value)";
+  // A log-named column already says what it holds: a −log₁₀ one is the
+  // y value as named, a log₁₀ one is plotted with its sign flipped.
+  // Any other name gets wrapped in −log₁₀(…).
+  const yHeader = parsed && yCol >= 0 ? parsed.headers[yCol] : "";
+  const yLabel = !yHeader
+    ? "−log₁₀(p-value)"
+    : pScale !== "p" && /log/i.test(yHeader)
+      ? (pScale === "log10" ? "−" : "") + yHeader
+      : "−log₁₀(" + yHeader + ")";
 
   // Derived aesthetic mappings — null when the tile is toggled Off,
   // populated otherwise. The chart consumes `colorByIdx` / `radiusByIdx`
@@ -624,6 +675,8 @@ export function App() {
       yLabel,
       plotTitle: vis.plotTitle,
       yIsAdjusted,
+      pScale,
+      pointStyle: vis.pointStyle,
     });
     downloadText(txt, fileBaseName(fileName, "volcano") + ".R");
   };
@@ -679,8 +732,11 @@ export function App() {
           yCol={yCol}
           labelCol={labelCol}
           yIsAdjusted={yIsAdjusted}
+          pScale={pScale}
+          pScaleReason={pScaleReason}
+          setPScale={choosePScale}
           setXCol={setXCol}
-          setYCol={setYCol}
+          setYCol={chooseYCol}
           setLabelCol={setLabelCol}
           setYIsAdjusted={setYIsAdjusted}
         />

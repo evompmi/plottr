@@ -55,6 +55,9 @@ export function ConfigureStep({
   setYCol,
   setLabelCol,
   setYIsAdjusted,
+  pScale,
+  pScaleReason,
+  setPScale,
 }: ConfigureStepProps) {
   const tr = useT();
   const xValid = xCol >= 0;
@@ -135,6 +138,40 @@ export function ConfigureStep({
           <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
             {tr("volcano.cfg.adjustedNote")}
           </div>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 10 }}>
+            <span className="dv-label" style={{ fontSize: 11, flexShrink: 0 }}>
+              {tr("volcano.cfg.pScale")}
+            </span>
+            <div className="dv-seg" role="group" aria-label={tr("volcano.cfg.pScale")}>
+              {(["p", "neglog10", "log10"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  aria-pressed={pScale === s}
+                  className={"dv-seg-btn" + (pScale === s ? " dv-seg-btn-active" : "")}
+                  onClick={() => setPScale(s)}
+                  style={{ fontSize: 11, padding: "3px 8px", whiteSpace: "nowrap" }}
+                >
+                  {s === "p" ? "p" : s === "neglog10" ? "−log₁₀ p" : "log₁₀ p"}
+                </button>
+              ))}
+            </div>
+          </div>
+          {pScaleReason && (
+            <div
+              role="status"
+              data-testid="volcano-pscale-note"
+              style={{ marginTop: 6, fontSize: 10, color: "var(--text)" }}
+            >
+              {tr(
+                pScaleReason === "above1"
+                  ? "volcano.cfg.pScaleAbove1"
+                  : pScaleReason === "negative"
+                    ? "volcano.cfg.pScaleNegative"
+                    : "volcano.cfg.pScaleHeader"
+              )}
+            </div>
+          )}
         </RoleCard>
         <RoleCard title={tr("volcano.aes.label")}>
           <select
@@ -395,6 +432,7 @@ export function PlotStep({
               colors={{ up: vis.colorUp, down: vis.colorDown, ns: vis.colorNs }}
               pointRadius={vis.pointRadius}
               pointAlpha={vis.pointAlpha}
+              pointStyle={vis.pointStyle}
               showRefLines={vis.showRefLines}
               showLabels={vis.showLabels}
               topNUp={vis.topNUp}
