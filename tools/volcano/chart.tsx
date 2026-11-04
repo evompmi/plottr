@@ -26,6 +26,7 @@ import {
   buildLabelLayout,
   makeFillFor,
   makeRadiusFor,
+  impliedBoundaryGeometry,
 } from "./chart-layout";
 import { ColorLegend, SizeLegend } from "./chart-legends";
 import { tt } from "./i18n";
@@ -111,6 +112,7 @@ export const VolcanoChart = memo(
       plotWidth,
       plotBg,
       onLabelLayoutInfo,
+      boundary,
     } = props;
 
     const VBW = plotWidth && plotWidth > 0 ? plotWidth : DEFAULT_VBW;
@@ -246,6 +248,20 @@ export const VolcanoChart = memo(
     const refXLeft = -fcCutoff;
     const refXRight = fcCutoff;
     const refY = -Math.log10(pCutoff);
+
+    // With the file's own significance calls, the straight cutoff lines
+    // give way to the boundary those calls imply (one curve per side).
+    const boundaryGeom = boundary
+      ? (
+          [
+            ["up", 1],
+            ["down", -1],
+          ] as const
+        ).map(([key, sign]) => ({
+          key,
+          geom: impliedBoundaryGeometry(boundary[key], sign, xMin, xMax, yMin, yMax, sx, sy),
+        }))
+      : null;
 
     const summary = useMemo(
       () => summarize(points, fcCutoff, pCutoff),
@@ -448,10 +464,16 @@ export const VolcanoChart = memo(
       return () => unregisterSvgExportMutator(el);
     }, [useRasterize]);
 
+    // The boundary's legend sits in a strip added below the chart, outside
+    // the plot and the mapping legends; the plot geometry is unchanged.
+    const showBoundaryNote = showRefLines && !!boundaryGeom && boundaryGeom.some((g) => g.geom);
+    const noteBaseline = 13 * textScale;
+    const svgH = VBH + (showBoundaryNote ? Math.ceil(20 * textScale) : 0);
+
     return (
       <svg
         ref={setSvgRef}
-        viewBox={`0 0 ${VBW} ${VBH}`}
+        viewBox={`0 0 ${VBW} ${svgH}`}
         style={{ width: VBW, maxWidth: "100%", height: "auto", display: "block", margin: "0 auto" }}
         xmlns="http://www.w3.org/2000/svg"
         role="img"
@@ -471,7 +493,7 @@ export const VolcanoChart = memo(
           })}
         </desc>
         <g id="background">
-          <rect x={0} y={0} width={VBW} height={VBH} fill={plotBg || "#fff"} />
+          <rect x={0} y={0} width={VBW} height={svgH} fill={plotBg || "#fff"} />
         </g>
         <g id="plot-area-background">
           <rect x={MARGIN.left} y={MARGIN.top} width={w} height={h} fill={plotBg || "#fff"} />
@@ -616,8 +638,63 @@ export const VolcanoChart = memo(
           </g>
         )}
 
+        {/* ── Boundary implied by the significance calls ───────────────── */}
+        {showRefLines && boundaryGeom && (
+          <g id="implied-boundary">
+            <defs>
+              <clipPath id="implied-boundary-clip">
+                <rect x={MARGIN.left} y={MARGIN.top} width={w} height={h} />
+              </clipPath>
+            </defs>
+            {boundaryGeom.map(
+              ({ key, geom }) =>
+                geom && (
+                  <g
+                    key={key}
+                    id={`implied-boundary-${key}`}
+                    clipPath="url(#implied-boundary-clip)"
+                  >
+                    <path d={geom.band} fill="#888888" fillOpacity="0.15" stroke="none" />
+                    {geom.line && (
+                      <path
+                        d={geom.line}
+                        fill="none"
+                        stroke="#555555"
+                        strokeWidth="1.2"
+                        strokeDasharray="5 3"
+                      />
+                    )}
+                  </g>
+                )
+            )}
+            {showBoundaryNote && (
+              // Below the x-axis title, in the strip the viewBox grows by.
+              <g id="implied-boundary-legend">
+                <line
+                  x1={MARGIN.left}
+                  x2={MARGIN.left + 18 * textScale}
+                  y1={VBH + noteBaseline - 3 * textScale}
+                  y2={VBH + noteBaseline - 3 * textScale}
+                  stroke="#555555"
+                  strokeWidth="1.2"
+                  strokeDasharray="5 3"
+                />
+                <text
+                  x={MARGIN.left + 22 * textScale}
+                  y={VBH + noteBaseline}
+                  fontSize={10 * textScale}
+                  fill="#555555"
+                  fontFamily="sans-serif"
+                >
+                  {tt("volcano.boundary.legend")}
+                </text>
+              </g>
+            )}
+          </g>
+        )}
+
         {/* ── Reference lines ─────────────────────────────────────────── */}
-        {showRefLines && (
+        {showRefLines && !boundaryGeom && (
           <g id="reference-lines">
             {refXLeft >= xMin && refXLeft <= xMax && (
               <line

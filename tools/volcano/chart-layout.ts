@@ -8,7 +8,7 @@
 import {
   VolcanoPoint,
   VolcanoClass,
-  classifyPoint,
+  classifyVolcanoPoint,
   pointNegLog10,
   pickTopLabels,
   layoutLabels,
@@ -16,6 +16,7 @@ import {
   PlacedLabel,
   ColorMap,
   SizeMap,
+  BoundarySide,
 } from "./helpers";
 
 // Default canvas dimensions — match scatter's 800×500 export shape.
@@ -150,7 +151,7 @@ export function buildRenderedPoints(
   for (const pt of points) {
     if (!Number.isFinite(pt.log2fc)) continue;
     const nl = pointNegLog10(pt, pFloor);
-    const cls = classifyPoint(pt.log2fc, pt.p, fcCutoff, pCutoff);
+    const cls = classifyVolcanoPoint(pt, fcCutoff, pCutoff);
     out.push({ pt, cls, nl, px: { x: sx(pt.log2fc), y: sy(nl) } });
   }
   out.sort((a, b) => {
@@ -322,4 +323,62 @@ export function makeRadiusFor(
     if (radiusByIdx && radiusByIdx.has(idx)) return radiusByIdx.get(idx)!;
     return pointRadius;
   };
+}
+
+// SVG geometry of one side's implied boundary (see `computeImpliedBoundary`):
+// the midline y = c/|x| and the band between y = lo/|x| and y = hi/|x|,
+// over the side's own |x| span clipped to the visible axes. `sign` is +1
+// for the up side, −1 for the down side. Null when the side isn't drawn
+// or falls outside the axes. Points are log-spaced in |x| so the steep
+// part near the y-axis stays smooth.
+export function impliedBoundaryGeometry(
+  side: BoundarySide,
+  sign: 1 | -1,
+  xMin: number,
+  xMax: number,
+  yMin: number,
+  yMax: number,
+  sx: (v: number) => number,
+  sy: (v: number) => number,
+  samples = 64
+): { line: string; band: string } | null {
+  if (side.status !== "ok") return null;
+  const edge = sign > 0 ? xMax : -xMin;
+  const near = sign > 0 ? Math.max(0, xMin) : Math.max(0, -xMax);
+  const from = Math.max(side.absFrom, near, 1e-9);
+  const to = Math.min(side.absTo, edge);
+  if (!(to > from) || !(yMax > yMin)) return null;
+  const clampY = (v: number) => Math.min(yMax, Math.max(yMin, v));
+  const pt = (a: number, k: number) => sx(sign * a).toFixed(2) + "," + sy(clampY(k / a)).toFixed(2);
+  const span = (a0: number, a1: number): number[] => {
+    const out: number[] = [];
+    const l0 = Math.log(a0);
+    const l1 = Math.log(a1);
+    for (let i = 0; i <= samples; i++) out.push(Math.exp(l0 + ((l1 - l0) * i) / samples));
+    return out;
+  };
+  // Midline: start where it enters the plot from the top.
+  const lineFrom = Math.max(from, side.c / yMax);
+  const line =
+    to > lineFrom
+      ? "M" +
+        span(lineFrom, to)
+          .map((a) => pt(a, side.c))
+          .join("L")
+      : "";
+  // Band: along the hi curve outwards, back along the lo curve. Both are
+  // clamped to the axes, so near the y-axis the band follows the top edge.
+  const lo = Math.max(side.lo, 0);
+  const xs = span(from, to);
+  const band =
+    "M" +
+    xs.map((a) => pt(a, side.hi)).join("L") +
+    "L" +
+    xs
+      .slice()
+      .reverse()
+      .map((a) => pt(a, lo))
+      .join("L") +
+    "Z";
+  return { line, band };
 }

@@ -486,9 +486,13 @@ export function parseLongFormatSets(
 // as text. This is the standard OWASP CSV-injection mitigation.
 
 const _CSV_FORMULA_LEAD = /^[=+\-@\t\r]/;
+// A cell that is exactly "+" or "-" is stored as text by every engine —
+// nothing follows the sign to evaluate — and is how +/− significance-call
+// columns are written, so it is not flagged.
+const _BARE_SIGN = /^[+-]$/;
 
 function _isFormulaInjection(s: string): boolean {
-  return _CSV_FORMULA_LEAD.test(s) && !isNumericValue(s);
+  return _CSV_FORMULA_LEAD.test(s) && !isNumericValue(s) && !_BARE_SIGN.test(s);
 }
 
 function _escapeCsvCell(v: unknown): string {

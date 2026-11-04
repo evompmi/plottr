@@ -48,6 +48,9 @@ export interface VolcanoPoint {
   // for log-scale input, where it is the y position: `p` (10^−v) is
   // kept for the cutoff and class, and underflows to 0 past v ≈ 323.
   nlog10?: number;
+  // The file's own significance call (a mapped yes / no column), when
+  // one is mapped. Overrides the cutoffs in `classifyVolcanoPoint`.
+  call?: boolean;
 }
 
 // How the p-value column is written: raw p, −log₁₀(p) (positive, the
@@ -114,6 +117,182 @@ export function classifyPoint(
   if (log2fc > fcCutoff) return "up";
   if (log2fc < -fcCutoff) return "down";
   return "ns";
+}
+
+// Class of one point: the file's own call when a significance column is
+// mapped (significant → up / down by the sign of log₂FC), else the
+// cutoffs. Every classifier in the tool goes through here.
+export function classifyVolcanoPoint(
+  pt: VolcanoPoint,
+  fcCutoff: number,
+  pCutoff: number
+): VolcanoClass {
+  if (pt.call === undefined) return classifyPoint(pt.log2fc, pt.p, fcCutoff, pCutoff);
+  if (!pt.call || !Number.isFinite(pt.log2fc)) return "ns";
+  if (pt.log2fc > 0) return "up";
+  if (pt.log2fc < 0) return "down";
+  return "ns";
+}
+
+// ── Significance-call column ────────────────────────────────────────────
+//
+// A two-category column with the file's own calls: yes / no, + / −,
+// + / empty, true / false, 1 / 0, significant / ns. `parseCall` returns
+// null for anything else, so a column of other values can't be read
+// as calls by accident.
+
+const CALL_TRUE = new Set(["yes", "y", "true", "t", "1", "+", "*", "sig", "significant"]);
+const CALL_FALSE = new Set([
+  "no",
+  "n",
+  "false",
+  "f",
+  "0",
+  "-",
+  "−",
+  "",
+  "null",
+  "na",
+  "nan",
+  "ns",
+  "n.s.",
+  "not significant",
+  "non-significant",
+  "nonsignificant",
+]);
+
+export function parseCall(raw: string | null | undefined): boolean | null {
+  const v = String(raw ?? "")
+    .trim()
+    .toLowerCase();
+  if (CALL_TRUE.has(v)) return true;
+  if (CALL_FALSE.has(v)) return false;
+  return null;
+}
+
+// Values of a column that `parseCall` can't read (distinct, first few),
+// so the Configure step can say why a picked column isn't usable.
+export function unreadableCalls(values: string[], max = 3): string[] {
+  const out: string[] = [];
+  for (const v of values) {
+    if (parseCall(v) !== null) continue;
+    const s = String(v).trim();
+    if (!out.includes(s)) out.push(s);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+const CALL_PATTERNS = [
+  /^(is[\s_.-]?)?sig(nif(icant|icance)?)?$/i,
+  /^(de|deg|diff[\s_.-]?exp(ressed)?)$/i,
+];
+
+// Auto-pick a significance column: a matching name whose every value
+// reads as a call, at least one of them significant. -1 when none.
+export function detectCallColumn(headers: string[], rawData: string[][]): number {
+  for (let i = 0; i < headers.length; i++) {
+    if (!CALL_PATTERNS.some((re) => re.test(String(headers[i]).trim()))) continue;
+    let anyTrue = false;
+    let ok = true;
+    for (const row of rawData) {
+      const c = parseCall(row[i]);
+      if (c === null) {
+        ok = false;
+        break;
+      }
+      if (c) anyTrue = true;
+    }
+    if (ok && anyTrue) return i;
+  }
+  return -1;
+}
+
+// ── Boundary implied by the significance calls ──────────────────────────
+//
+// Score s = |x|·y (y = −log₁₀ p) of every called point. Over a set of
+// points, lo = largest score among non-significant ones, hi = smallest
+// among significant ones. lo < hi means the curve y = c/|x| with
+// lo < c < hi separates the calls; it is drawn at c = (lo + hi)/2 with a
+// band from lo to hi. lo ≥ hi: no single curve separates them.
+//
+// Calls are usually made symmetrically (two-sided tests, one |log₂FC|
+// threshold), so both sides are pooled first: one c, mirrored, which
+// lets a sparse side borrow its constraint from the other. Only when no
+// symmetric curve fits are the sides fitted separately (the calls look
+// asymmetric). A fit needs MIN_CALLS_PER_SIDE calls of each kind, and is
+// drawn only over the |x| span of the points it was fitted on
+// (`absFrom` … `absTo`), never extrapolated past the data.
+
+export const MIN_CALLS_PER_SIDE = 3;
+
+export type BoundarySide =
+  | {
+      status: "ok";
+      lo: number;
+      hi: number;
+      c: number;
+      nSig: number;
+      nNs: number;
+      absFrom: number;
+      absTo: number;
+    }
+  | { status: "overlap"; lo: number; hi: number; nSig: number; nNs: number }
+  | { status: "tooFew"; nSig: number; nNs: number };
+
+// `symmetric`: one curve fits both sides (up and down carry the same fit).
+// `perSide`: no symmetric curve fits, at least one side fits on its own.
+// `none`: neither; `pooled` and the sides say why.
+export interface ImpliedBoundary {
+  mode: "symmetric" | "perSide" | "none";
+  pooled: BoundarySide;
+  up: BoundarySide;
+  down: BoundarySide;
+}
+
+// Fit over the points on one side (sign ±1) or both (sign 0).
+function fitBoundary(points: VolcanoPoint[], pFloor: number, sign: 1 | -1 | 0): BoundarySide {
+  let lo = -Infinity;
+  let hi = Infinity;
+  let nSig = 0;
+  let nNs = 0;
+  let absFrom = Infinity;
+  let absTo = 0;
+  for (const pt of points) {
+    if (pt.call === undefined || !Number.isFinite(pt.log2fc) || !Number.isFinite(pt.p)) continue;
+    if (pt.log2fc === 0) continue;
+    if (sign !== 0 && Math.sign(pt.log2fc) !== sign) continue;
+    const y = pointNegLog10(pt, pFloor);
+    if (!Number.isFinite(y)) continue;
+    const ax = Math.abs(pt.log2fc);
+    if (ax < absFrom) absFrom = ax;
+    if (ax > absTo) absTo = ax;
+    const s = ax * y;
+    if (pt.call) {
+      nSig++;
+      if (s < hi) hi = s;
+    } else {
+      nNs++;
+      if (s > lo) lo = s;
+    }
+  }
+  if (nSig < MIN_CALLS_PER_SIDE || nNs < MIN_CALLS_PER_SIDE) {
+    return { status: "tooFew", nSig, nNs };
+  }
+  if (lo < hi && hi > 0) {
+    const c = (Math.max(lo, 0) + hi) / 2;
+    return { status: "ok", lo, hi, c, nSig, nNs, absFrom, absTo };
+  }
+  return { status: "overlap", lo, hi, nSig, nNs };
+}
+
+export function computeImpliedBoundary(points: VolcanoPoint[], pFloor: number): ImpliedBoundary {
+  const pooled = fitBoundary(points, pFloor, 0);
+  if (pooled.status === "ok") return { mode: "symmetric", pooled, up: pooled, down: pooled };
+  const up = fitBoundary(points, pFloor, 1);
+  const down = fitBoundary(points, pFloor, -1);
+  const mode = up.status === "ok" || down.status === "ok" ? "perSide" : "none";
+  return { mode, pooled, up, down };
 }
 
 // Smallest non-zero, finite p-value across the dataset, divided by 10.
@@ -259,7 +438,7 @@ export function summarize(
       discarded++;
       continue;
     }
-    const cls = classifyPoint(pt.log2fc, pt.p, fcCutoff, pCutoff);
+    const cls = classifyVolcanoPoint(pt, fcCutoff, pCutoff);
     if (cls === "up") up++;
     else if (cls === "down") down++;
     else ns++;
@@ -388,7 +567,7 @@ export function pickTopLabels(
     const pt = points[i];
     if (!Number.isFinite(pt.log2fc) || !Number.isFinite(pt.p)) continue;
     if (!pt.label) continue;
-    const cls = classifyPoint(pt.log2fc, pt.p, fcCutoff, pCutoff);
+    const cls = classifyVolcanoPoint(pt, fcCutoff, pCutoff);
     if (cls === "ns") continue;
     const score = Math.abs(pt.log2fc) * pointNegLog10(pt, pFloor);
     if (cls === "up") ups.push({ idx: i, score, cls });
@@ -1345,7 +1524,8 @@ export function buildPoints(
   xCol: number,
   yCol: number,
   labelCol: number,
-  pScale: PScale = "p"
+  pScale: PScale = "p",
+  callCol = -1
 ): VolcanoPoint[] {
   const out: VolcanoPoint[] = [];
   for (let i = 0; i < rawData.length; i++) {
@@ -1358,13 +1538,17 @@ export function buildPoints(
     const labelRaw =
       labelCol >= 0 && row[labelCol] != null && row[labelCol] !== "" ? String(row[labelCol]) : null;
     const label = labelRaw == null ? null : labelRaw.trim() || null;
+    let pt: VolcanoPoint;
     if (pScale === "p") {
-      out.push({ idx: i, log2fc, p: y, label });
+      pt = { idx: i, log2fc, p: y, label };
     } else {
       // Back to p for the cutoff / class; keep −log₁₀ for the y position.
       const nlog10 = pScale === "neglog10" ? y : -y;
-      out.push({ idx: i, log2fc, p: Math.pow(10, -nlog10), label, nlog10 });
+      pt = { idx: i, log2fc, p: Math.pow(10, -nlog10), label, nlog10 };
     }
+    // An unreadable call counts as not significant.
+    if (callCol >= 0) pt.call = parseCall(row[callCol]) === true;
+    out.push(pt);
   }
   return out;
 }
@@ -1499,6 +1683,9 @@ export interface VolcanoChartProps {
   plotWidth?: number;
   plotBg: string;
   onLabelLayoutInfo?: (info: LabelLayoutInfo) => void;
+  // Set when a significance-call column is mapped: replaces the straight
+  // cutoff lines with the boundary those calls imply.
+  boundary?: ImpliedBoundary | null;
 }
 
 // ── Sidebar-tile props (controls.tsx) ──────────────────────────────────
@@ -1506,6 +1693,10 @@ export interface VolcanoChartProps {
 export interface ThresholdsTileProps {
   vis: VolcanoVis;
   updVis: UpdVolcanoVis;
+  // Significance-call column name and its implied boundary; when set the
+  // tile reports the boundary instead of offering the cutoffs.
+  callLabel?: string;
+  boundary?: ImpliedBoundary | null;
 }
 
 export interface ColorsTileProps {
@@ -1568,6 +1759,8 @@ export interface SummaryTileProps {
   summary: VolcanoSummary;
   fcCutoff: number;
   pCutoff: number;
+  // Set when the file's own calls classify the points.
+  callLabel?: string;
 }
 
 // ── Step props (steps.tsx) ─────────────────────────────────────────────
@@ -1589,6 +1782,9 @@ export interface ConfigureStepProps {
   pScale: PScale;
   pScaleReason: PScaleReason;
   setPScale: (s: PScale) => void;
+  // Optional significance-call column, -1 for none.
+  callCol: number;
+  setCallCol: (i: number) => void;
 }
 
 export interface PlotStepProps {
@@ -1623,4 +1819,8 @@ export interface PlotStepProps {
   onReset: () => void;
   labelDensity: LabelLayoutInfo;
   onLabelLayoutInfo: (info: LabelLayoutInfo) => void;
+  // Significance-call column: its name ("" when none) and the boundary
+  // its calls imply (null when none).
+  callLabel: string;
+  boundary: ImpliedBoundary | null;
 }

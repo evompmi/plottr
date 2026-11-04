@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Volcano: a significance-call column (yes / no, + / −, + / empty, …; auto-picked when named like `significant`) colours the points by the file's own calls and replaces the straight cutoff lines with the boundary those calls imply: a curve y = c/|log₂FC|, shaded between the tightest calls. Both sides are fitted together and mirrored, so a sparse side borrows from the other; when no symmetric curve fits, each side is fitted on its own. A fit needs 3 calls of each kind and the Thresholds tile says when none fits. Carries into the CSV and R script.
 - Volcano: p-value columns that are already log-transformed are read correctly. On the Configure step, "Values are" picks p, −log₁₀ p or log₁₀ p; it is set automatically when values exceed 1, are negative, or the column name mentions log, with a note saying why. The cutoff, classes, labels, CSV and R script all follow.
 - Volcano: a Points choice (Filled / Open) in the Style tab draws the points as solid discs or as open circles in the same colours, with or without colour / size mapping. It carries into SVG / PNG exports and the R script (`shape = 1`).
 
 ### Changed
 
+- A cell that is exactly `+` or `-` is no longer flagged as possible formula injection; no spreadsheet evaluates a bare sign, and +/− call columns were lighting up the warning. Longer sign-led cells are still flagged and escaped.
 - Files and pasted data up to 4 MB are accepted (was 2 MB); the large-file warning now appears above 2 MB (was 1 MB). Measured at 4 MB, every plot tool loads realistic data in about 2.5 s or less.
 
 ## [2.3.0] - 2026-11-02

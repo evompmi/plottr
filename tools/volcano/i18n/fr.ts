@@ -83,6 +83,27 @@ const fr: Record<VolcanoKey, string> = {
     "Les valeurs sont négatives, ce qu’une p-value ne peut pas être : lues comme log₁₀(p). Changez-le ci-dessus si c’est faux.",
   "volcano.cfg.pScaleHeader":
     "Le nom de la colonne mentionne log : lues comme −log₁₀(p). Changez-le ci-dessus s’il s’agit de p-values brutes.",
+  "volcano.aes.call": "Appel de significativité (optionnel)",
+  "volcano.cfg.callNote":
+    "Votre propre colonne significatif / non significatif (yes / no, + / −, + / vide, true / false, 1 / 0). Si elle est choisie, elle colore les points à la place des seuils, et le graphique montre la frontière impliquée par ces appels.",
+  "volcano.cfg.callUnreadable":
+    "Valeurs non lues comme un appel, comptées comme non significatives : {values}.",
+  "volcano.thresh.fromCalls":
+    "Les points sont colorés selon la colonne « {col} », les seuils ne s’appliquent donc pas. Le graphique montre la courbe y = c / |log₂FC| qui sépare ces appels.",
+  "volcano.thresh.showBoundary": "Afficher la frontière impliquée",
+  "volcano.boundary.sideBoth": "Les deux côtés (une courbe en miroir)",
+  "volcano.boundary.asymmetric":
+    "Aucune courbe unique ne convient aux deux côtés (les appels semblent asymétriques) : chaque côté est ajusté séparément :",
+  "volcano.boundary.sideUp": "Côté surexprimé",
+  "volcano.boundary.sideDown": "Côté sous-exprimé",
+  "volcano.boundary.ok":
+    "{side} : |log₂FC| × −log₁₀ p = {c} (les appels permettent {lo} à {hi}, ombré).",
+  "volcano.boundary.overlap":
+    "{side} : appels non séparables par une seule courbe. Rien n’est tracé.",
+  "volcano.boundary.tooFew":
+    "{side} : trop peu d’appels pour tracer une frontière ({sig} significatifs, {ns} non ; il en faut {min} de chaque).",
+  "volcano.boundary.legend": "frontière impliquée par les appels de significativité",
+  "volcano.summary.fromCalls": "appels de « {col} »",
   "volcano.cfg.labelNone": "— aucune —",
   "volcano.cfg.labelNote":
     "Colonne catégorielle servant à annoter les top-N caractéristiques les plus significatives (symbole de gène, nom de protéine, accession). À ignorer si vos données n’ont pas de telle colonne.",
