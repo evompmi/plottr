@@ -111,6 +111,17 @@ test("hostile leading-minus strings are still flagged", () => {
   eq(r.count, 2, "hostile non-numeric strings should still be flagged");
 });
 
+test("a bare + or - (a +/− call column) is not flagged; anything longer still is", () => {
+  const calm = scanForFormulaInjection(["significant"], [["+"], ["-"], [""], ["+"]]);
+  eq(calm.count, 0, "bare signs should not be flagged");
+  const hostile = scanForFormulaInjection(["A"], [["++"], ["+ "], ["-+"], ["+A1"], ["="], ["@"]]);
+  eq(hostile.count, 6, "longer sign-led strings and bare = / @ are still flagged");
+  // Export: bare signs stay as they are; longer ones keep the apostrophe.
+  const out = buildCsvString(["s"], [["+"], ["-"], ["+A1"]]);
+  assert(out.includes('"+"') && out.includes('"-"'), "bare signs exported unescaped: " + out);
+  assert(out.includes(`"'+A1"`), "longer sign-led cell still escaped: " + out);
+});
+
 test("flags hostile headers", () => {
   const r = scanForFormulaInjection(["=evil", "B"], [["1", "2"]]);
   eq(r.count, 1, "wrong count");

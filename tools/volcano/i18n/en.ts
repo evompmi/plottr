@@ -94,6 +94,25 @@ const en = {
     "The values are negative, which a p-value can't be: read as log₁₀(p). Change it above if that's wrong.",
   "volcano.cfg.pScaleHeader":
     "The column name mentions log: read as −log₁₀(p). Change it above if these are plain p-values.",
+  "volcano.aes.call": "Significance call (optional)",
+  "volcano.cfg.callNote":
+    "Your own significant / not-significant column (yes / no, + / −, + / empty, true / false, 1 / 0). When set, it colours the points instead of the cutoffs, and the plot shows the boundary those calls imply.",
+  "volcano.cfg.callUnreadable": "Values not read as a call, counted as not significant: {values}.",
+  "volcano.thresh.fromCalls":
+    "Points are coloured by the column “{col}”, so the cutoffs don't apply. The plot shows the curve y = c / |log₂FC| that separates those calls.",
+  "volcano.thresh.showBoundary": "Show the implied boundary",
+  "volcano.boundary.sideBoth": "Both sides (one mirrored curve)",
+  "volcano.boundary.asymmetric":
+    "No single curve fits both sides (the calls look asymmetric), so each side is fitted on its own:",
+  "volcano.boundary.sideUp": "Up side",
+  "volcano.boundary.sideDown": "Down side",
+  "volcano.boundary.ok":
+    "{side}: |log₂FC| × −log₁₀ p = {c} (the calls allow {lo} to {hi}, shaded).",
+  "volcano.boundary.overlap": "{side}: calls not separable by a single curve. Nothing drawn.",
+  "volcano.boundary.tooFew":
+    "{side}: too few calls to draw a boundary ({sig} significant, {ns} not; needs {min} of each).",
+  "volcano.boundary.legend": "boundary implied by the significance calls",
+  "volcano.summary.fromCalls": "calls from “{col}”",
   "volcano.cfg.labelNone": "— none —",
   "volcano.cfg.labelNote":
     "Categorical column used to annotate the top-N most-significant features (gene symbol, protein name, accession). Skip if your data has no such column.",

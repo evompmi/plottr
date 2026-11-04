@@ -27,8 +27,10 @@ import type {
   StyleTileProps,
   SummaryTileProps,
   ThresholdsTileProps,
+  ImpliedBoundary,
+  BoundarySide,
 } from "./helpers";
-import { matchPointsByLabel } from "./helpers";
+import { matchPointsByLabel, MIN_CALLS_PER_SIDE } from "./helpers";
 import { useT } from "./i18n";
 
 import { COLOR_PALETTES, DIVERGING_PALETTES, interpolateColor } from "../_core/color";
@@ -47,8 +49,65 @@ export function ToggleRow({
   return <CheckboxField label={children} checked={checked} onChange={onChange} />;
 }
 
-export function ThresholdsTile({ vis, updVis }: ThresholdsTileProps) {
+// One line per side of the boundary implied by the significance calls.
+function BoundaryStatus({ boundary }: { boundary: ImpliedBoundary }) {
   const tr = useT();
+  const fmt = (v: number) => String(Number(v.toPrecision(3)));
+  const line = (s: BoundarySide, side: string): string =>
+    s.status === "ok"
+      ? tr("volcano.boundary.ok", {
+          side,
+          c: fmt(s.c),
+          lo: fmt(Math.max(s.lo, 0)),
+          hi: fmt(s.hi),
+        })
+      : s.status === "overlap"
+        ? tr("volcano.boundary.overlap", { side })
+        : tr("volcano.boundary.tooFew", {
+            side,
+            sig: s.nSig,
+            ns: s.nNs,
+            min: MIN_CALLS_PER_SIDE,
+          });
+  // One symmetric fit (or too few calls for any fit): a single line for
+  // both sides. Otherwise the pooled fit overlapped, so say so and give
+  // each side's own fit.
+  const lines =
+    boundary.mode === "symmetric" || boundary.pooled.status === "tooFew"
+      ? [line(boundary.pooled, tr("volcano.boundary.sideBoth"))]
+      : [
+          tr("volcano.boundary.asymmetric"),
+          line(boundary.up, tr("volcano.boundary.sideUp")),
+          line(boundary.down, tr("volcano.boundary.sideDown")),
+        ];
+  return (
+    <div data-testid="volcano-boundary-status" style={{ display: "grid", gap: 4 }}>
+      {lines.map((text, i) => (
+        <div key={i} style={{ fontSize: 11, color: "var(--text)" }}>
+          {text}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ThresholdsTile({ vis, updVis, callLabel, boundary }: ThresholdsTileProps) {
+  const tr = useT();
+  if (callLabel && boundary) {
+    // The file's own calls classify the points, so the cutoffs don't
+    // apply; the tile reports what those calls imply instead.
+    return (
+      <ControlSection title={tr("volcano.thresh.title")} defaultOpen>
+        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          {tr("volcano.thresh.fromCalls", { col: callLabel })}
+        </div>
+        <BoundaryStatus boundary={boundary} />
+        <ToggleRow checked={vis.showRefLines} onChange={(v) => updVis({ showRefLines: v })}>
+          {tr("volcano.thresh.showBoundary")}
+        </ToggleRow>
+      </ControlSection>
+    );
+  }
   // |log2FC| cutoff: numeric stepper (−/+ buttons + free-form entry).
   // p-value cutoff: discrete select with the conventional values
   // researchers actually use ({0.05, 0.01, 0.001}) plus "None" — the
@@ -804,7 +863,7 @@ export function SizeMapTile({
   );
 }
 
-export function SummaryTile({ summary, fcCutoff, pCutoff }: SummaryTileProps) {
+export function SummaryTile({ summary, fcCutoff, pCutoff, callLabel }: SummaryTileProps) {
   const tr = useT();
   return (
     <div
@@ -828,7 +887,9 @@ export function SummaryTile({ summary, fcCutoff, pCutoff }: SummaryTileProps) {
         {summary.discarded > 0 ? tr("volcano.summary.discarded", { n: summary.discarded }) : ""}
       </span>
       <span style={{ color: "var(--text-faint)" }}>
-        {tr("volcano.summary.cutoffs", { fc: fcCutoff, p: pCutoff })}
+        {callLabel
+          ? tr("volcano.summary.fromCalls", { col: callLabel })
+          : tr("volcano.summary.cutoffs", { fc: fcCutoff, p: pCutoff })}
       </span>
     </div>
   );

@@ -26,6 +26,7 @@ vm.runInContext(
 );
 const helpers = runCjs(ctx, helpersCjs);
 const reports = runCjs(ctx, bundleShell("volcano/reports.ts"));
+const chartLayout = runCjs(ctx, bundleShell("volcano/chart-layout.ts"));
 
 module.exports = {
   // shared.js re-exports kept for parity with sibling loaders
@@ -59,6 +60,14 @@ module.exports = {
   eligibleColumns: helpers.eligibleColumns,
   detectPScale: helpers.detectPScale,
   pointNegLog10: helpers.pointNegLog10,
+  classifyVolcanoPoint: helpers.classifyVolcanoPoint,
+  parseCall: helpers.parseCall,
+  unreadableCalls: helpers.unreadableCalls,
+  detectCallColumn: helpers.detectCallColumn,
+  computeImpliedBoundary: helpers.computeImpliedBoundary,
+  MIN_CALLS_PER_SIDE: helpers.MIN_CALLS_PER_SIDE,
+  // volcano/chart-layout.ts
+  impliedBoundaryGeometry: chartLayout.impliedBoundaryGeometry,
   // volcano/reports.ts
   buildVolcanoRScript: reports.buildVolcanoRScript,
   buildVolcanoCsv: reports.buildVolcanoCsv,

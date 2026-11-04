@@ -245,6 +245,7 @@ Conventional ids already used across tools — reuse them for consistency:
 - **Annotations** — `cld-annotations`, `significance-brackets` (both take an `id` prop for charts that draw several sets in one SVG), `significance-stars`, `stats-summary`, `subgroup-separators`, `subgroup-labels`, `composition-<group>` (Group Plot's composition pies)
 - **Text** — `title`, `subtitle`, `legend`, `row-labels` (heatmap), `col-labels` (heatmap)
 - **Heatmap-specific** — `col-dendrogram`, `row-dendrogram`, `col-cluster-strip`, `row-cluster-strip`, `colorbar`, `colorbar-histogram` (nested in `colorbar`)
+- **Volcano-specific** — `implied-boundary` (only with a significance-call column) holding `implied-boundary-up` / `implied-boundary-down` (band + dashed midline; one mirrored fit when the calls are symmetric, else per side) and `implied-boundary-legend`
 - **Proportions-specific** — `segments` (stacked / mosaic; one `group-<name>` per bar), `ci-whiskers` (Wilson CIs), `n-labels`
 - **qPCR-specific** — one `facet-<gene>` per target gene holding `bars-<gene>`, `error-bars-<gene>` (SEM / SD / 95 % CI), `points-<gene>`, `reference-line-<gene>` (FC = 1; only with a calibrator group), `vs-control-<gene>` (stars vs a hidden calibrator column), `significance-brackets-<gene>` / `cld-annotations-<gene>`, `stats-summary-<gene>` (the printed summary), `axis-x-<gene>` / `axis-y-<gene>` (the value axis is `axis-y-*` and the group axis `axis-x-*` in either orientation; data layers are clipped to `clip-<gene>`), plus a chart-level `footnote` explaining those stars
 

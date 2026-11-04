@@ -15,7 +15,7 @@ import {
   WorkspaceLayout,
 } from "../_shell";
 import type { ChartDataTableRow } from "../_shell";
-import { classifyPoint } from "./helpers";
+import { classifyVolcanoPoint, unreadableCalls } from "./helpers";
 import {
   ThresholdsTile,
   ColorsTile,
@@ -58,8 +58,11 @@ export function ConfigureStep({
   pScale,
   pScaleReason,
   setPScale,
+  callCol,
+  setCallCol,
 }: ConfigureStepProps) {
   const tr = useT();
+  const badCalls = callCol >= 0 ? unreadableCalls(parsed.rawData.map((r) => r[callCol])) : [];
   const xValid = xCol >= 0;
   const yValid = yCol >= 0;
   return (
@@ -192,6 +195,36 @@ export function ConfigureStep({
             {tr("volcano.cfg.labelNote")}
           </div>
         </RoleCard>
+        <RoleCard title={tr("volcano.aes.call")}>
+          <select
+            aria-label={tr("volcano.aes.call")}
+            className="dv-select"
+            style={{ width: "100%" }}
+            value={callCol}
+            onChange={(e) => setCallCol(parseInt(e.target.value))}
+          >
+            <option value={-1}>{tr("volcano.cfg.labelNone")}</option>
+            {parsed.headers.map((h, i) => (
+              <option key={i} value={i}>
+                {h}
+              </option>
+            ))}
+          </select>
+          <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-faint)" }}>
+            {tr("volcano.cfg.callNote")}
+          </div>
+          {badCalls.length > 0 && (
+            <div
+              role="status"
+              data-testid="volcano-call-unreadable"
+              style={{ marginTop: 6, fontSize: 10, color: "var(--warning-text)" }}
+            >
+              {tr("volcano.cfg.callUnreadable", {
+                values: badCalls.map((v) => "“" + v + "”").join(", "),
+              })}
+            </div>
+          )}
+        </RoleCard>
       </div>
 
       {/* Warning banner when required roles aren't assigned. The stepper
@@ -272,6 +305,8 @@ export function PlotStep({
   onReset,
   labelDensity,
   onLabelLayoutInfo,
+  callLabel,
+  boundary,
 }: PlotStepProps) {
   const tr = useT();
 
@@ -289,7 +324,7 @@ export function PlotStep({
     const out: ChartDataTableRow[] = [];
     for (let i = 0; i < shown; i++) {
       const pt = points[i];
-      const cls = classifyPoint(pt.log2fc, pt.p, vis.fcCutoff, vis.pCutoff);
+      const cls = classifyVolcanoPoint(pt, vis.fcCutoff, vis.pCutoff);
       out.push({
         header: pt.label || tr("volcano.table.noLabel"),
         cells: [
@@ -332,7 +367,12 @@ export function PlotStep({
                       },
                     ]}
                   />
-                  <ThresholdsTile vis={vis} updVis={updVis} />
+                  <ThresholdsTile
+                    vis={vis}
+                    updVis={updVis}
+                    callLabel={callLabel}
+                    boundary={boundary}
+                  />
                   <ColorsTile vis={vis} updVis={updVis} />
                 </>
               ),
@@ -396,7 +436,14 @@ export function PlotStep({
           ]}
         />
       }
-      toolbar={<SummaryTile summary={summary} fcCutoff={vis.fcCutoff} pCutoff={vis.pCutoff} />}
+      toolbar={
+        <SummaryTile
+          summary={summary}
+          fcCutoff={vis.fcCutoff}
+          pCutoff={vis.pCutoff}
+          callLabel={callLabel}
+        />
+      }
       figure={
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {clampedCount > 0 && (
@@ -449,6 +496,7 @@ export function PlotStep({
               plotWidth={vis.plotWidth}
               plotBg="#ffffff"
               onLabelLayoutInfo={onLabelLayoutInfo}
+              boundary={boundary}
             />
           </div>
           <ChartDataTable

@@ -26,7 +26,7 @@ import { tt, useT } from "./i18n";
 import { useVolcanoHowTo } from "./howto";
 import {
   VOLCANO_DEFAULT_COLORS,
-  classifyPoint,
+  classifyVolcanoPoint,
   computePFloor,
   countClamped,
   summarize,
@@ -35,6 +35,8 @@ import {
   buildSizeMap,
   buildPoints,
   detectPScale,
+  detectCallColumn,
+  computeImpliedBoundary,
 } from "./helpers";
 import type {
   ColorMap,
@@ -373,6 +375,9 @@ export function App() {
   // went log (shown as a note), null when it stayed raw or was overridden.
   const [pScale, setPScale] = useState<PScale>("p");
   const [pScaleReason, setPScaleReason] = useState<PScaleReason>(null);
+  // Optional significance-call column (yes / no, + / −, …). When set, the
+  // file's calls colour the points and imply the plotted boundary.
+  const [callCol, setCallCol] = useState(-1);
   const [rawText, setRawText] = useState<string | null>(null);
   const sepRef = useRef("");
   // Separator the auto-detector resolved on the most recent parse. Surfaced
@@ -478,6 +483,7 @@ export function App() {
       setPScaleReason(scale.reason);
       setLabelCol(guess.labelCol);
       setYIsAdjusted(guess.yIsAdjusted);
+      setCallCol(detectCallColumn(out.headers, out.rawData));
       // Drop any prior manual selection / aesthetic mappings — their
       // column indices reference the previous dataset and would point
       // at the wrong column (or no column) on the new shape.
@@ -528,6 +534,7 @@ export function App() {
     setYIsAdjusted(false);
     setPScale("p");
     setPScaleReason(null);
+    setCallCol(-1);
     setFileName("");
     setInjectionWarning(null);
     setManualSelection(new Set());
@@ -540,8 +547,8 @@ export function App() {
 
   const points: VolcanoPoint[] = useMemo(() => {
     if (!parsed || xCol < 0 || yCol < 0) return [];
-    return buildPoints(parsed.rawData, xCol, yCol, labelCol, pScale);
-  }, [parsed, xCol, yCol, labelCol, pScale]);
+    return buildPoints(parsed.rawData, xCol, yCol, labelCol, pScale, callCol);
+  }, [parsed, xCol, yCol, labelCol, pScale, callCol]);
 
   // Picking a p column re-guesses its scale from that column's values.
   const chooseYCol = useCallback(
@@ -563,6 +570,11 @@ export function App() {
   }, []);
 
   const pFloor = useMemo(() => computePFloor(points), [points]);
+  const boundary = useMemo(
+    () => (callCol >= 0 ? computeImpliedBoundary(points, pFloor) : null),
+    [points, pFloor, callCol]
+  );
+  const callLabel = parsed && callCol >= 0 ? parsed.headers[callCol] : "";
   const clampedCount = useMemo(() => countClamped(points), [points]);
   const summary = useMemo(
     () => summarize(points, vis.fcCutoff, vis.pCutoff),
@@ -603,7 +615,7 @@ export function App() {
     // legend / colourbar range consistent with what the user sees.
     const sigIndices: number[] = [];
     for (const pt of points) {
-      const cls = classifyPoint(pt.log2fc, pt.p, vis.fcCutoff, vis.pCutoff);
+      const cls = classifyVolcanoPoint(pt, vis.fcCutoff, vis.pCutoff);
       if (cls !== "ns") sigIndices.push(pt.idx);
     }
     return buildColorMap({
@@ -677,6 +689,8 @@ export function App() {
       yIsAdjusted,
       pScale,
       pointStyle: vis.pointStyle,
+      callLabel,
+      boundary,
     });
     downloadText(txt, fileBaseName(fileName, "volcano") + ".R");
   };
@@ -735,6 +749,8 @@ export function App() {
           pScale={pScale}
           pScaleReason={pScaleReason}
           setPScale={choosePScale}
+          callCol={callCol}
+          setCallCol={setCallCol}
           setXCol={setXCol}
           setYCol={chooseYCol}
           setLabelCol={setLabelCol}
@@ -749,6 +765,8 @@ export function App() {
           xCol={xCol}
           yCol={yCol}
           labelCol={labelCol}
+          boundary={boundary}
+          callLabel={callLabel}
           points={points}
           pFloor={pFloor}
           clampedCount={clampedCount}

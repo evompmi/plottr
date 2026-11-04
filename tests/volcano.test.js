@@ -29,6 +29,13 @@ const {
   buildVolcanoCsv,
   detectPScale,
   pointNegLog10,
+  classifyVolcanoPoint,
+  parseCall,
+  unreadableCalls,
+  detectCallColumn,
+  computeImpliedBoundary,
+  MIN_CALLS_PER_SIDE,
+  impliedBoundaryGeometry,
   interpolateColor,
   COLOR_PALETTES,
   PALETTE,
@@ -1281,6 +1288,322 @@ test("R script: log input carries −log10(p) and derives p from it", () => {
   });
   assert(rawTxt.includes("p_floor <- min("), "raw input keeps the p floor");
   assert(rawTxt.includes("  pvalue  = c(0.001)"), "raw pvalue vector");
+});
+
+// ── Significance-call column + implied boundary ──────────────────────────
+
+suite("volcano — significance calls and the boundary they imply");
+
+test("parseCall reads the usual two-category spellings, null otherwise", () => {
+  for (const v of ["yes", "YES", "y", "true", "TRUE", "1", "+", "*", "significant", " Yes "]) {
+    eq(parseCall(v), true);
+  }
+  for (const v of ["no", "n", "false", "0", "-", "−", "", "null", "NA", "ns", "not significant"]) {
+    eq(parseCall(v), false);
+  }
+  eq(parseCall(undefined), false);
+  eq(parseCall("maybe"), null);
+  eq(parseCall("0.03"), null);
+});
+
+test("unreadableCalls lists distinct unreadable values, capped", () => {
+  eq(unreadableCalls(["yes", "maybe", "no", "maybe", "?", "x", "z"]).join("|"), "maybe|?|x");
+  eq(unreadableCalls(["+", "", "-"]).length, 0);
+});
+
+test("detectCallColumn: named column whose values all read as calls", () => {
+  const headers = ["gene", "log2FoldChange", "padj", "significant"];
+  eq(
+    detectCallColumn(headers, [
+      ["a", "1", "0.01", "yes"],
+      ["b", "0", "0.5", "no"],
+    ]),
+    3
+  );
+  eq(
+    detectCallColumn(headers, [
+      ["a", "1", "0.01", "+"],
+      ["b", "0", "0.5", "-"],
+    ]),
+    3
+  );
+  eq(
+    detectCallColumn(headers, [
+      ["a", "1", "0.01", "+"],
+      ["b", "0", "0.5", ""],
+    ]),
+    3
+  );
+  eq(detectCallColumn(["g", "x", "is_sig"], [["a", "1", "TRUE"]]), 2);
+  eq(detectCallColumn(["g", "x", "DE"], [["a", "1", "1"]]), 2);
+  // Unreadable values, no significant call, or another name → not picked.
+  eq(
+    detectCallColumn(headers, [
+      ["a", "1", "0.01", "maybe"],
+      ["b", "0", "0.5", "no"],
+    ]),
+    -1
+  );
+  eq(
+    detectCallColumn(headers, [
+      ["a", "1", "0.01", "no"],
+      ["b", "0", "0.5", "no"],
+    ]),
+    -1
+  );
+  eq(detectCallColumn(["gene", "x", "status"], [["a", "1", "yes"]]), -1);
+});
+
+test("buildPoints + classifyVolcanoPoint: calls override the cutoffs", () => {
+  const raw = [
+    ["A", "2", "0.5", "yes"], // fails both cutoffs, called significant → up
+    ["B", "-3", "1e-9", "no"], // passes both cutoffs, called ns → ns
+    ["C", "-0.2", "0.4", "+"], // significant, negative → down
+    ["D", "0", "1e-9", "yes"], // significant but log2FC = 0 → ns
+    ["E", "2", "0.01", "huh"], // unreadable → not significant
+  ];
+  const pts = buildPoints(raw, 1, 2, 0, "p", 3);
+  eq(pts.map((p) => p.call).join(","), "true,false,true,true,false");
+  eq(pts.map((p) => classifyVolcanoPoint(p, 1, 0.05)).join(","), "up,ns,down,ns,ns");
+  const sm = summarize(pts, 1, 0.05);
+  eq(sm.up, 1);
+  eq(sm.down, 1);
+  eq(sm.ns, 3);
+  // Without a call column the cutoffs decide, as before.
+  const plain = buildPoints(raw, 1, 2, 0);
+  eq(plain[0].call, undefined);
+  eq(plain.map((p) => classifyVolcanoPoint(p, 1, 0.05)).join(","), "ns,down,ns,ns,up");
+});
+
+// Up side: scores |x|·y for ns 0.5·1=0.5, 1·2=2, 2·1.5=3 → lo = 3;
+// sig 2·4=8, 3·5=15, 1.5·6=9 → hi = 8; c = 5.5.
+function callPoints(rows) {
+  return rows.map(([x, nl, call], i) => ({
+    idx: i,
+    log2fc: x,
+    p: Math.pow(10, -nl),
+    label: null,
+    nlog10: nl,
+    call,
+  }));
+}
+const UP_ROWS = [
+  [0.5, 1, false],
+  [1, 2, false],
+  [2, 1.5, false],
+  [2, 4, true],
+  [3, 5, true],
+  [1.5, 6, true],
+];
+
+test("computeImpliedBoundary: one side's calls give a mirrored symmetric fit", () => {
+  const b = computeImpliedBoundary(callPoints(UP_ROWS), 1e-300);
+  eq(b.mode, "symmetric");
+  for (const sd of [b.pooled, b.up, b.down]) {
+    eq(sd.status, "ok");
+    eq(sd.lo, 3);
+    eq(sd.hi, 8);
+    eq(sd.c, 5.5);
+    eq(sd.nSig, 3);
+    eq(sd.nNs, 3);
+    eq(sd.absFrom, 0.5);
+    eq(sd.absTo, 3);
+  }
+  eq(MIN_CALLS_PER_SIDE, 3);
+});
+
+test("computeImpliedBoundary: a sparse side borrows the other side's constraint", () => {
+  // Down side: a single significant call (score 3·9 = 27) — too few on
+  // its own, but consistent with the up side's curve.
+  const b = computeImpliedBoundary(callPoints([...UP_ROWS, [-3, 9, true]]), 1e-300);
+  eq(b.mode, "symmetric");
+  eq(b.down.status, "ok");
+  eq(b.down.c, 5.5);
+  eq(b.pooled.nSig, 4);
+  // A lone call that breaks the curve (score 2·1 = 2 < lo 3) forces the
+  // per-side fallback: up still fits, down is too sparse on its own.
+  const broken = computeImpliedBoundary(callPoints([...UP_ROWS, [-2, 1, true]]), 1e-300);
+  eq(broken.mode, "perSide");
+  eq(broken.pooled.status, "overlap");
+  eq(broken.up.status, "ok");
+  eq(broken.up.c, 5.5);
+  eq(broken.down.status, "tooFew");
+  eq(broken.down.nSig, 1);
+  eq(broken.down.nNs, 0);
+});
+
+// Down side called with a stricter rule: ns scores up to 12, calls from 20.
+const DOWN_STRICT = [
+  [-2, 6, false],
+  [-1, 3, false],
+  [-0.5, 2, false],
+  [-2, 10, true],
+  [-3, 9, true],
+  [-4, 6, true],
+];
+
+test("computeImpliedBoundary: asymmetric calls → each side fitted on its own", () => {
+  const b = computeImpliedBoundary(callPoints([...UP_ROWS, ...DOWN_STRICT]), 1e-300);
+  eq(b.mode, "perSide");
+  eq(b.pooled.status, "overlap");
+  eq(b.pooled.lo, 12);
+  eq(b.pooled.hi, 8);
+  eq(b.up.c, 5.5);
+  eq(b.down.status, "ok");
+  eq(b.down.lo, 12);
+  eq(b.down.hi, 20);
+  eq(b.down.c, 16);
+  eq(b.down.absFrom, 0.5);
+  eq(b.down.absTo, 4);
+});
+
+test("computeImpliedBoundary: nothing fits → mode none, with the reasons", () => {
+  // A non-significant point scoring 2·5 = 10 above the weakest call (8).
+  const b = computeImpliedBoundary(callPoints([...UP_ROWS, [2, 5, false]]), 1e-300);
+  eq(b.mode, "none");
+  eq(b.pooled.status, "overlap");
+  eq(b.up.status, "overlap");
+  eq(b.up.lo, 10);
+  eq(b.up.hi, 8);
+  eq(b.down.status, "tooFew");
+  // Too few calls overall.
+  const few = computeImpliedBoundary(callPoints(UP_ROWS.slice(1, 5)), 1e-300);
+  eq(few.mode, "none");
+  eq(few.pooled.status, "tooFew");
+  eq(few.pooled.nSig, 2);
+  eq(few.pooled.nNs, 2);
+});
+
+test("computeImpliedBoundary: points without calls, or at log2FC = 0, are ignored", () => {
+  const pts = callPoints(UP_ROWS).map((p) => ({ ...p, call: undefined }));
+  eq(computeImpliedBoundary(pts, 1e-300).mode, "none");
+  const zero = computeImpliedBoundary(callPoints([...UP_ROWS, [0, 50, false]]), 1e-300);
+  eq(zero.mode, "symmetric");
+  eq(zero.pooled.lo, 3);
+});
+
+test("impliedBoundaryGeometry: stays inside the axes and the side's data span", () => {
+  const b = computeImpliedBoundary(callPoints(UP_ROWS), 1e-300);
+  // Identity scales: path coordinates are data coordinates.
+  const g = impliedBoundaryGeometry(
+    b.up,
+    1,
+    -4,
+    4,
+    0,
+    10,
+    (v) => v,
+    (v) => v,
+    8
+  );
+  assert(g !== null, "geometry for an ok side");
+  const nums = (d) =>
+    d
+      .replace(/[MLZ]/g, " ")
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
+  const line = nums(g.line);
+  // Midline from where y = c/|x| enters the top (5.5 / 10) to absTo (3).
+  approx(line[0], 0.55, 1e-9);
+  approx(line[1], 10, 1e-9);
+  approx(line[line.length - 2], 3, 1e-9);
+  approx(line[line.length - 1], 5.5 / 3, 1e-2);
+  const band = nums(g.band);
+  for (let k = 0; k < band.length; k += 2) {
+    assert(band[k] >= 0.5 - 1e-9 && band[k] <= 3 + 1e-9, "band x inside the data span");
+    assert(band[k + 1] >= 0 && band[k + 1] <= 10, "band y inside the axes");
+  }
+  // Down side mirrors to negative x.
+  const gd = impliedBoundaryGeometry(
+    b.up,
+    -1,
+    -4,
+    4,
+    0,
+    10,
+    (v) => v,
+    (v) => v,
+    8
+  );
+  assert(nums(gd.line)[0] < 0, "down side draws at negative x");
+  // Not drawn: non-ok side, or the span lies off the visible axes.
+  eq(
+    impliedBoundaryGeometry(
+      { status: "tooFew", nSig: 1, nNs: 3 },
+      -1,
+      -4,
+      4,
+      0,
+      10,
+      (v) => v,
+      (v) => v
+    ),
+    null
+  );
+  eq(
+    impliedBoundaryGeometry(
+      b.up,
+      1,
+      -4,
+      0.2,
+      0,
+      10,
+      (v) => v,
+      (v) => v
+    ),
+    null
+  );
+});
+
+function rScriptFor(pts, boundary) {
+  return buildVolcanoRScript({
+    points: pts,
+    fcCutoff: 10,
+    pCutoff: 1e-20,
+    colors: VOLCANO_DEFAULT_COLORS,
+    xLabel: "",
+    yLabel: "",
+    plotTitle: "",
+    yIsAdjusted: true,
+    pScale: "neglog10",
+    callLabel: "significant",
+    boundary,
+    generatedAt: "2026-01-01T00:00:00Z",
+  });
+}
+
+test("CSV + R script follow the calls and draw the symmetric boundary", () => {
+  const pts = callPoints([...UP_ROWS, ...UP_ROWS.map(([x, nl, c]) => [-x, nl, c]).slice(0, 4)]);
+  const boundary = computeImpliedBoundary(pts, 1e-300);
+  eq(boundary.mode, "symmetric");
+  const { rows } = buildVolcanoCsv({
+    points: pts,
+    fcCutoff: 10,
+    pCutoff: 1e-20,
+    yIsAdjusted: true,
+  });
+  eq(rows.map((r) => r[4]).join(","), "ns,ns,ns,up,up,up,ns,ns,ns,down");
+  const txt = rScriptFor(pts, boundary);
+  assert(txt.includes("significant = c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE,"), "calls vector");
+  assert(txt.includes('  !significant, "ns",'), "classes from the calls");
+  assert(!txt.includes("geom_vline") && !txt.includes("geom_hline"), "no straight cutoffs");
+  assert(txt.includes("# One curve fits both sides"), "symmetric fit noted");
+  assert(txt.includes("b_up <- bnd(1, 3, 8, 5.5, 0.5, 3)"), "up side from the pooled fit");
+  assert(txt.includes("b_down <- bnd(-1, 3, 8, 5.5, 0.5, 3)"), "down side mirrors it");
+  assert(txt.includes("geom_ribbon(data = b_down"), "band on both sides");
+  assert(txt.includes("geom_line(data = b_up"), "midline");
+  assert(txt.includes('caption = "Dashed: boundary implied by the significance calls"'), "caption");
+  assert(!txt.includes('FDR threshold"'), "not labelled as an FDR threshold");
+});
+
+test("R script: per-side fallback draws only the side that fits", () => {
+  const pts = callPoints([...UP_ROWS, [-2, 1, true]]);
+  const txt = rScriptFor(pts, computeImpliedBoundary(pts, 1e-300));
+  assert(txt.includes("# No single curve fits both sides"), "asymmetric fit noted");
+  assert(txt.includes("b_up <- bnd(1, 3, 8, 5.5, 0.5, 3)"), "up side drawn");
+  assert(txt.includes("# down side: too few calls to draw a boundary; not drawn."), "down noted");
+  assert(!txt.includes("b_down"), "down side not drawn");
 });
 
 summary();

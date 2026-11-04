@@ -26,6 +26,7 @@ import {
   buildLabelLayout,
   makeFillFor,
   makeRadiusFor,
+  impliedBoundaryGeometry,
 } from "./chart-layout";
 import { ColorLegend, SizeLegend } from "./chart-legends";
 import { tt } from "./i18n";
@@ -111,6 +112,7 @@ export const VolcanoChart = memo(
       plotWidth,
       plotBg,
       onLabelLayoutInfo,
+      boundary,
     } = props;
 
     const VBW = plotWidth && plotWidth > 0 ? plotWidth : DEFAULT_VBW;
@@ -246,6 +248,20 @@ export const VolcanoChart = memo(
     const refXLeft = -fcCutoff;
     const refXRight = fcCutoff;
     const refY = -Math.log10(pCutoff);
+
+    // With the file's own significance calls, the straight cutoff lines
+    // give way to the boundary those calls imply (one curve per side).
+    const boundaryGeom = boundary
+      ? (
+          [
+            ["up", 1],
+            ["down", -1],
+          ] as const
+        ).map(([key, sign]) => ({
+          key,
+          geom: impliedBoundaryGeometry(boundary[key], sign, xMin, xMax, yMin, yMax, sx, sy),
+        }))
+      : null;
 
     const summary = useMemo(
       () => summarize(points, fcCutoff, pCutoff),
@@ -616,8 +632,62 @@ export const VolcanoChart = memo(
           </g>
         )}
 
+        {/* ── Boundary implied by the significance calls ───────────────── */}
+        {showRefLines && boundaryGeom && (
+          <g id="implied-boundary">
+            <defs>
+              <clipPath id="implied-boundary-clip">
+                <rect x={MARGIN.left} y={MARGIN.top} width={w} height={h} />
+              </clipPath>
+            </defs>
+            {boundaryGeom.map(
+              ({ key, geom }) =>
+                geom && (
+                  <g
+                    key={key}
+                    id={`implied-boundary-${key}`}
+                    clipPath="url(#implied-boundary-clip)"
+                  >
+                    <path d={geom.band} fill="#888888" fillOpacity="0.15" stroke="none" />
+                    {geom.line && (
+                      <path
+                        d={geom.line}
+                        fill="none"
+                        stroke="#555555"
+                        strokeWidth="1.2"
+                        strokeDasharray="5 3"
+                      />
+                    )}
+                  </g>
+                )
+            )}
+            {boundaryGeom.some(({ geom }) => geom) && (
+              <g id="implied-boundary-legend">
+                <line
+                  x1={MARGIN.left + 8}
+                  x2={MARGIN.left + 26}
+                  y1={MARGIN.top + 12}
+                  y2={MARGIN.top + 12}
+                  stroke="#555555"
+                  strokeWidth="1.2"
+                  strokeDasharray="5 3"
+                />
+                <text
+                  x={MARGIN.left + 30}
+                  y={MARGIN.top + 15}
+                  fontSize="10"
+                  fill="#555555"
+                  fontFamily="sans-serif"
+                >
+                  {tt("volcano.boundary.legend")}
+                </text>
+              </g>
+            )}
+          </g>
+        )}
+
         {/* ── Reference lines ─────────────────────────────────────────── */}
-        {showRefLines && (
+        {showRefLines && !boundaryGeom && (
           <g id="reference-lines">
             {refXLeft >= xMin && refXLeft <= xMax && (
               <line
