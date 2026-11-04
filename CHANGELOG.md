@@ -7,16 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-11-04
+
+> Long-form release notes live in
+> [`docs/release-notes/v2.4.0.md`](docs/release-notes/v2.4.0.md). The entries below are summary bullets that link there.
+>
+> The "Log Book" release: Volcano reads already-log-transformed p-values and your own
+> significance calls, and draws points as open circles; every tool accepts files up to 4 MB.
+> Statistical results for existing files are unchanged.
+
 ### Added
 
-- Volcano: a significance-call column (yes / no, + / −, + / empty, …; auto-picked when named like `significant`) colours the points by the file's own calls and replaces the straight cutoff lines with the boundary those calls imply: a curve y = c/|log₂FC|, shaded between the tightest calls. Both sides are fitted together and mirrored, so a sparse side borrows from the other; when no symmetric curve fits, each side is fitted on its own. A fit needs 3 calls of each kind and the Thresholds tile says when none fits. Carries into the CSV and R script.
-- Volcano: p-value columns that are already log-transformed are read correctly. On the Configure step, "Values are" picks p, −log₁₀ p or log₁₀ p; it is set automatically when values exceed 1, are negative, or the column name mentions log, with a note saying why. The cutoff, classes, labels, CSV and R script all follow.
-- Volcano: a Points choice (Filled / Open) in the Style tab draws the points as solid discs or as open circles in the same colours, with or without colour / size mapping. It carries into SVG / PNG exports and the R script (`shape = 1`).
+- **Volcano reads p-value columns that are already log-transformed.** A "Values are" switch on
+  Configure (p, −log₁₀ p or log₁₀ p) is set automatically from the values or the column name,
+  with a note. Regression: 10 tests. See
+  [`docs/release-notes/v2.4.0.md`](docs/release-notes/v2.4.0.md#volcano-p-value-columns-that-are-already-log-transformed).
+- **Volcano draws the boundary implied by your own significance calls.** An optional column of
+  calls (yes / no, + / −) colours the points and replaces the straight cutoffs with a shaded
+  curve y = c / |log₂FC|, mirrored when the calls are symmetric. Regression: 13 tests. See
+  [`docs/release-notes/v2.4.0.md`](docs/release-notes/v2.4.0.md#volcano-the-boundary-implied-by-your-own-significance-calls).
+- **Volcano points can be filled or open circles**, with or without colour / size mapping, in
+  exports and the R script. Regression: 5 tests. See [`docs/release-notes/v2.4.0.md`](docs/release-notes/v2.4.0.md#volcano-filled-or-open-points).
 
 ### Changed
 
-- A cell that is exactly `+` or `-` is no longer flagged as possible formula injection; no spreadsheet evaluates a bare sign, and +/− call columns were lighting up the warning. Longer sign-led cells are still flagged and escaped.
-- Files and pasted data up to 4 MB are accepted (was 2 MB); the large-file warning now appears above 2 MB (was 1 MB). Measured at 4 MB, every plot tool loads realistic data in about 2.5 s or less.
+- **Files up to 4 MB** (was 2 MB), with the warning above 2 MB. See
+  [`docs/release-notes/v2.4.0.md`](docs/release-notes/v2.4.0.md#files-up-to-4-mb).
+- **A bare `+` or `-` is no longer flagged as formula injection**; longer sign-led cells still
+  are. Regression: 1 test. See
+  [`docs/release-notes/v2.4.0.md`](docs/release-notes/v2.4.0.md#a-bare--or---is-not-flagged-as-formula-injection).
 
 ## [2.3.0] - 2026-11-02
 
