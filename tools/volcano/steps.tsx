@@ -395,6 +395,7 @@ export function PlotStep({
               colors={{ up: vis.colorUp, down: vis.colorDown, ns: vis.colorNs }}
               pointRadius={vis.pointRadius}
               pointAlpha={vis.pointAlpha}
+              pointStyle={vis.pointStyle}
               showRefLines={vis.showRefLines}
               showLabels={vis.showLabels}
               topNUp={vis.topNUp}

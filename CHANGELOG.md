@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Volcano: a Points choice (Filled / Open) in the Style tab draws the points as solid discs or as open circles in the same colours, with or without colour / size mapping. It carries into SVG / PNG exports and the R script (`shape = 1`).
+
 ### Changed
 
 - Files and pasted data up to 4 MB are accepted (was 2 MB); the large-file warning now appears above 2 MB (was 1 MB). Measured at 4 MB, every plot tool loads realistic data in about 2.5 s or less.

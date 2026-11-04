@@ -25,6 +25,7 @@ const {
   matchPointsByLabel,
   buildPoints,
   eligibleColumns,
+  buildVolcanoRScript,
   interpolateColor,
   COLOR_PALETTES,
   PALETTE,
@@ -1102,5 +1103,40 @@ test("ordering-perturbed grid still resolves cleanly when sparse", () => {
   const forcedCount = placed.filter((p) => p.forced).length;
   eq(forcedCount, 0);
 });
+
+// ── buildVolcanoRScript: point style ─────────────────────────────────────
+
+suite("buildVolcanoRScript — point style");
+
+{
+  const rArgs = {
+    points: [
+      { idx: 0, log2fc: 2, p: 0.001, label: "A" },
+      { idx: 1, log2fc: -2, p: 0.002, label: "B" },
+      { idx: 2, log2fc: 0.1, p: 0.5, label: "C" },
+    ],
+    fcCutoff: 1,
+    pCutoff: 0.05,
+    colors: VOLCANO_DEFAULT_COLORS,
+    xLabel: "",
+    yLabel: "",
+    plotTitle: "",
+    yIsAdjusted: false,
+    generatedAt: "2026-01-01T00:00:00Z",
+  };
+
+  test("filled (default) keeps ggplot's solid point shape", () => {
+    const txt = buildVolcanoRScript(rArgs);
+    assert(txt.includes("  geom_point(alpha = 0.7) +\n"), "plain geom_point line");
+    assert(!txt.includes("shape = 1"), "no open-circle shape");
+    eq(buildVolcanoRScript({ ...rArgs, pointStyle: "filled" }), txt);
+  });
+
+  test("open draws hollow circles (shape = 1)", () => {
+    const txt = buildVolcanoRScript({ ...rArgs, pointStyle: "open" });
+    assert(txt.includes("  geom_point(alpha = 0.7, shape = 1) +\n"), "shape = 1 geom_point line");
+    eq((txt.match(/geom_point\(/g) || []).length, 1);
+  });
+}
 
 summary();

@@ -1350,6 +1350,7 @@ export interface VolcanoVis {
   tickFontSize: number;
   pointRadius: number;
   pointAlpha: number;
+  pointStyle: VolcanoPointStyle;
   labelFontSize: number;
   colorMapPalette: string;
   colorMapInvert: boolean;
@@ -1366,6 +1367,11 @@ export interface VolcanoVis {
   yMax: number | null;
   plotTitle: string;
 }
+
+// Filled discs, or open circles (stroke only, in the point's colour) —
+// independent of the colour / size mappings, which still set the
+// colour and radius either way.
+export type VolcanoPointStyle = "filled" | "open";
 
 // Reducer-style updater dispatched by every sidebar tile — accepts a
 // partial patch that the upstream `usePlotToolState` hook merges into
@@ -1408,6 +1414,8 @@ export interface VolcanoChartProps {
   colors: VolcanoColors;
   pointRadius: number;
   pointAlpha: number;
+  // Defaults to "filled".
+  pointStyle?: VolcanoPointStyle;
   showRefLines: boolean;
   showLabels: boolean;
   topNUp: number;

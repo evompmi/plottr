@@ -29,12 +29,24 @@ interface BuildVolcanoRScriptArgs {
   yLabel: string;
   plotTitle: string;
   yIsAdjusted: boolean;
+  // "open" draws hollow circles (shape = 1); defaults to filled.
+  pointStyle?: "filled" | "open";
   generatedAt?: string;
 }
 
 export function buildVolcanoRScript(args: BuildVolcanoRScriptArgs): string {
-  const { points, fcCutoff, pCutoff, colors, xLabel, yLabel, plotTitle, yIsAdjusted, generatedAt } =
-    args;
+  const {
+    points,
+    fcCutoff,
+    pCutoff,
+    colors,
+    xLabel,
+    yLabel,
+    plotTitle,
+    yIsAdjusted,
+    pointStyle,
+    generatedAt,
+  } = args;
   const now = generatedAt || new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const summary = summarize(points, fcCutoff, pCutoff);
 
@@ -136,7 +148,9 @@ export function buildVolcanoRScript(args: BuildVolcanoRScriptArgs): string {
   );
   lines.push("");
   lines.push("ggplot(df, aes(x = log2FC, y = nlog10p, color = class)) +");
-  lines.push("  geom_point(alpha = 0.7) +");
+  lines.push(
+    pointStyle === "open" ? "  geom_point(alpha = 0.7, shape = 1) +" : "  geom_point(alpha = 0.7) +"
+  );
   lines.push(
     "  geom_vline(xintercept = c(-" +
       formatRNumber(fcCutoff) +

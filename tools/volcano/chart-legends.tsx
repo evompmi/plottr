@@ -149,11 +149,14 @@ export function SizeLegend({
   title,
   width,
   yOffset,
+  open = false,
 }: {
   sizeMap: SizeMap;
   title: string;
   width: number;
   yOffset: number;
+  // Open-circle points: sample circles are outlines too.
+  open?: boolean;
 }) {
   // Round-number sample circles produced by `makeTicks` — same helper
   // the X / Y axes use, so the legend stops land on the same nice values
@@ -197,7 +200,14 @@ export function SizeLegend({
       </text>
       {samples.map((s, i) => (
         <g key={i} transform={`translate(0, ${20 + i * ROW_H})`}>
-          <circle cx={cx} cy={ROW_H / 2} r={s.r} fill="#bbb" stroke="#444" strokeWidth="0.6" />
+          <circle
+            cx={cx}
+            cy={ROW_H / 2}
+            r={s.r}
+            fill={open ? "none" : "#bbb"}
+            stroke="#444"
+            strokeWidth={open ? "1" : "0.6"}
+          />
           <text
             x={sizeMap.maxR * 2 + 10}
             y={ROW_H / 2 + 3}

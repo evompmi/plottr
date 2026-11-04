@@ -502,6 +502,25 @@ export function StyleTile({ vis, updVis }: StyleTileProps) {
         step={0.05}
         onChange={(v) => updVis({ pointAlpha: Number(v) })}
       />
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <span className="dv-label" style={{ fontSize: 11, flexShrink: 0 }}>
+          {tr("volcano.style.pointStyle")}
+        </span>
+        <div className="dv-seg" role="group" aria-label={tr("volcano.style.pointStyle")}>
+          {(["filled", "open"] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={vis.pointStyle === s}
+              className={"dv-seg-btn" + (vis.pointStyle === s ? " dv-seg-btn-active" : "")}
+              onClick={() => updVis({ pointStyle: s })}
+              style={{ fontSize: 11, padding: "3px 8px" }}
+            >
+              {tr(s === "filled" ? "volcano.style.pointFilled" : "volcano.style.pointOpen")}
+            </button>
+          ))}
+        </div>
+      </div>
       <ToggleRow checked={vis.showAxes} onChange={(v) => updVis({ showAxes: v })}>
         {tr("volcano.style.showGrid")}
       </ToggleRow>

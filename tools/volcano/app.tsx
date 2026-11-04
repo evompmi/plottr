@@ -60,6 +60,7 @@ const VIS_INIT_VOLCANO: VolcanoVis = {
   tickFontSize: 11,
   pointRadius: 3,
   pointAlpha: 0.7,
+  pointStyle: "filled",
   labelFontSize: 11,
   // Aesthetic mapping defaults (used when the colour-/size-map tiles
   // are toggled On). Column indices live in local state; these are the
@@ -624,6 +625,7 @@ export function App() {
       yLabel,
       plotTitle: vis.plotTitle,
       yIsAdjusted,
+      pointStyle: vis.pointStyle,
     });
     downloadText(txt, fileBaseName(fileName, "volcano") + ".R");
   };
