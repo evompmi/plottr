@@ -87,6 +87,13 @@ const en = {
   "volcano.cfg.adjusted": "This column is an <strong>adjusted</strong> p-value (FDR / BH / qvalue)",
   "volcano.cfg.adjustedNote":
     "Plotted as −log₁₀(p). Auto-detect prefers an adjusted column when both raw and adjusted are present.",
+  "volcano.cfg.pScale": "Values are",
+  "volcano.cfg.pScaleAbove1":
+    "Some values are above 1, which a p-value can't be: read as −log₁₀(p). Change it above if that's wrong.",
+  "volcano.cfg.pScaleNegative":
+    "The values are negative, which a p-value can't be: read as log₁₀(p). Change it above if that's wrong.",
+  "volcano.cfg.pScaleHeader":
+    "The column name mentions log: read as −log₁₀(p). Change it above if these are plain p-values.",
   "volcano.cfg.labelNone": "— none —",
   "volcano.cfg.labelNote":
     "Categorical column used to annotate the top-N most-significant features (gene symbol, protein name, accession). Skip if your data has no such column.",
@@ -175,7 +182,7 @@ const en = {
   "volcano.howto.purpose":
     "Highlight differentially expressed features by combining <strong>fold change</strong> with <strong>statistical significance</strong> — the canonical way to inspect RNA-seq, proteomics, or metabolomics tables.",
   "volcano.howto.dataLayout":
-    "One <strong>row</strong> per feature. Two numeric columns: a <strong>log₂ fold change</strong> and a <strong>p-value</strong> (raw or adjusted). An optional <strong>label</strong> column (gene symbol, feature ID) drives annotations. DESeq2, limma, edgeR, MaxQuant column names auto-detect.",
+    "One <strong>row</strong> per feature. Two numeric columns: a <strong>log₂ fold change</strong> and a <strong>p-value</strong> (raw or adjusted; already −log₁₀-transformed is fine, it is detected). An optional <strong>label</strong> column (gene symbol, feature ID) drives annotations. DESeq2, limma, edgeR, MaxQuant column names auto-detect.",
   "volcano.howto.display":
     "Tweak <strong>|log₂FC|</strong> + <strong>p</strong> cutoffs in the Thresholds tile to set the up / down / ns split. Label features via auto top-N, click-to-label, or paste-list search in the Labels tile. Optional colour and size aesthetic mappings (e.g. expression level) render in-SVG legends.",
 } as const satisfies Catalog;

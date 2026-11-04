@@ -18,6 +18,7 @@
 // R_MAX_LINE so the inlined data block stays parseable by R.
 
 import { VolcanoPoint, VOLCANO_DEFAULT_COLORS, summarize } from "./helpers";
+import type { PScale } from "./helpers";
 import { sanitizeRString, sanitizeRComment, formatRNumber, wrapRItems } from "../_shell/r-export";
 
 interface BuildVolcanoRScriptArgs {
@@ -29,6 +30,9 @@ interface BuildVolcanoRScriptArgs {
   yLabel: string;
   plotTitle: string;
   yIsAdjusted: boolean;
+  // How the input p column was written; log scales export −log₁₀(p)
+  // itself and derive p from it. Defaults to raw p.
+  pScale?: PScale;
   // "open" draws hollow circles (shape = 1); defaults to filled.
   pointStyle?: "filled" | "open";
   generatedAt?: string;
@@ -44,9 +48,11 @@ export function buildVolcanoRScript(args: BuildVolcanoRScriptArgs): string {
     yLabel,
     plotTitle,
     yIsAdjusted,
+    pScale = "p",
     pointStyle,
     generatedAt,
   } = args;
+  const logInput = pScale !== "p";
   const now = generatedAt || new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const summary = summarize(points, fcCutoff, pCutoff);
 
@@ -58,13 +64,16 @@ export function buildVolcanoRScript(args: BuildVolcanoRScriptArgs): string {
   const pItems: string[] = [];
   for (const pt of points) {
     if (!Number.isFinite(pt.log2fc) || !Number.isFinite(pt.p)) continue;
+    if (logInput && !(pt.nlog10 !== undefined && Number.isFinite(pt.nlog10))) continue;
     const labelStr =
       pt.label != null && pt.label !== ""
         ? '"' + sanitizeRString(pt.label) + '"'
         : '"feature_' + (pt.idx + 1) + '"';
     featureItems.push(labelStr);
     log2fcItems.push(formatRNumber(pt.log2fc));
-    pItems.push(formatRNumber(pt.p));
+    // Log input: carry −log₁₀(p) itself, which stays exact past p's
+    // double-precision floor.
+    pItems.push(formatRNumber(logInput && pt.nlog10 !== undefined ? pt.nlog10 : pt.p));
   }
 
   const lines: string[] = [];
@@ -110,15 +119,24 @@ export function buildVolcanoRScript(args: BuildVolcanoRScriptArgs): string {
   lines.push("df <- data.frame(");
   lines.push("  feature = " + wrapRItems(featureItems, 6) + ",");
   lines.push("  log2FC  = " + wrapRItems(log2fcItems, 8) + ",");
-  lines.push("  pvalue  = " + wrapRItems(pItems, 8) + ",");
+  lines.push((logInput ? "  nlog10p = " : "  pvalue  = ") + wrapRItems(pItems, 8) + ",");
   lines.push("  stringsAsFactors = FALSE");
   lines.push(")");
   lines.push("");
 
   // ── Derived columns ───────────────────────────────────────────────
-  lines.push("# Clamp p = 0 to a finite floor (smallest non-zero / 10) so -log10 stays finite.");
-  lines.push("p_floor <- min(df$pvalue[df$pvalue > 0], na.rm = TRUE) / 10");
-  lines.push("df$nlog10p <- -log10(pmax(df$pvalue, p_floor))");
+  if (logInput) {
+    lines.push(
+      "# Your p column was " +
+        (pScale === "neglog10" ? "-log10(p)" : "log10(p) (shown here with its sign flipped)") +
+        "; p is derived from it for the cutoff."
+    );
+    lines.push("df$pvalue <- 10^(-df$nlog10p)");
+  } else {
+    lines.push("# Clamp p = 0 to a finite floor (smallest non-zero / 10) so -log10 stays finite.");
+    lines.push("p_floor <- min(df$pvalue[df$pvalue > 0], na.rm = TRUE) / 10");
+    lines.push("df$nlog10p <- -log10(pmax(df$pvalue, p_floor))");
+  }
   lines.push("df$class <- with(df, ifelse(");
   lines.push(
     "  pvalue < " + formatRNumber(pCutoff) + " & log2FC >  " + formatRNumber(fcCutoff) + ', "up",'
@@ -210,7 +228,12 @@ export function buildVolcanoCsv(args: {
   const pFloor = Number.isFinite(minNonZero) ? minNonZero / 10 : 1e-300;
   for (const pt of points) {
     const safe = pt.p === 0 ? pFloor : pt.p;
-    const nl = Number.isFinite(safe) && safe > 0 ? -Math.log10(safe) : "";
+    const nl =
+      pt.nlog10 !== undefined && Number.isFinite(pt.nlog10)
+        ? pt.nlog10
+        : Number.isFinite(safe) && safe > 0
+          ? -Math.log10(safe)
+          : "";
     let cls: string = "ns";
     if (Number.isFinite(pt.log2fc) && Number.isFinite(pt.p) && pt.p < pCutoff) {
       if (pt.log2fc > fcCutoff) cls = "up";

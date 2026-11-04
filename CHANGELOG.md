@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Volcano: p-value columns that are already log-transformed are read correctly. On the Configure step, "Values are" picks p, −log₁₀ p or log₁₀ p; it is set automatically when values exceed 1, are negative, or the column name mentions log, with a note saying why. The cutoff, classes, labels, CSV and R script all follow.
 - Volcano: a Points choice (Filled / Open) in the Style tab draws the points as solid discs or as open circles in the same colours, with or without colour / size mapping. It carries into SVG / PNG exports and the R script (`shape = 1`).
 
 ### Changed

@@ -44,6 +44,58 @@ export interface VolcanoPoint {
   log2fc: number;
   p: number; // raw p-value (0 < p ≤ 1 typically; 0 is allowed and clamped)
   label: string | null;
+  // −log₁₀(p) as read from a log-scale column (see `PScale`). Set only
+  // for log-scale input, where it is the y position: `p` (10^−v) is
+  // kept for the cutoff and class, and underflows to 0 past v ≈ 323.
+  nlog10?: number;
+}
+
+// How the p-value column is written: raw p, −log₁₀(p) (positive, the
+// usual "already log-transformed" export) or log₁₀(p) (≤ 0, sign kept).
+export type PScale = "p" | "neglog10" | "log10";
+
+// Why `detectPScale` picked a log scale — drives the Configure note.
+// `above1`: a value > 1 (no p-value can be). `negative`: a value < 0.
+// `header`: values fit p, but the column name says log.
+export type PScaleReason = "above1" | "negative" | "header" | null;
+
+const LOG_HEADER_RE = /log/i;
+
+// Guess the p-value column's scale from its values, then its header.
+// Values decide when they can't be p-values (> 1, or < 0); otherwise a
+// "log" in the header (`-log10(padj)`, `mlog10p`, `log10_FDR`) does.
+export function detectPScale(
+  values: string[],
+  header: string
+): { scale: PScale; reason: PScaleReason } {
+  let above1 = false;
+  let negative = false;
+  let negativeCount = 0;
+  let positiveCount = 0;
+  for (const raw of values) {
+    if (raw == null || raw === "" || !isNumericValue(raw)) continue;
+    const v = toNumericValue(raw);
+    if (!Number.isFinite(v)) continue;
+    if (v > 1) above1 = true;
+    if (v < 0) {
+      negative = true;
+      negativeCount++;
+    } else if (v > 0) positiveCount++;
+  }
+  // Mostly-negative values read as log₁₀(p) even if a stray value
+  // tops 1; otherwise anything above 1 means −log₁₀(p).
+  if (negative && negativeCount >= positiveCount) return { scale: "log10", reason: "negative" };
+  if (above1) return { scale: "neglog10", reason: "above1" };
+  if (negative) return { scale: "log10", reason: "negative" };
+  if (LOG_HEADER_RE.test(String(header))) return { scale: "neglog10", reason: "header" };
+  return { scale: "p", reason: null };
+}
+
+// y position of a point: the column's own −log₁₀ for log-scale input,
+// else −log₁₀(p) with the p = 0 floor.
+export function pointNegLog10(pt: VolcanoPoint, pFloor: number): number {
+  if (pt.nlog10 !== undefined && Number.isFinite(pt.nlog10)) return pt.nlog10;
+  return negLog10P(pt.p, pFloor);
 }
 
 // Result of classifying a point against user-set cutoffs. Pure function:
@@ -176,7 +228,9 @@ export function matchPointsByLabel(
 
 export function countClamped(points: VolcanoPoint[]): number {
   let n = 0;
-  for (const pt of points) if (pt.p === 0) n++;
+  // Log-scale input carries its own y (`nlog10`), so p = 0 from
+  // underflow is not clamped.
+  for (const pt of points) if (pt.p === 0 && pt.nlog10 === undefined) n++;
   return n;
 }
 
@@ -255,6 +309,10 @@ const Y_ADJ_PATTERNS = [
   /^q[\s_.-]?val$/i,
 ];
 const Y_RAW_PATTERNS = [/^p[\s_.-]?value$/i, /^pvalue$/i, /^p[\s_.-]?val$/i, /^pval$/i, /^p$/i];
+// Log-scale p columns (`-log10(padj)`, `mlog10_FDR`, `log10.pvalue`):
+// adjusted first, then raw, both after the plain names above.
+const Y_ADJ_LOG_PATTERNS = [/log.*(p[\s_.-]?adj|adj|fdr|q[\s_.-]?val)/i];
+const Y_RAW_LOG_PATTERNS = [/log.*p[\s_.-]?val/i, /^[-−]?log[\s_.-]?10[\s_.(-]*p\)?$/i];
 
 const LABEL_PATTERNS = [
   /^gene$/i,
@@ -288,8 +346,10 @@ export interface AutoDetectResult {
 export function autoDetectColumns(headers: string[]): AutoDetectResult {
   const xCol = findFirstMatch(headers, X_PATTERNS);
   let yCol = findFirstMatch(headers, Y_ADJ_PATTERNS);
-  let yIsAdjusted = yCol >= 0;
+  if (yCol < 0) yCol = findFirstMatch(headers, Y_ADJ_LOG_PATTERNS);
+  const yIsAdjusted = yCol >= 0;
   if (yCol < 0) yCol = findFirstMatch(headers, Y_RAW_PATTERNS);
+  if (yCol < 0) yCol = findFirstMatch(headers, Y_RAW_LOG_PATTERNS);
   const labelCol = findFirstMatch(headers, LABEL_PATTERNS);
   return { xCol, yCol, labelCol, yIsAdjusted };
 }
@@ -330,7 +390,7 @@ export function pickTopLabels(
     if (!pt.label) continue;
     const cls = classifyPoint(pt.log2fc, pt.p, fcCutoff, pCutoff);
     if (cls === "ns") continue;
-    const score = Math.abs(pt.log2fc) * negLog10P(pt.p, pFloor);
+    const score = Math.abs(pt.log2fc) * pointNegLog10(pt, pFloor);
     if (cls === "up") ups.push({ idx: i, score, cls });
     else downs.push({ idx: i, score, cls });
   }
@@ -1284,7 +1344,8 @@ export function buildPoints(
   rawData: string[][],
   xCol: number,
   yCol: number,
-  labelCol: number
+  labelCol: number,
+  pScale: PScale = "p"
 ): VolcanoPoint[] {
   const out: VolcanoPoint[] = [];
   for (let i = 0; i < rawData.length; i++) {
@@ -1293,11 +1354,17 @@ export function buildPoints(
     const yRaw = row[yCol];
     if (xRaw == null || yRaw == null || xRaw === "" || yRaw === "") continue;
     const log2fc = isNumericValue(xRaw) ? toNumericValue(xRaw) : NaN;
-    const p = isNumericValue(yRaw) ? toNumericValue(yRaw) : NaN;
+    const y = isNumericValue(yRaw) ? toNumericValue(yRaw) : NaN;
     const labelRaw =
       labelCol >= 0 && row[labelCol] != null && row[labelCol] !== "" ? String(row[labelCol]) : null;
     const label = labelRaw == null ? null : labelRaw.trim() || null;
-    out.push({ idx: i, log2fc, p, label });
+    if (pScale === "p") {
+      out.push({ idx: i, log2fc, p: y, label });
+    } else {
+      // Back to p for the cutoff / class; keep −log₁₀ for the y position.
+      const nlog10 = pScale === "neglog10" ? y : -y;
+      out.push({ idx: i, log2fc, p: Math.pow(10, -nlog10), label, nlog10 });
+    }
   }
   return out;
 }
@@ -1518,6 +1585,10 @@ export interface ConfigureStepProps {
   setYCol: (i: number) => void;
   setLabelCol: (i: number) => void;
   setYIsAdjusted: (b: boolean) => void;
+  // How the p column is written, and why auto-detection chose a log scale.
+  pScale: PScale;
+  pScaleReason: PScaleReason;
+  setPScale: (s: PScale) => void;
 }
 
 export interface PlotStepProps {

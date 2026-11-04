@@ -76,6 +76,13 @@ const fr: Record<VolcanoKey, string> = {
     "Cette colonne est une p-value <strong>ajustée</strong> (FDR / BH / qvalue)",
   "volcano.cfg.adjustedNote":
     "Tracée en −log₁₀(p). La détection automatique préfère une colonne ajustée lorsque brute et ajustée sont toutes deux présentes.",
+  "volcano.cfg.pScale": "Valeurs en",
+  "volcano.cfg.pScaleAbove1":
+    "Certaines valeurs dépassent 1, ce qu’une p-value ne peut pas faire : lues comme −log₁₀(p). Changez-le ci-dessus si c’est faux.",
+  "volcano.cfg.pScaleNegative":
+    "Les valeurs sont négatives, ce qu’une p-value ne peut pas être : lues comme log₁₀(p). Changez-le ci-dessus si c’est faux.",
+  "volcano.cfg.pScaleHeader":
+    "Le nom de la colonne mentionne log : lues comme −log₁₀(p). Changez-le ci-dessus s’il s’agit de p-values brutes.",
   "volcano.cfg.labelNone": "— aucune —",
   "volcano.cfg.labelNote":
     "Colonne catégorielle servant à annoter les top-N caractéristiques les plus significatives (symbole de gène, nom de protéine, accession). À ignorer si vos données n’ont pas de telle colonne.",
@@ -150,7 +157,7 @@ const fr: Record<VolcanoKey, string> = {
   "volcano.howto.purpose":
     "Mettez en évidence les caractéristiques différentiellement exprimées en combinant <strong>variation d’expression</strong> et <strong>significativité statistique</strong> — la façon canonique d’inspecter des tables RNA-seq, protéomiques ou métabolomiques.",
   "volcano.howto.dataLayout":
-    "Une <strong>ligne</strong> par caractéristique. Deux colonnes numériques : une <strong>variation d’expression log₂</strong> et une <strong>p-value</strong> (brute ou ajustée). Une colonne <strong>étiquette</strong> optionnelle (symbole de gène, identifiant) pilote les annotations. Les noms de colonnes DESeq2, limma, edgeR, MaxQuant sont détectés automatiquement.",
+    "Une <strong>ligne</strong> par caractéristique. Deux colonnes numériques : une <strong>variation d’expression log₂</strong> et une <strong>p-value</strong> (brute ou ajustée ; déjà transformée en −log₁₀, elle est détectée). Une colonne <strong>étiquette</strong> optionnelle (symbole de gène, identifiant) pilote les annotations. Les noms de colonnes DESeq2, limma, edgeR, MaxQuant sont détectés automatiquement.",
   "volcano.howto.display":
     "Ajustez les seuils <strong>|log₂FC|</strong> + <strong>p</strong> dans la tuile Seuils pour définir la répartition haut / bas / ns. Étiquetez les caractéristiques via top-N automatique, clic-pour-étiqueter, ou recherche par liste collée dans la tuile Étiquettes. Des mappages esthétiques optionnels de couleur et de taille (p. ex. niveau d’expression) génèrent des légendes en SVG.",
 };
