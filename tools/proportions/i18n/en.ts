@@ -8,7 +8,7 @@ const en = {
   "proportions.example.subtitle": "4 genotypes · colonised vs. not colonised counts",
   "proportions.example.f2": "Or load a phenotype-ratio example (dihybrid F2, 9:3:3:1)",
   "proportions.upload.hint":
-    "CSV · TSV · TXT · a counts table (groups × outcomes) or one row per observation · 2 MB max",
+    "CSV · TSV · TXT · a counts table (groups × outcomes) or one row per observation · 4 MB max",
   "proportions.err.tooFewColumns":
     "Expected a counts table (a column of group names plus one column of counts per outcome) or one row per observation (a group column and an outcome column).",
   "proportions.err.tooFewRows": "Expected at least two groups (rows).",

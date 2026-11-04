@@ -544,7 +544,7 @@ function BatchMode() {
       return;
     }
     // Match the documented ingest-size policy (FileDropZone / UploadPanel):
-    // hard-reject pastes over 2 MB before parsing.
+    // hard-reject pastes over 4 MB before parsing.
     const bytes = new Blob([raw]).size;
     if (bytes > FILE_LIMIT_BYTES) {
       setError(tr("molarity.batch.errTooLarge", { mb: (bytes / 1024 / 1024).toFixed(1) }));

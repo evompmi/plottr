@@ -44,7 +44,7 @@ const en = {
   // Batch mode
   "molarity.batch.errPaste": "Paste your data above.",
   "molarity.batch.errTooLarge":
-    "Pasted data too large ({mb} MB). Maximum is 2 MB — paste fewer rows.",
+    "Pasted data too large ({mb} MB). Maximum is 4 MB — paste fewer rows.",
   "molarity.batch.errNoRows": "No data rows found.",
   "molarity.batch.errCols": "Need at least 4 columns: Name, MW, Concentration, Volume.",
   "molarity.batch.errInvalidMw": "Invalid MW: {v}",

@@ -1,6 +1,6 @@
 // `FileDropZone` — drag-and-drop / click-to-browse upload widget shared by
 // every tool's UploadStep. Gates on the canonical `FILE_LIMIT_BYTES`
-// (2 MB hard reject) and `FILE_WARN_BYTES` (1 MB warn) constants exported
+// (4 MB hard reject) and `FILE_WARN_BYTES` (2 MB warn) constants exported
 // here too — any new ingest surface (paste textarea, URL fetch, …) must
 // gate on the same constants and surface the same red-banner UX.
 
@@ -8,12 +8,12 @@ import { useShellT } from "./i18n";
 
 const { useState, useRef } = React;
 
-// 2 MB — hard reject. Any new ingest surface (paste textarea, URL fetch,
+// 4 MB — hard reject. Any new ingest surface (paste textarea, URL fetch,
 // clipboard image OCR, …) must gate on this and the warning threshold
-// below; don't redeclare a local 2-MB number, don't pick your own.
-export const FILE_LIMIT_BYTES = 2 * 1024 * 1024;
-// 1 MB — show warning but allow.
-export const FILE_WARN_BYTES = 1 * 1024 * 1024;
+// below; don't redeclare a local 4-MB number, don't pick your own.
+export const FILE_LIMIT_BYTES = 4 * 1024 * 1024;
+// 2 MB — show warning but allow.
+export const FILE_WARN_BYTES = 2 * 1024 * 1024;
 
 interface FileDropZoneProps {
   onFileLoad: (text: string, fileName: string) => void;

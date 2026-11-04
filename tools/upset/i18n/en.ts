@@ -88,7 +88,7 @@ const en = {
   "upset.example.title": "Arabidopsis stress-response DEGs",
   "upset.example.subtitle": "5 sets — Drought · Heat · Salt · Cold · ABA",
   "upset.upload.hint":
-    "CSV · TSV · TXT — wide (one column per set, 2+) or long (item, set) · 2 MB max",
+    "CSV · TSV · TXT — wide (one column per set, 2+) or long (item, set) · 4 MB max",
   "upset.picker.heading": "Sets to include",
   "upset.picker.pick": "Pick at least 2 sets to plot.",
   "upset.picker.one": "1 selected — pick at least one more.",

@@ -99,7 +99,7 @@ const fr: Record<AequorinKey, string> = {
   "aequorin.steps.example.subtitle": "Réponse mutant vs WT à un traitement d’éliciteur CO7",
   "aequorin.steps.example.button": "Tracer cet exemple →",
   "aequorin.steps.uploadHint":
-    "CSV · TSV · TXT · DAT — une colonne par échantillon, une ligne par point temporel · 2 Mo max",
+    "CSV · TSV · TXT · DAT — une colonne par échantillon, une ligne par point temporel · 4 Mo max",
   "aequorin.steps.aes.calibration": "Calibration aequorine",
   "aequorin.steps.aes.time": "Axe temporel",
   "aequorin.steps.formula": "Formule",

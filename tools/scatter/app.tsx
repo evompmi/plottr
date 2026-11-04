@@ -490,7 +490,7 @@ export function App() {
       if (!vals.length) return [0, 1];
       // Linear min/max — Math.min(...vals) spreads every row as a function
       // argument and throws RangeError past ~125k elements (scatter has no
-      // row cap beyond the 2 MB ingest limit, which permits far more).
+      // row cap beyond the 4 MB ingest limit, which permits far more).
       let mn = Infinity,
         mx = -Infinity;
       for (const v of vals) {
@@ -578,7 +578,7 @@ export function App() {
     const yVals = data.map((r) => r[yCol]).filter((v) => v != null);
     // Linear min/max — Math.min/max(...vals) spreads every row as a function
     // argument and throws RangeError past ~125k elements (no row cap beyond
-    // the 2 MB ingest limit).
+    // the 4 MB ingest limit).
     let xMn = Infinity,
       xMx = -Infinity,
       yMn = Infinity,

@@ -103,7 +103,7 @@ const en = {
   "boxplot.steps.example.title": "Plant biomass under drought & salt",
   "boxplot.steps.example.subtitle": "3 genotypes × 3 treatments × 8 replicates · 72 rows",
   "boxplot.steps.example.button": "Plot this example →",
-  "boxplot.steps.uploadHint": "CSV · TSV · TXT · DAT — one row per observation · 2 MB max",
+  "boxplot.steps.uploadHint": "CSV · TSV · TXT · DAT — one row per observation · 4 MB max",
 
   // Steps — other columns
   "boxplot.steps.otherCols": "Other columns",

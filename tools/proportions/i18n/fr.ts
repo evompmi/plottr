@@ -7,7 +7,7 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.example.subtitle": "4 génotypes · effectifs colonisées / non colonisées",
   "proportions.example.f2": "Ou charger un exemple de ségrégation (F2 dihybride, 9:3:3:1)",
   "proportions.upload.hint":
-    "CSV · TSV · TXT · un tableau d’effectifs (groupes × modalités) ou une ligne par observation · 2 Mo max",
+    "CSV · TSV · TXT · un tableau d’effectifs (groupes × modalités) ou une ligne par observation · 4 Mo max",
   "proportions.err.tooFewColumns":
     "Tableau d’effectifs attendu (une colonne de noms de groupes et une colonne d’effectifs par modalité) ou une ligne par observation (une colonne de groupe et une colonne de modalité).",
   "proportions.err.tooFewRows": "Au moins deux groupes (lignes) sont nécessaires.",

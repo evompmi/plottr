@@ -39,7 +39,7 @@ const en = {
   "venn.example.title": "Arabidopsis stress-response DEGs",
   "venn.example.subtitle": "3 sets — Drought · Heat · Salt",
   "venn.upload.hint":
-    "CSV · TSV · TXT — wide (one column per set, 2–3) or long (item, set) · 2 MB max",
+    "CSV · TSV · TXT — wide (one column per set, 2–3) or long (item, set) · 4 MB max",
 
   // Set picker
   "venn.picker.choose": "Choose sets to overlap",

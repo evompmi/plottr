@@ -114,7 +114,7 @@ const en = {
   "aequorin.steps.example.subtitle": "Mutant vs WT response to a CO7 elicitor pulse",
   "aequorin.steps.example.button": "Plot this example →",
   "aequorin.steps.uploadHint":
-    "CSV · TSV · TXT · DAT — one column per sample, one row per time-point · 2 MB max",
+    "CSV · TSV · TXT · DAT — one column per sample, one row per time-point · 4 MB max",
   "aequorin.steps.aes.calibration": "Aequorin calibration",
   "aequorin.steps.aes.time": "Time axis",
   "aequorin.steps.formula": "Formula",

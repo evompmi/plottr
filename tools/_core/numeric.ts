@@ -85,7 +85,7 @@ export function seededRandom(seed: number): () => number {
 //
 // `Math.min(...arr)` / `Math.max(...arr)` pass every element as a function
 // argument and throw RangeError ("Maximum call stack size exceeded") past
-// ~125k elements — well inside the 2 MB ingest limit. These loop instead.
+// ~125k elements — a file inside the 4 MB ingest limit can hold several times that. These loop instead.
 // Empty arrays return ±Infinity, matching the spread form. NaN entries
 // propagate (as with Math.min / Math.max).
 

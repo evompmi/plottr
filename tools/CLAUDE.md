@@ -142,7 +142,7 @@ Common variables: `--font-ui`, `--font-display`, `--font-mono`, `--page-bg`, `--
 
 File upload/paste -> `autoDetectSep` + `fixDecimalCommas` + `parseRaw` -> `DataPreview` table -> user assigns column roles -> `computeStats`/`quartiles` -> React SVG rendering -> SVG/CSV export
 
-**Ingest size policy:** any new ingest surface (paste textarea, URL fetch, clipboard handler, …) must gate on `FILE_LIMIT_BYTES` (2 MB hard reject) and `FILE_WARN_BYTES` (1 MB warn) from `tools/_shell/FileDropZone.tsx` and surface the same red-banner UX `FileDropZone` uses. Import both names from `_shell/FileDropZone` (or the `_shell` barrel) — don't redeclare a local 2-MB number.
+**Ingest size policy:** any new ingest surface (paste textarea, URL fetch, clipboard handler, …) must gate on `FILE_LIMIT_BYTES` (4 MB hard reject) and `FILE_WARN_BYTES` (2 MB warn) from `tools/_shell/FileDropZone.tsx` and surface the same red-banner UX `FileDropZone` uses. Import both names from `_shell/FileDropZone` (or the `_shell` barrel) — don't redeclare a local 4-MB number.
 
 ## Per-tool palettes
 

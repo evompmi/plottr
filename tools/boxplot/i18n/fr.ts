@@ -82,7 +82,7 @@ const fr: Record<BoxplotKey, string> = {
   "boxplot.steps.example.title": "Biomasse végétale sous sécheresse & sel",
   "boxplot.steps.example.subtitle": "3 génotypes × 3 traitements × 8 réplicats · 72 lignes",
   "boxplot.steps.example.button": "Tracer cet exemple →",
-  "boxplot.steps.uploadHint": "CSV · TSV · TXT · DAT — une ligne par observation · 2 Mo max",
+  "boxplot.steps.uploadHint": "CSV · TSV · TXT · DAT — une ligne par observation · 4 Mo max",
   "boxplot.steps.otherCols": "Autres colonnes",
   "boxplot.steps.otherColsDesc":
     'Activez <strong style="color:{c}">filtre</strong> pour garder la colonne disponible pour l’étape Filtrer et pour le mapping couleur / facette / sous-groupe sur le tracé. Sinon la colonne est ignorée.',

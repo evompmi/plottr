@@ -150,7 +150,7 @@ const en = {
   "heatmap.example.title": "Gene-expression matrix",
   "heatmap.example.subtitle": "500 genes × 6 samples (3 Control · 3 Stress) · clustered demo",
   "heatmap.upload.hint":
-    "CSV · TSV · TXT — first column = row labels, first row = column labels, rest numeric · 2 MB max",
+    "CSV · TSV · TXT — first column = row labels, first row = column labels, rest numeric · 4 MB max",
 
   // How-to card
   "heatmap.howto.title": "Heatmap — How to use",

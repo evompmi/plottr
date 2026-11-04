@@ -73,7 +73,7 @@ const fr: Record<UpsetKey, string> = {
   "upset.example.title": "DEG de réponse au stress chez Arabidopsis",
   "upset.example.subtitle": "5 ensembles — Sécheresse · Chaleur · Sel · Froid · ABA",
   "upset.upload.hint":
-    "CSV · TSV · TXT — large (une colonne par ensemble, 2+) ou long (élément, ensemble) · 2 Mo max",
+    "CSV · TSV · TXT — large (une colonne par ensemble, 2+) ou long (élément, ensemble) · 4 Mo max",
   "upset.picker.heading": "Ensembles à inclure",
   "upset.picker.pick": "Choisissez au moins 2 ensembles à tracer.",
   "upset.picker.one": "1 sélectionné — choisissez-en au moins un autre.",

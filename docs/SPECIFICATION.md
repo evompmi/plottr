@@ -80,8 +80,8 @@ by the part of the address after `#`:
 - Accepts **CSV / TSV** (comma- or tab-separated text — what spreadsheets
   export) with automatic separator detection, decimal-comma repair (for European
   number formats), header detection, and wide↔long table reshaping.
-- **Size policy:** any place data can be brought in warns at 1 MB and refuses
-  above 2 MB, with the same clear red banner everywhere.
+- **Size policy:** any place data can be brought in warns at 2 MB and refuses
+  above 4 MB, with the same clear red banner everywhere.
 - **Formula-injection scan:** parsed cells are checked for content crafted to run
   as a command if the file is later opened in a spreadsheet.
 - The only thing stored on the user's machine is a small amount of preference
