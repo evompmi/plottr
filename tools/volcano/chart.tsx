@@ -464,10 +464,16 @@ export const VolcanoChart = memo(
       return () => unregisterSvgExportMutator(el);
     }, [useRasterize]);
 
+    // The boundary's legend sits in a strip added below the chart, outside
+    // the plot and the mapping legends; the plot geometry is unchanged.
+    const showBoundaryNote = showRefLines && !!boundaryGeom && boundaryGeom.some((g) => g.geom);
+    const noteBaseline = 13 * textScale;
+    const svgH = VBH + (showBoundaryNote ? Math.ceil(20 * textScale) : 0);
+
     return (
       <svg
         ref={setSvgRef}
-        viewBox={`0 0 ${VBW} ${VBH}`}
+        viewBox={`0 0 ${VBW} ${svgH}`}
         style={{ width: VBW, maxWidth: "100%", height: "auto", display: "block", margin: "0 auto" }}
         xmlns="http://www.w3.org/2000/svg"
         role="img"
@@ -487,7 +493,7 @@ export const VolcanoChart = memo(
           })}
         </desc>
         <g id="background">
-          <rect x={0} y={0} width={VBW} height={VBH} fill={plotBg || "#fff"} />
+          <rect x={0} y={0} width={VBW} height={svgH} fill={plotBg || "#fff"} />
         </g>
         <g id="plot-area-background">
           <rect x={MARGIN.left} y={MARGIN.top} width={w} height={h} fill={plotBg || "#fff"} />
@@ -661,21 +667,22 @@ export const VolcanoChart = memo(
                   </g>
                 )
             )}
-            {boundaryGeom.some(({ geom }) => geom) && (
+            {showBoundaryNote && (
+              // Below the x-axis title, in the strip the viewBox grows by.
               <g id="implied-boundary-legend">
                 <line
-                  x1={MARGIN.left + 8}
-                  x2={MARGIN.left + 26}
-                  y1={MARGIN.top + 12}
-                  y2={MARGIN.top + 12}
+                  x1={MARGIN.left}
+                  x2={MARGIN.left + 18 * textScale}
+                  y1={VBH + noteBaseline - 3 * textScale}
+                  y2={VBH + noteBaseline - 3 * textScale}
                   stroke="#555555"
                   strokeWidth="1.2"
                   strokeDasharray="5 3"
                 />
                 <text
-                  x={MARGIN.left + 30}
-                  y={MARGIN.top + 15}
-                  fontSize="10"
+                  x={MARGIN.left + 22 * textScale}
+                  y={VBH + noteBaseline}
+                  fontSize={10 * textScale}
                   fill="#555555"
                   fontFamily="sans-serif"
                 >

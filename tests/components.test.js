@@ -2508,9 +2508,18 @@ suite("VolcanoChart (raster ↔ vector export)");
     assert(up != null, "up side drawn");
     eq(up.querySelectorAll("path").length, 2);
     eq(svg.querySelector("#implied-boundary-down"), null);
+    const legendText = svg.querySelector("#implied-boundary-legend text");
+    assert(legendText.textContent.includes("significance calls"), "legend names the boundary");
+    // The legend sits in a strip below the 500-px chart, outside the plot area.
+    const vbH = Number(svg.getAttribute("viewBox").split(" ")[3]);
+    assert(vbH > 500, "viewBox grows below the chart: " + vbH);
+    const ly = Number(legendText.getAttribute("y"));
+    assert(ly > 500 && ly <= vbH, "legend baseline in the bottom strip: " + ly);
+    eq(svg.querySelector("#background rect").getAttribute("height"), String(vbH));
+    const plotBg = svg.querySelector("#plot-area-background rect");
     assert(
-      svg.querySelector("#implied-boundary-legend text").textContent.includes("significance calls"),
-      "legend names the boundary"
+      Number(plotBg.getAttribute("y")) + Number(plotBg.getAttribute("height")) < 500,
+      "plot area unchanged"
     );
     // Neither side separable: nothing drawn, and no straight lines either.
     const none = renderWithEffects(VolcanoChart, {
@@ -2525,6 +2534,7 @@ suite("VolcanoChart (raster ↔ vector export)");
     }).container;
     eq(none.querySelectorAll("#implied-boundary path").length, 0);
     eq(none.querySelector("#implied-boundary-legend"), null);
+    eq(none.querySelector("svg").getAttribute("viewBox").split(" ")[3], "500");
     eq(none.querySelector("#reference-lines"), null);
     // Without calls the straight lines come back.
     const plain = renderWithEffects(VolcanoChart, { ...baseProps, points }).container;
