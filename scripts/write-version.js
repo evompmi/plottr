@@ -8,7 +8,7 @@
 // races the GitHub Pages deploy. The deploy workflow triggers on
 // `master` push, but the tag is a separate `git push origin <tag>`;
 // if master pushes first and the tag arrives a few seconds later,
-// CI's `git describe` returns the *previous* tag and gh-pages ships
+// CI's `git describe` returns the *previous* tag and Pages ships
 // stale chrome. CHANGELOG bumps land in the same commit as the release,
 // so reading it eliminates the race entirely.
 

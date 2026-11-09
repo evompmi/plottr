@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Pins the bytes of every vendored JS file via Subresource Integrity.
 // Without SRI, a malicious PR that swaps the contents of
-// `vendor/react.production.min.js` (or a force-push to `gh-pages`) would
+// `vendor/react.production.min.js` (or a tampered Pages deploy) would
 // propagate a backdoored React to every visitor on the next page load
 // with zero detection. With SRI pinned, any future tampering forces a
 // hash regen and so passes through normal review — and if it doesn't,
