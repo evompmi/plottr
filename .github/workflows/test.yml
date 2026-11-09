@@ -11,7 +11,9 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Pinned because Playwright 1.59.1 can't install Chromium on ubuntu-26.04,
+    # which is what ubuntu-latest now resolves to.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -84,7 +86,7 @@ jobs:
       # mock unit tests can't see (the volcano colorNs glitch in v1.2.0
       # was the motivating example). The Python http.server is started
       # automatically by playwright.config.ts; --with-deps installs the
-      # system libs Chromium needs on ubuntu-latest.
+      # system libs Chromium needs on the runner.
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
