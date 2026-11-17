@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Proportions: the n labels under the bars no longer overlap.** When the counts (`41/48`,
+  `n = 48`) are too wide for the spacing, they tilt to the shallowest angle (−30° to −90°)
+  that keeps them apart, and the bottom margin grows to fit. Regression: 3 tests.
+
 ## [2.4.0] - 2026-11-04
 
 > Long-form release notes live in

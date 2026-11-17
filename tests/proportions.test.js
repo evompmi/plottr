@@ -394,6 +394,19 @@ test("mosaicSpans: widths ∝ totals, gaps between", () => {
   eq(JSON.stringify(sp), "[[0,25],[31,106]]");
 });
 
+test("nLabelAngle: shallowest collision-free tilt for the n labels", () => {
+  const w = [40, 40];
+  eq(L.nLabelAngle(w, [0, 100], 13), 0, "room to spare → horizontal");
+  eq(L.nLabelAngle(w, [0, 44], 13), 0, "exactly w + pad apart → still horizontal");
+  eq(L.nLabelAngle(w, [0, 40], 13), -30, "−30° clears horizontally (34.6 + 4 ≤ 40)");
+  eq(L.nLabelAngle(w, [0, 20], 13), -45, "−45° lines 14.1 apart ≥ 13");
+  eq(L.nLabelAngle(w, [0, 10], 13), -90, "vertical: 4 px pad ≤ 10");
+  eq(L.nLabelAngle(w, [0, 3], 13), -90, "nothing fits → vertical fallback");
+  eq(L.nLabelAngle([40, 40, 40], [0, 100, 120], 13), -45, "one tight mosaic pair tilts all");
+  eq(L.nLabelAngle([500], [10], 13), 0, "single group never tilts");
+  eq(L.nLabelAngle([], [], 13), 0);
+});
+
 test("resolveColors: palette by position, overrides by name", () => {
   const pal = ["#aa0000", "#00aa00"];
   eq(L.resolveColors(["a", "b", "c"], pal, {}).join(","), "#aa0000,#00aa00,#aa0000");

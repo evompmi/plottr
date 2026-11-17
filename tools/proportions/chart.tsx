@@ -13,7 +13,7 @@ import {
   statsSummaryHeight,
 } from "../_shell";
 import { svgSafeId } from "../_core/svg-export";
-import { mosaicSpans, stackSegments } from "./helpers";
+import { mosaicSpans, nLabelAngle, stackSegments } from "./helpers";
 import type { ProportionsChartProps } from "./helpers";
 import { tt } from "./i18n";
 
@@ -98,12 +98,28 @@ export const ProportionsChart = memo(
     const labelW = table.groups.map((g) => textW(g, fs));
     const maxLabelW = Math.max(0, ...labelW);
     const xLabelH = angle === 0 ? fs + 4 : maxLabelW * Math.sin(rad) + fs * Math.cos(rad) + 6;
+    const mid = spans.map(([a, b]) => (a + b) / 2);
+    // Per-group n line under the group labels: tilted automatically, at the
+    // shallowest angle where neighbouring labels don't overlap.
+    const nText = table.groups.map((_, i) =>
+      isProp ? `${summaries[i].counts[0]}/${summaries[i].n}` : `n = ${totals[i]}`
+    );
+    const nFs = fs - 1;
+    const nW = nText.map((s) => textW(s, nFs));
+    const nAngle = showN ? nLabelAngle(nW, mid, nFs + 2) : 0;
+    const nRad = (Math.abs(nAngle) * Math.PI) / 180;
     // Leftward overhang of a tilted label past the plot's left edge.
-    const overhang =
-      angle === 0
-        ? 0
-        : Math.max(0, ...labelW.map((w, i) => w * Math.cos(rad) - (spans[i][0] + spans[i][1]) / 2));
-    const nLineH = showN ? fs + 4 : 0;
+    const overhangOf = (widths: number[], r: number): number =>
+      Math.max(0, ...widths.map((w, i) => w * Math.cos(r) - mid[i]));
+    const overhang = Math.max(
+      angle === 0 ? 0 : overhangOf(labelW, rad),
+      nAngle === 0 ? 0 : overhangOf(nW, nRad)
+    );
+    const nLineH = !showN
+      ? 0
+      : nAngle === 0
+        ? fs + 4
+        : Math.max(0, ...nW) * Math.sin(nRad) + nFs * Math.cos(nRad) + 6;
     const titleH = title ? fs + 14 : 0;
     const annotH =
       annotation === "brackets" && nLevels > 0 ? nLevels * BRACKET_STEP + 6 : showCld ? fs + 10 : 0;
@@ -380,19 +396,39 @@ export const ProportionsChart = memo(
 
         {showN && (
           <g id="n-labels">
-            {table.groups.map((_, i) => (
-              <text
-                key={i}
-                x={centre(i)}
-                y={M.top + plotHeight + 14 + xLabelH + fs - 4}
-                fontSize={fs - 1}
-                fontFamily={FONT}
-                fill="#666666"
-                textAnchor="middle"
-              >
-                {isProp ? `${summaries[i].counts[0]}/${summaries[i].n}` : `n = ${totals[i]}`}
-              </text>
-            ))}
+            {table.groups.map((_, i) => {
+              const x = centre(i);
+              if (nAngle === 0) {
+                return (
+                  <text
+                    key={i}
+                    x={x}
+                    y={M.top + plotHeight + 14 + xLabelH + fs - 4}
+                    fontSize={nFs}
+                    fontFamily={FONT}
+                    fill="#666666"
+                    textAnchor="middle"
+                  >
+                    {nText[i]}
+                  </text>
+                );
+              }
+              const y = M.top + plotHeight + 14 + xLabelH + nFs * 0.7 - 2;
+              return (
+                <text
+                  key={i}
+                  x={x}
+                  y={y}
+                  fontSize={nFs}
+                  fontFamily={FONT}
+                  fill="#666666"
+                  textAnchor="end"
+                  transform={`rotate(${nAngle},${x},${y})`}
+                >
+                  {nText[i]}
+                </text>
+              );
+            })}
           </g>
         )}
 

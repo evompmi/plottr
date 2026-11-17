@@ -32,6 +32,8 @@ module.exports = {
   gofPerGroup: helpers.gofPerGroup,
   stackSegments: helpers.stackSegments,
   mosaicSpans: helpers.mosaicSpans,
+  nLabelAngle: helpers.nLabelAngle,
+  N_LABEL_PAD: helpers.N_LABEL_PAD,
   formatPct: helpers.formatPct,
   resolveColors: helpers.resolveColors,
   // proportions/reports.ts

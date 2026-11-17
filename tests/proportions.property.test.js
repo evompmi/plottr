@@ -195,6 +195,46 @@ test("stacked segments tile [0, 1] when n > 0", () => {
   );
 });
 
+test("nLabelAngle picks the shallowest candidate that clears every adjacent pair", () => {
+  const pad = L.N_LABEL_PAD;
+  const clear = (deg, w, c, lineH) =>
+    c.every((x, i) => {
+      if (i === 0) return true;
+      const d = x - c[i - 1];
+      const r = (Math.abs(deg) * Math.PI) / 180;
+      return deg === 0
+        ? (w[i - 1] + w[i]) / 2 + pad <= d
+        : w[i - 1] * Math.cos(r) + pad <= d || d * Math.sin(r) >= lineH;
+    });
+  check(
+    fc.property(
+      fc.array(
+        fc.tuple(
+          fc.double({ min: 0, max: 120, noNaN: true }),
+          fc.double({ min: 0, max: 200, noNaN: true })
+        ),
+        {
+          minLength: 0,
+          maxLength: 10,
+        }
+      ),
+      fc.integer({ min: 6, max: 30 }),
+      (pairs, lineH) => {
+        const w = pairs.map((p) => p[0]);
+        let x = 0;
+        const c = pairs.map((p) => (x += p[1]));
+        const a = L.nLabelAngle(w, c, lineH);
+        const shallower = [0, -30, -45, -60, -90].filter((d) => Math.abs(d) < Math.abs(a));
+        return (
+          [0, -30, -45, -60, -90].includes(a) &&
+          (clear(a, w, c, lineH) || a === -90) &&
+          shallower.every((d) => !clear(d, w, c, lineH))
+        );
+      }
+    )
+  );
+});
+
 test("mosaic spans fill the width (minus gaps) proportionally", () => {
   check(
     fc.property(

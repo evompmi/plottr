@@ -556,6 +556,32 @@ export function mosaicSpans(totals: number[], width: number, gap: number): [numb
   });
 }
 
+// Angle (degrees, 0 or negative) for the per-group n labels under the
+// bars: the shallowest of 0 / −30 / −45 / −60 / −90 at which no two
+// adjacent labels collide, −90 when none fits. `widths` are the labels'
+// text widths, `centres` their anchor x (ascending), `lineH` the line
+// height. Tilted labels are parallel and end-anchored at their centre, so
+// a pair is clear when the left one doesn't reach its neighbour's anchor
+// horizontally or when the parallel lines sit at least `lineH` apart.
+export const N_LABEL_ANGLES: ReadonlyArray<number> = [0, -30, -45, -60, -90];
+export const N_LABEL_PAD = 4;
+
+export function nLabelAngle(widths: number[], centres: number[], lineH: number): number {
+  const fits = (deg: number): boolean => {
+    const rad = (Math.abs(deg) * Math.PI) / 180;
+    for (let i = 0; i + 1 < centres.length; i++) {
+      const d = centres[i + 1] - centres[i];
+      if (deg === 0) {
+        if ((widths[i] + widths[i + 1]) / 2 + N_LABEL_PAD > d) return false;
+      } else if (widths[i] * Math.cos(rad) + N_LABEL_PAD > d && d * Math.sin(rad) < lineH) {
+        return false;
+      }
+    }
+    return true;
+  };
+  return N_LABEL_ANGLES.find(fits) ?? -90;
+}
+
 // Palette colour per name, with per-name overrides on top (overrides are
 // keyed by name so they survive reordering and exclusion).
 export function resolveColors(

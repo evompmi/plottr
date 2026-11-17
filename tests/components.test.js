@@ -2831,6 +2831,33 @@ suite("ProportionsChart + stats panels");
     eq((vertical.match(/transform="rotate\(-90,(?!12,)/g) || []).length, 4);
   });
 
+  test("n labels tilt automatically only when they would overlap", () => {
+    const nGroup = (h) => h.match(/<g id="n-labels">.*?<\/g>/s)[0];
+    const flat = renderHtml(ProportionsChart, base);
+    assert(!nGroup(flat).includes("rotate("), "example spacing: horizontal");
+    const many = {
+      groups: Array.from({ length: 12 }, (_, i) => `g${i + 1}`),
+      categories: ["Yes", "No"],
+      counts: Array.from({ length: 12 }, (_, i) => [1000 + i, 4000 + i]),
+    };
+    const crowded = {
+      ...base,
+      table: many,
+      summaries: P.groupSummaries(many),
+      brackets: [],
+      cld: [],
+      annotation: "none",
+      groupColors: ["#111111"],
+    };
+    const tilted = renderHtml(ProportionsChart, crowded);
+    const g = nGroup(tilted);
+    assert(g.includes(">1000/5000<"), "count text unchanged");
+    eq((g.match(/text-anchor="end"[^>]*transform="rotate\(-30,/g) || []).length, 12);
+    const flatCrowded = renderHtml(ProportionsChart, { ...crowded, showN: false });
+    const vbH = (h) => Number(h.match(/viewBox="0 0 [\d.]+ ([\d.]+)"/)[1]);
+    assert(vbH(tilted) - vbH(flatCrowded) > 40, "bottom margin reserves the tilted labels");
+  });
+
   test("bar outline: black at the chosen width, or none", () => {
     const strokes = (h) =>
       [...h.matchAll(/<rect id="bar-[^"]*"[^>]*stroke="([^"]*)" stroke-width="([^"]*)"/g)].map(
