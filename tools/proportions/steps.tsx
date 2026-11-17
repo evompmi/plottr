@@ -421,6 +421,7 @@ export function PlotStep({
                     vis={vis}
                     updVis={updVis}
                     categories={selected.categories}
+                    nGroups={selected.groups.length}
                     focus={focus}
                     setFocus={setFocus}
                   />
@@ -475,6 +476,7 @@ export function PlotStep({
               barOutline={vis.barOutline}
               barOutlineWidth={vis.barOutlineWidth}
               xLabelAngle={vis.xLabelAngle}
+              piesPerRow={vis.piesPerRow}
               plotWidth={vis.plotWidth}
               plotHeight={vis.plotHeight}
               tickFontSize={vis.tickFontSize}

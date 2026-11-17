@@ -19,7 +19,7 @@ import {
 } from "../_shell";
 import { formatP, pStars } from "../_core/stats";
 import type { PAdjustMethod } from "../_core/stats";
-import { RATIO_PRESETS, formatPct, gofPerGroup, parseRatio } from "./helpers";
+import { RATIO_PRESETS, formatPct, gofPerGroup, parseRatio, piesInOneRow } from "./helpers";
 import type {
   AnnotationMode,
   GofPanelProps,
@@ -494,51 +494,69 @@ export function ProportionsStatsDisplayBar({
   const display: AnnotationMode =
     vis.annotation === "cld" && !lettersOk ? "brackets" : vis.annotation;
   const nsDisabled = display !== "brackets";
+  // Pies take marks only when they all sit on one row; otherwise only the
+  // printed summary applies, and a note says how to get them back.
+  const marksOff =
+    vis.chartType === "pie" && !piesInOneRow(analysis.table.groups.length, vis.piesPerRow);
   return (
     <div
       data-testid="proportions-display"
       style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
     >
-      <span className="dv-toolbar-label">{tr("proportions.stats.displayOnPlot")}</span>
-      <SegToggle<AnnotationMode>
-        value={display}
-        onChange={(v) => updVis({ annotation: v })}
-        ariaLabel={tr("proportions.stats.displayOnPlot")}
-        style={{ flex: "0 0 auto" }}
-        options={[
-          { value: "none", label: tr("proportions.stats.off") },
-          ...(lettersOk
-            ? [
-                {
-                  value: "cld" as const,
-                  label: tr("proportions.stats.letters"),
-                  title: tr("proportions.stats.lettersTitle"),
-                },
-              ]
-            : []),
-          { value: "brackets", label: tr("proportions.stats.brackets") },
-        ]}
-      />
-      <label
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          fontSize: 13,
-          color: nsDisabled ? "var(--text-faint)" : "var(--text-muted)",
-          cursor: nsDisabled ? "not-allowed" : "pointer",
-          opacity: nsDisabled ? 0.6 : 1,
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={!nsDisabled && vis.showNsBrackets}
-          disabled={nsDisabled}
-          onChange={(e) => updVis({ showNsBrackets: e.target.checked })}
-          data-testid="proportions-show-ns"
+      {marksOff && (
+        <span
+          data-testid="proportions-pie-marks-note"
+          style={{ fontSize: 12, color: "var(--text-muted)" }}
+        >
+          {tr("proportions.stats.pieMarksNote")}
+        </span>
+      )}
+      {!marksOff && (
+        <span className="dv-toolbar-label">{tr("proportions.stats.displayOnPlot")}</span>
+      )}
+      {!marksOff && (
+        <SegToggle<AnnotationMode>
+          value={display}
+          onChange={(v) => updVis({ annotation: v })}
+          ariaLabel={tr("proportions.stats.displayOnPlot")}
+          style={{ flex: "0 0 auto" }}
+          options={[
+            { value: "none", label: tr("proportions.stats.off") },
+            ...(lettersOk
+              ? [
+                  {
+                    value: "cld" as const,
+                    label: tr("proportions.stats.letters"),
+                    title: tr("proportions.stats.lettersTitle"),
+                  },
+                ]
+              : []),
+            { value: "brackets", label: tr("proportions.stats.brackets") },
+          ]}
         />
-        {tr("proportions.stats.showNs")}
-      </label>
+      )}
+      {!marksOff && (
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 13,
+            color: nsDisabled ? "var(--text-faint)" : "var(--text-muted)",
+            cursor: nsDisabled ? "not-allowed" : "pointer",
+            opacity: nsDisabled ? 0.6 : 1,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={!nsDisabled && vis.showNsBrackets}
+            disabled={nsDisabled}
+            onChange={(e) => updVis({ showNsBrackets: e.target.checked })}
+            data-testid="proportions-show-ns"
+          />
+          {tr("proportions.stats.showNs")}
+        </label>
+      )}
       <label
         style={{
           display: "flex",

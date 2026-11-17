@@ -62,7 +62,7 @@ export interface CountsParseResult {
   blankCells: number;
 }
 
-export type ChartType = "proportion" | "stacked" | "mosaic";
+export type ChartType = "proportion" | "stacked" | "mosaic" | "pie";
 export type AnnotationMode = "brackets" | "cld" | "none";
 export type SegmentLabelMode = "none" | "percent" | "count";
 export type TestChoice = "auto" | "fisher" | "chi2";
@@ -79,6 +79,8 @@ export interface ProportionsVis {
   barOutline: boolean;
   barOutlineWidth: number;
   xLabelAngle: number;
+  // Pie chart: pies per row (clamped to 1…number of groups when drawn).
+  piesPerRow: number;
   plotWidth: number;
   plotHeight: number;
   tickFontSize: number;
@@ -582,6 +584,54 @@ export function nLabelAngle(widths: number[], centres: number[], lineH: number):
   return N_LABEL_ANGLES.find(fits) ?? -90;
 }
 
+// One pie per group: slice angles in radians, clockwise from 12 o'clock,
+// first category first. Empty categories give zero-width slices; an empty
+// group gives none.
+export interface PieSlice {
+  category: number;
+  count: number;
+  frac: number;
+  a0: number;
+  a1: number;
+}
+
+export function pieSlices(counts: number[]): PieSlice[] {
+  const n = counts.reduce((a, b) => a + b, 0);
+  if (n <= 0) return [];
+  let acc = 0;
+  return counts.map((count, category) => {
+    const a0 = (2 * Math.PI * acc) / n;
+    acc += count;
+    return { category, count, frac: count / n, a0, a1: (2 * Math.PI * acc) / n };
+  });
+}
+
+// Pie grid over `width` px: `perRow` columns (clamped to 1…k), the rows
+// that k pies need, and each pie's radius (the cell width less a gap,
+// never more than half the cell).
+export interface PieGrid {
+  cols: number;
+  rows: number;
+  cellW: number;
+  r: number;
+}
+
+export const PIE_GAP = 16;
+
+export function pieGrid(k: number, perRow: number, width: number): PieGrid {
+  const cols = Math.max(1, Math.min(Math.max(1, k), Math.round(perRow) || 1));
+  const rows = Math.max(1, Math.ceil(k / cols));
+  const cellW = width / cols;
+  // In cells narrower than the gap, a quarter of the cell keeps pies apart.
+  return { cols, rows, cellW, r: Math.max(cellW / 4, (cellW - PIE_GAP) / 2) };
+}
+
+// Significance marks fit on pies only when every pie sits on one row, where
+// they line up like bars.
+export function piesInOneRow(k: number, perRow: number): boolean {
+  return pieGrid(k, perRow, 1).rows === 1;
+}
+
 // Palette colour per name, with per-name overrides on top (overrides are
 // keyed by name so they survive reordering and exclusion).
 export function resolveColors(
@@ -623,6 +673,8 @@ export interface ProportionsChartProps {
   barOutlineWidth: number;
   // Group-label tilt in degrees, −90…0 (0 = horizontal).
   xLabelAngle: number;
+  // Pie chart: pies per row.
+  piesPerRow: number;
   plotWidth: number;
   plotHeight: number;
   tickFontSize: number;
@@ -699,6 +751,8 @@ export interface TileProps {
 
 export interface ChartTileProps extends TileProps {
   categories: string[];
+  // Groups on the chart (upper bound of the pies-per-row slider).
+  nGroups: number;
   focus: number;
   setFocus: (i: number) => void;
 }

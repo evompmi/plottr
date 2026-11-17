@@ -15,6 +15,8 @@ interface BaseStyleControlsProps {
   onShowGridChange: (v: boolean) => void;
   gridColor: string;
   onGridColorChange: (hex: string) => void;
+  // Charts without axes (Proportions' pies): background only.
+  hideGrid?: boolean;
 }
 
 export function BaseStyleControls(props: BaseStyleControlsProps) {
@@ -40,14 +42,18 @@ export function BaseStyleControls(props: BaseStyleControlsProps) {
         label: tr("shell.style.background"),
       })
     ),
-    h(CheckboxField, {
-      key: "grid",
-      label: tr("shell.style.grid"),
-      checked: showGrid,
-      onChange: onShowGridChange,
-    }),
   ];
-  if (showGrid) {
+  if (!props.hideGrid) {
+    children.push(
+      h(CheckboxField, {
+        key: "grid",
+        label: tr("shell.style.grid"),
+        checked: showGrid,
+        onChange: onShowGridChange,
+      })
+    );
+  }
+  if (showGrid && !props.hideGrid) {
     children.push(
       h(
         "div",

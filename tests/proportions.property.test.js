@@ -235,6 +235,45 @@ test("nLabelAngle picks the shallowest candidate that clears every adjacent pair
   );
 });
 
+test("pie slices tile the full turn contiguously, in proportion to the counts", () => {
+  check(
+    fc.property(
+      fc.array(fc.integer({ min: 0, max: 500 }), { minLength: 1, maxLength: 8 }),
+      (row) => {
+        const s = L.pieSlices(row);
+        const n = row.reduce((a, b) => a + b, 0);
+        if (n === 0) return s.length === 0;
+        return (
+          s[0].a0 === 0 &&
+          Math.abs(s[s.length - 1].a1 - 2 * Math.PI) < 1e-12 &&
+          s.every((x, i) => (i === 0 || x.a0 === s[i - 1].a1) && x.a1 >= x.a0) &&
+          s.every((x, i) => Math.abs(x.a1 - x.a0 - (2 * Math.PI * row[i]) / n) < 1e-12)
+        );
+      }
+    )
+  );
+});
+
+test("pie grid holds every group in rows × cols with no empty row", () => {
+  check(
+    fc.property(
+      fc.integer({ min: 1, max: 40 }),
+      fc.integer({ min: -3, max: 50 }),
+      fc.integer({ min: 100, max: 1200 }),
+      (k, perRow, width) => {
+        const g = L.pieGrid(k, perRow, width);
+        return (
+          g.cols >= 1 &&
+          g.cols <= k &&
+          g.rows * g.cols >= k &&
+          (g.rows - 1) * g.cols < k &&
+          2 * g.r <= g.cellW
+        );
+      }
+    )
+  );
+});
+
 test("mosaic spans fill the width (minus gaps) proportionally", () => {
   check(
     fc.property(

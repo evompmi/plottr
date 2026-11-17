@@ -2858,6 +2858,60 @@ suite("ProportionsChart + stats panels");
     assert(vbH(tilted) - vbH(flatCrowded) > 40, "bottom margin reserves the tilted labels");
   });
 
+  test("pie chart: one pie per group, perRow per row, no axes or marks", () => {
+    const pie = { ...base, chartType: "pie", piesPerRow: 2 };
+    const html = renderHtml(ProportionsChart, pie);
+    const pies = html.match(/<g id="pies">.*?<g id="group-labels">/s)[0];
+    eq((pies.match(/<g id="pie-/g) || []).length, 4);
+    assert(pies.includes('id="pie-WT"') && pies.includes('id="pie-mut-1"'));
+    eq((pies.match(/<path /g) || []).length, 8, "two slices per group");
+    assert(pies.includes("85 %") && pies.includes("15 %"), "segment labels on slices");
+    for (const id of ["axis-x", "axis-y", "significance-brackets", "ci-whiskers", "bars"])
+      assert(!html.includes(`id="${id}"`), `no ${id} (two rows)`);
+    assert(html.includes(">n = 48<"), "n under each pie");
+    const legend = html.match(/<g id="legend">.*?<\/g><\/g>/s)[0];
+    assert(legend.indexOf("Colonised") < legend.indexOf("Not colonised"), "first category on top");
+    const vbH = (h) => Number(h.match(/viewBox="0 0 [\d.]+ ([\d.]+)"/)[1]);
+    const oneRow = renderHtml(ProportionsChart, { ...pie, piesPerRow: 4, annotation: "none" });
+    assert(vbH(html) > vbH(oneRow), "two rows are taller than one");
+    // One row: brackets above the pies, at the pie centres, with room reserved.
+    const withMarks = renderHtml(ProportionsChart, { ...pie, piesPerRow: 4 });
+    assert(withMarks.includes('id="significance-brackets"'), "brackets on one row");
+    eq((withMarks.match(/>\*\*\*\*</g) || []).length, 4, "same brackets as the bar chart");
+    assert(vbH(withMarks) > vbH(oneRow), "bracket band reserved above the pies");
+    assert(!withMarks.includes('id="axis-x"'), "still no axes");
+    const letters = renderHtml(ProportionsChart, {
+      ...pie,
+      piesPerRow: 4,
+      annotation: "cld",
+    });
+    assert(letters.includes('id="cld-annotations"'), "letters on one row");
+    assert(
+      !renderHtml(ProportionsChart, { ...pie, annotation: "cld" }).includes("cld-annotations")
+    );
+    const single = {
+      groups: ["all yes", "an extraordinarily long genotype label here"],
+      categories: ["y", "n"],
+      counts: [
+        [12, 0],
+        [3, 9],
+      ],
+    };
+    const full = renderHtml(ProportionsChart, {
+      ...pie,
+      table: single,
+      summaries: P.groupSummaries(single),
+      piesPerRow: 2,
+      plotWidth: 300,
+    });
+    assert(/<g id="pie-all-yes"><circle /.test(full), "100 % slice drawn as a circle");
+    assert(
+      full.includes("<title>an extraordinarily long genotype label here</title>") &&
+        full.includes("…<"),
+      "long names shortened, full name kept as a tooltip"
+    );
+  });
+
   test("bar outline: black at the chosen width, or none", () => {
     const strokes = (h) =>
       [...h.matchAll(/<rect id="bar-[^"]*"[^>]*stroke="([^"]*)" stroke-width="([^"]*)"/g)].map(
@@ -2985,6 +3039,26 @@ suite("ProportionsChart + stats panels");
     const seg2 = two.match(/aria-label="Display on plot"[^>]*>(.*?)<\/div>/s)[1];
     assert(!seg2.includes("Letters"), "no letters for two groups");
     assert(/aria-pressed="true"[^>]*>Brackets</.test(seg2), "falls back to brackets");
+  });
+
+  test("display bar: pies keep the marks on one row, a note otherwise", () => {
+    const oneRow = renderHtml(ProportionsStatsDisplayBar, {
+      analysis,
+      vis: { ...vis, chartType: "pie", piesPerRow: 4 },
+      updVis: noop,
+    });
+    assert(oneRow.includes("Display on plot"), "4 groups, 4 per row: marks offered");
+    assert(!oneRow.includes('data-testid="proportions-pie-marks-note"'));
+    const twoRows = renderHtml(ProportionsStatsDisplayBar, {
+      analysis,
+      vis: { ...vis, chartType: "pie", piesPerRow: 3 },
+      updVis: noop,
+    });
+    assert(!twoRows.includes("Display on plot"));
+    assert(!twoRows.includes('data-testid="proportions-show-ns"'));
+    assert(twoRows.includes('data-testid="proportions-pie-marks-note"'));
+    assert(twoRows.includes("raise Pies per row"));
+    assert(twoRows.includes('data-testid="proportions-show-summary"'), "summary still offered");
   });
 
   test("StatsPanel explainers: why this test (with this table's numbers) and why Holm / BH", () => {

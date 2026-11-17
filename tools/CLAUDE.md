@@ -19,18 +19,18 @@ The repository ships **ten plot tools** (each in its own folder) and **two singl
 
 **Plot tools — folder-per-tool layout** (`tools/<tool>/app.tsx` is the SPA-importable entry):
 
-| Tool                      | Source folder        | What it does                                                                                                                                     |
-| ------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| RLU timecourse / aequorin | `tools/aequorin/`    | Luminescence time-course (mean ± SD, per-replicate integrals) with optional aequorin Ca²⁺ calibration.                                           |
-| Group Plot                | `tools/boxplot/`     | Box / violin / raincloud / bar with auto-selected test + post-hocs.                                                                              |
-| Line Plot                 | `tools/lineplot/`    | Mean ± SEM / SD / 95 % CI per group across a shared x, with per-x significance markers.                                                          |
-| Scatter                   | `tools/scatter/`     | XY with colour / size / shape mapping, reference lines, optional linear regression.                                                              |
-| Heatmap                   | `tools/heatmap/`     | Matrix heatmap with hierarchical / k-means clustering, dendrograms, zoomed detail view.                                                          |
-| Venn                      | `tools/venn/`        | 2–3 set area-proportional Venn with click-to-extract region members.                                                                             |
-| UpSet                     | `tools/upset/`       | 4+ set intersection plot with multi-set significance via `SuperExactTest`-style `cpsets`.                                                        |
-| Volcano                   | `tools/volcano/`     | log2FC vs −log10(p) for −omics hits; auto-detects DESeq2 / limma / edgeR column conventions.                                                     |
-| Proportions               | `tools/proportions/` | Counts table (or one row per observation, tallied) → % with Wilson CIs, stacked / mosaic bars, Fisher / χ², pairwise Fisher, goodness of fit.    |
-| qPCR                      | `tools/qpcr/`        | Raw Ct → ΔCt / −ΔΔCt (Livak) or efficiency-corrected (Pfaffl) fold change with geometric-mean references; stats on ΔCt; bar / dot / box display. |
+| Tool                      | Source folder        | What it does                                                                                                                                          |
+| ------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RLU timecourse / aequorin | `tools/aequorin/`    | Luminescence time-course (mean ± SD, per-replicate integrals) with optional aequorin Ca²⁺ calibration.                                                |
+| Group Plot                | `tools/boxplot/`     | Box / violin / raincloud / bar with auto-selected test + post-hocs.                                                                                   |
+| Line Plot                 | `tools/lineplot/`    | Mean ± SEM / SD / 95 % CI per group across a shared x, with per-x significance markers.                                                               |
+| Scatter                   | `tools/scatter/`     | XY with colour / size / shape mapping, reference lines, optional linear regression.                                                                   |
+| Heatmap                   | `tools/heatmap/`     | Matrix heatmap with hierarchical / k-means clustering, dendrograms, zoomed detail view.                                                               |
+| Venn                      | `tools/venn/`        | 2–3 set area-proportional Venn with click-to-extract region members.                                                                                  |
+| UpSet                     | `tools/upset/`       | 4+ set intersection plot with multi-set significance via `SuperExactTest`-style `cpsets`.                                                             |
+| Volcano                   | `tools/volcano/`     | log2FC vs −log10(p) for −omics hits; auto-detects DESeq2 / limma / edgeR column conventions.                                                          |
+| Proportions               | `tools/proportions/` | Counts table (or one row per observation, tallied) → % with Wilson CIs, stacked / mosaic bars or pies, Fisher / χ², pairwise Fisher, goodness of fit. |
+| qPCR                      | `tools/qpcr/`        | Raw Ct → ΔCt / −ΔΔCt (Livak) or efficiency-corrected (Pfaffl) fold change with geometric-mean references; stats on ΔCt; bar / dot / box display.      |
 
 Each plot folder owns roughly:
 
@@ -246,7 +246,7 @@ Conventional ids already used across tools — reuse them for consistency:
 - **Text** — `title`, `subtitle`, `legend`, `row-labels` (heatmap), `col-labels` (heatmap)
 - **Heatmap-specific** — `col-dendrogram`, `row-dendrogram`, `col-cluster-strip`, `row-cluster-strip`, `colorbar`, `colorbar-histogram` (nested in `colorbar`)
 - **Volcano-specific** — `implied-boundary` (only with a significance-call column) holding `implied-boundary-up` / `implied-boundary-down` (band + dashed midline; one mirrored fit when the calls are symmetric, else per side) and `implied-boundary-legend`
-- **Proportions-specific** — `segments` (stacked / mosaic; one `group-<name>` per bar), `ci-whiskers` (Wilson CIs), `n-labels`
+- **Proportions-specific** — `segments` (stacked / mosaic; one `group-<name>` per bar), `ci-whiskers` (Wilson CIs), `n-labels`; the pie chart draws `pies` (one `pie-<name>` per group: slices + slice labels), `group-labels`, `n-labels` and `legend`, with no axes; `significance-brackets` / `cld-annotations` only when every pie sits on one row
 - **qPCR-specific** — one `facet-<gene>` per target gene holding `bars-<gene>`, `error-bars-<gene>` (SEM / SD / 95 % CI), `points-<gene>`, `reference-line-<gene>` (FC = 1; only with a calibrator group), `vs-control-<gene>` (stars vs a hidden calibrator column), `significance-brackets-<gene>` / `cld-annotations-<gene>`, `stats-summary-<gene>` (the printed summary), `axis-x-<gene>` / `axis-y-<gene>` (the value axis is `axis-y-*` and the group axis `axis-x-*` in either orientation; data layers are clipped to `clip-<gene>`), plus a chart-level `footnote` explaining those stars
 
 For per-series / per-group elements, build individual ids with `svgSafeId(name)` (defined in `shared.js` and available as a global to all compiled tools): e.g. `set-${svgSafeId(setName)}`, `group-${svgSafeId(g.name)}`, `bar-${svgSafeId(prefix)}`, `trace-${svgSafeId(prefix)}`, `ribbon-${svgSafeId(prefix)}`, `points-${svgSafeId(name)}`, `errbars-${svgSafeId(name)}`, `cell-${svgSafeId(rowLabel)}-${svgSafeId(colLabel)}`. `svgSafeId` sanitizes arbitrary strings into valid SVG NCNames (letters/digits/hyphens/underscores/periods, no leading digit), so it's safe to pass raw user-entered labels.

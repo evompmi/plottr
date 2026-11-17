@@ -29,6 +29,7 @@ declare global {
     export type ReactNode = ReactNs.ReactNode;
     export type RefObject<T> = ReactNs.RefObject<T>;
     export type MutableRefObject<T> = ReactNs.MutableRefObject<T>;
+    export type ForwardedRef<T> = ReactNs.ForwardedRef<T>;
     export type ChangeEvent<T = Element> = ReactNs.ChangeEvent<T>;
     export type MouseEvent<T = Element> = ReactNs.MouseEvent<T>;
     export type KeyboardEvent<T = Element> = ReactNs.KeyboardEvent<T>;

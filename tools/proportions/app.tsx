@@ -82,6 +82,7 @@ const VIS_INIT_PROPORTIONS: ProportionsVis = {
   barOutline: true,
   barOutlineWidth: 1,
   xLabelAngle: 0,
+  piesPerRow: 4,
   plotWidth: 480,
   plotHeight: 340,
   tickFontSize: 11,
@@ -419,6 +420,7 @@ export function App() {
         groupColors,
         outlineWidth: vis.barOutline ? vis.barOutlineWidth : 0,
         xLabelAngle: vis.xLabelAngle,
+        piesPerRow: vis.piesPerRow,
         plotTitle: vis.plotTitle,
       }),
       `${stem}.R`

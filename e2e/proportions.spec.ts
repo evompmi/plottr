@@ -85,6 +85,12 @@ test("chart types and test override", async ({ page }) => {
   await expect(page.locator("g#legend > g")).toHaveCount(2);
   await page.getByRole("button", { name: "Mosaic", exact: true }).click();
   await expect(page.locator("g#segments > g")).toHaveCount(4);
+  await page.getByRole("button", { name: "Pies", exact: true }).click();
+  await expect(page.locator("g#pies > g")).toHaveCount(4);
+  await expect(page.locator("g#axis-x")).toHaveCount(0);
+  // Four groups, four per row by default: the brackets stay.
+  await expect(page.locator("g#significance-brackets")).toHaveCount(1);
+  await page.getByRole("button", { name: "Mosaic", exact: true }).click();
   await page.getByTestId("proportions-test-choice").selectOption("fisher");
   await expect(page.getByTestId("proportions-omnibus")).toContainText("Fisher's exact test (4×2)");
   await expect(page.getByTestId("proportions-override-note")).toContainText(

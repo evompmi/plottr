@@ -66,6 +66,9 @@ const en = {
   "proportions.chart.typeStackedTitle": "100 % stacked bars, one segment per outcome",
   "proportions.chart.typeMosaic": "Mosaic",
   "proportions.chart.typeMosaicTitle": "Stacked columns with widths proportional to group size",
+  "proportions.chart.typePie": "Pies",
+  "proportions.chart.typePieTitle": "One pie per group, one slice per outcome",
+  "proportions.chart.piesPerRow": "Pies per row",
   "proportions.chart.focus": "Outcome shown as %",
   "proportions.chart.focusNote":
     "The other outcomes are pooled; tests compare this outcome vs. the rest.",
@@ -80,6 +83,7 @@ const en = {
   "proportions.style.height": "Plot height",
   "proportions.style.barWidth": "Bar width",
   "proportions.style.outline": "Bar outline (black)",
+  "proportions.style.outlinePie": "Slice outline (black)",
   "proportions.style.outlineWidth": "Outline thickness",
   "proportions.style.labelAngle": "Group label angle",
   "proportions.style.font": "Font size",
@@ -102,7 +106,7 @@ const en = {
 
   // Statistics panel
   "proportions.stats.focusNote":
-    "Analysing “{cat}” vs. all other outcomes pooled (as on the chart). Switch to Stacked or Mosaic to test every outcome.",
+    "Analysing “{cat}” vs. all other outcomes pooled (as on the chart). Switch to Stacked, Mosaic or Pies to test every outcome.",
   "proportions.stats.analysisExports": "Analysis exports",
   "proportions.stats.rScript": "R script",
   "proportions.stats.reportTxt": "Report .txt",
@@ -120,6 +124,8 @@ const en = {
     "Compact letter display: groups sharing a letter do not differ (adjusted p ≥ 0.05)",
   "proportions.stats.brackets": "Brackets",
   "proportions.stats.showNs": "Show ns",
+  "proportions.stats.pieMarksNote":
+    "Significance marks need every pie on one row — raise Pies per row to show them.",
   "proportions.stats.printSummary": "Print summary below plot",
   "proportions.summary.test": "Test: {test}",
   "proportions.summary.fisher": "Fisher's exact test",
@@ -234,7 +240,7 @@ const en = {
   "proportions.howto.exCaption3":
     "One row per plant: the group and outcome columns are counted into the table above.",
   "proportions.howto.display":
-    "<strong>Proportion</strong> shows % of one outcome with Wilson 95 % CIs. <strong>Stacked</strong> and <strong>Mosaic</strong> show every outcome; mosaic widths follow group size. The test is picked automatically: Fisher's exact test for 2×2 tables or when expected counts are small, χ² otherwise. Pairwise comparisons use Holm correction by default; pick a control group under Compare to test each group against it only. The goodness-of-fit panel tests counts against ratios such as 3:1 or 9:3:3:1.",
+    "<strong>Proportion</strong> shows % of one outcome with Wilson 95 % CIs. <strong>Stacked</strong>, <strong>Mosaic</strong> and <strong>Pies</strong> show every outcome; mosaic widths follow group size, and pies are laid out a chosen number per row (brackets and letters are drawn when every pie sits on one row). The test is picked automatically: Fisher's exact test for 2×2 tables or when expected counts are small, χ² otherwise. Pairwise comparisons use Holm correction by default; pick a control group under Compare to test each group against it only. The goodness-of-fit panel tests counts against ratios such as 3:1 or 9:3:3:1.",
   "proportions.methods.design":
     "Counts in {c} outcome categories were compared between {k} groups (N = {N} observations; {n} per group).",
   "proportions.methods.fisher":

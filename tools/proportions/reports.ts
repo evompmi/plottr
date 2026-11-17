@@ -139,6 +139,8 @@ export interface RScriptArgs {
   outlineWidth: number;
   // Group-label tilt (−90…0°, SVG convention); ggplot's angle is the opposite sign.
   xLabelAngle: number;
+  // Pie chart: facets per row.
+  piesPerRow: number;
   plotTitle: string;
   generatedAt?: string;
 }
@@ -258,7 +260,7 @@ export function buildProportionsRScript(a: RScriptArgs): string {
   L.push(`summary_df$group <- factor(summary_df$group, levels = rownames(counts))`);
   L.push(`summary_df$outcome <- factor(summary_df$outcome, levels = colnames(counts))`);
   const tilt =
-    a.xLabelAngle < 0
+    a.xLabelAngle < 0 && a.chartType !== "pie"
       ? ` +\n  theme(axis.text.x = element_text(angle = ${formatRNumber(-a.xLabelAngle)}, hjust = 1, vjust = 1))`
       : "";
   const title = (a.plotTitle ? ` + ggtitle(${rStr(a.plotTitle)})` : "") + tilt;
@@ -276,6 +278,17 @@ export function buildProportionsRScript(a: RScriptArgs): string {
     L.push("  geom_errorbar(aes(ymin = 100 * lower, ymax = 100 * upper), width = 0.2) +");
     L.push('  scale_y_continuous(limits = c(0, 100), name = paste0("% ", focus)) +');
     L.push(`  xlab(NULL) + theme_classic()${title}`);
+  } else if (a.chartType === "pie") {
+    const k = displayed.groups.length;
+    const ncol = Math.max(1, Math.min(Math.max(1, k), Math.round(a.piesPerRow) || 1));
+    L.push(`pal <- ${wrapRItems(a.colors.slice(0, displayed.categories.length).map(rStr))}`);
+    L.push("# One pie per group, clockwise from 12 o'clock, first outcome first");
+    L.push('p <- ggplot(summary_df, aes(x = "", y = prop, fill = outcome)) +');
+    L.push(`  geom_col(position = position_stack(reverse = TRUE), ${segEdge}, width = 1) +`);
+    L.push('  coord_polar(theta = "y", start = 0, direction = 1) +');
+    L.push(`  facet_wrap(~ group, ncol = ${ncol}) +`);
+    L.push("  scale_fill_manual(values = pal, name = NULL) +");
+    L.push(`  theme_void()${title}`);
   } else {
     L.push(`pal <- ${wrapRItems(a.colors.slice(0, displayed.categories.length).map(rStr))}`);
     if (a.chartType === "mosaic") {

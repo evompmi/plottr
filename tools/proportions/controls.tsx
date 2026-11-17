@@ -34,9 +34,10 @@ function Field({ label, children }: { label?: React.ReactNode; children: React.R
   );
 }
 
-export function ChartTile({ vis, updVis, categories, focus, setFocus }: ChartTileProps) {
+export function ChartTile({ vis, updVis, categories, nGroups, focus, setFocus }: ChartTileProps) {
   const tr = useT();
   const isProp = vis.chartType === "proportion";
+  const perRowMax = Math.max(1, nGroups);
   return (
     <ControlSection title={tr("proportions.tile.chart")} defaultOpen>
       <Field label={tr("proportions.chart.type")}>
@@ -60,9 +61,25 @@ export function ChartTile({ vis, updVis, categories, focus, setFocus }: ChartTil
               label: tr("proportions.chart.typeMosaic"),
               title: tr("proportions.chart.typeMosaicTitle"),
             },
+            {
+              value: "pie",
+              label: tr("proportions.chart.typePie"),
+              title: tr("proportions.chart.typePieTitle"),
+            },
           ]}
         />
       </Field>
+      {vis.chartType === "pie" && (
+        <SliderControl
+          label={tr("proportions.chart.piesPerRow")}
+          value={Math.min(vis.piesPerRow, perRowMax)}
+          displayValue={String(Math.min(vis.piesPerRow, perRowMax))}
+          min={1}
+          max={perRowMax}
+          step={1}
+          onChange={(v) => updVis({ piesPerRow: Number(v) })}
+        />
+      )}
       {isProp && (
         <Field label={tr("proportions.chart.focus")}>
           <select
@@ -180,6 +197,8 @@ export function ColorsTile({
 
 export function StyleTile({ vis, updVis }: TileProps) {
   const tr = useT();
+  // Pies have no axes: height follows from the width and pies per row.
+  const isPie = vis.chartType === "pie";
   return (
     <ControlSection title={tr("proportions.tile.style")}>
       <SliderControl
@@ -191,16 +210,18 @@ export function StyleTile({ vis, updVis }: TileProps) {
         step={20}
         onChange={(v) => updVis({ plotWidth: Number(v) })}
       />
-      <SliderControl
-        label={tr("proportions.style.height")}
-        value={vis.plotHeight}
-        displayValue={`${Math.round(vis.plotHeight)} px`}
-        min={160}
-        max={800}
-        step={20}
-        onChange={(v) => updVis({ plotHeight: Number(v) })}
-      />
-      {vis.chartType !== "mosaic" && (
+      {!isPie && (
+        <SliderControl
+          label={tr("proportions.style.height")}
+          value={vis.plotHeight}
+          displayValue={`${Math.round(vis.plotHeight)} px`}
+          min={160}
+          max={800}
+          step={20}
+          onChange={(v) => updVis({ plotHeight: Number(v) })}
+        />
+      )}
+      {vis.chartType !== "mosaic" && !isPie && (
         <SliderControl
           label={tr("proportions.style.barWidth")}
           value={vis.barWidthFrac}
@@ -212,7 +233,7 @@ export function StyleTile({ vis, updVis }: TileProps) {
         />
       )}
       <CheckboxField
-        label={tr("proportions.style.outline")}
+        label={isPie ? tr("proportions.style.outlinePie") : tr("proportions.style.outline")}
         checked={vis.barOutline}
         onChange={(v) => updVis({ barOutline: v })}
         style={{ marginBottom: 10 }}
@@ -228,15 +249,17 @@ export function StyleTile({ vis, updVis }: TileProps) {
           onChange={(v) => updVis({ barOutlineWidth: Number(v) })}
         />
       )}
-      <SliderControl
-        label={tr("proportions.style.labelAngle")}
-        value={vis.xLabelAngle}
-        displayValue={vis.xLabelAngle + "°"}
-        min={-90}
-        max={0}
-        step={5}
-        onChange={(v) => updVis({ xLabelAngle: Number(v) })}
-      />
+      {!isPie && (
+        <SliderControl
+          label={tr("proportions.style.labelAngle")}
+          value={vis.xLabelAngle}
+          displayValue={vis.xLabelAngle + "°"}
+          min={-90}
+          max={0}
+          step={5}
+          onChange={(v) => updVis({ xLabelAngle: Number(v) })}
+        />
+      )}
       <SliderControl
         label={tr("proportions.style.font")}
         value={vis.tickFontSize}
@@ -256,18 +279,20 @@ export function StyleTile({ vis, updVis }: TileProps) {
           placeholder={tr("proportions.style.optional")}
         />
       </label>
-      <label
-        style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, marginTop: 8 }}
-      >
-        {tr("proportions.style.yLabel")}
-        <input
-          type="text"
-          className="dv-input"
-          value={vis.yLabel}
-          onChange={(e) => updVis({ yLabel: e.target.value })}
-          placeholder={tr("proportions.style.auto")}
-        />
-      </label>
+      {!isPie && (
+        <label
+          style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, marginTop: 8 }}
+        >
+          {tr("proportions.style.yLabel")}
+          <input
+            type="text"
+            className="dv-input"
+            value={vis.yLabel}
+            onChange={(e) => updVis({ yLabel: e.target.value })}
+            placeholder={tr("proportions.style.auto")}
+          />
+        </label>
+      )}
       <div style={{ marginTop: 10 }}>
         <BaseStyleControls
           plotBg={vis.plotBg}
@@ -276,6 +301,7 @@ export function StyleTile({ vis, updVis }: TileProps) {
           onShowGridChange={(v) => updVis({ showGrid: v })}
           gridColor={vis.gridColor}
           onGridColorChange={(v) => updVis({ gridColor: v })}
+          hideGrid={isPie}
         />
       </div>
     </ControlSection>

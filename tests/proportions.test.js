@@ -407,6 +407,42 @@ test("nLabelAngle: shallowest collision-free tilt for the n labels", () => {
   eq(L.nLabelAngle([], [], 13), 0);
 });
 
+test("pieSlices: clockwise angles from 12 o'clock, first category first", () => {
+  const s = L.pieSlices([1, 3, 0, 4]);
+  const q = Math.PI / 4;
+  eq(
+    JSON.stringify(s.map((x) => [x.category, x.count, x.frac])),
+    "[[0,1,0.125],[1,3,0.375],[2,0,0],[3,4,0.5]]"
+  );
+  approx(s[0].a0, 0, 1e-15);
+  approx(s[0].a1, q, 1e-15);
+  approx(s[1].a1, 4 * q, 1e-15);
+  eq(s[2].a0, s[2].a1, "empty category: zero-width slice");
+  approx(s[3].a1, 2 * Math.PI, 1e-15);
+  eq(L.pieSlices([0, 0]).length, 0, "empty group: no slices");
+});
+
+test("piesInOneRow: marks only when the pies fit one row", () => {
+  eq(L.piesInOneRow(4, 4), true);
+  eq(L.piesInOneRow(4, 9), true);
+  eq(L.piesInOneRow(4, 3), false);
+  eq(L.piesInOneRow(1, 0), true);
+});
+
+test("pieGrid: columns clamped to 1…k, rows to fit, radius from the cell width", () => {
+  const gap = L.PIE_GAP;
+  eq(
+    JSON.stringify(L.pieGrid(5, 3, 480)),
+    JSON.stringify({ cols: 3, rows: 2, cellW: 160, r: (160 - gap) / 2 })
+  );
+  eq(L.pieGrid(4, 10, 400).cols, 4, "no more columns than groups");
+  eq(L.pieGrid(4, 10, 400).rows, 1);
+  eq(L.pieGrid(4, 0, 400).cols, 1, "at least one per row");
+  eq(L.pieGrid(4, 0, 400).rows, 4);
+  eq(L.pieGrid(7, 2.6, 300).cols, 3, "rounded");
+  eq(L.pieGrid(2, 1, 10).r, 2.5, "cell narrower than the gap: a quarter of the cell");
+});
+
 test("resolveColors: palette by position, overrides by name", () => {
   const pal = ["#aa0000", "#00aa00"];
   eq(L.resolveColors(["a", "b", "c"], pal, {}).join(","), "#aa0000,#00aa00,#aa0000");
@@ -548,6 +584,27 @@ test("R script: sanitised names, chosen test, pairwise + GOF blocks", () => {
   assert(r2.includes('            colour = "white") +'), "no outline → white separators");
   assert(!r2.includes("ratio <-"));
   assert(!r2.includes("axis.text.x"), "no tilt at 0°");
+  const r3 = L.buildProportionsRScript({
+    analysis: L.analyseTable(big, "auto", "holm"),
+    displayed: big,
+    chartType: "pie",
+    adjust: "holm",
+    ratio: null,
+    colors: ["#E69F00", "#56B4E9"],
+    groupColors: [],
+    outlineWidth: 0,
+    xLabelAngle: -45,
+    piesPerRow: 99,
+    plotTitle: "",
+    generatedAt: "T",
+  });
+  assert(r3.includes('coord_polar(theta = "y", start = 0, direction = 1)'), "pies");
+  assert(r3.includes(`facet_wrap(~ group, ncol = ${big.groups.length})`), "ncol clamped to k");
+  assert(
+    r3.includes('geom_col(position = position_stack(reverse = TRUE), colour = "white", width = 1)')
+  );
+  assert(r3.includes("theme_void()"));
+  assert(!r3.includes("axis.text.x"), "no label tilt on pies");
 });
 
 summary();
