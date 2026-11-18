@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Proportions draws pies.** A fourth chart type, Pies, shows one pie per group with a
   slice per outcome, laid out a chosen number per row (Chart tile). Slice labels follow the
   segment-label setting; brackets and letters are drawn when every pie sits on one row. The R
-  script draws the pies too.
+  script draws the pies too, with the same brackets or letters.
 
 ### Fixed
 

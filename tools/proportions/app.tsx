@@ -27,6 +27,7 @@ import {
   collapseToFocus,
   countLongTable,
   defaultOrder,
+  effectiveAnnotation,
   groupSummaries,
   guessLongRoles,
   parseCountsTable,
@@ -421,6 +422,8 @@ export function App() {
         outlineWidth: vis.barOutline ? vis.barOutlineWidth : 0,
         xLabelAngle: vis.xLabelAngle,
         piesPerRow: vis.piesPerRow,
+        annotation: effectiveAnnotation(vis.annotation, displayed.groups.length, analysis.control),
+        brackets,
         plotTitle: vis.plotTitle,
       }),
       `${stem}.R`

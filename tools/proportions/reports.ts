@@ -6,8 +6,16 @@
 import { formatP } from "../_core/stats";
 import { FISHER_MC_B } from "../_core/stats";
 import { formatRNumber, sanitizeRComment, sanitizeRString, wrapRItems } from "../_shell/r-export";
-import { formatPct, gofPerGroup } from "./helpers";
-import type { ChartType, CountsTable, GroupSummary, ProportionsAnalysis } from "./helpers";
+import { assignBracketLevels } from "../_shell/bracket-levels";
+import { formatPct, gofPerGroup, piesInOneRow } from "./helpers";
+import type {
+  AnnotationMode,
+  BracketSpec,
+  ChartType,
+  CountsTable,
+  GroupSummary,
+  ProportionsAnalysis,
+} from "./helpers";
 import type { PAdjustMethod } from "../_core/stats";
 
 const rStr = (s: string): string => '"' + sanitizeRString(s) + '"';
@@ -141,6 +149,11 @@ export interface RScriptArgs {
   xLabelAngle: number;
   // Pie chart: facets per row.
   piesPerRow: number;
+  // Marks drawn on the plot (the effective mode, see effectiveAnnotation) and
+  // the brackets shown. The script draws them on pies when every pie sits on
+  // one row, as the app does; omitted = no marks.
+  annotation?: AnnotationMode;
+  brackets?: BracketSpec[];
   plotTitle: string;
   generatedAt?: string;
 }
@@ -278,6 +291,8 @@ export function buildProportionsRScript(a: RScriptArgs): string {
     L.push("  geom_errorbar(aes(ymin = 100 * lower, ymax = 100 * upper), width = 0.2) +");
     L.push('  scale_y_continuous(limits = c(0, 100), name = paste0("% ", focus)) +');
     L.push(`  xlab(NULL) + theme_classic()${title}`);
+  } else if (a.chartType === "pie" && pieMarks(a)) {
+    pushPieMarksChart(L, a, segEdge, title);
   } else if (a.chartType === "pie") {
     const k = displayed.groups.length;
     const ncol = Math.max(1, Math.min(Math.max(1, k), Math.round(a.piesPerRow) || 1));
@@ -317,4 +332,64 @@ export function buildProportionsRScript(a: RScriptArgs): string {
   L.push("print(p)");
   L.push(`# ${sanitizeRComment("End of Plöttr export")}`);
   return L.join("\n") + "\n";
+}
+
+// Brackets or letters to draw on pies: only when every pie sits on one row.
+function pieMarks(a: RScriptArgs): "brackets" | "cld" | null {
+  if (a.analysis.error || !piesInOneRow(a.displayed.groups.length, a.piesPerRow)) return null;
+  if (a.annotation === "brackets" && (a.brackets?.length ?? 0) > 0) return "brackets";
+  if (a.annotation === "cld" && a.analysis.cld.some((s) => s !== "")) return "cld";
+  return null;
+}
+
+// Pies on one row as polygons on shared x / y axes (pie i centred at x = i),
+// so brackets can span pies the way they span bars.
+function pushPieMarksChart(L: string[], a: RScriptArgs, segEdge: string, title: string): void {
+  L.push(`pal <- ${wrapRItems(a.colors.slice(0, a.displayed.categories.length).map(rStr))}`);
+  L.push("# Pies on one row, drawn as polygons so the marks can span them:");
+  L.push("# radius 0.45, clockwise from 12 o'clock, first outcome first");
+  L.push("slices <- do.call(rbind, lapply(seq_len(nrow(counts)), function(i) {");
+  L.push("  if (n[[i]] == 0) return(NULL)");
+  L.push("  a <- 2 * pi * c(0, cumsum(counts[i, ])) / n[[i]]");
+  L.push("  do.call(rbind, lapply(which(counts[i, ] > 0), function(s) {");
+  L.push("    th <- seq(a[s], a[s + 1], length.out = 2 + ceiling(30 * (a[s + 1] - a[s])))");
+  L.push("    whole <- counts[i, s] == n[[i]]  # a full disc: no centre point, no seam");
+  L.push("    data.frame(pie = i, outcome = colnames(counts)[s],");
+  L.push("               x = c(if (!whole) i, i + 0.45 * sin(th)),");
+  L.push("               y = c(if (!whole) 0, 0.45 * cos(th)))");
+  L.push("  }))");
+  L.push("}))");
+  L.push("slices$outcome <- factor(slices$outcome, levels = colnames(counts))");
+  L.push("p <- ggplot(slices, aes(x, y, group = interaction(pie, outcome), fill = outcome)) +");
+  L.push(`  geom_polygon(${segEdge}) +`);
+  L.push('  annotate("text", x = seq_len(nrow(counts)), y = -0.55, label = rownames(counts),');
+  L.push("           vjust = 1) +");
+  L.push("  scale_fill_manual(values = pal, name = NULL, drop = FALSE) +");
+  L.push(`  coord_equal(clip = "off") + theme_void()${title}`);
+  if (pieMarks(a) === "brackets") {
+    const lv = assignBracketLevels(a.brackets ?? []);
+    L.push("# Significance brackets (adjusted p), stacked so none overlap");
+    L.push("brackets <- data.frame(");
+    L.push(`  from = c(${lv.map((b) => Math.min(b.i, b.j) + 1).join(", ")}),`);
+    L.push(`  to = c(${lv.map((b) => Math.max(b.i, b.j) + 1).join(", ")}),`);
+    L.push(`  level = c(${lv.map((b) => b._level).join(", ")}),`);
+    L.push(`  label = ${wrapRItems(lv.map((b) => rStr(b.label)))}`);
+    L.push(")");
+    L.push("brackets$y <- 0.55 + 0.14 * brackets$level");
+    L.push("p <- p +");
+    L.push(
+      '  annotate("segment", x = brackets$from, xend = brackets$to, y = brackets$y, yend = brackets$y) +'
+    );
+    L.push('  annotate("segment", x = c(brackets$from, brackets$to),');
+    L.push("           xend = c(brackets$from, brackets$to),");
+    L.push("           y = rep(brackets$y, 2) - 0.04, yend = rep(brackets$y, 2)) +");
+    L.push('  annotate("text", x = (brackets$from + brackets$to) / 2, y = brackets$y + 0.01,');
+    L.push("           label = brackets$label, vjust = 0)");
+  } else {
+    L.push("# Compact letter display: pies sharing a letter do not differ");
+    L.push(`cld <- ${wrapRItems(a.analysis.cld.map(rStr))}`);
+    L.push(
+      'p <- p + annotate("text", x = seq_len(nrow(counts)), y = 0.55, label = cld, vjust = 0)'
+    );
+  }
 }

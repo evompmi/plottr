@@ -607,4 +607,77 @@ test("R script: sanitised names, chosen test, pairwise + GOF blocks", () => {
   assert(!r3.includes("axis.text.x"), "no label tilt on pies");
 });
 
+test("effectiveAnnotation: letters fall back to brackets with < 3 groups or a control", () => {
+  eq(L.effectiveAnnotation("cld", 3, null), "cld");
+  eq(L.effectiveAnnotation("cld", 2, null), "brackets");
+  eq(L.effectiveAnnotation("cld", 4, 0), "brackets");
+  eq(L.effectiveAnnotation("brackets", 2, null), "brackets");
+  eq(L.effectiveAnnotation("none", 4, 0), "none");
+});
+
+test("R script: pies on one row carry the brackets / letters", () => {
+  const t = {
+    groups: ["WT", "m1", "m2", "m3"],
+    categories: ["A", "B", "C"],
+    counts: [
+      [20, 2, 2],
+      [4, 15, 5],
+      [5, 14, 0],
+      [20, 0, 0],
+    ],
+  };
+  const an = L.analyseTable(t, "auto", "holm");
+  const base = {
+    analysis: an,
+    displayed: t,
+    chartType: "pie",
+    adjust: "holm",
+    ratio: null,
+    colors: ["#E69F00", "#56B4E9", "#009E73"],
+    groupColors: [],
+    outlineWidth: 0,
+    xLabelAngle: 0,
+    plotTitle: "",
+    generatedAt: "T",
+  };
+  const brackets = [
+    { i: 0, j: 1, label: "****" },
+    { i: 2, j: 3, label: "**" },
+    { i: 0, j: 2, label: "*" },
+  ];
+  const rb = L.buildProportionsRScript({
+    ...base,
+    piesPerRow: 4,
+    annotation: "brackets",
+    brackets,
+  });
+  assert(!rb.includes("coord_polar"), "polygons, not facets");
+  assert(rb.includes('geom_polygon(colour = "white")'));
+  assert(rb.includes('coord_equal(clip = "off") + theme_void()'));
+  assert(rb.includes("whole <- counts[i, s] == n[[i]]"), "full disc has no seam");
+  assert(rb.includes("  from = c(1, 3, 1),"), rb);
+  assert(rb.includes("  to = c(2, 4, 3),"));
+  assert(rb.includes("  level = c(0, 0, 1),"));
+  assert(rb.includes('  label = c("****", "**", "*")'));
+  assert(!rb.includes("cld <-"));
+
+  eq(an.cld.join(","), "a,b,b,a");
+  const rc = L.buildProportionsRScript({ ...base, piesPerRow: 4, annotation: "cld", brackets });
+  assert(rc.includes('cld <- c("a", "b", "b", "a")'), rc);
+  assert(rc.includes("label = cld"));
+  assert(!rc.includes("brackets <- data.frame"));
+
+  // Two rows, marks off, or nothing to draw → plain facets, no marks.
+  for (const extra of [
+    { piesPerRow: 3, annotation: "brackets", brackets },
+    { piesPerRow: 4, annotation: "none", brackets },
+    { piesPerRow: 4, annotation: "brackets", brackets: [] },
+    { piesPerRow: 4 },
+  ]) {
+    const r = L.buildProportionsRScript({ ...base, ...extra });
+    assert(r.includes("facet_wrap(~ group"), JSON.stringify(extra));
+    assert(!r.includes("brackets <-") && !r.includes("cld <-"), JSON.stringify(extra));
+  }
+});
+
 summary();

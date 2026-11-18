@@ -36,6 +36,7 @@ module.exports = {
   pieSlices: helpers.pieSlices,
   pieGrid: helpers.pieGrid,
   piesInOneRow: helpers.piesInOneRow,
+  effectiveAnnotation: helpers.effectiveAnnotation,
   PIE_GAP: helpers.PIE_GAP,
   N_LABEL_PAD: helpers.N_LABEL_PAD,
   formatPct: helpers.formatPct,

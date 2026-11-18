@@ -17,7 +17,7 @@ import {
 } from "../_shell";
 import type { ChartDataTableRow } from "../_shell";
 import { fileBaseName } from "../_core/download";
-import { formatPct, proportionsSummaryText } from "./helpers";
+import { effectiveAnnotation, formatPct, proportionsSummaryText } from "./helpers";
 import type {
   ColorItem,
   ConfigureStepProps,
@@ -356,12 +356,7 @@ export function PlotStep({
 }: PlotStepProps) {
   const tr = useT();
   const shown = displayed;
-  // Letters need ≥ 3 groups compared all-pairs; with two groups, or against
-  // a control, the comparisons are brackets.
-  const annotation =
-    vis.annotation === "cld" && (shown.groups.length < 3 || analysis.control !== null)
-      ? "brackets"
-      : vis.annotation;
+  const annotation = effectiveAnnotation(vis.annotation, shown.groups.length, analysis.control);
 
   const statsSummary = proportionsSummaryText(analysis, vis, tr);
 

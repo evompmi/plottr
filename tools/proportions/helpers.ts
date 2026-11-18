@@ -632,6 +632,16 @@ export function piesInOneRow(k: number, perRow: number): boolean {
   return pieGrid(k, perRow, 1).rows === 1;
 }
 
+// The marks actually drawn: letters need ≥ 3 groups compared all-pairs;
+// with two groups, or against a control, the comparisons are brackets.
+export function effectiveAnnotation(
+  mode: AnnotationMode,
+  nGroups: number,
+  control: number | null
+): AnnotationMode {
+  return mode === "cld" && (nGroups < 3 || control !== null) ? "brackets" : mode;
+}
+
 // Palette colour per name, with per-name overrides on top (overrides are
 // keyed by name so they survive reordering and exclusion).
 export function resolveColors(

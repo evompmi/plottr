@@ -64,7 +64,7 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.chart.typeMosaic": "Mosaïque",
   "proportions.chart.typeMosaicTitle":
     "Colonnes empilées de largeur proportionnelle à l’effectif du groupe",
-  "proportions.chart.typePie": "Camemberts",
+  "proportions.chart.typePie": "Secteurs",
   "proportions.chart.typePieTitle": "Un camembert par groupe, une part par modalité",
   "proportions.chart.piesPerRow": "Camemberts par ligne",
   "proportions.chart.focus": "Modalité affichée en %",
@@ -101,7 +101,7 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.dl.rTitle": "Script R reproduisant tous les tests et le graphique",
 
   "proportions.stats.focusNote":
-    "Analyse de « {cat} » contre toutes les autres modalités regroupées (comme sur le graphique). Passez en Empilé, Mosaïque ou Camemberts pour tester toutes les modalités.",
+    "Analyse de « {cat} » contre toutes les autres modalités regroupées (comme sur le graphique). Passez en Empilé, Mosaïque ou Secteurs pour tester toutes les modalités.",
   "proportions.stats.analysisExports": "Exports de l’analyse",
   "proportions.stats.rScript": "Script R",
   "proportions.stats.reportTxt": "Rapport .txt",
@@ -236,7 +236,7 @@ const fr: Record<ProportionsKey, string> = {
   "proportions.howto.exCaption3":
     "Une ligne par plante : les colonnes de groupe et de modalité sont comptées pour former le tableau ci-dessus.",
   "proportions.howto.display":
-    "<strong>Proportion</strong> affiche le % d’une modalité avec IC de Wilson à 95 %. <strong>Empilé</strong>, <strong>Mosaïque</strong> et <strong>Camemberts</strong> montrent toutes les modalités ; en mosaïque, la largeur suit l’effectif du groupe, et les camemberts sont disposés par lignes du nombre choisi (crochets et lettres s’affichent quand tous les camemberts sont sur une ligne). Le test est choisi automatiquement : exact de Fisher pour les tableaux 2×2 ou quand les effectifs attendus sont faibles, χ² sinon. Les comparaisons deux à deux utilisent la correction de Holm par défaut ; choisissez un groupe témoin dans « Comparer » pour ne tester chaque groupe que contre lui. Le panneau d’ajustement compare les effectifs à des proportions comme 3:1 ou 9:3:3:1.",
+    "<strong>Proportion</strong> affiche le % d’une modalité avec IC de Wilson à 95 %. <strong>Empilé</strong>, <strong>Mosaïque</strong> et <strong>Secteurs</strong> montrent toutes les modalités ; en mosaïque, la largeur suit l’effectif du groupe, et les camemberts sont disposés par lignes du nombre choisi (crochets et lettres s’affichent quand tous les camemberts sont sur une ligne). Le test est choisi automatiquement : exact de Fisher pour les tableaux 2×2 ou quand les effectifs attendus sont faibles, χ² sinon. Les comparaisons deux à deux utilisent la correction de Holm par défaut ; choisissez un groupe témoin dans « Comparer » pour ne tester chaque groupe que contre lui. Le panneau d’ajustement compare les effectifs à des proportions comme 3:1 ou 9:3:3:1.",
   "proportions.methods.design":
     "Les effectifs de {c} catégories de réponse ont été comparés entre {k} groupes (N = {N} observations ; {n} par groupe).",
   "proportions.methods.fisher":
