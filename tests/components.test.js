@@ -3124,6 +3124,48 @@ suite("ProportionsChart + stats panels");
     );
   });
 
+  test("StatsPanel Methods: R×C Fisher quotes fisher.test with a larger workspace, 2×2 without", () => {
+    const React = require("react");
+    const methodsOf = (t) => {
+      const { container, root } = renderWithEffects(StatsPanel, {
+        analysis: P.analyseTable(t, "fisher", "holm"),
+        categories: t.categories,
+        summaries: P.groupSummaries(t),
+        focusLabel: null,
+        vis: { ...vis, testChoice: "fisher" },
+        updVis: noop,
+        onDownloadReport: noop,
+        onDownloadR: noop,
+      });
+      React.act(() => container.querySelector('[data-testid="methods-button"]').click());
+      const text = container.querySelector('[data-testid="methods-text"]').textContent;
+      React.act(() => root.unmount());
+      return text;
+    };
+    // R's default workspace fails on this table, which the app tests exactly.
+    const rxc = methodsOf({
+      groups: ["a", "b", "c", "d"],
+      categories: ["x", "y", "z"],
+      counts: [
+        [40, 5, 5],
+        [10, 30, 10],
+        [12, 28, 0],
+        [50, 0, 0],
+      ],
+    });
+    assert(rxc.includes("fisher.test(counts, workspace = 2e7)"), rxc);
+    const twoByTwo = methodsOf({
+      groups: ["a", "b"],
+      categories: ["y", "n"],
+      counts: [
+        [10, 3],
+        [2, 15],
+      ],
+    });
+    assert(twoByTwo.includes("fisher.test(counts)"), twoByTwo);
+    assert(!twoByTwo.includes("workspace"), twoByTwo);
+  });
+
   test("StatsPanel: 2×2 shows Fisher with the conditional-MLE odds ratio", () => {
     const t2 = {
       groups: ["a", "b"],

@@ -147,12 +147,16 @@ export function StatsPanel({
     }
     out.push(alphaSentence());
     if (vis.chartType === "proportion" && vis.showCI) out.push(tr("proportions.methods.wilson"));
+    // Beyond 2×2, R's default workspace can run out on tables the app tests exactly.
+    const isTwoByTwo = analysis.table.groups.length === 2 && analysis.table.categories.length === 2;
     const calls = [
       test === "chi2"
         ? "chisq.test(counts, correct = FALSE)"
         : B
           ? `fisher.test(counts, simulate.p.value = TRUE, B = ${B})`
-          : "fisher.test(counts)",
+          : isTwoByTwo
+            ? "fisher.test(counts)"
+            : "fisher.test(counts, workspace = 2e7)",
     ];
     if (multi && m > 0)
       calls.push(`p.adjust(p, method = "${vis.adjustMethod === "holm" ? "holm" : "BH"}")`);

@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Proportions: the R script no longer stops on larger Fisher tables.** R's `fisher.test`
   ran out of workspace on tables the app tests exactly; the script now retries with more
   workspace, and only then falls back to a Monte-Carlo p, with a comment and a message
-  saying where its p can differ from the app's. Regression: 1 test.
+  saying where its p can differ from the app's. The Methods text now quotes
+  `fisher.test(counts, workspace = 2e7)` for tables larger than 2×2. Regression: 2 tests.
 - **Proportions: the n labels under the bars no longer overlap.** When the counts (`41/48`,
   `n = 48`) are too wide for the spacing, they tilt to the shallowest angle (−30° to −90°)
   that keeps them apart, and the bottom margin grows to fit. Regression: 3 tests.
