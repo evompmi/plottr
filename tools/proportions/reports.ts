@@ -194,16 +194,24 @@ export function buildProportionsRScript(a: RScriptArgs): string {
   L.push("# Expected counts under independence (Cochran: all >= 1, at most 20 % < 5)");
   L.push("print(suppressWarnings(chisq.test(counts))$expected)");
   L.push("");
+  const exactOmnibus = analysis.test === "fisher" && analysis.fisher?.method !== "monteCarlo";
+  if (!analysis.error && (exactOmnibus || analysis.pairs.length > 0)) {
+    pushFisherHelper(L);
+    L.push("");
+  }
   if (analysis.error) {
     L.push("# Not enough groups / categories for a test.");
   } else if (analysis.test === "fisher") {
     if (analysis.fisher?.method === "monteCarlo") {
-      L.push("# Table too large for exact enumeration: Monte-Carlo p (as in Plöttr)");
+      L.push("# Table too large for exact enumeration: Monte-Carlo p, as in Plöttr.");
+      L.push("# DIFFERENCE WITH PLÖTTR: R draws its own random tables, so this p differs");
+      L.push("# slightly from the app's (both have a Monte-Carlo error of about");
+      L.push("# sqrt(p * (1 - p) / B)).");
       L.push(
         `fisher.test(counts, simulate.p.value = TRUE, B = ${analysis.fisher.B ?? FISHER_MC_B})`
       );
     } else {
-      L.push("fisher.test(counts)");
+      L.push("fisher_exact(counts)");
     }
   } else {
     L.push("chisq.test(counts, correct = FALSE)");
@@ -220,7 +228,7 @@ export function buildProportionsRScript(a: RScriptArgs): string {
     L.push("p_raw <- sapply(others, function(g) {");
     L.push("  sub <- counts[c(control, g), , drop = FALSE]");
     L.push("  sub <- sub[, colSums(sub) > 0, drop = FALSE]");
-    L.push("  if (ncol(sub) < 2) 1 else fisher.test(sub)$p.value");
+    L.push("  if (ncol(sub) < 2) 1 else fisher_exact(sub)$p.value");
     L.push("})");
     L.push(`p_adj <- p.adjust(p_raw, method = "${a.adjust === "holm" ? "holm" : "BH"}")`);
     L.push('print(data.frame(pair = paste(others, "vs", control), p = p_raw, p_adj = p_adj))');
@@ -231,7 +239,7 @@ export function buildProportionsRScript(a: RScriptArgs): string {
     L.push("p_raw <- apply(pairs, 2, function(ij) {");
     L.push("  sub <- counts[ij, , drop = FALSE]");
     L.push("  sub <- sub[, colSums(sub) > 0, drop = FALSE]");
-    L.push("  if (ncol(sub) < 2) 1 else fisher.test(sub)$p.value");
+    L.push("  if (ncol(sub) < 2) 1 else fisher_exact(sub)$p.value");
     L.push("})");
     L.push(`p_adj <- p.adjust(p_raw, method = "${a.adjust === "holm" ? "holm" : "BH"}")`);
     L.push(
@@ -392,4 +400,30 @@ function pushPieMarksChart(L: string[], a: RScriptArgs, segEdge: string, title: 
       'p <- p + annotate("text", x = seq_len(nrow(counts)), y = 0.55, label = cld, vjust = 0)'
     );
   }
+}
+
+// R's fisher.test (network algorithm) can stop with "FEXACT error … increase
+// workspace" on tables Plöttr still enumerates exactly. The helper retries
+// with more workspace and only then falls back to a simulated p, saying so.
+function pushFisherHelper(L: string[]): void {
+  L.push("# fisher_exact(): Fisher's exact test, as computed by Plöttr.");
+  L.push("# DIFFERENCE WITH PLÖTTR: on larger tables R's fisher.test() can stop with");
+  L.push('# "FEXACT error ... increase workspace" where Plöttr still gets the exact p');
+  L.push("# (it enumerates the tables itself). R is retried with more workspace; if");
+  L.push("# that still fails, R falls back to a Monte-Carlo p (B = 20000), which can");
+  L.push("# differ from Plöttr's exact p in the last digits. A message says when.");
+  L.push("fisher_exact <- function(tab) {");
+  L.push("  name <- deparse(substitute(tab))  # print data: counts, not data: tab");
+  L.push("  for (ws in c(2e5, 2e6, 2e7, 1e8)) {");
+  L.push("    res <- tryCatch(fisher.test(tab, workspace = ws), error = function(e) NULL)");
+  L.push("    if (!is.null(res)) { res$data.name <- name; return(res) }");
+  L.push("  }");
+  L.push('  message("fisher.test: exact p out of reach in R for this table; using a ",');
+  L.push(
+    '          "Monte-Carlo p (B = 20000), which may differ slightly from the app\'s exact p")'
+  );
+  L.push(`  res <- fisher.test(tab, simulate.p.value = TRUE, B = ${FISHER_MC_B})`);
+  L.push("  res$data.name <- name");
+  L.push("  res");
+  L.push("}");
 }

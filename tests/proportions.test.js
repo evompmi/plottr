@@ -550,7 +550,9 @@ test("R script: sanitised names, chosen test, pairwise + GOF blocks", () => {
     generatedAt: "T",
   });
   assert(r.includes('"evil\\"); system(\\"x"'), "group name escaped");
-  assert(r.includes("fisher.test(counts)"));
+  assert(r.includes("\nfisher_exact(counts)\n"), "omnibus through the workspace-safe helper");
+  assert(r.includes("fisher_exact <- function(tab) {"));
+  assert(r.includes("# DIFFERENCE WITH PLÖTTR: on larger tables R's fisher.test() can stop with"));
   assert(r.includes("ratio <- c(3, 1)"));
   assert(r.includes('p_holm = p.adjust(gof[, "p"], "holm")'));
   assert(!r.includes("combn"), "no pairwise block for two groups");
@@ -678,6 +680,69 @@ test("R script: pies on one row carry the brackets / letters", () => {
     assert(r.includes("facet_wrap(~ group"), JSON.stringify(extra));
     assert(!r.includes("brackets <-") && !r.includes("cld <-"), JSON.stringify(extra));
   }
+});
+
+test("R script: Fisher calls survive R's workspace limit and flag the differences", () => {
+  const mk = (counts) => ({
+    groups: counts.map((_, i) => "g" + i),
+    categories: counts[0].map((_, j) => "c" + j),
+    counts,
+  });
+  const args = (t, an) => ({
+    analysis: an,
+    displayed: t,
+    chartType: "stacked",
+    adjust: "holm",
+    ratio: null,
+    colors: [],
+    groupColors: [],
+    outlineWidth: 0,
+    xLabelAngle: 0,
+    piesPerRow: 4,
+    plotTitle: "",
+    generatedAt: "T",
+  });
+  // Exact in the app; R's default workspace (2e5) fails on this table.
+  const t = mk([
+    [40, 5, 5],
+    [10, 30, 10],
+    [12, 28, 0],
+    [50, 0, 0],
+  ]);
+  const an = L.analyseTable(t, "fisher", "holm");
+  eq(an.fisher.method, "exact");
+  const r = L.buildProportionsRScript(args(t, an));
+  assert(r.includes("  for (ws in c(2e5, 2e6, 2e7, 1e8)) {"), "retries with more workspace");
+  assert(
+    r.includes("  res <- fisher.test(tab, simulate.p.value = TRUE, B = 20000)"),
+    "last resort"
+  );
+  assert(r.includes("which may differ slightly from the app's exact p"), "says so when it happens");
+  assert(r.includes("\nfisher_exact(counts)\n"));
+  eq(r.split("if (ncol(sub) < 2) 1 else fisher_exact(sub)$p.value").length, 2, "pairs via helper");
+  assert(!/fisher\.test\((counts|sub)\)/.test(r), "no bare fisher.test call left");
+  // Too large for the app's enumeration: Monte-Carlo in both, flagged.
+  const h = mk([
+    [140, 25, 15, 3],
+    [60, 130, 40, 2],
+    [52, 98, 0, 7],
+    [150, 3, 30, 0],
+    [80, 80, 80, 1],
+  ]);
+  const ah = L.analyseTable(h, "fisher", "holm");
+  eq(ah.fisher.method, "monteCarlo");
+  const rh = L.buildProportionsRScript(args(h, ah));
+  assert(rh.includes("fisher.test(counts, simulate.p.value = TRUE, B = 20000)"));
+  assert(rh.includes("# DIFFERENCE WITH PLÖTTR: R draws its own random tables, so this p differs"));
+  assert(!rh.includes("\nfisher_exact(counts)\n"), "omnibus stays simulated");
+  assert(rh.includes("fisher_exact <- function(tab) {"), "helper still there for the pairs");
+  // χ² with two groups: no Fisher at all, no helper.
+  const c = mk([
+    [30, 30, 30],
+    [20, 40, 30],
+  ]);
+  const rc = L.buildProportionsRScript(args(c, L.analyseTable(c, "chi2", "holm")));
+  assert(!rc.includes("fisher_exact"), "no helper when unused");
 });
 
 summary();
